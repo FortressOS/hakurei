@@ -24,6 +24,7 @@
                 packages = [
                   clang
                   acl
+                  xorg.libxcb
                   (pkgs.writeShellScriptBin "build" ''
                     go build -v -ldflags '-s -w -X main.Version=flake'
                   '')
