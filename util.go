@@ -7,6 +7,7 @@ import (
 	"io/fs"
 	"os"
 	"os/exec"
+	"path"
 )
 
 const (
@@ -29,9 +30,46 @@ func sdBooted() bool {
 	return true
 }
 
+// Try various ways to discover the current user's PulseAudio authentication cookie.
+func discoverPulseCookie() string {
+	if p, ok := os.LookupEnv(pulseCookie); ok {
+		return p
+	}
+
+	if p, ok := os.LookupEnv(home); ok {
+		p = path.Join(p, ".pulse-cookie")
+		if s, err := os.Stat(p); err != nil {
+			if !errors.Is(err, fs.ErrNotExist) {
+				fatal("Error accessing PulseAudio cookie:", err)
+				// unreachable
+				return p
+			}
+		} else if !s.IsDir() {
+			return p
+		}
+	}
+
+	if p, ok := os.LookupEnv(xdgConfigHome); ok {
+		p = path.Join(p, "pulse", "cookie")
+		if s, err := os.Stat(p); err != nil {
+			if !errors.Is(err, fs.ErrNotExist) {
+				fatal("Error accessing PulseAudio cookie:", err)
+				// unreachable
+				return p
+			}
+		} else if !s.IsDir() {
+			return p
+		}
+	}
+
+	fatal(fmt.Sprintf("Cannot locate PulseAudio cookie (tried $%s, $%s/pulse/cookie, $%s/.pulse-cookie)",
+		pulseCookie, xdgConfigHome, home))
+	return ""
+}
+
 func which(file string) (string, bool) {
-	path, err := exec.LookPath(file)
-	return path, err == nil
+	p, err := exec.LookPath(file)
+	return p, err == nil
 }
 
 func copyFile(dst, src string) error {
