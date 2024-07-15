@@ -156,6 +156,7 @@ func (a *acl) removeEntry(tt C.acl_tag_t, tq int) error {
 			return err
 		} else {
 			q = *(*int)(rq)
+			C.acl_free(rq)
 		}
 
 		// delete on match
