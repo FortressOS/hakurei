@@ -31,7 +31,7 @@
               packages = [
                 (buildGoModule rec {
                   pname = "ego";
-                  version = "flake";
+                  version = "0.0.0-flake";
 
                   src = ./.;
                   vendorHash = null; # we have no dependencies :3

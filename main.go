@@ -16,6 +16,13 @@ import (
 
 var Version = "impure"
 
+func tryVersion() {
+	if printVersion {
+		fmt.Println(Version)
+		os.Exit(0)
+	}
+}
+
 var (
 	ego     *user.User
 	uid     int
@@ -42,7 +49,6 @@ const (
 
 func main() {
 	flag.Parse()
-	tryLauncher()
 	copyArgs()
 
 	if u, err := strconv.Atoi(ego.Uid); err != nil {

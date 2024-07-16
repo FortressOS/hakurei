@@ -25,10 +25,9 @@ func init() {
 }
 
 func copyArgs() {
-	if printVersion {
-		fmt.Println(Version)
-		os.Exit(0)
-	}
+	tryLauncher()
+	tryVersion()
+	tryLicense()
 
 	command = flag.Args()
 
