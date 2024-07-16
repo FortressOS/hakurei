@@ -56,7 +56,11 @@ func main() {
 		fatal("Env variable", xdgRuntimeDir, "unset")
 	} else {
 		runtime = r
+		runDir = path.Join(runtime, "ego")
 	}
+
+	// state query command
+	tryState()
 
 	// Report warning if user home directory does not exist or has wrong ownership
 	if stat, err := os.Stat(ego.HomeDir); err != nil {
@@ -87,9 +91,10 @@ func main() {
 	} else if !s.IsDir() {
 		fatal(fmt.Sprintf("Path '%s' is not a directory", runtime))
 	} else {
-		// Cleanup: need revert
 		if err = aclUpdatePerm(runtime, uid, aclExecute); err != nil {
 			fatal("Error preparing runtime dir:", err)
+		} else {
+			registerRevertPath(runtime)
 		}
 		if verbose {
 			fmt.Printf("Runtime data dir '%s' configured\n", runtime)
@@ -97,15 +102,14 @@ func main() {
 	}
 
 	// Create runtime dir for Ego itself (e.g. `/run/user/%d/ego`) and make it readable for target
-	runDir = path.Join(runtime, "ego")
 	if err := os.Mkdir(runDir, 0700); err != nil && !errors.Is(err, fs.ErrExist) {
 		fatal("Error creating Ego runtime dir:", err)
 	}
-	// Cleanup: need revert
 	if err := aclUpdatePerm(runDir, uid, aclExecute); err != nil {
 		fatal("Error preparing Ego runtime dir:", err)
+	} else {
+		registerRevertPath(runDir)
 	}
-	// Cleanup: need register control PID
 
 	// Add rwx permissions to Wayland socket (e.g. `/run/user/%d/wayland-0`)
 	if w, ok := os.LookupEnv(waylandDisplay); !ok {
@@ -115,9 +119,11 @@ func main() {
 	} else {
 		// add environment variable for new process
 		env = append(env, waylandDisplay+"="+path.Join(runtime, w))
-		// Cleanup: need revert
-		if err := aclUpdatePerm(path.Join(runtime, w), uid, aclRead, aclWrite, aclExecute); err != nil {
+		wp := path.Join(runtime, w)
+		if err := aclUpdatePerm(wp, uid, aclRead, aclWrite, aclExecute); err != nil {
 			fatal(fmt.Sprintf("Error preparing Wayland '%s':", w), err)
+		} else {
+			registerRevertPath(wp)
 		}
 		if verbose {
 			fmt.Printf("Wayland socket '%s' configured\n", w)
@@ -132,12 +138,14 @@ func main() {
 	} else {
 		// add environment variable for new process
 		env = append(env, display+"="+d)
-		// Cleanup: need revert
-		if err := changeHosts(xcbHostModeInsert, xcbFamilyServerInterpreted, "localuser\x00"+ego.Username); err != nil {
-			fatal(fmt.Sprintf("Error adding XHost entry to '%s':", d), err)
-		}
+
 		if verbose {
 			fmt.Printf("X11: Adding XHost entry SI:localuser:%s to display '%s'\n", ego.Username, d)
+		}
+		if err := changeHosts(xcbHostModeInsert, xcbFamilyServerInterpreted, "localuser\x00"+ego.Username); err != nil {
+			fatal(fmt.Sprintf("Error adding XHost entry to '%s':", d), err)
+		} else {
+			xcbActionComplete = true
 		}
 	}
 
@@ -157,9 +165,10 @@ func main() {
 	} else {
 		// add environment variable for new process
 		env = append(env, pulseServer+"=unix:"+pulseS)
-		// Cleanup: need revert
 		if err = aclUpdatePerm(pulse, uid, aclExecute); err != nil {
 			fatal("Error preparing PulseAudio:", err)
+		} else {
+			registerRevertPath(pulse)
 		}
 
 		// Ensure permissions of PulseAudio socket `/run/user/%d/pulse/native`
@@ -184,9 +193,10 @@ func main() {
 		if err = copyFile(pulseCookieFinal, pulseCookieSource); err != nil {
 			fatal("Error copying PulseAudio cookie:", err)
 		}
-		// Cleanup: need revert
 		if err = aclUpdatePerm(pulseCookieFinal, uid, aclRead); err != nil {
 			fatal("Error publishing PulseAudio cookie:", err)
+		} else {
+			registerRevertPath(pulseCookieFinal)
 		}
 
 		if verbose {
@@ -249,7 +259,10 @@ func main() {
 		fatal("Error starting process:", err)
 	}
 
-	// Cleanup: need register
+	if err := registerProcess(ego.Uid, cmd); err != nil {
+		// process already started, shouldn't be fatal
+		fmt.Println("Error registering process:", err)
+	}
 
 	var r int
 	if err := cmd.Wait(); err != nil {
@@ -259,11 +272,10 @@ func main() {
 		}
 	}
 
-	// Cleanup: deregister, call revert
-
 	if verbose {
 		fmt.Println("Process exited with exit code", r)
 	}
+	beforeExit()
 	os.Exit(r)
 }
 
@@ -342,10 +354,4 @@ func launchByMachineCtl(bare bool) (args []string) {
 	args = append(args, innerCommand.String())
 
 	return
-}
-
-func fatal(msg ...any) {
-	// Cleanup: call revert
-	fmt.Println(msg...)
-	os.Exit(1)
 }
