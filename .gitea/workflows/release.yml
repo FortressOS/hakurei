@@ -27,8 +27,8 @@ jobs:
         if: ${{ runner.os == 'Linux' }}
       - name: Build for Linux
         run: >-
-          sh -c "go build -v -ldflags '-s -w -X main.Version=${{ github.ref_name }}' -o bin/ego &&
-          sha256sum --tag -b bin/ego > bin/ego.sha256"
+          sh -c "go build -v -ldflags '-s -w -X main.Version=${{ github.ref_name }}' -o bin/fortify &&
+          sha256sum --tag -b bin/fortify > bin/fortify.sha256"
       - name: Release
         id: use-go-action
         uses: https://gitea.com/actions/release-action@main
