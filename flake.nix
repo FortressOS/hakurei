@@ -1,5 +1,5 @@
 {
-  description = "ego development environment";
+  description = "fortify development environment";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/24.05";
@@ -30,11 +30,11 @@
             mkShell {
               packages = [
                 (buildGoModule rec {
-                  pname = "ego";
+                  pname = "fortify";
                   version = "0.0.0-flake";
 
                   src = ./.;
-                  vendorHash = null; # we have no dependencies :3
+                  vendorHash = null; # we have no Go dependencies :3
 
                   ldflags = [
                     "-s"

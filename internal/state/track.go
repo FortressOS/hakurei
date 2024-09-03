@@ -1,4 +1,4 @@
-package main
+package state
 
 import (
 	"encoding/gob"
@@ -10,6 +10,8 @@ import (
 	"os/exec"
 	"path"
 	"strconv"
+
+	"git.ophivana.moe/cat/fortify/internal/system"
 )
 
 // we unfortunately have to assume there are never races between processes
@@ -33,7 +35,7 @@ func init() {
 	flag.BoolVar(&stateActionEarly, "state", false, "query state value of current active launchers")
 }
 
-func tryState() {
+func Early() {
 	if !stateActionEarly {
 		return
 	}
@@ -52,13 +54,9 @@ func tryState() {
 	os.Exit(0)
 }
 
-func registerRevertPath(p string) {
-	cleanupCandidate = append(cleanupCandidate, p)
-}
-
-// called after process start, before wait
-func registerProcess(uid string, cmd *exec.Cmd) error {
-	statePath = path.Join(runDir, uid, strconv.Itoa(cmd.Process.Pid))
+// SaveProcess called after process start, before wait
+func SaveProcess(uid string, cmd *exec.Cmd) error {
+	statePath = path.Join(system.V.RunDir, uid, strconv.Itoa(cmd.Process.Pid))
 	state := launcherState{
 		PID:      cmd.Process.Pid,
 		Launcher: cmd.Path,
@@ -66,7 +64,7 @@ func registerProcess(uid string, cmd *exec.Cmd) error {
 		Command:  command,
 	}
 
-	if err := os.Mkdir(path.Join(runDir, uid), 0700); err != nil && !errors.Is(err, fs.ErrExist) {
+	if err := os.Mkdir(path.Join(system.V.RunDir, uid), 0700); err != nil && !errors.Is(err, fs.ErrExist) {
 		return err
 	}
 
@@ -86,7 +84,7 @@ func registerProcess(uid string, cmd *exec.Cmd) error {
 func readLaunchers() ([]*launcherState, error) {
 	var f *os.File
 	var r []*launcherState
-	launcherPrefix := path.Join(runDir, ego.Uid)
+	launcherPrefix := path.Join(system.V.RunDir, u.Uid)
 
 	if pl, err := os.ReadDir(launcherPrefix); err != nil {
 		return nil, err
@@ -114,49 +112,4 @@ func readLaunchers() ([]*launcherState, error) {
 	}
 
 	return r, nil
-}
-
-func beforeExit() {
-	if err := os.Remove(statePath); err != nil && !errors.Is(err, fs.ErrNotExist) {
-		fmt.Println("Error removing state file:", err)
-	}
-
-	if a, err := readLaunchers(); err != nil {
-		fmt.Println("Error reading active launchers:", err)
-		os.Exit(1)
-	} else if len(a) > 0 {
-		// other launchers are still active
-		if verbose {
-			fmt.Printf("Found %d active launchers, exiting without cleaning up\n", len(a))
-		}
-		return
-	}
-
-	if verbose {
-		fmt.Println("No other launchers active, will clean up")
-	}
-
-	if xcbActionComplete {
-		if verbose {
-			fmt.Printf("X11: Removing XHost entry SI:localuser:%s\n", ego.Username)
-		}
-		if err := changeHosts(xcbHostModeDelete, xcbFamilyServerInterpreted, "localuser\x00"+ego.Username); err != nil {
-			fmt.Println("Error removing XHost entry:", err)
-		}
-	}
-
-	for _, candidate := range cleanupCandidate {
-		if err := aclUpdatePerm(candidate, uid); err != nil {
-			fmt.Printf("Error stripping ACL entry from '%s': %s\n", candidate, err)
-		}
-		if verbose {
-			fmt.Printf("Stripped ACL entry for user '%s' from '%s'\n", ego.Username, candidate)
-		}
-	}
-}
-
-func fatal(msg ...any) {
-	fmt.Println(msg...)
-	beforeExit()
-	os.Exit(1)
 }

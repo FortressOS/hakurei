@@ -1,4 +1,4 @@
-package main
+package acl
 
 import (
 	"errors"
@@ -13,86 +13,9 @@ import (
 //#cgo linux LDFLAGS: -lacl
 import "C"
 
-const (
-	aclRead    = C.ACL_READ
-	aclWrite   = C.ACL_WRITE
-	aclExecute = C.ACL_EXECUTE
-
-	aclTypeDefault = C.ACL_TYPE_DEFAULT
-	aclTypeAccess  = C.ACL_TYPE_ACCESS
-
-	aclUndefinedTag = C.ACL_UNDEFINED_TAG
-	aclUserObj      = C.ACL_USER_OBJ
-	aclUser         = C.ACL_USER
-	aclGroupObj     = C.ACL_GROUP_OBJ
-	aclGroup        = C.ACL_GROUP
-	aclMask         = C.ACL_MASK
-	aclOther        = C.ACL_OTHER
-)
-
 type acl struct {
 	val   C.acl_t
 	freed bool
-}
-
-func aclUpdatePerm(path string, uid int, perms ...C.acl_perm_t) error {
-	// read acl from file
-	a, err := aclGetFile(path, aclTypeAccess)
-	if err != nil {
-		return err
-	}
-	// free acl on return if get is successful
-	defer a.free()
-
-	// remove existing entry
-	if err = a.removeEntry(aclUser, uid); err != nil {
-		return err
-	}
-
-	// create new entry if perms are passed
-	if len(perms) > 0 {
-		// create new acl entry
-		var e C.acl_entry_t
-		if _, err = C.acl_create_entry(&a.val, &e); err != nil {
-			return err
-		}
-
-		// get perm set of new entry
-		var p C.acl_permset_t
-		if _, err = C.acl_get_permset(e, &p); err != nil {
-			return err
-		}
-
-		// add target perms
-		for _, perm := range perms {
-			if _, err = C.acl_add_perm(p, perm); err != nil {
-				return err
-			}
-		}
-
-		// set perm set to new entry
-		if _, err = C.acl_set_permset(e, p); err != nil {
-			return err
-		}
-
-		// set user tag to new entry
-		if _, err = C.acl_set_tag_type(e, aclUser); err != nil {
-			return err
-		}
-
-		// set qualifier (uid) to new entry
-		if _, err = C.acl_set_qualifier(e, unsafe.Pointer(&uid)); err != nil {
-			return err
-		}
-	}
-
-	// calculate mask after update
-	if _, err = C.acl_calc_mask(&a.val); err != nil {
-		return err
-	}
-
-	// write acl to file
-	return a.setFile(path, aclTypeAccess)
 }
 
 func aclGetFile(path string, t C.acl_type_t) (*acl, error) {
