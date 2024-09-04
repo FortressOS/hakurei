@@ -1,56 +1,41 @@
 {
-  description = "fortify development environment";
+  description = "fortify sandbox tool and nixos module";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/24.05";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable-small";
   };
 
   outputs =
     { self, nixpkgs }:
     let
-      supportedSystems = [ "x86_64-linux" ];
-      forAllSystems = f: nixpkgs.lib.genAttrs supportedSystems (system: f system);
+      supportedSystems = [
+        "aarch64-linux"
+        "i686-linux"
+        "x86_64-linux"
+      ];
+
+      forAllSystems = nixpkgs.lib.genAttrs supportedSystems;
+      nixpkgsFor = forAllSystems (system: import nixpkgs { inherit system; });
     in
     {
-      devShells = forAllSystems (
+      nixosModules.fortify = import ./nixos.nix;
+
+      packages = forAllSystems (
         system:
         let
-          pkgs = import nixpkgs { inherit system; };
+          pkgs = nixpkgsFor.${system};
         in
         {
-          default =
-            let
-              inherit (pkgs)
-                mkShell
-                buildGoModule
-                acl
-                xorg
-                ;
-            in
-            mkShell {
-              packages = [
-                (buildGoModule rec {
-                  pname = "fortify";
-                  version = "0.0.0-flake";
+          default = self.packages.${system}.fortify;
 
-                  src = ./.;
-                  vendorHash = null; # we have no Go dependencies :3
-
-                  ldflags = [
-                    "-s"
-                    "-w"
-                    "-X"
-                    "main.Version=v${version}"
-                  ];
-
-                  buildInputs = [
-                    acl
-                    xorg.libxcb
-                  ];
-                })
-              ];
-            };
+          fortify = pkgs.callPackage ./package.nix { };
         }
       );
+
+      devShells = forAllSystems (system: {
+        default = nixpkgsFor.${system}.mkShell {
+          buildInputs = with nixpkgsFor.${system}; [ self.packages.${system}.fortify ];
+        };
+      });
     };
 }
