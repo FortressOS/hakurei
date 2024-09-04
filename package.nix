@@ -6,7 +6,7 @@
 
 buildGoModule rec {
   pname = "fortify";
-  version = "1.0.3";
+  version = "1.0.4";
 
   src = ./.;
   vendorHash = null;
