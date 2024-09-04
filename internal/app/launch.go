@@ -60,6 +60,8 @@ func Early(printVersion bool) {
 					fmt.Println("No command was specified and $SHELL was unset")
 					os.Exit(1)
 				}
+
+				argv = []string{p}
 			}
 
 			if err := syscall.Exec(p, argv, os.Environ()); err != nil {
