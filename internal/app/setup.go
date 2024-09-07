@@ -4,13 +4,11 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"os/exec"
 	"os/user"
 	"strconv"
 
 	"git.ophivana.moe/cat/fortify/internal/state"
 	"git.ophivana.moe/cat/fortify/internal/system"
-	"git.ophivana.moe/cat/fortify/internal/util"
 )
 
 type App struct {
@@ -18,78 +16,19 @@ type App struct {
 	env     []string
 	command []string
 
+	enablements state.Enablements
 	*user.User
+
+	// absolutely *no* method of this type is thread-safe
+	// so don't treat it as if it is
 }
 
-func (a *App) Run() {
-	f := a.launchBySudo
-	m, b := false, false
-	switch {
-	case system.MethodFlags[0]: // sudo
-	case system.MethodFlags[1]: // bare
-		m, b = true, true
-	default: // machinectl
-		m, b = true, false
+func (a *App) setEnablement(e state.Enablement) {
+	if a.enablements.Has(e) {
+		panic("enablement " + e.String() + " set twice")
 	}
 
-	var toolPath string
-
-	// dependency checks
-	const sudoFallback = "Falling back to 'sudo', some desktop integration features may not work"
-	if m {
-		if !util.SdBooted() {
-			fmt.Println("This system was not booted through systemd")
-			fmt.Println(sudoFallback)
-		} else if tp, ok := util.Which("machinectl"); !ok {
-			fmt.Println("Did not find 'machinectl' in PATH")
-			fmt.Println(sudoFallback)
-		} else {
-			toolPath = tp
-			f = func() []string { return a.launchByMachineCtl(b) }
-		}
-	} else if tp, ok := util.Which("sudo"); !ok {
-		state.Fatal("Did not find 'sudo' in PATH")
-	} else {
-		toolPath = tp
-	}
-
-	if system.V.Verbose {
-		fmt.Printf("Selected launcher '%s' bare=%t\n", toolPath, b)
-	}
-
-	cmd := exec.Command(toolPath, f()...)
-	cmd.Env = a.env
-	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	cmd.Dir = system.V.RunDir
-
-	if system.V.Verbose {
-		fmt.Println("Executing:", cmd)
-	}
-
-	if err := cmd.Start(); err != nil {
-		state.Fatal("Error starting process:", err)
-	}
-
-	if err := state.SaveProcess(a.Uid, cmd); err != nil {
-		// process already started, shouldn't be fatal
-		fmt.Println("Error registering process:", err)
-	}
-
-	var r int
-	if err := cmd.Wait(); err != nil {
-		var exitError *exec.ExitError
-		if !errors.As(err, &exitError) {
-			state.Fatal("Error running process:", err)
-		}
-	}
-
-	if system.V.Verbose {
-		fmt.Println("Process exited with exit code", r)
-	}
-	state.BeforeExit()
-	os.Exit(r)
+	a.enablements |= e.Mask()
 }
 
 func New(userName string, args []string) *App {

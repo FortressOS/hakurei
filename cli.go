@@ -3,21 +3,33 @@ package main
 import (
 	"flag"
 
-	"git.ophivana.moe/cat/fortify/internal/system"
+	"git.ophivana.moe/cat/fortify/internal/app"
 )
 
 var (
-	userName     string
-	printVersion bool
-	mustPulse    bool
+	userName string
+
+	mustWayland bool
+	mustX       bool
+	mustDBus    bool
+	mustPulse   bool
+
 	flagVerbose  bool
+	printVersion bool
 )
 
 func init() {
 	flag.StringVar(&userName, "u", "chronos", "Specify a username")
-	flag.BoolVar(&system.MethodFlags[0], "sudo", false, "Use 'sudo' to change user")
-	flag.BoolVar(&system.MethodFlags[1], "bare", false, "Use 'machinectl' but skip xdg-desktop-portal setup")
-	flag.BoolVar(&mustPulse, "pulse", false, "Treat unavailable PulseAudio as fatal")
+
+	flag.BoolVar(&mustWayland, "wayland", false, "Share Wayland socket")
+	flag.BoolVar(&mustX, "X", false, "Share X11 socket and allow connection")
+	flag.BoolVar(&mustDBus, "dbus", false, "Proxy D-Bus connection")
+	flag.BoolVar(&mustPulse, "pulse", false, "Share PulseAudio socket and cookie")
+
+	flag.BoolVar(&app.LaunchOptions[app.LaunchMethodSudo], "sudo", false, "Use 'sudo' to switch user")
+	flag.BoolVar(&app.LaunchOptions[app.LaunchMethodMachineCtl], "machinectl", true, "Use 'machinectl' to switch user")
+	flag.BoolVar(&app.LaunchOptions[app.LaunchBare], "bare", false, "Only set environment variables for child")
+
 	flag.BoolVar(&flagVerbose, "v", false, "Verbose output")
 	flag.BoolVar(&printVersion, "V", false, "Print version")
 }

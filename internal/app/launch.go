@@ -10,14 +10,10 @@ import (
 	"syscall"
 
 	"git.ophivana.moe/cat/fortify/internal/state"
-	"git.ophivana.moe/cat/fortify/internal/system"
 	"git.ophivana.moe/cat/fortify/internal/util"
 )
 
-const (
-	sudoAskPass     = "SUDO_ASKPASS"
-	launcherPayload = "FORTIFY_LAUNCHER_PAYLOAD"
-)
+const launcherPayload = "FORTIFY_LAUNCHER_PAYLOAD"
 
 func (a *App) launcherPayloadEnv() string {
 	r := &bytes.Buffer{}
@@ -74,81 +70,4 @@ func Early(printVersion bool) {
 			return
 		}
 	}
-}
-
-func (a *App) launchBySudo() (args []string) {
-	args = make([]string, 0, 4+len(a.env)+len(a.command))
-
-	// -Hiu $USER
-	args = append(args, "-Hiu", a.Username)
-
-	// -A?
-	if _, ok := os.LookupEnv(sudoAskPass); ok {
-		if system.V.Verbose {
-			fmt.Printf("%s set, adding askpass flag\n", sudoAskPass)
-		}
-		args = append(args, "-A")
-	}
-
-	// environ
-	args = append(args, a.env...)
-
-	// -- $@
-	args = append(args, "--")
-	args = append(args, a.command...)
-
-	return
-}
-
-func (a *App) launchByMachineCtl(bare bool) (args []string) {
-	args = make([]string, 0, 9+len(a.env))
-
-	// shell --uid=$USER
-	args = append(args, "shell", "--uid="+a.Username)
-
-	// --quiet
-	if !system.V.Verbose {
-		args = append(args, "--quiet")
-	}
-
-	// environ
-	envQ := make([]string, len(a.env)+1)
-	for i, e := range a.env {
-		envQ[i] = "-E" + e
-	}
-	envQ[len(a.env)] = "-E" + a.launcherPayloadEnv()
-	args = append(args, envQ...)
-
-	// -- .host
-	args = append(args, "--", ".host")
-
-	// /bin/sh -c
-	if sh, ok := util.Which("sh"); !ok {
-		state.Fatal("Did not find 'sh' in PATH")
-	} else {
-		args = append(args, sh, "-c")
-	}
-
-	if len(a.command) == 0 { // execute shell if command is not provided
-		a.command = []string{"$SHELL"}
-	}
-
-	innerCommand := strings.Builder{}
-
-	if !bare {
-		innerCommand.WriteString("dbus-update-activation-environment --systemd")
-		for _, e := range a.env {
-			innerCommand.WriteString(" " + strings.SplitN(e, "=", 2)[0])
-		}
-		innerCommand.WriteString("; systemctl --user start xdg-desktop-portal-gtk; ")
-	}
-
-	if executable, err := os.Executable(); err != nil {
-		state.Fatal("Error reading executable path:", err)
-	} else {
-		innerCommand.WriteString("exec " + executable + " -V")
-	}
-	args = append(args, innerCommand.String())
-
-	return
 }

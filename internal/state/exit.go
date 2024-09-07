@@ -33,7 +33,7 @@ func BeforeExit() {
 		}
 	}
 
-	if d, err := readLaunchers(); err != nil {
+	if d, err := readLaunchers(u.Uid); err != nil {
 		fmt.Println("Error reading active launchers:", err)
 		os.Exit(1)
 	} else if len(d) > 0 {

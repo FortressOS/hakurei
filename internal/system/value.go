@@ -11,7 +11,4 @@ type Values struct {
 	Verbose bool
 }
 
-var (
-	V           *Values
-	MethodFlags [2]bool
-)
+var V *Values
