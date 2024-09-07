@@ -63,12 +63,38 @@ in
                       '';
                     };
 
-                    pulse = mkOption {
-                      type = bool;
-                      default = true;
-                      description = ''
-                        Whether to share the PulseAudio socket and cookie.
-                      '';
+                    capability = {
+                      wayland = mkOption {
+                        type = bool;
+                        default = true;
+                        description = ''
+                          Whether to share the Wayland socket.
+                        '';
+                      };
+
+                      x11 = mkOption {
+                        type = bool;
+                        default = false;
+                        description = ''
+                          Whether to share the X11 socket and allow connection.
+                        '';
+                      };
+
+                      dbus = mkOption {
+                        type = bool;
+                        default = false;
+                        description = ''
+                          Whether to proxy D-Bus.
+                        '';
+                      };
+
+                      pulse = mkOption {
+                        type = bool;
+                        default = true;
+                        description = ''
+                          Whether to share the PulseAudio socket and cookie.
+                        '';
+                      };
                     };
 
                     share = mkOption {
@@ -164,8 +190,15 @@ in
               user: launchers:
               mapAttrsToList (
                 name: launcher:
+                with launcher.capability;
                 let
                   command = if launcher.command == null then name else launcher.command;
+                  capArgs =
+                    (if wayland then " -wayland" else "")
+                    + (if x11 then " -X" else "")
+                    + (if dbus then " -dbus" else "")
+                    + (if pulse then " -pulse" else "")
+                    + (if launcher.method == "fortify-sudo" then " -sudo" else "");
                 in
                 pkgs.writeShellScriptBin name (
                   if launcher.method == "sudo" then
@@ -174,9 +207,7 @@ in
                     ''
                   else
                     ''
-                      exec fortify${if launcher.pulse then " -pulse" else ""} -u ${user}${
-                        if launcher.method == "fortify-sudo" then " -sudo" else ""
-                      } ${cfg.shell} -c "exec ${command} $@"
+                      exec fortify${capArgs} -u ${user} ${cfg.shell} -c "exec ${command} $@"
                     ''
                 )
               ) launchers;

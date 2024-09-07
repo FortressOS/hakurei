@@ -75,7 +75,7 @@ This adds the `environment.fortify` option:
       chronos = {
         launchers = {
           weechat.method = "sudo";
-          claws-mail.pulse = false;
+          claws-mail.capability.pulse = false;
           discord = {
             command = "vesktop --ozone-platform-hint=wayland";
             share = pkgs.vesktop;
@@ -125,7 +125,13 @@ This adds the `environment.fortify` option:
 
         * `command`, the command to run as the target user. Defaults to launcher name.
 
-        * `pulse`, whether to share the PulseAudio socket and cookie.
+        * `capability.wayland`, whether to share the Wayland socket.
+
+        * `capability.x11`, whether to share the X11 socket and allow connection.
+
+        * `capability.dbus`, whether to proxy D-Bus. NOTE: this option is subject to change and should not be used
+
+        * `capability.pulse`, whether to share the PulseAudio socket and cookie.
 
         * `share`, package containing desktop/icon files. Defaults to launcher name.
 
