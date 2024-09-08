@@ -76,15 +76,31 @@ This adds the `environment.fortify` option:
         launchers = {
           weechat.method = "sudo";
           claws-mail.capability.pulse = false;
+
           discord = {
             command = "vesktop --ozone-platform-hint=wayland";
             share = pkgs.vesktop;
+          };
+
+          chromium.dbus.config = {
+            talk = [
+              "org.freedesktop.DBus"
+              "org.freedesktop.portal.*"
+              "org.freedesktop.FileManager1"
+              "org.freedesktop.Notifications"
+              "org.freedesktop.ScreenSaver"
+            ];
+            own = [
+              "org.chromium.Chromium"
+              "org.mpris.MediaPlayer2.chromium.*"
+            ];
           };
         };
         packages = with pkgs; [
           weechat
           claws-mail
           vesktop
+          chromium
         ];
         persistence.directories = [
           ".config/weechat"
@@ -125,11 +141,17 @@ This adds the `environment.fortify` option:
 
         * `command`, the command to run as the target user. Defaults to launcher name.
 
+        * `dbus.config`, D-Bus proxy custom configuration.
+
+        * `dbus.id`, D-Bus application id, has no effect if `dbus.config` is set.
+
+        * `dbus.mpris`, whether to enable MPRIS defaults, has no effect if `dbus.config` is set.
+
         * `capability.wayland`, whether to share the Wayland socket.
 
         * `capability.x11`, whether to share the X11 socket and allow connection.
 
-        * `capability.dbus`, whether to proxy D-Bus. NOTE: this option is subject to change and should not be used
+        * `capability.dbus`, whether to proxy D-Bus.
 
         * `capability.pulse`, whether to share the PulseAudio socket and cookie.
 
