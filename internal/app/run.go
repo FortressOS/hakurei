@@ -20,7 +20,6 @@ const (
 	LaunchMethodSudo = iota
 	LaunchMethodMachineCtl
 
-	LaunchBare
 	launchOptionLength
 )
 
@@ -59,10 +58,10 @@ func (a *App) Run() {
 	}
 
 	if system.V.Verbose {
-		fmt.Printf("Selected launcher '%s' bare=%t\n", toolPath, LaunchOptions[LaunchBare])
+		fmt.Printf("Selected launcher '%s'\n", toolPath)
 	}
 
-	cmd := exec.Command(toolPath, commandBuilder(LaunchOptions[LaunchBare])...)
+	cmd := exec.Command(toolPath, commandBuilder()...)
 	cmd.Env = a.env
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
@@ -99,7 +98,7 @@ func (a *App) Run() {
 	os.Exit(r)
 }
 
-func (a *App) commandBuilderSudo(bare bool) (args []string) {
+func (a *App) commandBuilderSudo() (args []string) {
 	args = make([]string, 0, 4+len(a.env)+len(a.command))
 
 	// -Hiu $USER
@@ -123,7 +122,7 @@ func (a *App) commandBuilderSudo(bare bool) (args []string) {
 	return
 }
 
-func (a *App) commandBuilderMachineCtl(bare bool) (args []string) {
+func (a *App) commandBuilderMachineCtl() (args []string) {
 	args = make([]string, 0, 9+len(a.env))
 
 	// shell --uid=$USER
@@ -158,14 +157,11 @@ func (a *App) commandBuilderMachineCtl(bare bool) (args []string) {
 
 	innerCommand := strings.Builder{}
 
-	if !bare {
-		innerCommand.WriteString("dbus-update-activation-environment --systemd")
-		for _, e := range a.env {
-			innerCommand.WriteString(" " + strings.SplitN(e, "=", 2)[0])
-		}
-		innerCommand.WriteString("; ")
-		//innerCommand.WriteString("systemctl --user start xdg-desktop-portal-gtk; ")
+	innerCommand.WriteString("dbus-update-activation-environment --systemd")
+	for _, e := range a.env {
+		innerCommand.WriteString(" " + strings.SplitN(e, "=", 2)[0])
 	}
+	innerCommand.WriteString("; ")
 
 	if executable, err := os.Executable(); err != nil {
 		state.Fatal("Error reading executable path:", err)

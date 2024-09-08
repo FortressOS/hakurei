@@ -28,7 +28,6 @@ func init() {
 
 	flag.BoolVar(&app.LaunchOptions[app.LaunchMethodSudo], "sudo", false, "Use 'sudo' to switch user")
 	flag.BoolVar(&app.LaunchOptions[app.LaunchMethodMachineCtl], "machinectl", true, "Use 'machinectl' to switch user")
-	flag.BoolVar(&app.LaunchOptions[app.LaunchBare], "bare", false, "Only set environment variables for child")
 
 	flag.BoolVar(&flagVerbose, "v", false, "Verbose output")
 	flag.BoolVar(&printVersion, "V", false, "Print version")
