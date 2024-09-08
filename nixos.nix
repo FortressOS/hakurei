@@ -63,6 +63,35 @@ in
                       '';
                     };
 
+                    dbus = {
+                      config = mkOption {
+                        type = nullOr anything;
+                        default = null;
+                        description = ''
+                          D-Bus custom configuration.
+                          Setting this to null will enable built-in defaults.
+                        '';
+                      };
+
+                      id = mkOption {
+                        type = nullOr str;
+                        default = null;
+                        description = ''
+                          D-Bus application id.
+                          Setting this to null will disable own path in defaults.
+                          Has no effect if custom configuration is set.
+                        '';
+                      };
+
+                      mpris = mkOption {
+                        type = bool;
+                        default = false;
+                        description = ''
+                          Whether to enable MPRIS in D-Bus defaults.
+                        '';
+                      };
+                    };
+
                     capability = {
                       wayland = mkOption {
                         type = bool;
@@ -82,7 +111,7 @@ in
 
                       dbus = mkOption {
                         type = bool;
-                        default = false;
+                        default = true;
                         description = ''
                           Whether to proxy D-Bus.
                         '';
@@ -193,11 +222,19 @@ in
                 with launcher.capability;
                 let
                   command = if launcher.command == null then name else launcher.command;
+                  dbusConfig =
+                    if launcher.dbus.config != null then
+                      pkgs.writeText "${name}-dbus.json" (builtins.toJSON launcher.dbus.config)
+                    else
+                      null;
                   capArgs =
                     (if wayland then " -wayland" else "")
                     + (if x11 then " -X" else "")
                     + (if dbus then " -dbus" else "")
                     + (if pulse then " -pulse" else "")
+                    + (if launcher.dbus.mpris then " -mpris" else "")
+                    + (if launcher.dbus.id != null then " -dbus-id ${dbus.id}" else "")
+                    + (if dbusConfig != null then " -dbus-config ${dbusConfig}" else "")
                     + (if launcher.method == "fortify-sudo" then " -sudo" else "");
                 in
                 pkgs.writeShellScriptBin name (
