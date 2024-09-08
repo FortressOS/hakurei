@@ -23,6 +23,7 @@ func (a *App) ShareDBus(c *dbus.Config) {
 
 	var binPath, address string
 	target := path.Join(system.V.Share, strconv.Itoa(os.Getpid()))
+	dbusAddress = "unix:path=" + target
 
 	if b, ok := util.Which("xdg-dbus-proxy"); !ok {
 		state.Fatal("D-Bus: Did not find 'xdg-dbus-proxy' in PATH")
@@ -74,7 +75,6 @@ func (a *App) ShareDBus(c *dbus.Config) {
 
 	// register early to enable Fatal cleanup
 	state.RegisterDBus(p, &done)
-	dbusAddress = "unix:path=" + target
 
 	if !<-ready {
 		state.Fatal("D-Bus: proxy did not start correctly")
