@@ -1,7 +1,10 @@
 {
+  lib,
+  buildGoModule,
+  makeBinaryWrapper,
+  xdg-dbus-proxy,
   acl,
   xorg,
-  buildGoModule,
 }:
 
 buildGoModule rec {
@@ -22,4 +25,10 @@ buildGoModule rec {
     acl
     xorg.libxcb
   ];
+
+  nativeBuildInputs = [ makeBinaryWrapper ];
+
+  postInstall = ''
+    wrapProgram $out/bin/${pname} --prefix PATH : ${lib.makeBinPath [ xdg-dbus-proxy ]}
+  '';
 }
