@@ -3,15 +3,11 @@ package state
 import (
 	"encoding/gob"
 	"errors"
-	"flag"
-	"fmt"
 	"io/fs"
 	"os"
 	"os/exec"
 	"path"
 	"strconv"
-	"strings"
-	"text/tabwriter"
 
 	"git.ophivana.moe/cat/fortify/internal/system"
 )
@@ -20,11 +16,7 @@ import (
 // this and launcher should eventually be replaced by a server process
 
 var (
-	stateActionEarly  bool
-	statePath         string
-	cleanupCandidate  []string
-	xcbActionComplete bool
-	enablements       *Enablements
+	statePath string
 )
 
 type launcherState struct {
@@ -33,55 +25,6 @@ type launcherState struct {
 	Argv       []string
 	Command    []string
 	Capability Enablements
-}
-
-func init() {
-	flag.BoolVar(&stateActionEarly, "state", false, "query state value of current active launchers")
-}
-
-func Early() {
-	if !stateActionEarly {
-		return
-	}
-
-	launchers, err := readLaunchers(u.Uid)
-	if err != nil {
-		fmt.Println("Error reading launchers:", err)
-		os.Exit(1)
-	}
-
-	stdout := tabwriter.NewWriter(os.Stdout, 0, 1, 4, ' ', 0)
-	if !system.V.Verbose {
-		_, _ = fmt.Fprintln(stdout, "\tPID\tEnablements\tLauncher\tCommand")
-	} else {
-		_, _ = fmt.Fprintln(stdout, "\tPID\tArgv")
-	}
-
-	for _, state := range launchers {
-		enablementsDescription := strings.Builder{}
-		for i := Enablement(0); i < enableLength; i++ {
-			if state.Capability.Has(i) {
-				enablementsDescription.WriteString(", " + i.String())
-			}
-		}
-		if enablementsDescription.Len() == 0 {
-			enablementsDescription.WriteString("none")
-		}
-
-		if !system.V.Verbose {
-			_, _ = fmt.Fprintf(stdout, "\t%d\t%s\t%s\t%s\n",
-				state.PID, strings.TrimPrefix(enablementsDescription.String(), ", "), state.Launcher,
-				state.Command)
-		} else {
-			_, _ = fmt.Fprintf(stdout, "\t%d\t%s\n",
-				state.PID, state.Argv)
-		}
-	}
-	if err = stdout.Flush(); err != nil {
-		fmt.Println("warn: error formatting output:", err)
-	}
-
-	os.Exit(0)
 }
 
 // SaveProcess called after process start, before wait

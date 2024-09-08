@@ -1,5 +1,11 @@
 package state
 
+var (
+	cleanupCandidate  []string
+	enablements       *Enablements
+	xcbActionComplete bool
+)
+
 func RegisterRevertPath(p string) {
 	cleanupCandidate = append(cleanupCandidate, p)
 }
