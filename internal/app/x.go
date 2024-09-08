@@ -16,9 +16,7 @@ func (a *App) ShareX() {
 
 	// discovery X11 and grant user permission via the `ChangeHosts` command
 	if d, ok := os.LookupEnv(display); !ok {
-		if system.V.Verbose {
-			fmt.Println("X11: DISPLAY not set, skipping")
-		}
+		state.Fatal("X11: DISPLAY not set")
 	} else {
 		// add environment variable for new process
 		a.AppendEnv(display, d)

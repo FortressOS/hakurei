@@ -20,9 +20,7 @@ func (a *App) ShareWayland() {
 
 	// ensure Wayland socket ACL (e.g. `/run/user/%d/wayland-%d`)
 	if w, ok := os.LookupEnv(waylandDisplay); !ok {
-		if system.V.Verbose {
-			fmt.Println("Wayland: WAYLAND_DISPLAY not set, skipping")
-		}
+		state.Fatal("Wayland: WAYLAND_DISPLAY not set")
 	} else {
 		// add environment variable for new process
 		wp := path.Join(system.V.Runtime, w)
