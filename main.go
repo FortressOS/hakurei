@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
@@ -9,6 +10,7 @@ import (
 	"strconv"
 	"syscall"
 
+	"git.ophivana.moe/cat/fortify/dbus"
 	"git.ophivana.moe/cat/fortify/internal/acl"
 	"git.ophivana.moe/cat/fortify/internal/app"
 	"git.ophivana.moe/cat/fortify/internal/state"
@@ -17,7 +19,9 @@ import (
 
 var (
 	Version = "impure"
-	a       *app.App
+
+	a *app.App
+	c *dbus.Config
 )
 
 func tryVersion() {
@@ -40,6 +44,21 @@ func main() {
 	system.Retrieve(flagVerbose)
 	a = app.New(userName, flag.Args())
 	state.Set(*a.User, a.Command(), a.UID())
+
+	// parse D-Bus config file if applicable
+	if mustDBus {
+		if dbusConfig == "builtin" {
+			c = dbus.NewConfig(dbusID, true, mpris)
+		} else {
+			if f, err := os.Open(dbusConfig); err != nil {
+				state.Fatal("Error opening D-Bus proxy config file:", err)
+			} else {
+				if err = json.NewDecoder(f).Decode(&c); err != nil {
+					state.Fatal("Error parsing D-Bus proxy config file:", err)
+				}
+			}
+		}
+	}
 
 	// ensure RunDir (e.g. `/run/user/%d/fortify`)
 	if err := os.Mkdir(system.V.RunDir, 0700); err != nil && !errors.Is(err, fs.ErrExist) {
@@ -103,7 +122,7 @@ func main() {
 	}
 
 	if mustDBus {
-		a.ShareDBus()
+		a.ShareDBus(c)
 	}
 
 	if mustPulse {

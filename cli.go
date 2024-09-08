@@ -7,7 +7,10 @@ import (
 )
 
 var (
-	userName string
+	userName   string
+	dbusConfig string
+	dbusID     string
+	mpris      bool
 
 	mustWayland bool
 	mustX       bool
@@ -19,7 +22,10 @@ var (
 )
 
 func init() {
-	flag.StringVar(&userName, "u", "chronos", "Specify a username")
+	flag.StringVar(&userName, "u", "chronos", "Passwd name of user to run as")
+	flag.StringVar(&dbusConfig, "dbus-config", "builtin", "Path to D-Bus proxy config file, or \"builtin\" for defaults")
+	flag.StringVar(&dbusID, "dbus-id", "", "D-Bus ID of application, leave empty to disable own paths, has no effect if custom config is available")
+	flag.BoolVar(&mpris, "mpris", false, "Allow owning MPRIS D-Bus path, has no effect if custom config is available")
 
 	flag.BoolVar(&mustWayland, "wayland", false, "Share Wayland socket")
 	flag.BoolVar(&mustX, "X", false, "Share X11 socket and allow connection")

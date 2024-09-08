@@ -65,4 +65,23 @@ func BeforeExit() {
 			fmt.Printf("Stripped ACL entry for user '%s' from '%s'\n", u.Username, candidate)
 		}
 	}
+
+	if dbusProxy != nil {
+		if system.V.Verbose {
+			fmt.Println("D-Bus proxy registered, cleaning up")
+		}
+
+		if err := dbusProxy.Close(); err != nil {
+			if errors.Is(err, os.ErrClosed) {
+				if system.V.Verbose {
+					fmt.Println("D-Bus proxy already closed")
+				}
+			} else {
+				fmt.Println("Error closing D-Bus proxy:", err)
+			}
+		}
+
+		// wait for Proxy.Wait to return
+		<-*dbusDone
+	}
 }
