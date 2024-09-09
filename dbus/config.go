@@ -1,16 +1,24 @@
 package dbus
 
 type Config struct {
-	See  []string `json:"see"`
+	// See set 'see' policy for NAME (--see=NAME)
+	See []string `json:"see"`
+	// Talk set 'talk' policy for NAME (--talk=NAME)
 	Talk []string `json:"talk"`
-	Own  []string `json:"own"`
+	// Own set 'own' policy for NAME (--own=NAME)
+	Own []string `json:"own"`
+
+	// Call set RULE for calls on NAME (--call=NAME=RULE)
+	Call map[string]string `json:"call"`
+	// Broadcast set RULE for broadcasts from NAME (--broadcast=NAME=RULE)
+	Broadcast map[string]string `json:"broadcast"`
 
 	Log    bool `json:"log,omitempty"`
 	Filter bool `json:"filter"`
 }
 
 func (c *Config) Args(address, path string) (args []string) {
-	argc := 2 + len(c.See) + len(c.Talk) + len(c.Own)
+	argc := 2 + len(c.See) + len(c.Talk) + len(c.Own) + len(c.Call) + len(c.Broadcast)
 	if c.Log {
 		argc++
 	}
@@ -28,6 +36,12 @@ func (c *Config) Args(address, path string) (args []string) {
 	}
 	for _, name := range c.Own {
 		args = append(args, "--own="+name)
+	}
+	for name, rule := range c.Call {
+		args = append(args, "--call="+name+"="+rule)
+	}
+	for name, rule := range c.Broadcast {
+		args = append(args, "--broadcast="+name+"="+rule)
 	}
 	if c.Log {
 		args = append(args, "--log")
