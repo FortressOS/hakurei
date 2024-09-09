@@ -56,15 +56,23 @@ func (c *Config) Args(address, path string) (args []string) {
 // NewConfig returns a reference to a Config struct with optional defaults.
 // If id is an empty string own defaults are omitted.
 func NewConfig(id string, defaults, mpris bool) (c *Config) {
-	c = &Config{Filter: true}
+	c = &Config{
+		Call:      make(map[string]string),
+		Broadcast: make(map[string]string),
+
+		Filter: true,
+	}
 
 	if defaults {
-		c.Talk = []string{"org.freedesktop.DBus", "org.freedesktop.portal.*", "org.freedesktop.Notifications"}
+		c.Talk = []string{"org.freedesktop.DBus", "org.freedesktop.Notifications"}
+
+		c.Call["org.freedesktop.portal.*"] = "*"
+		c.Broadcast["org.freedesktop.portal.*"] = "@/org/freedesktop/portal/*"
 
 		if id != "" {
-			c.Own = []string{id}
+			c.Own = []string{id + ".*"}
 			if mpris {
-				c.Own = append(c.Own, "org.mpris.MediaPlayer2."+id)
+				c.Own = append(c.Own, "org.mpris.MediaPlayer2."+id+".*")
 			}
 		}
 	}
