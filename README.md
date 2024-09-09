@@ -82,18 +82,36 @@ This adds the `environment.fortify` option:
             share = pkgs.vesktop;
           };
 
-          chromium.dbus.config = {
-            talk = [
-              "org.freedesktop.DBus"
-              "org.freedesktop.portal.*"
-              "org.freedesktop.FileManager1"
-              "org.freedesktop.Notifications"
-              "org.freedesktop.ScreenSaver"
-            ];
-            own = [
-              "org.chromium.Chromium"
-              "org.mpris.MediaPlayer2.chromium.*"
-            ];
+          chromium.dbus = {
+            configSystem = {
+              talk = [
+                "org.bluez"
+                "org.freedesktop.Avahi"
+                "org.freedesktop.UPower"
+              ];
+            };
+            config = {
+              talk = [
+                "org.freedesktop.DBus"
+                "org.freedesktop.FileManager1"
+                "org.freedesktop.Notifications"
+                "org.freedesktop.ScreenSaver"
+                "org.freedesktop.secrets"
+                "org.kde.kwalletd5"    
+                "org.kde.kwalletd6"
+              ];   
+              own = [
+                "org.chromium.Chromium.*"
+                "org.mpris.MediaPlayer2.org.chromium.Chromium.*"
+                "org.mpris.MediaPlayer2.chromium.*"
+              ];
+              call = {
+                "org.freedesktop.portal.*" = "*";
+              };
+              broadcast = {
+                "org.freedesktop.portal.*" = "@/org/freedesktop/portal/*";
+              };
+            };
           };
         };
         packages = with pkgs; [
@@ -142,6 +160,8 @@ This adds the `environment.fortify` option:
         * `command`, the command to run as the target user. Defaults to launcher name.
 
         * `dbus.config`, D-Bus proxy custom configuration.
+
+        * `dbus.configSystem`, D-Bus system bus custom configuration, null to disable.
 
         * `dbus.id`, D-Bus application id, has no effect if `dbus.config` is set.
 
