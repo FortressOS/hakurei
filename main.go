@@ -21,7 +21,9 @@ var (
 	Version = "impure"
 
 	a *app.App
-	c *dbus.Config
+
+	dbusSession *dbus.Config
+	dbusSystem  *dbus.Config
 )
 
 func tryVersion() {
@@ -47,13 +49,24 @@ func main() {
 
 	// parse D-Bus config file if applicable
 	if mustDBus {
-		if dbusConfig == "builtin" {
-			c = dbus.NewConfig(dbusID, true, mpris)
+		if dbusConfigSession == "builtin" {
+			dbusSession = dbus.NewConfig(dbusID, true, mpris)
 		} else {
-			if f, err := os.Open(dbusConfig); err != nil {
+			if f, err := os.Open(dbusConfigSession); err != nil {
 				state.Fatal("Error opening D-Bus proxy config file:", err)
 			} else {
-				if err = json.NewDecoder(f).Decode(&c); err != nil {
+				if err = json.NewDecoder(f).Decode(&dbusSession); err != nil {
+					state.Fatal("Error parsing D-Bus proxy config file:", err)
+				}
+			}
+		}
+
+		// system bus proxy is optional
+		if dbusConfigSystem != "nil" {
+			if f, err := os.Open(dbusConfigSystem); err != nil {
+				state.Fatal("Error opening D-Bus proxy config file:", err)
+			} else {
+				if err = json.NewDecoder(f).Decode(&dbusSystem); err != nil {
 					state.Fatal("Error parsing D-Bus proxy config file:", err)
 				}
 			}
@@ -122,7 +135,7 @@ func main() {
 	}
 
 	if mustDBus {
-		a.ShareDBus(c)
+		a.ShareDBus(dbusSession, dbusSystem, dbusVerbose)
 	}
 
 	if mustPulse {

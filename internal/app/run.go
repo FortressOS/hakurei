@@ -167,7 +167,10 @@ func (a *App) commandBuilderMachineCtl() (args []string) {
 		state.Fatal("Error reading executable path:", err)
 	} else {
 		if a.enablements.Has(state.EnableDBus) {
-			innerCommand.WriteString(dbusSessionBusAddress + "=" + "'" + dbusAddress + "' ")
+			innerCommand.WriteString(dbusSessionBusAddress + "=" + "'" + dbusAddress[0] + "' ")
+			if dbusSystem {
+				innerCommand.WriteString(dbusSystemBusAddress + "=" + "'" + dbusAddress[1] + "' ")
+			}
 		}
 		innerCommand.WriteString("exec " + executable + " -V")
 	}

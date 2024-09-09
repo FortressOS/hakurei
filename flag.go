@@ -7,10 +7,13 @@ import (
 )
 
 var (
-	userName   string
-	dbusConfig string
-	dbusID     string
-	mpris      bool
+	userName string
+
+	dbusConfigSession string
+	dbusConfigSystem  string
+	dbusVerbose       bool
+	dbusID            string
+	mpris             bool
 
 	mustWayland bool
 	mustX       bool
@@ -23,7 +26,10 @@ var (
 
 func init() {
 	flag.StringVar(&userName, "u", "chronos", "Passwd name of user to run as")
-	flag.StringVar(&dbusConfig, "dbus-config", "builtin", "Path to D-Bus proxy config file, or \"builtin\" for defaults")
+
+	flag.StringVar(&dbusConfigSession, "dbus-config", "builtin", "Path to D-Bus proxy config file, or \"builtin\" for defaults")
+	flag.StringVar(&dbusConfigSystem, "dbus-system", "nil", "Path to system D-Bus proxy config file, or \"nil\" to disable")
+	flag.BoolVar(&dbusVerbose, "dbus-log", false, "Enable logging in the D-Bus proxy")
 	flag.StringVar(&dbusID, "dbus-id", "", "D-Bus ID of application, leave empty to disable own paths, has no effect if custom config is available")
 	flag.BoolVar(&mpris, "mpris", false, "Allow owning MPRIS D-Bus path, has no effect if custom config is available")
 

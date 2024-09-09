@@ -14,16 +14,30 @@ import (
 	"git.ophivana.moe/cat/fortify/internal/util"
 )
 
-const dbusSessionBusAddress = "DBUS_SESSION_BUS_ADDRESS"
+const (
+	dbusSessionBusAddress = "DBUS_SESSION_BUS_ADDRESS"
+	dbusSystemBusAddress  = "DBUS_SYSTEM_BUS_ADDRESS"
+)
 
-var dbusAddress string
+var (
+	dbusAddress [2]string
+	dbusSystem  bool
+)
 
-func (a *App) ShareDBus(c *dbus.Config) {
+func (a *App) ShareDBus(dse, dsg *dbus.Config, verbose bool) {
 	a.setEnablement(state.EnableDBus)
 
-	var binPath, address string
+	dbusSystem = dsg != nil
+	var binPath string
+	var sessionBus, systemBus [2]string
+
 	target := path.Join(system.V.Share, strconv.Itoa(os.Getpid()))
-	dbusAddress = "unix:path=" + target
+	sessionBus[1] = target + ".bus"
+	systemBus[1] = target + ".system-bus"
+	dbusAddress = [2]string{
+		"unix:path=" + sessionBus[1],
+		"unix:path=" + systemBus[1],
+	}
 
 	if b, ok := util.Which("xdg-dbus-proxy"); !ok {
 		state.Fatal("D-Bus: Did not find 'xdg-dbus-proxy' in PATH")
@@ -32,17 +46,36 @@ func (a *App) ShareDBus(c *dbus.Config) {
 	}
 
 	if addr, ok := os.LookupEnv(dbusSessionBusAddress); !ok {
-		state.Fatal("D-Bus: DBUS_SESSION_BUS_ADDRESS not set")
+		if system.V.Verbose {
+			fmt.Println("D-Bus: DBUS_SESSION_BUS_ADDRESS not set, assuming default format")
+		}
+		sessionBus[0] = fmt.Sprintf("unix:path=/run/user/%d/bus", os.Getuid())
 	} else {
-		address = addr
+		sessionBus[0] = addr
 	}
 
-	c.Log = system.V.Verbose
-	p := dbus.New(binPath, address, target)
-	if system.V.Verbose {
-		fmt.Println("D-Bus: sealing proxy", c.Args(address, target))
+	if addr, ok := os.LookupEnv(dbusSystemBusAddress); !ok {
+		if system.V.Verbose {
+			fmt.Println("D-Bus: DBUS_SYSTEM_BUS_ADDRESS not set, assuming default format")
+		}
+		systemBus[0] = "unix:path=/run/dbus/system_bus_socket"
+	} else {
+		systemBus[0] = addr
 	}
-	if err := p.Seal(c); err != nil {
+
+	p := dbus.New(binPath, sessionBus, systemBus)
+
+	dse.Log = verbose
+	if system.V.Verbose {
+		fmt.Println("D-Bus: sealing session proxy", dse.Args(sessionBus))
+	}
+	if dsg != nil {
+		dsg.Log = verbose
+		if system.V.Verbose {
+			fmt.Println("D-Bus: sealing system proxy", dsg.Args(systemBus))
+		}
+	}
+	if err := p.Seal(dse, dsg); err != nil {
 		state.Fatal("D-Bus: invalid config when sealing proxy,", err)
 	}
 
@@ -50,7 +83,10 @@ func (a *App) ShareDBus(c *dbus.Config) {
 	done := make(chan struct{})
 
 	if system.V.Verbose {
-		fmt.Printf("Starting session bus proxy '%s' for address '%s'\n", dbusAddress, address)
+		fmt.Printf("Starting session bus proxy '%s' for address '%s'\n", dbusAddress[0], sessionBus[0])
+		if dsg != nil {
+			fmt.Printf("Starting system bus proxy '%s' for address '%s'\n", dbusAddress[1], systemBus[0])
+		}
 	}
 	if err := p.Start(&ready); err != nil {
 		state.Fatal("D-Bus: error starting proxy,", err)
@@ -80,13 +116,24 @@ func (a *App) ShareDBus(c *dbus.Config) {
 		state.Fatal("D-Bus: proxy did not start correctly")
 	}
 
-	a.AppendEnv(dbusSessionBusAddress, dbusAddress)
-	if err := acl.UpdatePerm(target, a.UID(), acl.Read, acl.Write); err != nil {
-		state.Fatal(fmt.Sprintf("Error preparing D-Bus proxy '%s':", dbusAddress), err)
+	a.AppendEnv(dbusSessionBusAddress, dbusAddress[0])
+	if err := acl.UpdatePerm(sessionBus[1], a.UID(), acl.Read, acl.Write); err != nil {
+		state.Fatal(fmt.Sprintf("Error preparing D-Bus session proxy '%s':", dbusAddress[0]), err)
 	} else {
-		state.RegisterRevertPath(target)
+		state.RegisterRevertPath(sessionBus[1])
+	}
+	if dsg != nil {
+		a.AppendEnv(dbusSystemBusAddress, dbusAddress[1])
+		if err := acl.UpdatePerm(systemBus[1], a.UID(), acl.Read, acl.Write); err != nil {
+			state.Fatal(fmt.Sprintf("Error preparing D-Bus system proxy '%s':", dbusAddress[1]), err)
+		} else {
+			state.RegisterRevertPath(systemBus[1])
+		}
 	}
 	if system.V.Verbose {
-		fmt.Printf("Session bus proxy '%s' for address '%s' configured\n", dbusAddress, address)
+		fmt.Printf("Session bus proxy '%s' for address '%s' configured\n", dbusAddress[0], sessionBus[0])
+		if dsg != nil {
+			fmt.Printf("System bus proxy '%s' for address '%s' configured\n", dbusAddress[1], systemBus[0])
+		}
 	}
 }
