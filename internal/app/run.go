@@ -62,7 +62,7 @@ func (a *App) Run() {
 	}
 
 	cmd := exec.Command(toolPath, commandBuilder()...)
-	cmd.Env = a.env
+	cmd.Env = []string{}
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
