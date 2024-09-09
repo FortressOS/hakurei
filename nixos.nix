@@ -73,6 +73,15 @@ in
                         '';
                       };
 
+                      configSystem = mkOption {
+                        type = nullOr anything;
+                        default = null;
+                        description = ''
+                          D-Bus system bus custom configuration.
+                          Setting this to null will disable the system bus proxy.
+                        '';
+                      };
+
                       id = mkOption {
                         type = nullOr str;
                         default = null;
@@ -227,6 +236,11 @@ in
                       pkgs.writeText "${name}-dbus.json" (builtins.toJSON launcher.dbus.config)
                     else
                       null;
+                  dbusSystem =
+                    if launcher.dbus.configSystem != null then
+                      pkgs.writeText "${name}-dbus-system.json" (builtins.toJSON launcher.dbus.configSystem)
+                    else
+                      null;
                   capArgs =
                     (if wayland then " -wayland" else "")
                     + (if x11 then " -X" else "")
@@ -235,6 +249,7 @@ in
                     + (if launcher.dbus.mpris then " -mpris" else "")
                     + (if launcher.dbus.id != null then " -dbus-id ${dbus.id}" else "")
                     + (if dbusConfig != null then " -dbus-config ${dbusConfig}" else "")
+                    + (if dbusSystem != null then " -dbus-system ${dbusSystem}" else "")
                     + (if launcher.method == "fortify-sudo" then " -sudo" else "");
                 in
                 pkgs.writeShellScriptBin name (
