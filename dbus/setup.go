@@ -16,8 +16,9 @@ type Proxy struct {
 	statP [2]*os.File
 	argsP [2]*os.File
 
-	address [2]string
 	path    string
+	session [2]string
+	system  [2]string
 
 	wait  *chan error
 	read  *chan error
@@ -28,6 +29,13 @@ type Proxy struct {
 }
 
 func (p *Proxy) String() string {
+	if p == nil {
+		return "(invalid dbus proxy)"
+	}
+
+	p.lock.RLock()
+	defer p.lock.RUnlock()
+
 	if p.cmd != nil {
 		return p.cmd.String()
 	}
@@ -40,34 +48,37 @@ func (p *Proxy) String() string {
 }
 
 // Seal seals the Proxy instance.
-func (p *Proxy) Seal(c *Config) error {
+func (p *Proxy) Seal(session, system *Config) error {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 
 	if p.seal != nil {
 		panic("dbus proxy sealed twice")
 	}
-	args := c.Args(p.address[0], p.address[1])
+
+	if session == nil && system == nil {
+		return errors.New("no configuration to seal")
+	}
 
 	seal := strings.Builder{}
-	for _, arg := range args {
-		// reject argument strings containing null
-		for _, b := range arg {
-			if b == '\x00' {
-				return errors.New("argument contains null")
-			}
-		}
 
-		// write null terminated argument
-		seal.WriteString(arg)
-		seal.WriteByte('\x00')
+	if session != nil {
+		if err := session.buildSeal(&seal, p.session); err != nil {
+			return err
+		}
 	}
+	if system != nil {
+		if err := system.buildSeal(&seal, p.system); err != nil {
+			return err
+		}
+	}
+
 	v := seal.String()
 	p.seal = &v
 	return nil
 }
 
 // New returns a reference to a new unsealed Proxy.
-func New(binPath, address, path string) *Proxy {
-	return &Proxy{path: binPath, address: [2]string{address, path}}
+func New(binPath string, session, system [2]string) *Proxy {
+	return &Proxy{path: binPath, session: session, system: system}
 }

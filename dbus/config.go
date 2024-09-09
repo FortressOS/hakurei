@@ -1,5 +1,10 @@
 package dbus
 
+import (
+	"errors"
+	"strings"
+)
+
 type Config struct {
 	// See set 'see' policy for NAME (--see=NAME)
 	See []string `json:"see"`
@@ -17,7 +22,7 @@ type Config struct {
 	Filter bool `json:"filter"`
 }
 
-func (c *Config) Args(address, path string) (args []string) {
+func (c *Config) Args(bus [2]string) (args []string) {
 	argc := 2 + len(c.See) + len(c.Talk) + len(c.Own) + len(c.Call) + len(c.Broadcast)
 	if c.Log {
 		argc++
@@ -27,7 +32,7 @@ func (c *Config) Args(address, path string) (args []string) {
 	}
 
 	args = make([]string, 0, argc)
-	args = append(args, address, path)
+	args = append(args, bus[0], bus[1])
 	for _, name := range c.See {
 		args = append(args, "--see="+name)
 	}
@@ -51,6 +56,23 @@ func (c *Config) Args(address, path string) (args []string) {
 	}
 
 	return
+}
+
+func (c *Config) buildSeal(seal *strings.Builder, bus [2]string) error {
+	for _, arg := range c.Args(bus) {
+		// reject argument strings containing null
+		for _, b := range arg {
+			if b == '\x00' {
+				return errors.New("argument contains null")
+			}
+		}
+
+		// write null terminated argument
+		seal.WriteString(arg)
+		seal.WriteByte('\x00')
+	}
+
+	return nil
 }
 
 // NewConfig returns a reference to a Config struct with optional defaults.
