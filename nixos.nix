@@ -247,7 +247,7 @@ in
                     + (if dbus then " -dbus" else "")
                     + (if pulse then " -pulse" else "")
                     + (if launcher.dbus.mpris then " -mpris" else "")
-                    + (if launcher.dbus.id != null then " -dbus-id ${dbus.id}" else "")
+                    + (if launcher.dbus.id != null then " -dbus-id ${launcher.dbus.id}" else "")
                     + (if dbusConfig != null then " -dbus-config ${dbusConfig}" else "")
                     + (if dbusSystem != null then " -dbus-system ${dbusSystem}" else "")
                     + (if launcher.method == "fortify-sudo" then " -sudo" else "");
