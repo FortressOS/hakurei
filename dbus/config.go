@@ -33,6 +33,9 @@ func (c *Config) Args(bus [2]string) (args []string) {
 
 	args = make([]string, 0, argc)
 	args = append(args, bus[0], bus[1])
+	if c.Filter {
+		args = append(args, "--filter")
+	}
 	for _, name := range c.See {
 		args = append(args, "--see="+name)
 	}
@@ -50,9 +53,6 @@ func (c *Config) Args(bus [2]string) (args []string) {
 	}
 	if c.Log {
 		args = append(args, "--log")
-	}
-	if c.Filter {
-		args = append(args, "--filter")
 	}
 
 	return

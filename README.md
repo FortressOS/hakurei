@@ -84,6 +84,7 @@ This adds the `environment.fortify` option:
 
           chromium.dbus = {
             configSystem = {
+              filter = true;
               talk = [
                 "org.bluez"
                 "org.freedesktop.Avahi"
@@ -91,6 +92,7 @@ This adds the `environment.fortify` option:
               ];
             };
             config = {
+              filter = true;
               talk = [
                 "org.freedesktop.DBus"
                 "org.freedesktop.FileManager1"
