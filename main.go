@@ -17,6 +17,7 @@ import (
 	"git.ophivana.moe/cat/fortify/internal/state"
 	"git.ophivana.moe/cat/fortify/internal/system"
 	"git.ophivana.moe/cat/fortify/internal/util"
+	"git.ophivana.moe/cat/fortify/internal/verbose"
 )
 
 var (
@@ -48,6 +49,7 @@ func tryVersion() {
 
 func main() {
 	flag.Parse()
+	verbose.Set(flagVerbose)
 
 	// launcher payload early exit
 	app.Early(printVersion)
@@ -56,7 +58,7 @@ func main() {
 	tryVersion()
 	tryLicense()
 
-	system.Retrieve(flagVerbose)
+	system.Retrieve()
 	a = app.New(userName, flag.Args(), launchOptionText)
 	state.Set(*a.User, a.Command(), a.UID())
 
@@ -114,22 +116,20 @@ func main() {
 			a.AppendEnv("XDG_RUNTIME_DIR", cr)
 			a.AppendEnv("XDG_SESSION_CLASS", "user")
 			a.AppendEnv("XDG_SESSION_TYPE", "tty")
-			if system.V.Verbose {
-				fmt.Printf("Child runtime data dir '%s' configured\n", cr)
-			}
+			verbose.Printf("Child runtime data dir '%s' configured\n", cr)
 		}
 	}
 
 	// warn about target user home directory ownership
 	if stat, err := os.Stat(a.HomeDir); err != nil {
-		if system.V.Verbose {
+		if verbose.Get() {
 			switch {
 			case errors.Is(err, fs.ErrPermission):
-				fmt.Printf("User %s home directory %s is not accessible", a.Username, a.HomeDir)
+				fmt.Printf("User %s home directory %s is not accessible\n", a.Username, a.HomeDir)
 			case errors.Is(err, fs.ErrNotExist):
-				fmt.Printf("User %s home directory %s does not exist", a.Username, a.HomeDir)
+				fmt.Printf("User %s home directory %s does not exis\n", a.Username, a.HomeDir)
 			default:
-				fmt.Printf("Error stat user %s home directory %s: %s", a.Username, a.HomeDir, err)
+				fmt.Printf("Error stat user %s home directory %s: %s\n", a.Username, a.HomeDir, err)
 			}
 		}
 		return
@@ -154,9 +154,7 @@ func main() {
 		} else {
 			state.RegisterRevertPath(system.V.Runtime)
 		}
-		if system.V.Verbose {
-			fmt.Printf("Runtime data dir '%s' configured\n", system.V.Runtime)
-		}
+		verbose.Printf("Runtime data dir '%s' configured\n", system.V.Runtime)
 	}
 
 	if mustWayland {

@@ -10,6 +10,7 @@ import (
 	"git.ophivana.moe/cat/fortify/internal/state"
 	"git.ophivana.moe/cat/fortify/internal/system"
 	"git.ophivana.moe/cat/fortify/internal/util"
+	"git.ophivana.moe/cat/fortify/internal/verbose"
 )
 
 const (
@@ -48,9 +49,7 @@ func (a *App) Run() {
 	cmd.Stderr = os.Stderr
 	cmd.Dir = system.V.RunDir
 
-	if system.V.Verbose {
-		fmt.Println("Executing:", cmd)
-	}
+	verbose.Println("Executing:", cmd)
 
 	if err := cmd.Start(); err != nil {
 		state.Fatal("Error starting process:", err)
@@ -71,9 +70,7 @@ func (a *App) Run() {
 		}
 	}
 
-	if system.V.Verbose {
-		fmt.Println("Process exited with exit code", r)
-	}
+	verbose.Println("Process exited with exit code", r)
 	state.BeforeExit()
 	os.Exit(r)
 }
@@ -86,9 +83,7 @@ func (a *App) commandBuilderSudo() (args []string) {
 
 	// -A?
 	if _, ok := os.LookupEnv(sudoAskPass); ok {
-		if system.V.Verbose {
-			fmt.Printf("%s set, adding askpass flag\n", sudoAskPass)
-		}
+		verbose.Printf("%s set, adding askpass flag\n", sudoAskPass)
 		args = append(args, "-A")
 	}
 
@@ -115,7 +110,7 @@ func (a *App) commandBuilderMachineCtl() (args []string) {
 	args = append(args, "shell", "--uid="+a.Username)
 
 	// --quiet
-	if !system.V.Verbose {
+	if !verbose.Get() {
 		args = append(args, "--quiet")
 	}
 

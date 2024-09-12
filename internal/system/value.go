@@ -8,7 +8,6 @@ type Values struct {
 	Share   string
 	Runtime string
 	RunDir  string
-	Verbose bool
 }
 
 var V *Values

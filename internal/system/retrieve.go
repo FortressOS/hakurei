@@ -7,12 +7,12 @@ import (
 	"strconv"
 )
 
-func Retrieve(verbose bool) {
+func Retrieve() {
 	if V != nil {
 		panic("system info retrieved twice")
 	}
 
-	v := &Values{Share: path.Join(os.TempDir(), "fortify."+strconv.Itoa(os.Geteuid())), Verbose: verbose}
+	v := &Values{Share: path.Join(os.TempDir(), "fortify."+strconv.Itoa(os.Geteuid()))}
 
 	if r, ok := os.LookupEnv(xdgRuntimeDir); !ok {
 		fmt.Println("Env variable", xdgRuntimeDir, "unset")

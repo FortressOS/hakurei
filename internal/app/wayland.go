@@ -8,6 +8,7 @@ import (
 	"git.ophivana.moe/cat/fortify/internal/acl"
 	"git.ophivana.moe/cat/fortify/internal/state"
 	"git.ophivana.moe/cat/fortify/internal/system"
+	"git.ophivana.moe/cat/fortify/internal/verbose"
 )
 
 const (
@@ -30,8 +31,6 @@ func (a *App) ShareWayland() {
 		} else {
 			state.RegisterRevertPath(wp)
 		}
-		if system.V.Verbose {
-			fmt.Printf("Wayland socket '%s' configured\n", w)
-		}
+		verbose.Printf("Wayland socket '%s' configured\n", w)
 	}
 }

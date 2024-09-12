@@ -11,6 +11,7 @@ import (
 	"git.ophivana.moe/cat/fortify/internal/state"
 	"git.ophivana.moe/cat/fortify/internal/system"
 	"git.ophivana.moe/cat/fortify/internal/util"
+	"git.ophivana.moe/cat/fortify/internal/verbose"
 )
 
 func (a *App) SharePulse() {
@@ -49,9 +50,7 @@ func (a *App) SharePulse() {
 		pulseCookieSource := util.DiscoverPulseCookie()
 		pulseCookieFinal := path.Join(system.V.Share, "pulse-cookie")
 		a.AppendEnv(util.PulseCookie, pulseCookieFinal)
-		if system.V.Verbose {
-			fmt.Printf("Publishing PulseAudio cookie '%s' to '%s'\n", pulseCookieSource, pulseCookieFinal)
-		}
+		verbose.Printf("Publishing PulseAudio cookie '%s' to '%s'\n", pulseCookieSource, pulseCookieFinal)
 		if err = util.CopyFile(pulseCookieFinal, pulseCookieSource); err != nil {
 			state.Fatal("Error copying PulseAudio cookie:", err)
 		}
@@ -61,8 +60,6 @@ func (a *App) SharePulse() {
 			state.RegisterRevertPath(pulseCookieFinal)
 		}
 
-		if system.V.Verbose {
-			fmt.Printf("PulseAudio dir '%s' configured\n", pulse)
-		}
+		verbose.Printf("PulseAudio dir '%s' configured\n", pulse)
 	}
 }

@@ -9,6 +9,7 @@ import (
 	"text/tabwriter"
 
 	"git.ophivana.moe/cat/fortify/internal/system"
+	"git.ophivana.moe/cat/fortify/internal/verbose"
 )
 
 var (
@@ -31,16 +32,12 @@ func Early() {
 		} else {
 			for _, e := range runDir {
 				if !e.IsDir() {
-					if system.V.Verbose {
-						fmt.Println("Skipped non-directory entry", e.Name())
-					}
+					verbose.Println("Skipped non-directory entry", e.Name())
 					continue
 				}
 
 				if _, err = strconv.Atoi(e.Name()); err != nil {
-					if system.V.Verbose {
-						fmt.Println("Skipped non-uid entry", e.Name())
-					}
+					verbose.Println("Skipped non-uid entry", e.Name())
 					continue
 				}
 
@@ -74,7 +71,7 @@ func printLauncherState(uid string, w **tabwriter.Writer) {
 	if *w == nil {
 		*w = tabwriter.NewWriter(os.Stdout, 0, 1, 4, ' ', 0)
 
-		if !system.V.Verbose {
+		if !verbose.Get() {
 			_, _ = fmt.Fprintln(*w, "\tUID\tPID\tEnablements\tLauncher\tCommand")
 		} else {
 			_, _ = fmt.Fprintln(*w, "\tUID\tPID\tArgv")
@@ -92,7 +89,7 @@ func printLauncherState(uid string, w **tabwriter.Writer) {
 			enablementsDescription.WriteString("none")
 		}
 
-		if !system.V.Verbose {
+		if !verbose.Get() {
 			_, _ = fmt.Fprintf(*w, "\t%s\t%d\t%s\t%s\t%s\n",
 				uid, state.PID, strings.TrimPrefix(enablementsDescription.String(), ", "), state.Launcher,
 				state.Command)

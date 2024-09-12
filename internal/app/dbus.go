@@ -12,6 +12,7 @@ import (
 	"git.ophivana.moe/cat/fortify/internal/state"
 	"git.ophivana.moe/cat/fortify/internal/system"
 	"git.ophivana.moe/cat/fortify/internal/util"
+	"git.ophivana.moe/cat/fortify/internal/verbose"
 )
 
 const (
@@ -24,7 +25,7 @@ var (
 	dbusSystem  bool
 )
 
-func (a *App) ShareDBus(dse, dsg *dbus.Config, verbose bool) {
+func (a *App) ShareDBus(dse, dsg *dbus.Config, log bool) {
 	a.setEnablement(state.EnableDBus)
 
 	dbusSystem = dsg != nil
@@ -46,18 +47,14 @@ func (a *App) ShareDBus(dse, dsg *dbus.Config, verbose bool) {
 	}
 
 	if addr, ok := os.LookupEnv(dbusSessionBusAddress); !ok {
-		if system.V.Verbose {
-			fmt.Println("D-Bus: DBUS_SESSION_BUS_ADDRESS not set, assuming default format")
-		}
+		verbose.Println("D-Bus: DBUS_SESSION_BUS_ADDRESS not set, assuming default format")
 		sessionBus[0] = fmt.Sprintf("unix:path=/run/user/%d/bus", os.Getuid())
 	} else {
 		sessionBus[0] = addr
 	}
 
 	if addr, ok := os.LookupEnv(dbusSystemBusAddress); !ok {
-		if system.V.Verbose {
-			fmt.Println("D-Bus: DBUS_SYSTEM_BUS_ADDRESS not set, assuming default format")
-		}
+		verbose.Println("D-Bus: DBUS_SYSTEM_BUS_ADDRESS not set, assuming default format")
 		systemBus[0] = "unix:path=/run/dbus/system_bus_socket"
 	} else {
 		systemBus[0] = addr
@@ -65,15 +62,11 @@ func (a *App) ShareDBus(dse, dsg *dbus.Config, verbose bool) {
 
 	p := dbus.New(binPath, sessionBus, systemBus)
 
-	dse.Log = verbose
-	if system.V.Verbose {
-		fmt.Println("D-Bus: sealing session proxy", dse.Args(sessionBus))
-	}
+	dse.Log = log
+	verbose.Println("D-Bus: sealing session proxy", dse.Args(sessionBus))
 	if dsg != nil {
-		dsg.Log = verbose
-		if system.V.Verbose {
-			fmt.Println("D-Bus: sealing system proxy", dsg.Args(systemBus))
-		}
+		dsg.Log = log
+		verbose.Println("D-Bus: sealing system proxy", dsg.Args(systemBus))
 	}
 	if err := p.Seal(dse, dsg); err != nil {
 		state.Fatal("D-Bus: invalid config when sealing proxy,", err)
@@ -82,26 +75,20 @@ func (a *App) ShareDBus(dse, dsg *dbus.Config, verbose bool) {
 	ready := make(chan bool, 1)
 	done := make(chan struct{})
 
-	if system.V.Verbose {
-		fmt.Printf("Starting session bus proxy '%s' for address '%s'\n", dbusAddress[0], sessionBus[0])
-		if dsg != nil {
-			fmt.Printf("Starting system bus proxy '%s' for address '%s'\n", dbusAddress[1], systemBus[0])
-		}
+	verbose.Printf("Starting session bus proxy '%s' for address '%s'\n", dbusAddress[0], sessionBus[0])
+	if dsg != nil {
+		verbose.Printf("Starting system bus proxy '%s' for address '%s'\n", dbusAddress[1], systemBus[0])
 	}
 	if err := p.Start(&ready); err != nil {
 		state.Fatal("D-Bus: error starting proxy,", err)
 	}
-	if system.V.Verbose {
-		fmt.Println("D-Bus proxy launch:", p)
-	}
+	verbose.Println("D-Bus proxy launch:", p)
 
 	go func() {
 		if err := p.Wait(); err != nil {
 			fmt.Println("warn: D-Bus proxy returned error,", err)
 		} else {
-			if system.V.Verbose {
-				fmt.Println("D-Bus proxy uneventful wait")
-			}
+			verbose.Println("D-Bus proxy uneventful wait")
 		}
 		if err := os.Remove(target); err != nil && !errors.Is(err, os.ErrNotExist) {
 			fmt.Println("Error removing dangling D-Bus socket:", err)
@@ -130,10 +117,8 @@ func (a *App) ShareDBus(dse, dsg *dbus.Config, verbose bool) {
 			state.RegisterRevertPath(systemBus[1])
 		}
 	}
-	if system.V.Verbose {
-		fmt.Printf("Session bus proxy '%s' for address '%s' configured\n", dbusAddress[0], sessionBus[0])
-		if dsg != nil {
-			fmt.Printf("System bus proxy '%s' for address '%s' configured\n", dbusAddress[1], systemBus[0])
-		}
+	verbose.Printf("Session bus proxy '%s' for address '%s' configured\n", dbusAddress[0], sessionBus[0])
+	if dsg != nil {
+		verbose.Printf("System bus proxy '%s' for address '%s' configured\n", dbusAddress[1], systemBus[0])
 	}
 }

@@ -8,8 +8,8 @@ import (
 	"strconv"
 
 	"git.ophivana.moe/cat/fortify/internal/state"
-	"git.ophivana.moe/cat/fortify/internal/system"
 	"git.ophivana.moe/cat/fortify/internal/util"
+	"git.ophivana.moe/cat/fortify/internal/verbose"
 )
 
 type App struct {
@@ -65,11 +65,9 @@ func New(userName string, args []string, launchOptionText string) *App {
 		a.uid = u
 	}
 
-	if system.V.Verbose {
-		fmt.Println("Running as user", a.Username, "("+a.Uid+"),", "command:", a.command)
-		if util.SdBootedV {
-			fmt.Println("System booted with systemd as init system (PID 1).")
-		}
+	verbose.Println("Running as user", a.Username, "("+a.Uid+"),", "command:", a.command)
+	if util.SdBootedV {
+		verbose.Println("System booted with systemd as init system (PID 1).")
 	}
 
 	switch a.launchOptionText {
@@ -106,9 +104,7 @@ func New(userName string, args []string, launchOptionText string) *App {
 		os.Exit(1)
 	}
 
-	if system.V.Verbose {
-		fmt.Println("Determined launch method to be", a.launchOptionText, "with tool at", a.toolPath)
-	}
+	verbose.Println("Determined launch method to be", a.launchOptionText, "with tool at", a.toolPath)
 
 	return a
 }
