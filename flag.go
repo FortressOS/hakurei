@@ -2,8 +2,6 @@ package main
 
 import (
 	"flag"
-
-	"git.ophivana.moe/cat/fortify/internal/app"
 )
 
 var (
@@ -37,9 +35,6 @@ func init() {
 	flag.BoolVar(&mustX, "X", false, "Share X11 socket and allow connection")
 	flag.BoolVar(&mustDBus, "dbus", false, "Proxy D-Bus connection")
 	flag.BoolVar(&mustPulse, "pulse", false, "Share PulseAudio socket and cookie")
-
-	flag.BoolVar(&app.LaunchOptions[app.LaunchMethodSudo], "sudo", false, "Use 'sudo' to switch user")
-	flag.BoolVar(&app.LaunchOptions[app.LaunchMethodMachineCtl], "machinectl", true, "Use 'machinectl' to switch user")
 
 	flag.BoolVar(&flagVerbose, "v", false, "Verbose output")
 	flag.BoolVar(&printVersion, "V", false, "Print version")

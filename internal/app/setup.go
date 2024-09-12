@@ -9,18 +9,28 @@ import (
 
 	"git.ophivana.moe/cat/fortify/internal/state"
 	"git.ophivana.moe/cat/fortify/internal/system"
+	"git.ophivana.moe/cat/fortify/internal/util"
 )
 
 type App struct {
+	launchOptionText string
+
 	uid     int
 	env     []string
 	command []string
+
+	launchOption uint8
+	toolPath     string
 
 	enablements state.Enablements
 	*user.User
 
 	// absolutely *no* method of this type is thread-safe
 	// so don't treat it as if it is
+}
+
+func (a *App) LaunchOption() uint8 {
+	return a.launchOption
 }
 
 func (a *App) setEnablement(e state.Enablement) {
@@ -31,8 +41,8 @@ func (a *App) setEnablement(e state.Enablement) {
 	a.enablements |= e.Mask()
 }
 
-func New(userName string, args []string) *App {
-	a := &App{command: args}
+func New(userName string, args []string, launchOptionText string) *App {
+	a := &App{command: args, launchOptionText: launchOptionText}
 
 	if u, err := user.Lookup(userName); err != nil {
 		if errors.As(err, new(user.UnknownUserError)) {
@@ -57,6 +67,47 @@ func New(userName string, args []string) *App {
 
 	if system.V.Verbose {
 		fmt.Println("Running as user", a.Username, "("+a.Uid+"),", "command:", a.command)
+		if util.SdBootedV {
+			fmt.Println("System booted with systemd as init system (PID 1).")
+		}
+	}
+
+	switch a.launchOptionText {
+	case "sudo":
+		a.launchOption = LaunchMethodSudo
+		if sudoPath, ok := util.Which("sudo"); !ok {
+			fmt.Println("Did not find 'sudo' in PATH")
+			os.Exit(1)
+		} else {
+			a.toolPath = sudoPath
+		}
+	case "bubblewrap":
+		a.launchOption = LaunchMethodBwrap
+		if bwrapPath, ok := util.Which("bwrap"); !ok {
+			fmt.Println("Did not find 'bwrap' in PATH")
+			os.Exit(1)
+		} else {
+			a.toolPath = bwrapPath
+		}
+	case "systemd":
+		a.launchOption = LaunchMethodMachineCtl
+		if !util.SdBootedV {
+			fmt.Println("System has not been booted with systemd as init system (PID 1).")
+			os.Exit(1)
+		}
+
+		if machineCtlPath, ok := util.Which("machinectl"); !ok {
+			fmt.Println("Did not find 'machinectl' in PATH")
+		} else {
+			a.toolPath = machineCtlPath
+		}
+	default:
+		fmt.Println("invalid launch method")
+		os.Exit(1)
+	}
+
+	if system.V.Verbose {
+		fmt.Println("Determined launch method to be", a.launchOptionText, "with tool at", a.toolPath)
 	}
 
 	return a

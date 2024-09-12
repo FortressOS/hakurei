@@ -17,15 +17,9 @@ const (
 	sudoAskPass = "SUDO_ASKPASS"
 )
 const (
-	LaunchMethodSudo = iota
+	LaunchMethodSudo uint8 = iota
+	LaunchMethodBwrap
 	LaunchMethodMachineCtl
-
-	launchOptionLength
-)
-
-var (
-	// LaunchOptions is set in main's cli.go
-	LaunchOptions [launchOptionLength]bool
 )
 
 func (a *App) Run() {
@@ -34,34 +28,20 @@ func (a *App) Run() {
 		a.AppendEnv(term, t)
 	}
 
-	commandBuilder := a.commandBuilderSudo
+	var commandBuilder func() (args []string)
 
-	var toolPath string
-
-	// dependency checks
-	const sudoFallback = "Falling back to 'sudo', some desktop integration features may not work"
-	if LaunchOptions[LaunchMethodMachineCtl] && !LaunchOptions[LaunchMethodSudo] { // sudo argument takes priority
-		if !util.SdBooted() {
-			fmt.Println("This system was not booted through systemd")
-			fmt.Println(sudoFallback)
-		} else if machineCtlPath, ok := util.Which("machinectl"); !ok {
-			fmt.Println("Did not find 'machinectl' in PATH")
-			fmt.Println(sudoFallback)
-		} else {
-			toolPath = machineCtlPath
-			commandBuilder = a.commandBuilderMachineCtl
-		}
-	} else if sudoPath, ok := util.Which("sudo"); !ok {
-		state.Fatal("Did not find 'sudo' in PATH")
-	} else {
-		toolPath = sudoPath
+	switch a.launchOption {
+	case LaunchMethodSudo:
+		commandBuilder = a.commandBuilderSudo
+	case LaunchMethodBwrap:
+		commandBuilder = a.commandBuilderBwrap
+	case LaunchMethodMachineCtl:
+		commandBuilder = a.commandBuilderMachineCtl
+	default:
+		panic("unreachable")
 	}
 
-	if system.V.Verbose {
-		fmt.Printf("Selected launcher '%s'\n", toolPath)
-	}
-
-	cmd := exec.Command(toolPath, commandBuilder()...)
+	cmd := exec.Command(a.toolPath, commandBuilder()...)
 	cmd.Env = []string{}
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
@@ -120,6 +100,12 @@ func (a *App) commandBuilderSudo() (args []string) {
 	args = append(args, a.command...)
 
 	return
+}
+
+func (a *App) commandBuilderBwrap() (args []string) {
+	// TODO: build bwrap command
+	state.Fatal("bwrap")
+	panic("unreachable")
 }
 
 func (a *App) commandBuilderMachineCtl() (args []string) {

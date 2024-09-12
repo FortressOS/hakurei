@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
+	"path"
 	"strconv"
 	"syscall"
 
@@ -15,6 +16,7 @@ import (
 	"git.ophivana.moe/cat/fortify/internal/app"
 	"git.ophivana.moe/cat/fortify/internal/state"
 	"git.ophivana.moe/cat/fortify/internal/system"
+	"git.ophivana.moe/cat/fortify/internal/util"
 )
 
 var (
@@ -24,7 +26,18 @@ var (
 
 	dbusSession *dbus.Config
 	dbusSystem  *dbus.Config
+
+	launchOptionText string
 )
+
+func init() {
+	methodHelpString := "Method of launching the child process, can be one of \"sudo\", \"bubblewrap\""
+	if util.SdBootedV {
+		methodHelpString += ", \"systemd\""
+	}
+
+	flag.StringVar(&launchOptionText, "method", "sudo", methodHelpString)
+}
 
 func tryVersion() {
 	if printVersion {
@@ -44,7 +57,7 @@ func main() {
 	tryLicense()
 
 	system.Retrieve(flagVerbose)
-	a = app.New(userName, flag.Args())
+	a = app.New(userName, flag.Args(), launchOptionText)
 	state.Set(*a.User, a.Command(), a.UID())
 
 	// parse D-Bus config file if applicable
@@ -87,6 +100,26 @@ func main() {
 		state.Fatal("Error creating shared directory:", err)
 	}
 
+	if a.LaunchOption() == app.LaunchMethodSudo {
+		// ensure child runtime directory (e.g. `/tmp/fortify.%d/%d.share`)
+		cr := path.Join(system.V.Share, a.Uid+".share")
+		if err := os.Mkdir(cr, 0700); err != nil && !errors.Is(err, fs.ErrExist) {
+			state.Fatal("Error creating child runtime directory:", err)
+		} else {
+			if err = acl.UpdatePerm(cr, a.UID(), acl.Read, acl.Write, acl.Execute); err != nil {
+				state.Fatal("Error preparing child runtime directory:", err)
+			} else {
+				state.RegisterRevertPath(cr)
+			}
+			a.AppendEnv("XDG_RUNTIME_DIR", cr)
+			a.AppendEnv("XDG_SESSION_CLASS", "user")
+			a.AppendEnv("XDG_SESSION_TYPE", "tty")
+			if system.V.Verbose {
+				fmt.Printf("Child runtime data dir '%s' configured\n", cr)
+			}
+		}
+	}
+
 	// warn about target user home directory ownership
 	if stat, err := os.Stat(a.HomeDir); err != nil {
 		if system.V.Verbose {
@@ -117,7 +150,7 @@ func main() {
 		state.Fatal(fmt.Sprintf("Path '%s' is not a directory", system.V.Runtime))
 	} else {
 		if err = acl.UpdatePerm(system.V.Runtime, a.UID(), acl.Execute); err != nil {
-			state.Fatal("Error preparing runtime dir:", err)
+			state.Fatal("Error preparing runtime directory:", err)
 		} else {
 			state.RegisterRevertPath(system.V.Runtime)
 		}

@@ -8,7 +8,6 @@ import (
 	"path"
 
 	"git.ophivana.moe/cat/fortify/internal/state"
-	"git.ophivana.moe/cat/fortify/internal/system"
 )
 
 const (
@@ -22,19 +21,16 @@ const (
 )
 
 // SdBooted implements https://www.freedesktop.org/software/systemd/man/sd_booted.html
-func SdBooted() bool {
+func SdBooted() (bool, error) {
 	_, err := os.Stat(systemdCheckPath)
 	if err != nil {
-		if system.V.Verbose {
-			if errors.Is(err, fs.ErrNotExist) {
-				fmt.Println("System not booted through systemd")
-			} else {
-				fmt.Println("Error accessing", systemdCheckPath+":", err.Error())
-			}
+		if errors.Is(err, fs.ErrNotExist) {
+			err = nil
 		}
-		return false
+		return false, err
 	}
-	return true
+
+	return true, nil
 }
 
 // DiscoverPulseCookie try various standard methods to discover the current user's PulseAudio authentication cookie
