@@ -146,11 +146,12 @@ in
 
                     method = mkOption {
                       type = enum [
-                        "fortify"
-                        "fortify-sudo"
+                        "simple"
                         "sudo"
+                        "bubblewrap"
+                        "systemd"
                       ];
-                      default = "fortify";
+                      default = "systemd";
                       description = ''
                         Launch method for the sandboxed program.
                       '';
@@ -249,17 +250,16 @@ in
                     + (if launcher.dbus.mpris then " -mpris" else "")
                     + (if launcher.dbus.id != null then " -dbus-id ${launcher.dbus.id}" else "")
                     + (if dbusConfig != null then " -dbus-config ${dbusConfig}" else "")
-                    + (if dbusSystem != null then " -dbus-system ${dbusSystem}" else "")
-                    + (if launcher.method == "fortify-sudo" then " -sudo" else "");
+                    + (if dbusSystem != null then " -dbus-system ${dbusSystem}" else "");
                 in
                 pkgs.writeShellScriptBin name (
-                  if launcher.method == "sudo" then
+                  if launcher.method == "simple" then
                     ''
                       exec sudo -u ${user} -i ${command} $@
                     ''
                   else
                     ''
-                      exec fortify${capArgs} -u ${user} ${cfg.shell} -c "exec ${command} $@"
+                      exec fortify${capArgs} -method ${launcher.method} -u ${user} ${cfg.shell} -c "exec ${command} $@"
                     ''
                 )
               ) launchers;
@@ -274,7 +274,7 @@ in
                 link = source: "[ -d '${source}' ] && ln -sv '${source}' $out/share || true";
               in
               shares
-              ++ optional (launcher.method == "fortify") (
+              ++ optional (launcher.method != "simple" && (launcher.capability.wayland || launcher.capability.x11)) (
                 pkgs.runCommand "${name}-share" { } ''
                   mkdir -p $out/share
                   ${link "${pkg}/share/applications"}
