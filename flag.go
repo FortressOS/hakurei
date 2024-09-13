@@ -2,6 +2,8 @@ package main
 
 import (
 	"flag"
+
+	"git.ophivana.moe/cat/fortify/internal/util"
 )
 
 var (
@@ -38,4 +40,13 @@ func init() {
 
 	flag.BoolVar(&flagVerbose, "v", false, "Verbose output")
 	flag.BoolVar(&printVersion, "V", false, "Print version")
+}
+
+func init() {
+	methodHelpString := "Method of launching the child process, can be one of \"sudo\", \"bubblewrap\""
+	if util.SdBootedV {
+		methodHelpString += ", \"systemd\""
+	}
+
+	flag.StringVar(&launchOptionText, "method", "sudo", methodHelpString)
 }

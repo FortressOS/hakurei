@@ -16,7 +16,6 @@ import (
 	"git.ophivana.moe/cat/fortify/internal/app"
 	"git.ophivana.moe/cat/fortify/internal/state"
 	"git.ophivana.moe/cat/fortify/internal/system"
-	"git.ophivana.moe/cat/fortify/internal/util"
 	"git.ophivana.moe/cat/fortify/internal/verbose"
 )
 
@@ -30,15 +29,6 @@ var (
 
 	launchOptionText string
 )
-
-func init() {
-	methodHelpString := "Method of launching the child process, can be one of \"sudo\", \"bubblewrap\""
-	if util.SdBootedV {
-		methodHelpString += ", \"systemd\""
-	}
-
-	flag.StringVar(&launchOptionText, "method", "sudo", methodHelpString)
-}
 
 func tryVersion() {
 	if printVersion {
