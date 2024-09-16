@@ -3,12 +3,13 @@ package final
 import (
 	"errors"
 	"fmt"
-	"git.ophivana.moe/cat/fortify/internal/acl"
-	"git.ophivana.moe/cat/fortify/internal/state"
-	"git.ophivana.moe/cat/fortify/internal/verbose"
-	"git.ophivana.moe/cat/fortify/internal/xcb"
 	"io/fs"
 	"os"
+
+	"git.ophivana.moe/cat/fortify/acl"
+	"git.ophivana.moe/cat/fortify/internal/state"
+	"git.ophivana.moe/cat/fortify/internal/verbose"
+	"git.ophivana.moe/cat/fortify/xcb"
 )
 
 func Fatal(msg ...any) {

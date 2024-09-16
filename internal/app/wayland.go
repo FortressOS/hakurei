@@ -2,11 +2,11 @@ package app
 
 import (
 	"fmt"
-	"git.ophivana.moe/cat/fortify/internal/final"
 	"os"
 	"path"
 
-	"git.ophivana.moe/cat/fortify/internal/acl"
+	"git.ophivana.moe/cat/fortify/acl"
+	"git.ophivana.moe/cat/fortify/internal/final"
 	"git.ophivana.moe/cat/fortify/internal/state"
 	"git.ophivana.moe/cat/fortify/internal/verbose"
 )

@@ -2,12 +2,12 @@ package app
 
 import (
 	"fmt"
-	"git.ophivana.moe/cat/fortify/internal/final"
 	"os"
 
+	"git.ophivana.moe/cat/fortify/internal/final"
 	"git.ophivana.moe/cat/fortify/internal/state"
 	"git.ophivana.moe/cat/fortify/internal/verbose"
-	"git.ophivana.moe/cat/fortify/internal/xcb"
+	"git.ophivana.moe/cat/fortify/xcb"
 )
 
 const display = "DISPLAY"
