@@ -7,15 +7,13 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
-	"path"
 	"strconv"
 	"syscall"
 
+	"git.ophivana.moe/cat/fortify/internal/final"
+
 	"git.ophivana.moe/cat/fortify/dbus"
-	"git.ophivana.moe/cat/fortify/internal/acl"
 	"git.ophivana.moe/cat/fortify/internal/app"
-	"git.ophivana.moe/cat/fortify/internal/state"
-	"git.ophivana.moe/cat/fortify/internal/system"
 	"git.ophivana.moe/cat/fortify/internal/verbose"
 )
 
@@ -48,9 +46,8 @@ func main() {
 	tryVersion()
 	tryLicense()
 
-	system.Retrieve()
 	a = app.New(userName, flag.Args(), launchOptionText)
-	state.Set(*a.User, a.Command(), a.UID())
+	final.Prepare(*a.User, a.UID(), a.RunDir())
 
 	// parse D-Bus config file if applicable
 	if mustDBus {
@@ -58,10 +55,10 @@ func main() {
 			dbusSession = dbus.NewConfig(dbusID, true, mpris)
 		} else {
 			if f, err := os.Open(dbusConfigSession); err != nil {
-				state.Fatal("Error opening D-Bus proxy config file:", err)
+				final.Fatal("Error opening D-Bus proxy config file:", err)
 			} else {
 				if err = json.NewDecoder(f).Decode(&dbusSession); err != nil {
-					state.Fatal("Error parsing D-Bus proxy config file:", err)
+					final.Fatal("Error parsing D-Bus proxy config file:", err)
 				}
 			}
 		}
@@ -69,46 +66,23 @@ func main() {
 		// system bus proxy is optional
 		if dbusConfigSystem != "nil" {
 			if f, err := os.Open(dbusConfigSystem); err != nil {
-				state.Fatal("Error opening D-Bus proxy config file:", err)
+				final.Fatal("Error opening D-Bus proxy config file:", err)
 			} else {
 				if err = json.NewDecoder(f).Decode(&dbusSystem); err != nil {
-					state.Fatal("Error parsing D-Bus proxy config file:", err)
+					final.Fatal("Error parsing D-Bus proxy config file:", err)
 				}
 			}
 		}
 	}
 
 	// ensure RunDir (e.g. `/run/user/%d/fortify`)
-	if err := os.Mkdir(system.V.RunDir, 0700); err != nil && !errors.Is(err, fs.ErrExist) {
-		state.Fatal("Error creating runtime directory:", err)
-	}
+	a.EnsureRunDir()
 
 	// state query command early exit
-	state.Early()
+	tryState()
 
 	// ensure Share (e.g. `/tmp/fortify.%d`)
-	// acl is unnecessary as this directory is world executable
-	if err := os.Mkdir(system.V.Share, 0701); err != nil && !errors.Is(err, fs.ErrExist) {
-		state.Fatal("Error creating shared directory:", err)
-	}
-
-	if a.LaunchOption() == app.LaunchMethodSudo {
-		// ensure child runtime directory (e.g. `/tmp/fortify.%d/%d.share`)
-		cr := path.Join(system.V.Share, a.Uid+".share")
-		if err := os.Mkdir(cr, 0700); err != nil && !errors.Is(err, fs.ErrExist) {
-			state.Fatal("Error creating child runtime directory:", err)
-		} else {
-			if err = acl.UpdatePerm(cr, a.UID(), acl.Read, acl.Write, acl.Execute); err != nil {
-				state.Fatal("Error preparing child runtime directory:", err)
-			} else {
-				state.RegisterRevertPath(cr)
-			}
-			a.AppendEnv("XDG_RUNTIME_DIR", cr)
-			a.AppendEnv("XDG_SESSION_CLASS", "user")
-			a.AppendEnv("XDG_SESSION_TYPE", "tty")
-			verbose.Printf("Child runtime data dir '%s' configured\n", cr)
-		}
-	}
+	a.EnsureShare()
 
 	// warn about target user home directory ownership
 	if stat, err := os.Stat(a.HomeDir); err != nil {
@@ -131,21 +105,7 @@ func main() {
 	}
 
 	// ensure runtime directory ACL (e.g. `/run/user/%d`)
-	if s, err := os.Stat(system.V.Runtime); err != nil {
-		if errors.Is(err, fs.ErrNotExist) {
-			state.Fatal("Runtime directory does not exist")
-		}
-		state.Fatal("Error accessing runtime directory:", err)
-	} else if !s.IsDir() {
-		state.Fatal(fmt.Sprintf("Path '%s' is not a directory", system.V.Runtime))
-	} else {
-		if err = acl.UpdatePerm(system.V.Runtime, a.UID(), acl.Execute); err != nil {
-			state.Fatal("Error preparing runtime directory:", err)
-		} else {
-			state.RegisterRevertPath(system.V.Runtime)
-		}
-		verbose.Printf("Runtime data dir '%s' configured\n", system.V.Runtime)
-	}
+	a.EnsureRuntime()
 
 	if mustWayland {
 		a.ShareWayland()

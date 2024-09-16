@@ -1,68 +1,37 @@
 package state
 
 import (
-	"flag"
 	"fmt"
 	"os"
 	"strconv"
 	"strings"
 	"text/tabwriter"
 
-	"git.ophivana.moe/cat/fortify/internal/system"
 	"git.ophivana.moe/cat/fortify/internal/verbose"
 )
 
-var (
-	stateActionEarly  bool
-	stateActionEarlyC bool
-)
-
-func init() {
-	flag.BoolVar(&stateActionEarly, "state", false, "print state information of active launchers")
-	flag.BoolVar(&stateActionEarlyC, "state-current", false, "print state information of active launchers for the specified user")
-}
-
-func Early() {
-	var w *tabwriter.Writer
-
-	switch {
-	case stateActionEarly:
-		if runDir, err := os.ReadDir(system.V.RunDir); err != nil {
-			fmt.Println("Error reading runtime directory:", err)
-		} else {
-			for _, e := range runDir {
-				if !e.IsDir() {
-					verbose.Println("Skipped non-directory entry", e.Name())
-					continue
-				}
-
-				if _, err = strconv.Atoi(e.Name()); err != nil {
-					verbose.Println("Skipped non-uid entry", e.Name())
-					continue
-				}
-
-				printLauncherState(e.Name(), &w)
-			}
-		}
-	case stateActionEarlyC:
-		printLauncherState(u.Uid, &w)
-	default:
-		return
-	}
-
-	if w != nil {
-		if err := w.Flush(); err != nil {
-			fmt.Println("warn: error formatting output:", err)
-		}
+func MustPrintLauncherStateGlobal(w **tabwriter.Writer, runDirPath string) {
+	if dirs, err := os.ReadDir(runDirPath); err != nil {
+		fmt.Println("Error reading runtime directory:", err)
 	} else {
-		fmt.Println("No information available.")
-	}
+		for _, e := range dirs {
+			if !e.IsDir() {
+				verbose.Println("Skipped non-directory entry", e.Name())
+				continue
+			}
 
-	os.Exit(0)
+			if _, err = strconv.Atoi(e.Name()); err != nil {
+				verbose.Println("Skipped non-uid entry", e.Name())
+				continue
+			}
+
+			MustPrintLauncherState(w, runDirPath, e.Name())
+		}
+	}
 }
 
-func printLauncherState(uid string, w **tabwriter.Writer) {
-	launchers, err := readLaunchers(uid)
+func MustPrintLauncherState(w **tabwriter.Writer, runDirPath, uid string) {
+	launchers, err := ReadLaunchers(runDirPath, uid)
 	if err != nil {
 		fmt.Println("Error reading launchers:", err)
 		os.Exit(1)

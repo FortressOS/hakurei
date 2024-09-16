@@ -5,11 +5,11 @@ import (
 	"encoding/base64"
 	"encoding/gob"
 	"fmt"
+	"git.ophivana.moe/cat/fortify/internal/final"
 	"os"
 	"strings"
 	"syscall"
 
-	"git.ophivana.moe/cat/fortify/internal/state"
 	"git.ophivana.moe/cat/fortify/internal/util"
 )
 
@@ -20,7 +20,7 @@ func (a *App) launcherPayloadEnv() string {
 	enc := base64.NewEncoder(base64.StdEncoding, r)
 
 	if err := gob.NewEncoder(enc).Encode(a.command); err != nil {
-		state.Fatal("Error encoding launcher payload:", err)
+		final.Fatal("Error encoding launcher payload:", err)
 	}
 
 	_ = enc.Close()

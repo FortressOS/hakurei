@@ -1,21 +1,26 @@
-package state
+package final
 
-import "git.ophivana.moe/cat/fortify/dbus"
+import (
+	"git.ophivana.moe/cat/fortify/dbus"
+	"git.ophivana.moe/cat/fortify/internal/state"
+)
 
 var (
 	cleanupCandidate  []string
-	enablements       *Enablements
+	enablements       *state.Enablements
 	xcbActionComplete bool
 
 	dbusProxy *dbus.Proxy
 	dbusDone  *chan struct{}
+
+	statePath string
 )
 
 func RegisterRevertPath(p string) {
 	cleanupCandidate = append(cleanupCandidate, p)
 }
 
-func RegisterEnablement(e Enablements) {
+func RegisterEnablement(e state.Enablements) {
 	if enablements != nil {
 		panic("enablement state set twice")
 	}
@@ -32,4 +37,12 @@ func XcbActionComplete() {
 func RegisterDBus(p *dbus.Proxy, done *chan struct{}) {
 	dbusProxy = p
 	dbusDone = done
+}
+
+func RegisterStatePath(v string) {
+	if statePath != "" {
+		panic("statePath set twice")
+	}
+
+	statePath = v
 }

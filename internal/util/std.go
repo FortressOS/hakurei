@@ -3,11 +3,10 @@ package util
 import (
 	"errors"
 	"fmt"
+	"git.ophivana.moe/cat/fortify/internal/final"
 	"io/fs"
 	"os"
 	"path"
-
-	"git.ophivana.moe/cat/fortify/internal/state"
 )
 
 const (
@@ -43,7 +42,7 @@ func DiscoverPulseCookie() string {
 		p = path.Join(p, ".pulse-cookie")
 		if s, err := os.Stat(p); err != nil {
 			if !errors.Is(err, fs.ErrNotExist) {
-				state.Fatal("Error accessing PulseAudio cookie:", err)
+				final.Fatal("Error accessing PulseAudio cookie:", err)
 				// unreachable
 				return p
 			}
@@ -56,7 +55,7 @@ func DiscoverPulseCookie() string {
 		p = path.Join(p, "pulse", "cookie")
 		if s, err := os.Stat(p); err != nil {
 			if !errors.Is(err, fs.ErrNotExist) {
-				state.Fatal("Error accessing PulseAudio cookie:", err)
+				final.Fatal("Error accessing PulseAudio cookie:", err)
 				// unreachable
 				return p
 			}
@@ -65,7 +64,7 @@ func DiscoverPulseCookie() string {
 		}
 	}
 
-	state.Fatal(fmt.Sprintf("Cannot locate PulseAudio cookie (tried $%s, $%s/pulse/cookie, $%s/.pulse-cookie)",
+	final.Fatal(fmt.Sprintf("Cannot locate PulseAudio cookie (tried $%s, $%s/pulse/cookie, $%s/.pulse-cookie)",
 		PulseCookie, xdgConfigHome, home))
 	return ""
 }

@@ -1,14 +1,14 @@
-package state
+package final
 
 import (
 	"errors"
 	"fmt"
-	"io/fs"
-	"os"
-
 	"git.ophivana.moe/cat/fortify/internal/acl"
+	"git.ophivana.moe/cat/fortify/internal/state"
 	"git.ophivana.moe/cat/fortify/internal/verbose"
 	"git.ophivana.moe/cat/fortify/internal/xcb"
+	"io/fs"
+	"os"
 )
 
 func Fatal(msg ...any) {
@@ -31,7 +31,7 @@ func BeforeExit() {
 		}
 	}
 
-	if d, err := readLaunchers(u.Uid); err != nil {
+	if d, err := state.ReadLaunchers(runDirPath, u.Uid); err != nil {
 		fmt.Println("Error reading active launchers:", err)
 		os.Exit(1)
 	} else if len(d) > 0 {

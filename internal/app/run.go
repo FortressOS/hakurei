@@ -3,12 +3,12 @@ package app
 import (
 	"errors"
 	"fmt"
+	"git.ophivana.moe/cat/fortify/internal/final"
 	"os"
 	"os/exec"
 	"strings"
 
 	"git.ophivana.moe/cat/fortify/internal/state"
-	"git.ophivana.moe/cat/fortify/internal/system"
 	"git.ophivana.moe/cat/fortify/internal/util"
 	"git.ophivana.moe/cat/fortify/internal/verbose"
 )
@@ -47,31 +47,33 @@ func (a *App) Run() {
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	cmd.Dir = system.V.RunDir
+	cmd.Dir = a.runDirPath
 
 	verbose.Println("Executing:", cmd)
 
 	if err := cmd.Start(); err != nil {
-		state.Fatal("Error starting process:", err)
+		final.Fatal("Error starting process:", err)
 	}
 
-	state.RegisterEnablement(a.enablements)
+	final.RegisterEnablement(a.enablements)
 
-	if err := state.SaveProcess(a.Uid, cmd); err != nil {
+	if statePath, err := state.SaveProcess(a.Uid, cmd, a.runDirPath, a.command, a.enablements); err != nil {
 		// process already started, shouldn't be fatal
 		fmt.Println("Error registering process:", err)
+	} else {
+		final.RegisterStatePath(statePath)
 	}
 
 	var r int
 	if err := cmd.Wait(); err != nil {
 		var exitError *exec.ExitError
 		if !errors.As(err, &exitError) {
-			state.Fatal("Error running process:", err)
+			final.Fatal("Error running process:", err)
 		}
 	}
 
 	verbose.Println("Process exited with exit code", r)
-	state.BeforeExit()
+	final.BeforeExit()
 	os.Exit(r)
 }
 
@@ -99,7 +101,7 @@ func (a *App) commandBuilderSudo() (args []string) {
 
 func (a *App) commandBuilderBwrap() (args []string) {
 	// TODO: build bwrap command
-	state.Fatal("bwrap")
+	final.Fatal("bwrap")
 	panic("unreachable")
 }
 
@@ -127,7 +129,7 @@ func (a *App) commandBuilderMachineCtl() (args []string) {
 
 	// /bin/sh -c
 	if sh, ok := util.Which("sh"); !ok {
-		state.Fatal("Did not find 'sh' in PATH")
+		final.Fatal("Did not find 'sh' in PATH")
 	} else {
 		args = append(args, sh, "-c")
 	}
@@ -145,7 +147,7 @@ func (a *App) commandBuilderMachineCtl() (args []string) {
 	innerCommand.WriteString("; ")
 
 	if executable, err := os.Executable(); err != nil {
-		state.Fatal("Error reading executable path:", err)
+		final.Fatal("Error reading executable path:", err)
 	} else {
 		if a.enablements.Has(state.EnableDBus) {
 			innerCommand.WriteString(dbusSessionBusAddress + "=" + "'" + dbusAddress[0] + "' ")

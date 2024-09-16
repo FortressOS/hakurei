@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	"git.ophivana.moe/cat/fortify/internal/final"
 	"os"
 
 	"git.ophivana.moe/cat/fortify/internal/state"
@@ -16,16 +17,16 @@ func (a *App) ShareX() {
 
 	// discovery X11 and grant user permission via the `ChangeHosts` command
 	if d, ok := os.LookupEnv(display); !ok {
-		state.Fatal("X11: DISPLAY not set")
+		final.Fatal("X11: DISPLAY not set")
 	} else {
 		// add environment variable for new process
 		a.AppendEnv(display, d)
 
 		verbose.Printf("X11: Adding XHost entry SI:localuser:%s to display '%s'\n", a.Username, d)
 		if err := xcb.ChangeHosts(xcb.HostModeInsert, xcb.FamilyServerInterpreted, "localuser\x00"+a.Username); err != nil {
-			state.Fatal(fmt.Sprintf("Error adding XHost entry to '%s':", d), err)
+			final.Fatal(fmt.Sprintf("Error adding XHost entry to '%s':", d), err)
 		} else {
-			state.XcbActionComplete()
+			final.XcbActionComplete()
 		}
 	}
 }
