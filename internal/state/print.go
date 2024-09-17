@@ -7,6 +7,7 @@ import (
 	"strings"
 	"text/tabwriter"
 
+	"git.ophivana.moe/cat/fortify/internal"
 	"git.ophivana.moe/cat/fortify/internal/verbose"
 )
 
@@ -31,7 +32,7 @@ func MustPrintLauncherStateGlobal(w **tabwriter.Writer, runDirPath string) {
 }
 
 func MustPrintLauncherState(w **tabwriter.Writer, runDirPath, uid string) {
-	launchers, err := ReadLaunchers(runDirPath, uid)
+	launchers, err := ReadLaunchers(runDirPath, uid, true)
 	if err != nil {
 		fmt.Println("Error reading launchers:", err)
 		os.Exit(1)
@@ -49,7 +50,7 @@ func MustPrintLauncherState(w **tabwriter.Writer, runDirPath, uid string) {
 
 	for _, state := range launchers {
 		enablementsDescription := strings.Builder{}
-		for i := Enablement(0); i < enableLength; i++ {
+		for i := internal.Enablement(0); i < internal.EnableLength; i++ {
 			if state.Capability.Has(i) {
 				enablementsDescription.WriteString(", " + i.String())
 			}

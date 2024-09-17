@@ -8,7 +8,7 @@ import (
 	"path"
 	"strconv"
 
-	"git.ophivana.moe/cat/fortify/internal/state"
+	"git.ophivana.moe/cat/fortify/internal"
 	"git.ophivana.moe/cat/fortify/internal/util"
 	"git.ophivana.moe/cat/fortify/internal/verbose"
 )
@@ -22,6 +22,8 @@ type App struct {
 	env     []string // modified via AppendEnv
 	command []string // set on initialisation
 
+	exit *internal.ExitState // assigned
+
 	launchOptionText string // set on initialisation
 	launchOption     uint8  // assigned
 
@@ -30,8 +32,8 @@ type App struct {
 	runDirPath  string // assigned
 	toolPath    string // assigned
 
-	enablements state.Enablements // set via setEnablement
-	*user.User                    // assigned
+	enablements internal.Enablements // set via setEnablement
+	*user.User                       // assigned
 
 	// absolutely *no* method of this type is thread-safe
 	// so don't treat it as if it is
@@ -45,12 +47,19 @@ func (a *App) RunDir() string {
 	return a.runDirPath
 }
 
-func (a *App) setEnablement(e state.Enablement) {
+func (a *App) setEnablement(e internal.Enablement) {
 	if a.enablements.Has(e) {
 		panic("enablement " + e.String() + " set twice")
 	}
 
 	a.enablements |= e.Mask()
+}
+
+func (a *App) SealExit(exit *internal.ExitState) {
+	if a.exit != nil {
+		panic("application exit state sealed twice")
+	}
+	a.exit = exit
 }
 
 func New(userName string, args []string, launchOptionText string) *App {
@@ -96,7 +105,7 @@ func New(userName string, args []string, launchOptionText string) *App {
 	}
 
 	verbose.Println("Running as user", a.Username, "("+a.Uid+"),", "command:", a.command)
-	if util.SdBootedV {
+	if internal.SdBootedV {
 		verbose.Println("System booted with systemd as init system (PID 1).")
 	}
 
@@ -120,7 +129,7 @@ func New(userName string, args []string, launchOptionText string) *App {
 		}
 	case "systemd":
 		a.launchOption = LaunchMethodMachineCtl
-		if !util.SdBootedV {
+		if !internal.SdBootedV {
 			fmt.Println("System has not been booted with systemd as init system (PID 1).")
 			os.Exit(1)
 		}

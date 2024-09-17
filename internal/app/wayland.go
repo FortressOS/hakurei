@@ -6,8 +6,7 @@ import (
 	"path"
 
 	"git.ophivana.moe/cat/fortify/acl"
-	"git.ophivana.moe/cat/fortify/internal/final"
-	"git.ophivana.moe/cat/fortify/internal/state"
+	"git.ophivana.moe/cat/fortify/internal"
 	"git.ophivana.moe/cat/fortify/internal/verbose"
 )
 
@@ -17,19 +16,19 @@ const (
 )
 
 func (a *App) ShareWayland() {
-	a.setEnablement(state.EnableWayland)
+	a.setEnablement(internal.EnableWayland)
 
 	// ensure Wayland socket ACL (e.g. `/run/user/%d/wayland-%d`)
 	if w, ok := os.LookupEnv(waylandDisplay); !ok {
-		final.Fatal("Wayland: WAYLAND_DISPLAY not set")
+		internal.Fatal("Wayland: WAYLAND_DISPLAY not set")
 	} else {
 		// add environment variable for new process
 		wp := path.Join(a.runtimePath, w)
 		a.AppendEnv(waylandDisplay, wp)
 		if err := acl.UpdatePerm(wp, a.UID(), acl.Read, acl.Write, acl.Execute); err != nil {
-			final.Fatal(fmt.Sprintf("Error preparing Wayland '%s':", w), err)
+			internal.Fatal(fmt.Sprintf("Error preparing Wayland '%s':", w), err)
 		} else {
-			final.RegisterRevertPath(wp)
+			a.exit.RegisterRevertPath(wp)
 		}
 		verbose.Printf("Wayland socket '%s' configured\n", w)
 	}

@@ -3,11 +3,11 @@ package app
 import (
 	"errors"
 	"fmt"
-	"git.ophivana.moe/cat/fortify/internal/final"
 	"os"
 	"os/exec"
 	"strings"
 
+	"git.ophivana.moe/cat/fortify/internal"
 	"git.ophivana.moe/cat/fortify/internal/state"
 	"git.ophivana.moe/cat/fortify/internal/util"
 	"git.ophivana.moe/cat/fortify/internal/verbose"
@@ -52,28 +52,28 @@ func (a *App) Run() {
 	verbose.Println("Executing:", cmd)
 
 	if err := cmd.Start(); err != nil {
-		final.Fatal("Error starting process:", err)
+		internal.Fatal("Error starting process:", err)
 	}
 
-	final.RegisterEnablement(a.enablements)
+	a.exit.SealEnablements(a.enablements)
 
 	if statePath, err := state.SaveProcess(a.Uid, cmd, a.runDirPath, a.command, a.enablements); err != nil {
 		// process already started, shouldn't be fatal
 		fmt.Println("Error registering process:", err)
 	} else {
-		final.RegisterStatePath(statePath)
+		a.exit.SealStatePath(statePath)
 	}
 
 	var r int
 	if err := cmd.Wait(); err != nil {
 		var exitError *exec.ExitError
 		if !errors.As(err, &exitError) {
-			final.Fatal("Error running process:", err)
+			internal.Fatal("Error running process:", err)
 		}
 	}
 
 	verbose.Println("Process exited with exit code", r)
-	final.BeforeExit()
+	internal.BeforeExit()
 	os.Exit(r)
 }
 
@@ -101,7 +101,7 @@ func (a *App) commandBuilderSudo() (args []string) {
 
 func (a *App) commandBuilderBwrap() (args []string) {
 	// TODO: build bwrap command
-	final.Fatal("bwrap")
+	internal.Fatal("bwrap")
 	panic("unreachable")
 }
 
@@ -129,7 +129,7 @@ func (a *App) commandBuilderMachineCtl() (args []string) {
 
 	// /bin/sh -c
 	if sh, ok := util.Which("sh"); !ok {
-		final.Fatal("Did not find 'sh' in PATH")
+		internal.Fatal("Did not find 'sh' in PATH")
 	} else {
 		args = append(args, sh, "-c")
 	}
@@ -147,9 +147,9 @@ func (a *App) commandBuilderMachineCtl() (args []string) {
 	innerCommand.WriteString("; ")
 
 	if executable, err := os.Executable(); err != nil {
-		final.Fatal("Error reading executable path:", err)
+		internal.Fatal("Error reading executable path:", err)
 	} else {
-		if a.enablements.Has(state.EnableDBus) {
+		if a.enablements.Has(internal.EnableDBus) {
 			innerCommand.WriteString(dbusSessionBusAddress + "=" + "'" + dbusAddress[0] + "' ")
 			if dbusSystem {
 				innerCommand.WriteString(dbusSystemBusAddress + "=" + "'" + dbusAddress[1] + "' ")

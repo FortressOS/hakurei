@@ -9,8 +9,7 @@ import (
 
 	"git.ophivana.moe/cat/fortify/acl"
 	"git.ophivana.moe/cat/fortify/dbus"
-	"git.ophivana.moe/cat/fortify/internal/final"
-	"git.ophivana.moe/cat/fortify/internal/state"
+	"git.ophivana.moe/cat/fortify/internal"
 	"git.ophivana.moe/cat/fortify/internal/util"
 	"git.ophivana.moe/cat/fortify/internal/verbose"
 )
@@ -26,7 +25,7 @@ var (
 )
 
 func (a *App) ShareDBus(dse, dsg *dbus.Config, log bool) {
-	a.setEnablement(state.EnableDBus)
+	a.setEnablement(internal.EnableDBus)
 
 	dbusSystem = dsg != nil
 	var binPath string
@@ -41,7 +40,7 @@ func (a *App) ShareDBus(dse, dsg *dbus.Config, log bool) {
 	}
 
 	if b, ok := util.Which("xdg-dbus-proxy"); !ok {
-		final.Fatal("D-Bus: Did not find 'xdg-dbus-proxy' in PATH")
+		internal.Fatal("D-Bus: Did not find 'xdg-dbus-proxy' in PATH")
 	} else {
 		binPath = b
 	}
@@ -69,7 +68,7 @@ func (a *App) ShareDBus(dse, dsg *dbus.Config, log bool) {
 		verbose.Println("D-Bus: sealing system proxy", dsg.Args(systemBus))
 	}
 	if err := p.Seal(dse, dsg); err != nil {
-		final.Fatal("D-Bus: invalid config when sealing proxy,", err)
+		internal.Fatal("D-Bus: invalid config when sealing proxy,", err)
 	}
 
 	ready := make(chan bool, 1)
@@ -80,7 +79,7 @@ func (a *App) ShareDBus(dse, dsg *dbus.Config, log bool) {
 		verbose.Printf("Starting system bus proxy '%s' for address '%s'\n", dbusAddress[1], systemBus[0])
 	}
 	if err := p.Start(&ready); err != nil {
-		final.Fatal("D-Bus: error starting proxy,", err)
+		internal.Fatal("D-Bus: error starting proxy,", err)
 	}
 	verbose.Println("D-Bus proxy launch:", p)
 
@@ -97,24 +96,24 @@ func (a *App) ShareDBus(dse, dsg *dbus.Config, log bool) {
 	}()
 
 	// register early to enable Fatal cleanup
-	final.RegisterDBus(p, &done)
+	a.exit.SealDBus(p, &done)
 
 	if !<-ready {
-		final.Fatal("D-Bus: proxy did not start correctly")
+		internal.Fatal("D-Bus: proxy did not start correctly")
 	}
 
 	a.AppendEnv(dbusSessionBusAddress, dbusAddress[0])
 	if err := acl.UpdatePerm(sessionBus[1], a.UID(), acl.Read, acl.Write); err != nil {
-		final.Fatal(fmt.Sprintf("Error preparing D-Bus session proxy '%s':", dbusAddress[0]), err)
+		internal.Fatal(fmt.Sprintf("Error preparing D-Bus session proxy '%s':", dbusAddress[0]), err)
 	} else {
-		final.RegisterRevertPath(sessionBus[1])
+		a.exit.RegisterRevertPath(sessionBus[1])
 	}
 	if dsg != nil {
 		a.AppendEnv(dbusSystemBusAddress, dbusAddress[1])
 		if err := acl.UpdatePerm(systemBus[1], a.UID(), acl.Read, acl.Write); err != nil {
-			final.Fatal(fmt.Sprintf("Error preparing D-Bus system proxy '%s':", dbusAddress[1]), err)
+			internal.Fatal(fmt.Sprintf("Error preparing D-Bus system proxy '%s':", dbusAddress[1]), err)
 		} else {
-			final.RegisterRevertPath(systemBus[1])
+			a.exit.RegisterRevertPath(systemBus[1])
 		}
 	}
 	verbose.Printf("Session bus proxy '%s' for address '%s' configured\n", dbusAddress[0], sessionBus[0])

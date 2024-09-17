@@ -8,10 +8,12 @@ import (
 	"os/exec"
 	"path"
 	"strconv"
+
+	"git.ophivana.moe/cat/fortify/internal"
 )
 
 // SaveProcess called after process start, before wait
-func SaveProcess(uid string, cmd *exec.Cmd, runDirPath string, command []string, enablements Enablements) (string, error) {
+func SaveProcess(uid string, cmd *exec.Cmd, runDirPath string, command []string, enablements internal.Enablements) (string, error) {
 	statePath := path.Join(runDirPath, uid, strconv.Itoa(cmd.Process.Pid))
 	state := launcherState{
 		PID:        cmd.Process.Pid,

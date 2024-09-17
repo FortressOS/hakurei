@@ -4,6 +4,8 @@ import (
 	"encoding/gob"
 	"os"
 	"path"
+
+	"git.ophivana.moe/cat/fortify/internal"
 )
 
 // we unfortunately have to assume there are never races between processes
@@ -14,10 +16,12 @@ type launcherState struct {
 	Launcher   string
 	Argv       []string
 	Command    []string
-	Capability Enablements
+	Capability internal.Enablements
 }
 
-func ReadLaunchers(runDirPath, uid string) ([]*launcherState, error) {
+// ReadLaunchers reads all launcher state file entries for the requested user
+// and if decode is true decodes these launchers as well.
+func ReadLaunchers(runDirPath, uid string, decode bool) ([]*launcherState, error) {
 	var f *os.File
 	var r []*launcherState
 	launcherPrefix := path.Join(runDirPath, uid)
@@ -39,7 +43,11 @@ func ReadLaunchers(runDirPath, uid string) ([]*launcherState, error) {
 
 					var s launcherState
 					r = append(r, &s)
-					return gob.NewDecoder(f).Decode(&s)
+					if decode {
+						return gob.NewDecoder(f).Decode(&s)
+					} else {
+						return nil
+					}
 				}
 			}(); err != nil {
 				return nil, err

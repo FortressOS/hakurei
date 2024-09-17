@@ -3,7 +3,7 @@ package main
 import (
 	"flag"
 
-	"git.ophivana.moe/cat/fortify/internal/util"
+	"git.ophivana.moe/cat/fortify/internal"
 )
 
 var (
@@ -44,7 +44,7 @@ func init() {
 
 func init() {
 	methodHelpString := "Method of launching the child process, can be one of \"sudo\", \"bubblewrap\""
-	if util.SdBootedV {
+	if internal.SdBootedV {
 		methodHelpString += ", \"systemd\""
 	}
 

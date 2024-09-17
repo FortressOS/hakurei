@@ -1,4 +1,4 @@
-package state
+package internal
 
 type (
 	Enablement  uint8
@@ -11,10 +11,10 @@ const (
 	EnableDBus
 	EnablePulse
 
-	enableLength
+	EnableLength
 )
 
-var enablementString = [enableLength]string{
+var enablementString = [EnableLength]string{
 	"Wayland",
 	"X11",
 	"D-Bus",

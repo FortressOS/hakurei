@@ -10,10 +10,10 @@ import (
 	"strconv"
 	"syscall"
 
-	"git.ophivana.moe/cat/fortify/internal/final"
-
 	"git.ophivana.moe/cat/fortify/dbus"
+	"git.ophivana.moe/cat/fortify/internal"
 	"git.ophivana.moe/cat/fortify/internal/app"
+	"git.ophivana.moe/cat/fortify/internal/state"
 	"git.ophivana.moe/cat/fortify/internal/verbose"
 )
 
@@ -21,6 +21,7 @@ var (
 	Version = "impure"
 
 	a *app.App
+	s *internal.ExitState
 
 	dbusSession *dbus.Config
 	dbusSystem  *dbus.Config
@@ -47,7 +48,12 @@ func main() {
 	tryLicense()
 
 	a = app.New(userName, flag.Args(), launchOptionText)
-	final.Prepare(*a.User, a.UID(), a.RunDir())
+	s = internal.NewExit(a.User, a.UID(), func() (int, error) {
+		d, err := state.ReadLaunchers(a.RunDir(), a.Uid, false)
+		return len(d), err
+	})
+	a.SealExit(s)
+	internal.SealExit(s)
 
 	// parse D-Bus config file if applicable
 	if mustDBus {
@@ -55,10 +61,10 @@ func main() {
 			dbusSession = dbus.NewConfig(dbusID, true, mpris)
 		} else {
 			if f, err := os.Open(dbusConfigSession); err != nil {
-				final.Fatal("Error opening D-Bus proxy config file:", err)
+				internal.Fatal("Error opening D-Bus proxy config file:", err)
 			} else {
 				if err = json.NewDecoder(f).Decode(&dbusSession); err != nil {
-					final.Fatal("Error parsing D-Bus proxy config file:", err)
+					internal.Fatal("Error parsing D-Bus proxy config file:", err)
 				}
 			}
 		}
@@ -66,10 +72,10 @@ func main() {
 		// system bus proxy is optional
 		if dbusConfigSystem != "nil" {
 			if f, err := os.Open(dbusConfigSystem); err != nil {
-				final.Fatal("Error opening D-Bus proxy config file:", err)
+				internal.Fatal("Error opening D-Bus proxy config file:", err)
 			} else {
 				if err = json.NewDecoder(f).Decode(&dbusSystem); err != nil {
-					final.Fatal("Error parsing D-Bus proxy config file:", err)
+					internal.Fatal("Error parsing D-Bus proxy config file:", err)
 				}
 			}
 		}
