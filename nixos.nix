@@ -274,14 +274,16 @@ in
                 link = source: "[ -d '${source}' ] && ln -sv '${source}' $out/share || true";
               in
               shares
-              ++ optional (launcher.method != "simple" && (launcher.capability.wayland || launcher.capability.x11)) (
-                pkgs.runCommand "${name}-share" { } ''
-                  mkdir -p $out/share
-                  ${link "${pkg}/share/applications"}
-                  ${link "${pkg}/share/icons"}
-                  ${link "${pkg}/share/man"}
-                ''
-              )
+              ++
+                optional (launcher.method != "simple" && (launcher.capability.wayland || launcher.capability.x11))
+                  (
+                    pkgs.runCommand "${name}-share" { } ''
+                      mkdir -p $out/share
+                      ${link "${pkg}/share/applications"}
+                      ${link "${pkg}/share/icons"}
+                      ${link "${pkg}/share/man"}
+                    ''
+                  )
             ) (wrap user target.launchers) target.launchers)
           ) [ cfg.package ] cfg.target;
       };
