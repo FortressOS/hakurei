@@ -25,7 +25,9 @@ const (
 	Other        = C.ACL_OTHER
 )
 
-func UpdatePerm(path string, uid int, perms ...C.acl_perm_t) error {
+type Perm C.acl_perm_t
+
+func UpdatePerm(path string, uid int, perms ...Perm) error {
 	// read acl from file
 	a, err := aclGetFile(path, TypeAccess)
 	if err != nil {
@@ -55,7 +57,7 @@ func UpdatePerm(path string, uid int, perms ...C.acl_perm_t) error {
 
 		// add target perms
 		for _, perm := range perms {
-			if _, err = C.acl_add_perm(p, perm); err != nil {
+			if _, err = C.acl_add_perm(p, C.acl_perm_t(perm)); err != nil {
 				return err
 			}
 		}
