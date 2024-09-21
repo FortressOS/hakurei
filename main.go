@@ -5,10 +5,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"io/fs"
 	"os"
-	"strconv"
-	"syscall"
 
 	"git.ophivana.moe/cat/fortify/dbus"
 	"git.ophivana.moe/cat/fortify/internal"
@@ -19,14 +16,6 @@ import (
 
 var (
 	Version = "impure"
-
-	a *app.App
-	s *internal.ExitState
-
-	dbusSession *dbus.Config
-	dbusSystem  *dbus.Config
-
-	launchOptionText string
 )
 
 func tryVersion() {
@@ -40,31 +29,133 @@ func main() {
 	flag.Parse()
 	verbose.Set(flagVerbose)
 
+	if internal.SdBootedV {
+		verbose.Println("system booted with systemd as init system")
+	}
+
 	// launcher payload early exit
-	app.Early(printVersion)
+	if printVersion && printLicense {
+		app.TryShim()
+	}
 
 	// version/license command early exit
 	tryVersion()
 	tryLicense()
 
-	a = app.New(userName, flag.Args(), launchOptionText)
-	s = internal.NewExit(a.User, a.UID(), func() (int, error) {
-		d, err := state.ReadLaunchers(a.RunDir(), a.Uid, false)
-		return len(d), err
-	})
-	a.SealExit(s)
-	internal.SealExit(s)
+	// state query command early exit
+	tryState()
 
-	// parse D-Bus config file if applicable
+	// prepare config
+	var config *app.Config
+
+	if confPath == "nil" {
+		// config from flags
+		config = configFromFlags()
+	} else {
+		// config from file
+		if f, err := os.Open(confPath); err != nil {
+			fatalf("cannot access config file '%s': %s\n", confPath, err)
+		} else {
+			if err = json.NewDecoder(f).Decode(&config); err != nil {
+				fatalf("cannot parse config file '%s': %s\n", confPath, err)
+			}
+		}
+	}
+
+	// invoke app
+	r := 1
+	a := app.New()
+	if err := a.Seal(config); err != nil {
+		logBaseError(err, "fortify: cannot seal app:")
+	} else if err = a.Start(); err != nil {
+		logBaseError(err, "fortify: cannot start app:")
+	} else if r, err = a.Wait(); err != nil {
+		r = 1
+
+		var e *app.BaseError
+		if !app.AsBaseError(err, &e) {
+			fmt.Println("fortify: wait failed:", err)
+		} else {
+			// Wait only returns either *app.ProcessError or *app.StateStoreError wrapped in a *app.BaseError
+			var se *app.StateStoreError
+			if !errors.As(err, &se) {
+				// does not need special handling
+				fmt.Print("fortify: " + e.Message())
+			} else {
+				// inner error are either unwrapped store errors
+				// or joined errors returned by *appSealTx revert
+				// wrapped in *app.BaseError
+				var ej app.RevertCompoundError
+				if !errors.As(se.InnerErr, &ej) {
+					// does not require special handling
+					fmt.Print("fortify: " + e.Message())
+				} else {
+					errs := ej.Unwrap()
+
+					// every error here is wrapped in *app.BaseError
+					for _, ei := range errs {
+						var eb *app.BaseError
+						if !errors.As(ei, &eb) {
+							// unreachable
+							fmt.Println("fortify: invalid error type returned by revert:", ei)
+						} else {
+							// print inner *app.BaseError message
+							fmt.Print("fortify: " + eb.Message())
+						}
+					}
+				}
+			}
+		}
+	}
+	if err := a.WaitErr(); err != nil {
+		fmt.Println("fortify: inner wait failed:", err)
+	}
+	os.Exit(r)
+}
+
+func logBaseError(err error, message string) {
+	var e *app.BaseError
+
+	if app.AsBaseError(err, &e) {
+		fmt.Print("fortify: " + e.Message())
+	} else {
+		fmt.Println(message, err)
+	}
+}
+
+func configFromFlags() (config *app.Config) {
+	// initialise config from flags
+	config = &app.Config{
+		ID:      dbusID,
+		User:    userName,
+		Command: flag.Args(),
+		Method:  launchMethodText,
+	}
+
+	// enablements from flags
+	if mustWayland {
+		config.Confinement.Enablements.Set(state.EnableWayland)
+	}
+	if mustX {
+		config.Confinement.Enablements.Set(state.EnableX)
+	}
+	if mustDBus {
+		config.Confinement.Enablements.Set(state.EnableDBus)
+	}
+	if mustPulse {
+		config.Confinement.Enablements.Set(state.EnablePulse)
+	}
+
+	// parse D-Bus config file from flags if applicable
 	if mustDBus {
 		if dbusConfigSession == "builtin" {
-			dbusSession = dbus.NewConfig(dbusID, true, mpris)
+			config.Confinement.SessionBus = dbus.NewConfig(dbusID, true, mpris)
 		} else {
 			if f, err := os.Open(dbusConfigSession); err != nil {
-				internal.Fatal("Error opening D-Bus proxy config file:", err)
+				fatalf("cannot access session bus proxy config file '%s': %s\n", dbusConfigSession, err)
 			} else {
-				if err = json.NewDecoder(f).Decode(&dbusSession); err != nil {
-					internal.Fatal("Error parsing D-Bus proxy config file:", err)
+				if err = json.NewDecoder(f).Decode(&config.Confinement.SessionBus); err != nil {
+					fatalf("cannot parse session bus proxy config file '%s': %s\n", dbusConfigSession, err)
 				}
 			}
 		}
@@ -72,62 +163,24 @@ func main() {
 		// system bus proxy is optional
 		if dbusConfigSystem != "nil" {
 			if f, err := os.Open(dbusConfigSystem); err != nil {
-				internal.Fatal("Error opening D-Bus proxy config file:", err)
+				fatalf("cannot access system bus proxy config file '%s': %s\n", dbusConfigSystem, err)
 			} else {
-				if err = json.NewDecoder(f).Decode(&dbusSystem); err != nil {
-					internal.Fatal("Error parsing D-Bus proxy config file:", err)
+				if err = json.NewDecoder(f).Decode(&config.Confinement.SystemBus); err != nil {
+					fatalf("cannot parse system bus proxy config file '%s': %s\n", dbusConfigSystem, err)
 				}
 			}
 		}
-	}
 
-	// ensure RunDir (e.g. `/run/user/%d/fortify`)
-	a.EnsureRunDir()
-
-	// state query command early exit
-	tryState()
-
-	// ensure Share (e.g. `/tmp/fortify.%d`)
-	a.EnsureShare()
-
-	// warn about target user home directory ownership
-	if stat, err := os.Stat(a.HomeDir); err != nil {
-		if verbose.Get() {
-			switch {
-			case errors.Is(err, fs.ErrPermission):
-				fmt.Printf("User %s home directory %s is not accessible\n", a.Username, a.HomeDir)
-			case errors.Is(err, fs.ErrNotExist):
-				fmt.Printf("User %s home directory %s does not exis\n", a.Username, a.HomeDir)
-			default:
-				fmt.Printf("Error stat user %s home directory %s: %s\n", a.Username, a.HomeDir, err)
-			}
-		}
-		return
-	} else {
-		// FreeBSD: not cross-platform
-		if u := strconv.Itoa(int(stat.Sys().(*syscall.Stat_t).Uid)); u != a.Uid {
-			fmt.Printf("User %s home directory %s has incorrect ownership (expected UID %s, found %s)", a.Username, a.HomeDir, a.Uid, u)
+		if dbusVerbose {
+			config.Confinement.SessionBus.Log = true
+			config.Confinement.SystemBus.Log = true
 		}
 	}
 
-	// ensure runtime directory ACL (e.g. `/run/user/%d`)
-	a.EnsureRuntime()
+	return
+}
 
-	if mustWayland {
-		a.ShareWayland()
-	}
-
-	if mustX {
-		a.ShareX()
-	}
-
-	if mustDBus {
-		a.ShareDBus(dbusSession, dbusSystem, dbusVerbose)
-	}
-
-	if mustPulse {
-		a.SharePulse()
-	}
-
-	a.Run()
+func fatalf(format string, a ...any) {
+	fmt.Printf("fortify: "+format, a...)
+	os.Exit(1)
 }

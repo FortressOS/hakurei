@@ -1,17 +1,11 @@
-package util
+package app
 
 import (
 	"io"
 	"os"
-	"os/exec"
 )
 
-func Which(file string) (string, bool) {
-	p, err := exec.LookPath(file)
-	return p, err == nil
-}
-
-func CopyFile(dst, src string) error {
+func copyFile(dst, src string) error {
 	srcD, err := os.Open(src)
 	if err != nil {
 		return err

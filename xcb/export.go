@@ -20,13 +20,29 @@ const (
 	FamilyInternet6         = C.XCB_FAMILY_INTERNET_6
 )
 
+type ConnectionError struct {
+	err error
+}
+
+func (e *ConnectionError) Error() string {
+	return e.err.Error()
+}
+
+func (e *ConnectionError) Unwrap() error {
+	return e.err
+}
+
+var (
+	ErrChangeHosts = errors.New("xcb_change_hosts() failed")
+)
+
 func ChangeHosts(mode, family C.uint8_t, address string) error {
 	var c *C.xcb_connection_t
 	c = C.xcb_connect(nil, nil)
 	defer C.xcb_disconnect(c)
 
 	if err := xcbHandleConnectionError(c); err != nil {
-		return err
+		return &ConnectionError{err}
 	}
 
 	addr := C.CString(address)
@@ -34,13 +50,13 @@ func ChangeHosts(mode, family C.uint8_t, address string) error {
 	C.free(unsafe.Pointer(addr))
 
 	if err := xcbHandleConnectionError(c); err != nil {
-		return err
+		return &ConnectionError{err}
 	}
 
 	e := C.xcb_request_check(c, cookie)
 	if e != nil {
 		defer C.free(unsafe.Pointer(e))
-		return errors.New("xcb_change_hosts() failed")
+		return ErrChangeHosts
 	}
 
 	return nil

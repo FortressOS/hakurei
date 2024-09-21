@@ -8,6 +8,7 @@ import (
 
 var (
 	userName string
+	confPath string
 
 	dbusConfigSession string
 	dbusConfigSystem  string
@@ -22,10 +23,13 @@ var (
 
 	flagVerbose  bool
 	printVersion bool
+
+	launchMethodText string
 )
 
 func init() {
 	flag.StringVar(&userName, "u", "chronos", "Passwd name of user to run as")
+	flag.StringVar(&confPath, "c", "nil", "Path to full app configuration, or \"nil\" to configure from flags")
 
 	flag.StringVar(&dbusConfigSession, "dbus-config", "builtin", "Path to D-Bus proxy config file, or \"builtin\" for defaults")
 	flag.StringVar(&dbusConfigSystem, "dbus-system", "nil", "Path to system D-Bus proxy config file, or \"nil\" to disable")
@@ -48,5 +52,5 @@ func init() {
 		methodHelpString += ", \"systemd\""
 	}
 
-	flag.StringVar(&launchOptionText, "method", "sudo", methodHelpString)
+	flag.StringVar(&launchMethodText, "method", "sudo", methodHelpString)
 }
