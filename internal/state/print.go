@@ -98,7 +98,7 @@ func (s *simpleStore) mustPrintLauncherState(w **tabwriter.Writer, now time.Time
 
 				if !verbose.Get() {
 					_, _ = fmt.Fprintf(*w, "\t%s\t%d\t%s\t%s\t%s\t%s\n",
-						s.path[len(s.path)-1], state.PID, now.Sub(state.Time).String(), strings.TrimPrefix(ets.String(), ", "), state.Launcher,
+						s.path[len(s.path)-1], state.PID, now.Sub(state.Time).Round(time.Second).String(), strings.TrimPrefix(ets.String(), ", "), state.Launcher,
 						state.Command)
 				} else {
 					// emit argv instead when verbose
