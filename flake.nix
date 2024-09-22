@@ -37,10 +37,6 @@
           buildInputs =
             with nixpkgsFor.${system};
             [ self.packages.${system}.fortify ] ++ self.packages.${system}.fortify.buildInputs;
-
-          shellHook = ''
-            which fortify
-          '';
         };
       });
     };
