@@ -3,6 +3,7 @@
   buildGoModule,
   makeBinaryWrapper,
   xdg-dbus-proxy,
+  bubblewrap,
   acl,
   xorg,
 }:
@@ -29,6 +30,11 @@ buildGoModule rec {
   nativeBuildInputs = [ makeBinaryWrapper ];
 
   postInstall = ''
-    wrapProgram $out/bin/${pname} --prefix PATH : ${lib.makeBinPath [ xdg-dbus-proxy ]}
+    wrapProgram $out/bin/${pname} --prefix PATH : ${
+      lib.makeBinPath [
+        bubblewrap
+        xdg-dbus-proxy
+      ]
+    }
   '';
 }
