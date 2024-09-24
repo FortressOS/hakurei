@@ -62,6 +62,9 @@ func (a *argsFD) Seal(args []string) error {
 }
 
 func (a *argsFD) WriteTo(w io.Writer) (int64, error) {
+	a.RLock()
+	defer a.RUnlock()
+
 	if a.seal == nil {
 		panic("attempted to activate unsealed args")
 	}
