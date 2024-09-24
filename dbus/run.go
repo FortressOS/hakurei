@@ -43,7 +43,7 @@ func (p *Proxy) Start(ready *chan bool) error {
 
 	statsP, argsP := p.statP[0], p.argsP[1]
 
-	if _, err := argsP.Write([]byte(*p.seal)); err != nil {
+	if _, err := p.seal.WriteTo(argsP); err != nil {
 		if err1 := p.cmd.Process.Kill(); err1 != nil {
 			panic(err1)
 		}

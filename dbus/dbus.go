@@ -4,8 +4,9 @@ import (
 	"errors"
 	"os"
 	"os/exec"
-	"strings"
 	"sync"
+
+	"git.ophivana.moe/cat/fortify/helper"
 )
 
 // Proxy holds references to a xdg-dbus-proxy process, and should never be copied.
@@ -24,7 +25,7 @@ type Proxy struct {
 	read  *chan error
 	ready *chan bool
 
-	seal *string
+	seal helper.Args
 	lock sync.RWMutex
 }
 
@@ -41,7 +42,7 @@ func (p *Proxy) String() string {
 	}
 
 	if p.seal != nil {
-		return *p.seal
+		return p.seal.String()
 	}
 
 	return "(unsealed dbus proxy)"
@@ -60,21 +61,20 @@ func (p *Proxy) Seal(session, system *Config) error {
 		return errors.New("no configuration to seal")
 	}
 
-	seal := strings.Builder{}
+	seal := helper.NewArgs()
 
+	var args []string
 	if session != nil {
-		if err := session.buildSeal(&seal, p.session); err != nil {
-			return err
-		}
+		args = append(args, session.Args(p.session)...)
 	}
 	if system != nil {
-		if err := system.buildSeal(&seal, p.system); err != nil {
-			return err
-		}
+		args = append(args, system.Args(p.system)...)
+	}
+	if err := seal.Seal(args); err != nil {
+		return err
 	}
 
-	v := seal.String()
-	p.seal = &v
+	p.seal = seal
 	return nil
 }
 
