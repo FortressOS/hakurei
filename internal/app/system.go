@@ -213,9 +213,9 @@ func (tx *appSealTx) commit() error {
 
 	if tx.dbus != nil {
 		// start dbus proxy
-		verbose.Printf("starting session bus proxy on '%s' for upstream '%s'\n", tx.dbusAddr[0][1], tx.dbusAddr[0][0])
+		verbose.Printf("session bus proxy on '%s' for upstream '%s'\n", tx.dbusAddr[0][1], tx.dbusAddr[0][0])
 		if tx.dbusSystem {
-			verbose.Printf("starting system bus proxy on '%s' for upstream '%s'\n", tx.dbusAddr[1][1], tx.dbusAddr[1][0])
+			verbose.Printf("system bus proxy on '%s' for upstream '%s'\n", tx.dbusAddr[1][1], tx.dbusAddr[1][0])
 		}
 		if err := tx.startDBus(); err != nil {
 			return (*DBusStartError)(wrapError(err, "cannot start message bus proxy:", err))
@@ -224,8 +224,6 @@ func (tx *appSealTx) commit() error {
 			txp.dbusAddr = tx.dbusAddr
 			txp.dbusSystem = tx.dbusSystem
 			txp.dbusWait = tx.dbusWait
-
-			verbose.Println(xdgDBusProxy, "launch:", tx.dbus)
 		}
 	}
 
@@ -339,6 +337,7 @@ func (seal *appSeal) shareAll(bus [2]*dbus.Config) error {
 		if bus[1] != nil {
 			verbose.Println("sealed system proxy", bus[1].Args(seal.sys.dbusAddr[1]))
 		}
+		verbose.Println("message bus proxy final args:", seal.sys.dbus)
 	}
 
 	// workaround for launch method sudo

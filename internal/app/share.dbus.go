@@ -106,13 +106,14 @@ func (tx *appSealTx) startDBus() error {
 	if err := tx.dbus.Start(&ready); err != nil {
 		return (*StartDBusError)(wrapError(err, "cannot start message bus proxy:", err))
 	}
+	verbose.Println("starting message bus proxy:", tx.dbus)
 
 	// background wait for proxy instance and notify completion
 	go func() {
 		if err := tx.dbus.Wait(); err != nil {
 			fmt.Println("fortify: warn: message bus proxy returned error:", err)
 		} else {
-			verbose.Println("message bus proxy uneventful wait")
+			verbose.Println("message bus proxy exit")
 		}
 
 		// ensure socket removal so ephemeral directory is empty at revert
@@ -133,6 +134,7 @@ func (tx *appSealTx) startDBus() error {
 	if !<-ready {
 		return (*StartDBusError)(wrapError(ErrDBusFault, "message bus proxy failed"))
 	}
+	verbose.Println("message bus proxy ready")
 
 	return nil
 }
