@@ -2,6 +2,7 @@ package dbus
 
 import (
 	"errors"
+	"io"
 	"os"
 	"os/exec"
 	"sync"
@@ -25,7 +26,7 @@ type Proxy struct {
 	read  *chan error
 	ready *chan bool
 
-	seal helper.Args
+	seal io.WriterTo
 	lock sync.RWMutex
 }
 
@@ -42,7 +43,7 @@ func (p *Proxy) String() string {
 	}
 
 	if p.seal != nil {
-		return p.seal.String()
+		return p.seal.(helper.Args).String()
 	}
 
 	return "(unsealed dbus proxy)"
