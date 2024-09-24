@@ -23,7 +23,6 @@ const (
 var (
 	ErrDBusConfig = errors.New("dbus config not supplied")
 	ErrDBusProxy  = errors.New(xdgDBusProxy + " not found")
-	ErrDBusFault  = errors.New(xdgDBusProxy + " did not start correctly")
 )
 
 type (
@@ -98,12 +97,12 @@ func (seal *appSeal) shareDBus(config [2]*dbus.Config) error {
 
 func (tx *appSealTx) startDBus() error {
 	// ready channel passed to dbus package
-	ready := make(chan bool, 1)
+	ready := make(chan error, 1)
 	// used by waiting goroutine to notify process return
 	tx.dbusWait = make(chan struct{})
 
 	// background dbus proxy start
-	if err := tx.dbus.Start(&ready); err != nil {
+	if err := tx.dbus.Start(ready); err != nil {
 		return (*StartDBusError)(wrapError(err, "cannot start message bus proxy:", err))
 	}
 	verbose.Println("starting message bus proxy:", tx.dbus)
@@ -130,9 +129,10 @@ func (tx *appSealTx) startDBus() error {
 		tx.dbusWait <- struct{}{}
 	}()
 
-	// ready is false if the proxy process faulted
-	if !<-ready {
-		return (*StartDBusError)(wrapError(ErrDBusFault, "message bus proxy failed"))
+	// ready is not nil if the proxy process faulted
+	if err := <-ready; err != nil {
+		// note that err here is either an I/O related error or a predetermined unexpected behaviour error
+		return (*StartDBusError)(wrapError(err, "message bus proxy fault after start:", err))
 	}
 	verbose.Println("message bus proxy ready")
 

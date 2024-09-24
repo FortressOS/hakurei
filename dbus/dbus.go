@@ -4,8 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"os"
-	"os/exec"
 	"sync"
 
 	"git.ophivana.moe/cat/fortify/helper"
@@ -14,18 +12,11 @@ import (
 // Proxy holds references to a xdg-dbus-proxy process, and should never be copied.
 // Once sealed, configuration changes will no longer be possible and attempting to do so will result in a panic.
 type Proxy struct {
-	cmd *exec.Cmd
-
-	statP [2]*os.File
-	argsP [2]*os.File
+	helper *helper.Helper
 
 	path    string
 	session [2]string
 	system  [2]string
-
-	wait  *chan error
-	read  *chan error
-	ready *chan bool
 
 	seal io.WriterTo
 	lock sync.RWMutex
@@ -39,8 +30,8 @@ func (p *Proxy) String() string {
 	p.lock.RLock()
 	defer p.lock.RUnlock()
 
-	if p.cmd != nil {
-		return p.cmd.String()
+	if p.helper != nil {
+		return p.helper.String()
 	}
 
 	if p.seal != nil {
