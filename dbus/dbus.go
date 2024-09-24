@@ -2,6 +2,7 @@ package dbus
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"os/exec"
@@ -43,7 +44,7 @@ func (p *Proxy) String() string {
 	}
 
 	if p.seal != nil {
-		return p.seal.(helper.Args).String()
+		return p.seal.(fmt.Stringer).String()
 	}
 
 	return "(unsealed dbus proxy)"
