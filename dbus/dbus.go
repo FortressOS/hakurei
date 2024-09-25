@@ -54,8 +54,6 @@ func (p *Proxy) Seal(session, system *Config) error {
 		return errors.New("no configuration to seal")
 	}
 
-	seal := helper.NewArgs()
-
 	var args []string
 	if session != nil {
 		args = append(args, session.Args(p.session)...)
@@ -63,11 +61,12 @@ func (p *Proxy) Seal(session, system *Config) error {
 	if system != nil {
 		args = append(args, system.Args(p.system)...)
 	}
-	if err := seal.Seal(args); err != nil {
+	if seal, err := helper.NewCheckedArgs(args); err != nil {
 		return err
+	} else {
+		p.seal = seal
 	}
 
-	p.seal = seal
 	return nil
 }
 

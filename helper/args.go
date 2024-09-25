@@ -1,100 +1,59 @@
 package helper
 
 import (
-	"bytes"
 	"errors"
-	"fmt"
 	"io"
 	"strings"
-	"sync"
 )
 
 var (
 	ErrContainsNull = errors.New("argument contains null character")
 )
 
-// Args is sealed with a slice of arguments for writing to the helper args FD.
-// The sealing args is checked to not contain null characters.
-// Attempting to seal an instance twice will cause a panic.
-type Args interface {
-	Seal(args []string) error
-	io.WriterTo
-	fmt.Stringer
-}
+type argsFD []string
 
-// argsFD implements Args for helpers expecting null terminated arguments to a file descriptor.
-// argsFD must not be copied after first use.
-type argsFD struct {
-	seal []byte
-	sync.RWMutex
-}
-
-func (a *argsFD) Seal(args []string) error {
-	a.Lock()
-	defer a.Unlock()
-
-	if a.seal != nil {
-		panic("args sealed twice")
-	}
-
-	seal := bytes.Buffer{}
-
-	n := 0
-	for _, arg := range args {
-		// reject argument strings containing null
-		if hasNull(arg) {
-			return ErrContainsNull
+// checks whether any element contains the null character
+// must be called before args use and args must not be modified after call
+func (a argsFD) check() error {
+	for _, arg := range a {
+		for _, b := range arg {
+			if b == '\x00' {
+				return ErrContainsNull
+			}
 		}
-
-		// accumulate buffer size
-		n += len(arg) + 1
-	}
-	seal.Grow(n)
-
-	// write null terminated arguments
-	for _, arg := range args {
-		seal.WriteString(arg)
-		seal.WriteByte('\x00')
 	}
 
-	a.seal = seal.Bytes()
 	return nil
 }
 
-func (a *argsFD) WriteTo(w io.Writer) (int64, error) {
-	a.RLock()
-	defer a.RUnlock()
+func (a argsFD) WriteTo(w io.Writer) (int64, error) {
+	// assuming already checked
 
-	if a.seal == nil {
-		panic("attempted to activate unsealed args")
+	nt := 0
+	// write null terminated arguments
+	for _, arg := range a {
+		n, err := w.Write([]byte(arg + "\x00"))
+		nt += n
+
+		if err != nil {
+			return int64(nt), err
+		}
 	}
 
-	n, err := w.Write(a.seal)
-	return int64(n), err
+	return int64(nt), nil
 }
 
-func (a *argsFD) String() string {
+func (a argsFD) String() string {
 	if a == nil {
 		return "(invalid helper args)"
 	}
 
-	if a.seal == nil {
-		return "(unsealed helper args)"
-	}
-
-	return strings.ReplaceAll(string(a.seal), "\x00", " ")
+	return strings.Join(a, " ")
 }
 
-func hasNull(s string) bool {
-	for _, b := range s {
-		if b == '\x00' {
-			return true
-		}
-	}
-	return false
-}
-
-// NewArgs returns a new instance of Args
-func NewArgs() Args {
-	return new(argsFD)
+// NewCheckedArgs returns a checked argument writer for args.
+// Callers must not retain any references to args.
+func NewCheckedArgs(args []string) (io.WriterTo, error) {
+	a := argsFD(args)
+	return a, a.check()
 }

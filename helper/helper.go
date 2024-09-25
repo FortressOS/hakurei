@@ -19,7 +19,6 @@ var (
 // Helper wraps *exec.Cmd and manages status and args fd.
 // Args is always 3 and status if set is always 4.
 type Helper struct {
-	lock sync.RWMutex
 	args io.WriterTo
 
 	statP [2]*os.File
@@ -32,6 +31,7 @@ type Helper struct {
 	// standard error. If non-nil, entry i becomes file descriptor 5+i.
 	ExtraFiles []*os.File
 
+	lock sync.RWMutex
 	*exec.Cmd
 }
 
@@ -177,7 +177,7 @@ func (h *Helper) Start() error {
 
 func New(wt io.WriterTo, name string, arg ...string) *Helper {
 	if wt == nil {
-		panic("attempted to create helper with nil argument writer")
+		panic("attempted to create helper with invalid argument writer")
 	}
 
 	return &Helper{args: wt, Cmd: exec.Command(name, arg...)}
