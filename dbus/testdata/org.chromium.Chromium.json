@@ -1,0 +1,20 @@
+{
+  "talk":[
+    "org.freedesktop.Notifications",
+    "org.freedesktop.FileManager1",
+    "org.freedesktop.ScreenSaver"
+  ],
+  "own":[
+    "org.chromium.Chromium.*",
+    "org.mpris.MediaPlayer2.org.chromium.Chromium.*",
+    "org.mpris.MediaPlayer2.chromium.*"
+  ],
+  "call":{
+    "org.freedesktop.portal.*":"*"
+  },
+  "broadcast":{
+    "org.freedesktop.portal.*":"@/org/freedesktop/portal/*"
+  },
+
+  "filter":true
+}

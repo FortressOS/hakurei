@@ -1,0 +1,18 @@
+{
+  "talk":[
+    "org.freedesktop.Notifications",
+    "org.kde.StatusNotifierWatcher"
+  ],
+  "own":[
+    "dev.vencord.Vesktop.*",
+    "org.mpris.MediaPlayer2.dev.vencord.Vesktop.*"
+  ],
+  "call":{
+    "org.freedesktop.portal.*":"*"
+  },
+  "broadcast":{
+    "org.freedesktop.portal.*":"@/org/freedesktop/portal/*"
+  },
+
+  "filter":true
+}

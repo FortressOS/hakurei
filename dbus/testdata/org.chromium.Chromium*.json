@@ -1,0 +1,8 @@
+{
+  "talk":[
+    "org.freedesktop.Avahi",
+    "org.freedesktop.UPower"
+  ],
+
+  "filter":true
+}
