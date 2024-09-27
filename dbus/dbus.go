@@ -22,6 +22,10 @@ type Proxy struct {
 	lock sync.RWMutex
 }
 
+var (
+	ErrConfig = errors.New("no configuration to seal")
+)
+
 func (p *Proxy) String() string {
 	if p == nil {
 		return "(invalid dbus proxy)"
@@ -51,7 +55,7 @@ func (p *Proxy) Seal(session, system *Config) error {
 	}
 
 	if session == nil && system == nil {
-		return errors.New("no configuration to seal")
+		return ErrConfig
 	}
 
 	var args []string
