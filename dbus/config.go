@@ -1,10 +1,5 @@
 package dbus
 
-import (
-	"errors"
-	"strings"
-)
-
 type Config struct {
 	// See set 'see' policy for NAME (--see=NAME)
 	See []string `json:"see"`
@@ -56,23 +51,6 @@ func (c *Config) Args(bus [2]string) (args []string) {
 	}
 
 	return
-}
-
-func (c *Config) buildSeal(seal *strings.Builder, bus [2]string) error {
-	for _, arg := range c.Args(bus) {
-		// reject argument strings containing null
-		for _, b := range arg {
-			if b == '\x00' {
-				return errors.New("argument contains null")
-			}
-		}
-
-		// write null terminated argument
-		seal.WriteString(arg)
-		seal.WriteByte('\x00')
-	}
-
-	return nil
 }
 
 // NewConfig returns a reference to a Config struct with optional defaults.
