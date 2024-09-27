@@ -1,5 +1,12 @@
 package dbus
 
+import (
+	"encoding/json"
+	"errors"
+	"io"
+	"os"
+)
+
 type Config struct {
 	// See set 'see' policy for NAME (--see=NAME)
 	See []string `json:"see"`
@@ -51,6 +58,23 @@ func (c *Config) Args(bus [2]string) (args []string) {
 	}
 
 	return
+}
+
+func (c *Config) Load(r io.Reader) error {
+	return json.NewDecoder(r).Decode(&c)
+}
+
+// NewConfigFromFile opens the target config file at path and parses its contents into *Config.
+func NewConfigFromFile(path string) (*Config, error) {
+	if f, err := os.Open(path); err != nil {
+		return nil, err
+	} else {
+		c := new(Config)
+		err1 := c.Load(f)
+		err = f.Close()
+
+		return c, errors.Join(err1, err)
+	}
 }
 
 // NewConfig returns a reference to a Config struct with optional defaults.
