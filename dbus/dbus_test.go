@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"git.ophivana.moe/cat/fortify/dbus"
+	"git.ophivana.moe/cat/fortify/helper"
 )
 
 const (
@@ -51,7 +52,7 @@ func TestProxy_Seal(t *testing.T) {
 	for id, tc := range testCasePairs() {
 		t.Run("create seal for "+id, func(t *testing.T) {
 			p := dbus.New(binPath, tc[0].bus, tc[1].bus)
-			if err := p.Seal(tc[0].c, tc[1].c); (err != nil) != tc[0].wantErr {
+			if err := p.Seal(tc[0].c, tc[1].c); (errors.Is(err, helper.ErrContainsNull)) != tc[0].wantErr {
 				t.Errorf("Seal(%p, %p) error = %v, wantErr %v",
 					tc[0].c, tc[1].c,
 					err, tc[0].wantErr)
