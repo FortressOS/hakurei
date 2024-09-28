@@ -1,6 +1,8 @@
 package dbus_test
 
 import (
+	"errors"
+	"os"
 	"path"
 	"reflect"
 	"slices"
@@ -40,12 +42,17 @@ func TestNewConfigFromFile(t *testing.T) {
 
 		t.Run(name.String(), func(t *testing.T) {
 			got, err := dbus.NewConfigFromFile(samplePath)
-			if err != nil {
-				t.Errorf("NewConfigFromFile(%q) error = %v",
+			if errors.Is(err, os.ErrNotExist) != tc.wantErrF {
+				t.Errorf("NewConfigFromFile(%q) error = %v, wantErrF %v",
 					samplePath,
-					err)
+					err, tc.wantErrF)
 				return
 			}
+
+			if tc.wantErrF {
+				return
+			}
+
 			if !tc.wantErr && !reflect.DeepEqual(got, tc.c) {
 				t.Errorf("NewConfigFromFile(%q) got = %v, want %v",
 					samplePath,

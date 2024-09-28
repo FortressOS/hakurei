@@ -9,14 +9,16 @@ import (
 var samples = []dbusTestCase{
 	{
 		"org.chromium.Chromium", &dbus.Config{
-			See:       nil,
-			Talk:      []string{"org.freedesktop.Notifications", "org.freedesktop.FileManager1", "org.freedesktop.ScreenSaver"},
-			Own:       []string{"org.chromium.Chromium.*", "org.mpris.MediaPlayer2.org.chromium.Chromium.*", "org.mpris.MediaPlayer2.chromium.*"},
+			See: nil,
+			Talk: []string{"org.freedesktop.Notifications", "org.freedesktop.FileManager1", "org.freedesktop.ScreenSaver",
+				"org.freedesktop.secrets", "org.kde.kwalletd5", "org.kde.kwalletd6", "org.gnome.SessionManager"},
+			Own: []string{"org.chromium.Chromium.*", "org.mpris.MediaPlayer2.org.chromium.Chromium.*",
+				"org.mpris.MediaPlayer2.chromium.*"},
 			Call:      map[string]string{"org.freedesktop.portal.*": "*"},
 			Broadcast: map[string]string{"org.freedesktop.portal.*": "@/org/freedesktop/portal/*"},
 			Log:       false,
 			Filter:    true,
-		}, false,
+		}, false, false,
 		[2]string{"unix:path=/run/user/1971/bus", "/tmp/fortify.1971/12622d846cc3fe7b4c10359d01f0eb47/bus"},
 		[]string{
 			"unix:path=/run/user/1971/bus",
@@ -25,6 +27,10 @@ var samples = []dbusTestCase{
 			"--talk=org.freedesktop.Notifications",
 			"--talk=org.freedesktop.FileManager1",
 			"--talk=org.freedesktop.ScreenSaver",
+			"--talk=org.freedesktop.secrets",
+			"--talk=org.kde.kwalletd5",
+			"--talk=org.kde.kwalletd6",
+			"--talk=org.gnome.SessionManager",
 			"--own=org.chromium.Chromium.*",
 			"--own=org.mpris.MediaPlayer2.org.chromium.Chromium.*",
 			"--own=org.mpris.MediaPlayer2.chromium.*",
@@ -35,17 +41,18 @@ var samples = []dbusTestCase{
 	{
 		"org.chromium.Chromium+", &dbus.Config{
 			See:       nil,
-			Talk:      []string{"org.freedesktop.Avahi", "org.freedesktop.UPower"},
+			Talk:      []string{"org.bluez", "org.freedesktop.Avahi", "org.freedesktop.UPower"},
 			Own:       nil,
 			Call:      nil,
 			Broadcast: nil,
 			Log:       false,
 			Filter:    true,
-		}, false,
+		}, false, false,
 		[2]string{"unix:path=/run/dbus/system_bus_socket", "/tmp/fortify.1971/12622d846cc3fe7b4c10359d01f0eb47/system_bus_socket"},
 		[]string{"unix:path=/run/dbus/system_bus_socket",
 			"/tmp/fortify.1971/12622d846cc3fe7b4c10359d01f0eb47/system_bus_socket",
 			"--filter",
+			"--talk=org.bluez",
 			"--talk=org.freedesktop.Avahi",
 			"--talk=org.freedesktop.UPower",
 		},
@@ -60,7 +67,7 @@ var samples = []dbusTestCase{
 			Broadcast: map[string]string{"org.freedesktop.portal.*": "@/org/freedesktop/portal/*"},
 			Log:       false,
 			Filter:    true,
-		}, false,
+		}, false, false,
 		[2]string{"unix:path=/run/user/1971/bus", "/tmp/fortify.1971/34c24f16a0d791d28835ededaf446033/bus"},
 		[]string{
 			"unix:path=/run/user/1971/bus",
@@ -73,14 +80,62 @@ var samples = []dbusTestCase{
 			"--call=org.freedesktop.portal.*=*",
 			"--broadcast=org.freedesktop.portal.*=@/org/freedesktop/portal/*"},
 	},
+
+	{
+		"moe.ophivana.CrashTestDummy", &dbus.Config{
+			See:       []string{"moe.ophivana.CrashTestDummy1"},
+			Talk:      []string{"org.freedesktop.Notifications"},
+			Own:       []string{"moe.ophivana.CrashTestDummy.*", "org.mpris.MediaPlayer2.moe.ophivana.CrashTestDummy.*"},
+			Call:      map[string]string{"org.freedesktop.portal.*": "*"},
+			Broadcast: map[string]string{"org.freedesktop.portal.*": "@/org/freedesktop/portal/*"},
+			Log:       true,
+			Filter:    true,
+		}, false, false,
+		[2]string{"unix:path=/run/user/1971/bus", "/tmp/fortify.1971/5da7845287a936efbc2fa75d7d81e501/bus"},
+		[]string{
+			"unix:path=/run/user/1971/bus",
+			"/tmp/fortify.1971/5da7845287a936efbc2fa75d7d81e501/bus",
+			"--filter",
+			"--see=moe.ophivana.CrashTestDummy1",
+			"--talk=org.freedesktop.Notifications",
+			"--own=moe.ophivana.CrashTestDummy.*",
+			"--own=org.mpris.MediaPlayer2.moe.ophivana.CrashTestDummy.*",
+			"--call=org.freedesktop.portal.*=*",
+			"--broadcast=org.freedesktop.portal.*=@/org/freedesktop/portal/*",
+			"--log"},
+	},
+	{
+		"moe.ophivana.CrashTestDummy1", &dbus.Config{
+			See:       []string{"moe.ophivana.CrashTestDummy"},
+			Talk:      []string{"org.freedesktop.Notifications"},
+			Own:       []string{"moe.ophivana.CrashTestDummy1.*", "org.mpris.MediaPlayer2.moe.ophivana.CrashTestDummy1.*"},
+			Call:      map[string]string{"org.freedesktop.portal.*": "*"},
+			Broadcast: map[string]string{"org.freedesktop.portal.*": "@/org/freedesktop/portal/*"},
+			Log:       true,
+			Filter:    true,
+		}, false, true,
+		[2]string{"unix:path=/run/user/1971/bus", "/tmp/fortify.1971/5da7845287a936efbc2fa75d7d81e501/bus"},
+		[]string{
+			"unix:path=/run/user/1971/bus",
+			"/tmp/fortify.1971/5da7845287a936efbc2fa75d7d81e501/bus",
+			"--filter",
+			"--see=moe.ophivana.CrashTestDummy",
+			"--talk=org.freedesktop.Notifications",
+			"--own=moe.ophivana.CrashTestDummy1.*",
+			"--own=org.mpris.MediaPlayer2.moe.ophivana.CrashTestDummy1.*",
+			"--call=org.freedesktop.portal.*=*",
+			"--broadcast=org.freedesktop.portal.*=@/org/freedesktop/portal/*",
+			"--log"},
+	},
 }
 
 type dbusTestCase struct {
-	id      string
-	c       *dbus.Config
-	wantErr bool
-	bus     [2]string
-	want    []string
+	id       string
+	c        *dbus.Config
+	wantErr  bool
+	wantErrF bool
+	bus      [2]string
+	want     []string
 }
 
 var (

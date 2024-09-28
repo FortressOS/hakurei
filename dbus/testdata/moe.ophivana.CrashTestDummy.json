@@ -1,0 +1,21 @@
+{
+  "see": [
+    "moe.ophivana.CrashTestDummy1"
+  ],
+  "talk":[
+    "org.freedesktop.Notifications"
+  ],
+  "own":[
+    "moe.ophivana.CrashTestDummy.*",
+    "org.mpris.MediaPlayer2.moe.ophivana.CrashTestDummy.*"
+  ],
+  "call":{
+    "org.freedesktop.portal.*":"*"
+  },
+  "broadcast":{
+    "org.freedesktop.portal.*":"@/org/freedesktop/portal/*"
+  },
+
+  "log": true,
+  "filter":true
+}

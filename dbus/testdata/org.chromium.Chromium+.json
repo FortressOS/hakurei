@@ -1,5 +1,6 @@
 {
   "talk":[
+    "org.bluez",
     "org.freedesktop.Avahi",
     "org.freedesktop.UPower"
   ],

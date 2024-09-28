@@ -2,7 +2,11 @@
   "talk":[
     "org.freedesktop.Notifications",
     "org.freedesktop.FileManager1",
-    "org.freedesktop.ScreenSaver"
+    "org.freedesktop.ScreenSaver",
+    "org.freedesktop.secrets",
+    "org.kde.kwalletd5",
+    "org.kde.kwalletd6",
+    "org.gnome.SessionManager"
   ],
   "own":[
     "org.chromium.Chromium.*",
