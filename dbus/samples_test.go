@@ -33,7 +33,7 @@ var samples = []dbusTestCase{
 		},
 	},
 	{
-		"org.chromium.Chromium*", &dbus.Config{
+		"org.chromium.Chromium+", &dbus.Config{
 			See:       nil,
 			Talk:      []string{"org.freedesktop.Avahi", "org.freedesktop.UPower"},
 			Own:       nil,
@@ -141,19 +141,19 @@ func testCaseGenerate() {
 		}
 
 		// skip already enumerated system bus test
-		if tc.id[len(tc.id)-1] == '*' {
+		if tc.id[len(tc.id)-1] == '+' {
 			continue
 		}
 
 		ftp := [2]dbusTestCase{tc}
 
-		// system proxy tests always place directly after its user counterpart with id ending in *
-		if i+1 < len(testCasesV) && testCasesV[i+1].id[len(testCasesV[i+1].id)-1] == '*' {
+		// system proxy tests always place directly after its user counterpart with id ending in +
+		if i+1 < len(testCasesV) && testCasesV[i+1].id[len(testCasesV[i+1].id)-1] == '+' {
 			// attach system bus config
 			ftp[1] = testCasesV[i+1]
 
 			// check for misplaced/mismatching tests
-			if ftp[0].wantErr != ftp[1].wantErr || ftp[0].id+"*" != ftp[1].id {
+			if ftp[0].wantErr != ftp[1].wantErr || ftp[0].id+"+" != ftp[1].id {
 				panic("mismatching session/system pairing")
 			}
 		}
