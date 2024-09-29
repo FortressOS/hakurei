@@ -9,7 +9,7 @@ import (
 
 // Start launches the D-Bus proxy and sets up the Wait method.
 // ready should be buffered and should only be received from once.
-func (p *Proxy) Start(ready chan error) error {
+func (p *Proxy) Start(ready chan error, output bool) error {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 
@@ -25,8 +25,10 @@ func (p *Proxy) Start(ready chan error) error {
 	// xdg-dbus-proxy does not need to inherit the environment
 	h.Env = []string{}
 
-	h.Stdout = os.Stdout
-	h.Stderr = os.Stderr
+	if output {
+		h.Stdout = os.Stdout
+		h.Stderr = os.Stderr
+	}
 	if err := h.StartNotify(ready); err != nil {
 		return err
 	}
