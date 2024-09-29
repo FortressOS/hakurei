@@ -35,7 +35,7 @@ func prepareArgs() {
 }
 
 func TestHelper_StartNotify_Close_Wait(t *testing.T) {
-	helper.ReplaceExecCommand(t)
+	helper.InternalReplaceExecCommand(t)
 	argsOnce.Do(prepareArgs)
 
 	t.Run("start helper with status channel", func(t *testing.T) {
@@ -106,7 +106,7 @@ func TestHelper_StartNotify_Close_Wait(t *testing.T) {
 	})
 }
 func TestHelper_Start_Close_Wait(t *testing.T) {
-	helper.ReplaceExecCommand(t)
+	helper.InternalReplaceExecCommand(t)
 	argsOnce.Do(prepareArgs)
 
 	var wt io.WriterTo
