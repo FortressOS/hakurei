@@ -44,10 +44,6 @@ func (a argsFD) WriteTo(w io.Writer) (int64, error) {
 }
 
 func (a argsFD) String() string {
-	if a == nil {
-		return "(invalid helper args)"
-	}
-
 	return strings.Join(a, " ")
 }
 
