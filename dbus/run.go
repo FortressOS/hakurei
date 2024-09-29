@@ -2,14 +2,14 @@ package dbus
 
 import (
 	"errors"
-	"os"
+	"io"
 
 	"git.ophivana.moe/cat/fortify/helper"
 )
 
 // Start launches the D-Bus proxy and sets up the Wait method.
 // ready should be buffered and should only be received from once.
-func (p *Proxy) Start(ready chan error, output bool) error {
+func (p *Proxy) Start(ready chan error, output io.Writer) error {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 
@@ -25,9 +25,9 @@ func (p *Proxy) Start(ready chan error, output bool) error {
 	// xdg-dbus-proxy does not need to inherit the environment
 	h.Env = []string{}
 
-	if output {
-		h.Stdout = os.Stdout
-		h.Stderr = os.Stderr
+	if output != nil {
+		h.Stdout = output
+		h.Stderr = output
 	}
 	if err := h.StartNotify(ready); err != nil {
 		return err

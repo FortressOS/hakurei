@@ -102,7 +102,7 @@ func (tx *appSealTx) startDBus() error {
 	tx.dbusWait = make(chan struct{})
 
 	// background dbus proxy start
-	if err := tx.dbus.Start(ready, true); err != nil {
+	if err := tx.dbus.Start(ready, os.Stderr); err != nil {
 		return (*StartDBusError)(wrapError(err, "cannot start message bus proxy:", err))
 	}
 	verbose.Println("starting message bus proxy:", tx.dbus)
