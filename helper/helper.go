@@ -16,6 +16,11 @@ var (
 	ErrStatusRead  = errors.New("unexpected status response")
 )
 
+const (
+	FortifyHelper = "FORTIFY_HELPER"
+	FortifyStatus = "FORTIFY_STATUS"
+)
+
 // Helper wraps *exec.Cmd and manages status and args fd.
 // Args is always 3 and status if set is always 4.
 type Helper struct {
@@ -52,15 +57,20 @@ func (h *Helper) StartNotify(ready chan error) error {
 		h.argsP[0], h.argsP[1] = pr, pw
 	}
 	// create status pipes if ready signal is requested
+	var sv string
 	if ready != nil {
 		if pr, pw, err := os.Pipe(); err != nil {
 			return err
 		} else {
 			h.statP[0], h.statP[1] = pr, pw
 		}
+
+		sv = FortifyStatus + "=1"
+	} else {
+		sv = FortifyStatus + "=0"
 	}
 
-	// prepare extra files
+	// prepare extra files from caller
 	el := len(h.ExtraFiles)
 	if ready != nil {
 		el += 2
@@ -76,6 +86,7 @@ func (h *Helper) StartNotify(ready chan error) error {
 
 	// prepare and start process
 	h.Cmd.ExtraFiles = ef
+	h.Cmd.Env = append(h.Cmd.Env, FortifyHelper+"=1", sv)
 	if err := h.Cmd.Start(); err != nil {
 		return err
 	}
@@ -175,10 +186,12 @@ func (h *Helper) Start() error {
 	return h.StartNotify(nil)
 }
 
+var execCommand = exec.Command
+
 func New(wt io.WriterTo, name string, arg ...string) *Helper {
 	if wt == nil {
 		panic("attempted to create helper with invalid argument writer")
 	}
 
-	return &Helper{args: wt, Cmd: exec.Command(name, arg...)}
+	return &Helper{args: wt, Cmd: execCommand(name, arg...)}
 }
