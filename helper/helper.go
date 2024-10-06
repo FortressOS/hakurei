@@ -96,13 +96,15 @@ func (h *Helper) StartNotify(ready chan error) error {
 	// write arguments and close args pipe
 	if _, err := h.args.WriteTo(argsP); err != nil {
 		if err1 := h.Cmd.Process.Kill(); err1 != nil {
-			panic(err1)
+			// should be unreachable
+			panic(err1.Error())
 		}
 		return err
 	} else {
 		if err = argsP.Close(); err != nil {
 			if err1 := h.Cmd.Process.Kill(); err1 != nil {
-				panic(err1)
+				// should be unreachable
+				panic(err1.Error())
 			}
 			return err
 		}
@@ -117,7 +119,8 @@ func (h *Helper) StartNotify(ready chan error) error {
 			switch n {
 			case -1:
 				if err1 := h.Cmd.Process.Kill(); err1 != nil {
-					panic(err1)
+					// should be unreachable
+					panic(err1.Error())
 				}
 				// ensure error is not nil
 				if err == nil {
@@ -155,18 +158,22 @@ func (h *Helper) Wait() error {
 	// ensure pipe close
 	defer func() {
 		if err := h.argsP[0].Close(); err != nil && !errors.Is(err, os.ErrClosed) {
-			panic(err)
+			// unreachable
+			panic(err.Error())
 		}
 		if err := h.argsP[1].Close(); err != nil && !errors.Is(err, os.ErrClosed) {
-			panic(err)
+			// unreachable
+			panic(err.Error())
 		}
 
 		if h.ready != nil {
 			if err := h.statP[0].Close(); err != nil && !errors.Is(err, os.ErrClosed) {
-				panic(err)
+				// unreachable
+				panic(err.Error())
 			}
 			if err := h.statP[1].Close(); err != nil && !errors.Is(err, os.ErrClosed) {
-				panic(err)
+				// unreachable
+				panic(err.Error())
 			}
 		}
 	}()

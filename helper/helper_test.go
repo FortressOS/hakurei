@@ -1,7 +1,9 @@
 package helper_test
 
 import (
+	"errors"
 	"io"
+	"os"
 	"strings"
 	"sync"
 	"testing"
@@ -37,6 +39,15 @@ func prepareArgs() {
 func TestHelper_StartNotify_Close_Wait(t *testing.T) {
 	helper.InternalReplaceExecCommand(t)
 	argsOnce.Do(prepareArgs)
+
+	t.Run("start non-existent helper path", func(t *testing.T) {
+		h := helper.New(argsWt, "/nonexistent")
+
+		if err := h.Start(); !errors.Is(err, os.ErrNotExist) {
+			t.Errorf("Start() error = %v, wantErr %v",
+				err, os.ErrNotExist)
+		}
+	})
 
 	t.Run("start helper with status channel", func(t *testing.T) {
 		h := helper.New(argsWt, "crash-test-dummy", "--args=3", "--fd=4")

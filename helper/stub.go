@@ -85,6 +85,11 @@ func InternalReplaceExecCommand(t *testing.T) {
 
 	// replace execCommand to have the resulting *exec.Cmd launch TestHelperChildStub
 	execCommand = func(name string, arg ...string) *exec.Cmd {
+		// pass through nonexistent path
+		if name == "/nonexistent" && len(arg) == 0 {
+			return exec.Command(name)
+		}
+
 		return exec.Command(os.Args[0], append([]string{"-test.run=TestHelperChildStub", "--", name}, arg...)...)
 	}
 }
