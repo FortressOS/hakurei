@@ -53,3 +53,14 @@ func NewCheckedArgs(args []string) (io.WriterTo, error) {
 	a := argsWt(args)
 	return a, a.check()
 }
+
+// MustNewCheckedArgs returns a checked argument writer for args and panics if check fails.
+// Callers must not retain any references to args.
+func MustNewCheckedArgs(args []string) io.WriterTo {
+	a, err := NewCheckedArgs(args)
+	if err != nil {
+		panic(err.Error())
+	}
+
+	return a
+}

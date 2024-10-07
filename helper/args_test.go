@@ -10,8 +10,6 @@ import (
 )
 
 func Test_argsFD_String(t *testing.T) {
-	argsOnce.Do(prepareArgs)
-
 	wantString := strings.Join(want, " ")
 	if got := argsWt.(fmt.Stringer).String(); got != wantString {
 		t.Errorf("String(): got %v; want %v",
@@ -26,4 +24,17 @@ func TestNewCheckedArgs(t *testing.T) {
 			args,
 			err, helper.ErrContainsNull)
 	}
+
+	t.Run("must panic", func(t *testing.T) {
+		badPayload := []string{"\x00"}
+		defer func() {
+			wantPanic := "argument contains null character"
+			if r := recover(); r != wantPanic {
+				t.Errorf("MustNewCheckedArgs(%q) panic = %v, wantPanic %v",
+					badPayload,
+					r, wantPanic)
+			}
+		}()
+		helper.MustNewCheckedArgs(badPayload)
+	})
 }

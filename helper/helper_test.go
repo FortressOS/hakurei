@@ -6,7 +6,6 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"sync"
 	"testing"
 	"time"
 
@@ -23,20 +22,9 @@ var (
 		"--talk=org.freedesktop.UPower",
 	}
 
-	wantPayload string
-	argsWt      io.WriterTo
-	argsOnce    sync.Once
-)
-
-func prepareArgs() {
 	wantPayload = strings.Join(want, "\x00") + "\x00"
-
-	if a, err := helper.NewCheckedArgs(want); err != nil {
-		panic(err.Error())
-	} else {
-		argsWt = a
-	}
-}
+	argsWt      = helper.MustNewCheckedArgs(want)
+)
 
 func argF(argsFD int, _ int) []string {
 	return []string{"--args", strconv.Itoa(argsFD)}
@@ -48,7 +36,6 @@ func argFStatus(argsFD int, statFD int) []string {
 
 func TestHelper_StartNotify_Close_Wait(t *testing.T) {
 	helper.InternalReplaceExecCommand(t)
-	argsOnce.Do(prepareArgs)
 
 	t.Run("start non-existent helper path", func(t *testing.T) {
 		h := helper.New(argsWt, "/nonexistent", argF)
@@ -143,7 +130,6 @@ func TestHelper_StartNotify_Close_Wait(t *testing.T) {
 }
 func TestHelper_Start_Close_Wait(t *testing.T) {
 	helper.InternalReplaceExecCommand(t)
-	argsOnce.Do(prepareArgs)
 
 	var wt io.WriterTo
 	if a, err := helper.NewCheckedArgs(want); err != nil {
