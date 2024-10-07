@@ -5,9 +5,7 @@ package helper
 
 import (
 	"errors"
-	"io"
 	"os/exec"
-	"sync"
 )
 
 var (
@@ -22,81 +20,19 @@ const (
 	FortifyStatus = "FORTIFY_STATUS"
 )
 
-// Helper wraps *exec.Cmd and manages status and args fd.
-// Args is always 3 and status if set is always 4.
-type Helper struct {
-	p *pipes
-
-	argF func(argsFD, statFD int) []string
-	*exec.Cmd
-
-	lock sync.RWMutex
-}
-
-func (h *Helper) StartNotify(ready chan error) error {
-	h.lock.Lock()
-	defer h.lock.Unlock()
-
-	// Check for doubled Start calls before we defer failure cleanup. If the prior
-	// call to Start succeeded, we don't want to spuriously close its pipes.
-	if h.Cmd.Process != nil {
-		return errors.New("exec: already started")
-	}
-
-	h.p.ready = ready
-	if argsFD, statFD, err := h.p.prepareCmd(h.Cmd); err != nil {
-		return err
-	} else {
-		h.Cmd.Args = append(h.Cmd.Args, h.argF(argsFD, statFD)...)
-	}
-
-	if ready != nil {
-		h.Cmd.Env = append(h.Cmd.Env, FortifyHelper+"=1", FortifyStatus+"=1")
-	} else {
-		h.Cmd.Env = append(h.Cmd.Env, FortifyHelper+"=1", FortifyStatus+"=0")
-	}
-
-	if err := h.Cmd.Start(); err != nil {
-		return err
-	}
-	if err := h.p.readyWriteArgs(); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (h *Helper) Wait() error {
-	h.lock.RLock()
-	defer h.lock.RUnlock()
-
-	if h.Cmd.Process == nil {
-		return errors.New("exec: not started")
-	}
-	if h.Cmd.ProcessState != nil {
-		return errors.New("exec: Wait was already called")
-	}
-
-	defer h.p.mustClosePipes()
-	return h.Cmd.Wait()
-}
-
-func (h *Helper) Close() error {
-	return h.p.closeStatus()
-}
-
-func (h *Helper) Start() error {
-	return h.StartNotify(nil)
+type Helper interface {
+	// StartNotify starts the helper process.
+	// A status pipe is passed to the helper if ready is not nil.
+	StartNotify(ready chan error) error
+	// Start starts the helper process.
+	Start() error
+	// Close closes the status pipe.
+	// If helper is started without the status pipe, Close panics.
+	Close() error
+	// Wait calls wait on the child process and cleans up pipes.
+	Wait() error
+	// Unwrap returns the underlying exec.Cmd instance.
+	Unwrap() *exec.Cmd
 }
 
 var execCommand = exec.Command
-
-// New initialises a new Helper instance with wt as the null-terminated argument writer.
-// Function argF returns an array of arguments passed directly to the child process.
-func New(wt io.WriterTo, name string, argF func(argsFD, statFD int) []string) *Helper {
-	if wt == nil {
-		panic("attempted to create helper with invalid argument writer")
-	}
-
-	return &Helper{p: &pipes{args: wt}, argF: argF, Cmd: execCommand(name)}
-}

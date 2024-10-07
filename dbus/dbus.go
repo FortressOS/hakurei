@@ -12,7 +12,7 @@ import (
 // Proxy holds references to a xdg-dbus-proxy process, and should never be copied.
 // Once sealed, configuration changes will no longer be possible and attempting to do so will result in a panic.
 type Proxy struct {
-	helper *helper.Helper
+	helper helper.Helper
 
 	path    string
 	session [2]string
@@ -35,7 +35,7 @@ func (p *Proxy) String() string {
 	defer p.lock.RUnlock()
 
 	if p.helper != nil {
-		return p.helper.String()
+		return p.helper.Unwrap().String()
 	}
 
 	if p.seal != nil {

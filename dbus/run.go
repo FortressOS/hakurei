@@ -27,12 +27,13 @@ func (p *Proxy) Start(ready chan error, output io.Writer) error {
 			}
 		},
 	)
+	cmd := h.Unwrap()
 	// xdg-dbus-proxy does not need to inherit the environment
-	h.Env = []string{}
+	cmd.Env = []string{}
 
 	if output != nil {
-		h.Stdout = output
-		h.Stderr = output
+		cmd.Stdout = output
+		cmd.Stderr = output
 	}
 	if err := h.StartNotify(ready); err != nil {
 		return err

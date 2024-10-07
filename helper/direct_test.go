@@ -49,9 +49,10 @@ func TestHelper_StartNotify_Close_Wait(t *testing.T) {
 	t.Run("start helper with status channel", func(t *testing.T) {
 		h := helper.New(argsWt, "crash-test-dummy", argFStatus)
 		ready := make(chan error, 1)
+		cmd := h.Unwrap()
 
 		stdout, stderr := new(strings.Builder), new(strings.Builder)
-		h.Stdout, h.Stderr = stdout, stderr
+		cmd.Stdout, cmd.Stderr = stdout, stderr
 
 		t.Run("wait not yet started helper", func(t *testing.T) {
 			wantErr := "exec: not started"
@@ -87,7 +88,7 @@ func TestHelper_StartNotify_Close_Wait(t *testing.T) {
 			t.Errorf("never got a ready response")
 			t.Errorf("stdout:\n%s", stdout.String())
 			t.Errorf("stderr:\n%s", stderr.String())
-			if err := h.Cmd.Process.Kill(); err != nil {
+			if err := cmd.Process.Kill(); err != nil {
 				panic(err.Error())
 			}
 			return
@@ -143,9 +144,10 @@ func TestHelper_Start_Close_Wait(t *testing.T) {
 
 	t.Run("start helper", func(t *testing.T) {
 		h := helper.New(wt, "crash-test-dummy", argF)
+		cmd := h.Unwrap()
 
 		stdout, stderr := new(strings.Builder), new(strings.Builder)
-		h.Stdout, h.Stderr = stdout, stderr
+		cmd.Stdout, cmd.Stderr = stdout, stderr
 
 		if err := h.Start(); err != nil {
 			t.Errorf("Start() error = %v",
