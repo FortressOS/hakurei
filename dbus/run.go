@@ -18,7 +18,7 @@ func (p *Proxy) Start(ready chan error, output io.Writer) error {
 		return errors.New("proxy not sealed")
 	}
 
-	h := helper.New(p.seal, p.path,
+	h := helper.New(p.seal, p.name,
 		func(argsFD, statFD int) []string {
 			if statFD == -1 {
 				return []string{"--args=" + strconv.Itoa(argsFD)}

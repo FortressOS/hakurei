@@ -9,10 +9,6 @@ import (
 	"git.ophivana.moe/cat/fortify/helper"
 )
 
-const (
-	binPath = "/usr/bin/bwrap"
-)
-
 func TestNew(t *testing.T) {
 	for _, tc := range [][2][2]string{
 		{
@@ -33,9 +29,9 @@ func TestNew(t *testing.T) {
 		},
 	} {
 		t.Run("create instance for "+tc[0][0]+" and "+tc[1][0], func(t *testing.T) {
-			if got := dbus.New(binPath, tc[0], tc[1]); !got.CompareTestNew(binPath, tc[0], tc[1]) {
-				t.Errorf("New(%q, %q, %q) = %v",
-					binPath, tc[0], tc[1],
+			if got := dbus.New(tc[0], tc[1]); !got.CompareTestNew(tc[0], tc[1]) {
+				t.Errorf("New(%q, %q) = %v",
+					tc[0], tc[1],
 					got)
 			}
 		})
@@ -52,12 +48,12 @@ func TestProxy_Seal(t *testing.T) {
 			}
 		}()
 
-		p := dbus.New(binPath, [2]string{}, [2]string{})
+		p := dbus.New([2]string{}, [2]string{})
 		_ = p.Seal(dbus.NewConfig("", true, false), nil)
 		_ = p.Seal(dbus.NewConfig("", true, false), nil)
 	})
 
-	ep := dbus.New(binPath, [2]string{}, [2]string{})
+	ep := dbus.New([2]string{}, [2]string{})
 	if err := ep.Seal(nil, nil); !errors.Is(err, dbus.ErrConfig) {
 		t.Errorf("Seal(nil, nil) error = %v, want %v",
 			err, dbus.ErrConfig)
@@ -65,7 +61,7 @@ func TestProxy_Seal(t *testing.T) {
 
 	for id, tc := range testCasePairs() {
 		t.Run("create seal for "+id, func(t *testing.T) {
-			p := dbus.New(binPath, tc[0].bus, tc[1].bus)
+			p := dbus.New(tc[0].bus, tc[1].bus)
 			if err := p.Seal(tc[0].c, tc[1].c); (errors.Is(err, helper.ErrContainsNull)) != tc[0].wantErr {
 				t.Errorf("Seal(%p, %p) error = %v, wantErr %v",
 					tc[0].c, tc[1].c,
@@ -119,7 +115,7 @@ func TestProxy_Start_Wait_Close_String(t *testing.T) {
 
 		t.Run("proxy for "+id, func(t *testing.T) {
 			helper.InternalReplaceExecCommand(t)
-			p := dbus.New(binPath, tc[0].bus, tc[1].bus)
+			p := dbus.New(tc[0].bus, tc[1].bus)
 
 			t.Run("unsealed behaviour of "+id, func(t *testing.T) {
 				t.Run("unsealed string of "+id, func(t *testing.T) {
@@ -164,7 +160,7 @@ func TestProxy_Start_Wait_Close_String(t *testing.T) {
 					}
 
 					t.Run("started string of "+id, func(t *testing.T) {
-						wantSubstr := binPath + " --args=3"
+						wantSubstr := dbus.ProxyName + " --args=3"
 						if got := p.String(); !strings.Contains(got, wantSubstr) {
 							t.Errorf("String() = %v, want %v",
 								p.String(), wantSubstr)

@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"os/exec"
 	"path"
 
 	"git.ophivana.moe/cat/fortify/acl"
@@ -16,13 +15,10 @@ import (
 const (
 	dbusSessionBusAddress = "DBUS_SESSION_BUS_ADDRESS"
 	dbusSystemBusAddress  = "DBUS_SYSTEM_BUS_ADDRESS"
-
-	xdgDBusProxy = "xdg-dbus-proxy"
 )
 
 var (
 	ErrDBusConfig = errors.New("dbus config not supplied")
-	ErrDBusProxy  = errors.New(xdgDBusProxy + " not found")
 )
 
 type (
@@ -68,13 +64,8 @@ func (seal *appSeal) shareDBus(config [2]*dbus.Config) error {
 		systemBus[0] = addr
 	}
 
-	// look up proxy program path for dbus.New
-	if b, err := exec.LookPath(xdgDBusProxy); err != nil {
-		return (*LookupDBusError)(wrapError(ErrDBusProxy, xdgDBusProxy, "not found"))
-	} else {
-		// create proxy instance
-		seal.sys.dbus = dbus.New(b, sessionBus, systemBus)
-	}
+	// create proxy instance
+	seal.sys.dbus = dbus.New(sessionBus, systemBus)
 
 	// seal dbus proxy
 	if err := seal.sys.dbus.Seal(config[0], config[1]); err != nil {

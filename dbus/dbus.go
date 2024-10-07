@@ -9,12 +9,16 @@ import (
 	"git.ophivana.moe/cat/fortify/helper"
 )
 
+// ProxyName is the file name or path to the proxy program.
+// Overriding ProxyName will only affect Proxy instance created after the change.
+var ProxyName = "xdg-dbus-proxy"
+
 // Proxy holds references to a xdg-dbus-proxy process, and should never be copied.
 // Once sealed, configuration changes will no longer be possible and attempting to do so will result in a panic.
 type Proxy struct {
 	helper helper.Helper
 
-	path    string
+	name    string
 	session [2]string
 	system  [2]string
 
@@ -75,6 +79,6 @@ func (p *Proxy) Seal(session, system *Config) error {
 }
 
 // New returns a reference to a new unsealed Proxy.
-func New(binPath string, session, system [2]string) *Proxy {
-	return &Proxy{path: binPath, session: session, system: system}
+func New(session, system [2]string) *Proxy {
+	return &Proxy{name: ProxyName, session: session, system: system}
 }
