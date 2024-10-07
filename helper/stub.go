@@ -1,6 +1,7 @@
 package helper
 
 import (
+	"flag"
 	"io"
 	"os"
 	"os/exec"
@@ -17,9 +18,17 @@ func InternalChildStub() {
 		return
 	}
 
+	argsFD := flag.Int("args", -1, "")
+	statFD := flag.Int("fd", -1, "")
+	_ = flag.CommandLine.Parse(os.Args[4:])
+
 	// simulate args pipe behaviour
 	func() {
-		f := os.NewFile(3, "|0")
+		if *argsFD == -1 {
+			panic("attempted to start helper without passing args pipe fd")
+		}
+
+		f := os.NewFile(uintptr(*argsFD), "|0")
 		if f == nil {
 			panic("attempted to start helper without args pipe")
 		}
@@ -33,9 +42,13 @@ func InternalChildStub() {
 
 	// simulate status pipe behaviour
 	if os.Getenv(FortifyStatus) == "1" {
+		if *statFD == -1 {
+			panic("attempted to start helper with status reporting without passing status pipe fd")
+		}
+
 		wait = make(chan struct{})
 		go func() {
-			f := os.NewFile(4, "|1")
+			f := os.NewFile(uintptr(*statFD), "|1")
 			if f == nil {
 				panic("attempted to start with status reporting without status pipe")
 			}

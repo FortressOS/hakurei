@@ -164,7 +164,7 @@ func TestProxy_Start_Wait_Close_String(t *testing.T) {
 					}
 
 					t.Run("started string of "+id, func(t *testing.T) {
-						wantSubstr := binPath + " --args=3 --fd=4"
+						wantSubstr := binPath + " --args=3"
 						if got := p.String(); !strings.Contains(got, wantSubstr) {
 							t.Errorf("String() = %v, want %v",
 								p.String(), wantSubstr)

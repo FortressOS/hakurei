@@ -10,11 +10,11 @@ var (
 	ErrContainsNull = errors.New("argument contains null character")
 )
 
-type argsFD []string
+type argsWt []string
 
 // checks whether any element contains the null character
 // must be called before args use and args must not be modified after call
-func (a argsFD) check() error {
+func (a argsWt) check() error {
 	for _, arg := range a {
 		for _, b := range arg {
 			if b == '\x00' {
@@ -26,7 +26,7 @@ func (a argsFD) check() error {
 	return nil
 }
 
-func (a argsFD) WriteTo(w io.Writer) (int64, error) {
+func (a argsWt) WriteTo(w io.Writer) (int64, error) {
 	// assuming already checked
 
 	nt := 0
@@ -43,13 +43,13 @@ func (a argsFD) WriteTo(w io.Writer) (int64, error) {
 	return int64(nt), nil
 }
 
-func (a argsFD) String() string {
+func (a argsWt) String() string {
 	return strings.Join(a, " ")
 }
 
 // NewCheckedArgs returns a checked argument writer for args.
 // Callers must not retain any references to args.
 func NewCheckedArgs(args []string) (io.WriterTo, error) {
-	a := argsFD(args)
+	a := argsWt(args)
 	return a, a.check()
 }

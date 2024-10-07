@@ -3,6 +3,7 @@ package dbus
 import (
 	"errors"
 	"io"
+	"strconv"
 
 	"git.ophivana.moe/cat/fortify/helper"
 )
@@ -18,9 +19,13 @@ func (p *Proxy) Start(ready chan error, output io.Writer) error {
 	}
 
 	h := helper.New(p.seal, p.path,
-		// Helper: Args is always 3 and status if set is always 4.
-		"--args=3",
-		"--fd=4",
+		func(argsFD, statFD int) []string {
+			if statFD == -1 {
+				return []string{"--args=" + strconv.Itoa(argsFD)}
+			} else {
+				return []string{"--args=" + strconv.Itoa(argsFD), "--fd=" + strconv.Itoa(statFD)}
+			}
+		},
 	)
 	// xdg-dbus-proxy does not need to inherit the environment
 	h.Env = []string{}

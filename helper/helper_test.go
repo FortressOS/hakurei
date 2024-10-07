@@ -4,9 +4,11 @@ import (
 	"errors"
 	"io"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"git.ophivana.moe/cat/fortify/helper"
 )
@@ -36,12 +38,20 @@ func prepareArgs() {
 	}
 }
 
+func argF(argsFD int, _ int) []string {
+	return []string{"--args", strconv.Itoa(argsFD)}
+}
+
+func argFStatus(argsFD int, statFD int) []string {
+	return []string{"--args", strconv.Itoa(argsFD), "--fd", strconv.Itoa(statFD)}
+}
+
 func TestHelper_StartNotify_Close_Wait(t *testing.T) {
 	helper.InternalReplaceExecCommand(t)
 	argsOnce.Do(prepareArgs)
 
 	t.Run("start non-existent helper path", func(t *testing.T) {
-		h := helper.New(argsWt, "/nonexistent")
+		h := helper.New(argsWt, "/nonexistent", argF)
 
 		if err := h.Start(); !errors.Is(err, os.ErrNotExist) {
 			t.Errorf("Start() error = %v, wantErr %v",
@@ -50,7 +60,7 @@ func TestHelper_StartNotify_Close_Wait(t *testing.T) {
 	})
 
 	t.Run("start helper with status channel", func(t *testing.T) {
-		h := helper.New(argsWt, "crash-test-dummy", "--args=3", "--fd=4")
+		h := helper.New(argsWt, "crash-test-dummy", argFStatus)
 		ready := make(chan error, 1)
 
 		stdout, stderr := new(strings.Builder), new(strings.Builder)
@@ -66,6 +76,7 @@ func TestHelper_StartNotify_Close_Wait(t *testing.T) {
 			}
 		})
 
+		t.Log("starting helper stub")
 		if err := h.StartNotify(ready); err != nil {
 			t.Errorf("StartNotify(%v) error = %v",
 				ready,
@@ -83,17 +94,31 @@ func TestHelper_StartNotify_Close_Wait(t *testing.T) {
 			}
 		})
 
-		if err := <-ready; err != nil {
-			t.Errorf("StartNotify(%v) latent error = %v",
-				ready,
-				err)
+		t.Log("waiting on status channel with timeout")
+		select {
+		case <-time.NewTimer(5 * time.Second).C:
+			t.Errorf("never got a ready response")
+			t.Errorf("stdout:\n%s", stdout.String())
+			t.Errorf("stderr:\n%s", stderr.String())
+			if err := h.Cmd.Process.Kill(); err != nil {
+				panic(err.Error())
+			}
+			return
+		case err := <-ready:
+			if err != nil {
+				t.Errorf("StartNotify(%v) latent error = %v",
+					ready,
+					err)
+			}
 		}
 
+		t.Log("closing status pipe")
 		if err := h.Close(); err != nil {
 			t.Errorf("Close() error = %v",
 				err)
 		}
 
+		t.Log("waiting on helper")
 		if err := h.Wait(); err != nil {
 			t.Errorf("Wait() err = %v stderr = %s",
 				err, stderr)
@@ -131,7 +156,7 @@ func TestHelper_Start_Close_Wait(t *testing.T) {
 	}
 
 	t.Run("start helper", func(t *testing.T) {
-		h := helper.New(wt, "crash-test-dummy", "--args=3")
+		h := helper.New(wt, "crash-test-dummy", argF)
 
 		stdout, stderr := new(strings.Builder), new(strings.Builder)
 		h.Stdout, h.Stderr = stdout, stderr
@@ -172,7 +197,7 @@ func TestHelper_Start_Close_Wait(t *testing.T) {
 func TestNew(t *testing.T) {
 	t.Run("valid new helper nil check", func(t *testing.T) {
 		swt, _ := helper.NewCheckedArgs(make([]string, 1))
-		if got := helper.New(swt, "fortify"); got == nil {
+		if got := helper.New(swt, "fortify", argF); got == nil {
 			t.Errorf("New(%q, %q) got nil",
 				swt, "fortify")
 			return
@@ -188,6 +213,6 @@ func TestNew(t *testing.T) {
 			}
 		}()
 
-		helper.New(nil, "fortify")
+		helper.New(nil, "fortify", argF)
 	})
 }
