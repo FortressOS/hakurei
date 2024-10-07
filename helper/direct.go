@@ -62,11 +62,11 @@ func (h *direct) Wait() error {
 	if h.Cmd.Process == nil {
 		return errors.New("exec: not started")
 	}
+	defer h.p.mustClosePipes()
 	if h.Cmd.ProcessState != nil {
 		return errors.New("exec: Wait was already called")
 	}
 
-	defer h.p.mustClosePipes()
 	return h.Cmd.Wait()
 }
 
