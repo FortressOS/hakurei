@@ -21,7 +21,7 @@ const (
 )
 
 var boolArgs = func() (b [boolC][]string) {
-	b[UnshareAll] = []string{"--unshare-all"}
+	b[UnshareAll] = []string{"--unshare-all", "--unshare-user"}
 	b[UnshareUser] = []string{"--unshare-user"}
 	b[UnshareIPC] = []string{"--unshare-ipc"}
 	b[UnsharePID] = []string{"--unshare-pid"}

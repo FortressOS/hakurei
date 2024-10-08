@@ -49,6 +49,7 @@ func TestConfig_Args(t *testing.T) {
 			},
 			want: []string{
 				"--unshare-all",
+				"--unshare-user",
 				"--disable-userns",
 				"--assert-userns-disabled",
 				"--clearenv",
