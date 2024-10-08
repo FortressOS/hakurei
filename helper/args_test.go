@@ -10,7 +10,7 @@ import (
 )
 
 func Test_argsFD_String(t *testing.T) {
-	wantString := strings.Join(want, " ")
+	wantString := strings.Join(wantArgs, " ")
 	if got := argsWt.(fmt.Stringer).String(); got != wantString {
 		t.Errorf("String(): got %v; want %v",
 			got, wantString)
