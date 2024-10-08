@@ -23,11 +23,15 @@ var (
 	argsWt      = helper.MustNewCheckedArgs(wantArgs)
 )
 
-func argF(argsFD int, statFD int) []string {
+func argF(argsFD, statFD int) []string {
 	if argsFD == -1 {
 		panic("invalid args fd")
 	}
 
+	return argFChecked(argsFD, statFD)
+}
+
+func argFChecked(argsFD, statFD int) []string {
 	if statFD == -1 {
 		return []string{"--args", strconv.Itoa(argsFD)}
 	} else {

@@ -6,15 +6,19 @@ import (
 	"os"
 	"os/exec"
 	"strconv"
+	"strings"
 	"syscall"
 	"testing"
+
+	"git.ophivana.moe/cat/fortify/helper/bwrap"
 )
 
 // InternalChildStub is an internal function but exported because it is cross-package;
 // it is part of the implementation of the helper stub.
 func InternalChildStub() {
 	// this test mocks the helper process
-	if os.Getenv(FortifyHelper) != "1" {
+	if os.Getenv(FortifyHelper) != "1" ||
+		os.Getenv(FortifyStatus) == "-1" { // this indicates the stub is being invoked as a bwrap child without pipes
 		return
 	}
 
@@ -22,6 +26,35 @@ func InternalChildStub() {
 	statFD := flag.Int("fd", -1, "")
 	_ = flag.CommandLine.Parse(os.Args[4:])
 
+	switch os.Args[3] {
+	case "bwrap":
+		bwrapStub(argsFD, statFD)
+	default:
+		genericStub(argsFD, statFD)
+	}
+
+	os.Exit(0)
+}
+
+// InternalReplaceExecCommand is an internal function but exported because it is cross-package;
+// it is part of the implementation of the helper stub.
+func InternalReplaceExecCommand(t *testing.T) {
+	t.Cleanup(func() {
+		execCommand = exec.Command
+	})
+
+	// replace execCommand to have the resulting *exec.Cmd launch TestHelperChildStub
+	execCommand = func(name string, arg ...string) *exec.Cmd {
+		// pass through nonexistent path
+		if name == "/nonexistent" && len(arg) == 0 {
+			return exec.Command(name)
+		}
+
+		return exec.Command(os.Args[0], append([]string{"-test.run=TestHelperChildStub", "--", name}, arg...)...)
+	}
+}
+
+func genericStub(argsFD, statFD *int) {
 	// simulate args pipe behaviour
 	func() {
 		if *argsFD == -1 {
@@ -89,20 +122,53 @@ func InternalChildStub() {
 	}
 }
 
-// InternalReplaceExecCommand is an internal function but exported because it is cross-package;
-// it is part of the implementation of the helper stub.
-func InternalReplaceExecCommand(t *testing.T) {
-	t.Cleanup(func() {
-		execCommand = exec.Command
-	})
+func bwrapStub(argsFD, statFD *int) {
+	// the bwrap launcher does not ever launch with sync fd
+	if *statFD != -1 {
+		panic("attempted to launch bwrap with status monitoring")
+	}
 
-	// replace execCommand to have the resulting *exec.Cmd launch TestHelperChildStub
-	execCommand = func(name string, arg ...string) *exec.Cmd {
-		// pass through nonexistent path
-		if name == "/nonexistent" && len(arg) == 0 {
-			return exec.Command(name)
+	// test args pipe behaviour
+	func() {
+		if *argsFD == -1 {
+			panic("attempted to start bwrap without passing args pipe fd")
 		}
 
-		return exec.Command(os.Args[0], append([]string{"-test.run=TestHelperChildStub", "--", name}, arg...)...)
+		f := os.NewFile(uintptr(*argsFD), "|0")
+		if f == nil {
+			panic("attempted to start helper without args pipe")
+		}
+
+		got, want := new(strings.Builder), new(strings.Builder)
+
+		if _, err := io.Copy(got, f); err != nil {
+			panic("cannot read args: " + err.Error())
+		}
+
+		// hardcoded bwrap configuration used by test
+		if _, err := MustNewCheckedArgs((&bwrap.Config{
+			Unshare:       nil,
+			Net:           true,
+			UserNS:        false,
+			Hostname:      "localhost",
+			Chdir:         "/nonexistent",
+			Clearenv:      true,
+			NewSession:    true,
+			DieWithParent: true,
+			AsInit:        true,
+		}).Args()).WriteTo(want); err != nil {
+			panic("cannot read want: " + err.Error())
+		}
+
+		if got.String() != want.String() {
+			panic("bad bwrap args\ngot: " + got.String() + "\nwant: " + want.String())
+		}
+	}()
+
+	if err := syscall.Exec(
+		os.Args[0],
+		append([]string{os.Args[0], "-test.run=TestHelperChildStub", "--"}, flag.CommandLine.Args()...),
+		os.Environ()); err != nil {
+		panic("cannot start general stub: " + err.Error())
 	}
 }
