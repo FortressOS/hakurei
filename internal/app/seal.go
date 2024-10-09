@@ -15,7 +15,6 @@ import (
 
 const (
 	LaunchMethodSudo uint8 = iota
-	LaunchMethodBwrap
 	LaunchMethodMachineCtl
 )
 
@@ -25,7 +24,6 @@ var (
 	ErrLaunch = errors.New("invalid launch method")
 
 	ErrSudo       = errors.New("sudo not available")
-	ErrBwrap      = errors.New("bwrap not available")
 	ErrSystemd    = errors.New("systemd not available")
 	ErrMachineCtl = errors.New("machinectl not available")
 )
@@ -74,13 +72,6 @@ func (a *app) Seal(config *Config) error {
 			return (*LauncherLookupError)(wrapError(ErrSudo, "sudo not found"))
 		} else {
 			seal.toolPath = sudoPath
-		}
-	case "bubblewrap":
-		seal.launchOption = LaunchMethodBwrap
-		if bwrapPath, err := exec.LookPath("bwrap"); err != nil {
-			return (*LauncherLookupError)(wrapError(ErrBwrap, "bwrap not found"))
-		} else {
-			seal.toolPath = bwrapPath
 		}
 	case "systemd":
 		seal.launchOption = LaunchMethodMachineCtl

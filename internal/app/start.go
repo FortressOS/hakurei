@@ -30,8 +30,6 @@ func (a *app) Start() error {
 	switch a.seal.launchOption {
 	case LaunchMethodSudo:
 		commandBuilder = a.commandBuilderSudo
-	case LaunchMethodBwrap:
-		commandBuilder = a.commandBuilderBwrap
 	case LaunchMethodMachineCtl:
 		commandBuilder = a.commandBuilderMachineCtl
 	default:

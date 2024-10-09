@@ -148,7 +148,6 @@ in
                       type = enum [
                         "simple"
                         "sudo"
-                        "bubblewrap"
                         "systemd"
                       ];
                       default = "systemd";

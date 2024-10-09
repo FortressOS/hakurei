@@ -47,7 +47,7 @@ func init() {
 }
 
 func init() {
-	methodHelpString := "Method of launching the child process, can be one of \"sudo\", \"bubblewrap\""
+	methodHelpString := "Method of launching the child process, can be one of \"sudo\""
 	if internal.SdBootedV {
 		methodHelpString += ", \"systemd\""
 	}
