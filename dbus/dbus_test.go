@@ -98,6 +98,15 @@ func TestProxy_Seal(t *testing.T) {
 }
 
 func TestProxy_Start_Wait_Close_String(t *testing.T) {
+	t.Run("sandboxed", func(t *testing.T) {
+		testProxyStartWaitCloseString(t, true)
+	})
+	t.Run("direct", func(t *testing.T) {
+		testProxyStartWaitCloseString(t, false)
+	})
+}
+
+func testProxyStartWaitCloseString(t *testing.T, sandbox bool) {
 	for id, tc := range testCasePairs() {
 		// this test does not test errors
 		if tc[0].wantErr {
@@ -116,6 +125,7 @@ func TestProxy_Start_Wait_Close_String(t *testing.T) {
 		t.Run("proxy for "+id, func(t *testing.T) {
 			helper.InternalReplaceExecCommand(t)
 			p := dbus.New(tc[0].bus, tc[1].bus)
+			output := new(strings.Builder)
 
 			t.Run("unsealed behaviour of "+id, func(t *testing.T) {
 				t.Run("unsealed string of "+id, func(t *testing.T) {
@@ -154,13 +164,13 @@ func TestProxy_Start_Wait_Close_String(t *testing.T) {
 				}
 
 				t.Run("sealed start of "+id, func(t *testing.T) {
-					if err := p.Start(nil, nil); err != nil {
+					if err := p.Start(nil, output, sandbox); err != nil {
 						t.Errorf("Start(nil, nil) error = %v",
 							err)
 					}
 
 					t.Run("started string of "+id, func(t *testing.T) {
-						wantSubstr := dbus.ProxyName + " --args=3"
+						wantSubstr := dbus.ProxyName + " --args="
 						if got := p.String(); !strings.Contains(got, wantSubstr) {
 							t.Errorf("String() = %v, want %v",
 								p.String(), wantSubstr)
@@ -185,8 +195,8 @@ func TestProxy_Start_Wait_Close_String(t *testing.T) {
 
 					t.Run("started wait of "+id, func(t *testing.T) {
 						if err := p.Wait(); err != nil {
-							t.Errorf("Wait() error = %v",
-								err)
+							t.Errorf("Wait() error = %v\noutput: %s",
+								err, output.String())
 						}
 					})
 				})

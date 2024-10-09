@@ -1,84 +1,39 @@
 package dbus
 
 import (
-	"errors"
 	"fmt"
-	"io"
+	"os"
 	"sync"
-
-	"git.ophivana.moe/cat/fortify/helper"
 )
 
-// ProxyName is the file name or path to the proxy program.
-// Overriding ProxyName will only affect Proxy instance created after the change.
-var ProxyName = "xdg-dbus-proxy"
-
-// Proxy holds references to a xdg-dbus-proxy process, and should never be copied.
-// Once sealed, configuration changes will no longer be possible and attempting to do so will result in a panic.
-type Proxy struct {
-	helper helper.Helper
-
-	name    string
-	session [2]string
-	system  [2]string
-
-	seal io.WriterTo
-	lock sync.RWMutex
-}
+const (
+	SessionBusAddress = "DBUS_SESSION_BUS_ADDRESS"
+	SystemBusAddress  = "DBUS_SYSTEM_BUS_ADDRESS"
+)
 
 var (
-	ErrConfig = errors.New("no configuration to seal")
+	addresses   [2]string
+	addressOnce sync.Once
 )
 
-func (p *Proxy) String() string {
-	if p == nil {
-		return "(invalid dbus proxy)"
-	}
+func Address() (session, system string) {
+	addressOnce.Do(func() {
+		// resolve upstream session bus address
+		if addr, ok := os.LookupEnv(SessionBusAddress); !ok {
+			// fall back to default format
+			addresses[0] = fmt.Sprintf("unix:path=/run/user/%d/bus", os.Getuid())
+		} else {
+			addresses[0] = addr
+		}
 
-	p.lock.RLock()
-	defer p.lock.RUnlock()
+		// resolve upstream system bus address
+		if addr, ok := os.LookupEnv(SystemBusAddress); !ok {
+			// fall back to default hardcoded value
+			addresses[1] = "unix:path=/run/dbus/system_bus_socket"
+		} else {
+			addresses[1] = addr
+		}
+	})
 
-	if p.helper != nil {
-		return p.helper.Unwrap().String()
-	}
-
-	if p.seal != nil {
-		return p.seal.(fmt.Stringer).String()
-	}
-
-	return "(unsealed dbus proxy)"
-}
-
-// Seal seals the Proxy instance.
-func (p *Proxy) Seal(session, system *Config) error {
-	p.lock.Lock()
-	defer p.lock.Unlock()
-
-	if p.seal != nil {
-		panic("dbus proxy sealed twice")
-	}
-
-	if session == nil && system == nil {
-		return ErrConfig
-	}
-
-	var args []string
-	if session != nil {
-		args = append(args, session.Args(p.session)...)
-	}
-	if system != nil {
-		args = append(args, system.Args(p.system)...)
-	}
-	if seal, err := helper.NewCheckedArgs(args); err != nil {
-		return err
-	} else {
-		p.seal = seal
-	}
-
-	return nil
-}
-
-// New returns a reference to a new unsealed Proxy.
-func New(session, system [2]string) *Proxy {
-	return &Proxy{name: ProxyName, session: session, system: system}
+	return addresses[0], addresses[1]
 }

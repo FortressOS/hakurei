@@ -48,21 +48,8 @@ func (seal *appSeal) shareDBus(config [2]*dbus.Config) error {
 	sessionBus[1] = path.Join(seal.share, "bus")
 	systemBus[1] = path.Join(seal.share, "system_bus_socket")
 
-	// resolve upstream session bus address
-	if addr, ok := os.LookupEnv(dbusSessionBusAddress); !ok {
-		// fall back to default format
-		sessionBus[0] = fmt.Sprintf("unix:path=/run/user/%d/bus", os.Getuid())
-	} else {
-		sessionBus[0] = addr
-	}
-
-	// resolve upstream system bus address
-	if addr, ok := os.LookupEnv(dbusSystemBusAddress); !ok {
-		// fall back to default hardcoded value
-		systemBus[0] = "unix:path=/run/dbus/system_bus_socket"
-	} else {
-		systemBus[0] = addr
-	}
+	// resolve upstream bus addresses
+	sessionBus[0], systemBus[0] = dbus.Address()
 
 	// create proxy instance
 	seal.sys.dbus = dbus.New(sessionBus, systemBus)
@@ -93,15 +80,17 @@ func (tx *appSealTx) startDBus() error {
 	tx.dbusWait = make(chan struct{})
 
 	// background dbus proxy start
-	if err := tx.dbus.Start(ready, os.Stderr); err != nil {
+	if err := tx.dbus.Start(ready, os.Stderr, true); err != nil {
 		return (*StartDBusError)(wrapError(err, "cannot start message bus proxy:", err))
 	}
 	verbose.Println("starting message bus proxy:", tx.dbus)
+	verbose.Println("message bus proxy bwrap args:", tx.dbus.Bwrap())
 
 	// background wait for proxy instance and notify completion
 	go func() {
 		if err := tx.dbus.Wait(); err != nil {
 			fmt.Println("fortify: warn: message bus proxy returned error:", err)
+			go func() { ready <- err }()
 		} else {
 			verbose.Println("message bus proxy exit")
 		}

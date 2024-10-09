@@ -3,14 +3,20 @@ package dbus
 import (
 	"errors"
 	"io"
+	"os/exec"
+	"path"
+	"path/filepath"
 	"strconv"
+	"strings"
 
 	"git.ophivana.moe/cat/fortify/helper"
+	"git.ophivana.moe/cat/fortify/helper/bwrap"
+	"git.ophivana.moe/cat/fortify/ldd"
 )
 
 // Start launches the D-Bus proxy and sets up the Wait method.
-// ready should be buffered and should only be received from once.
-func (p *Proxy) Start(ready chan error, output io.Writer) error {
+// ready should be buffered and must only be received from once.
+func (p *Proxy) Start(ready chan error, output io.Writer, sandbox bool) error {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 
@@ -18,18 +24,98 @@ func (p *Proxy) Start(ready chan error, output io.Writer) error {
 		return errors.New("proxy not sealed")
 	}
 
-	h := helper.New(p.seal, p.name,
-		func(argsFD, statFD int) []string {
+	var (
+		h   helper.Helper
+		cmd *exec.Cmd
+
+		argF = func(argsFD, statFD int) []string {
 			if statFD == -1 {
 				return []string{"--args=" + strconv.Itoa(argsFD)}
 			} else {
 				return []string{"--args=" + strconv.Itoa(argsFD), "--fd=" + strconv.Itoa(statFD)}
 			}
-		},
+		}
 	)
-	cmd := h.Unwrap()
-	// xdg-dbus-proxy does not need to inherit the environment
-	cmd.Env = []string{}
+
+	if !sandbox {
+		h = helper.New(p.seal, p.name, argF)
+		cmd = h.Unwrap()
+		// xdg-dbus-proxy does not need to inherit the environment
+		cmd.Env = []string{}
+	} else {
+		// look up absolute path if name is just a file name
+		toolPath := p.name
+		if filepath.Base(p.name) == p.name {
+			if s, err := exec.LookPath(p.name); err == nil {
+				toolPath = s
+			}
+		}
+
+		// resolve libraries by parsing ldd output
+		var proxyDeps []*ldd.Entry
+		if path.IsAbs(toolPath) {
+			if l, err := ldd.Exec(toolPath); err != nil {
+				return err
+			} else {
+				proxyDeps = l
+			}
+		}
+
+		bc := &bwrap.Config{
+			Unshare:       nil,
+			Hostname:      "fortify-dbus",
+			Chdir:         "/",
+			Clearenv:      true,
+			NewSession:    true,
+			DieWithParent: true,
+		}
+
+		// resolve proxy socket directories
+		bindTarget := make(map[string]struct{}, 2)
+		for _, ps := range []string{p.session[1], p.system[1]} {
+			if pd := path.Dir(ps); len(pd) > 0 {
+				if pd[0] == '/' {
+					bindTarget[pd] = struct{}{}
+				}
+			}
+		}
+		bindTargetDedup := make([][2]string, 0, len(bindTarget))
+		for k := range bindTarget {
+			bindTargetDedup = append(bindTargetDedup, [2]string{k, k})
+		}
+		bc.Bind = append(bc.Bind, bindTargetDedup...)
+
+		roBindTarget := make(map[string]struct{}, 2+1+len(proxyDeps))
+
+		// xdb-dbus-proxy bin and dependencies
+		roBindTarget[path.Dir(toolPath)] = struct{}{}
+		for _, ent := range proxyDeps {
+			if ent == nil {
+				continue
+			}
+			if path.IsAbs(ent.Path) {
+				roBindTarget[path.Dir(ent.Path)] = struct{}{}
+			}
+		}
+
+		// resolve upstream bus directories
+		for _, as := range []string{p.session[0], p.system[0]} {
+			if len(as) > 0 && strings.HasPrefix(as, "unix:path=/") {
+				// leave / intact
+				roBindTarget[path.Dir(as[10:])] = struct{}{}
+			}
+		}
+
+		roBindTargetDedup := make([][2]string, 0, len(roBindTarget))
+		for k := range roBindTarget {
+			roBindTargetDedup = append(roBindTargetDedup, [2]string{k, k})
+		}
+		bc.ROBind = append(bc.ROBind, roBindTargetDedup...)
+
+		h = helper.MustNewBwrap(bc, p.seal, toolPath, argF)
+		cmd = h.Unwrap()
+		p.bwrap = bc
+	}
 
 	if output != nil {
 		cmd.Stdout = output
