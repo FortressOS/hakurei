@@ -1,20 +1,11 @@
 package ldd
 
 import (
-	"errors"
 	"fmt"
 	"math"
-	"os"
-	"os/exec"
 	"path"
 	"strconv"
 	"strings"
-)
-
-var (
-	ErrUnexpectedSeparator = errors.New("unexpected separator")
-	ErrPathNotAbsolute     = errors.New("path not absolute")
-	ErrBadLocationFormat   = errors.New("bad location format")
 )
 
 type Entry struct {
@@ -23,27 +14,18 @@ type Entry struct {
 	Location uint64 `json:"location"`
 }
 
-func Exec(p string) ([]*Entry, error) {
-	t := exec.Command("ldd", p)
-	t.Stdout = new(strings.Builder)
-	t.Stderr = os.Stderr
-
-	if err := t.Run(); err != nil {
-		return nil, err
-	}
-
-	out := t.Stdout.(fmt.Stringer).String()
-	payload := strings.Split(out, "\n")
-
+func Parse(stdout fmt.Stringer) ([]*Entry, error) {
+	payload := strings.Split(strings.TrimSpace(stdout.String()), "\n")
 	result := make([]*Entry, len(payload))
 
 	for i, ent := range payload {
 		if len(ent) == 0 {
-			continue
+			return nil, ErrUnexpectedNewline
 		}
 
 		segment := strings.SplitN(ent, " ", 5)
 
+		// location index
 		var iL int
 
 		switch len(segment) {
@@ -63,7 +45,7 @@ func Exec(p string) ([]*Entry, error) {
 				Path: segment[2],
 			}
 		default:
-			return nil, &EntryUnexpectedSegmentsError{ent}
+			return nil, EntryUnexpectedSegmentsError(ent)
 		}
 
 		if loc, err := parseLocation(segment[iL]); err != nil {

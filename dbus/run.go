@@ -90,9 +90,6 @@ func (p *Proxy) Start(ready chan error, output io.Writer, sandbox bool) error {
 		// xdb-dbus-proxy bin and dependencies
 		roBindTarget[path.Dir(toolPath)] = struct{}{}
 		for _, ent := range proxyDeps {
-			if ent == nil {
-				continue
-			}
 			if path.IsAbs(ent.Path) {
 				roBindTarget[path.Dir(ent.Path)] = struct{}{}
 			}
