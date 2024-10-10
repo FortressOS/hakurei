@@ -7,11 +7,9 @@ import (
 	"net"
 	"os"
 	"strconv"
-	"strings"
 	"syscall"
 
 	"git.ophivana.moe/cat/fortify/helper"
-	"git.ophivana.moe/cat/fortify/helper/bwrap"
 	"git.ophivana.moe/cat/fortify/internal/verbose"
 )
 
@@ -39,6 +37,11 @@ func shim(socket string) {
 		// sharing stdout with parent
 		// USE WITH CAUTION
 		verbose.Set(payload.Verbose)
+	}
+
+	if payload.Bwrap == nil {
+		fmt.Println("fortify-shim: bwrap config not supplied")
+		os.Exit(1)
 	}
 
 	// receive wayland fd over socket
@@ -80,49 +83,8 @@ func shim(socket string) {
 	_ = conn.Close()
 
 	conf := payload.Bwrap
-	if conf == nil {
-		verbose.Println("sandbox configuration not supplied, PROCEED WITH CAUTION")
-		conf = &bwrap.Config{
-			Net:           true,
-			UserNS:        true,
-			Clearenv:      true,
-			Procfs:        []string{"/proc"},
-			DevTmpfs:      []string{"/dev"},
-			Mqueue:        []string{"/dev/mqueue"},
-			DieWithParent: true,
-		}
-
-		if d, err := os.ReadDir("/"); err != nil {
-			fmt.Println("fortify-shim: cannot readdir '/':", err)
-		} else {
-			conf.Bind = make([][2]string, 0, len(d))
-			for _, ent := range d {
-				name := ent.Name()
-				switch name {
-				case "proc":
-				case "dev":
-				default:
-					p := "/" + name
-					conf.Bind = append(conf.Bind, [2]string{p, p})
-				}
-			}
-		}
-	}
-	if conf.SetEnv == nil {
-		conf.SetEnv = make(map[string]string, len(payload.Env))
-	}
 
 	var extraFiles []*os.File
-
-	// set environment passed by parent
-	for _, s := range payload.Env {
-		kv := strings.SplitN(s, "=", 2)
-		if len(kv) != 2 {
-			fmt.Println("fortify-shim: invalid environment string:", s)
-		} else {
-			conf.SetEnv[kv[0]] = kv[1]
-		}
-	}
 
 	// pass wayland fd
 	if wfd != -1 {

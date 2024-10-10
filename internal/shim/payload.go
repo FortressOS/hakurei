@@ -9,8 +9,6 @@ const EnvShim = "FORTIFY_SHIM"
 type Payload struct {
 	// child full argv
 	Argv []string
-	// env variables passed through to bwrap
-	Env []string
 	// bwrap, target full exec path
 	Exec [2]string
 	// bwrap config, nil for permissive
