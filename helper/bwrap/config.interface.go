@@ -1,10 +1,7 @@
 package bwrap
 
 const (
-	Procfs = iota
-	DevTmpfs
-	Tmpfs
-	Mqueue
+	Tmpfs = iota
 	Dir
 	Symlink
 
@@ -12,10 +9,7 @@ const (
 )
 
 var interfaceArgs = func() (g [interfaceC]string) {
-	g[Procfs] = "--proc"
-	g[DevTmpfs] = "--dev"
 	g[Tmpfs] = "--tmpfs"
-	g[Mqueue] = "--mqueue"
 	g[Dir] = "--dir"
 	g[Symlink] = "--symlink"
 
@@ -23,10 +17,7 @@ var interfaceArgs = func() (g [interfaceC]string) {
 }()
 
 func (c *Config) interfaceArgs() (g [interfaceC][]argOf) {
-	g[Procfs] = copyToArgOfSlice(c.Procfs)
-	g[DevTmpfs] = copyToArgOfSlice(c.DevTmpfs)
 	g[Tmpfs] = copyToArgOfSlice(c.Tmpfs)
-	g[Mqueue] = copyToArgOfSlice(c.Mqueue)
 	g[Dir] = copyToArgOfSlice(c.Dir)
 	g[Symlink] = copyToArgOfSlice(c.Symlink)
 

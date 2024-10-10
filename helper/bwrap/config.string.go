@@ -6,6 +6,9 @@ const (
 	UnsetEnv
 	LockFile
 	RemountRO
+	Procfs
+	DevTmpfs
+	Mqueue
 
 	stringC
 )
@@ -16,6 +19,9 @@ var stringArgs = func() (n [stringC]string) {
 	n[UnsetEnv] = "--unsetenv"
 	n[LockFile] = "--lock-file"
 	n[RemountRO] = "--remount-ro"
+	n[Procfs] = "--proc"
+	n[DevTmpfs] = "--dev"
+	n[Mqueue] = "--mqueue"
 
 	return
 }()
@@ -30,6 +36,9 @@ func (c *Config) stringArgs() (n [stringC][]string) {
 	n[UnsetEnv] = c.UnsetEnv
 	n[LockFile] = c.LockFile
 	n[RemountRO] = c.RemountRO
+	n[Procfs] = c.Procfs
+	n[DevTmpfs] = c.DevTmpfs
+	n[Mqueue] = c.Mqueue
 
 	return
 }

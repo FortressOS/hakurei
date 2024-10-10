@@ -127,16 +127,16 @@ type Config struct {
 
 	// mount new procfs in sandbox
 	// (--proc DEST)
-	Procfs []PermConfig[string] `json:"proc,omitempty"`
+	Procfs []string `json:"proc,omitempty"`
 	// mount new dev in sandbox
 	// (--dev DEST)
-	DevTmpfs []PermConfig[string] `json:"dev,omitempty"`
+	DevTmpfs []string `json:"dev,omitempty"`
 	// mount new tmpfs in sandbox
 	// (--tmpfs DEST)
 	Tmpfs []PermConfig[TmpfsConfig] `json:"tmpfs,omitempty"`
 	// mount new mqueue in sandbox
 	// (--mqueue DEST)
-	Mqueue []PermConfig[string] `json:"mqueue,omitempty"`
+	Mqueue []string `json:"mqueue,omitempty"`
 	// create dir in sandbox
 	// (--dir DEST)
 	Dir []PermConfig[string] `json:"dir,omitempty"`
