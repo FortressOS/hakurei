@@ -63,15 +63,17 @@ func (seal *appSeal) sharePulse() error {
 
 	// hard link pulse socket into target-executable share
 	psi := path.Join(seal.shareLocal, "pulse")
+	p := path.Join(seal.sys.runtime, "pulse", "native")
 	seal.sys.link(ps, psi)
-	seal.appendEnv(pulseServer, "unix:"+psi)
+	seal.sys.bind(psi, p, true)
+	seal.sys.setEnv(pulseServer, "unix:"+p)
 
 	// publish current user's pulse cookie for target user
 	if src, err := discoverPulseCookie(); err != nil {
 		return err
 	} else {
 		dst := path.Join(seal.share, "pulse-cookie")
-		seal.appendEnv(pulseCookie, dst)
+		seal.sys.setEnv(pulseCookie, dst)
 		seal.sys.copyFile(dst, src)
 	}
 

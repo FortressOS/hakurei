@@ -5,6 +5,7 @@ import (
 	"path"
 
 	"git.ophivana.moe/cat/fortify/acl"
+	"git.ophivana.moe/cat/fortify/helper/bwrap"
 	"git.ophivana.moe/cat/fortify/internal/state"
 )
 
@@ -20,8 +21,24 @@ const (
 func (seal *appSeal) shareRuntime() {
 	// look up shell
 	if s, ok := os.LookupEnv(shell); ok {
-		seal.appendEnv(shell, s)
+		seal.sys.setEnv(shell, s)
 	}
+
+	// mount tmpfs on inner runtime (e.g. `/run/user/%d`)
+	seal.sys.bwrap.Tmpfs = append(seal.sys.bwrap.Tmpfs,
+		bwrap.PermConfig[bwrap.TmpfsConfig]{
+			Path: bwrap.TmpfsConfig{
+				Size: 1 * 1024 * 1024,
+				Dir:  "/run/user",
+			},
+		},
+		bwrap.PermConfig[bwrap.TmpfsConfig]{
+			Path: bwrap.TmpfsConfig{
+				Size: 8 * 1024 * 1024,
+				Dir:  seal.sys.runtime,
+			},
+		},
+	)
 
 	// ensure RunDir (e.g. `/run/user/%d/fortify`)
 	seal.sys.ensure(seal.RunDirPath, 0700)
@@ -57,9 +74,9 @@ func (seal *appSeal) shareRuntimeChild() string {
 	seal.sys.updatePermTag(state.EnableLength, targetRuntime, acl.Read, acl.Write, acl.Execute)
 
 	// point to ensured runtime path
-	seal.appendEnv(xdgRuntimeDir, targetRuntime)
-	seal.appendEnv(xdgSessionClass, "user")
-	seal.appendEnv(xdgSessionType, "tty")
+	seal.sys.setEnv(xdgRuntimeDir, targetRuntime)
+	seal.sys.setEnv(xdgSessionClass, "user")
+	seal.sys.setEnv(xdgSessionType, "tty")
 
 	return targetRuntime
 }

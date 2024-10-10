@@ -20,19 +20,16 @@ import (
 type appSeal struct {
 	// application unique identifier
 	id *appID
-	// bwrap config
-	bwrap *bwrap.Config
 	// wayland socket path if mediated wayland is enabled
 	wl string
-	// wait for wayland client to exit if mediated wayland is enabled
+	// wait for wayland client to exit if mediated wayland is enabled,
+	// (wlDone == nil) determines whether mediated wayland setup is performed
 	wlDone chan struct{}
 
 	// freedesktop application ID
 	fid string
 	// argv to start process with in the final confined environment
 	command []string
-	// environment variables of fortified process
-	env []string
 	// persistent process state store
 	store state.Store
 
@@ -59,13 +56,10 @@ type appSeal struct {
 	// protected by upstream mutex
 }
 
-// appendEnv appends an environment variable for the child process
-func (seal *appSeal) appendEnv(k, v string) {
-	seal.env = append(seal.env, k+"="+v)
-}
-
 // appSealTx contains the system-level component of the app seal
 type appSealTx struct {
+	bwrap *bwrap.Config
+
 	// reference to D-Bus proxy instance, nil if disabled
 	dbus *dbus.Proxy
 	// notification from goroutine waiting for dbus.Proxy
@@ -86,6 +80,8 @@ type appSealTx struct {
 	// dst, src pairs of temporarily hard linked files
 	hardlinks [][2]string
 
+	// default formatted XDG_RUNTIME_DIR of User
+	runtime string
 	// sealed path to fortify executable, used by shim
 	executable string
 	// target user UID as an integer
@@ -105,6 +101,20 @@ type appEnsureEntry struct {
 	path   string
 	perm   os.FileMode
 	remove bool
+}
+
+// setEnv sets an environment variable for the child process
+func (tx *appSealTx) setEnv(k, v string) {
+	tx.bwrap.SetEnv[k] = v
+}
+
+// bind mounts a directory within the sandbox
+func (tx *appSealTx) bind(src, dest string, ro bool) {
+	if !ro {
+		tx.bwrap.Bind = append(tx.bwrap.Bind, [2]string{src, dest})
+	} else {
+		tx.bwrap.ROBind = append(tx.bwrap.ROBind, [2]string{src, dest})
+	}
 }
 
 // ensure appends a directory ensure action
@@ -171,6 +181,7 @@ func (tx *appSealTx) changeHosts(username string) {
 func (tx *appSealTx) copyFile(dst, src string) {
 	tx.tmpfiles = append(tx.tmpfiles, [2]string{dst, src})
 	tx.updatePerm(dst, acl.Read)
+	tx.bind(dst, dst, true)
 }
 
 // link appends a hardlink action
@@ -194,7 +205,7 @@ func (tx *appSealTx) commit() error {
 	}
 	tx.complete = true
 
-	txp := &appSealTx{User: tx.User}
+	txp := &appSealTx{User: tx.User, bwrap: &bwrap.Config{SetEnv: make(map[string]string)}}
 	defer func() {
 		// rollback partial commit
 		if txp != nil {

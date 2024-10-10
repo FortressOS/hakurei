@@ -9,7 +9,7 @@ import (
 )
 
 func (a *app) commandBuilderMachineCtl(shimEnv string) (args []string) {
-	args = make([]string, 0, 9+len(a.seal.env))
+	args = make([]string, 0, 9+len(a.seal.sys.bwrap.SetEnv))
 
 	// shell --uid=$USER
 	args = append(args, "shell", "--uid="+a.seal.sys.Username)
@@ -20,12 +20,12 @@ func (a *app) commandBuilderMachineCtl(shimEnv string) (args []string) {
 	}
 
 	// environ
-	envQ := make([]string, len(a.seal.env)+1)
-	for i, e := range a.seal.env {
-		envQ[i] = "-E" + e
+	envQ := make([]string, 0, len(a.seal.sys.bwrap.SetEnv)+1)
+	for k, v := range a.seal.sys.bwrap.SetEnv {
+		envQ = append(envQ, "-E"+k+"="+v)
 	}
 	// add shim payload to environment for shim path
-	envQ[len(a.seal.env)] = "-E" + shimEnv
+	envQ = append(envQ, "-E"+shimEnv)
 	args = append(args, envQ...)
 
 	// -- .host
@@ -44,8 +44,8 @@ func (a *app) commandBuilderMachineCtl(shimEnv string) (args []string) {
 
 	// apply custom environment variables to activation environment
 	innerCommand.WriteString("dbus-update-activation-environment --systemd")
-	for _, e := range a.seal.env {
-		innerCommand.WriteString(" " + strings.SplitN(e, "=", 2)[0])
+	for k := range a.seal.sys.bwrap.SetEnv {
+		innerCommand.WriteString(" " + k)
 	}
 	innerCommand.WriteString("; ")
 

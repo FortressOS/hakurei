@@ -27,7 +27,7 @@ type ErrDisplayEnv BaseError
 func (seal *appSeal) shareDisplay() error {
 	// pass $TERM to launcher
 	if t, ok := os.LookupEnv(term); ok {
-		seal.appendEnv(term, t)
+		seal.sys.setEnv(term, t)
 	}
 
 	// set up wayland
@@ -38,8 +38,10 @@ func (seal *appSeal) shareDisplay() error {
 			// hardlink wayland socket
 			wp := path.Join(seal.RuntimePath, wd)
 			wpi := path.Join(seal.shareLocal, "wayland")
+			w := path.Join(seal.sys.runtime, "wayland-0")
 			seal.sys.link(wp, wpi)
-			seal.appendEnv(waylandDisplay, wpi)
+			seal.sys.setEnv(waylandDisplay, w)
+			seal.sys.bind(wpi, w, true)
 
 			// ensure Wayland socket ACL (e.g. `/run/user/%d/wayland-%d`)
 			seal.sys.updatePermTag(state.EnableWayland, wp, acl.Read, acl.Write, acl.Execute)
@@ -56,7 +58,8 @@ func (seal *appSeal) shareDisplay() error {
 			return (*ErrDisplayEnv)(wrapError(ErrXDisplay, "DISPLAY is not set"))
 		} else {
 			seal.sys.changeHosts(seal.sys.Username)
-			seal.appendEnv(display, d)
+			seal.sys.setEnv(display, d)
+			seal.sys.bind("/tmp/.X11-unix", "/tmp/.X11-unix", true)
 		}
 	}
 

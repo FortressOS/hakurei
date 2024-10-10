@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"os/user"
+	"path"
 	"strconv"
 
 	"git.ophivana.moe/cat/fortify/dbus"
@@ -63,12 +64,6 @@ func (a *app) Seal(config *Config) error {
 	// pass through config values
 	seal.fid = config.ID
 	seal.command = config.Command
-	seal.bwrap = config.Confinement.Sandbox
-
-	// create wayland client wait channel
-	if config.Confinement.Wayland {
-		seal.wlDone = make(chan struct{})
-	}
 
 	// parses launch method text and looks up tool path
 	switch config.Method {
@@ -115,6 +110,65 @@ func (a *app) Seal(config *Config) error {
 		}
 	} else {
 		seal.sys.User = u
+		seal.sys.runtime = path.Join("/run/user", u.Uid)
+	}
+
+	// map sandbox config to bwrap
+	if config.Confinement.Sandbox == nil {
+		verbose.Println("sandbox configuration not supplied, PROCEED WITH CAUTION")
+
+		// permissive defaults
+		conf := &SandboxConfig{
+			UserNS:       true,
+			Net:          true,
+			NoNewSession: true,
+		}
+		// bind entries in /
+		if d, err := os.ReadDir("/"); err != nil {
+			return err
+		} else {
+			b := make([][2]string, 0, len(d))
+			for _, ent := range d {
+				name := ent.Name()
+				switch name {
+				case "proc":
+				case "dev":
+				case "run":
+				default:
+					p := "/" + name
+					b = append(b, [2]string{p, p})
+				}
+			}
+			conf.Bind = append(conf.Bind, b...)
+		}
+		// bind entries in /run
+		if d, err := os.ReadDir("/run"); err != nil {
+			return err
+		} else {
+			b := make([][2]string, 0, len(d))
+			for _, ent := range d {
+				name := ent.Name()
+				switch name {
+				case "user":
+				case "dbus":
+				default:
+					p := "/run/" + name
+					b = append(b, [2]string{p, p})
+				}
+			}
+			conf.Bind = append(conf.Bind, b...)
+		}
+		config.Confinement.Sandbox = conf
+	}
+	seal.sys.bwrap = config.Confinement.Sandbox.Bwrap()
+	if seal.sys.bwrap.SetEnv == nil {
+		seal.sys.bwrap.SetEnv = make(map[string]string)
+	}
+
+	// create wayland client wait channel if mediated wayland is enabled
+	// this channel being set enables mediated wayland setup later on
+	if config.Confinement.Sandbox.Wayland {
+		seal.wlDone = make(chan struct{})
 	}
 
 	// open process state store

@@ -72,9 +72,8 @@ func (a *app) Start() error {
 
 	if wls, err := shim.ServeConfig(confSockPath, &shim.Payload{
 		Argv:  a.seal.command,
-		Env:   a.seal.env,
 		Exec:  e,
-		Bwrap: a.seal.bwrap,
+		Bwrap: a.seal.sys.bwrap,
 		WL:    a.seal.wlDone != nil,
 
 		Verbose: verbose.Get(),
