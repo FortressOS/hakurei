@@ -8,9 +8,9 @@ import (
 func (c *Config) Args() (args []string) {
 	b := c.boolArgs()
 	n := c.intArgs()
+	g := c.interfaceArgs()
 	s := c.stringArgs()
 	p := c.pairArgs()
-	g := c.interfaceArgs()
 
 	argc := 0
 	for i, arg := range b {
@@ -22,6 +22,9 @@ func (c *Config) Args() (args []string) {
 		if arg != nil {
 			argc += 2
 		}
+	}
+	for _, arg := range g {
+		argc += len(arg) * 3
 	}
 	for _, arg := range s {
 		argc += len(arg) * 2
@@ -41,6 +44,11 @@ func (c *Config) Args() (args []string) {
 			args = append(args, intArgs[i], strconv.Itoa(*arg))
 		}
 	}
+	for i, arg := range g {
+		for _, v := range arg {
+			args = append(args, v.Value(interfaceArgs[i])...)
+		}
+	}
 	for i, arg := range s {
 		for _, v := range arg {
 			args = append(args, stringArgs[i], v)
@@ -49,11 +57,6 @@ func (c *Config) Args() (args []string) {
 	for i, arg := range p {
 		for _, v := range arg {
 			args = append(args, pairArgs[i], v[0], v[1])
-		}
-	}
-	for i, arg := range g {
-		for _, v := range arg {
-			args = append(args, v.Value(interfaceArgs[i])...)
 		}
 	}
 
