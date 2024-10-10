@@ -6,6 +6,7 @@ import (
 	"os"
 	"text/tabwriter"
 
+	"git.ophivana.moe/cat/fortify/internal"
 	"git.ophivana.moe/cat/fortify/internal/state"
 )
 
@@ -21,7 +22,7 @@ func init() {
 func tryState() {
 	if stateActionEarly {
 		var w *tabwriter.Writer
-		state.MustPrintLauncherStateSimpleGlobal(&w)
+		state.MustPrintLauncherStateSimpleGlobal(&w, internal.GetSC().RunDirPath)
 		if w != nil {
 			if err := w.Flush(); err != nil {
 				fmt.Println("warn: error formatting output:", err)

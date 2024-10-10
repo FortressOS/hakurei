@@ -211,9 +211,8 @@ func (b *simpleBackend) Len() (int, error) {
 }
 
 // NewSimple returns an instance of a file-based store.
-// Store prefix is typically (runDir, uid).
-func NewSimple(prefix ...string) Store {
+func NewSimple(runDir string, prefix ...string) Store {
 	b := new(simpleStore)
-	b.path = prefix
+	b.path = append([]string{runDir, "state"}, prefix...)
 	return b
 }

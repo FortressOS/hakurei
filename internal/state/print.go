@@ -1,6 +1,7 @@
 package state
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path"
@@ -9,18 +10,16 @@ import (
 	"text/tabwriter"
 	"time"
 
-	"git.ophivana.moe/cat/fortify/internal"
 	"git.ophivana.moe/cat/fortify/internal/verbose"
 )
 
 // MustPrintLauncherStateSimpleGlobal prints active launcher states of all simple stores
 // in an implementation-specific way.
-func MustPrintLauncherStateSimpleGlobal(w **tabwriter.Writer) {
-	sc := internal.GetSC()
+func MustPrintLauncherStateSimpleGlobal(w **tabwriter.Writer, runDir string) {
 	now := time.Now().UTC()
 
 	// read runtime directory to get all UIDs
-	if dirs, err := os.ReadDir(sc.RunDirPath); err != nil {
+	if dirs, err := os.ReadDir(path.Join(runDir, "state")); err != nil && !errors.Is(err, os.ErrNotExist) {
 		fmt.Println("cannot read runtime directory:", err)
 		os.Exit(1)
 	} else {
@@ -38,7 +37,7 @@ func MustPrintLauncherStateSimpleGlobal(w **tabwriter.Writer) {
 			}
 
 			// obtain temporary store
-			s := NewSimple(sc.RunDirPath, e.Name()).(*simpleStore)
+			s := NewSimple(runDir, e.Name()).(*simpleStore)
 
 			// print states belonging to this store
 			s.mustPrintLauncherState(w, now)
