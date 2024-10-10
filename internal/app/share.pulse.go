@@ -7,7 +7,6 @@ import (
 	"os"
 	"path"
 
-	"git.ophivana.moe/cat/fortify/acl"
 	"git.ophivana.moe/cat/fortify/internal/state"
 )
 
@@ -35,7 +34,7 @@ func (seal *appSeal) sharePulse() error {
 		return nil
 	}
 
-	// ensure PulseAudio directory ACL (e.g. `/run/user/%d/pulse`)
+	// check PulseAudio directory presence (e.g. `/run/user/%d/pulse`)
 	pd := path.Join(seal.RuntimePath, "pulse")
 	ps := path.Join(pd, "native")
 	if _, err := os.Stat(pd); err != nil {
@@ -47,10 +46,7 @@ func (seal *appSeal) sharePulse() error {
 			fmt.Sprintf("PulseAudio directory '%s' not found", pd)))
 	}
 
-	seal.appendEnv(pulseServer, "unix:"+ps)
-	seal.sys.updatePerm(pd, acl.Execute)
-
-	// ensure PulseAudio socket permission (e.g. `/run/user/%d/pulse/native`)
+	// check PulseAudio socket permission (e.g. `/run/user/%d/pulse/native`)
 	if s, err := os.Stat(ps); err != nil {
 		if !errors.Is(err, fs.ErrNotExist) {
 			return (*PulseSocketAccessError)(wrapError(err,
@@ -64,6 +60,11 @@ func (seal *appSeal) sharePulse() error {
 				fmt.Sprintf("unexpected permissions on '%s':", ps), m))
 		}
 	}
+
+	// hard link pulse socket into target-executable share
+	psi := path.Join(seal.shareLocal, "pulse")
+	seal.sys.link(ps, psi)
+	seal.appendEnv(pulseServer, "unix:"+psi)
 
 	// publish current user's pulse cookie for target user
 	if src, err := discoverPulseCookie(); err != nil {

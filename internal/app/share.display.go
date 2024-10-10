@@ -35,9 +35,11 @@ func (seal *appSeal) shareDisplay() error {
 		if wd, ok := os.LookupEnv(waylandDisplay); !ok {
 			return (*ErrDisplayEnv)(wrapError(ErrWayland, "WAYLAND_DISPLAY is not set"))
 		} else {
-			// wayland socket path
+			// hardlink wayland socket
 			wp := path.Join(seal.RuntimePath, wd)
-			seal.appendEnv(waylandDisplay, wp)
+			wpi := path.Join(seal.shareLocal, "wayland")
+			seal.sys.link(wp, wpi)
+			seal.appendEnv(waylandDisplay, wpi)
 
 			// ensure Wayland socket ACL (e.g. `/run/user/%d/wayland-%d`)
 			seal.sys.updatePerm(wp, acl.Read, acl.Write, acl.Execute)

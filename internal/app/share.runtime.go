@@ -16,6 +16,7 @@ const (
 func (seal *appSeal) shareRuntime() {
 	// ensure RunDir (e.g. `/run/user/%d/fortify`)
 	seal.sys.ensure(seal.RunDirPath, 0700)
+	seal.sys.updatePerm(seal.RunDirPath, acl.Execute)
 
 	// ensure runtime directory ACL (e.g. `/run/user/%d`)
 	seal.sys.updatePerm(seal.RuntimePath, acl.Execute)
@@ -28,6 +29,11 @@ func (seal *appSeal) shareRuntime() {
 	// acl is unnecessary as this directory is world executable
 	seal.share = path.Join(seal.SharePath, seal.id.String())
 	seal.sys.ensureEphemeral(seal.share, 0701)
+
+	// ensure process-specific share local to XDG_RUNTIME_DIR (e.g. `/run/user/%d/fortify/%s`)
+	seal.shareLocal = path.Join(seal.RunDirPath, seal.id.String())
+	seal.sys.ensureEphemeral(seal.shareLocal, 0700)
+	seal.sys.updatePerm(seal.shareLocal, acl.Execute)
 }
 
 func (seal *appSeal) shareRuntimeChild() string {

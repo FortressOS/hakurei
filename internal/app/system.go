@@ -33,6 +33,8 @@ type appSeal struct {
 	launchOption uint8
 	// process-specific share directory path
 	share string
+	// process-specific share directory path local to XDG_RUNTIME_DIR
+	shareLocal string
 
 	// path to launcher program
 	toolPath string
@@ -74,6 +76,8 @@ type appSealTx struct {
 	mkdir []appEnsureEntry
 	// dst, src pairs of temporarily shared files
 	tmpfiles [][2]string
+	// dst, src pairs of temporarily hard linked files
+	hardlinks [][2]string
 
 	// sealed path to fortify executable, used by shim
 	executable string
@@ -143,6 +147,11 @@ func (tx *appSealTx) copyFile(dst, src string) {
 	tx.updatePerm(dst, acl.Read)
 }
 
+// link appends a hardlink action
+func (tx *appSealTx) link(oldname, newname string) {
+	tx.hardlinks = append(tx.hardlinks, [2]string{oldname, newname})
+}
+
 type (
 	ChangeHostsError BaseError
 	EnsureDirError   BaseError
@@ -152,7 +161,7 @@ type (
 )
 
 // commit applies recorded actions
-// order: xhost, mkdir, tmpfiles, dbus, acl
+// order: xhost, mkdir, tmpfiles, hardlinks, dbus, acl
 func (tx *appSealTx) commit() error {
 	if tx.complete {
 		panic("seal transaction committed twice")
@@ -211,6 +220,18 @@ func (tx *appSealTx) commit() error {
 		}
 	}
 
+	// create hardlinks
+	for _, link := range tx.hardlinks {
+		verbose.Println("creating hardlink", link[1], "from", link[0])
+		if err := os.Link(link[0], link[1]); err != nil {
+			return (*TmpfileError)(wrapError(err,
+				fmt.Sprintf("cannot create hardlink '%s' from '%s': %s", link[1], link[0], err)))
+		} else {
+			// register partial commit
+			txp.link(link[0], link[1])
+		}
+	}
+
 	if tx.dbus != nil {
 		// start dbus proxy
 		verbose.Printf("session bus proxy on '%s' for upstream '%s'\n", tx.dbusAddr[0][1], tx.dbusAddr[0][0])
@@ -245,7 +266,7 @@ func (tx *appSealTx) commit() error {
 }
 
 // revert rolls back recorded actions
-// order: acl, dbus, tmpfiles, mkdir, xhost
+// order: acl, dbus, hardlinks, tmpfiles, mkdir, xhost
 // errors are printed but not treated as fatal
 func (tx *appSealTx) revert(global bool) error {
 	if tx.closed {
@@ -277,6 +298,13 @@ func (tx *appSealTx) revert(global bool) error {
 		verbose.Println("terminating message bus proxy")
 		err := tx.stopDBus()
 		joinError(err, "cannot stop message bus proxy:", err)
+	}
+
+	// remove hardlinks
+	for _, link := range tx.hardlinks {
+		verbose.Println("removing hardlink", link[1])
+		err := os.Remove(link[1])
+		joinError(err, fmt.Sprintf("cannot remove hardlink '%s': %s", link[1], err))
 	}
 
 	// remove tmpfiles
