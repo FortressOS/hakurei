@@ -1,17 +1,19 @@
 package verbose
 
-import "fmt"
+import (
+	"fmt"
+)
 
-const prefix = "fortify:"
+var Prefix = "fortify:"
 
 func Println(a ...any) {
 	if verbose.Load() {
-		fmt.Println(append([]any{prefix}, a...)...)
+		fmt.Println(append([]any{Prefix}, a...)...)
 	}
 }
 
 func Printf(format string, a ...any) {
 	if verbose.Load() {
-		fmt.Printf(prefix+" "+format, a...)
+		fmt.Printf(Prefix+" "+format, a...)
 	}
 }
