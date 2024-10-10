@@ -155,24 +155,42 @@ func (a *app) Wait() (int, error) {
 				return err
 			}
 
-			var global bool
-
-			// measure remaining state entries
-			if l, err := b.Len(); err != nil {
+			// enablements of remaining launchers
+			rt, tags := new(state.Enablements), new(state.Enablements)
+			tags.Set(state.EnableLength + 1)
+			if states, err := b.Load(); err != nil {
 				return err
 			} else {
-				// clean up global modifications if we're the last launcher alive
-				global = l == 0
-
-				if !global {
-					verbose.Printf("found %d active launchers, cleaning up without globals\n", l)
-				} else {
+				if l := len(states); l == 0 {
+					// cleanup globals as the final launcher
 					verbose.Println("no other launchers active, will clean up globals")
+					tags.Set(state.EnableLength)
+				} else {
+					verbose.Printf("found %d active launchers, cleaning up without globals\n", l)
+				}
+
+				// accumulate capabilities of other launchers
+				for _, s := range states {
+					*rt |= s.Capability
 				}
 			}
+			// invert accumulated enablements for cleanup
+			for i := state.Enablement(0); i < state.EnableLength; i++ {
+				if !rt.Has(i) {
+					tags.Set(i)
+				}
+			}
+			if verbose.Get() {
+				ct := make([]state.Enablement, 0, state.EnableLength)
+				for i := state.Enablement(0); i < state.EnableLength; i++ {
+					if tags.Has(i) {
+						ct = append(ct, i)
+					}
+				}
+				verbose.Println("will revert operations tagged", ct, "as no remaining launchers hold these enablements")
+			}
 
-			// FIXME: depending on exit sequence, some parts of the transaction never gets reverted
-			if err := a.seal.sys.revert(global); err != nil {
+			if err := a.seal.sys.revert(tags); err != nil {
 				return err.(RevertCompoundError)
 			}
 

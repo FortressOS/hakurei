@@ -4,6 +4,7 @@ import (
 	"path"
 
 	"git.ophivana.moe/cat/fortify/acl"
+	"git.ophivana.moe/cat/fortify/internal/state"
 )
 
 const (
@@ -16,10 +17,10 @@ const (
 func (seal *appSeal) shareRuntime() {
 	// ensure RunDir (e.g. `/run/user/%d/fortify`)
 	seal.sys.ensure(seal.RunDirPath, 0700)
-	seal.sys.updatePerm(seal.RunDirPath, acl.Execute)
+	seal.sys.updatePermTag(state.EnableLength, seal.RunDirPath, acl.Execute)
 
 	// ensure runtime directory ACL (e.g. `/run/user/%d`)
-	seal.sys.updatePerm(seal.RuntimePath, acl.Execute)
+	seal.sys.updatePermTag(state.EnableLength, seal.RuntimePath, acl.Execute)
 
 	// ensure Share (e.g. `/tmp/fortify.%d`)
 	// acl is unnecessary as this directory is world executable
@@ -40,12 +41,12 @@ func (seal *appSeal) shareRuntimeChild() string {
 	// ensure child runtime parent directory (e.g. `/tmp/fortify.%d/runtime`)
 	targetRuntimeParent := path.Join(seal.SharePath, "runtime")
 	seal.sys.ensure(targetRuntimeParent, 0700)
-	seal.sys.updatePerm(targetRuntimeParent, acl.Execute)
+	seal.sys.updatePermTag(state.EnableLength, targetRuntimeParent, acl.Execute)
 
 	// ensure child runtime directory (e.g. `/tmp/fortify.%d/runtime/%d`)
 	targetRuntime := path.Join(targetRuntimeParent, seal.sys.Uid)
 	seal.sys.ensure(targetRuntime, 0700)
-	seal.sys.updatePerm(targetRuntime, acl.Read, acl.Write, acl.Execute)
+	seal.sys.updatePermTag(state.EnableLength, targetRuntime, acl.Read, acl.Write, acl.Execute)
 
 	// point to ensured runtime path
 	seal.appendEnv(xdgRuntimeDir, targetRuntime)

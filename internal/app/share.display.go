@@ -42,7 +42,7 @@ func (seal *appSeal) shareDisplay() error {
 			seal.appendEnv(waylandDisplay, wpi)
 
 			// ensure Wayland socket ACL (e.g. `/run/user/%d/wayland-%d`)
-			seal.sys.updatePerm(wp, acl.Read, acl.Write, acl.Execute)
+			seal.sys.updatePermTag(state.EnableWayland, wp, acl.Read, acl.Write, acl.Execute)
 		}
 	}
 

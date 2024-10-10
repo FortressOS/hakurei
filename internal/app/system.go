@@ -112,8 +112,20 @@ func (tx *appSealTx) ensureEphemeral(path string, perm os.FileMode) {
 
 // appACLEntry contains information for applying/reverting an ACL entry
 type appACLEntry struct {
+	tag   state.Enablement
 	path  string
 	perms []acl.Perm
+}
+
+func (e *appACLEntry) ts() string {
+	switch e.tag {
+	case state.EnableLength:
+		return "Global"
+	case state.EnableLength + 1:
+		return "Process"
+	default:
+		return e.tag.String()
+	}
 }
 
 func (e *appACLEntry) String() string {
@@ -131,9 +143,16 @@ func (e *appACLEntry) String() string {
 	return string(s)
 }
 
-// updatePerm appends an acl update action
+// updatePerm appends an untagged acl update action
 func (tx *appSealTx) updatePerm(path string, perms ...acl.Perm) {
-	tx.acl = append(tx.acl, &appACLEntry{path, perms})
+	tx.updatePermTag(state.EnableLength+1, path, perms...)
+}
+
+// updatePermTag appends an acl update action
+// Tagging with state.EnableLength sets cleanup to happen at final active launcher exit,
+// while tagging with state.EnableLength+1 will unconditionally clean up on exit.
+func (tx *appSealTx) updatePermTag(tag state.Enablement, path string, perms ...acl.Perm) {
+	tx.acl = append(tx.acl, &appACLEntry{tag, path, perms})
 }
 
 // changeHosts appends target username of an X11 ChangeHosts action
@@ -175,7 +194,11 @@ func (tx *appSealTx) commit() error {
 			// global changes (x11, ACLs) are always repeated and check for other launchers cannot happen here
 			// attempting cleanup here will cause other fortified processes to lose access to them
 			// a better (and more secure) fix is to proxy access to these resources and eliminate the ACLs altogether
-			if err := txp.revert(false); err != nil {
+			tags := new(state.Enablements)
+			for e := state.Enablement(0); e < state.EnableLength+2; e++ {
+				tags.Set(e)
+			}
+			if err := txp.revert(tags); err != nil {
 				fmt.Println("fortify: errors returned reverting partial commit:", err)
 			}
 		}
@@ -250,13 +273,13 @@ func (tx *appSealTx) commit() error {
 
 	// apply ACLs
 	for _, e := range tx.acl {
-		verbose.Println("applying ACL", e, "uid:", tx.Uid, "path:", e.path)
+		verbose.Println("applying ACL", e, "uid:", tx.Uid, "tag:", e.ts(), "path:", e.path)
 		if err := acl.UpdatePerm(e.path, tx.uid, e.perms...); err != nil {
 			return (*ACLUpdateError)(wrapError(err,
 				fmt.Sprintf("cannot apply ACL to '%s': %s", e.path, err)))
 		} else {
 			// register partial commit
-			txp.updatePerm(e.path, e.perms...)
+			txp.updatePermTag(e.tag, e.path, e.perms...)
 		}
 	}
 
@@ -268,7 +291,7 @@ func (tx *appSealTx) commit() error {
 // revert rolls back recorded actions
 // order: acl, dbus, hardlinks, tmpfiles, mkdir, xhost
 // errors are printed but not treated as fatal
-func (tx *appSealTx) revert(global bool) error {
+func (tx *appSealTx) revert(tags *state.Enablements) error {
 	if tx.closed {
 		panic("seal transaction reverted twice")
 	}
@@ -284,12 +307,14 @@ func (tx *appSealTx) revert(global bool) error {
 		errs = append(errs, e)
 	}
 
-	if global {
-		// revert ACLs
-		for _, e := range tx.acl {
-			verbose.Println("stripping ACL", e, "uid:", tx.Uid, "path:", e.path)
+	// revert ACLs
+	for _, e := range tx.acl {
+		if tags.Has(e.tag) {
+			verbose.Println("stripping ACL", e, "uid:", tx.Uid, "tag:", e.ts(), "path:", e.path)
 			err := acl.UpdatePerm(e.path, tx.uid)
 			joinError(err, fmt.Sprintf("cannot strip ACL entry from '%s': %s", e.path, err))
+		} else {
+			verbose.Println("skipping ACL", e, "uid:", tx.Uid, "tag:", e.ts(), "path:", e.path)
 		}
 	}
 
@@ -326,7 +351,7 @@ func (tx *appSealTx) revert(global bool) error {
 		joinError(err, fmt.Sprintf("cannot remove ephemeral directory '%s': %s", dir.path, err))
 	}
 
-	if global {
+	if tags.Has(state.EnableX) {
 		// rollback xhost insertions
 		for _, username := range tx.xhost {
 			verbose.Printf("deleting XHost entry SI:localuser:%s\n", username)
