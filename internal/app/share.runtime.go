@@ -1,6 +1,7 @@
 package app
 
 import (
+	"os"
 	"path"
 
 	"git.ophivana.moe/cat/fortify/acl"
@@ -11,10 +12,17 @@ const (
 	xdgRuntimeDir   = "XDG_RUNTIME_DIR"
 	xdgSessionClass = "XDG_SESSION_CLASS"
 	xdgSessionType  = "XDG_SESSION_TYPE"
+
+	shell = "SHELL"
 )
 
 // shareRuntime queues actions for sharing/ensuring the runtime and share directories
 func (seal *appSeal) shareRuntime() {
+	// look up shell
+	if s, ok := os.LookupEnv(shell); ok {
+		seal.appendEnv(shell, s)
+	}
+
 	// ensure RunDir (e.g. `/run/user/%d/fortify`)
 	seal.sys.ensure(seal.RunDirPath, 0700)
 	seal.sys.updatePermTag(state.EnableLength, seal.RunDirPath, acl.Execute)

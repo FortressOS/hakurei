@@ -9,6 +9,7 @@ import (
 
 	"git.ophivana.moe/cat/fortify/acl"
 	"git.ophivana.moe/cat/fortify/dbus"
+	"git.ophivana.moe/cat/fortify/helper/bwrap"
 	"git.ophivana.moe/cat/fortify/internal"
 	"git.ophivana.moe/cat/fortify/internal/state"
 	"git.ophivana.moe/cat/fortify/internal/verbose"
@@ -19,6 +20,12 @@ import (
 type appSeal struct {
 	// application unique identifier
 	id *appID
+	// bwrap config
+	bwrap *bwrap.Config
+	// wayland socket path if mediated wayland is enabled
+	wl string
+	// wait for wayland client to exit if mediated wayland is enabled
+	wlDone chan struct{}
 
 	// freedesktop application ID
 	fid string
@@ -187,7 +194,7 @@ func (tx *appSealTx) commit() error {
 	}
 	tx.complete = true
 
-	txp := &appSealTx{}
+	txp := &appSealTx{User: tx.User}
 	defer func() {
 		// rollback partial commit
 		if txp != nil {
@@ -371,6 +378,8 @@ func (seal *appSeal) shareAll(bus [2]*dbus.Config) error {
 	seal.shared = true
 
 	seal.shareRuntime()
+	targetRuntime := seal.shareRuntimeChild()
+	verbose.Printf("child runtime data dir '%s' configured\n", targetRuntime)
 	if err := seal.shareDisplay(); err != nil {
 		return err
 	}
@@ -391,12 +400,6 @@ func (seal *appSeal) shareAll(bus [2]*dbus.Config) error {
 			verbose.Println("sealed system proxy", bus[1].Args(seal.sys.dbusAddr[1]))
 		}
 		verbose.Println("message bus proxy final args:", seal.sys.dbus)
-	}
-
-	// workaround for launch method sudo
-	if seal.launchOption == LaunchMethodSudo {
-		targetRuntime := seal.shareRuntimeChild()
-		verbose.Printf("child runtime data dir '%s' configured\n", targetRuntime)
 	}
 
 	return nil

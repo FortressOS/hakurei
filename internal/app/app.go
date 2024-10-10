@@ -1,6 +1,7 @@
 package app
 
 import (
+	"net"
 	"os/exec"
 	"sync"
 )
@@ -18,6 +19,8 @@ type app struct {
 	seal *appSeal
 	// underlying fortified child process
 	cmd *exec.Cmd
+	// wayland connection if wayland mediation is enabled
+	wayland *net.UnixConn
 	// error returned waiting for process
 	wait error
 

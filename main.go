@@ -10,6 +10,7 @@ import (
 	"git.ophivana.moe/cat/fortify/dbus"
 	"git.ophivana.moe/cat/fortify/internal"
 	"git.ophivana.moe/cat/fortify/internal/app"
+	"git.ophivana.moe/cat/fortify/internal/shim"
 	"git.ophivana.moe/cat/fortify/internal/state"
 	"git.ophivana.moe/cat/fortify/internal/verbose"
 )
@@ -35,7 +36,7 @@ func main() {
 
 	// launcher payload early exit
 	if printVersion && printLicense {
-		app.TryShim()
+		shim.Try()
 	}
 
 	// version/license command early exit

@@ -2,6 +2,7 @@ package app
 
 import (
 	"git.ophivana.moe/cat/fortify/dbus"
+	"git.ophivana.moe/cat/fortify/helper/bwrap"
 	"git.ophivana.moe/cat/fortify/internal/state"
 )
 
@@ -22,6 +23,11 @@ type Config struct {
 
 // ConfinementConfig defines fortified child's confinement
 type ConfinementConfig struct {
+	// bwrap sandbox confinement configuration
+	Sandbox *bwrap.Config `json:"sandbox"`
+	// mediated access to wayland socket
+	Wayland bool `json:"wayland"`
+
 	// reference to a system D-Bus proxy configuration,
 	// nil value disables system bus proxy
 	SystemBus *dbus.Config `json:"system_bus,omitempty"`

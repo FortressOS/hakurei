@@ -63,6 +63,12 @@ func (a *app) Seal(config *Config) error {
 	// pass through config values
 	seal.fid = config.ID
 	seal.command = config.Command
+	seal.bwrap = config.Confinement.Sandbox
+
+	// create wayland client wait channel
+	if config.Confinement.Wayland {
+		seal.wlDone = make(chan struct{})
+	}
 
 	// parses launch method text and looks up tool path
 	switch config.Method {

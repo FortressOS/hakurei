@@ -8,7 +8,7 @@ import (
 	"git.ophivana.moe/cat/fortify/internal/verbose"
 )
 
-func (a *app) commandBuilderMachineCtl() (args []string) {
+func (a *app) commandBuilderMachineCtl(shimEnv string) (args []string) {
 	args = make([]string, 0, 9+len(a.seal.env))
 
 	// shell --uid=$USER
@@ -25,7 +25,7 @@ func (a *app) commandBuilderMachineCtl() (args []string) {
 		envQ[i] = "-E" + e
 	}
 	// add shim payload to environment for shim path
-	envQ[len(a.seal.env)] = "-E" + a.shimPayloadEnv()
+	envQ[len(a.seal.env)] = "-E" + shimEnv
 	args = append(args, envQ...)
 
 	// -- .host

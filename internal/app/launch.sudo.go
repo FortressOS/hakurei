@@ -10,8 +10,8 @@ const (
 	sudoAskPass = "SUDO_ASKPASS"
 )
 
-func (a *app) commandBuilderSudo() (args []string) {
-	args = make([]string, 0, 4+len(a.seal.env)+len(a.seal.command))
+func (a *app) commandBuilderSudo(shimEnv string) (args []string) {
+	args = make([]string, 0, 8)
 
 	// -Hiu $USER
 	args = append(args, "-Hiu", a.seal.sys.Username)
@@ -22,12 +22,11 @@ func (a *app) commandBuilderSudo() (args []string) {
 		args = append(args, "-A")
 	}
 
-	// environ
-	args = append(args, a.seal.env...)
+	// shim payload
+	args = append(args, shimEnv)
 
 	// -- $@
-	args = append(args, "--")
-	args = append(args, a.seal.command...)
+	args = append(args, "--", a.seal.sys.executable, "-V", "--license") // magic for shim.Try()
 
 	return
 }
