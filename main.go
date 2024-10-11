@@ -16,14 +16,11 @@ import (
 )
 
 var (
-	Version = "impure"
+	flagVerbose bool
 )
 
-func tryVersion() {
-	if printVersion {
-		fmt.Println(Version)
-		os.Exit(0)
-	}
+func init() {
+	flag.BoolVar(&flagVerbose, "v", false, "Verbose output")
 }
 
 func main() {
