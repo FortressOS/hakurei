@@ -137,6 +137,15 @@ func testProxyStartWaitCloseString(t *testing.T, sandbox bool) {
 					}
 				})
 
+				t.Run("unsealed start of "+id, func(t *testing.T) {
+					want := "proxy not sealed"
+					if err := p.Start(nil, nil, sandbox); err == nil || err.Error() != want {
+						t.Errorf("Start() error = %v, wantErr %q",
+							err, errors.New(want))
+						return
+					}
+				})
+
 				t.Run("unsealed wait of "+id, func(t *testing.T) {
 					wantErr := "proxy not started"
 					if err := p.Wait(); err == nil || err.Error() != wantErr {

@@ -175,7 +175,6 @@ func testCaseGenerate() {
 		// inject nulls
 		fi := &testCasesV[len(samples)+i]
 		fi.wantErr = true
-		fi.c = &*fi.c
 
 		injectNulls(&fi.c.See)
 		injectNulls(&fi.c.Talk)
