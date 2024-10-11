@@ -19,8 +19,6 @@ type bubblewrap struct {
 
 	// bwrap pipes
 	p *pipes
-	// sealed bwrap config
-	config *bwrap.Config
 	// returns an array of arguments passed directly
 	// to the child process spawned by bwrap
 	argF func(argsFD, statFD int) []string
