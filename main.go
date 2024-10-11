@@ -1,17 +1,14 @@
 package main
 
 import (
-	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
 	"os"
 
-	"git.ophivana.moe/cat/fortify/dbus"
 	"git.ophivana.moe/cat/fortify/internal"
 	"git.ophivana.moe/cat/fortify/internal/app"
 	"git.ophivana.moe/cat/fortify/internal/shim"
-	"git.ophivana.moe/cat/fortify/internal/state"
 	"git.ophivana.moe/cat/fortify/internal/verbose"
 )
 
@@ -43,27 +40,10 @@ func main() {
 	// state query command early exit
 	tryState()
 
-	// prepare config
-	var config *app.Config
-
-	if confPath == "nil" {
-		// config from flags
-		config = configFromFlags()
-	} else {
-		// config from file
-		if f, err := os.Open(confPath); err != nil {
-			fatalf("cannot access config file '%s': %s\n", confPath, err)
-		} else {
-			if err = json.NewDecoder(f).Decode(&config); err != nil {
-				fatalf("cannot parse config file '%s': %s\n", confPath, err)
-			}
-		}
-	}
-
 	// invoke app
 	r := 1
 	a := app.New()
-	if err := a.Seal(config); err != nil {
+	if err := a.Seal(loadConfig()); err != nil {
 		logBaseError(err, "fortify: cannot seal app:")
 	} else if err = a.Start(); err != nil {
 		logBaseError(err, "fortify: cannot start app:")
@@ -119,63 +99,6 @@ func logBaseError(err error, message string) {
 	} else {
 		fmt.Println(message, err)
 	}
-}
-
-func configFromFlags() (config *app.Config) {
-	// initialise config from flags
-	config = &app.Config{
-		ID:      dbusID,
-		User:    userName,
-		Command: flag.Args(),
-		Method:  launchMethodText,
-	}
-
-	// enablements from flags
-	if mustWayland {
-		config.Confinement.Enablements.Set(state.EnableWayland)
-	}
-	if mustX {
-		config.Confinement.Enablements.Set(state.EnableX)
-	}
-	if mustDBus {
-		config.Confinement.Enablements.Set(state.EnableDBus)
-	}
-	if mustPulse {
-		config.Confinement.Enablements.Set(state.EnablePulse)
-	}
-
-	// parse D-Bus config file from flags if applicable
-	if mustDBus {
-		if dbusConfigSession == "builtin" {
-			config.Confinement.SessionBus = dbus.NewConfig(dbusID, true, mpris)
-		} else {
-			if f, err := os.Open(dbusConfigSession); err != nil {
-				fatalf("cannot access session bus proxy config file '%s': %s\n", dbusConfigSession, err)
-			} else {
-				if err = json.NewDecoder(f).Decode(&config.Confinement.SessionBus); err != nil {
-					fatalf("cannot parse session bus proxy config file '%s': %s\n", dbusConfigSession, err)
-				}
-			}
-		}
-
-		// system bus proxy is optional
-		if dbusConfigSystem != "nil" {
-			if f, err := os.Open(dbusConfigSystem); err != nil {
-				fatalf("cannot access system bus proxy config file '%s': %s\n", dbusConfigSystem, err)
-			} else {
-				if err = json.NewDecoder(f).Decode(&config.Confinement.SystemBus); err != nil {
-					fatalf("cannot parse system bus proxy config file '%s': %s\n", dbusConfigSystem, err)
-				}
-			}
-		}
-
-		if dbusVerbose {
-			config.Confinement.SessionBus.Log = true
-			config.Confinement.SystemBus.Log = true
-		}
-	}
-
-	return
 }
 
 func fatalf(format string, a ...any) {

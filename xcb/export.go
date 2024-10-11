@@ -37,8 +37,7 @@ var (
 )
 
 func ChangeHosts(mode, family C.uint8_t, address string) error {
-	var c *C.xcb_connection_t
-	c = C.xcb_connect(nil, nil)
+	c := C.xcb_connect(nil, nil)
 	defer C.xcb_disconnect(c)
 
 	if err := xcbHandleConnectionError(c); err != nil {
