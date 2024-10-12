@@ -32,9 +32,10 @@ func main() {
 		shim.Try()
 	}
 
-	// version/license command early exit
+	// version/license/template command early exit
 	tryVersion()
 	tryLicense()
+	tryTemplate()
 
 	// state query command early exit
 	tryState()

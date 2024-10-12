@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"flag"
+	"fmt"
 	"os"
 
 	"git.ophivana.moe/cat/fortify/dbus"
@@ -12,6 +13,8 @@ import (
 )
 
 var (
+	printTemplate bool
+
 	confPath string
 
 	dbusConfigSession string
@@ -27,6 +30,8 @@ var (
 )
 
 func init() {
+	flag.BoolVar(&printTemplate, "template", false, "Print a full config template and exit")
+
 	// config file, disables every other flag here
 	flag.StringVar(&confPath, "c", "nil", "Path to full app configuration, or \"nil\" to configure from flags")
 
@@ -50,6 +55,18 @@ func init() {
 	}
 
 	flag.StringVar(&launchMethodText, "method", "sudo", methodHelpString)
+}
+
+func tryTemplate() {
+	if printTemplate {
+		if s, err := json.MarshalIndent(app.Template(), "", "  "); err != nil {
+			fatalf("cannot generate template: %v", err)
+			panic("unreachable")
+		} else {
+			fmt.Println(string(s))
+		}
+		os.Exit(0)
+	}
 }
 
 func loadConfig() *app.Config {
