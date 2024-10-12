@@ -134,6 +134,7 @@ func (a *app) Seal(config *Config) error {
 				case "proc":
 				case "dev":
 				case "run":
+				case "mnt":
 				default:
 					p := "/" + name
 					b = append(b, &FilesystemConfig{Src: p, Write: true, Must: true})
