@@ -158,6 +158,10 @@ func (a *app) Seal(config *Config) error {
 			}
 			conf.Filesystem = append(conf.Filesystem, b...)
 		}
+		// bind GPU stuff
+		if config.Confinement.Enablements.Has(state.EnableX) || config.Confinement.Enablements.Has(state.EnableWayland) {
+			conf.Filesystem = append(conf.Filesystem, &FilesystemConfig{Src: "/dev/dri", Device: true})
+		}
 		config.Confinement.Sandbox = conf
 	}
 	seal.sys.bwrap = config.Confinement.Sandbox.Bwrap()
