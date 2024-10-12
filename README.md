@@ -69,7 +69,6 @@ This adds the `environment.fortify` option:
   environment.fortify = {
     enable = true;
     user = "nixos";
-    shell = "zsh";
     stateDir = "/var/lib/persist/module";
     target = {
       chronos = {
@@ -140,8 +139,6 @@ This adds the `environment.fortify` option:
   and headless systems. Defaults to `false`.
 
 * `user` specifies the privileged user with access to fortified applications.
-
-* `shell` is the shell used to run the launch command, required for sourcing the home-manager environment.
 
 * `stateDir` is the path to your persistent storage location. It is directly passed through to the impermanence module.
 
