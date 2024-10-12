@@ -46,6 +46,9 @@ func (c *Config) Args() (args []string) {
 	}
 	for i, arg := range g {
 		for _, v := range arg {
+			if v.Later() {
+				continue
+			}
 			args = append(args, v.Value(interfaceArgs[i])...)
 		}
 	}
@@ -57,6 +60,14 @@ func (c *Config) Args() (args []string) {
 	for i, arg := range p {
 		for _, v := range arg {
 			args = append(args, pairArgs[i], v[0], v[1])
+		}
+	}
+	for i, arg := range g {
+		for _, v := range arg {
+			if !v.Later() {
+				continue
+			}
+			args = append(args, v.Value(interfaceArgs[i])...)
 		}
 	}
 
@@ -217,6 +228,7 @@ type TmpfsConfig struct {
 
 type argOf interface {
 	Value(arg string) (args []string)
+	Later() bool
 }
 
 func copyToArgOfSlice[T [2]string | string | TmpfsConfig](src []PermConfig[T]) (dst []argOf) {
@@ -228,12 +240,19 @@ func copyToArgOfSlice[T [2]string | string | TmpfsConfig](src []PermConfig[T]) (
 }
 
 type PermConfig[T [2]string | string | TmpfsConfig] struct {
+	// append this at the end of the argument stream
+	Last bool
+
 	// set permissions of next argument
 	// (--perms OCTAL)
 	Mode *os.FileMode `json:"mode,omitempty"`
 	// path to get the new permission
 	// (--bind-data, --file, etc.)
 	Path T
+}
+
+func (p PermConfig[T]) Later() bool {
+	return p.Last
 }
 
 func (p PermConfig[T]) Value(arg string) (args []string) {
