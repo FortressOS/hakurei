@@ -55,10 +55,21 @@ type SandboxConfig struct {
 	// final environment variables
 	Env map[string]string `json:"env"`
 
-	// paths made available within the sandbox
-	Bind [][2]string `json:"bind"`
-	// paths made available read-only within the sandbox
-	ROBind [][2]string `json:"ro-bind"`
+	// sandbox host filesystem access
+	Filesystem []*FilesystemConfig `json:"filesystem"`
+}
+
+type FilesystemConfig struct {
+	// mount point in sandbox, same as src if empty
+	Dst string `json:"dst,omitempty"`
+	// host filesystem path to make available to sandbox
+	Src string `json:"src"`
+	// write access
+	Write bool `json:"write,omitempty"`
+	// device access
+	Device bool `json:"dev,omitempty"`
+	// exit if unable to share
+	Must bool `json:"require,omitempty"`
 }
 
 func (s *SandboxConfig) Bwrap() *bwrap.Config {
@@ -72,8 +83,6 @@ func (s *SandboxConfig) Bwrap() *bwrap.Config {
 		Hostname:      s.Hostname,
 		Clearenv:      true,
 		SetEnv:        s.Env,
-		Bind:          s.Bind,
-		ROBind:        s.ROBind,
 		Procfs:        []string{"/proc"},
 		DevTmpfs:      []string{"/dev"},
 		Mqueue:        []string{"/dev/mqueue"},
@@ -85,6 +94,37 @@ func (s *SandboxConfig) Bwrap() *bwrap.Config {
 	}
 	if s.GID > 0 {
 		conf.GID = &s.GID
+	}
+
+	for _, c := range s.Filesystem {
+		if c == nil {
+			continue
+		}
+		p := [2]string{c.Src, c.Dst}
+		if c.Dst == "" {
+			p[1] = c.Src
+		}
+
+		switch {
+		case c.Device:
+			if c.Must {
+				conf.DevBind = append(conf.DevBind, p)
+			} else {
+				conf.DevBindTry = append(conf.DevBindTry, p)
+			}
+		case c.Write:
+			if c.Must {
+				conf.Bind = append(conf.Bind, p)
+			} else {
+				conf.BindTry = append(conf.BindTry, p)
+			}
+		default:
+			if c.Must {
+				conf.ROBind = append(conf.ROBind, p)
+			} else {
+				conf.ROBindTry = append(conf.ROBindTry, p)
+			}
+		}
 	}
 
 	return conf
@@ -119,8 +159,12 @@ func Template() *Config {
 					"GOOGLE_DEFAULT_CLIENT_ID":     "77185425430.apps.googleusercontent.com",
 					"GOOGLE_DEFAULT_CLIENT_SECRET": "OTJgUOQcT7lO7GsGZq2G4IlT",
 				},
-				Bind:   [][2]string{{"/sdcard", "/sdcard"}, {"/var/tmp", "/var/tmp"}},
-				ROBind: [][2]string{{"/nix", "/nix"}},
+				Filesystem: []*FilesystemConfig{
+					{Src: "/nix"},
+					{Src: "/storage/emulated/0", Write: true, Must: true},
+					{Src: "/data/user/0", Dst: "/data/data", Write: true, Must: true},
+					{Src: "/var/tmp", Write: true},
+				},
 			},
 			SystemBus: &dbus.Config{
 				See:       nil,

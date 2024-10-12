@@ -41,7 +41,7 @@ func (a *app) Start() error {
 			if s, err := exec.LookPath(n); err == nil {
 				e[i] = s
 			} else {
-				return (*ProcessError)(wrapError(err, fmt.Sprintf("cannot find %q in PATH: %v", n, err)))
+				return (*ProcessError)(wrapError(err, fmt.Sprintf("cannot find %q: %v", n, err)))
 			}
 		}
 	}

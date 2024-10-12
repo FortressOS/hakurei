@@ -127,7 +127,7 @@ func (a *app) Seal(config *Config) error {
 		if d, err := os.ReadDir("/"); err != nil {
 			return err
 		} else {
-			b := make([][2]string, 0, len(d))
+			b := make([]*FilesystemConfig, 0, len(d))
 			for _, ent := range d {
 				name := ent.Name()
 				switch name {
@@ -136,16 +136,16 @@ func (a *app) Seal(config *Config) error {
 				case "run":
 				default:
 					p := "/" + name
-					b = append(b, [2]string{p, p})
+					b = append(b, &FilesystemConfig{Src: p, Write: true, Must: true})
 				}
 			}
-			conf.Bind = append(conf.Bind, b...)
+			conf.Filesystem = append(conf.Filesystem, b...)
 		}
 		// bind entries in /run
 		if d, err := os.ReadDir("/run"); err != nil {
 			return err
 		} else {
-			b := make([][2]string, 0, len(d))
+			b := make([]*FilesystemConfig, 0, len(d))
 			for _, ent := range d {
 				name := ent.Name()
 				switch name {
@@ -153,10 +153,10 @@ func (a *app) Seal(config *Config) error {
 				case "dbus":
 				default:
 					p := "/run/" + name
-					b = append(b, [2]string{p, p})
+					b = append(b, &FilesystemConfig{Src: p, Write: true, Must: true})
 				}
 			}
-			conf.Bind = append(conf.Bind, b...)
+			conf.Filesystem = append(conf.Filesystem, b...)
 		}
 		config.Confinement.Sandbox = conf
 	}
