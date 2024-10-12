@@ -199,14 +199,6 @@ in
         description = "Privileged user account.";
       };
 
-      shell = mkOption {
-        type = types.str;
-        description = ''
-          Shell set up to source home-manager for the privileged user.
-          Required for setting up the environment of sandboxed programs.
-        '';
-      };
-
       stateDir = mkOption {
         type = types.str;
         description = ''
@@ -242,14 +234,14 @@ in
                     else
                       null;
                   capArgs =
-                    (if wayland then " -wayland" else "")
+                    (if wayland then " --wayland" else "")
                     + (if x11 then " -X" else "")
-                    + (if dbus then " -dbus" else "")
-                    + (if pulse then " -pulse" else "")
-                    + (if launcher.dbus.mpris then " -mpris" else "")
-                    + (if launcher.dbus.id != null then " -dbus-id ${launcher.dbus.id}" else "")
-                    + (if dbusConfig != null then " -dbus-config ${dbusConfig}" else "")
-                    + (if dbusSystem != null then " -dbus-system ${dbusSystem}" else "");
+                    + (if dbus then " --dbus" else "")
+                    + (if pulse then " --pulse" else "")
+                    + (if launcher.dbus.mpris then " --mpris" else "")
+                    + (if launcher.dbus.id != null then " --dbus-id ${launcher.dbus.id}" else "")
+                    + (if dbusConfig != null then " --dbus-config ${dbusConfig}" else "")
+                    + (if dbusSystem != null then " --dbus-system ${dbusSystem}" else "");
                 in
                 pkgs.writeShellScriptBin name (
                   if launcher.method == "simple" then
@@ -258,7 +250,7 @@ in
                     ''
                   else
                     ''
-                      exec fortify${capArgs} -method ${launcher.method} -u ${user} ${cfg.shell} -c "exec ${command} $@"
+                      exec fortify${capArgs} --method ${launcher.method} -u ${user} $SHELL -c "exec ${command} $@"
                     ''
                 )
               ) launchers;
