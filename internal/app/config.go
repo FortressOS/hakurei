@@ -50,11 +50,8 @@ type SandboxConfig struct {
 	// mediated access to wayland socket
 	Wayland bool `json:"wayland,omitempty"`
 
-	UID int `json:"uid,omitempty"`
-	GID int `json:"gid,omitempty"`
 	// final environment variables
 	Env map[string]string `json:"env"`
-
 	// sandbox host filesystem access
 	Filesystem []*FilesystemConfig `json:"filesystem"`
 }
@@ -77,9 +74,12 @@ func (s *SandboxConfig) Bwrap() *bwrap.Config {
 		return nil
 	}
 
+	nobody := 65534
 	conf := &bwrap.Config{
 		Net:           s.Net,
 		UserNS:        s.UserNS,
+		UID:           &nobody,
+		GID:           &nobody,
 		Hostname:      s.Hostname,
 		Clearenv:      true,
 		SetEnv:        s.Env,
@@ -88,12 +88,6 @@ func (s *SandboxConfig) Bwrap() *bwrap.Config {
 		Mqueue:        []string{"/dev/mqueue"},
 		NewSession:    !s.NoNewSession,
 		DieWithParent: true,
-	}
-	if s.UID > 0 {
-		conf.UID = &s.UID
-	}
-	if s.GID > 0 {
-		conf.GID = &s.GID
 	}
 
 	for _, c := range s.Filesystem {
@@ -150,8 +144,6 @@ func Template() *Config {
 				Net:          true,
 				NoNewSession: true,
 				Wayland:      false,
-				UID:          150,
-				GID:          101,
 				// example API credentials pulled from Google Chrome
 				// DO NOT USE THESE IN A REAL BROWSER
 				Env: map[string]string{
