@@ -54,6 +54,8 @@ type SandboxConfig struct {
 	Env map[string]string `json:"env"`
 	// sandbox host filesystem access
 	Filesystem []*FilesystemConfig `json:"filesystem"`
+	// tmpfs mount points to mount last
+	Tmpfs []bwrap.TmpfsConfig `json:"tmpfs"`
 }
 
 type FilesystemConfig struct {
@@ -121,6 +123,10 @@ func (s *SandboxConfig) Bwrap() *bwrap.Config {
 		}
 	}
 
+	for _, tmpfs := range s.Tmpfs {
+		conf.Tmpfs = append(conf.Tmpfs, bwrap.PermConfig[bwrap.TmpfsConfig]{Path: tmpfs, Last: true})
+	}
+
 	return conf
 }
 
@@ -156,6 +162,9 @@ func Template() *Config {
 					{Src: "/storage/emulated/0", Write: true, Must: true},
 					{Src: "/data/user/0", Dst: "/data/data", Write: true, Must: true},
 					{Src: "/var/tmp", Write: true},
+				},
+				Tmpfs: []bwrap.TmpfsConfig{
+					{Size: 8 * 1024, Dir: "/var/run/nscd"},
 				},
 			},
 			SystemBus: &dbus.Config{
