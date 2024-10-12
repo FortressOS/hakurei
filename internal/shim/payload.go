@@ -13,7 +13,7 @@ type Payload struct {
 	Exec [2]string
 	// bwrap config, nil for permissive
 	Bwrap *bwrap.Config
-	// whether to pas wayland fd
+	// whether to pass wayland fd
 	WL bool
 
 	// verbosity pass through

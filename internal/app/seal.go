@@ -9,6 +9,7 @@ import (
 	"strconv"
 
 	"git.ophivana.moe/cat/fortify/dbus"
+	"git.ophivana.moe/cat/fortify/helper/bwrap"
 	"git.ophivana.moe/cat/fortify/internal"
 	"git.ophivana.moe/cat/fortify/internal/state"
 	"git.ophivana.moe/cat/fortify/internal/verbose"
@@ -158,6 +159,11 @@ func (a *app) Seal(config *Config) error {
 				}
 			}
 			conf.Filesystem = append(conf.Filesystem, b...)
+		}
+		// hide nscd from sandbox if present
+		nscd := "/var/run/nscd"
+		if _, err := os.Stat(nscd); !errors.Is(err, os.ErrNotExist) {
+			conf.Tmpfs = append(conf.Tmpfs, bwrap.TmpfsConfig{Size: 8 * 1024, Dir: nscd})
 		}
 		// bind GPU stuff
 		if config.Confinement.Enablements.Has(state.EnableX) || config.Confinement.Enablements.Has(state.EnableWayland) {

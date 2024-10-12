@@ -1,7 +1,6 @@
 package app
 
 import (
-	"os"
 	"path"
 
 	"git.ophivana.moe/cat/fortify/acl"
@@ -13,17 +12,10 @@ const (
 	xdgRuntimeDir   = "XDG_RUNTIME_DIR"
 	xdgSessionClass = "XDG_SESSION_CLASS"
 	xdgSessionType  = "XDG_SESSION_TYPE"
-
-	shell = "SHELL"
 )
 
 // shareRuntime queues actions for sharing/ensuring the runtime and share directories
 func (seal *appSeal) shareRuntime() {
-	// look up shell
-	if s, ok := os.LookupEnv(shell); ok {
-		seal.sys.setEnv(shell, s)
-	}
-
 	// mount tmpfs on inner runtime (e.g. `/run/user/%d`)
 	seal.sys.bwrap.Tmpfs = append(seal.sys.bwrap.Tmpfs,
 		bwrap.PermConfig[bwrap.TmpfsConfig]{

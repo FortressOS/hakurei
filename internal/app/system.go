@@ -75,6 +75,8 @@ type appSealTx struct {
 	xhost []string
 	// paths of directories to ensure
 	mkdir []appEnsureEntry
+	// dst, data pairs of temporarily available files
+	files [][2]string
 	// dst, src pairs of temporarily shared files
 	tmpfiles [][2]string
 	// dst, src pairs of temporarily hard linked files
@@ -177,6 +179,13 @@ func (tx *appSealTx) changeHosts(username string) {
 	tx.xhost = append(tx.xhost, username)
 }
 
+// writeFile appends a files action
+func (tx *appSealTx) writeFile(dst string, data []byte) {
+	tx.files = append(tx.files, [2]string{dst, string(data)})
+	tx.updatePerm(dst, acl.Read)
+	tx.bind(dst, dst, true)
+}
+
 // copyFile appends a tmpfiles action
 func (tx *appSealTx) copyFile(dst, src string) {
 	tx.tmpfiles = append(tx.tmpfiles, [2]string{dst, src})
@@ -198,7 +207,7 @@ type (
 )
 
 // commit applies recorded actions
-// order: xhost, mkdir, tmpfiles, hardlinks, dbus, acl
+// order: xhost, mkdir, files, tmpfiles, hardlinks, dbus, acl
 func (tx *appSealTx) commit() error {
 	if tx.complete {
 		panic("seal transaction committed twice")
@@ -246,6 +255,18 @@ func (tx *appSealTx) commit() error {
 				// register partial commit
 				txp.ensureEphemeral(dir.path, dir.perm)
 			}
+		}
+	}
+
+	// write files
+	for _, file := range tx.files {
+		verbose.Println("writing", len(file[1]), "bytes of data to", file[0])
+		if err := os.WriteFile(file[0], []byte(file[1]), 0600); err != nil {
+			return (*TmpfileError)(wrapError(err,
+				fmt.Sprintf("cannot write file '%s': %s", file[0], err)))
+		} else {
+			// register partial commit
+			txp.writeFile(file[0], make([]byte, 0)) // data not necessary for revert
 		}
 	}
 
@@ -307,7 +328,7 @@ func (tx *appSealTx) commit() error {
 }
 
 // revert rolls back recorded actions
-// order: acl, dbus, hardlinks, tmpfiles, mkdir, xhost
+// order: acl, dbus, hardlinks, tmpfiles, files, mkdir, xhost
 // errors are printed but not treated as fatal
 func (tx *appSealTx) revert(tags *state.Enablements) error {
 	if tx.closed {
@@ -357,6 +378,13 @@ func (tx *appSealTx) revert(tags *state.Enablements) error {
 		joinError(err, fmt.Sprintf("cannot remove tmpfile '%s': %s", tmpfile[0], err))
 	}
 
+	// remove files
+	for _, file := range tx.files {
+		verbose.Println("removing file", file[0])
+		err := os.Remove(file[0])
+		joinError(err, fmt.Sprintf("cannot remove file '%s': %s", file[0], err))
+	}
+
 	// remove (empty) ephemeral directories
 	for i := len(tx.mkdir); i > 0; i-- {
 		dir := tx.mkdir[i-1]
@@ -389,6 +417,7 @@ func (seal *appSeal) shareAll(bus [2]*dbus.Config) error {
 	seal.shared = true
 
 	seal.shareRuntime()
+	seal.shareSystem()
 	targetRuntime := seal.shareRuntimeChild()
 	verbose.Printf("child runtime data dir '%s' configured\n", targetRuntime)
 	if err := seal.shareDisplay(); err != nil {
