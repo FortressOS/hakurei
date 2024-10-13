@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"path"
 	"strconv"
 	"syscall"
 
@@ -18,6 +19,14 @@ import (
 // proceed with caution!
 
 func shim(socket string) {
+	// re-exec
+	if len(os.Args) > 0 && os.Args[0] != "fortify" && path.IsAbs(os.Args[0]) {
+		if err := syscall.Exec(os.Args[0], []string{"fortify", "shim"}, os.Environ()); err != nil {
+			fmt.Println("fortify-shim: cannot re-exec self:", err)
+			// continue anyway
+		}
+	}
+
 	verbose.Prefix = "fortify-shim:"
 
 	// dial setup socket
