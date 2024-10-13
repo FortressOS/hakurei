@@ -38,6 +38,12 @@ func main() {
 	// shim early exit
 	shim.Try()
 
+	// root check
+	if os.Getuid() == 0 {
+		fmt.Println("fortify: this program must not run as root")
+		os.Exit(1)
+	}
+
 	// version/license/template command early exit
 	tryVersion()
 	tryLicense()
