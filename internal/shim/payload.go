@@ -1,8 +1,6 @@
 package shim
 
-import (
-	"git.ophivana.moe/cat/fortify/helper/bwrap"
-)
+import "git.ophivana.moe/cat/fortify/helper/bwrap"
 
 const EnvShim = "FORTIFY_SHIM"
 
@@ -11,7 +9,7 @@ type Payload struct {
 	Argv []string
 	// bwrap, target full exec path
 	Exec [2]string
-	// bwrap config, nil for permissive
+	// bwrap config
 	Bwrap *bwrap.Config
 	// whether to pass wayland fd
 	WL bool

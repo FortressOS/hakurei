@@ -18,7 +18,7 @@ import (
 // everything beyond this point runs as target user
 // proceed with caution!
 
-func shim(socket string) {
+func doShim(socket string) {
 	// re-exec
 	if len(os.Args) > 0 && os.Args[0] != "fortify" && path.IsAbs(os.Args[0]) {
 		if err := syscall.Exec(os.Args[0], []string{"fortify", "shim"}, os.Environ()); err != nil {
@@ -163,7 +163,7 @@ func receiveWLfd(conn *net.UnixConn) (int, error) {
 func Try() {
 	if args := flag.Args(); len(args) == 1 && args[0] == "shim" {
 		if s, ok := os.LookupEnv(EnvShim); ok {
-			shim(s)
+			doShim(s)
 			panic("unreachable")
 		}
 	}
