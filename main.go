@@ -22,13 +22,13 @@ func init() {
 }
 
 func main() {
-	flag.Parse()
-	verbose.Set(flagVerbose)
-
 	// linux/sched/coredump.h
 	if _, _, errno := syscall.RawSyscall(syscall.SYS_PRCTL, syscall.PR_SET_DUMPABLE, 0, 0); errno != 0 {
 		fmt.Printf("fortify: cannot set SUID_DUMP_DISABLE: %s", errno.Error())
 	}
+
+	flag.Parse()
+	verbose.Set(flagVerbose)
 
 	if internal.SdBootedV {
 		verbose.Println("system booted with systemd as init system")
