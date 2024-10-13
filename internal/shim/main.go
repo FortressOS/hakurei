@@ -12,6 +12,7 @@ import (
 	"syscall"
 
 	"git.ophivana.moe/cat/fortify/helper"
+	init0 "git.ophivana.moe/cat/fortify/internal/init"
 	"git.ophivana.moe/cat/fortify/internal/verbose"
 )
 
@@ -71,26 +72,23 @@ func doShim(socket string) {
 		// not fatal
 	}
 
+	var ic init0.Payload
+
 	// resolve argv0
-	var (
-		argv0 string
-		argv  = payload.Argv
-	)
-	if len(argv) > 0 {
+	ic.Argv = payload.Argv
+	if len(ic.Argv) > 0 {
 		// looked up from $PATH by parent
-		argv0 = payload.Exec[1]
+		ic.Argv0 = payload.Exec[2]
 	} else {
 		// no argv, look up shell instead
 		var ok bool
-		if argv0, ok = os.LookupEnv("SHELL"); !ok {
+		if ic.Argv0, ok = os.LookupEnv("SHELL"); !ok {
 			fmt.Println("fortify-shim: no command was specified and $SHELL was unset")
 			os.Exit(1)
 		}
 
-		argv = []string{argv0}
+		ic.Argv = []string{ic.Argv0}
 	}
-
-	_ = conn.Close()
 
 	conf := payload.Bwrap
 
@@ -99,13 +97,33 @@ func doShim(socket string) {
 	// pass wayland fd
 	if wfd != -1 {
 		if f := os.NewFile(uintptr(wfd), "wayland"); f != nil {
-			conf.SetEnv["WAYLAND_SOCKET"] = strconv.Itoa(3 + len(extraFiles))
+			ic.WL = 3 + len(extraFiles)
 			extraFiles = append(extraFiles, f)
 		}
+	} else {
+		ic.WL = -1
 	}
 
-	helper.BubblewrapName = payload.Exec[0] // resolved bwrap path by parent
-	if b, err := helper.NewBwrap(conf, nil, argv0, func(_, _ int) []string { return argv[1:] }); err != nil {
+	// share config pipe
+	if r, w, err := os.Pipe(); err != nil {
+		fmt.Println("fortify-shim: cannot pipe:", err)
+		os.Exit(1)
+	} else {
+		conf.SetEnv[init0.EnvInit] = strconv.Itoa(3 + len(extraFiles))
+		extraFiles = append(extraFiles, r)
+
+		verbose.Println("transmitting config to init")
+		go func() {
+			// stream config to pipe
+			if err = gob.NewEncoder(w).Encode(&ic); err != nil {
+				fmt.Println("fortify-shim: cannot transmit init config:", err)
+				os.Exit(1)
+			}
+		}()
+	}
+
+	helper.BubblewrapName = payload.Exec[1] // resolved bwrap path by parent
+	if b, err := helper.NewBwrap(conf, nil, payload.Exec[0], func(int, int) []string { return []string{"init"} }); err != nil {
 		fmt.Println("fortify-shim: malformed sandbox config:", err)
 		os.Exit(1)
 	} else {

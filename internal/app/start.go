@@ -29,17 +29,17 @@ func (a *app) Start() error {
 	defer a.lock.Unlock()
 
 	// resolve exec paths
-	e := [2]string{helper.BubblewrapName}
+	shimExec := [3]string{a.seal.sys.executable, helper.BubblewrapName}
 	if len(a.seal.command) > 0 {
-		e[1] = a.seal.command[0]
+		shimExec[2] = a.seal.command[0]
 	}
-	for i, n := range e {
+	for i, n := range shimExec {
 		if len(n) == 0 {
 			continue
 		}
 		if filepath.Base(n) == n {
 			if s, err := exec.LookPath(n); err == nil {
-				e[i] = s
+				shimExec[i] = s
 			} else {
 				return (*ProcessError)(wrapError(err, fmt.Sprintf("cannot find %q: %v", n, err)))
 			}
@@ -72,7 +72,7 @@ func (a *app) Start() error {
 
 	if wls, err := shim.ServeConfig(confSockPath, &shim.Payload{
 		Argv:  a.seal.command,
-		Exec:  e,
+		Exec:  shimExec,
 		Bwrap: a.seal.sys.bwrap,
 		WL:    a.seal.wlDone != nil,
 
@@ -105,7 +105,7 @@ func (a *app) Start() error {
 	err.Inner, err.DoErr = a.seal.store.Do(func(b state.Backend) {
 		err.InnerErr = b.Save(&sd)
 	})
-	return err.equiv("cannot save process state:", e)
+	return err.equiv("cannot save process state:", err)
 }
 
 // StateStoreError is returned for a failed state save

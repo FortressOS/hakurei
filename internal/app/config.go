@@ -90,6 +90,7 @@ func (s *SandboxConfig) Bwrap() *bwrap.Config {
 		Mqueue:        []string{"/dev/mqueue"},
 		NewSession:    !s.NoNewSession,
 		DieWithParent: true,
+		AsInit:        true,
 	}
 
 	for _, c := range s.Filesystem {
