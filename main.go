@@ -35,10 +35,8 @@ func main() {
 		verbose.Println("system booted with systemd as init system")
 	}
 
-	// launcher payload early exit
-	if printVersion && printLicense {
-		shim.Try()
-	}
+	// shim early exit
+	shim.Try()
 
 	// version/license/template command early exit
 	tryVersion()

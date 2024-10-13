@@ -26,7 +26,7 @@ func (a *app) commandBuilderSudo(shimEnv string) (args []string) {
 	args = append(args, shimEnv)
 
 	// -- $@
-	args = append(args, "--", a.seal.sys.executable, "-V", "--license") // magic for shim.Try()
+	args = append(args, "--", a.seal.sys.executable, "shim")
 
 	return
 }

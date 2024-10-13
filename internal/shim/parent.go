@@ -80,11 +80,3 @@ func ServeConfig(socket string, payload *Payload, wl string, done chan struct{})
 		return ws, nil
 	}
 }
-
-// Try runs shim and stops execution if FORTIFY_SHIM is set.
-func Try() {
-	if s, ok := os.LookupEnv(EnvShim); ok {
-		shim(s)
-	}
-	panic("unreachable")
-}

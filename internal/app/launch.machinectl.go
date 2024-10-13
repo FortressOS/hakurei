@@ -57,8 +57,8 @@ func (a *app) commandBuilderMachineCtl(shimEnv string) (args []string) {
 		}
 	}
 
-	// both license and version flags need to be set to activate shim path
-	innerCommand.WriteString("exec " + a.seal.sys.executable + " -V -license")
+	// launch fortify as shim
+	innerCommand.WriteString("exec " + a.seal.sys.executable + " shim")
 
 	// append inner command
 	args = append(args, innerCommand.String())

@@ -3,6 +3,7 @@ package shim
 import (
 	"encoding/gob"
 	"errors"
+	"flag"
 	"fmt"
 	"net"
 	"os"
@@ -146,5 +147,15 @@ func receiveWLfd(conn *net.UnixConn) (int, error) {
 		return -1, errors.New("unexpected fd count")
 	} else {
 		return fds[0], nil
+	}
+}
+
+// Try runs shim and stops execution if FORTIFY_SHIM is set.
+func Try() {
+	if args := flag.Args(); len(args) == 1 && args[0] == "shim" {
+		if s, ok := os.LookupEnv(EnvShim); ok {
+			shim(s)
+			panic("unreachable")
+		}
 	}
 }
