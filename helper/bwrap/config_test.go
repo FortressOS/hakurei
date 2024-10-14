@@ -13,40 +13,34 @@ func TestConfig_Args(t *testing.T) {
 	}{
 		{
 			name: "xdg-dbus-proxy constraint sample",
-			conf: &Config{
-				Unshare:  nil,
-				UserNS:   false,
-				Clearenv: true,
-				Symlink: []PermConfig[[2]string]{
-					{Path: [2]string{"usr/bin", "/bin"}},
-					{Path: [2]string{"var/home", "/home"}},
-					{Path: [2]string{"usr/lib", "/lib"}},
-					{Path: [2]string{"usr/lib64", "/lib64"}},
-					{Path: [2]string{"run/media", "/media"}},
-					{Path: [2]string{"var/mnt", "/mnt"}},
-					{Path: [2]string{"var/opt", "/opt"}},
-					{Path: [2]string{"sysroot/ostree", "/ostree"}},
-					{Path: [2]string{"var/roothome", "/root"}},
-					{Path: [2]string{"usr/sbin", "/sbin"}},
-					{Path: [2]string{"var/srv", "/srv"}},
-				},
-				Bind: [][2]string{
-					{"/run", "/run"},
-					{"/tmp", "/tmp"},
-					{"/var", "/var"},
-					{"/run/user/1971/.dbus-proxy/", "/run/user/1971/.dbus-proxy/"},
-				},
-				ROBind: [][2]string{
-					{"/boot", "/boot"},
-					{"/dev", "/dev"},
-					{"/proc", "/proc"},
-					{"/sys", "/sys"},
-					{"/sysroot", "/sysroot"},
-					{"/usr", "/usr"},
-					{"/etc", "/etc"},
-				},
+			conf: (&Config{
+				Unshare:       nil,
+				UserNS:        false,
+				Clearenv:      true,
 				DieWithParent: true,
-			},
+			}).
+				Symlink("usr/bin", "/bin").
+				Symlink("var/home", "/home").
+				Symlink("usr/lib", "/lib").
+				Symlink("usr/lib64", "/lib64").
+				Symlink("run/media", "/media").
+				Symlink("var/mnt", "/mnt").
+				Symlink("var/opt", "/opt").
+				Symlink("sysroot/ostree", "/ostree").
+				Symlink("var/roothome", "/root").
+				Symlink("usr/sbin", "/sbin").
+				Symlink("var/srv", "/srv").
+				Bind("/run", "/run", false, true).
+				Bind("/tmp", "/tmp", false, true).
+				Bind("/var", "/var", false, true).
+				Bind("/run/user/1971/.dbus-proxy/", "/run/user/1971/.dbus-proxy/", false, true).
+				Bind("/boot", "/boot").
+				Bind("/dev", "/dev").
+				Bind("/proc", "/proc").
+				Bind("/sys", "/sys").
+				Bind("/sysroot", "/sysroot").
+				Bind("/usr", "/usr").
+				Bind("/etc", "/etc"),
 			want: []string{
 				"--unshare-all",
 				"--unshare-user",

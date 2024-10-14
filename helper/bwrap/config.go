@@ -5,75 +5,6 @@ import (
 	"strconv"
 )
 
-func (c *Config) Args() (args []string) {
-	b := c.boolArgs()
-	n := c.intArgs()
-	g := c.interfaceArgs()
-	s := c.stringArgs()
-	p := c.pairArgs()
-
-	argc := 0
-	for i, arg := range b {
-		if arg {
-			argc += len(boolArgs[i])
-		}
-	}
-	for _, arg := range n {
-		if arg != nil {
-			argc += 2
-		}
-	}
-	for _, arg := range g {
-		argc += len(arg) * 3
-	}
-	for _, arg := range s {
-		argc += len(arg) * 2
-	}
-	for _, arg := range p {
-		argc += len(arg) * 3
-	}
-
-	args = make([]string, 0, argc)
-	for i, arg := range b {
-		if arg {
-			args = append(args, boolArgs[i]...)
-		}
-	}
-	for i, arg := range n {
-		if arg != nil {
-			args = append(args, intArgs[i], strconv.Itoa(*arg))
-		}
-	}
-	for i, arg := range g {
-		for _, v := range arg {
-			if v.Later() {
-				continue
-			}
-			args = append(args, v.Value(interfaceArgs[i])...)
-		}
-	}
-	for i, arg := range s {
-		for _, v := range arg {
-			args = append(args, stringArgs[i], v)
-		}
-	}
-	for i, arg := range p {
-		for _, v := range arg {
-			args = append(args, pairArgs[i], v[0], v[1])
-		}
-	}
-	for i, arg := range g {
-		for _, v := range arg {
-			if !v.Later() {
-				continue
-			}
-			args = append(args, v.Value(interfaceArgs[i])...)
-		}
-	}
-
-	return
-}
-
 type Config struct {
 	// unshare every namespace we support by default if nil
 	// (--unshare-all)
@@ -114,53 +45,12 @@ type Config struct {
 	// (--lock-file DEST)
 	LockFile []string `json:"lock_file,omitempty"`
 
-	// bind mount host path on sandbox
-	// (--bind SRC DEST)
-	Bind [][2]string `json:"bind,omitempty"`
-	// equal to Bind but ignores non-existent host path
-	// (--bind-try SRC DEST)
-	BindTry [][2]string `json:"bind_try,omitempty"`
-
-	// bind mount host path on sandbox, allowing device access
-	// (--dev-bind SRC DEST)
-	DevBind [][2]string `json:"dev_bind,omitempty"`
-	// equal to DevBind but ignores non-existent host path
-	// (--dev-bind-try SRC DEST)
-	DevBindTry [][2]string `json:"dev_bind_try,omitempty"`
-
-	// bind mount host path readonly on sandbox
-	// (--ro-bind SRC DEST)
-	ROBind [][2]string `json:"ro_bind,omitempty"`
-	// equal to ROBind but ignores non-existent host path
-	// (--ro-bind-try SRC DEST)
-	ROBindTry [][2]string `json:"ro_bind_try,omitempty"`
-
-	// remount path as readonly; does not recursively remount
-	// (--remount-ro DEST)
-	RemountRO []string `json:"remount_ro,omitempty"`
-
-	// mount new procfs in sandbox
-	// (--proc DEST)
-	Procfs []string `json:"proc,omitempty"`
-	// mount new dev in sandbox
-	// (--dev DEST)
-	DevTmpfs []string `json:"dev,omitempty"`
-	// mount new tmpfs in sandbox
-	// (--tmpfs DEST)
-	Tmpfs []PermConfig[TmpfsConfig] `json:"tmpfs,omitempty"`
-	// mount new mqueue in sandbox
-	// (--mqueue DEST)
-	Mqueue []string `json:"mqueue,omitempty"`
-	// create dir in sandbox
-	// (--dir DEST)
-	Dir []PermConfig[string] `json:"dir,omitempty"`
-	// create symlink within sandbox
-	// (--symlink SRC DEST)
-	Symlink []PermConfig[[2]string] `json:"symlink,omitempty"`
+	// ordered filesystem args
+	Filesystem []FSBuilder
 
 	// change permissions (must already exist)
 	// (--chmod OCTAL PATH)
-	Chmod map[string]os.FileMode `json:"chmod,omitempty"`
+	Chmod ChmodConfig `json:"chmod,omitempty"`
 
 	// create a new terminal session
 	// (--new-session)
@@ -217,6 +107,34 @@ type UnshareConfig struct {
 	CGroup bool `json:"cgroup"`
 }
 
+type PermConfig[T FSBuilder] struct {
+	// set permissions of next argument
+	// (--perms OCTAL)
+	Mode *os.FileMode `json:"mode,omitempty"`
+	// path to get the new permission
+	// (--bind-data, --file, etc.)
+	Inner T `json:"path"`
+}
+
+func (p *PermConfig[T]) Path() string {
+	return p.Inner.Path()
+}
+
+func (p *PermConfig[T]) Len() int {
+	if p.Mode != nil {
+		return p.Inner.Len() + 2
+	} else {
+		return p.Inner.Len()
+	}
+}
+
+func (p *PermConfig[T]) Append(args *[]string) {
+	if p.Mode != nil {
+		*args = append(*args, intArgs[Perms], strconv.FormatInt(int64(*p.Mode), 8))
+	}
+	p.Inner.Append(args)
+}
+
 type TmpfsConfig struct {
 	// set size of tmpfs
 	// (--size BYTES)
@@ -226,62 +144,47 @@ type TmpfsConfig struct {
 	Dir string `json:"dir"`
 }
 
-type argOf interface {
-	Value(arg string) (args []string)
-	Later() bool
+func (t *TmpfsConfig) Path() string {
+	return t.Dir
 }
 
-func copyToArgOfSlice[T [2]string | string | TmpfsConfig](src []PermConfig[T]) (dst []argOf) {
-	dst = make([]argOf, len(src))
-	for i, arg := range src {
-		dst[i] = arg
-	}
-	return
-}
-
-type PermConfig[T [2]string | string | TmpfsConfig] struct {
-	// append this at the end of the argument stream
-	Last bool
-
-	// set permissions of next argument
-	// (--perms OCTAL)
-	Mode *os.FileMode `json:"mode,omitempty"`
-	// path to get the new permission
-	// (--bind-data, --file, etc.)
-	Path T
-}
-
-func (p PermConfig[T]) Later() bool {
-	return p.Last
-}
-
-func (p PermConfig[T]) Value(arg string) (args []string) {
-	// max possible size
-	if p.Mode != nil {
-		args = make([]string, 0, 6)
-		args = append(args, "--perms", strconv.FormatInt(int64(*p.Mode), 8))
+func (t *TmpfsConfig) Len() int {
+	if t.Size > 0 {
+		return 4
 	} else {
-		args = make([]string, 0, 4)
+		return 2
 	}
+}
 
-	switch v := any(p.Path).(type) {
-	case string:
-		args = append(args, arg, v)
-		return
-	case [2]string:
-		args = append(args, arg, v[0], v[1])
-		return
-	case TmpfsConfig:
-		if arg != "--tmpfs" {
-			panic("unreachable")
-		}
+func (t *TmpfsConfig) Append(args *[]string) {
+	if t.Size > 0 {
+		*args = append(*args, intArgs[Size], strconv.Itoa(t.Size))
+	}
+	*args = append(*args, awkwardArgs[Tmpfs], t.Dir)
+}
 
-		if v.Size > 0 {
-			args = append(args, "--size", strconv.Itoa(v.Size))
-		}
-		args = append(args, arg, v.Dir)
-		return
-	default:
-		panic("unreachable")
+type SymlinkConfig [2]string
+
+func (s SymlinkConfig) Path() string {
+	return s[1]
+}
+
+func (s SymlinkConfig) Len() int {
+	return 3
+}
+
+func (s SymlinkConfig) Append(args *[]string) {
+	*args = append(*args, awkwardArgs[Symlink], s[0], s[1])
+}
+
+type ChmodConfig map[string]os.FileMode
+
+func (c ChmodConfig) Len() int {
+	return len(c)
+}
+
+func (c ChmodConfig) Append(args *[]string) {
+	for path, mode := range c {
+		*args = append(*args, pairArgs[Chmod], strconv.FormatInt(int64(mode), 8), path)
 	}
 }

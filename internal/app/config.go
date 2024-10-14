@@ -1,10 +1,17 @@
 package app
 
 import (
+	"encoding/gob"
+	"os"
+
 	"git.ophivana.moe/cat/fortify/dbus"
 	"git.ophivana.moe/cat/fortify/helper/bwrap"
 	"git.ophivana.moe/cat/fortify/internal/state"
 )
+
+func init() {
+	gob.Register(new(bwrap.PermConfig[*bwrap.TmpfsConfig]))
+}
 
 // Config is used to seal an *App
 type Config struct {
@@ -55,7 +62,7 @@ type SandboxConfig struct {
 	// sandbox host filesystem access
 	Filesystem []*FilesystemConfig `json:"filesystem"`
 	// tmpfs mount points to mount last
-	Tmpfs []bwrap.TmpfsConfig `json:"tmpfs"`
+	Tmpfs []string `json:"tmpfs"`
 }
 
 type FilesystemConfig struct {
@@ -71,61 +78,39 @@ type FilesystemConfig struct {
 	Must bool `json:"require,omitempty"`
 }
 
+// Bwrap returns the address of the corresponding bwrap.Config to s.
+// Note that remaining tmpfs entries must be queued by the caller prior to launch.
 func (s *SandboxConfig) Bwrap() *bwrap.Config {
 	if s == nil {
 		return nil
 	}
 
-	nobody := 65534
-	conf := &bwrap.Config{
+	conf := (&bwrap.Config{
 		Net:           s.Net,
 		UserNS:        s.UserNS,
-		UID:           &nobody,
-		GID:           &nobody,
 		Hostname:      s.Hostname,
 		Clearenv:      true,
 		SetEnv:        s.Env,
-		Procfs:        []string{"/proc"},
-		DevTmpfs:      []string{"/dev"},
-		Mqueue:        []string{"/dev/mqueue"},
 		NewSession:    !s.NoNewSession,
 		DieWithParent: true,
 		AsInit:        true,
-	}
+
+		// initialise map
+		Chmod: make(map[string]os.FileMode),
+	}).
+		SetUID(65534).SetGID(65534).
+		Procfs("/proc").DevTmpfs("/dev").Mqueue("/dev/mqueue")
 
 	for _, c := range s.Filesystem {
 		if c == nil {
 			continue
 		}
-		p := [2]string{c.Src, c.Dst}
+		src := c.Src
+		dest := c.Dst
 		if c.Dst == "" {
-			p[1] = c.Src
+			dest = c.Src
 		}
-
-		switch {
-		case c.Device:
-			if c.Must {
-				conf.DevBind = append(conf.DevBind, p)
-			} else {
-				conf.DevBindTry = append(conf.DevBindTry, p)
-			}
-		case c.Write:
-			if c.Must {
-				conf.Bind = append(conf.Bind, p)
-			} else {
-				conf.BindTry = append(conf.BindTry, p)
-			}
-		default:
-			if c.Must {
-				conf.ROBind = append(conf.ROBind, p)
-			} else {
-				conf.ROBindTry = append(conf.ROBindTry, p)
-			}
-		}
-	}
-
-	for _, tmpfs := range s.Tmpfs {
-		conf.Tmpfs = append(conf.Tmpfs, bwrap.PermConfig[bwrap.TmpfsConfig]{Path: tmpfs, Last: true})
+		conf.Bind(src, dest, !c.Must, c.Write, c.Device)
 	}
 
 	return conf
@@ -164,9 +149,7 @@ func Template() *Config {
 					{Src: "/data/user/0", Dst: "/data/data", Write: true, Must: true},
 					{Src: "/var/tmp", Write: true},
 				},
-				Tmpfs: []bwrap.TmpfsConfig{
-					{Size: 8 * 1024, Dir: "/var/run/nscd"},
-				},
+				Tmpfs: []string{"/var/run/nscd"},
 			},
 			SystemBus: &dbus.Config{
 				See:       nil,

@@ -79,11 +79,9 @@ func (p *Proxy) Start(ready chan error, output io.Writer, sandbox bool) error {
 				}
 			}
 		}
-		bindTargetDedup := make([][2]string, 0, len(bindTarget))
 		for k := range bindTarget {
-			bindTargetDedup = append(bindTargetDedup, [2]string{k, k})
+			bc.Bind(k, k, false, true)
 		}
-		bc.Bind = append(bc.Bind, bindTargetDedup...)
 
 		roBindTarget := make(map[string]struct{}, 2+1+len(proxyDeps))
 
@@ -103,11 +101,9 @@ func (p *Proxy) Start(ready chan error, output io.Writer, sandbox bool) error {
 			}
 		}
 
-		roBindTargetDedup := make([][2]string, 0, len(roBindTarget))
 		for k := range roBindTarget {
-			roBindTargetDedup = append(roBindTargetDedup, [2]string{k, k})
+			bc.Bind(k, k)
 		}
-		bc.ROBind = append(bc.ROBind, roBindTargetDedup...)
 
 		h = helper.MustNewBwrap(bc, p.seal, toolPath, argF)
 		cmd = h.Unwrap()

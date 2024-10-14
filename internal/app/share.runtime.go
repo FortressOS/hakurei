@@ -4,7 +4,6 @@ import (
 	"path"
 
 	"git.ophivana.moe/cat/fortify/acl"
-	"git.ophivana.moe/cat/fortify/helper/bwrap"
 	"git.ophivana.moe/cat/fortify/internal/state"
 )
 
@@ -17,20 +16,13 @@ const (
 // shareRuntime queues actions for sharing/ensuring the runtime and share directories
 func (seal *appSeal) shareRuntime() {
 	// mount tmpfs on inner runtime (e.g. `/run/user/%d`)
-	seal.sys.bwrap.Tmpfs = append(seal.sys.bwrap.Tmpfs,
-		bwrap.PermConfig[bwrap.TmpfsConfig]{
-			Path: bwrap.TmpfsConfig{
-				Size: 1 * 1024 * 1024,
-				Dir:  "/run/user",
-			},
-		},
-		bwrap.PermConfig[bwrap.TmpfsConfig]{
-			Path: bwrap.TmpfsConfig{
-				Size: 8 * 1024 * 1024,
-				Dir:  seal.sys.runtime,
-			},
-		},
-	)
+	seal.sys.bwrap.Tmpfs("/run/user", 1*1024*1024)
+	seal.sys.bwrap.Tmpfs(seal.sys.runtime, 8*1024*1024)
+
+	// point to inner runtime path `/run/user/%d`
+	seal.sys.setEnv(xdgRuntimeDir, seal.sys.runtime)
+	seal.sys.setEnv(xdgSessionClass, "user")
+	seal.sys.setEnv(xdgSessionType, "tty")
 
 	// ensure RunDir (e.g. `/run/user/%d/fortify`)
 	seal.sys.ensure(seal.RunDirPath, 0700)
@@ -52,23 +44,4 @@ func (seal *appSeal) shareRuntime() {
 	seal.shareLocal = path.Join(seal.RunDirPath, seal.id.String())
 	seal.sys.ensureEphemeral(seal.shareLocal, 0700)
 	seal.sys.updatePerm(seal.shareLocal, acl.Execute)
-}
-
-func (seal *appSeal) shareRuntimeChild() string {
-	// ensure child runtime parent directory (e.g. `/tmp/fortify.%d/runtime`)
-	targetRuntimeParent := path.Join(seal.SharePath, "runtime")
-	seal.sys.ensure(targetRuntimeParent, 0700)
-	seal.sys.updatePermTag(state.EnableLength, targetRuntimeParent, acl.Execute)
-
-	// ensure child runtime directory (e.g. `/tmp/fortify.%d/runtime/%d`)
-	targetRuntime := path.Join(targetRuntimeParent, seal.sys.Uid)
-	seal.sys.ensure(targetRuntime, 0700)
-	seal.sys.updatePermTag(state.EnableLength, targetRuntime, acl.Read, acl.Write, acl.Execute)
-
-	// point to ensured runtime path
-	seal.sys.setEnv(xdgRuntimeDir, targetRuntime)
-	seal.sys.setEnv(xdgSessionClass, "user")
-	seal.sys.setEnv(xdgSessionType, "tty")
-
-	return targetRuntime
 }

@@ -65,7 +65,7 @@ func (seal *appSeal) sharePulse() error {
 	psi := path.Join(seal.shareLocal, "pulse")
 	p := path.Join(seal.sys.runtime, "pulse", "native")
 	seal.sys.link(ps, psi)
-	seal.sys.bind(psi, p, true)
+	seal.sys.bwrap.Bind(psi, p)
 	seal.sys.setEnv(pulseServer, "unix:"+p)
 
 	// publish current user's pulse cookie for target user

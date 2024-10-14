@@ -3,6 +3,9 @@ package app
 import (
 	"os"
 	"path"
+
+	"git.ophivana.moe/cat/fortify/acl"
+	"git.ophivana.moe/cat/fortify/internal/state"
 )
 
 const (
@@ -38,6 +41,24 @@ func (seal *appSeal) shareSystem() {
 	seal.sys.writeFile(groupPath, []byte("fortify:x:65534:\n"))
 
 	// bind /etc/passwd and /etc/group
-	seal.sys.bind(passwdPath, "/etc/passwd", true)
-	seal.sys.bind(groupPath, "/etc/group", true)
+	seal.sys.bwrap.Bind(passwdPath, "/etc/passwd")
+	seal.sys.bwrap.Bind(groupPath, "/etc/group")
+}
+
+func (seal *appSeal) shareTmpdirChild() string {
+	// ensure child tmpdir parent directory (e.g. `/tmp/fortify.%d/tmpdir`)
+	targetTmpdirParent := path.Join(seal.SharePath, "tmpdir")
+	seal.sys.ensure(targetTmpdirParent, 0700)
+	seal.sys.updatePermTag(state.EnableLength, targetTmpdirParent, acl.Execute)
+
+	// ensure child tmpdir (e.g. `/tmp/fortify.%d/tmpdir/%d`)
+	targetTmpdir := path.Join(targetTmpdirParent, seal.sys.Uid)
+	seal.sys.ensure(targetTmpdir, 01700)
+	seal.sys.updatePermTag(state.EnableLength, targetTmpdir, acl.Read, acl.Write, acl.Execute)
+	seal.sys.bwrap.Bind(targetTmpdir, "/tmp", false, true)
+
+	// mount tmpfs on inner shared directory (e.g. `/tmp/fortify.%d`)
+	seal.sys.bwrap.Tmpfs(seal.SharePath, 1*1024*1024)
+
+	return targetTmpdir
 }

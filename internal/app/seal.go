@@ -9,7 +9,6 @@ import (
 	"strconv"
 
 	"git.ophivana.moe/cat/fortify/dbus"
-	"git.ophivana.moe/cat/fortify/helper/bwrap"
 	"git.ophivana.moe/cat/fortify/internal"
 	"git.ophivana.moe/cat/fortify/internal/state"
 	"git.ophivana.moe/cat/fortify/internal/verbose"
@@ -163,7 +162,7 @@ func (a *app) Seal(config *Config) error {
 		// hide nscd from sandbox if present
 		nscd := "/var/run/nscd"
 		if _, err := os.Stat(nscd); !errors.Is(err, os.ErrNotExist) {
-			conf.Tmpfs = append(conf.Tmpfs, bwrap.TmpfsConfig{Size: 8 * 1024, Dir: nscd})
+			conf.Tmpfs = append(conf.Tmpfs, nscd)
 		}
 		// bind GPU stuff
 		if config.Confinement.Enablements.Has(state.EnableX) || config.Confinement.Enablements.Has(state.EnableWayland) {
@@ -172,6 +171,7 @@ func (a *app) Seal(config *Config) error {
 		config.Confinement.Sandbox = conf
 	}
 	seal.sys.bwrap = config.Confinement.Sandbox.Bwrap()
+	seal.sys.tmpfs = config.Confinement.Sandbox.Tmpfs
 	if seal.sys.bwrap.SetEnv == nil {
 		seal.sys.bwrap.SetEnv = make(map[string]string)
 	}

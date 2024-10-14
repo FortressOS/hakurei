@@ -70,7 +70,7 @@ func (a *app) Start() error {
 	a.cmd.Stderr = os.Stderr
 	a.cmd.Dir = a.seal.RunDirPath
 
-	if wls, err := shim.ServeConfig(confSockPath, &shim.Payload{
+	if wls, err := shim.ServeConfig(confSockPath, a.seal.sys.uid, &shim.Payload{
 		Argv:  a.seal.command,
 		Exec:  shimExec,
 		Bwrap: a.seal.sys.bwrap,

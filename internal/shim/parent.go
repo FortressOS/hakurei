@@ -8,12 +8,13 @@ import (
 	"os"
 	"syscall"
 
+	"git.ophivana.moe/cat/fortify/acl"
 	"git.ophivana.moe/cat/fortify/internal/verbose"
 )
 
 // called in the parent process
 
-func ServeConfig(socket string, payload *Payload, wl string, done chan struct{}) (*net.UnixConn, error) {
+func ServeConfig(socket string, uid int, payload *Payload, wl string, done chan struct{}) (*net.UnixConn, error) {
 	var ws *net.UnixConn
 	if payload.WL {
 		if f, err := net.DialUnix("unix", nil, &net.UnixAddr{Name: wl, Net: "unix"}); err != nil {
@@ -28,7 +29,7 @@ func ServeConfig(socket string, payload *Payload, wl string, done chan struct{})
 		return nil, err
 	} else {
 		verbose.Println("configuring shim on socket", socket)
-		if err = os.Chmod(socket, 0777); err != nil {
+		if err = acl.UpdatePerm(socket, uid, acl.Read, acl.Write, acl.Execute); err != nil {
 			fmt.Println("fortify: cannot change permissions of shim setup socket:", err)
 		}
 
@@ -39,6 +40,7 @@ func ServeConfig(socket string, payload *Payload, wl string, done chan struct{})
 			} else {
 				if err = gob.NewEncoder(conn).Encode(*payload); err != nil {
 					fmt.Println("fortify: cannot stream shim payload:", err)
+					_ = os.Remove(socket)
 					return
 				}
 

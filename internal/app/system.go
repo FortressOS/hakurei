@@ -59,6 +59,7 @@ type appSeal struct {
 // appSealTx contains the system-level component of the app seal
 type appSealTx struct {
 	bwrap *bwrap.Config
+	tmpfs []string
 
 	// reference to D-Bus proxy instance, nil if disabled
 	dbus *dbus.Proxy
@@ -108,15 +109,6 @@ type appEnsureEntry struct {
 // setEnv sets an environment variable for the child process
 func (tx *appSealTx) setEnv(k, v string) {
 	tx.bwrap.SetEnv[k] = v
-}
-
-// bind mounts a directory within the sandbox
-func (tx *appSealTx) bind(src, dest string, ro bool) {
-	if !ro {
-		tx.bwrap.Bind = append(tx.bwrap.Bind, [2]string{src, dest})
-	} else {
-		tx.bwrap.ROBind = append(tx.bwrap.ROBind, [2]string{src, dest})
-	}
 }
 
 // ensure appends a directory ensure action
@@ -183,14 +175,14 @@ func (tx *appSealTx) changeHosts(username string) {
 func (tx *appSealTx) writeFile(dst string, data []byte) {
 	tx.files = append(tx.files, [2]string{dst, string(data)})
 	tx.updatePerm(dst, acl.Read)
-	tx.bind(dst, dst, true)
+	tx.bwrap.Bind(dst, dst)
 }
 
 // copyFile appends a tmpfiles action
 func (tx *appSealTx) copyFile(dst, src string) {
 	tx.tmpfiles = append(tx.tmpfiles, [2]string{dst, src})
 	tx.updatePerm(dst, acl.Read)
-	tx.bind(dst, dst, true)
+	tx.bwrap.Bind(dst, dst)
 }
 
 // link appends a hardlink action
@@ -324,6 +316,12 @@ func (tx *appSealTx) commit() error {
 
 	// disarm partial commit rollback
 	txp = nil
+
+	// queue tmpfs at the end of tx.bwrap.Filesystem
+	for _, dest := range tx.tmpfs {
+		tx.bwrap.Tmpfs(dest, 8*1024)
+	}
+
 	return nil
 }
 
@@ -416,10 +414,10 @@ func (seal *appSeal) shareAll(bus [2]*dbus.Config) error {
 	}
 	seal.shared = true
 
+	targetTmpdir := seal.shareTmpdirChild()
+	verbose.Printf("child tmpdir %q configured\n", targetTmpdir)
 	seal.shareRuntime()
 	seal.shareSystem()
-	targetRuntime := seal.shareRuntimeChild()
-	verbose.Printf("child runtime data dir '%s' configured\n", targetRuntime)
 	if err := seal.shareDisplay(); err != nil {
 		return err
 	}

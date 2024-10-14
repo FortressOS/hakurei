@@ -65,12 +65,12 @@ func (seal *appSeal) shareDBus(config [2]*dbus.Config) error {
 	// share proxy sockets
 	sessionInner := path.Join(seal.sys.runtime, "bus")
 	seal.sys.setEnv(dbusSessionBusAddress, "unix:path="+sessionInner)
-	seal.sys.bind(sessionBus[1], sessionInner, true)
+	seal.sys.bwrap.Bind(sessionBus[1], sessionInner)
 	seal.sys.updatePerm(sessionBus[1], acl.Read, acl.Write)
 	if seal.sys.dbusSystem {
 		systemInner := "/run/dbus/system_bus_socket"
 		seal.sys.setEnv(dbusSystemBusAddress, "unix:path="+systemInner)
-		seal.sys.bind(systemBus[1], systemInner, true)
+		seal.sys.bwrap.Bind(systemBus[1], systemInner)
 		seal.sys.updatePerm(systemBus[1], acl.Read, acl.Write)
 	}
 

@@ -41,7 +41,7 @@ func (seal *appSeal) shareDisplay() error {
 			w := path.Join(seal.sys.runtime, "wayland-0")
 			seal.sys.link(wp, wpi)
 			seal.sys.setEnv(waylandDisplay, w)
-			seal.sys.bind(wpi, w, true)
+			seal.sys.bwrap.Bind(wpi, w)
 
 			// ensure Wayland socket ACL (e.g. `/run/user/%d/wayland-%d`)
 			seal.sys.updatePermTag(state.EnableWayland, wp, acl.Read, acl.Write, acl.Execute)
@@ -59,7 +59,7 @@ func (seal *appSeal) shareDisplay() error {
 		} else {
 			seal.sys.changeHosts(seal.sys.Username)
 			seal.sys.setEnv(display, d)
-			seal.sys.bind("/tmp/.X11-unix", "/tmp/.X11-unix", true)
+			seal.sys.bwrap.Bind("/tmp/.X11-unix", "/tmp/.X11-unix")
 		}
 	}
 
