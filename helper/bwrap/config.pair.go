@@ -47,7 +47,7 @@ func (c *Config) pairArgs() (n [pairC][][2]string) {
 
 	n[Chmod] = make([][2]string, 0, len(c.Chmod))
 	for path, octal := range c.Chmod {
-		n[Chmod] = append(n[Chmod], [2]string{strconv.Itoa(int(octal)), path})
+		n[Chmod] = append(n[Chmod], [2]string{strconv.FormatInt(int64(octal), 8), path})
 	}
 
 	return

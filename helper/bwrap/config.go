@@ -259,7 +259,7 @@ func (p PermConfig[T]) Value(arg string) (args []string) {
 	// max possible size
 	if p.Mode != nil {
 		args = make([]string, 0, 6)
-		args = append(args, "--perms", strconv.Itoa(int(*p.Mode)))
+		args = append(args, "--perms", strconv.FormatInt(int64(*p.Mode), 8))
 	} else {
 		args = make([]string, 0, 4)
 	}
