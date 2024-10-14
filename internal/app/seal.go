@@ -134,6 +134,7 @@ func (a *app) Seal(config *Config) error {
 				case "proc":
 				case "dev":
 				case "run":
+				case "tmp":
 				case "mnt":
 				default:
 					p := "/" + name
