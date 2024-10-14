@@ -1,5 +1,9 @@
 package bwrap
 
+import (
+	"slices"
+)
+
 const (
 	SetEnv = iota
 
@@ -28,9 +32,14 @@ var pairArgs = [...]string{
 
 func (c *Config) pairArgs() Builder {
 	var n pairArg
-	n[SetEnv] = make([][2]string, 0, len(c.SetEnv))
-	for k, v := range c.SetEnv {
-		n[SetEnv] = append(n[SetEnv], [2]string{k, v})
+	n[SetEnv] = make([][2]string, len(c.SetEnv))
+	keys := make([]string, 0, len(c.SetEnv))
+	for k := range c.SetEnv {
+		keys = append(keys, k)
+	}
+	slices.Sort(keys)
+	for i, k := range keys {
+		n[SetEnv][i] = [2]string{k, c.SetEnv[k]}
 	}
 
 	// Arg types:
