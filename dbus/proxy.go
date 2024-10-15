@@ -28,6 +28,21 @@ type Proxy struct {
 	lock sync.RWMutex
 }
 
+func (p *Proxy) Session() [2]string {
+	return p.session
+}
+
+func (p *Proxy) System() [2]string {
+	return p.system
+}
+
+func (p *Proxy) Sealed() bool {
+	p.lock.RLock()
+	defer p.lock.RUnlock()
+
+	return p.seal != nil
+}
+
 var (
 	ErrConfig = errors.New("no configuration to seal")
 )
