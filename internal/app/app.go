@@ -40,7 +40,7 @@ func (a *app) String() string {
 	}
 
 	if a.seal != nil {
-		return "(sealed fortified app as uid " + a.seal.sys.Uid + ")"
+		return "(sealed fortified app as uid " + a.seal.sys.user.Uid + ")"
 	}
 
 	return "(unsealed fortified app)"

@@ -10,7 +10,9 @@ import (
 
 	"git.ophivana.moe/cat/fortify/dbus"
 	"git.ophivana.moe/cat/fortify/internal"
+	"git.ophivana.moe/cat/fortify/internal/fmsg"
 	"git.ophivana.moe/cat/fortify/internal/state"
+	"git.ophivana.moe/cat/fortify/internal/system"
 	"git.ophivana.moe/cat/fortify/internal/verbose"
 )
 
@@ -29,12 +31,6 @@ var (
 	ErrMachineCtl = errors.New("machinectl not available")
 )
 
-type (
-	SealConfigError     BaseError
-	LauncherLookupError BaseError
-	SecurityError       BaseError
-)
-
 // Seal seals the app launch context
 func (a *app) Seal(config *Config) error {
 	a.lock.Lock()
@@ -45,7 +41,8 @@ func (a *app) Seal(config *Config) error {
 	}
 
 	if config == nil {
-		return (*SealConfigError)(wrapError(ErrConfig, "attempted to seal app with nil config"))
+		return fmsg.WrapError(ErrConfig,
+			"attempted to seal app with nil config")
 	}
 
 	// create seal
@@ -53,7 +50,8 @@ func (a *app) Seal(config *Config) error {
 
 	// generate application ID
 	if id, err := newAppID(); err != nil {
-		return (*SecurityError)(wrapError(err, "cannot generate application ID:", err))
+		return fmsg.WrapErrorSuffix(err,
+			"cannot generate application ID:")
 	} else {
 		seal.id = id
 	}
@@ -70,32 +68,35 @@ func (a *app) Seal(config *Config) error {
 	case "sudo":
 		seal.launchOption = LaunchMethodSudo
 		if sudoPath, err := exec.LookPath("sudo"); err != nil {
-			return (*LauncherLookupError)(wrapError(ErrSudo, "sudo not found"))
+			return fmsg.WrapError(ErrSudo,
+				"sudo not found")
 		} else {
 			seal.toolPath = sudoPath
 		}
 	case "systemd":
 		seal.launchOption = LaunchMethodMachineCtl
 		if !internal.SdBootedV {
-			return (*LauncherLookupError)(wrapError(ErrSystemd,
-				"system has not been booted with systemd as init system"))
+			return fmsg.WrapError(ErrSystemd,
+				"system has not been booted with systemd as init system")
 		}
 
 		if machineCtlPath, err := exec.LookPath("machinectl"); err != nil {
-			return (*LauncherLookupError)(wrapError(ErrMachineCtl, "machinectl not found"))
+			return fmsg.WrapError(ErrMachineCtl,
+				"machinectl not found")
 		} else {
 			seal.toolPath = machineCtlPath
 		}
 	default:
-		return (*SealConfigError)(wrapError(ErrLaunch, "invalid launch method"))
+		return fmsg.WrapError(ErrLaunch,
+			"invalid launch method")
 	}
 
 	// create seal system component
-	seal.sys = new(appSealTx)
+	seal.sys = new(appSealSys)
 
 	// look up fortify executable path
 	if p, err := os.Executable(); err != nil {
-		return (*LauncherLookupError)(wrapError(err, "cannot look up fortify executable path:", err))
+		return fmsg.WrapErrorSuffix(err, "cannot look up fortify executable path:")
 	} else {
 		seal.sys.executable = p
 	}
@@ -103,13 +104,13 @@ func (a *app) Seal(config *Config) error {
 	// look up user from system
 	if u, err := user.Lookup(config.User); err != nil {
 		if errors.As(err, new(user.UnknownUserError)) {
-			return (*SealConfigError)(wrapError(ErrUser, "unknown user", config.User))
+			return fmsg.WrapError(ErrUser, "unknown user", config.User)
 		} else {
 			// unreachable
 			panic(err)
 		}
 	} else {
-		seal.sys.User = u
+		seal.sys.user = u
 		seal.sys.runtime = path.Join("/run/user", u.Uid)
 	}
 
@@ -163,7 +164,7 @@ func (a *app) Seal(config *Config) error {
 		// hide nscd from sandbox if present
 		nscd := "/var/run/nscd"
 		if _, err := os.Stat(nscd); !errors.Is(err, os.ErrNotExist) {
-			conf.Tmpfs = append(conf.Tmpfs, nscd)
+			conf.Override = append(conf.Override, nscd)
 		}
 		// bind GPU stuff
 		if config.Confinement.Enablements.Has(state.EnableX) || config.Confinement.Enablements.Has(state.EnableWayland) {
@@ -172,7 +173,7 @@ func (a *app) Seal(config *Config) error {
 		config.Confinement.Sandbox = conf
 	}
 	seal.sys.bwrap = config.Confinement.Sandbox.Bwrap()
-	seal.sys.tmpfs = config.Confinement.Sandbox.Tmpfs
+	seal.sys.override = config.Confinement.Sandbox.Override
 	if seal.sys.bwrap.SetEnv == nil {
 		seal.sys.bwrap.SetEnv = make(map[string]string)
 	}
@@ -186,14 +187,14 @@ func (a *app) Seal(config *Config) error {
 	// open process state store
 	// the simple store only starts holding an open file after first action
 	// store activity begins after Start is called and must end before Wait
-	seal.store = state.NewSimple(seal.SystemConstants.RunDirPath, seal.sys.Uid)
+	seal.store = state.NewSimple(seal.SystemConstants.RunDirPath, seal.sys.user.Uid)
 
 	// parse string UID
-	if u, err := strconv.Atoi(seal.sys.Uid); err != nil {
+	if u, err := strconv.Atoi(seal.sys.user.Uid); err != nil {
 		// unreachable unless kernel bug
 		panic("uid parse")
 	} else {
-		seal.sys.uid = u
+		seal.sys.I = system.New(u)
 	}
 
 	// pass through enablements
@@ -206,7 +207,7 @@ func (a *app) Seal(config *Config) error {
 
 	// verbose log seal information
 	verbose.Println("created application seal as user",
-		seal.sys.Username, "("+seal.sys.Uid+"),",
+		seal.sys.user.Username, "("+seal.sys.user.Uid+"),",
 		"method:", config.Method+",",
 		"launcher:", seal.toolPath+",",
 		"command:", config.Command)

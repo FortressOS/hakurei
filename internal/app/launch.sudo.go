@@ -14,7 +14,7 @@ func (a *app) commandBuilderSudo(shimEnv string) (args []string) {
 	args = make([]string, 0, 8)
 
 	// -Hiu $USER
-	args = append(args, "-Hiu", a.seal.sys.Username)
+	args = append(args, "-Hiu", a.seal.sys.user.Username)
 
 	// -A?
 	if _, ok := os.LookupEnv(sudoAskPass); ok {

@@ -8,19 +8,15 @@ import (
 	"path"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"git.ophivana.moe/cat/fortify/helper"
+	"git.ophivana.moe/cat/fortify/internal/fmsg"
 	"git.ophivana.moe/cat/fortify/internal/shim"
 	"git.ophivana.moe/cat/fortify/internal/state"
+	"git.ophivana.moe/cat/fortify/internal/system"
 	"git.ophivana.moe/cat/fortify/internal/verbose"
-)
-
-type (
-	// ProcessError encapsulates errors returned by starting *exec.Cmd
-	ProcessError BaseError
-	// ShimError encapsulates errors returned by shim.ServeConfig.
-	ShimError BaseError
 )
 
 // Start starts the fortified child
@@ -41,12 +37,13 @@ func (a *app) Start() error {
 			if s, err := exec.LookPath(n); err == nil {
 				shimExec[i] = s
 			} else {
-				return (*ProcessError)(wrapError(err, fmt.Sprintf("cannot find %q: %v", n, err)))
+				return fmsg.WrapErrorSuffix(err,
+					fmt.Sprintf("cannot find %q:", n))
 			}
 		}
 	}
 
-	if err := a.seal.sys.commit(); err != nil {
+	if err := a.seal.sys.Commit(); err != nil {
 		return err
 	}
 
@@ -70,7 +67,7 @@ func (a *app) Start() error {
 	a.cmd.Stderr = os.Stderr
 	a.cmd.Dir = a.seal.RunDirPath
 
-	if wls, err := shim.ServeConfig(confSockPath, a.seal.sys.uid, &shim.Payload{
+	if wls, err := shim.ServeConfig(confSockPath, a.seal.sys.UID(), &shim.Payload{
 		Argv:  a.seal.command,
 		Exec:  shimExec,
 		Bwrap: a.seal.sys.bwrap,
@@ -78,7 +75,8 @@ func (a *app) Start() error {
 
 		Verbose: verbose.Get(),
 	}, a.seal.wl, a.seal.wlDone); err != nil {
-		return (*ShimError)(wrapError(err, "cannot listen on shim socket:", err))
+		return fmsg.WrapErrorSuffix(err,
+			"cannot listen on shim socket:")
 	} else {
 		a.wayland = wls
 	}
@@ -86,7 +84,8 @@ func (a *app) Start() error {
 	// start shim
 	verbose.Println("starting shim as target user:", a.cmd)
 	if err := a.cmd.Start(); err != nil {
-		return (*ProcessError)(wrapError(err, "cannot start process:", err))
+		return fmsg.WrapErrorSuffix(err,
+			"cannot start process:")
 	}
 	startTime := time.Now().UTC()
 
@@ -105,7 +104,7 @@ func (a *app) Start() error {
 	err.Inner, err.DoErr = a.seal.store.Do(func(b state.Backend) {
 		err.InnerErr = b.Save(&sd)
 	})
-	return err.equiv("cannot save process state:", err)
+	return err.equiv("cannot save process state:")
 }
 
 // StateStoreError is returned for a failed state save
@@ -124,7 +123,7 @@ func (e *StateStoreError) equiv(a ...any) error {
 	if e.Inner == true && e.DoErr == nil && e.InnerErr == nil && e.Err == nil {
 		return nil
 	} else {
-		return wrapError(e, a...)
+		return fmsg.WrapErrorSuffix(e, a...)
 	}
 }
 
@@ -203,15 +202,16 @@ func (a *app) Wait() (int, error) {
 			}
 
 			// enablements of remaining launchers
-			rt, tags := new(state.Enablements), new(state.Enablements)
-			tags.Set(state.EnableLength + 1)
+			rt, ec := new(state.Enablements), new(system.Criteria)
+			ec.Enablements = new(state.Enablements)
+			ec.Set(system.Process)
 			if states, err := b.Load(); err != nil {
 				return err
 			} else {
 				if l := len(states); l == 0 {
 					// cleanup globals as the final launcher
 					verbose.Println("no other launchers active, will clean up globals")
-					tags.Set(state.EnableLength)
+					ec.Set(system.User)
 				} else {
 					verbose.Printf("found %d active launchers, cleaning up without globals\n", l)
 				}
@@ -224,22 +224,22 @@ func (a *app) Wait() (int, error) {
 			// invert accumulated enablements for cleanup
 			for i := state.Enablement(0); i < state.EnableLength; i++ {
 				if !rt.Has(i) {
-					tags.Set(i)
+					ec.Set(i)
 				}
 			}
 			if verbose.Get() {
-				ct := make([]state.Enablement, 0, state.EnableLength)
-				for i := state.Enablement(0); i < state.EnableLength; i++ {
-					if tags.Has(i) {
-						ct = append(ct, i)
+				labels := make([]string, 0, state.EnableLength+1)
+				for i := state.Enablement(0); i < state.EnableLength+2; i++ {
+					if ec.Has(i) {
+						labels = append(labels, system.TypeString(i))
 					}
 				}
-				if len(ct) > 0 {
-					verbose.Println("will revert operations tagged", ct, "as no remaining launchers hold these enablements")
+				if len(labels) > 0 {
+					verbose.Println("reverting operations labelled", strings.Join(labels, ", "))
 				}
 			}
 
-			if err := a.seal.sys.revert(tags); err != nil {
+			if err := a.seal.sys.Revert(ec); err != nil {
 				return err.(RevertCompoundError)
 			}
 

@@ -5,7 +5,7 @@ import (
 	"path"
 
 	"git.ophivana.moe/cat/fortify/acl"
-	"git.ophivana.moe/cat/fortify/internal/state"
+	"git.ophivana.moe/cat/fortify/internal/system"
 )
 
 const (
@@ -17,28 +17,28 @@ func (seal *appSeal) shareSystem() {
 	// look up shell
 	sh := "/bin/sh"
 	if s, ok := os.LookupEnv(shell); ok {
-		seal.sys.setEnv(shell, s)
+		seal.sys.bwrap.SetEnv[shell] = s
 		sh = s
 	}
 
 	// generate /etc/passwd
 	passwdPath := path.Join(seal.share, "passwd")
 	username := "chronos"
-	if seal.sys.Username != "" {
-		username = seal.sys.Username
-		seal.sys.setEnv("USER", seal.sys.Username)
+	if seal.sys.user.Username != "" {
+		username = seal.sys.user.Username
+		seal.sys.bwrap.SetEnv["USER"] = seal.sys.user.Username
 	}
 	homeDir := "/var/empty"
-	if seal.sys.HomeDir != "" {
-		homeDir = seal.sys.HomeDir
-		seal.sys.setEnv("HOME", seal.sys.HomeDir)
+	if seal.sys.user.HomeDir != "" {
+		homeDir = seal.sys.user.HomeDir
+		seal.sys.bwrap.SetEnv["HOME"] = seal.sys.user.HomeDir
 	}
 	passwd := username + ":x:65534:65534:Fortify:" + homeDir + ":" + sh + "\n"
-	seal.sys.writeFile(passwdPath, []byte(passwd))
+	seal.sys.Write(passwdPath, passwd)
 
 	// write /etc/group
 	groupPath := path.Join(seal.share, "group")
-	seal.sys.writeFile(groupPath, []byte("fortify:x:65534:\n"))
+	seal.sys.Write(groupPath, "fortify:x:65534:\n")
 
 	// bind /etc/passwd and /etc/group
 	seal.sys.bwrap.Bind(passwdPath, "/etc/passwd")
@@ -48,13 +48,13 @@ func (seal *appSeal) shareSystem() {
 func (seal *appSeal) shareTmpdirChild() string {
 	// ensure child tmpdir parent directory (e.g. `/tmp/fortify.%d/tmpdir`)
 	targetTmpdirParent := path.Join(seal.SharePath, "tmpdir")
-	seal.sys.ensure(targetTmpdirParent, 0700)
-	seal.sys.updatePermTag(state.EnableLength, targetTmpdirParent, acl.Execute)
+	seal.sys.Ensure(targetTmpdirParent, 0700)
+	seal.sys.UpdatePermType(system.User, targetTmpdirParent, acl.Execute)
 
 	// ensure child tmpdir (e.g. `/tmp/fortify.%d/tmpdir/%d`)
-	targetTmpdir := path.Join(targetTmpdirParent, seal.sys.Uid)
-	seal.sys.ensure(targetTmpdir, 01700)
-	seal.sys.updatePermTag(state.EnableLength, targetTmpdir, acl.Read, acl.Write, acl.Execute)
+	targetTmpdir := path.Join(targetTmpdirParent, seal.sys.user.Uid)
+	seal.sys.Ensure(targetTmpdir, 01700)
+	seal.sys.UpdatePermType(system.User, targetTmpdir, acl.Read, acl.Write, acl.Execute)
 	seal.sys.bwrap.Bind(targetTmpdir, "/tmp", false, true)
 
 	// mount tmpfs on inner shared directory (e.g. `/tmp/fortify.%d`)

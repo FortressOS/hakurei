@@ -6,11 +6,12 @@ import (
 	"os"
 
 	"git.ophivana.moe/cat/fortify/internal/app"
+	"git.ophivana.moe/cat/fortify/internal/fmsg"
 )
 
 func logWaitError(err error) {
-	var e *app.BaseError
-	if !app.AsBaseError(err, &e) {
+	var e *fmsg.BaseError
+	if !fmsg.AsBaseError(err, &e) {
 		fmt.Println("fortify: wait failed:", err)
 	} else {
 		// Wait only returns either *app.ProcessError or *app.StateStoreError wrapped in a *app.BaseError
@@ -31,7 +32,7 @@ func logWaitError(err error) {
 
 				// every error here is wrapped in *app.BaseError
 				for _, ei := range errs {
-					var eb *app.BaseError
+					var eb *fmsg.BaseError
 					if !errors.As(ei, &eb) {
 						// unreachable
 						fmt.Println("fortify: invalid error type returned by revert:", ei)
@@ -46,9 +47,9 @@ func logWaitError(err error) {
 }
 
 func logBaseError(err error, message string) {
-	var e *app.BaseError
+	var e *fmsg.BaseError
 
-	if app.AsBaseError(err, &e) {
+	if fmsg.AsBaseError(err, &e) {
 		fmt.Print("fortify: " + e.Message())
 	} else {
 		fmt.Println(message, err)

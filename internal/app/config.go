@@ -61,8 +61,8 @@ type SandboxConfig struct {
 	Env map[string]string `json:"env"`
 	// sandbox host filesystem access
 	Filesystem []*FilesystemConfig `json:"filesystem"`
-	// tmpfs mount points to mount last
-	Tmpfs []string `json:"tmpfs"`
+	// paths to override by mounting tmpfs over them
+	Override []string `json:"override"`
 }
 
 type FilesystemConfig struct {
@@ -149,7 +149,7 @@ func Template() *Config {
 					{Src: "/data/user/0", Dst: "/data/data", Write: true, Must: true},
 					{Src: "/var/tmp", Write: true},
 				},
-				Tmpfs: []string{"/var/run/nscd"},
+				Override: []string{"/var/run/nscd"},
 			},
 			SystemBus: &dbus.Config{
 				See:       nil,

@@ -4,7 +4,6 @@ import (
 	"os/exec"
 	"strings"
 
-	"git.ophivana.moe/cat/fortify/internal/state"
 	"git.ophivana.moe/cat/fortify/internal/verbose"
 )
 
@@ -12,7 +11,7 @@ func (a *app) commandBuilderMachineCtl(shimEnv string) (args []string) {
 	args = make([]string, 0, 9+len(a.seal.sys.bwrap.SetEnv))
 
 	// shell --uid=$USER
-	args = append(args, "shell", "--uid="+a.seal.sys.Username)
+	args = append(args, "shell", "--uid="+a.seal.sys.user.Username)
 
 	// --quiet
 	if !verbose.Get() {
@@ -48,14 +47,6 @@ func (a *app) commandBuilderMachineCtl(shimEnv string) (args []string) {
 		innerCommand.WriteString(" " + k)
 	}
 	innerCommand.WriteString("; ")
-
-	// override message bus address if enabled
-	if a.seal.et.Has(state.EnableDBus) {
-		innerCommand.WriteString(dbusSessionBusAddress + "=" + "'" + "unix:path=" + a.seal.sys.dbusAddr[0][1] + "' ")
-		if a.seal.sys.dbusSystem {
-			innerCommand.WriteString(dbusSystemBusAddress + "=" + "'" + "unix:path=" + a.seal.sys.dbusAddr[1][1] + "' ")
-		}
-	}
 
 	// launch fortify as shim
 	innerCommand.WriteString("exec " + a.seal.sys.executable + " shim")

@@ -7,6 +7,7 @@ import (
 	"os"
 	"path"
 
+	"git.ophivana.moe/cat/fortify/internal/fmsg"
 	"git.ophivana.moe/cat/fortify/internal/state"
 )
 
@@ -24,11 +25,6 @@ var (
 	ErrPulseMode   = errors.New("unexpected pulse socket mode")
 )
 
-type (
-	PulseCookieAccessError BaseError
-	PulseSocketAccessError BaseError
-)
-
 func (seal *appSeal) sharePulse() error {
 	if !seal.et.Has(state.EnablePulse) {
 		return nil
@@ -39,42 +35,43 @@ func (seal *appSeal) sharePulse() error {
 	ps := path.Join(pd, "native")
 	if _, err := os.Stat(pd); err != nil {
 		if !errors.Is(err, fs.ErrNotExist) {
-			return (*PulseSocketAccessError)(wrapError(err,
-				fmt.Sprintf("cannot access PulseAudio directory '%s':", pd), err))
+			return fmsg.WrapErrorSuffix(err,
+				fmt.Sprintf("cannot access PulseAudio directory %q:", pd))
 		}
-		return (*PulseSocketAccessError)(wrapError(ErrPulseSocket,
-			fmt.Sprintf("PulseAudio directory '%s' not found", pd)))
+		return fmsg.WrapError(ErrPulseSocket,
+			fmt.Sprintf("PulseAudio directory %q not found", pd))
 	}
 
 	// check PulseAudio socket permission (e.g. `/run/user/%d/pulse/native`)
 	if s, err := os.Stat(ps); err != nil {
 		if !errors.Is(err, fs.ErrNotExist) {
-			return (*PulseSocketAccessError)(wrapError(err,
-				fmt.Sprintf("cannot access PulseAudio socket '%s':", ps), err))
+			return fmsg.WrapErrorSuffix(err,
+				fmt.Sprintf("cannot access PulseAudio socket %q:", ps))
 		}
-		return (*PulseSocketAccessError)(wrapError(ErrPulseSocket,
-			fmt.Sprintf("PulseAudio directory '%s' found but socket does not exist", pd)))
+		return fmsg.WrapError(ErrPulseSocket,
+			fmt.Sprintf("PulseAudio directory %q found but socket does not exist", pd))
 	} else {
 		if m := s.Mode(); m&0o006 != 0o006 {
-			return (*PulseSocketAccessError)(wrapError(ErrPulseMode,
-				fmt.Sprintf("unexpected permissions on '%s':", ps), m))
+			return fmsg.WrapError(ErrPulseMode,
+				fmt.Sprintf("unexpected permissions on %q:", ps), m)
 		}
 	}
 
 	// hard link pulse socket into target-executable share
 	psi := path.Join(seal.shareLocal, "pulse")
 	p := path.Join(seal.sys.runtime, "pulse", "native")
-	seal.sys.link(ps, psi)
+	seal.sys.Link(ps, psi)
 	seal.sys.bwrap.Bind(psi, p)
-	seal.sys.setEnv(pulseServer, "unix:"+p)
+	seal.sys.bwrap.SetEnv[pulseServer] = "unix:" + p
 
 	// publish current user's pulse cookie for target user
 	if src, err := discoverPulseCookie(); err != nil {
 		return err
 	} else {
 		dst := path.Join(seal.share, "pulse-cookie")
-		seal.sys.setEnv(pulseCookie, dst)
-		seal.sys.copyFile(dst, src)
+		seal.sys.bwrap.SetEnv[pulseCookie] = dst
+		seal.sys.CopyFile(dst, src)
+		seal.sys.bwrap.Bind(dst, dst)
 	}
 
 	return nil
@@ -91,8 +88,8 @@ func discoverPulseCookie() (string, error) {
 		p = path.Join(p, ".pulse-cookie")
 		if s, err := os.Stat(p); err != nil {
 			if !errors.Is(err, fs.ErrNotExist) {
-				return p, (*PulseCookieAccessError)(wrapError(err,
-					fmt.Sprintf("cannot access PulseAudio cookie '%s':", p), err))
+				return p, fmsg.WrapErrorSuffix(err,
+					fmt.Sprintf("cannot access PulseAudio cookie %q:", p))
 			}
 			// not found, try next method
 		} else if !s.IsDir() {
@@ -105,7 +102,8 @@ func discoverPulseCookie() (string, error) {
 		p = path.Join(p, "pulse", "cookie")
 		if s, err := os.Stat(p); err != nil {
 			if !errors.Is(err, fs.ErrNotExist) {
-				return p, (*PulseCookieAccessError)(wrapError(err, "cannot access PulseAudio cookie", p+":", err))
+				return p, fmsg.WrapErrorSuffix(err,
+					fmt.Sprintf("cannot access PulseAudio cookie %q:", p))
 			}
 			// not found, try next method
 		} else if !s.IsDir() {
@@ -113,7 +111,7 @@ func discoverPulseCookie() (string, error) {
 		}
 	}
 
-	return "", (*PulseCookieAccessError)(wrapError(ErrPulseCookie,
+	return "", fmsg.WrapError(ErrPulseCookie,
 		fmt.Sprintf("cannot locate PulseAudio cookie (tried $%s, $%s/pulse/cookie, $%s/.pulse-cookie)",
-			pulseCookie, xdgConfigHome, home)))
+			pulseCookie, xdgConfigHome, home))
 }
