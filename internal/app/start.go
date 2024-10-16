@@ -202,8 +202,8 @@ func (a *app) Wait() (int, error) {
 			}
 
 			// enablements of remaining launchers
-			rt, ec := new(state.Enablements), new(system.Criteria)
-			ec.Enablements = new(state.Enablements)
+			rt, ec := new(system.Enablements), new(system.Criteria)
+			ec.Enablements = new(system.Enablements)
 			ec.Set(system.Process)
 			if states, err := b.Load(); err != nil {
 				return err
@@ -222,14 +222,14 @@ func (a *app) Wait() (int, error) {
 				}
 			}
 			// invert accumulated enablements for cleanup
-			for i := state.Enablement(0); i < state.EnableLength; i++ {
+			for i := system.Enablement(0); i < system.Enablement(system.ELen); i++ {
 				if !rt.Has(i) {
 					ec.Set(i)
 				}
 			}
 			if verbose.Get() {
-				labels := make([]string, 0, state.EnableLength+1)
-				for i := state.Enablement(0); i < state.EnableLength+2; i++ {
+				labels := make([]string, 0, system.ELen+1)
+				for i := system.Enablement(0); i < system.Enablement(system.ELen+2); i++ {
 					if ec.Has(i) {
 						labels = append(labels, system.TypeString(i))
 					}

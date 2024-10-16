@@ -9,7 +9,7 @@ import (
 	"git.ophivana.moe/cat/fortify/dbus"
 	"git.ophivana.moe/cat/fortify/internal"
 	"git.ophivana.moe/cat/fortify/internal/app"
-	"git.ophivana.moe/cat/fortify/internal/state"
+	"git.ophivana.moe/cat/fortify/internal/system"
 )
 
 var (
@@ -24,7 +24,7 @@ var (
 	dbusVerbose       bool
 
 	userName    string
-	enablements [state.EnableLength]bool
+	enablements [system.ELen]bool
 
 	launchMethodText string
 )
@@ -42,10 +42,10 @@ func init() {
 	flag.BoolVar(&dbusVerbose, "dbus-log", false, "Force logging in the D-Bus proxy")
 
 	flag.StringVar(&userName, "u", "chronos", "Passwd name of user to run as")
-	flag.BoolVar(&enablements[state.EnableWayland], "wayland", false, "Share Wayland socket")
-	flag.BoolVar(&enablements[state.EnableX], "X", false, "Share X11 socket and allow connection")
-	flag.BoolVar(&enablements[state.EnableDBus], "dbus", false, "Proxy D-Bus connection")
-	flag.BoolVar(&enablements[state.EnablePulse], "pulse", false, "Share PulseAudio socket and cookie")
+	flag.BoolVar(&enablements[system.EWayland], "wayland", false, "Share Wayland socket")
+	flag.BoolVar(&enablements[system.EX11], "X", false, "Share X11 socket and allow connection")
+	flag.BoolVar(&enablements[system.EDBus], "dbus", false, "Proxy D-Bus connection")
+	flag.BoolVar(&enablements[system.EPulse], "pulse", false, "Share PulseAudio socket and cookie")
 }
 
 func init() {
@@ -98,14 +98,14 @@ func configFromFlags() (config *app.Config) {
 	}
 
 	// enablements from flags
-	for i := state.Enablement(0); i < state.EnableLength; i++ {
+	for i := system.Enablement(0); i < system.Enablement(system.ELen); i++ {
 		if enablements[i] {
 			config.Confinement.Enablements.Set(i)
 		}
 	}
 
 	// parse D-Bus config file from flags if applicable
-	if enablements[state.EnableDBus] {
+	if enablements[system.EDBus] {
 		if dbusConfigSession == "builtin" {
 			config.Confinement.SessionBus = dbus.NewConfig(dbusID, true, mpris)
 		} else {

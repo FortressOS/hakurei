@@ -9,7 +9,6 @@ import (
 
 	"git.ophivana.moe/cat/fortify/acl"
 	"git.ophivana.moe/cat/fortify/internal/fmsg"
-	"git.ophivana.moe/cat/fortify/internal/state"
 	"git.ophivana.moe/cat/fortify/internal/verbose"
 )
 
@@ -19,7 +18,7 @@ func (sys *I) CopyFile(dst, src string) {
 }
 
 // CopyFileType registers a file copying Op labelled with type et.
-func (sys *I) CopyFileType(et state.Enablement, dst, src string) {
+func (sys *I) CopyFileType(et Enablement, dst, src string) {
 	sys.lock.Lock()
 	sys.ops = append(sys.ops, &Tmpfile{et, tmpfileCopy, dst, src})
 	sys.lock.Unlock()
@@ -33,7 +32,7 @@ func (sys *I) Link(oldname, newname string) {
 }
 
 // LinkFileType registers a file linking Op labelled with type et.
-func (sys *I) LinkFileType(et state.Enablement, oldname, newname string) {
+func (sys *I) LinkFileType(et Enablement, oldname, newname string) {
 	sys.lock.Lock()
 	defer sys.lock.Unlock()
 
@@ -46,7 +45,7 @@ func (sys *I) Write(dst, src string) {
 }
 
 // WriteType registers a file writing Op labelled with type et.
-func (sys *I) WriteType(et state.Enablement, dst, src string) {
+func (sys *I) WriteType(et Enablement, dst, src string) {
 	sys.lock.Lock()
 	sys.ops = append(sys.ops, &Tmpfile{et, tmpfileWrite, dst, src})
 	sys.lock.Unlock()
@@ -61,12 +60,12 @@ const (
 )
 
 type Tmpfile struct {
-	et       state.Enablement
+	et       Enablement
 	method   uint8
 	dst, src string
 }
 
-func (t *Tmpfile) Type() state.Enablement {
+func (t *Tmpfile) Type() Enablement {
 	return t.et
 }
 

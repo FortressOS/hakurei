@@ -6,7 +6,6 @@ import (
 	"os"
 
 	"git.ophivana.moe/cat/fortify/internal/fmsg"
-	"git.ophivana.moe/cat/fortify/internal/state"
 	"git.ophivana.moe/cat/fortify/internal/verbose"
 )
 
@@ -19,7 +18,7 @@ func (sys *I) Ensure(name string, perm os.FileMode) {
 }
 
 // Ephemeral ensures the temporary existence and mode of a directory through the life of et.
-func (sys *I) Ephemeral(et state.Enablement, name string, perm os.FileMode) {
+func (sys *I) Ephemeral(et Enablement, name string, perm os.FileMode) {
 	sys.lock.Lock()
 	defer sys.lock.Unlock()
 
@@ -27,13 +26,13 @@ func (sys *I) Ephemeral(et state.Enablement, name string, perm os.FileMode) {
 }
 
 type Mkdir struct {
-	et        state.Enablement
+	et        Enablement
 	path      string
 	perm      os.FileMode
 	ephemeral bool
 }
 
-func (m *Mkdir) Type() state.Enablement {
+func (m *Mkdir) Type() Enablement {
 	return m.et
 }
 

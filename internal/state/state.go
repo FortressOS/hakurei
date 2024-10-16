@@ -2,6 +2,8 @@ package state
 
 import (
 	"time"
+
+	"git.ophivana.moe/cat/fortify/internal/system"
 )
 
 type Store interface {
@@ -29,7 +31,7 @@ type State struct {
 	// command used to seal the app
 	Command []string
 	// capability enablements applied to child
-	Capability Enablements
+	Capability system.Enablements
 
 	// resolved launcher path
 	Launcher string

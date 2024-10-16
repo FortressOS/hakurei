@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"git.ophivana.moe/cat/fortify/internal/fmsg"
-	"git.ophivana.moe/cat/fortify/internal/state"
 	"git.ophivana.moe/cat/fortify/internal/verbose"
 	"git.ophivana.moe/cat/fortify/xcb"
 )
@@ -19,8 +18,8 @@ func (sys *I) ChangeHosts(username string) {
 
 type XHost string
 
-func (x XHost) Type() state.Enablement {
-	return state.EnableX
+func (x XHost) Type() Enablement {
+	return EX11
 }
 
 func (x XHost) apply(_ *I) error {

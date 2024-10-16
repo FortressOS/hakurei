@@ -4,19 +4,17 @@ import (
 	"errors"
 	"fmt"
 	"sync"
-
-	"git.ophivana.moe/cat/fortify/internal/state"
 )
 
 const (
-	// Process type is unconditionally reverted on exit.
-	Process = state.EnableLength + 1
 	// User type is reverted at final launcher exit.
-	User = state.EnableLength
+	User = Enablement(ELen)
+	// Process type is unconditionally reverted on exit.
+	Process = Enablement(ELen + 1)
 )
 
 type Criteria struct {
-	*state.Enablements
+	*Enablements
 }
 
 func (ec *Criteria) hasType(o Op) bool {
@@ -31,7 +29,7 @@ func (ec *Criteria) hasType(o Op) bool {
 // Op is a reversible system operation.
 type Op interface {
 	// Type returns Op's enablement type.
-	Type() state.Enablement
+	Type() Enablement
 
 	// apply the Op
 	apply(sys *I) error
@@ -43,7 +41,7 @@ type Op interface {
 	String() string
 }
 
-func TypeString(e state.Enablement) string {
+func TypeString(e Enablement) string {
 	switch e {
 	case User:
 		return "User"

@@ -38,7 +38,7 @@ type appSeal struct {
 	// path to launcher program
 	toolPath string
 	// pass-through enablement tracking from config
-	et state.Enablements
+	et system.Enablements
 
 	// prevents sharing from happening twice
 	shared bool

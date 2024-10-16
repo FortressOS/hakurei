@@ -6,7 +6,7 @@ import (
 
 	"git.ophivana.moe/cat/fortify/dbus"
 	"git.ophivana.moe/cat/fortify/helper/bwrap"
-	"git.ophivana.moe/cat/fortify/internal/state"
+	"git.ophivana.moe/cat/fortify/internal/system"
 )
 
 func init() {
@@ -41,7 +41,7 @@ type ConfinementConfig struct {
 	SessionBus *dbus.Config `json:"session_bus,omitempty"`
 
 	// child capability enablements
-	Enablements state.Enablements `json:"enablements"`
+	Enablements system.Enablements `json:"enablements"`
 }
 
 // SandboxConfig describes resources made available to the sandbox.
@@ -171,7 +171,7 @@ func Template() *Config {
 				Log:       false,
 				Filter:    true,
 			},
-			Enablements: state.EnableWayland.Mask() | state.EnableDBus.Mask() | state.EnablePulse.Mask(),
+			Enablements: system.EWayland.Mask() | system.EDBus.Mask() | system.EPulse.Mask(),
 		},
 	}
 }

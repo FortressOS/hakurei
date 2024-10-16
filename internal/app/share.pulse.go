@@ -8,7 +8,7 @@ import (
 	"path"
 
 	"git.ophivana.moe/cat/fortify/internal/fmsg"
-	"git.ophivana.moe/cat/fortify/internal/state"
+	"git.ophivana.moe/cat/fortify/internal/system"
 )
 
 const (
@@ -26,7 +26,7 @@ var (
 )
 
 func (seal *appSeal) sharePulse() error {
-	if !seal.et.Has(state.EnablePulse) {
+	if !seal.et.Has(system.EPulse) {
 		return nil
 	}
 

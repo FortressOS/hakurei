@@ -6,7 +6,6 @@ import (
 
 	"git.ophivana.moe/cat/fortify/acl"
 	"git.ophivana.moe/cat/fortify/internal/fmsg"
-	"git.ophivana.moe/cat/fortify/internal/state"
 	"git.ophivana.moe/cat/fortify/internal/verbose"
 )
 
@@ -16,7 +15,7 @@ func (sys *I) UpdatePerm(path string, perms ...acl.Perm) {
 }
 
 // UpdatePermType appends an acl update Op.
-func (sys *I) UpdatePermType(et state.Enablement, path string, perms ...acl.Perm) {
+func (sys *I) UpdatePermType(et Enablement, path string, perms ...acl.Perm) {
 	sys.lock.Lock()
 	defer sys.lock.Unlock()
 
@@ -24,12 +23,12 @@ func (sys *I) UpdatePermType(et state.Enablement, path string, perms ...acl.Perm
 }
 
 type ACL struct {
-	et    state.Enablement
+	et    Enablement
 	path  string
 	perms []acl.Perm
 }
 
-func (a *ACL) Type() state.Enablement {
+func (a *ACL) Type() Enablement {
 	return a.et
 }
 

@@ -1,4 +1,4 @@
-package state
+package system
 
 type (
 	// Enablement represents an optional system resource
@@ -8,20 +8,20 @@ type (
 )
 
 const (
-	EnableWayland Enablement = iota
-	EnableX
-	EnableDBus
-	EnablePulse
-
-	EnableLength
+	EWayland Enablement = iota
+	EX11
+	EDBus
+	EPulse
 )
 
-var enablementString = [EnableLength]string{
-	"Wayland",
-	"X11",
-	"D-Bus",
-	"PulseAudio",
+var enablementString = [...]string{
+	EWayland: "Wayland",
+	EX11:     "X11",
+	EDBus:    "D-Bus",
+	EPulse:   "PulseAudio",
 }
+
+const ELen = len(enablementString)
 
 func (e Enablement) String() string {
 	return enablementString[e]

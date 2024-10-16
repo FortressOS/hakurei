@@ -10,6 +10,7 @@ import (
 	"text/tabwriter"
 	"time"
 
+	"git.ophivana.moe/cat/fortify/internal/system"
 	"git.ophivana.moe/cat/fortify/internal/verbose"
 )
 
@@ -85,7 +86,7 @@ func (s *simpleStore) mustPrintLauncherState(w **tabwriter.Writer, now time.Time
 				// build enablements string
 				ets := strings.Builder{}
 				// append enablement strings in order
-				for i := Enablement(0); i < EnableLength; i++ {
+				for i := system.Enablement(0); i < system.Enablement(system.ELen); i++ {
 					if state.Capability.Has(i) {
 						ets.WriteString(", " + i.String())
 					}

@@ -7,7 +7,6 @@ import (
 
 	"git.ophivana.moe/cat/fortify/dbus"
 	"git.ophivana.moe/cat/fortify/internal/fmsg"
-	"git.ophivana.moe/cat/fortify/internal/state"
 	"git.ophivana.moe/cat/fortify/internal/verbose"
 )
 
@@ -69,7 +68,7 @@ type DBus struct {
 	done chan struct{}
 }
 
-func (d *DBus) Type() state.Enablement {
+func (d *DBus) Type() Enablement {
 	return Process
 }
 

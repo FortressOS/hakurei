@@ -167,7 +167,7 @@ func (a *app) Seal(config *Config) error {
 			conf.Override = append(conf.Override, nscd)
 		}
 		// bind GPU stuff
-		if config.Confinement.Enablements.Has(state.EnableX) || config.Confinement.Enablements.Has(state.EnableWayland) {
+		if config.Confinement.Enablements.Has(system.EX11) || config.Confinement.Enablements.Has(system.EWayland) {
 			conf.Filesystem = append(conf.Filesystem, &FilesystemConfig{Src: "/dev/dri", Device: true})
 		}
 		config.Confinement.Sandbox = conf
