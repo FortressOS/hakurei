@@ -11,8 +11,14 @@ import (
 	"path"
 	"strconv"
 	"syscall"
+	"time"
 
 	"git.ophivana.moe/cat/fortify/internal/verbose"
+)
+
+const (
+	// time to wait for linger processes after death initial process
+	residualProcessTimeout = 5 * time.Second
 )
 
 // everything beyond this point runs within pid namespace
@@ -121,6 +127,8 @@ func doInit(fd uintptr) {
 		close(done)
 	}()
 
+	timeout := make(chan struct{})
+
 	r := 2
 	for {
 		select {
@@ -138,7 +146,14 @@ func doInit(fd uintptr) {
 					r = 255
 				}
 			}
+			go func() {
+				time.Sleep(residualProcessTimeout)
+				close(timeout)
+			}()
 		case <-done:
+			os.Exit(r)
+		case <-timeout:
+			fmt.Println("fortify-init: timeout exceeded waiting for lingering processes")
 			os.Exit(r)
 		}
 	}
