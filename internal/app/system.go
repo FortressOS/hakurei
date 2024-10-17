@@ -8,7 +8,6 @@ import (
 	"git.ophivana.moe/cat/fortify/internal"
 	"git.ophivana.moe/cat/fortify/internal/state"
 	"git.ophivana.moe/cat/fortify/internal/system"
-	"git.ophivana.moe/cat/fortify/internal/verbose"
 )
 
 // appSeal seals the application with child-related information
@@ -76,10 +75,9 @@ func (seal *appSeal) shareAll(bus [2]*dbus.Config) error {
 	}
 	seal.shared = true
 
-	targetTmpdir := seal.shareTmpdirChild()
-	verbose.Printf("child tmpdir %q configured\n", targetTmpdir)
-	seal.shareRuntime()
 	seal.shareSystem()
+	seal.shareRuntime()
+	seal.sharePasswd()
 	if err := seal.shareDisplay(); err != nil {
 		return err
 	}

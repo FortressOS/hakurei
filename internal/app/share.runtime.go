@@ -31,15 +31,6 @@ func (seal *appSeal) shareRuntime() {
 	// ensure runtime directory ACL (e.g. `/run/user/%d`)
 	seal.sys.UpdatePermType(system.User, seal.RuntimePath, acl.Execute)
 
-	// ensure Share (e.g. `/tmp/fortify.%d`)
-	// acl is unnecessary as this directory is world executable
-	seal.sys.Ensure(seal.SharePath, 0701)
-
-	// ensure process-specific share (e.g. `/tmp/fortify.%d/%s`)
-	// acl is unnecessary as this directory is world executable
-	seal.share = path.Join(seal.SharePath, seal.id.String())
-	seal.sys.Ephemeral(system.Process, seal.share, 0701)
-
 	// ensure process-specific share local to XDG_RUNTIME_DIR (e.g. `/run/user/%d/fortify/%s`)
 	seal.shareLocal = path.Join(seal.RunDirPath, seal.id.String())
 	seal.sys.Ephemeral(system.Process, seal.shareLocal, 0700)
