@@ -77,5 +77,9 @@ func (m *Mkdir) Path() string {
 }
 
 func (m *Mkdir) String() string {
-	return fmt.Sprintf("mode: %s path: %q", m.perm.String(), m.path)
+	t := "Ensure"
+	if m.ephemeral {
+		t = TypeString(m.Type())
+	}
+	return fmt.Sprintf("mode: %s type: %s path: %q", m.perm.String(), t, m.path)
 }
