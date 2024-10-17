@@ -145,11 +145,12 @@ func doInit(fd uintptr) {
 				default:
 					r = 255
 				}
+
+				go func() {
+					time.Sleep(residualProcessTimeout)
+					close(timeout)
+				}()
 			}
-			go func() {
-				time.Sleep(residualProcessTimeout)
-				close(timeout)
-			}()
 		case <-done:
 			os.Exit(r)
 		case <-timeout:
