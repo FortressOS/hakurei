@@ -36,6 +36,12 @@
         default = nixpkgsFor.${system}.mkShell {
           buildInputs =
             with nixpkgsFor.${system};
+            self.packages.${system}.fortify.buildInputs;
+        };
+
+        withPackage = nixpkgsFor.${system}.mkShell {
+          buildInputs =
+            with nixpkgsFor.${system};
             self.packages.${system}.fortify.buildInputs ++ [ self.packages.${system}.fortify ];
         };
       });
