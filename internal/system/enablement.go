@@ -24,6 +24,9 @@ var enablementString = [...]string{
 const ELen = len(enablementString)
 
 func (e Enablement) String() string {
+	if int(e) >= ELen {
+		return "<invalid enablement>"
+	}
 	return enablementString[e]
 }
 
