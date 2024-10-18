@@ -21,6 +21,11 @@ const (
 	LaunchMethodMachineCtl
 )
 
+var method = [...]string{
+	LaunchMethodSudo:       "sudo",
+	LaunchMethodMachineCtl: "systemd",
+}
+
 var (
 	ErrConfig = errors.New("no configuration to seal")
 	ErrUser   = errors.New("unknown user")
@@ -65,7 +70,7 @@ func (a *app) Seal(config *Config) error {
 
 	// parses launch method text and looks up tool path
 	switch config.Method {
-	case "sudo":
+	case method[LaunchMethodSudo]:
 		seal.launchOption = LaunchMethodSudo
 		if sudoPath, err := exec.LookPath("sudo"); err != nil {
 			return fmsg.WrapError(ErrSudo,
@@ -73,7 +78,7 @@ func (a *app) Seal(config *Config) error {
 		} else {
 			seal.toolPath = sudoPath
 		}
-	case "systemd":
+	case method[LaunchMethodMachineCtl]:
 		seal.launchOption = LaunchMethodMachineCtl
 		if !internal.SdBootedV {
 			return fmsg.WrapError(ErrSystemd,

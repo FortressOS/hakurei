@@ -94,7 +94,7 @@ func (a *app) Start() error {
 		PID:        a.cmd.Process.Pid,
 		Command:    a.seal.command,
 		Capability: a.seal.et,
-		Launcher:   a.seal.toolPath,
+		Method:     method[a.seal.launchOption],
 		Argv:       a.cmd.Args,
 		Time:       startTime,
 	}
