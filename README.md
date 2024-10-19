@@ -3,7 +3,7 @@ Fortify
 
 [![Go Reference](https://pkg.go.dev/badge/git.ophivana.moe/cat/fortify.svg)](https://pkg.go.dev/git.ophivana.moe/cat/fortify)
 
-Lets you run graphical applications as another user ~~in an Android-like sandbox environment~~ (WIP) with a nice NixOS
+Lets you run graphical applications as another user in a confined environment with a nice NixOS
 module to configure target users and provide launchers and desktop files for your privileged user.
 
 Why would you want this?
@@ -12,7 +12,7 @@ Why would you want this?
 
 - It protects applications from each other.
 
-- It provides UID isolation on top of ~~the standard application sandbox~~ (WIP).
+- It provides UID isolation on top of the standard application sandbox.
 
 There are a few different things to set up for this to work:
 
