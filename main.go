@@ -54,8 +54,10 @@ func main() {
 
 	// invoke app
 	r := 1
-	a := app.New()
-	if err := a.Seal(loadConfig()); err != nil {
+	a, err := app.New()
+	if err != nil {
+		fatalf("cannot create app: %s\n", err)
+	} else if err = a.Seal(loadConfig()); err != nil {
 		logBaseError(err, "fortify: cannot seal app:")
 	} else if err = a.Start(); err != nil {
 		logBaseError(err, "fortify: cannot start app:")
@@ -65,7 +67,7 @@ func main() {
 		}
 		logWaitError(err)
 	}
-	if err := a.WaitErr(); err != nil {
+	if err = a.WaitErr(); err != nil {
 		fmt.Println("fortify: inner wait failed:", err)
 	}
 	os.Exit(r)

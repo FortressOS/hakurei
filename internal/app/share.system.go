@@ -20,7 +20,7 @@ func (seal *appSeal) shareSystem() {
 
 	// ensure process-specific share (e.g. `/tmp/fortify.%d/%s`)
 	// acl is unnecessary as this directory is world executable
-	seal.share = path.Join(seal.SharePath, seal.id.String())
+	seal.share = path.Join(seal.SharePath, seal.id)
 	seal.sys.Ephemeral(system.Process, seal.share, 0701)
 
 	// ensure child tmpdir parent directory (e.g. `/tmp/fortify.%d/tmpdir`)

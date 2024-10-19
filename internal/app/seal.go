@@ -53,18 +53,11 @@ func (a *app) Seal(config *Config) error {
 	// create seal
 	seal := new(appSeal)
 
-	// generate application ID
-	if id, err := newAppID(); err != nil {
-		return fmsg.WrapErrorSuffix(err,
-			"cannot generate application ID:")
-	} else {
-		seal.id = id
-	}
-
 	// fetch system constants
 	seal.SystemConstants = internal.GetSC()
 
 	// pass through config values
+	seal.id = a.id.String()
 	seal.fid = config.ID
 	seal.command = config.Command
 

@@ -12,14 +12,14 @@ import (
 
 // appSeal seals the application with child-related information
 type appSeal struct {
-	// application unique identifier
-	id *appID
 	// wayland socket path if mediated wayland is enabled
 	wl string
 	// wait for wayland client to exit if mediated wayland is enabled,
 	// (wlDone == nil) determines whether mediated wayland setup is performed
 	wlDone chan struct{}
 
+	// app unique ID string representation
+	id string
 	// freedesktop application ID
 	fid string
 	// argv to start process with in the final confined environment

@@ -32,7 +32,7 @@ func (seal *appSeal) shareRuntime() {
 	seal.sys.UpdatePermType(system.User, seal.RuntimePath, acl.Execute)
 
 	// ensure process-specific share local to XDG_RUNTIME_DIR (e.g. `/run/user/%d/fortify/%s`)
-	seal.shareLocal = path.Join(seal.RunDirPath, seal.id.String())
+	seal.shareLocal = path.Join(seal.RunDirPath, seal.id)
 	seal.sys.Ephemeral(system.Process, seal.shareLocal, 0700)
 	seal.sys.UpdatePerm(seal.shareLocal, acl.Execute)
 }

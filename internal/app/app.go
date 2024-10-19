@@ -7,24 +7,37 @@ import (
 )
 
 type App interface {
-	Seal(config *Config) error
+	// ID returns a copy of App's unique ID.
+	ID() ID
+	// Start sets up the system and starts the App.
 	Start() error
+	// Wait waits for App's process to exit and reverts system setup.
 	Wait() (int, error)
+	// WaitErr returns error returned by the underlying wait syscall.
 	WaitErr() error
+
+	Seal(config *Config) error
 	String() string
 }
 
 type app struct {
+	// application unique identifier
+	id *ID
+	// underlying user switcher process
+	cmd *exec.Cmd
 	// child process related information
 	seal *appSeal
-	// underlying fortified child process
-	cmd *exec.Cmd
+
 	// wayland connection if wayland mediation is enabled
 	wayland *net.UnixConn
 	// error returned waiting for process
-	wait error
+	waitErr error
 
 	lock sync.RWMutex
+}
+
+func (a *app) ID() ID {
+	return *a.id
 }
 
 func (a *app) String() string {
@@ -47,9 +60,11 @@ func (a *app) String() string {
 }
 
 func (a *app) WaitErr() error {
-	return a.wait
+	return a.waitErr
 }
 
-func New() App {
-	return new(app)
+func New() (App, error) {
+	a := new(app)
+	a.id = new(ID)
+	return a, newAppID(a.id)
 }

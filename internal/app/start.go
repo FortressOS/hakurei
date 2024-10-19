@@ -173,7 +173,7 @@ func (a *app) Wait() (int, error) {
 		var exitError *exec.ExitError
 		if !errors.As(err, &exitError) {
 			// should be unreachable
-			a.wait = err
+			a.waitErr = err
 		}
 
 		// store non-zero return code

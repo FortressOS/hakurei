@@ -5,14 +5,13 @@ import (
 	"encoding/hex"
 )
 
-type appID [16]byte
+type ID [16]byte
 
-func (a *appID) String() string {
+func (a *ID) String() string {
 	return hex.EncodeToString(a[:])
 }
 
-func newAppID() (*appID, error) {
-	a := &appID{}
-	_, err := rand.Read(a[:])
-	return a, err
+func newAppID(id *ID) error {
+	_, err := rand.Read(id[:])
+	return err
 }
