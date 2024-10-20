@@ -3,7 +3,7 @@ package state
 import (
 	"time"
 
-	"git.ophivana.moe/cat/fortify/internal/system"
+	"git.ophivana.moe/security/fortify/internal/system"
 )
 
 type Store interface {

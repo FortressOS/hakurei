@@ -3,7 +3,7 @@ package verbose_test
 import (
 	"testing"
 
-	"git.ophivana.moe/cat/fortify/internal/verbose"
+	"git.ophivana.moe/security/fortify/internal/verbose"
 )
 
 func TestGetSet(t *testing.T) {

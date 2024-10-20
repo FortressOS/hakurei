@@ -4,9 +4,9 @@ import (
 	"encoding/gob"
 	"os"
 
-	"git.ophivana.moe/cat/fortify/dbus"
-	"git.ophivana.moe/cat/fortify/helper/bwrap"
-	"git.ophivana.moe/cat/fortify/internal/system"
+	"git.ophivana.moe/security/fortify/dbus"
+	"git.ophivana.moe/security/fortify/helper/bwrap"
+	"git.ophivana.moe/security/fortify/internal/system"
 )
 
 func init() {

@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"git.ophivana.moe/cat/fortify/dbus"
+	"git.ophivana.moe/security/fortify/dbus"
 )
 
 func TestConfig_Args(t *testing.T) {

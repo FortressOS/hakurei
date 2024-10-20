@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"os"
 
-	"git.ophivana.moe/cat/fortify/internal/fmsg"
-	"git.ophivana.moe/cat/fortify/internal/verbose"
+	"git.ophivana.moe/security/fortify/internal/fmsg"
+	"git.ophivana.moe/security/fortify/internal/verbose"
 )
 
 // Ensure the existence and mode of a directory.

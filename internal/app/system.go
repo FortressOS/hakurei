@@ -3,11 +3,11 @@ package app
 import (
 	"os/user"
 
-	"git.ophivana.moe/cat/fortify/dbus"
-	"git.ophivana.moe/cat/fortify/helper/bwrap"
-	"git.ophivana.moe/cat/fortify/internal"
-	"git.ophivana.moe/cat/fortify/internal/state"
-	"git.ophivana.moe/cat/fortify/internal/system"
+	"git.ophivana.moe/security/fortify/dbus"
+	"git.ophivana.moe/security/fortify/helper/bwrap"
+	"git.ophivana.moe/security/fortify/internal"
+	"git.ophivana.moe/security/fortify/internal/state"
+	"git.ophivana.moe/security/fortify/internal/system"
 )
 
 // appSeal seals the application with child-related information

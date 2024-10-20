@@ -6,11 +6,11 @@ import (
 	"os"
 	"syscall"
 
-	"git.ophivana.moe/cat/fortify/internal"
-	"git.ophivana.moe/cat/fortify/internal/app"
-	init0 "git.ophivana.moe/cat/fortify/internal/init"
-	"git.ophivana.moe/cat/fortify/internal/shim"
-	"git.ophivana.moe/cat/fortify/internal/verbose"
+	"git.ophivana.moe/security/fortify/internal"
+	"git.ophivana.moe/security/fortify/internal/app"
+	init0 "git.ophivana.moe/security/fortify/internal/init"
+	"git.ophivana.moe/security/fortify/internal/shim"
+	"git.ophivana.moe/security/fortify/internal/verbose"
 )
 
 var (

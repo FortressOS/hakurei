@@ -9,9 +9,9 @@ import (
 	"strconv"
 	"strings"
 
-	"git.ophivana.moe/cat/fortify/helper"
-	"git.ophivana.moe/cat/fortify/helper/bwrap"
-	"git.ophivana.moe/cat/fortify/ldd"
+	"git.ophivana.moe/security/fortify/helper"
+	"git.ophivana.moe/security/fortify/helper/bwrap"
+	"git.ophivana.moe/security/fortify/ldd"
 )
 
 // Start launches the D-Bus proxy and sets up the Wait method.

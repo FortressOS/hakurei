@@ -10,8 +10,8 @@ import (
 	"text/tabwriter"
 	"time"
 
-	"git.ophivana.moe/cat/fortify/internal/system"
-	"git.ophivana.moe/cat/fortify/internal/verbose"
+	"git.ophivana.moe/security/fortify/internal/system"
+	"git.ophivana.moe/security/fortify/internal/verbose"
 )
 
 // MustPrintLauncherStateSimpleGlobal prints active launcher states of all simple stores

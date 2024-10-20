@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"sync"
 
-	"git.ophivana.moe/cat/fortify/internal/verbose"
+	"git.ophivana.moe/security/fortify/internal/verbose"
 )
 
 // state that remain constant for the lifetime of the process

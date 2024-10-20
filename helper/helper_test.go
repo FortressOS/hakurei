@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"git.ophivana.moe/cat/fortify/helper"
+	"git.ophivana.moe/security/fortify/helper"
 )
 
 var (

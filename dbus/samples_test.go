@@ -3,7 +3,7 @@ package dbus_test
 import (
 	"sync"
 
-	"git.ophivana.moe/cat/fortify/dbus"
+	"git.ophivana.moe/security/fortify/dbus"
 )
 
 var samples = []dbusTestCase{

@@ -5,7 +5,7 @@ import (
 	"os"
 	"testing"
 
-	"git.ophivana.moe/cat/fortify/helper"
+	"git.ophivana.moe/security/fortify/helper"
 )
 
 func TestDirect(t *testing.T) {

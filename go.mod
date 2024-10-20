@@ -1,3 +1,3 @@
-module git.ophivana.moe/cat/fortify
+module git.ophivana.moe/security/fortify
 
 go 1.22

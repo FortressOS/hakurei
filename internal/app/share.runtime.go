@@ -3,8 +3,8 @@ package app
 import (
 	"path"
 
-	"git.ophivana.moe/cat/fortify/acl"
-	"git.ophivana.moe/cat/fortify/internal/system"
+	"git.ophivana.moe/security/fortify/acl"
+	"git.ophivana.moe/security/fortify/internal/system"
 )
 
 const (

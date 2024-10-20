@@ -4,7 +4,7 @@ import (
 	"strconv"
 	"testing"
 
-	"git.ophivana.moe/cat/fortify/acl"
+	"git.ophivana.moe/security/fortify/acl"
 )
 
 func TestCopyFile(t *testing.T) {

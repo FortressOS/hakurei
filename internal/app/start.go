@@ -11,12 +11,12 @@ import (
 	"strings"
 	"time"
 
-	"git.ophivana.moe/cat/fortify/helper"
-	"git.ophivana.moe/cat/fortify/internal/fmsg"
-	"git.ophivana.moe/cat/fortify/internal/shim"
-	"git.ophivana.moe/cat/fortify/internal/state"
-	"git.ophivana.moe/cat/fortify/internal/system"
-	"git.ophivana.moe/cat/fortify/internal/verbose"
+	"git.ophivana.moe/security/fortify/helper"
+	"git.ophivana.moe/security/fortify/internal/fmsg"
+	"git.ophivana.moe/security/fortify/internal/shim"
+	"git.ophivana.moe/security/fortify/internal/state"
+	"git.ophivana.moe/security/fortify/internal/system"
+	"git.ophivana.moe/security/fortify/internal/verbose"
 )
 
 // Start starts the fortified child

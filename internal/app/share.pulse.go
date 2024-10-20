@@ -7,8 +7,8 @@ import (
 	"os"
 	"path"
 
-	"git.ophivana.moe/cat/fortify/internal/fmsg"
-	"git.ophivana.moe/cat/fortify/internal/system"
+	"git.ophivana.moe/security/fortify/internal/fmsg"
+	"git.ophivana.moe/security/fortify/internal/system"
 )
 
 const (

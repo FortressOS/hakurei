@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"git.ophivana.moe/cat/fortify/ldd"
+	"git.ophivana.moe/security/fortify/ldd"
 )
 
 func TestParseError(t *testing.T) {

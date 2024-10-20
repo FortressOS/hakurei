@@ -1,6 +1,6 @@
 package shim
 
-import "git.ophivana.moe/cat/fortify/helper/bwrap"
+import "git.ophivana.moe/security/fortify/helper/bwrap"
 
 const EnvShim = "FORTIFY_SHIM"
 

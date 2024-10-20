@@ -7,9 +7,9 @@ import (
 	"os"
 	"strconv"
 
-	"git.ophivana.moe/cat/fortify/acl"
-	"git.ophivana.moe/cat/fortify/internal/fmsg"
-	"git.ophivana.moe/cat/fortify/internal/verbose"
+	"git.ophivana.moe/security/fortify/acl"
+	"git.ophivana.moe/security/fortify/internal/fmsg"
+	"git.ophivana.moe/security/fortify/internal/verbose"
 )
 
 // CopyFile registers an Op that copies path dst from src.

@@ -4,7 +4,7 @@ import (
 	"strconv"
 	"testing"
 
-	"git.ophivana.moe/cat/fortify/internal/system"
+	"git.ophivana.moe/security/fortify/internal/system"
 )
 
 func TestNew(t *testing.T) {

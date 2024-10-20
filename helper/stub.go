@@ -10,7 +10,7 @@ import (
 	"syscall"
 	"testing"
 
-	"git.ophivana.moe/cat/fortify/helper/bwrap"
+	"git.ophivana.moe/security/fortify/helper/bwrap"
 )
 
 // InternalChildStub is an internal function but exported because it is cross-package;

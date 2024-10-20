@@ -11,9 +11,9 @@ import (
 	"strconv"
 	"syscall"
 
-	"git.ophivana.moe/cat/fortify/helper"
-	init0 "git.ophivana.moe/cat/fortify/internal/init"
-	"git.ophivana.moe/cat/fortify/internal/verbose"
+	"git.ophivana.moe/security/fortify/helper"
+	init0 "git.ophivana.moe/security/fortify/internal/init"
+	"git.ophivana.moe/security/fortify/internal/verbose"
 )
 
 // everything beyond this point runs as target user

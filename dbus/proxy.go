@@ -6,8 +6,8 @@ import (
 	"io"
 	"sync"
 
-	"git.ophivana.moe/cat/fortify/helper"
-	"git.ophivana.moe/cat/fortify/helper/bwrap"
+	"git.ophivana.moe/security/fortify/helper"
+	"git.ophivana.moe/security/fortify/helper/bwrap"
 )
 
 // ProxyName is the file name or path to the proxy program.

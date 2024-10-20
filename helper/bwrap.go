@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"sync"
 
-	"git.ophivana.moe/cat/fortify/helper/bwrap"
+	"git.ophivana.moe/security/fortify/helper/bwrap"
 )
 
 // BubblewrapName is the file name or path to bubblewrap.

@@ -8,12 +8,12 @@ import (
 	"path"
 	"strconv"
 
-	"git.ophivana.moe/cat/fortify/dbus"
-	"git.ophivana.moe/cat/fortify/internal"
-	"git.ophivana.moe/cat/fortify/internal/fmsg"
-	"git.ophivana.moe/cat/fortify/internal/state"
-	"git.ophivana.moe/cat/fortify/internal/system"
-	"git.ophivana.moe/cat/fortify/internal/verbose"
+	"git.ophivana.moe/security/fortify/dbus"
+	"git.ophivana.moe/security/fortify/internal"
+	"git.ophivana.moe/security/fortify/internal/fmsg"
+	"git.ophivana.moe/security/fortify/internal/state"
+	"git.ophivana.moe/security/fortify/internal/system"
+	"git.ophivana.moe/security/fortify/internal/verbose"
 )
 
 const (

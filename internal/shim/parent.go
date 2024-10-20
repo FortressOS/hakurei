@@ -8,8 +8,8 @@ import (
 	"os"
 	"syscall"
 
-	"git.ophivana.moe/cat/fortify/acl"
-	"git.ophivana.moe/cat/fortify/internal/verbose"
+	"git.ophivana.moe/security/fortify/acl"
+	"git.ophivana.moe/security/fortify/internal/verbose"
 )
 
 // called in the parent process

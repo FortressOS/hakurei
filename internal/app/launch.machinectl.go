@@ -4,7 +4,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"git.ophivana.moe/cat/fortify/internal/verbose"
+	"git.ophivana.moe/security/fortify/internal/verbose"
 )
 
 func (a *app) commandBuilderMachineCtl(shimEnv string) (args []string) {

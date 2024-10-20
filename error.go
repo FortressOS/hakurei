@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"os"
 
-	"git.ophivana.moe/cat/fortify/internal/app"
-	"git.ophivana.moe/cat/fortify/internal/fmsg"
+	"git.ophivana.moe/security/fortify/internal/app"
+	"git.ophivana.moe/security/fortify/internal/fmsg"
 )
 
 func logWaitError(err error) {

@@ -3,9 +3,9 @@ package system
 import (
 	"fmt"
 
-	"git.ophivana.moe/cat/fortify/internal/fmsg"
-	"git.ophivana.moe/cat/fortify/internal/verbose"
-	"git.ophivana.moe/cat/fortify/xcb"
+	"git.ophivana.moe/security/fortify/internal/fmsg"
+	"git.ophivana.moe/security/fortify/internal/verbose"
+	"git.ophivana.moe/security/fortify/xcb"
 )
 
 // ChangeHosts appends an X11 ChangeHosts command Op.

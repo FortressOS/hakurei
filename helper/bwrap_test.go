@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"git.ophivana.moe/cat/fortify/helper"
-	"git.ophivana.moe/cat/fortify/helper/bwrap"
+	"git.ophivana.moe/security/fortify/helper"
+	"git.ophivana.moe/security/fortify/helper/bwrap"
 )
 
 func TestBwrap(t *testing.T) {

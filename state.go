@@ -6,8 +6,8 @@ import (
 	"os"
 	"text/tabwriter"
 
-	"git.ophivana.moe/cat/fortify/internal"
-	"git.ophivana.moe/cat/fortify/internal/state"
+	"git.ophivana.moe/security/fortify/internal"
+	"git.ophivana.moe/security/fortify/internal/state"
 )
 
 var (

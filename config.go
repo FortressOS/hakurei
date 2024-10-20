@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"os"
 
-	"git.ophivana.moe/cat/fortify/dbus"
-	"git.ophivana.moe/cat/fortify/internal"
-	"git.ophivana.moe/cat/fortify/internal/app"
-	"git.ophivana.moe/cat/fortify/internal/system"
+	"git.ophivana.moe/security/fortify/dbus"
+	"git.ophivana.moe/security/fortify/internal"
+	"git.ophivana.moe/security/fortify/internal/app"
+	"git.ophivana.moe/security/fortify/internal/system"
 )
 
 var (
