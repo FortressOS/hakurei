@@ -1,7 +1,6 @@
 package app
 
 import (
-	"net"
 	"os/exec"
 	"sync"
 )
@@ -27,9 +26,6 @@ type app struct {
 	cmd *exec.Cmd
 	// child process related information
 	seal *appSeal
-
-	// wayland connection if wayland mediation is enabled
-	wayland *net.UnixConn
 	// error returned waiting for process
 	waitErr error
 

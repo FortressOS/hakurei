@@ -11,6 +11,7 @@ import (
 	"git.ophivana.moe/security/fortify/dbus"
 	"git.ophivana.moe/security/fortify/internal"
 	"git.ophivana.moe/security/fortify/internal/fmsg"
+	"git.ophivana.moe/security/fortify/internal/shim"
 	"git.ophivana.moe/security/fortify/internal/state"
 	"git.ophivana.moe/security/fortify/internal/system"
 	"git.ophivana.moe/security/fortify/internal/verbose"
@@ -35,6 +36,43 @@ var (
 	ErrSystemd    = errors.New("systemd not available")
 	ErrMachineCtl = errors.New("machinectl not available")
 )
+
+// appSeal seals the application with child-related information
+type appSeal struct {
+	// app unique ID string representation
+	id string
+	// wayland mediation, disabled if nil
+	wl *shim.Wayland
+
+	// freedesktop application ID
+	fid string
+	// argv to start process with in the final confined environment
+	command []string
+	// persistent process state store
+	store state.Store
+
+	// uint8 representation of launch method sealed from config
+	launchOption uint8
+	// process-specific share directory path
+	share string
+	// process-specific share directory path local to XDG_RUNTIME_DIR
+	shareLocal string
+
+	// path to launcher program
+	toolPath string
+	// pass-through enablement tracking from config
+	et system.Enablements
+
+	// prevents sharing from happening twice
+	shared bool
+	// seal system-level component
+	sys *appSealSys
+
+	// used in various sealing operations
+	internal.SystemConstants
+
+	// protected by upstream mutex
+}
 
 // Seal seals the app launch context
 func (a *app) Seal(config *Config) error {
@@ -176,10 +214,10 @@ func (a *app) Seal(config *Config) error {
 		seal.sys.bwrap.SetEnv = make(map[string]string)
 	}
 
-	// create wayland client wait channel if mediated wayland is enabled
-	// this channel being set enables mediated wayland setup later on
+	// create wayland struct and client wait channel if mediated wayland is enabled
+	// this field being set enables mediated wayland setup later on
 	if config.Confinement.Sandbox.Wayland {
-		seal.wlDone = make(chan struct{})
+		seal.wl = shim.NewWayland()
 	}
 
 	// open process state store

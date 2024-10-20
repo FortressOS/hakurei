@@ -62,23 +62,19 @@ func (a *app) Start() error {
 	confSockPath := path.Join(a.seal.share, "shim")
 	a.cmd = exec.Command(a.seal.toolPath, commandBuilder(shim.EnvShim+"="+confSockPath)...)
 	a.cmd.Env = []string{}
-	a.cmd.Stdin = os.Stdin
-	a.cmd.Stdout = os.Stdout
-	a.cmd.Stderr = os.Stderr
+	a.cmd.Stdin, a.cmd.Stdout, a.cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
 	a.cmd.Dir = a.seal.RunDirPath
 
-	if wls, err := shim.ServeConfig(confSockPath, a.seal.sys.UID(), &shim.Payload{
+	if err := shim.ServeConfig(confSockPath, a.seal.sys.UID(), &shim.Payload{
 		Argv:  a.seal.command,
 		Exec:  shimExec,
 		Bwrap: a.seal.sys.bwrap,
-		WL:    a.seal.wlDone != nil,
+		WL:    a.seal.wl != nil,
 
 		Verbose: verbose.Get(),
-	}, a.seal.wl, a.seal.wlDone); err != nil {
+	}, a.seal.wl); err != nil {
 		return fmsg.WrapErrorSuffix(err,
-			"cannot listen on shim socket:")
-	} else {
-		a.wayland = wls
+			"cannot serve shim setup:")
 	}
 
 	// start shim
@@ -185,9 +181,8 @@ func (a *app) Wait() (int, error) {
 	verbose.Println("process", strconv.Itoa(a.cmd.Process.Pid), "exited with exit code", r)
 
 	// close wayland connection
-	if a.wayland != nil {
-		close(a.seal.wlDone)
-		if err := a.wayland.Close(); err != nil {
+	if a.seal.wl != nil {
+		if err := a.seal.wl.Close(); err != nil {
 			fmt.Println("fortify: cannot close wayland connection:", err)
 		}
 	}

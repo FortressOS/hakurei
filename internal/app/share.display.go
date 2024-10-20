@@ -34,7 +34,7 @@ func (seal *appSeal) shareDisplay() error {
 		if wd, ok := os.LookupEnv(waylandDisplay); !ok {
 			return fmsg.WrapError(ErrWayland,
 				"WAYLAND_DISPLAY is not set")
-		} else if seal.wlDone == nil {
+		} else if seal.wl == nil {
 			// hardlink wayland socket
 			wp := path.Join(seal.RuntimePath, wd)
 			wpi := path.Join(seal.shareLocal, "wayland")
@@ -46,8 +46,8 @@ func (seal *appSeal) shareDisplay() error {
 			// ensure Wayland socket ACL (e.g. `/run/user/%d/wayland-%d`)
 			seal.sys.UpdatePermType(system.EWayland, wp, acl.Read, acl.Write, acl.Execute)
 		} else {
-			// set wayland socket path (e.g. `/run/user/%d/wayland-%d`)
-			seal.wl = path.Join(seal.RuntimePath, wd)
+			// set wayland socket path for mediation (e.g. `/run/user/%d/wayland-%d`)
+			seal.wl.Path = path.Join(seal.RuntimePath, wd)
 		}
 	}
 

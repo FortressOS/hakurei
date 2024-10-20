@@ -14,19 +14,18 @@ import (
 
 // called in the parent process
 
-func ServeConfig(socket string, uid int, payload *Payload, wl string, done chan struct{}) (*net.UnixConn, error) {
-	var ws *net.UnixConn
+func ServeConfig(socket string, uid int, payload *Payload, wl *Wayland) error {
 	if payload.WL {
-		if f, err := net.DialUnix("unix", nil, &net.UnixAddr{Name: wl, Net: "unix"}); err != nil {
-			return nil, err
+		if f, err := net.DialUnix("unix", nil, &net.UnixAddr{Name: wl.Path, Net: "unix"}); err != nil {
+			return err
 		} else {
 			verbose.Println("connected to wayland at", wl)
-			ws = f
+			wl.UnixConn = f
 		}
 	}
 
 	if c, err := net.ListenUnix("unix", &net.UnixAddr{Name: socket, Net: "unix"}); err != nil {
-		return nil, err
+		return err
 	} else {
 		verbose.Println("configuring shim on socket", socket)
 		if err = acl.UpdatePerm(socket, uid, acl.Read, acl.Write, acl.Execute); err != nil {
@@ -47,7 +46,7 @@ func ServeConfig(socket string, uid int, payload *Payload, wl string, done chan 
 				if payload.WL {
 					// get raw connection
 					var rc syscall.RawConn
-					if rc, err = ws.SyscallConn(); err != nil {
+					if rc, err = wl.SyscallConn(); err != nil {
 						fmt.Println("fortify: cannot obtain raw wayland connection:", err)
 						return
 					} else {
@@ -61,7 +60,7 @@ func ServeConfig(socket string, uid int, payload *Payload, wl string, done chan 
 								_ = conn.Close()
 
 								// block until shim exits
-								<-done
+								<-wl.done
 								verbose.Println("releasing wayland connection")
 							}); err != nil {
 								fmt.Println("fortify: cannot obtain wayland connection fd:", err)
@@ -79,6 +78,6 @@ func ServeConfig(socket string, uid int, payload *Payload, wl string, done chan 
 				fmt.Println("fortify: cannot remove dangling shim socket:", err)
 			}
 		}()
-		return ws, nil
+		return nil
 	}
 }

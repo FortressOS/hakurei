@@ -5,50 +5,8 @@ import (
 
 	"git.ophivana.moe/security/fortify/dbus"
 	"git.ophivana.moe/security/fortify/helper/bwrap"
-	"git.ophivana.moe/security/fortify/internal"
-	"git.ophivana.moe/security/fortify/internal/state"
 	"git.ophivana.moe/security/fortify/internal/system"
 )
-
-// appSeal seals the application with child-related information
-type appSeal struct {
-	// wayland socket path if mediated wayland is enabled
-	wl string
-	// wait for wayland client to exit if mediated wayland is enabled,
-	// (wlDone == nil) determines whether mediated wayland setup is performed
-	wlDone chan struct{}
-
-	// app unique ID string representation
-	id string
-	// freedesktop application ID
-	fid string
-	// argv to start process with in the final confined environment
-	command []string
-	// persistent process state store
-	store state.Store
-
-	// uint8 representation of launch method sealed from config
-	launchOption uint8
-	// process-specific share directory path
-	share string
-	// process-specific share directory path local to XDG_RUNTIME_DIR
-	shareLocal string
-
-	// path to launcher program
-	toolPath string
-	// pass-through enablement tracking from config
-	et system.Enablements
-
-	// prevents sharing from happening twice
-	shared bool
-	// seal system-level component
-	sys *appSealSys
-
-	// used in various sealing operations
-	internal.SystemConstants
-
-	// protected by upstream mutex
-}
 
 // appSealSys encapsulates app seal behaviour with OS interactions
 type appSealSys struct {
