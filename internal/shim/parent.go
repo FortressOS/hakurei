@@ -13,7 +13,7 @@ import (
 
 // called in the parent process
 
-func ServeConfig(socket string, uid int, payload *Payload, wl *Wayland) error {
+func ServeConfig(socket string, abort chan error, uid int, payload *Payload, wl *Wayland) error {
 	if payload.WL {
 		if f, err := net.DialUnix("unix", nil, &net.UnixAddr{Name: wl.Path, Net: "unix"}); err != nil {
 			return err
@@ -23,9 +23,25 @@ func ServeConfig(socket string, uid int, payload *Payload, wl *Wayland) error {
 		}
 	}
 
+	// setup success state accessed by abort
+	var success bool
+
 	if c, err := net.ListenUnix("unix", &net.UnixAddr{Name: socket, Net: "unix"}); err != nil {
 		return err
 	} else {
+		c.SetUnlinkOnClose(true)
+
+		go func() {
+			err1 := <-abort
+			if !success {
+				fmsg.VPrintln("aborting shim setup, reason:", err1)
+				if err1 = c.Close(); err1 != nil {
+					fmsg.Println("cannot abort shim setup:", err1)
+				}
+			}
+			close(abort)
+		}()
+
 		fmsg.VPrintf("configuring shim on socket %q", socket)
 		if err = acl.UpdatePerm(socket, uid, acl.Read, acl.Write, acl.Execute); err != nil {
 			fmsg.Println("cannot change permissions of shim setup socket:", err)
@@ -34,7 +50,11 @@ func ServeConfig(socket string, uid int, payload *Payload, wl *Wayland) error {
 		go func() {
 			var conn *net.UnixConn
 			if conn, err = c.AcceptUnix(); err != nil {
-				fmsg.Println("cannot accept connection from shim:", err)
+				if errors.Is(err, net.ErrClosed) {
+					fmsg.VPrintln("accept failed due to shim setup abort")
+				} else {
+					fmsg.Println("cannot accept connection from shim:", err)
+				}
 			} else {
 				if err = gob.NewEncoder(conn).Encode(*payload); err != nil {
 					fmsg.Println("cannot stream shim payload:", err)
@@ -70,11 +90,14 @@ func ServeConfig(socket string, uid int, payload *Payload, wl *Wayland) error {
 					_ = conn.Close()
 				}
 			}
+
+			success = true
 			if err = c.Close(); err != nil {
-				fmsg.Println("cannot close shim socket:", err)
-			}
-			if err = os.Remove(socket); err != nil && !errors.Is(err, os.ErrNotExist) {
-				fmsg.Println("cannot remove dangling shim socket:", err)
+				if errors.Is(err, net.ErrClosed) {
+					fmsg.VPrintln("close failed due to shim setup abort")
+				} else {
+					fmsg.Println("cannot close shim socket:", err)
+				}
 			}
 		}()
 		return nil

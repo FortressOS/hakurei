@@ -24,6 +24,8 @@ type app struct {
 	id *ID
 	// underlying user switcher process
 	cmd *exec.Cmd
+	// shim setup abort reason and completion
+	abort chan error
 	// child process related information
 	seal *appSeal
 	// error returned waiting for process

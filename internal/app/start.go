@@ -63,7 +63,8 @@ func (a *app) Start() error {
 	a.cmd.Stdin, a.cmd.Stdout, a.cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
 	a.cmd.Dir = a.seal.RunDirPath
 
-	if err := shim.ServeConfig(confSockPath, a.seal.sys.UID(), &shim.Payload{
+	a.abort = make(chan error)
+	if err := shim.ServeConfig(confSockPath, a.abort, a.seal.sys.UID(), &shim.Payload{
 		Argv:  a.seal.command,
 		Exec:  shimExec,
 		Bwrap: a.seal.sys.bwrap,
@@ -71,6 +72,8 @@ func (a *app) Start() error {
 
 		Verbose: fmsg.Verbose(),
 	}, a.seal.wl); err != nil {
+		a.abort <- err
+		<-a.abort
 		return fmsg.WrapErrorSuffix(err,
 			"cannot serve shim setup:")
 	}
@@ -232,6 +235,8 @@ func (a *app) Wait() (int, error) {
 				}
 			}
 
+			a.abort <- errors.New("shim exited")
+			<-a.abort
 			if err := a.seal.sys.Revert(ec); err != nil {
 				return err.(RevertCompoundError)
 			}
