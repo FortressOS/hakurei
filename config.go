@@ -9,6 +9,7 @@ import (
 	"git.ophivana.moe/security/fortify/dbus"
 	"git.ophivana.moe/security/fortify/internal"
 	"git.ophivana.moe/security/fortify/internal/app"
+	"git.ophivana.moe/security/fortify/internal/fmsg"
 	"git.ophivana.moe/security/fortify/internal/system"
 )
 
@@ -60,7 +61,7 @@ func init() {
 func tryTemplate() {
 	if printTemplate {
 		if s, err := json.MarshalIndent(app.Template(), "", "  "); err != nil {
-			fatalf("cannot generate template: %v", err)
+			fmsg.Fatalf("cannot generate template: %v", err)
 			panic("unreachable")
 		} else {
 			fmt.Println(string(s))
@@ -77,10 +78,10 @@ func loadConfig() *app.Config {
 		// config from file
 		c := new(app.Config)
 		if f, err := os.Open(confPath); err != nil {
-			fatalf("cannot access config file '%s': %s\n", confPath, err)
+			fmsg.Fatalf("cannot access config file %q: %s", confPath, err)
 			panic("unreachable")
 		} else if err = json.NewDecoder(f).Decode(&c); err != nil {
-			fatalf("cannot parse config file '%s': %s\n", confPath, err)
+			fmsg.Fatalf("cannot parse config file %q: %s", confPath, err)
 			panic("unreachable")
 		} else {
 			return c
@@ -110,7 +111,7 @@ func configFromFlags() (config *app.Config) {
 			config.Confinement.SessionBus = dbus.NewConfig(dbusID, true, mpris)
 		} else {
 			if c, err := dbus.NewConfigFromFile(dbusConfigSession); err != nil {
-				fatalf("cannot load session bus proxy config from %q: %s\n", dbusConfigSession, err)
+				fmsg.Fatalf("cannot load session bus proxy config from %q: %s", dbusConfigSession, err)
 			} else {
 				config.Confinement.SessionBus = c
 			}
@@ -119,7 +120,7 @@ func configFromFlags() (config *app.Config) {
 		// system bus proxy is optional
 		if dbusConfigSystem != "nil" {
 			if c, err := dbus.NewConfigFromFile(dbusConfigSystem); err != nil {
-				fatalf("cannot load system bus proxy config from %q: %s\n", dbusConfigSystem, err)
+				fmsg.Fatalf("cannot load system bus proxy config from %q: %s", dbusConfigSystem, err)
 			} else {
 				config.Confinement.SystemBus = c
 			}

@@ -2,8 +2,9 @@ package system
 
 import (
 	"errors"
-	"fmt"
 	"sync"
+
+	"git.ophivana.moe/security/fortify/internal/fmsg"
 )
 
 const (
@@ -80,7 +81,7 @@ func (sys *I) Commit() error {
 		if sp != nil {
 			// rollback partial commit
 			if err := sp.Revert(&Criteria{nil}); err != nil {
-				fmt.Println("fortify: errors returned reverting partial commit:", err)
+				fmsg.Println("errors returned reverting partial commit:", err)
 			}
 		}
 	}()

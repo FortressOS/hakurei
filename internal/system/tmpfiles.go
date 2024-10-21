@@ -9,7 +9,6 @@ import (
 
 	"git.ophivana.moe/security/fortify/acl"
 	"git.ophivana.moe/security/fortify/internal/fmsg"
-	"git.ophivana.moe/security/fortify/internal/verbose"
 )
 
 // CopyFile registers an Op that copies path dst from src.
@@ -72,15 +71,15 @@ func (t *Tmpfile) Type() Enablement {
 func (t *Tmpfile) apply(_ *I) error {
 	switch t.method {
 	case tmpfileCopy:
-		verbose.Printf("publishing tmpfile %s\n", t)
+		fmsg.VPrintln("publishing tmpfile", t)
 		return fmsg.WrapErrorSuffix(copyFile(t.dst, t.src),
 			fmt.Sprintf("cannot copy tmpfile %q:", t.dst))
 	case tmpfileLink:
-		verbose.Printf("linking tmpfile %s\n", t)
+		fmsg.VPrintln("linking tmpfile", t)
 		return fmsg.WrapErrorSuffix(os.Link(t.src, t.dst),
 			fmt.Sprintf("cannot link tmpfile %q:", t.dst))
 	case tmpfileWrite:
-		verbose.Printf("writing %s\n", t)
+		fmsg.VPrintln("writing", t)
 		return fmsg.WrapErrorSuffix(os.WriteFile(t.dst, []byte(t.src), 0600),
 			fmt.Sprintf("cannot write tmpfile %q:", t.dst))
 	default:
@@ -90,11 +89,11 @@ func (t *Tmpfile) apply(_ *I) error {
 
 func (t *Tmpfile) revert(_ *I, ec *Criteria) error {
 	if ec.hasType(t) {
-		verbose.Printf("removing tmpfile %q\n", t.dst)
+		fmsg.VPrintf("removing tmpfile %q", t.dst)
 		return fmsg.WrapErrorSuffix(os.Remove(t.dst),
 			fmt.Sprintf("cannot remove tmpfile %q:", t.dst))
 	} else {
-		verbose.Printf("skipping tmpfile %q\n", t.dst)
+		fmsg.VPrintf("skipping tmpfile %q", t.dst)
 		return nil
 	}
 }

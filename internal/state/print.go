@@ -10,8 +10,8 @@ import (
 	"text/tabwriter"
 	"time"
 
+	"git.ophivana.moe/security/fortify/internal/fmsg"
 	"git.ophivana.moe/security/fortify/internal/system"
-	"git.ophivana.moe/security/fortify/internal/verbose"
 )
 
 // MustPrintLauncherStateSimpleGlobal prints active launcher states of all simple stores
@@ -21,19 +21,19 @@ func MustPrintLauncherStateSimpleGlobal(w **tabwriter.Writer, runDir string) {
 
 	// read runtime directory to get all UIDs
 	if dirs, err := os.ReadDir(path.Join(runDir, "state")); err != nil && !errors.Is(err, os.ErrNotExist) {
-		fmt.Println("cannot read runtime directory:", err)
+		fmsg.Println("cannot read runtime directory:", err)
 		os.Exit(1)
 	} else {
 		for _, e := range dirs {
 			// skip non-directories
 			if !e.IsDir() {
-				verbose.Println("skipped non-directory entry", e.Name())
+				fmsg.VPrintf("skipped non-directory entry %q", e.Name())
 				continue
 			}
 
 			// skip non-numerical names
 			if _, err = strconv.Atoi(e.Name()); err != nil {
-				verbose.Println("skipped non-uid entry", e.Name())
+				fmsg.VPrintf("skipped non-uid entry %q", e.Name())
 				continue
 			}
 
@@ -45,7 +45,7 @@ func MustPrintLauncherStateSimpleGlobal(w **tabwriter.Writer, runDir string) {
 
 			// mustPrintLauncherState causes store activity so store needs to be closed
 			if err = s.Close(); err != nil {
-				fmt.Printf("warn: error closing store for user %s: %s\n", e.Name(), err)
+				fmsg.Printf("cannot close store for user %q: %s", e.Name(), err)
 			}
 		}
 	}
@@ -67,7 +67,7 @@ func (s *simpleStore) mustPrintLauncherState(w **tabwriter.Writer, now time.Time
 				*w = tabwriter.NewWriter(os.Stdout, 0, 1, 4, ' ', 0)
 
 				// write header when initialising
-				if !verbose.Get() {
+				if !fmsg.Verbose() {
 					_, _ = fmt.Fprintln(*w, "\tUID\tPID\tUptime\tEnablements\tMethod\tCommand")
 				} else {
 					// argv is emitted in body when verbose
@@ -96,7 +96,7 @@ func (s *simpleStore) mustPrintLauncherState(w **tabwriter.Writer, now time.Time
 					ets.WriteString("(No enablements)")
 				}
 
-				if !verbose.Get() {
+				if !fmsg.Verbose() {
 					_, _ = fmt.Fprintf(*w, "\t%s\t%d\t%s\t%s\t%s\t%s\n",
 						s.path[len(s.path)-1], state.PID, now.Sub(state.Time).Round(time.Second).String(), strings.TrimPrefix(ets.String(), ", "), state.Method,
 						state.Command)
@@ -110,15 +110,15 @@ func (s *simpleStore) mustPrintLauncherState(w **tabwriter.Writer, now time.Time
 			return nil
 		}()
 	}); err != nil {
-		fmt.Printf("cannot perform action on store '%s': %s\n", path.Join(s.path...), err)
+		fmsg.Printf("cannot perform action on store %q: %s", path.Join(s.path...), err)
 		if !ok {
-			fmt.Println("warn: store faulted before printing")
+			fmsg.Println("store faulted before printing")
 			os.Exit(1)
 		}
 	}
 
 	if innerErr != nil {
-		fmt.Printf("cannot print launcher state for store '%s': %s\n", path.Join(s.path...), innerErr)
+		fmsg.Printf("cannot print launcher state for store %q: %s", path.Join(s.path...), innerErr)
 		os.Exit(1)
 	}
 }

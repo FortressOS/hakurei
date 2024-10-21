@@ -4,7 +4,6 @@ import (
 	"encoding/gob"
 	"errors"
 	"flag"
-	"fmt"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -13,7 +12,7 @@ import (
 	"syscall"
 	"time"
 
-	"git.ophivana.moe/security/fortify/internal/verbose"
+	"git.ophivana.moe/security/fortify/internal/fmsg"
 )
 
 const (
@@ -25,49 +24,46 @@ const (
 // proceed with caution!
 
 func doInit(fd uintptr) {
+	fmsg.SetPrefix("init")
+
 	// re-exec
 	if len(os.Args) > 0 && os.Args[0] != "fortify" && path.IsAbs(os.Args[0]) {
 		if err := syscall.Exec(os.Args[0], []string{"fortify", "init"}, os.Environ()); err != nil {
-			fmt.Println("fortify-init: cannot re-exec self:", err)
+			fmsg.Println("cannot re-exec self:", err)
 			// continue anyway
 		}
 	}
 
-	verbose.Prefix = "fortify-init:"
-
 	var payload Payload
 	p := os.NewFile(fd, "config-stream")
 	if p == nil {
-		fmt.Println("fortify-init: invalid config descriptor")
-		os.Exit(1)
+		fmsg.Fatal("invalid config descriptor")
 	}
 	if err := gob.NewDecoder(p).Decode(&payload); err != nil {
-		fmt.Println("fortify-init: cannot decode init payload:", err)
-		os.Exit(1)
+		fmsg.Fatal("cannot decode init payload:", err)
 	} else {
 		// sharing stdout with parent
 		// USE WITH CAUTION
-		verbose.Set(payload.Verbose)
+		fmsg.SetVerbose(payload.Verbose)
 
 		// child does not need to see this
 		if err = os.Unsetenv(EnvInit); err != nil {
-			fmt.Println("fortify-init: cannot unset", EnvInit+":", err)
+			fmsg.Println("cannot unset", EnvInit+":", err)
 			// not fatal
 		} else {
-			verbose.Println("received configuration")
+			fmsg.VPrintln("received configuration")
 		}
 	}
 
 	// close config fd
 	if err := p.Close(); err != nil {
-		fmt.Println("fortify-init: cannot close config fd:", err)
+		fmsg.Println("cannot close config fd:", err)
 		// not fatal
 	}
 
 	// die with parent
 	if _, _, errno := syscall.RawSyscall(syscall.SYS_PRCTL, syscall.PR_SET_PDEATHSIG, uintptr(syscall.SIGKILL), 0); errno != 0 {
-		fmt.Println("fortify-init: prctl(PR_SET_PDEATHSIG, SIGKILL):", errno.Error())
-		os.Exit(1)
+		fmsg.Fatal("prctl(PR_SET_PDEATHSIG, SIGKILL):", errno.Error())
 	}
 
 	cmd := exec.Command(payload.Argv0)
@@ -84,8 +80,7 @@ func doInit(fd uintptr) {
 	}
 
 	if err := cmd.Start(); err != nil {
-		fmt.Printf("fortify-init: cannot start %q: %v", payload.Argv0, err)
-		os.Exit(1)
+		fmsg.Fatalf("cannot start %q: %v", payload.Argv0, err)
 	}
 
 	sig := make(chan os.Signal, 2)
@@ -121,7 +116,7 @@ func doInit(fd uintptr) {
 			}
 		}
 		if !errors.Is(err, syscall.ECHILD) {
-			fmt.Println("fortify-init: unexpected wait4 response:", err)
+			fmsg.Println("unexpected wait4 response:", err)
 		}
 
 		close(done)
@@ -133,7 +128,7 @@ func doInit(fd uintptr) {
 	for {
 		select {
 		case s := <-sig:
-			verbose.Println("received", s.String())
+			fmsg.VPrintln("received", s.String())
 			os.Exit(0)
 		case w := <-info:
 			if w.wpid == cmd.Process.Pid {
@@ -154,7 +149,7 @@ func doInit(fd uintptr) {
 		case <-done:
 			os.Exit(r)
 		case <-timeout:
-			fmt.Println("fortify-init: timeout exceeded waiting for lingering processes")
+			fmsg.Println("timeout exceeded waiting for lingering processes")
 			os.Exit(r)
 		}
 	}
@@ -169,8 +164,7 @@ func Try() {
 	if args := flag.Args(); len(args) == 1 && args[0] == "init" {
 		if s, ok := os.LookupEnv(EnvInit); ok {
 			if fd, err := strconv.Atoi(s); err != nil {
-				fmt.Printf("fortify-init: cannot parse %q: %v", s, err)
-				os.Exit(1)
+				fmsg.Fatalf("cannot parse %q: %v", s, err)
 			} else {
 				doInit(uintptr(fd))
 			}

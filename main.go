@@ -2,15 +2,14 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"os"
 	"syscall"
 
 	"git.ophivana.moe/security/fortify/internal"
 	"git.ophivana.moe/security/fortify/internal/app"
+	"git.ophivana.moe/security/fortify/internal/fmsg"
 	init0 "git.ophivana.moe/security/fortify/internal/init"
 	"git.ophivana.moe/security/fortify/internal/shim"
-	"git.ophivana.moe/security/fortify/internal/verbose"
 )
 
 var (
@@ -24,14 +23,14 @@ func init() {
 func main() {
 	// linux/sched/coredump.h
 	if _, _, errno := syscall.RawSyscall(syscall.SYS_PRCTL, syscall.PR_SET_DUMPABLE, 0, 0); errno != 0 {
-		fmt.Printf("fortify: cannot set SUID_DUMP_DISABLE: %s", errno.Error())
+		fmsg.Printf("fortify: cannot set SUID_DUMP_DISABLE: %s", errno.Error())
 	}
 
 	flag.Parse()
-	verbose.Set(flagVerbose)
+	fmsg.SetVerbose(flagVerbose)
 
 	if internal.SdBootedV {
-		verbose.Println("system booted with systemd as init system")
+		fmsg.VPrintln("system booted with systemd as init system")
 	}
 
 	// shim/init early exit
@@ -40,7 +39,7 @@ func main() {
 
 	// root check
 	if os.Getuid() == 0 {
-		fmt.Println("fortify: this program must not run as root")
+		fmsg.Println("this program must not run as root")
 		os.Exit(1)
 	}
 
@@ -56,7 +55,7 @@ func main() {
 	r := 1
 	a, err := app.New()
 	if err != nil {
-		fatalf("cannot create app: %s\n", err)
+		fmsg.Fatalf("cannot create app: %s\n", err)
 	} else if err = a.Seal(loadConfig()); err != nil {
 		logBaseError(err, "fortify: cannot seal app:")
 	} else if err = a.Start(); err != nil {
@@ -68,7 +67,7 @@ func main() {
 		logWaitError(err)
 	}
 	if err = a.WaitErr(); err != nil {
-		fmt.Println("fortify: inner wait failed:", err)
+		fmsg.Println("inner wait failed:", err)
 	}
 	os.Exit(r)
 }

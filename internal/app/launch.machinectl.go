@@ -4,7 +4,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"git.ophivana.moe/security/fortify/internal/verbose"
+	"git.ophivana.moe/security/fortify/internal/fmsg"
 )
 
 func (a *app) commandBuilderMachineCtl(shimEnv string) (args []string) {
@@ -14,7 +14,7 @@ func (a *app) commandBuilderMachineCtl(shimEnv string) (args []string) {
 	args = append(args, "shell", "--uid="+a.seal.sys.user.Username)
 
 	// --quiet
-	if !verbose.Get() {
+	if !fmsg.Verbose() {
 		args = append(args, "--quiet")
 	}
 

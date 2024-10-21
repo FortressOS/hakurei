@@ -6,7 +6,6 @@ import (
 	"os"
 
 	"git.ophivana.moe/security/fortify/internal/fmsg"
-	"git.ophivana.moe/security/fortify/internal/verbose"
 )
 
 // Ensure the existence and mode of a directory.
@@ -37,7 +36,7 @@ func (m *Mkdir) Type() Enablement {
 }
 
 func (m *Mkdir) apply(_ *I) error {
-	verbose.Println("ensuring directory", m)
+	fmsg.VPrintln("ensuring directory", m)
 
 	// create directory
 	err := os.Mkdir(m.path, m.perm)
@@ -58,11 +57,11 @@ func (m *Mkdir) revert(_ *I, ec *Criteria) error {
 	}
 
 	if ec.hasType(m) {
-		verbose.Println("destroying ephemeral directory", m)
+		fmsg.VPrintln("destroying ephemeral directory", m)
 		return fmsg.WrapErrorSuffix(os.Remove(m.path),
 			fmt.Sprintf("cannot remove ephemeral directory %q:", m.path))
 	} else {
-		verbose.Println("skipping ephemeral directory", m)
+		fmsg.VPrintln("skipping ephemeral directory", m)
 		return nil
 	}
 }

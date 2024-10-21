@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"git.ophivana.moe/security/fortify/internal/fmsg"
-	"git.ophivana.moe/security/fortify/internal/verbose"
 	"git.ophivana.moe/security/fortify/xcb"
 )
 
@@ -23,18 +22,18 @@ func (x XHost) Type() Enablement {
 }
 
 func (x XHost) apply(_ *I) error {
-	verbose.Printf("inserting entry %s to X11\n", x)
+	fmsg.VPrintf("inserting entry %s to X11", x)
 	return fmsg.WrapErrorSuffix(xcb.ChangeHosts(xcb.HostModeInsert, xcb.FamilyServerInterpreted, "localuser\x00"+string(x)),
 		fmt.Sprintf("cannot insert entry %s to X11:", x))
 }
 
 func (x XHost) revert(_ *I, ec *Criteria) error {
 	if ec.hasType(x) {
-		verbose.Printf("deleting entry %s from X11\n", x)
+		fmsg.VPrintf("deleting entry %s from X11", x)
 		return fmsg.WrapErrorSuffix(xcb.ChangeHosts(xcb.HostModeDelete, xcb.FamilyServerInterpreted, "localuser\x00"+string(x)),
 			fmt.Sprintf("cannot delete entry %s from X11:", x))
 	} else {
-		verbose.Printf("skipping entry %s in X11\n", x)
+		fmsg.VPrintf("skipping entry %s in X11", x)
 		return nil
 	}
 }

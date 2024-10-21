@@ -3,7 +3,7 @@ package app
 import (
 	"os"
 
-	"git.ophivana.moe/security/fortify/internal/verbose"
+	"git.ophivana.moe/security/fortify/internal/fmsg"
 )
 
 const (
@@ -18,7 +18,7 @@ func (a *app) commandBuilderSudo(shimEnv string) (args []string) {
 
 	// -A?
 	if _, ok := os.LookupEnv(sudoAskPass); ok {
-		verbose.Printf("%s set, adding askpass flag\n", sudoAskPass)
+		fmsg.VPrintln(sudoAskPass, "set, adding askpass flag")
 		args = append(args, "-A")
 	}
 

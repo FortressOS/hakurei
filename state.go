@@ -7,6 +7,7 @@ import (
 	"text/tabwriter"
 
 	"git.ophivana.moe/security/fortify/internal"
+	"git.ophivana.moe/security/fortify/internal/fmsg"
 	"git.ophivana.moe/security/fortify/internal/state"
 )
 
@@ -25,7 +26,7 @@ func tryState() {
 		state.MustPrintLauncherStateSimpleGlobal(&w, internal.GetSC().RunDirPath)
 		if w != nil {
 			if err := w.Flush(); err != nil {
-				fmt.Println("warn: error formatting output:", err)
+				fmsg.Println("cannot format output:", err)
 			}
 		} else {
 			fmt.Println("No information available")

@@ -6,7 +6,6 @@ import (
 
 	"git.ophivana.moe/security/fortify/acl"
 	"git.ophivana.moe/security/fortify/internal/fmsg"
-	"git.ophivana.moe/security/fortify/internal/verbose"
 )
 
 // UpdatePerm appends an ephemeral acl update Op.
@@ -33,18 +32,20 @@ func (a *ACL) Type() Enablement {
 }
 
 func (a *ACL) apply(sys *I) error {
-	verbose.Println("applying ACL", a, "uid:", sys.uid, "type:", TypeString(a.et), "path:", a.path)
+	fmsg.VPrintf("applying ACL %s uid: %d type: %s path: %q",
+		a, sys.uid, TypeString(a.et), a.path)
 	return fmsg.WrapErrorSuffix(acl.UpdatePerm(a.path, sys.uid, a.perms...),
 		fmt.Sprintf("cannot apply ACL entry to %q:", a.path))
 }
 
 func (a *ACL) revert(sys *I, ec *Criteria) error {
 	if ec.hasType(a) {
-		verbose.Println("stripping ACL", a, "uid:", sys.uid, "type:", TypeString(a.et), "path:", a.path)
+		fmsg.VPrintf("stripping ACL %s uid: %d type: %s path: %q",
+			a, sys.uid, TypeString(a.et), a.path)
 		return fmsg.WrapErrorSuffix(acl.UpdatePerm(a.path, sys.uid),
 			fmt.Sprintf("cannot strip ACL entry from %q:", a.path))
 	} else {
-		verbose.Println("skipping ACL", a, "uid:", sys.uid, "tag:", TypeString(a.et), "path:", a.path)
+		fmsg.VPrintln("skipping ACL", a, "uid:", sys.uid, "tag:", TypeString(a.et), "path:", a.path)
 		return nil
 	}
 }

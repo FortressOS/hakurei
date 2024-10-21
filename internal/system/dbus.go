@@ -2,12 +2,10 @@ package system
 
 import (
 	"errors"
-	"fmt"
 	"os"
 
 	"git.ophivana.moe/security/fortify/dbus"
 	"git.ophivana.moe/security/fortify/internal/fmsg"
-	"git.ophivana.moe/security/fortify/internal/verbose"
 )
 
 var (
@@ -42,12 +40,12 @@ func (sys *I) ProxyDBus(session, system *dbus.Config, sessionPath, systemPath st
 	d.proxy = dbus.New(sessionBus, systemBus)
 
 	defer func() {
-		if verbose.Get() && d.proxy.Sealed() {
-			verbose.Println("sealed session proxy", session.Args(sessionBus))
+		if fmsg.Verbose() && d.proxy.Sealed() {
+			fmsg.VPrintln("sealed session proxy", session.Args(sessionBus))
 			if system != nil {
-				verbose.Println("sealed system proxy", system.Args(systemBus))
+				fmsg.VPrintln("sealed system proxy", system.Args(systemBus))
 			}
-			verbose.Println("message bus proxy final args:", d.proxy)
+			fmsg.VPrintln("message bus proxy final args:", d.proxy)
 		}
 	}()
 
@@ -73,9 +71,9 @@ func (d *DBus) Type() Enablement {
 }
 
 func (d *DBus) apply(_ *I) error {
-	verbose.Printf("session bus proxy on %q for upstream %q\n", d.proxy.Session()[1], d.proxy.Session()[0])
+	fmsg.VPrintf("session bus proxy on %q for upstream %q", d.proxy.Session()[1], d.proxy.Session()[0])
 	if d.system {
-		verbose.Printf("system bus proxy on %q for upstream %q\n", d.proxy.System()[1], d.proxy.System()[0])
+		fmsg.VPrintf("system bus proxy on %q for upstream %q", d.proxy.System()[1], d.proxy.System()[0])
 	}
 
 	// ready channel passed to dbus package
@@ -86,27 +84,27 @@ func (d *DBus) apply(_ *I) error {
 		return fmsg.WrapErrorSuffix(err,
 			"cannot start message bus proxy:")
 	}
-	verbose.Println("starting message bus proxy:", d.proxy)
-	if verbose.Get() { // save the extra bwrap arg build when verbose logging is off
-		verbose.Println("message bus proxy bwrap args:", d.proxy.Bwrap())
+	fmsg.VPrintln("starting message bus proxy:", d.proxy)
+	if fmsg.Verbose() { // save the extra bwrap arg build when verbose logging is off
+		fmsg.VPrintln("message bus proxy bwrap args:", d.proxy.Bwrap())
 	}
 
 	// background wait for proxy instance and notify completion
 	go func() {
 		if err := d.proxy.Wait(); err != nil {
-			fmt.Println("fortify: message bus proxy exited with error:", err)
+			fmsg.Println("message bus proxy exited with error:", err)
 			go func() { ready <- err }()
 		} else {
-			verbose.Println("message bus proxy exit")
+			fmsg.VPrintln("message bus proxy exit")
 		}
 
 		// ensure socket removal so ephemeral directory is empty at revert
 		if err := os.Remove(d.proxy.Session()[1]); err != nil && !errors.Is(err, os.ErrNotExist) {
-			fmt.Println("fortify: cannot remove dangling session bus socket:", err)
+			fmsg.Println("cannot remove dangling session bus socket:", err)
 		}
 		if d.system {
 			if err := os.Remove(d.proxy.System()[1]); err != nil && !errors.Is(err, os.ErrNotExist) {
-				fmt.Println("fortify: cannot remove dangling system bus socket:", err)
+				fmsg.Println("cannot remove dangling system bus socket:", err)
 			}
 		}
 
@@ -120,14 +118,14 @@ func (d *DBus) apply(_ *I) error {
 		return fmsg.WrapErrorSuffix(err,
 			"message bus proxy fault after start:")
 	}
-	verbose.Println("message bus proxy ready")
+	fmsg.VPrintln("message bus proxy ready")
 
 	return nil
 }
 
 func (d *DBus) revert(_ *I, _ *Criteria) error {
 	// criteria ignored here since dbus is always process-scoped
-	verbose.Println("terminating message bus proxy")
+	fmsg.VPrintln("terminating message bus proxy")
 
 	if err := d.proxy.Close(); err != nil {
 		if errors.Is(err, os.ErrClosed) {

@@ -1,13 +1,12 @@
 package internal
 
 import (
-	"fmt"
 	"os"
 	"path"
 	"strconv"
 	"sync"
 
-	"git.ophivana.moe/security/fortify/internal/verbose"
+	"git.ophivana.moe/security/fortify/internal/fmsg"
 )
 
 // state that remain constant for the lifetime of the process
@@ -37,16 +36,16 @@ func copySC() {
 		SharePath: path.Join(os.TempDir(), "fortify."+strconv.Itoa(os.Geteuid())),
 	}
 
-	verbose.Println("process share directory at", sc.SharePath)
+	fmsg.VPrintf("process share directory at %q", sc.SharePath)
 
 	// runtimePath, runDirPath
 	if r, ok := os.LookupEnv(xdgRuntimeDir); !ok {
-		fmt.Println("Env variable", xdgRuntimeDir, "unset")
+		fmsg.Println("variable", xdgRuntimeDir, "unset")
 		os.Exit(1)
 	} else {
 		sc.RuntimePath = r
 		sc.RunDirPath = path.Join(sc.RuntimePath, "fortify")
-		verbose.Println("XDG runtime directory at", sc.RunDirPath)
+		fmsg.VPrintf("XDG runtime directory at %q", sc.RunDirPath)
 	}
 
 	scVal = sc

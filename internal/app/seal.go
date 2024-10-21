@@ -14,7 +14,6 @@ import (
 	"git.ophivana.moe/security/fortify/internal/shim"
 	"git.ophivana.moe/security/fortify/internal/state"
 	"git.ophivana.moe/security/fortify/internal/system"
-	"git.ophivana.moe/security/fortify/internal/verbose"
 )
 
 const (
@@ -152,7 +151,7 @@ func (a *app) Seal(config *Config) error {
 
 	// map sandbox config to bwrap
 	if config.Confinement.Sandbox == nil {
-		verbose.Println("sandbox configuration not supplied, PROCEED WITH CAUTION")
+		fmsg.VPrintln("sandbox configuration not supplied, PROCEED WITH CAUTION")
 
 		// permissive defaults
 		conf := &SandboxConfig{
@@ -242,7 +241,7 @@ func (a *app) Seal(config *Config) error {
 	}
 
 	// verbose log seal information
-	verbose.Println("created application seal as user",
+	fmsg.VPrintln("created application seal as user",
 		seal.sys.user.Username, "("+seal.sys.user.Uid+"),",
 		"method:", config.Method+",",
 		"launcher:", seal.toolPath+",",

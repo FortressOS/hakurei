@@ -2,9 +2,10 @@ package internal
 
 import (
 	"errors"
-	"fmt"
 	"io/fs"
 	"os"
+
+	"git.ophivana.moe/security/fortify/internal/fmsg"
 )
 
 const (
@@ -13,7 +14,7 @@ const (
 
 var SdBootedV = func() bool {
 	if v, err := SdBooted(); err != nil {
-		fmt.Println("warn: read systemd marker:", err)
+		fmsg.Println("cannot read systemd marker:", err)
 		return false
 	} else {
 		return v

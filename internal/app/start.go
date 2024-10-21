@@ -7,7 +7,6 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"time"
 
@@ -16,7 +15,6 @@ import (
 	"git.ophivana.moe/security/fortify/internal/shim"
 	"git.ophivana.moe/security/fortify/internal/state"
 	"git.ophivana.moe/security/fortify/internal/system"
-	"git.ophivana.moe/security/fortify/internal/verbose"
 )
 
 // Start starts the fortified child
@@ -71,14 +69,14 @@ func (a *app) Start() error {
 		Bwrap: a.seal.sys.bwrap,
 		WL:    a.seal.wl != nil,
 
-		Verbose: verbose.Get(),
+		Verbose: fmsg.Verbose(),
 	}, a.seal.wl); err != nil {
 		return fmsg.WrapErrorSuffix(err,
 			"cannot serve shim setup:")
 	}
 
 	// start shim
-	verbose.Println("starting shim as target user:", a.cmd)
+	fmsg.VPrintln("starting shim as target user:", a.cmd)
 	if err := a.cmd.Start(); err != nil {
 		return fmsg.WrapErrorSuffix(err,
 			"cannot start process:")
@@ -178,12 +176,12 @@ func (a *app) Wait() (int, error) {
 		r = a.cmd.ProcessState.ExitCode()
 	}
 
-	verbose.Println("process", strconv.Itoa(a.cmd.Process.Pid), "exited with exit code", r)
+	fmsg.VPrintf("process %d exited with exit code %d", a.cmd.Process.Pid, r)
 
 	// close wayland connection
 	if a.seal.wl != nil {
 		if err := a.seal.wl.Close(); err != nil {
-			fmt.Println("fortify: cannot close wayland connection:", err)
+			fmsg.Println("cannot close wayland connection:", err)
 		}
 	}
 
@@ -205,10 +203,10 @@ func (a *app) Wait() (int, error) {
 			} else {
 				if l := len(states); l == 0 {
 					// cleanup globals as the final launcher
-					verbose.Println("no other launchers active, will clean up globals")
+					fmsg.VPrintln("no other launchers active, will clean up globals")
 					ec.Set(system.User)
 				} else {
-					verbose.Printf("found %d active launchers, cleaning up without globals\n", l)
+					fmsg.VPrintf("found %d active launchers, cleaning up without globals", l)
 				}
 
 				// accumulate capabilities of other launchers
@@ -222,7 +220,7 @@ func (a *app) Wait() (int, error) {
 					ec.Set(i)
 				}
 			}
-			if verbose.Get() {
+			if fmsg.Verbose() {
 				labels := make([]string, 0, system.ELen+1)
 				for i := system.Enablement(0); i < system.Enablement(system.ELen+2); i++ {
 					if ec.Has(i) {
@@ -230,7 +228,7 @@ func (a *app) Wait() (int, error) {
 					}
 				}
 				if len(labels) > 0 {
-					verbose.Println("reverting operations labelled", strings.Join(labels, ", "))
+					fmsg.VPrintln("reverting operations labelled", strings.Join(labels, ", "))
 				}
 			}
 

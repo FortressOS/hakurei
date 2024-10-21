@@ -4,7 +4,6 @@ import (
 	"encoding/gob"
 	"errors"
 	"flag"
-	"fmt"
 	"net"
 	"os"
 	"path"
@@ -12,29 +11,29 @@ import (
 	"syscall"
 
 	"git.ophivana.moe/security/fortify/helper"
+	"git.ophivana.moe/security/fortify/internal/fmsg"
 	init0 "git.ophivana.moe/security/fortify/internal/init"
-	"git.ophivana.moe/security/fortify/internal/verbose"
 )
 
 // everything beyond this point runs as target user
 // proceed with caution!
 
 func doShim(socket string) {
+	fmsg.SetPrefix("shim")
+
 	// re-exec
 	if len(os.Args) > 0 && os.Args[0] != "fortify" && path.IsAbs(os.Args[0]) {
 		if err := syscall.Exec(os.Args[0], []string{"fortify", "shim"}, os.Environ()); err != nil {
-			fmt.Println("fortify-shim: cannot re-exec self:", err)
+			fmsg.Println("cannot re-exec self:", err)
 			// continue anyway
 		}
 	}
 
-	verbose.Prefix = "fortify-shim:"
-
 	// dial setup socket
 	var conn *net.UnixConn
 	if c, err := net.DialUnix("unix", nil, &net.UnixAddr{Name: socket, Net: "unix"}); err != nil {
-		fmt.Println("fortify-shim: cannot dial setup socket:", err)
-		os.Exit(1)
+		fmsg.Fatal("cannot dial setup socket:", err)
+		panic("unreachable")
 	} else {
 		conn = c
 	}
@@ -42,25 +41,22 @@ func doShim(socket string) {
 	// decode payload gob stream
 	var payload Payload
 	if err := gob.NewDecoder(conn).Decode(&payload); err != nil {
-		fmt.Println("fortify-shim: cannot decode shim payload:", err)
-		os.Exit(1)
+		fmsg.Fatal("cannot decode shim payload:", err)
 	} else {
 		// sharing stdout with parent
 		// USE WITH CAUTION
-		verbose.Set(payload.Verbose)
+		fmsg.SetVerbose(payload.Verbose)
 	}
 
 	if payload.Bwrap == nil {
-		fmt.Println("fortify-shim: bwrap config not supplied")
-		os.Exit(1)
+		fmsg.Fatal("bwrap config not supplied")
 	}
 
 	// receive wayland fd over socket
 	wfd := -1
 	if payload.WL {
 		if fd, err := receiveWLfd(conn); err != nil {
-			fmt.Println("fortify-shim: cannot receive wayland fd:", err)
-			os.Exit(1)
+			fmsg.Fatal("cannot receive wayland fd:", err)
 		} else {
 			wfd = fd
 		}
@@ -68,7 +64,7 @@ func doShim(socket string) {
 
 	// close setup socket
 	if err := conn.Close(); err != nil {
-		fmt.Println("fortify-shim: cannot close setup socket:", err)
+		fmsg.Println("cannot close setup socket:", err)
 		// not fatal
 	}
 
@@ -83,8 +79,7 @@ func doShim(socket string) {
 		// no argv, look up shell instead
 		var ok bool
 		if ic.Argv0, ok = os.LookupEnv("SHELL"); !ok {
-			fmt.Println("fortify-shim: no command was specified and $SHELL was unset")
-			os.Exit(1)
+			fmsg.Fatal("no command was specified and $SHELL was unset")
 		}
 
 		ic.Argv = []string{ic.Argv0}
@@ -106,41 +101,37 @@ func doShim(socket string) {
 
 	// share config pipe
 	if r, w, err := os.Pipe(); err != nil {
-		fmt.Println("fortify-shim: cannot pipe:", err)
-		os.Exit(1)
+		fmsg.Fatal("cannot pipe:", err)
 	} else {
 		conf.SetEnv[init0.EnvInit] = strconv.Itoa(3 + len(extraFiles))
 		extraFiles = append(extraFiles, r)
 
-		verbose.Println("transmitting config to init")
+		fmsg.VPrintln("transmitting config to init")
 		go func() {
 			// stream config to pipe
 			if err = gob.NewEncoder(w).Encode(&ic); err != nil {
-				fmt.Println("fortify-shim: cannot transmit init config:", err)
-				os.Exit(1)
+				fmsg.Fatal("cannot transmit init config:", err)
 			}
 		}()
 	}
 
 	helper.BubblewrapName = payload.Exec[1] // resolved bwrap path by parent
 	if b, err := helper.NewBwrap(conf, nil, payload.Exec[0], func(int, int) []string { return []string{"init"} }); err != nil {
-		fmt.Println("fortify-shim: malformed sandbox config:", err)
-		os.Exit(1)
+		fmsg.Fatal("malformed sandbox config:", err)
 	} else {
 		cmd := b.Unwrap()
 		cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
 		cmd.ExtraFiles = extraFiles
 
-		if verbose.Get() {
-			verbose.Println("bwrap args:", conf.Args())
+		if fmsg.Verbose() {
+			fmsg.VPrintln("bwrap args:", conf.Args())
 		}
 
 		// run and pass through exit code
 		if err = b.Start(); err != nil {
-			fmt.Println("fortify-shim: cannot start target process:", err)
-			os.Exit(1)
+			fmsg.Fatal("cannot start target process:", err)
 		} else if err = b.Wait(); err != nil {
-			verbose.Println("wait:", err)
+			fmsg.VPrintln("wait:", err)
 		}
 		if b.Unwrap().ProcessState != nil {
 			os.Exit(b.Unwrap().ProcessState.ExitCode())
