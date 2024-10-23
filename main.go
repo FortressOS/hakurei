@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"os"
 	"syscall"
 
 	"git.ophivana.moe/security/fortify/internal"
@@ -19,6 +18,8 @@ var (
 func init() {
 	flag.BoolVar(&flagVerbose, "v", false, "Verbose output")
 }
+
+var os = new(internal.Std)
 
 func main() {
 	// linux/sched/coredump.h
@@ -38,9 +39,9 @@ func main() {
 	shim.Try()
 
 	// root check
-	if os.Getuid() == 0 {
-		fmsg.Println("this program must not run as root")
-		os.Exit(1)
+	if os.Geteuid() == 0 {
+		fmsg.Fatal("this program must not run as root")
+		panic("unreachable")
 	}
 
 	// version/license/template command early exit
@@ -53,7 +54,7 @@ func main() {
 
 	// invoke app
 	r := 1
-	a, err := app.New()
+	a, err := app.New(os)
 	if err != nil {
 		fmsg.Fatalf("cannot create app: %s\n", err)
 	} else if err = a.Seal(loadConfig()); err != nil {

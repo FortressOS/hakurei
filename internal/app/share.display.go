@@ -2,10 +2,10 @@ package app
 
 import (
 	"errors"
-	"os"
 	"path"
 
 	"git.ophivana.moe/security/fortify/acl"
+	"git.ophivana.moe/security/fortify/internal"
 	"git.ophivana.moe/security/fortify/internal/fmsg"
 	"git.ophivana.moe/security/fortify/internal/system"
 )
@@ -23,7 +23,7 @@ var (
 	ErrXDisplay = errors.New(display + " unset")
 )
 
-func (seal *appSeal) shareDisplay() error {
+func (seal *appSeal) shareDisplay(os internal.System) error {
 	// pass $TERM to launcher
 	if t, ok := os.LookupEnv(term); ok {
 		seal.sys.bwrap.SetEnv[term] = t

@@ -1,10 +1,10 @@
 package app
 
 import (
-	"os"
 	"path"
 
 	"git.ophivana.moe/security/fortify/acl"
+	"git.ophivana.moe/security/fortify/internal"
 	"git.ophivana.moe/security/fortify/internal/system"
 )
 
@@ -38,7 +38,7 @@ func (seal *appSeal) shareSystem() {
 	seal.sys.bwrap.Tmpfs(seal.SharePath, 1*1024*1024)
 }
 
-func (seal *appSeal) sharePasswd() {
+func (seal *appSeal) sharePasswd(os internal.System) {
 	// look up shell
 	sh := "/bin/sh"
 	if s, ok := os.LookupEnv(shell); ok {

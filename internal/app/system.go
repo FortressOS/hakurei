@@ -5,6 +5,7 @@ import (
 
 	"git.ophivana.moe/security/fortify/dbus"
 	"git.ophivana.moe/security/fortify/helper/bwrap"
+	"git.ophivana.moe/security/fortify/internal"
 	"git.ophivana.moe/security/fortify/internal/system"
 )
 
@@ -27,7 +28,7 @@ type appSealSys struct {
 }
 
 // shareAll calls all share methods in sequence
-func (seal *appSeal) shareAll(bus [2]*dbus.Config) error {
+func (seal *appSeal) shareAll(bus [2]*dbus.Config, os internal.System) error {
 	if seal.shared {
 		panic("seal shared twice")
 	}
@@ -35,11 +36,11 @@ func (seal *appSeal) shareAll(bus [2]*dbus.Config) error {
 
 	seal.shareSystem()
 	seal.shareRuntime()
-	seal.sharePasswd()
-	if err := seal.shareDisplay(); err != nil {
+	seal.sharePasswd(os)
+	if err := seal.shareDisplay(os); err != nil {
 		return err
 	}
-	if err := seal.sharePulse(); err != nil {
+	if err := seal.sharePulse(os); err != nil {
 		return err
 	}
 

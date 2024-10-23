@@ -3,6 +3,8 @@ package app
 import (
 	"os/exec"
 	"sync"
+
+	"git.ophivana.moe/security/fortify/internal"
 )
 
 type App interface {
@@ -22,6 +24,8 @@ type App interface {
 type app struct {
 	// application unique identifier
 	id *ID
+	// operating system interface
+	os internal.System
 	// underlying user switcher process
 	cmd *exec.Cmd
 	// shim setup abort reason and completion
@@ -61,8 +65,9 @@ func (a *app) WaitErr() error {
 	return a.waitErr
 }
 
-func New() (App, error) {
+func New(os internal.System) (App, error) {
 	a := new(app)
 	a.id = new(ID)
+	a.os = os
 	return a, newAppID(a.id)
 }

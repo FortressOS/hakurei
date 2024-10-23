@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"os"
 
 	"git.ophivana.moe/security/fortify/dbus"
 	"git.ophivana.moe/security/fortify/internal"

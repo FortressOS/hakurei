@@ -1,7 +1,6 @@
 package app
 
 import (
-	"os/exec"
 	"strings"
 
 	"git.ophivana.moe/security/fortify/internal/fmsg"
@@ -31,7 +30,7 @@ func (a *app) commandBuilderMachineCtl(shimEnv string) (args []string) {
 	args = append(args, "--", ".host")
 
 	// /bin/sh -c
-	if sh, err := exec.LookPath("sh"); err != nil {
+	if sh, err := a.os.LookPath("sh"); err != nil {
 		// hardcode /bin/sh path since it exists more often than not
 		args = append(args, "/bin/sh", "-c")
 	} else {

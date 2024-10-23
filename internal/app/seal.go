@@ -2,8 +2,7 @@ package app
 
 import (
 	"errors"
-	"os"
-	"os/exec"
+	"io/fs"
 	"os/user"
 	"path"
 	"strconv"
@@ -67,8 +66,7 @@ type appSeal struct {
 	// seal system-level component
 	sys *appSealSys
 
-	// used in various sealing operations
-	internal.SystemConstants
+	internal.Paths
 
 	// protected by upstream mutex
 }
@@ -91,7 +89,7 @@ func (a *app) Seal(config *Config) error {
 	seal := new(appSeal)
 
 	// fetch system constants
-	seal.SystemConstants = internal.GetSC()
+	seal.Paths = a.os.Paths()
 
 	// pass through config values
 	seal.id = a.id.String()
@@ -102,7 +100,7 @@ func (a *app) Seal(config *Config) error {
 	switch config.Method {
 	case method[LaunchMethodSudo]:
 		seal.launchOption = LaunchMethodSudo
-		if sudoPath, err := exec.LookPath("sudo"); err != nil {
+		if sudoPath, err := a.os.LookPath("sudo"); err != nil {
 			return fmsg.WrapError(ErrSudo,
 				"sudo not found")
 		} else {
@@ -115,7 +113,7 @@ func (a *app) Seal(config *Config) error {
 				"system has not been booted with systemd as init system")
 		}
 
-		if machineCtlPath, err := exec.LookPath("machinectl"); err != nil {
+		if machineCtlPath, err := a.os.LookPath("machinectl"); err != nil {
 			return fmsg.WrapError(ErrMachineCtl,
 				"machinectl not found")
 		} else {
@@ -130,14 +128,14 @@ func (a *app) Seal(config *Config) error {
 	seal.sys = new(appSealSys)
 
 	// look up fortify executable path
-	if p, err := os.Executable(); err != nil {
+	if p, err := a.os.Executable(); err != nil {
 		return fmsg.WrapErrorSuffix(err, "cannot look up fortify executable path:")
 	} else {
 		seal.sys.executable = p
 	}
 
 	// look up user from system
-	if u, err := user.Lookup(config.User); err != nil {
+	if u, err := a.os.Lookup(config.User); err != nil {
 		if errors.As(err, new(user.UnknownUserError)) {
 			return fmsg.WrapError(ErrUser, "unknown user", config.User)
 		} else {
@@ -160,7 +158,7 @@ func (a *app) Seal(config *Config) error {
 			NoNewSession: true,
 		}
 		// bind entries in /
-		if d, err := os.ReadDir("/"); err != nil {
+		if d, err := a.os.ReadDir("/"); err != nil {
 			return err
 		} else {
 			b := make([]*FilesystemConfig, 0, len(d))
@@ -180,7 +178,7 @@ func (a *app) Seal(config *Config) error {
 			conf.Filesystem = append(conf.Filesystem, b...)
 		}
 		// bind entries in /run
-		if d, err := os.ReadDir("/run"); err != nil {
+		if d, err := a.os.ReadDir("/run"); err != nil {
 			return err
 		} else {
 			b := make([]*FilesystemConfig, 0, len(d))
@@ -198,7 +196,7 @@ func (a *app) Seal(config *Config) error {
 		}
 		// hide nscd from sandbox if present
 		nscd := "/var/run/nscd"
-		if _, err := os.Stat(nscd); !errors.Is(err, os.ErrNotExist) {
+		if _, err := a.os.Stat(nscd); !errors.Is(err, fs.ErrNotExist) {
 			conf.Override = append(conf.Override, nscd)
 		}
 		// bind GPU stuff
@@ -222,7 +220,7 @@ func (a *app) Seal(config *Config) error {
 	// open process state store
 	// the simple store only starts holding an open file after first action
 	// store activity begins after Start is called and must end before Wait
-	seal.store = state.NewSimple(seal.SystemConstants.RunDirPath, seal.sys.user.Uid)
+	seal.store = state.NewSimple(seal.RunDirPath, seal.sys.user.Uid)
 
 	// parse string UID
 	if u, err := strconv.Atoi(seal.sys.user.Uid); err != nil {
@@ -236,7 +234,7 @@ func (a *app) Seal(config *Config) error {
 	seal.et = config.Confinement.Enablements
 
 	// this method calls all share methods in sequence
-	if err := seal.shareAll([2]*dbus.Config{config.Confinement.SessionBus, config.Confinement.SystemBus}); err != nil {
+	if err := seal.shareAll([2]*dbus.Config{config.Confinement.SessionBus, config.Confinement.SystemBus}, a.os); err != nil {
 		return err
 	}
 

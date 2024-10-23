@@ -1,8 +1,6 @@
 package app
 
 import (
-	"os"
-
 	"git.ophivana.moe/security/fortify/internal/fmsg"
 )
 
@@ -17,7 +15,7 @@ func (a *app) commandBuilderSudo(shimEnv string) (args []string) {
 	args = append(args, "-Hiu", a.seal.sys.user.Username)
 
 	// -A?
-	if _, ok := os.LookupEnv(sudoAskPass); ok {
+	if _, ok := a.os.LookupEnv(sudoAskPass); ok {
 		fmsg.VPrintln(sudoAskPass, "set, adding askpass flag")
 		args = append(args, "-A")
 	}

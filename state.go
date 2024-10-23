@@ -3,10 +3,8 @@ package main
 import (
 	"flag"
 	"fmt"
-	"os"
 	"text/tabwriter"
 
-	"git.ophivana.moe/security/fortify/internal"
 	"git.ophivana.moe/security/fortify/internal/fmsg"
 	"git.ophivana.moe/security/fortify/internal/state"
 )
@@ -23,7 +21,7 @@ func init() {
 func tryState() {
 	if stateActionEarly {
 		var w *tabwriter.Writer
-		state.MustPrintLauncherStateSimpleGlobal(&w, internal.GetSC().RunDirPath)
+		state.MustPrintLauncherStateSimpleGlobal(&w, os.Paths().RunDirPath)
 		if w != nil {
 			if err := w.Flush(); err != nil {
 				fmsg.Println("cannot format output:", err)
