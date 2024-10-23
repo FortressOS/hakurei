@@ -51,3 +51,79 @@ func TestTypeString(t *testing.T) {
 		})
 	}
 }
+
+func TestI_Equal(t *testing.T) {
+	testCases := []struct {
+		name string
+		sys  *system.I
+		v    *system.I
+		want bool
+	}{
+		{
+			"simple UID",
+			system.New(150),
+			system.New(150),
+			true,
+		},
+		{
+			"simple UID differ",
+			system.New(150),
+			system.New(151),
+			false,
+		},
+		{
+			"simple UID nil",
+			system.New(150),
+			nil,
+			false,
+		},
+		{
+			"op length mismatch",
+			system.New(150).
+				ChangeHosts("chronos"),
+			system.New(150).
+				ChangeHosts("chronos").
+				Ensure("/run", 0755),
+			false,
+		},
+		{
+			"op value mismatch",
+			system.New(150).
+				ChangeHosts("chronos").
+				Ensure("/run", 0644),
+			system.New(150).
+				ChangeHosts("chronos").
+				Ensure("/run", 0755),
+			false,
+		},
+		{
+			"op type mismatch",
+			system.New(150).
+				ChangeHosts("chronos").
+				CopyFile("/tmp/fortify.1971/30c9543e0a2c9621a8bfecb9d874c347/pulse-cookie", "/home/ophestra/xdg/config/pulse/cookie"),
+			system.New(150).
+				ChangeHosts("chronos").
+				Ensure("/run", 0755),
+			false,
+		},
+		{
+			"op equals",
+			system.New(150).
+				ChangeHosts("chronos").
+				Ensure("/run", 0755),
+			system.New(150).
+				ChangeHosts("chronos").
+				Ensure("/run", 0755),
+			true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			if tc.sys.Equal(tc.v) != tc.want {
+				t.Errorf("Equal: got %v; want %v",
+					!tc.want, tc.want)
+			}
+		})
+	}
+}

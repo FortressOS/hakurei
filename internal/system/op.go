@@ -65,6 +65,20 @@ func (sys *I) UID() int {
 	return sys.uid
 }
 
+func (sys *I) Equal(v *I) bool {
+	if v == nil || sys.uid != v.uid || len(sys.ops) != len(v.ops) {
+		return false
+	}
+
+	for i, o := range sys.ops {
+		if !o.Is(v.ops[i]) {
+			return false
+		}
+	}
+
+	return true
+}
+
 func (sys *I) Commit() error {
 	sys.lock.Lock()
 	defer sys.lock.Unlock()
