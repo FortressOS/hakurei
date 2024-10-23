@@ -9,19 +9,23 @@ import (
 )
 
 // Ensure the existence and mode of a directory.
-func (sys *I) Ensure(name string, perm os.FileMode) {
+func (sys *I) Ensure(name string, perm os.FileMode) *I {
 	sys.lock.Lock()
 	defer sys.lock.Unlock()
 
 	sys.ops = append(sys.ops, &Mkdir{User, name, perm, false})
+
+	return sys
 }
 
 // Ephemeral ensures the temporary existence and mode of a directory through the life of et.
-func (sys *I) Ephemeral(et Enablement, name string, perm os.FileMode) {
+func (sys *I) Ephemeral(et Enablement, name string, perm os.FileMode) *I {
 	sys.lock.Lock()
 	defer sys.lock.Unlock()
 
 	sys.ops = append(sys.ops, &Mkdir{et, name, perm, true})
+
+	return sys
 }
 
 type Mkdir struct {

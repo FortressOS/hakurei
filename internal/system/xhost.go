@@ -8,11 +8,13 @@ import (
 )
 
 // ChangeHosts appends an X11 ChangeHosts command Op.
-func (sys *I) ChangeHosts(username string) {
+func (sys *I) ChangeHosts(username string) *I {
 	sys.lock.Lock()
 	defer sys.lock.Unlock()
 
 	sys.ops = append(sys.ops, XHost(username))
+
+	return sys
 }
 
 type XHost string

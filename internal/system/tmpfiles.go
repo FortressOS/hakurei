@@ -12,44 +12,50 @@ import (
 )
 
 // CopyFile registers an Op that copies path dst from src.
-func (sys *I) CopyFile(dst, src string) {
-	sys.CopyFileType(Process, dst, src)
+func (sys *I) CopyFile(dst, src string) *I {
+	return sys.CopyFileType(Process, dst, src)
 }
 
 // CopyFileType registers a file copying Op labelled with type et.
-func (sys *I) CopyFileType(et Enablement, dst, src string) {
+func (sys *I) CopyFileType(et Enablement, dst, src string) *I {
 	sys.lock.Lock()
 	sys.ops = append(sys.ops, &Tmpfile{et, tmpfileCopy, dst, src})
 	sys.lock.Unlock()
 
 	sys.UpdatePermType(et, dst, acl.Read)
+
+	return sys
 }
 
 // Link registers an Op that links dst to src.
-func (sys *I) Link(oldname, newname string) {
-	sys.LinkFileType(Process, oldname, newname)
+func (sys *I) Link(oldname, newname string) *I {
+	return sys.LinkFileType(Process, oldname, newname)
 }
 
 // LinkFileType registers a file linking Op labelled with type et.
-func (sys *I) LinkFileType(et Enablement, oldname, newname string) {
+func (sys *I) LinkFileType(et Enablement, oldname, newname string) *I {
 	sys.lock.Lock()
 	defer sys.lock.Unlock()
 
 	sys.ops = append(sys.ops, &Tmpfile{et, tmpfileLink, newname, oldname})
+
+	return sys
 }
 
 // Write registers an Op that writes dst with the contents of src.
-func (sys *I) Write(dst, src string) {
-	sys.WriteType(Process, dst, src)
+func (sys *I) Write(dst, src string) *I {
+	return sys.WriteType(Process, dst, src)
 }
 
 // WriteType registers a file writing Op labelled with type et.
-func (sys *I) WriteType(et Enablement, dst, src string) {
+func (sys *I) WriteType(et Enablement, dst, src string) *I {
 	sys.lock.Lock()
 	sys.ops = append(sys.ops, &Tmpfile{et, tmpfileWrite, dst, src})
 	sys.lock.Unlock()
 
 	sys.UpdatePermType(et, dst, acl.Read)
+
+	return sys
 }
 
 const (

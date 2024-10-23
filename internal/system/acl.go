@@ -9,16 +9,20 @@ import (
 )
 
 // UpdatePerm appends an ephemeral acl update Op.
-func (sys *I) UpdatePerm(path string, perms ...acl.Perm) {
+func (sys *I) UpdatePerm(path string, perms ...acl.Perm) *I {
 	sys.UpdatePermType(Process, path, perms...)
+
+	return sys
 }
 
 // UpdatePermType appends an acl update Op.
-func (sys *I) UpdatePermType(et Enablement, path string, perms ...acl.Perm) {
+func (sys *I) UpdatePermType(et Enablement, path string, perms ...acl.Perm) *I {
 	sys.lock.Lock()
 	defer sys.lock.Unlock()
 
 	sys.ops = append(sys.ops, &ACL{et, path, perms})
+
+	return sys
 }
 
 type ACL struct {
