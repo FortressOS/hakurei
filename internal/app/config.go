@@ -1,17 +1,12 @@
 package app
 
 import (
-	"encoding/gob"
 	"os"
 
 	"git.ophivana.moe/security/fortify/dbus"
 	"git.ophivana.moe/security/fortify/helper/bwrap"
 	"git.ophivana.moe/security/fortify/internal/system"
 )
-
-func init() {
-	gob.Register(new(bwrap.PermConfig[*bwrap.TmpfsConfig]))
-}
 
 // Config is used to seal an *App
 type Config struct {
@@ -61,6 +56,8 @@ type SandboxConfig struct {
 	Env map[string]string `json:"env"`
 	// sandbox host filesystem access
 	Filesystem []*FilesystemConfig `json:"filesystem"`
+	// symlinks created inside the sandbox
+	Link [][2]string `json:"symlink"`
 	// paths to override by mounting tmpfs over them
 	Override []string `json:"override"`
 }
@@ -99,7 +96,8 @@ func (s *SandboxConfig) Bwrap() *bwrap.Config {
 		Chmod: make(map[string]os.FileMode),
 	}).
 		SetUID(65534).SetGID(65534).
-		Procfs("/proc").DevTmpfs("/dev").Mqueue("/dev/mqueue")
+		Procfs("/proc").DevTmpfs("/dev").Mqueue("/dev/mqueue").
+		Tmpfs("/dev/fortify", 4*1024)
 
 	for _, c := range s.Filesystem {
 		if c == nil {
@@ -111,6 +109,10 @@ func (s *SandboxConfig) Bwrap() *bwrap.Config {
 			dest = c.Src
 		}
 		conf.Bind(src, dest, !c.Must, c.Write, c.Device)
+	}
+
+	for _, l := range s.Link {
+		conf.Symlink(l[0], l[1])
 	}
 
 	return conf
@@ -149,6 +151,7 @@ func Template() *Config {
 					{Src: "/data/user/0", Dst: "/data/data", Write: true, Must: true},
 					{Src: "/var/tmp", Write: true},
 				},
+				Link:     [][2]string{{"/dev/fortify/etc", "/etc"}},
 				Override: []string{"/var/run/nscd"},
 			},
 			SystemBus: &dbus.Config{
