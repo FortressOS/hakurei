@@ -163,15 +163,17 @@ func (a *app) Seal(config *Config) error {
 		} else {
 			b := make([]*FilesystemConfig, 0, len(d))
 			for _, ent := range d {
-				name := ent.Name()
-				switch name {
-				case "proc":
-				case "dev":
-				case "run":
-				case "tmp":
-				case "mnt":
+				p := "/" + ent.Name()
+				switch p {
+				case "/proc":
+				case "/dev":
+				case "/run":
+				case "/tmp":
+				case "/mnt":
+
+				case "/etc":
+					b = append(b, &FilesystemConfig{Src: p, Dst: "/dev/fortify/etc", Write: false, Must: true})
 				default:
-					p := "/" + name
 					b = append(b, &FilesystemConfig{Src: p, Write: true, Must: true})
 				}
 			}
@@ -203,6 +205,32 @@ func (a *app) Seal(config *Config) error {
 		if config.Confinement.Enablements.Has(system.EX11) || config.Confinement.Enablements.Has(system.EWayland) {
 			conf.Filesystem = append(conf.Filesystem, &FilesystemConfig{Src: "/dev/dri", Device: true})
 		}
+		// link host /etc to prevent passwd/group from being overwritten
+		if d, err := a.os.ReadDir("/etc"); err != nil {
+			return err
+		} else {
+			b := make([][2]string, 0, len(d))
+			for _, ent := range d {
+				name := ent.Name()
+				switch name {
+				case "passwd":
+				case "group":
+
+				case "mtab":
+					b = append(b, [2]string{
+						"/proc/mounts",
+						"/etc/" + name,
+					})
+				default:
+					b = append(b, [2]string{
+						"/dev/fortify/etc/" + name,
+						"/etc/" + name,
+					})
+				}
+			}
+			conf.Link = append(conf.Link, b...)
+		}
+
 		config.Confinement.Sandbox = conf
 	}
 	seal.sys.bwrap = config.Confinement.Sandbox.Bwrap()
