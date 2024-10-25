@@ -1,9 +1,15 @@
 package bwrap
 
 import (
+	"encoding/gob"
 	"os"
 	"strconv"
 )
+
+func init() {
+	gob.Register(new(PermConfig[SymlinkConfig]))
+	gob.Register(new(PermConfig[*TmpfsConfig]))
+}
 
 type Config struct {
 	// unshare every namespace we support by default if nil
