@@ -55,7 +55,7 @@ func CopyPaths(os System, v *Paths) {
 
 	fmsg.VPrintf("process share directory at %q", v.SharePath)
 
-	if r, ok := os.LookupEnv(xdgRuntimeDir); !ok {
+	if r, ok := os.LookupEnv(xdgRuntimeDir); !ok || r == "" || !path.IsAbs(r) {
 		// fall back to path in share since fortify has no hard XDG dependency
 		v.RunDirPath = path.Join(v.SharePath, "run")
 		v.RuntimePath = path.Join(v.RunDirPath, "compat")
