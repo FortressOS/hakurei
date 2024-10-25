@@ -64,7 +64,14 @@ func (a *app) Start() error {
 	a.cmd.Dir = a.seal.RunDirPath
 
 	a.abort = make(chan error)
-	if err := shim.ServeConfig(confSockPath, a.abort, a.seal.sys.UID(), &shim.Payload{
+	procReady := make(chan struct{})
+	if err := shim.ServeConfig(confSockPath, a.abort, func() {
+		<-procReady
+		if err := a.cmd.Process.Signal(os.Interrupt); err != nil {
+			fmsg.Println("cannot kill shim on faulted setup:", err)
+		}
+		fmt.Print("\r")
+	}, a.seal.sys.UID(), &shim.Payload{
 		Argv:  a.seal.command,
 		Exec:  shimExec,
 		Bwrap: a.seal.sys.bwrap,
@@ -85,6 +92,7 @@ func (a *app) Start() error {
 			"cannot start process:")
 	}
 	startTime := time.Now().UTC()
+	close(procReady)
 
 	// create process state
 	sd := state.State{

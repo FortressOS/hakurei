@@ -4,7 +4,6 @@ import (
 	"encoding/gob"
 	"errors"
 	"net"
-	"os"
 	"syscall"
 
 	"git.ophivana.moe/security/fortify/acl"
@@ -13,7 +12,7 @@ import (
 
 // called in the parent process
 
-func ServeConfig(socket string, abort chan error, uid int, payload *Payload, wl *Wayland) error {
+func ServeConfig(socket string, abort chan error, killShim func(), uid int, payload *Payload, wl *Wayland) error {
 	if payload.WL {
 		if f, err := net.DialUnix("unix", nil, &net.UnixAddr{Name: wl.Path, Net: "unix"}); err != nil {
 			return err
@@ -58,7 +57,7 @@ func ServeConfig(socket string, abort chan error, uid int, payload *Payload, wl 
 			} else {
 				if err = gob.NewEncoder(conn).Encode(*payload); err != nil {
 					fmsg.Println("cannot stream shim payload:", err)
-					_ = os.Remove(socket)
+					killShim()
 					return
 				}
 
@@ -67,6 +66,7 @@ func ServeConfig(socket string, abort chan error, uid int, payload *Payload, wl 
 					var rc syscall.RawConn
 					if rc, err = wl.SyscallConn(); err != nil {
 						fmsg.Println("cannot obtain raw wayland connection:", err)
+						killShim()
 						return
 					} else {
 						go func() {
@@ -74,6 +74,7 @@ func ServeConfig(socket string, abort chan error, uid int, payload *Payload, wl 
 							if err = rc.Control(func(fd uintptr) {
 								if _, _, err = conn.WriteMsgUnix(nil, syscall.UnixRights(int(fd)), nil); err != nil {
 									fmsg.Println("cannot pass wayland connection to shim:", err)
+									killShim()
 									return
 								}
 								_ = conn.Close()
