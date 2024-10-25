@@ -27,7 +27,7 @@ type System interface {
 	// Lookup provides [user.Lookup].
 	Lookup(username string) (*user.User, error)
 	// ReadDir provides [os.ReadDir].
-	ReadDir(name string) ([]os.DirEntry, error)
+	ReadDir(name string) ([]fs.DirEntry, error)
 	// Stat provides [os.Stat].
 	Stat(name string) (fs.FileInfo, error)
 	// Open provides [os.Open]
