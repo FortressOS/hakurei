@@ -25,7 +25,25 @@ const (
 	Other        = C.ACL_OTHER
 )
 
-type Perm C.acl_perm_t
+type (
+	Perm  C.acl_perm_t
+	Perms []Perm
+)
+
+func (ps Perms) String() string {
+	var s = []byte("---")
+	for _, p := range ps {
+		switch p {
+		case Read:
+			s[0] = 'r'
+		case Write:
+			s[1] = 'w'
+		case Execute:
+			s[2] = 'x'
+		}
+	}
+	return string(s)
+}
 
 func UpdatePerm(path string, uid int, perms ...Perm) error {
 	// read acl from file

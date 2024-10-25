@@ -28,7 +28,7 @@ func (sys *I) UpdatePermType(et Enablement, path string, perms ...acl.Perm) *I {
 type ACL struct {
 	et    Enablement
 	path  string
-	perms []acl.Perm
+	perms acl.Perms
 }
 
 func (a *ACL) Type() Enablement {
@@ -36,20 +36,18 @@ func (a *ACL) Type() Enablement {
 }
 
 func (a *ACL) apply(sys *I) error {
-	fmsg.VPrintf("applying ACL %s uid: %d type: %s path: %q",
-		a, sys.uid, TypeString(a.et), a.path)
+	fmsg.VPrintln("applying ACL", a)
 	return fmsg.WrapErrorSuffix(acl.UpdatePerm(a.path, sys.uid, a.perms...),
 		fmt.Sprintf("cannot apply ACL entry to %q:", a.path))
 }
 
 func (a *ACL) revert(sys *I, ec *Criteria) error {
 	if ec.hasType(a) {
-		fmsg.VPrintf("stripping ACL %s uid: %d type: %s path: %q",
-			a, sys.uid, TypeString(a.et), a.path)
+		fmsg.VPrintln("stripping ACL", a)
 		return fmsg.WrapErrorSuffix(acl.UpdatePerm(a.path, sys.uid),
 			fmt.Sprintf("cannot strip ACL entry from %q:", a.path))
 	} else {
-		fmsg.VPrintln("skipping ACL", a, "uid:", sys.uid, "tag:", TypeString(a.et), "path:", a.path)
+		fmsg.VPrintln("skipping ACL", a)
 		return nil
 	}
 }
@@ -67,16 +65,6 @@ func (a *ACL) Path() string {
 }
 
 func (a *ACL) String() string {
-	var s = []byte("---")
-	for _, p := range a.perms {
-		switch p {
-		case acl.Read:
-			s[0] = 'r'
-		case acl.Write:
-			s[1] = 'w'
-		case acl.Execute:
-			s[2] = 'x'
-		}
-	}
-	return string(s)
+	return fmt.Sprintf("%s type: %s path: %q",
+		a.perms, TypeString(a.et), a.path)
 }
