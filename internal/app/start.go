@@ -35,8 +35,8 @@ func (a *app) Start() error {
 			if s, err := exec.LookPath(n); err == nil {
 				shimExec[i] = s
 			} else {
-				return fmsg.WrapErrorSuffix(err,
-					fmt.Sprintf("cannot find %q:", n))
+				return fmsg.WrapError(err,
+					fmt.Sprintf("executable file %q not found in $PATH", n))
 			}
 		}
 	}
