@@ -37,12 +37,14 @@ func Exit(code int) {
 }
 
 func Withhold() {
+	dequeueOnce.Do(dequeue)
 	if wstate.CompareAndSwap(false, true) {
 		withhold <- struct{}{}
 	}
 }
 
 func Resume() {
+	dequeueOnce.Do(dequeue)
 	if wstate.CompareAndSwap(true, false) {
 		withhold <- struct{}{}
 	}
