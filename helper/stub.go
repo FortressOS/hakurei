@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"git.ophivana.moe/security/fortify/helper/bwrap"
+	"git.ophivana.moe/security/fortify/internal/fmsg"
 )
 
 // InternalChildStub is an internal function but exported because it is cross-package;
@@ -33,7 +34,7 @@ func InternalChildStub() {
 		genericStub(argsFD, statFD)
 	}
 
-	os.Exit(0)
+	fmsg.Exit(0)
 }
 
 // InternalReplaceExecCommand is an internal function but exported because it is cross-package;

@@ -65,7 +65,7 @@ func tryTemplate() {
 		} else {
 			fmt.Println(string(s))
 		}
-		os.Exit(0)
+		fmsg.Exit(0)
 	}
 }
 

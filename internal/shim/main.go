@@ -134,9 +134,9 @@ func doShim(socket string) {
 			fmsg.VPrintln("wait:", err)
 		}
 		if b.Unwrap().ProcessState != nil {
-			os.Exit(b.Unwrap().ProcessState.ExitCode())
+			fmsg.Exit(b.Unwrap().ProcessState.ExitCode())
 		} else {
-			os.Exit(127)
+			fmsg.Exit(127)
 		}
 	}
 }

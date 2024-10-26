@@ -21,8 +21,7 @@ func MustPrintLauncherStateSimpleGlobal(w **tabwriter.Writer, runDir string) {
 
 	// read runtime directory to get all UIDs
 	if dirs, err := os.ReadDir(path.Join(runDir, "state")); err != nil && !errors.Is(err, os.ErrNotExist) {
-		fmsg.Println("cannot read runtime directory:", err)
-		os.Exit(1)
+		fmsg.Fatal("cannot read runtime directory:", err)
 	} else {
 		for _, e := range dirs {
 			// skip non-directories
@@ -112,13 +111,11 @@ func (s *simpleStore) mustPrintLauncherState(w **tabwriter.Writer, now time.Time
 	}); err != nil {
 		fmsg.Printf("cannot perform action on store %q: %s", path.Join(s.path...), err)
 		if !ok {
-			fmsg.Println("store faulted before printing")
-			os.Exit(1)
+			fmsg.Fatal("store faulted before printing")
 		}
 	}
 
 	if innerErr != nil {
-		fmsg.Printf("cannot print launcher state for store %q: %s", path.Join(s.path...), innerErr)
-		os.Exit(1)
+		fmsg.Fatalf("cannot print launcher state for store %q: %s", path.Join(s.path...), innerErr)
 	}
 }

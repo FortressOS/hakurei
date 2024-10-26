@@ -1,5 +1,9 @@
 package fmsg
 
+import "sync/atomic"
+
+var verbose = new(atomic.Bool)
+
 func Verbose() bool {
 	return verbose.Load()
 }
@@ -10,12 +14,12 @@ func SetVerbose(v bool) {
 
 func VPrintf(format string, v ...any) {
 	if verbose.Load() {
-		std.Printf(format, v...)
+		Printf(format, v...)
 	}
 }
 
 func VPrintln(v ...any) {
 	if verbose.Load() {
-		std.Println(v...)
+		Println(v...)
 	}
 }

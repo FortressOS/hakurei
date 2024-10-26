@@ -129,7 +129,7 @@ func doInit(fd uintptr) {
 		select {
 		case s := <-sig:
 			fmsg.VPrintln("received", s.String())
-			os.Exit(0)
+			fmsg.Exit(0)
 		case w := <-info:
 			if w.wpid == cmd.Process.Pid {
 				switch {
@@ -147,10 +147,10 @@ func doInit(fd uintptr) {
 				}()
 			}
 		case <-done:
-			os.Exit(r)
+			fmsg.Exit(r)
 		case <-timeout:
 			fmsg.Println("timeout exceeded waiting for lingering processes")
-			os.Exit(r)
+			fmsg.Exit(r)
 		}
 	}
 }

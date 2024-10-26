@@ -109,7 +109,7 @@ func (s *Std) Open(name string) (fs.File, error) {
 	return os.Open(name)
 }
 func (s *Std) Exit(code int) {
-	os.Exit(code)
+	fmsg.Exit(code)
 }
 
 const xdgRuntimeDir = "XDG_RUNTIME_DIR"

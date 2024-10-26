@@ -2,7 +2,6 @@ package main
 
 import (
 	"errors"
-	"fmt"
 
 	"git.ophivana.moe/security/fortify/internal/app"
 	"git.ophivana.moe/security/fortify/internal/fmsg"
@@ -51,6 +50,6 @@ func logBaseError(err error, message string) {
 	if fmsg.AsBaseError(err, &e) {
 		fmsg.Print(e.Message())
 	} else {
-		fmt.Println(message, err)
+		fmsg.Println(message, err)
 	}
 }

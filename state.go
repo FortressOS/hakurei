@@ -30,6 +30,6 @@ func tryState() {
 			fmt.Println("No information available")
 		}
 
-		os.Exit(0)
+		fmsg.Exit(0)
 	}
 }

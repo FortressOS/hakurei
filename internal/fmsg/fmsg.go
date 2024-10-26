@@ -4,38 +4,40 @@ package fmsg
 import (
 	"log"
 	"os"
-	"sync/atomic"
 )
 
-var (
-	std  = log.New(os.Stdout, "fortify: ", 0)
-	warn = log.New(os.Stderr, "fortify: ", 0)
-
-	verbose = new(atomic.Bool)
-)
+var std = log.New(os.Stderr, "fortify: ", 0)
 
 func SetPrefix(prefix string) {
 	prefix += ": "
 	std.SetPrefix(prefix)
-	warn.SetPrefix(prefix)
+	std.SetPrefix(prefix)
 }
 
 func Print(v ...any) {
-	warn.Print(v...)
+	dequeueOnce.Do(dequeue)
+	queueSync.Add(1)
+	msgbuf <- dPrint(v)
 }
 
 func Printf(format string, v ...any) {
-	warn.Printf(format, v...)
+	dequeueOnce.Do(dequeue)
+	queueSync.Add(1)
+	msgbuf <- &dPrintf{format, v}
 }
 
 func Println(v ...any) {
-	warn.Println(v...)
+	dequeueOnce.Do(dequeue)
+	queueSync.Add(1)
+	msgbuf <- dPrintln(v)
 }
 
 func Fatal(v ...any) {
-	warn.Fatal(v...)
+	Print(v...)
+	Exit(1)
 }
 
 func Fatalf(format string, v ...any) {
-	warn.Fatalf(format, v...)
+	Printf(format, v...)
+	Exit(1)
 }
