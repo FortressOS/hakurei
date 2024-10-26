@@ -1,10 +1,10 @@
 package app
 
 import (
-	"os/exec"
 	"sync"
 
 	"git.ophivana.moe/security/fortify/internal"
+	"git.ophivana.moe/security/fortify/internal/shim"
 )
 
 type App interface {
@@ -26,10 +26,8 @@ type app struct {
 	id *ID
 	// operating system interface
 	os internal.System
-	// underlying user switcher process
-	cmd *exec.Cmd
-	// shim setup abort reason and completion
-	abort chan error
+	// shim process manager
+	shim *shim.Shim
 	// child process related information
 	seal *appSeal
 	// error returned waiting for process
@@ -50,8 +48,8 @@ func (a *app) String() string {
 	a.lock.RLock()
 	defer a.lock.RUnlock()
 
-	if a.cmd != nil {
-		return a.cmd.String()
+	if a.shim != nil {
+		return a.shim.String()
 	}
 
 	if a.seal != nil {

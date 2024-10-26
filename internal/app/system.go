@@ -22,6 +22,8 @@ type appSealSys struct {
 	// target user sealed from config
 	user *user.User
 
+	needRevert bool
+	saveState  bool
 	*system.I
 
 	// protected by upstream mutex

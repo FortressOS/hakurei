@@ -3,12 +3,10 @@ package app
 import (
 	"errors"
 	"fmt"
-	"os"
 	"os/exec"
 	"path"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"git.ophivana.moe/security/fortify/helper"
 	"git.ophivana.moe/security/fortify/internal/fmsg"
@@ -17,7 +15,8 @@ import (
 	"git.ophivana.moe/security/fortify/internal/system"
 )
 
-// Start starts the fortified child
+// Start selects a user switcher and starts shim.
+// Note that Wait must be called regardless of error returned by Start.
 func (a *app) Start() error {
 	a.lock.Lock()
 	defer a.lock.Unlock()
@@ -41,12 +40,8 @@ func (a *app) Start() error {
 		}
 	}
 
-	if err := a.seal.sys.Commit(); err != nil {
-		return err
-	}
-
 	// select command builder
-	var commandBuilder func(shimEnv string) (args []string)
+	var commandBuilder shim.CommandBuilder
 	switch a.seal.launchOption {
 	case LaunchMethodSudo:
 		commandBuilder = a.commandBuilderSudo
@@ -56,60 +51,45 @@ func (a *app) Start() error {
 		panic("unreachable")
 	}
 
-	// configure child process
-	confSockPath := path.Join(a.seal.share, "shim")
-	a.cmd = exec.Command(a.seal.toolPath, commandBuilder(shim.EnvShim+"="+confSockPath)...)
-	a.cmd.Env = []string{}
-	a.cmd.Stdin, a.cmd.Stdout, a.cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
-	a.cmd.Dir = a.seal.RunDirPath
+	// construct shim manager
+	a.shim = shim.New(a.seal.toolPath, uint32(a.seal.sys.UID()), path.Join(a.seal.share, "shim"), a.seal.wl,
+		&shim.Payload{
+			Argv:  a.seal.command,
+			Exec:  shimExec,
+			Bwrap: a.seal.sys.bwrap,
+			WL:    a.seal.wl != nil,
 
-	a.abort = make(chan error)
-	procReady := make(chan struct{})
-	if err := shim.ServeConfig(confSockPath, a.abort, func() {
-		<-procReady
-		if err := a.cmd.Process.Signal(os.Interrupt); err != nil {
-			fmsg.Println("cannot kill shim on faulted setup:", err)
+			Verbose: fmsg.Verbose(),
+		},
+	)
+
+	// startup will go ahead, commit system setup
+	if err := a.seal.sys.Commit(); err != nil {
+		return err
+	}
+	a.seal.sys.needRevert = true
+
+	if startTime, err := a.shim.Start(commandBuilder); err != nil {
+		return err
+	} else {
+		// shim start and setup success, create process state
+		sd := state.State{
+			PID:        a.shim.Unwrap().Process.Pid,
+			Command:    a.seal.command,
+			Capability: a.seal.et,
+			Method:     method[a.seal.launchOption],
+			Argv:       a.shim.Unwrap().Args,
+			Time:       *startTime,
 		}
-		fmt.Print("\r")
-	}, a.seal.sys.UID(), &shim.Payload{
-		Argv:  a.seal.command,
-		Exec:  shimExec,
-		Bwrap: a.seal.sys.bwrap,
-		WL:    a.seal.wl != nil,
 
-		Verbose: fmsg.Verbose(),
-	}, a.seal.wl); err != nil {
-		a.abort <- err
-		<-a.abort
-		return fmsg.WrapErrorSuffix(err,
-			"cannot serve shim setup:")
+		// register process state
+		var err0 = new(StateStoreError)
+		err0.Inner, err0.DoErr = a.seal.store.Do(func(b state.Backend) {
+			err0.InnerErr = b.Save(&sd)
+		})
+		a.seal.sys.saveState = true
+		return err0.equiv("cannot save process state:")
 	}
-
-	// start shim
-	fmsg.VPrintln("starting shim as target user:", a.cmd)
-	if err := a.cmd.Start(); err != nil {
-		return fmsg.WrapErrorSuffix(err,
-			"cannot start process:")
-	}
-	startTime := time.Now().UTC()
-	close(procReady)
-
-	// create process state
-	sd := state.State{
-		PID:        a.cmd.Process.Pid,
-		Command:    a.seal.command,
-		Capability: a.seal.et,
-		Method:     method[a.seal.launchOption],
-		Argv:       a.cmd.Args,
-		Time:       startTime,
-	}
-
-	// register process state
-	var err = new(StateStoreError)
-	err.Inner, err.DoErr = a.seal.store.Do(func(b state.Backend) {
-		err.InnerErr = b.Save(&sd)
-	})
-	return err.equiv("cannot save process state:")
 }
 
 // StateStoreError is returned for a failed state save
@@ -173,21 +153,28 @@ func (a *app) Wait() (int, error) {
 
 	var r int
 
-	// wait for process and resolve exit code
-	if err := a.cmd.Wait(); err != nil {
-		var exitError *exec.ExitError
-		if !errors.As(err, &exitError) {
-			// should be unreachable
-			a.waitErr = err
-		}
-
-		// store non-zero return code
-		r = exitError.ExitCode()
+	if cmd := a.shim.Unwrap(); cmd == nil {
+		// failure prior to process start
+		r = 255
 	} else {
-		r = a.cmd.ProcessState.ExitCode()
+		// wait for process and resolve exit code
+		if err := cmd.Wait(); err != nil {
+			var exitError *exec.ExitError
+			if !errors.As(err, &exitError) {
+				// should be unreachable
+				a.waitErr = err
+			}
+
+			// store non-zero return code
+			r = exitError.ExitCode()
+		} else {
+			r = cmd.ProcessState.ExitCode()
+		}
+		fmsg.VPrintf("process %d exited with exit code %d", cmd.Process.Pid, r)
 	}
 
-	fmsg.VPrintf("process %d exited with exit code %d", a.cmd.Process.Pid, r)
+	// child process exited, resume output
+	fmsg.Resume()
 
 	// close wayland connection
 	if a.seal.wl != nil {
@@ -201,8 +188,10 @@ func (a *app) Wait() (int, error) {
 	e.Inner, e.DoErr = a.seal.store.Do(func(b state.Backend) {
 		e.InnerErr = func() error {
 			// destroy defunct state entry
-			if err := b.Destroy(a.cmd.Process.Pid); err != nil {
-				return err
+			if cmd := a.shim.Unwrap(); cmd != nil && a.seal.sys.saveState {
+				if err := b.Destroy(cmd.Process.Pid); err != nil {
+					return err
+				}
 			}
 
 			// enablements of remaining launchers
@@ -243,8 +232,7 @@ func (a *app) Wait() (int, error) {
 				}
 			}
 
-			a.abort <- errors.New("shim exited")
-			<-a.abort
+			a.shim.AbortWait(errors.New("shim exited"))
 			if err := a.seal.sys.Revert(ec); err != nil {
 				return err.(RevertCompoundError)
 			}

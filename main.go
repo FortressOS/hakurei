@@ -53,15 +53,18 @@ func main() {
 	tryState()
 
 	// invoke app
-	r := 1
 	a, err := app.New(os)
 	if err != nil {
 		fmsg.Fatalf("cannot create app: %s\n", err)
 	} else if err = a.Seal(loadConfig()); err != nil {
-		logBaseError(err, "fortify: cannot seal app:")
+		logBaseError(err, "cannot seal app:")
 	} else if err = a.Start(); err != nil {
-		logBaseError(err, "fortify: cannot start app:")
-	} else if r, err = a.Wait(); err != nil {
+		logBaseError(err, "cannot start app:")
+	}
+
+	var r int
+	// wait must be called regardless of result of start
+	if r, err = a.Wait(); err != nil {
 		if r < 1 {
 			r = 1
 		}
@@ -70,5 +73,5 @@ func main() {
 	if err = a.WaitErr(); err != nil {
 		fmsg.Println("inner wait failed:", err)
 	}
-	os.Exit(r)
+	fmsg.Exit(r)
 }
