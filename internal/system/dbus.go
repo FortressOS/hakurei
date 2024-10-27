@@ -12,6 +12,14 @@ var (
 	ErrDBusConfig = errors.New("dbus config not supplied")
 )
 
+func (sys *I) MustProxyDBus(sessionPath string, session *dbus.Config, systemPath string, system *dbus.Config) *I {
+	if err := sys.ProxyDBus(session, system, sessionPath, systemPath); err != nil {
+		panic(err.Error())
+	} else {
+		return sys
+	}
+}
+
 func (sys *I) ProxyDBus(session, system *dbus.Config, sessionPath, systemPath string) error {
 	d := new(DBus)
 
@@ -144,7 +152,9 @@ func (d *DBus) revert(_ *I, _ *Criteria) error {
 
 func (d *DBus) Is(o Op) bool {
 	d0, ok := o.(*DBus)
-	return ok && d0 != nil && *d == *d0
+	return ok && d0 != nil &&
+		((d.proxy == nil && d0.proxy == nil) ||
+			(d.proxy != nil && d0.proxy != nil && d.proxy.String() == d0.proxy.String()))
 }
 
 func (d *DBus) Path() string {

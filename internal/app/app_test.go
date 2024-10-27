@@ -4,6 +4,7 @@ import (
 	"io/fs"
 	"reflect"
 	"testing"
+	"time"
 
 	"git.ophivana.moe/security/fortify/helper/bwrap"
 	"git.ophivana.moe/security/fortify/internal"
@@ -78,4 +79,56 @@ func (p stubDirEntryPath) Type() fs.FileMode {
 
 func (p stubDirEntryPath) Info() (fs.FileInfo, error) {
 	panic("attempted to call Info")
+}
+
+type stubFileInfoMode fs.FileMode
+
+func (s stubFileInfoMode) Name() string {
+	panic("attempted to call Name")
+}
+
+func (s stubFileInfoMode) Size() int64 {
+	panic("attempted to call Size")
+}
+
+func (s stubFileInfoMode) Mode() fs.FileMode {
+	return fs.FileMode(s)
+}
+
+func (s stubFileInfoMode) ModTime() time.Time {
+	panic("attempted to call ModTime")
+}
+
+func (s stubFileInfoMode) IsDir() bool {
+	panic("attempted to call IsDir")
+}
+
+func (s stubFileInfoMode) Sys() any {
+	panic("attempted to call Sys")
+}
+
+type stubFileInfoIsDir bool
+
+func (s stubFileInfoIsDir) Name() string {
+	panic("attempted to call Name")
+}
+
+func (s stubFileInfoIsDir) Size() int64 {
+	panic("attempted to call Size")
+}
+
+func (s stubFileInfoIsDir) Mode() fs.FileMode {
+	panic("attempted to call Mode")
+}
+
+func (s stubFileInfoIsDir) ModTime() time.Time {
+	panic("attempted to call ModTime")
+}
+
+func (s stubFileInfoIsDir) IsDir() bool {
+	return bool(s)
+}
+
+func (s stubFileInfoIsDir) Sys() any {
+	panic("attempted to call Sys")
 }
