@@ -34,9 +34,7 @@
 
       devShells = forAllSystems (system: {
         default = nixpkgsFor.${system}.mkShell {
-          buildInputs =
-            with nixpkgsFor.${system};
-            self.packages.${system}.fortify.buildInputs;
+          buildInputs = with nixpkgsFor.${system}; self.packages.${system}.fortify.buildInputs;
         };
 
         withPackage = nixpkgsFor.${system}.mkShell {

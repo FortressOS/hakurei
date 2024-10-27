@@ -20,6 +20,8 @@ buildGoModule rec {
     "-w"
     "-X"
     "main.Version=v${version}"
+    "-X"
+    "main.FortifyPath=${placeholder "out"}/bin/fortify"
   ];
 
   buildInputs = [
@@ -36,5 +38,7 @@ buildGoModule rec {
         xdg-dbus-proxy
       ]
     }
+
+    mv $out/bin/fsu $out/bin/.fsu
   '';
 }
