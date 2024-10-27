@@ -37,10 +37,8 @@ type Shim struct {
 	payload *Payload
 }
 
-func New(executable string, uid uint32, socket string, wl *Wayland, payload *Payload) *Shim {
-	// checkPid is impossible at the moment since there is no way to obtain shim's pid
-	// this feature is disabled here until sudo is replaced by fortify suid wrapper
-	return &Shim{uid: uid, executable: executable, socket: socket, wl: wl, payload: payload}
+func New(executable string, uid uint32, socket string, wl *Wayland, payload *Payload, checkPid bool) *Shim {
+	return &Shim{uid: uid, executable: executable, socket: socket, wl: wl, payload: payload, checkPid: checkPid}
 }
 
 func (s *Shim) String() string {

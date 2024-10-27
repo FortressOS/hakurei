@@ -61,6 +61,9 @@ func (a *app) Start() error {
 
 			Verbose: fmsg.Verbose(),
 		},
+		// checkPid is impossible at the moment since there is no reliable way to obtain shim's pid
+		// this feature is disabled here until sudo is replaced by fortify suid wrapper
+		false,
 	)
 
 	// startup will go ahead, commit system setup
@@ -105,7 +108,7 @@ type StateStoreError struct {
 }
 
 func (e *StateStoreError) equiv(a ...any) error {
-	if e.Inner == true && e.DoErr == nil && e.InnerErr == nil && e.Err == nil {
+	if e.Inner && e.DoErr == nil && e.InnerErr == nil && e.Err == nil {
 		return nil
 	} else {
 		return fmsg.WrapErrorSuffix(e, a...)
