@@ -6,7 +6,6 @@ import (
 	"fmt"
 
 	"git.ophivana.moe/security/fortify/dbus"
-	"git.ophivana.moe/security/fortify/internal"
 	"git.ophivana.moe/security/fortify/internal/app"
 	"git.ophivana.moe/security/fortify/internal/fmsg"
 	"git.ophivana.moe/security/fortify/internal/system"
@@ -50,7 +49,7 @@ func init() {
 
 func init() {
 	methodHelpString := "Method of launching the child process, can be one of \"sudo\""
-	if internal.SdBootedV {
+	if os.SdBooted() {
 		methodHelpString += ", \"systemd\""
 	}
 

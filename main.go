@@ -30,7 +30,7 @@ func main() {
 	flag.Parse()
 	fmsg.SetVerbose(flagVerbose)
 
-	if internal.SdBootedV {
+	if os.SdBooted() {
 		fmsg.VPrintln("system booted with systemd as init system")
 	}
 

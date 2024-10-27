@@ -108,7 +108,7 @@ func (a *app) Seal(config *Config) error {
 		}
 	case method[LaunchMethodMachineCtl]:
 		seal.launchOption = LaunchMethodMachineCtl
-		if !internal.SdBootedV {
+		if !a.os.SdBooted() {
 			return fmsg.WrapError(ErrSystemd,
 				"system has not been booted with systemd as init system")
 		}

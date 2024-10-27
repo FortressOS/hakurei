@@ -311,3 +311,7 @@ func (s *stubNixOS) Paths() internal.Paths {
 		RunDirPath:  "/run/user/1971/fortify",
 	}
 }
+
+func (s *stubNixOS) SdBooted() bool {
+	return true
+}
