@@ -58,6 +58,7 @@ func main() {
 		fmsg.Fatalf("cannot create app: %s\n", err)
 	} else if err = a.Seal(loadConfig()); err != nil {
 		logBaseError(err, "cannot seal app:")
+		fmsg.Exit(1)
 	} else if err = a.Start(); err != nil {
 		logBaseError(err, "cannot start app:")
 	}
