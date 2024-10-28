@@ -35,9 +35,18 @@ func main() {
 		log.Fatal("this program must not be started by root")
 	}
 
-	// check compiled in fortify path
+	// validate compiled in fortify path
 	if FortifyPath == fpPoison || !path.IsAbs(FortifyPath) {
 		log.Fatal("invalid fortify path, this copy of fsu is not compiled correctly")
+	}
+
+	pexe := path.Join("/proc", strconv.Itoa(os.Getppid()), "exe")
+	if p, err := os.Readlink(pexe); err != nil {
+		log.Fatalf("cannot read parent executable path: %v", err)
+	} else if strings.HasSuffix(p, " (deleted)") {
+		log.Fatal("fortify executable has been deleted")
+	} else if p != FortifyPath {
+		log.Fatal("this program must be started by fortify")
 	}
 
 	// uid = 1000000 +

@@ -21,7 +21,7 @@ buildGoModule rec {
     "-X"
     "main.Version=v${version}"
     "-X"
-    "main.FortifyPath=${placeholder "out"}/bin/fortify"
+    "main.FortifyPath=${placeholder "out"}/bin/.fortify-wrapped"
   ];
 
   buildInputs = [
