@@ -154,6 +154,11 @@ func (a *app) Wait() (int, error) {
 	a.lock.Lock()
 	defer a.lock.Unlock()
 
+	if a.shim == nil {
+		fmsg.VPrintln("shim not initialised, skipping cleanup")
+		return 1, nil
+	}
+
 	var r int
 
 	if cmd := a.shim.Unwrap(); cmd == nil {
