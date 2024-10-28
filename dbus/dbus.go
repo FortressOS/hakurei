@@ -1,3 +1,4 @@
+// Package dbus wraps xdg-dbus-proxy and implements configuration and sandboxing of the underlying helper process.
 package dbus
 
 import (

@@ -1,3 +1,4 @@
+// Package acl implements simple ACL manipulation via libacl.
 package acl
 
 import "unsafe"

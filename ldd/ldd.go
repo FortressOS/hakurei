@@ -1,3 +1,4 @@
+// Package ldd retrieves linker information by invoking ldd from glibc or musl and parsing its output.
 package ldd
 
 import (

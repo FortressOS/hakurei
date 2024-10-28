@@ -1,6 +1,4 @@
-/*
-Package helper runs external helpers and manages their status and args FDs.
-*/
+// Package helper runs external helpers with optional sandboxing and manages their status/args pipes.
 package helper
 
 import (

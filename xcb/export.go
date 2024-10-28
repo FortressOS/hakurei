@@ -1,3 +1,4 @@
+// Package xcb implements X11 ChangeHosts via libxcb.
 package xcb
 
 //#include <stdlib.h>
