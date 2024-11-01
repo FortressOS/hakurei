@@ -7,10 +7,10 @@ import (
 	"path"
 	"strconv"
 
+	shim "git.ophivana.moe/security/fortify/cmd/fshim/ipc"
 	"git.ophivana.moe/security/fortify/dbus"
-	"git.ophivana.moe/security/fortify/internal"
 	"git.ophivana.moe/security/fortify/internal/fmsg"
-	"git.ophivana.moe/security/fortify/internal/shim"
+	"git.ophivana.moe/security/fortify/internal/linux"
 	"git.ophivana.moe/security/fortify/internal/state"
 	"git.ophivana.moe/security/fortify/internal/system"
 )
@@ -66,7 +66,7 @@ type appSeal struct {
 	// seal system-level component
 	sys *appSealSys
 
-	internal.Paths
+	linux.Paths
 
 	// protected by upstream mutex
 }
@@ -126,13 +126,6 @@ func (a *app) Seal(config *Config) error {
 
 	// create seal system component
 	seal.sys = new(appSealSys)
-
-	// look up fortify executable path
-	if p, err := a.os.Executable(); err != nil {
-		return fmsg.WrapErrorSuffix(err, "cannot look up fortify executable path:")
-	} else {
-		seal.sys.executable = p
-	}
 
 	// look up user from system
 	if u, err := a.os.Lookup(config.User); err != nil {

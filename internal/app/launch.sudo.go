@@ -24,7 +24,7 @@ func (a *app) commandBuilderSudo(shimEnv string) (args []string) {
 	args = append(args, shimEnv)
 
 	// -- $@
-	args = append(args, "--", a.seal.sys.executable, "shim")
+	args = append(args, "--", a.os.FshimPath())
 
 	return
 }

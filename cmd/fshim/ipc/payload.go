@@ -1,4 +1,4 @@
-package shim
+package shim0
 
 import (
 	"encoding/gob"
@@ -9,13 +9,13 @@ import (
 	"git.ophivana.moe/security/fortify/internal/fmsg"
 )
 
-const EnvShim = "FORTIFY_SHIM"
+const Env = "FORTIFY_SHIM"
 
 type Payload struct {
 	// child full argv
 	Argv []string
-	// fortify, bwrap, target full exec path
-	Exec [3]string
+	// bwrap, target full exec path
+	Exec [2]string
 	// bwrap config
 	Bwrap *bwrap.Config
 	// whether to pass wayland fd
@@ -25,7 +25,7 @@ type Payload struct {
 	Verbose bool
 }
 
-func (p *Payload) serve(conn *net.UnixConn, wl *Wayland) error {
+func (p *Payload) Serve(conn *net.UnixConn, wl *Wayland) error {
 	if err := gob.NewEncoder(conn).Encode(*p); err != nil {
 		return fmsg.WrapErrorSuffix(err,
 			"cannot stream shim payload:")

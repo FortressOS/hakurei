@@ -6,8 +6,8 @@ import (
 	"io/fs"
 	"path"
 
-	"git.ophivana.moe/security/fortify/internal"
 	"git.ophivana.moe/security/fortify/internal/fmsg"
+	"git.ophivana.moe/security/fortify/internal/linux"
 	"git.ophivana.moe/security/fortify/internal/system"
 )
 
@@ -25,7 +25,7 @@ var (
 	ErrPulseMode   = errors.New("unexpected pulse socket mode")
 )
 
-func (seal *appSeal) sharePulse(os internal.System) error {
+func (seal *appSeal) sharePulse(os linux.System) error {
 	if !seal.et.Has(system.EPulse) {
 		return nil
 	}
@@ -78,7 +78,7 @@ func (seal *appSeal) sharePulse(os internal.System) error {
 }
 
 // discoverPulseCookie attempts various standard methods to discover the current user's PulseAudio authentication cookie
-func discoverPulseCookie(os internal.System) (string, error) {
+func discoverPulseCookie(os linux.System) (string, error) {
 	if p, ok := os.LookupEnv(pulseCookie); ok {
 		return p, nil
 	}

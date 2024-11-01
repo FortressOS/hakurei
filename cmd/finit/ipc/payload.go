@@ -1,6 +1,6 @@
 package init0
 
-const EnvInit = "FORTIFY_INIT"
+const Env = "FORTIFY_INIT"
 
 type Payload struct {
 	// target full exec path

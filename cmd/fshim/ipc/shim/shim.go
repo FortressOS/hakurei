@@ -11,8 +11,11 @@ import (
 	"time"
 
 	"git.ophivana.moe/security/fortify/acl"
+	shim0 "git.ophivana.moe/security/fortify/cmd/fshim/ipc"
 	"git.ophivana.moe/security/fortify/internal/fmsg"
 )
+
+const shimSetupTimeout = 5 * time.Second
 
 // used by the parent process
 
@@ -32,12 +35,12 @@ type Shim struct {
 	abortErr  atomic.Pointer[error]
 	abortOnce sync.Once
 	// wayland mediation, nil if disabled
-	wl *Wayland
+	wl *shim0.Wayland
 	// shim setup payload
-	payload *Payload
+	payload *shim0.Payload
 }
 
-func New(executable string, uid uint32, socket string, wl *Wayland, payload *Payload, checkPid bool) *Shim {
+func New(executable string, uid uint32, socket string, wl *shim0.Wayland, payload *shim0.Payload, checkPid bool) *Shim {
 	return &Shim{uid: uid, executable: executable, socket: socket, wl: wl, payload: payload, checkPid: checkPid}
 }
 
@@ -84,7 +87,7 @@ func (s *Shim) Start(f CommandBuilder) (*time.Time, error) {
 	}
 
 	// start user switcher process and save time
-	s.cmd = exec.Command(s.executable, f(EnvShim+"="+s.socket)...)
+	s.cmd = exec.Command(s.executable, f(shim0.Env+"="+s.socket)...)
 	s.cmd.Env = []string{}
 	s.cmd.Stdin, s.cmd.Stdout, s.cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
 	s.cmd.Dir = "/"
@@ -105,9 +108,18 @@ func (s *Shim) Start(f CommandBuilder) (*time.Time, error) {
 	defer func() { killShim() }()
 
 	accept()
-	conn := <-cf
-	if conn == nil {
-		return &startTime, fmsg.WrapErrorSuffix(*s.abortErr.Load(), "cannot accept call on setup socket:")
+	var conn *net.UnixConn
+	select {
+	case c := <-cf:
+		if c == nil {
+			return &startTime, fmsg.WrapErrorSuffix(*s.abortErr.Load(), "cannot accept call on setup socket:")
+		} else {
+			conn = c
+		}
+	case <-time.After(shimSetupTimeout):
+		err := errors.New("timed out waiting for shim")
+		s.AbortWait(err)
+		return &startTime, err
 	}
 
 	// authenticate against called provided uid and shim pid
@@ -129,7 +141,7 @@ func (s *Shim) Start(f CommandBuilder) (*time.Time, error) {
 
 	// serve payload and wayland fd if enabled
 	// this also closes the connection
-	err := s.payload.serve(conn, s.wl)
+	err := s.payload.Serve(conn, s.wl)
 	if err == nil {
 		killShim = func() {}
 	}
@@ -158,6 +170,7 @@ func (s *Shim) serve() (chan *net.UnixConn, func(), error) {
 		}
 
 		go func() {
+			cfWg := new(sync.WaitGroup)
 			for {
 				select {
 				case err = <-s.abort:
@@ -168,15 +181,24 @@ func (s *Shim) serve() (chan *net.UnixConn, func(), error) {
 						fmsg.Println("cannot close setup socket:", err)
 					}
 					close(s.abort)
-					close(cf)
+					go func() {
+						cfWg.Wait()
+						close(cf)
+					}()
 					return
 				case <-accept:
-					if conn, err0 := l.AcceptUnix(); err0 != nil {
-						s.Abort(err0) // does not block, breaks loop
-						cf <- nil     // receiver sees nil value and loads err0 stored during abort
-					} else {
-						cf <- conn
-					}
+					cfWg.Add(1)
+					go func() {
+						defer cfWg.Done()
+						if conn, err0 := l.AcceptUnix(); err0 != nil {
+							// breaks loop
+							s.Abort(err0)
+							// receiver sees nil value and loads err0 stored during abort
+							cf <- nil
+						} else {
+							cf <- conn
+						}
+					}()
 				}
 			}
 		}()

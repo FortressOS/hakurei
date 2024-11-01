@@ -1,9 +1,8 @@
-package init0
+package main
 
 import (
 	"encoding/gob"
 	"errors"
-	"flag"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -12,58 +11,80 @@ import (
 	"syscall"
 	"time"
 
+	init0 "git.ophivana.moe/security/fortify/cmd/finit/ipc"
+	"git.ophivana.moe/security/fortify/internal"
 	"git.ophivana.moe/security/fortify/internal/fmsg"
 )
 
 const (
-	// time to wait for linger processes after death initial process
+	// time to wait for linger processes after death of initial process
 	residualProcessTimeout = 5 * time.Second
 )
 
 // everything beyond this point runs within pid namespace
 // proceed with caution!
 
-func doInit(fd uintptr) {
+func main() {
+	// sharing stdout with shim
+	// USE WITH CAUTION
 	fmsg.SetPrefix("init")
 
+	// setting this prevents ptrace
+	if err := internal.PR_SET_DUMPABLE__SUID_DUMP_DISABLE(); err != nil {
+		fmsg.Fatalf("cannot set SUID_DUMP_DISABLE: %s", err)
+		panic("unreachable")
+	}
+
+	if os.Getpid() != 1 {
+		fmsg.Fatal("this process must run as pid 1")
+		panic("unreachable")
+	}
+
 	// re-exec
-	if len(os.Args) > 0 && os.Args[0] != "fortify" && path.IsAbs(os.Args[0]) {
-		if err := syscall.Exec(os.Args[0], []string{"fortify", "init"}, os.Environ()); err != nil {
+	if len(os.Args) > 0 && (os.Args[0] != "finit" || len(os.Args) != 1) && path.IsAbs(os.Args[0]) {
+		if err := syscall.Exec(os.Args[0], []string{"finit"}, os.Environ()); err != nil {
 			fmsg.Println("cannot re-exec self:", err)
 			// continue anyway
 		}
 	}
 
-	var payload Payload
-	p := os.NewFile(fd, "config-stream")
-	if p == nil {
-		fmsg.Fatal("invalid config descriptor")
-	}
-	if err := gob.NewDecoder(p).Decode(&payload); err != nil {
-		fmsg.Fatal("cannot decode init payload:", err)
+	// setup pipe fd from environment
+	var setup *os.File
+	if s, ok := os.LookupEnv(init0.Env); !ok {
+		fmsg.Fatal("FORTIFY_INIT not set")
+		panic("unreachable")
 	} else {
-		// sharing stdout with parent
-		// USE WITH CAUTION
+		if fd, err := strconv.Atoi(s); err != nil {
+			fmsg.Fatalf("cannot parse %q: %v", s, err)
+			panic("unreachable")
+		} else {
+			setup = os.NewFile(uintptr(fd), "setup")
+			if setup == nil {
+				fmsg.Fatal("invalid config descriptor")
+				panic("unreachable")
+			}
+		}
+	}
+
+	var payload init0.Payload
+	if err := gob.NewDecoder(setup).Decode(&payload); err != nil {
+		fmsg.Fatal("cannot decode init setup payload:", err)
+		panic("unreachable")
+	} else {
 		fmsg.SetVerbose(payload.Verbose)
 
 		// child does not need to see this
-		if err = os.Unsetenv(EnvInit); err != nil {
-			fmsg.Println("cannot unset", EnvInit+":", err)
+		if err = os.Unsetenv(init0.Env); err != nil {
+			fmsg.Printf("cannot unset %s: %v", init0.Env, err)
 			// not fatal
 		} else {
 			fmsg.VPrintln("received configuration")
 		}
 	}
 
-	// close config fd
-	if err := p.Close(); err != nil {
-		fmsg.Println("cannot close config fd:", err)
-		// not fatal
-	}
-
 	// die with parent
-	if _, _, errno := syscall.RawSyscall(syscall.SYS_PRCTL, syscall.PR_SET_PDEATHSIG, uintptr(syscall.SIGKILL), 0); errno != 0 {
-		fmsg.Fatal("prctl(PR_SET_PDEATHSIG, SIGKILL):", errno.Error())
+	if err := internal.PR_SET_PDEATHSIG__SIGKILL(); err != nil {
+		fmsg.Fatalf("prctl(PR_SET_PDEATHSIG, SIGKILL): %v", err)
 	}
 
 	cmd := exec.Command(payload.Argv0)
@@ -81,6 +102,13 @@ func doInit(fd uintptr) {
 
 	if err := cmd.Start(); err != nil {
 		fmsg.Fatalf("cannot start %q: %v", payload.Argv0, err)
+	}
+	fmsg.Withhold()
+
+	// close setup pipe as setup is now complete
+	if err := setup.Close(); err != nil {
+		fmsg.Println("cannot close setup pipe:", err)
+		// not fatal
 	}
 
 	sig := make(chan os.Signal, 2)
@@ -122,6 +150,7 @@ func doInit(fd uintptr) {
 		close(done)
 	}()
 
+	// closed after residualProcessTimeout has elapsed after initial process death
 	timeout := make(chan struct{})
 
 	r := 2
@@ -129,9 +158,13 @@ func doInit(fd uintptr) {
 		select {
 		case s := <-sig:
 			fmsg.VPrintln("received", s.String())
+			fmsg.Resume() // output could still be withheld at this point, so resume is called
 			fmsg.Exit(0)
 		case w := <-info:
 			if w.wpid == cmd.Process.Pid {
+				// initial process exited, output is most likely available again
+				fmsg.Resume()
+
 				switch {
 				case w.wstatus.Exited():
 					r = w.wstatus.ExitStatus()
@@ -151,24 +184,6 @@ func doInit(fd uintptr) {
 		case <-timeout:
 			fmsg.Println("timeout exceeded waiting for lingering processes")
 			fmsg.Exit(r)
-		}
-	}
-}
-
-// Try runs init and stops execution if FORTIFY_INIT is set.
-func Try() {
-	if os.Getpid() != 1 {
-		return
-	}
-
-	if args := flag.Args(); len(args) == 1 && args[0] == "init" {
-		if s, ok := os.LookupEnv(EnvInit); ok {
-			if fd, err := strconv.Atoi(s); err != nil {
-				fmsg.Fatalf("cannot parse %q: %v", s, err)
-			} else {
-				doInit(uintptr(fd))
-			}
-			panic("unreachable")
 		}
 	}
 }

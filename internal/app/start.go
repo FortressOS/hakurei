@@ -8,9 +8,10 @@ import (
 	"path/filepath"
 	"strings"
 
+	shim0 "git.ophivana.moe/security/fortify/cmd/fshim/ipc"
+	"git.ophivana.moe/security/fortify/cmd/fshim/ipc/shim"
 	"git.ophivana.moe/security/fortify/helper"
 	"git.ophivana.moe/security/fortify/internal/fmsg"
-	"git.ophivana.moe/security/fortify/internal/shim"
 	"git.ophivana.moe/security/fortify/internal/state"
 	"git.ophivana.moe/security/fortify/internal/system"
 )
@@ -22,9 +23,9 @@ func (a *app) Start() error {
 	defer a.lock.Unlock()
 
 	// resolve exec paths
-	shimExec := [3]string{a.seal.sys.executable, helper.BubblewrapName}
+	shimExec := [2]string{helper.BubblewrapName}
 	if len(a.seal.command) > 0 {
-		shimExec[2] = a.seal.command[0]
+		shimExec[1] = a.seal.command[0]
 	}
 	for i, n := range shimExec {
 		if len(n) == 0 {
@@ -53,7 +54,7 @@ func (a *app) Start() error {
 
 	// construct shim manager
 	a.shim = shim.New(a.seal.toolPath, uint32(a.seal.sys.UID()), path.Join(a.seal.share, "shim"), a.seal.wl,
-		&shim.Payload{
+		&shim0.Payload{
 			Argv:  a.seal.command,
 			Exec:  shimExec,
 			Bwrap: a.seal.sys.bwrap,

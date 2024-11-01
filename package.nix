@@ -15,14 +15,27 @@ buildGoModule rec {
   src = ./.;
   vendorHash = null;
 
-  ldflags = [
-    "-s"
-    "-w"
-    "-X"
-    "main.Version=v${version}"
-    "-X"
-    "main.FortifyPath=${placeholder "out"}/bin/.fortify-wrapped"
-  ];
+  ldflags =
+    lib.attrsets.foldlAttrs
+      (
+        ldflags: name: value:
+        ldflags
+        ++ [
+          "-X"
+          "git.ophivana.moe/security/fortify/internal.${name}=${value}"
+        ]
+      )
+      [
+        "-s"
+        "-w"
+      ]
+      {
+        Version = "v${version}";
+        Fmain = "${placeholder "out"}/bin/.fortify-wrapped";
+        Fsu = "/run/wrappers/bin/fsu";
+        Fshim = "${placeholder "out"}/bin/.fshim";
+        Finit = "${placeholder "out"}/bin/.finit";
+      };
 
   buildInputs = [
     acl
@@ -40,5 +53,7 @@ buildGoModule rec {
     }
 
     mv $out/bin/fsu $out/bin/.fsu
+    mv $out/bin/fshim $out/bin/.fshim
+    mv $out/bin/finit $out/bin/.finit
   '';
 }

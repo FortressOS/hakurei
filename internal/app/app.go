@@ -3,8 +3,8 @@ package app
 import (
 	"sync"
 
-	"git.ophivana.moe/security/fortify/internal"
-	"git.ophivana.moe/security/fortify/internal/shim"
+	"git.ophivana.moe/security/fortify/cmd/fshim/ipc/shim"
+	"git.ophivana.moe/security/fortify/internal/linux"
 )
 
 type App interface {
@@ -25,7 +25,7 @@ type app struct {
 	// application unique identifier
 	id *ID
 	// operating system interface
-	os internal.System
+	os linux.System
 	// shim process manager
 	shim *shim.Shim
 	// child process related information
@@ -63,7 +63,7 @@ func (a *app) WaitErr() error {
 	return a.waitErr
 }
 
-func New(os internal.System) (App, error) {
+func New(os linux.System) (App, error) {
 	a := new(app)
 	a.id = new(ID)
 	a.os = os

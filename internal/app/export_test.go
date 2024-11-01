@@ -2,11 +2,11 @@ package app
 
 import (
 	"git.ophivana.moe/security/fortify/helper/bwrap"
-	"git.ophivana.moe/security/fortify/internal"
+	"git.ophivana.moe/security/fortify/internal/linux"
 	"git.ophivana.moe/security/fortify/internal/system"
 )
 
-func NewWithID(id ID, os internal.System) App {
+func NewWithID(id ID, os linux.System) App {
 	a := new(app)
 	a.id = &id
 	a.os = os

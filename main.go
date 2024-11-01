@@ -4,11 +4,9 @@ import (
 	"flag"
 	"syscall"
 
-	"git.ophivana.moe/security/fortify/internal"
 	"git.ophivana.moe/security/fortify/internal/app"
 	"git.ophivana.moe/security/fortify/internal/fmsg"
-	init0 "git.ophivana.moe/security/fortify/internal/init"
-	"git.ophivana.moe/security/fortify/internal/shim"
+	"git.ophivana.moe/security/fortify/internal/linux"
 )
 
 var (
@@ -19,12 +17,12 @@ func init() {
 	flag.BoolVar(&flagVerbose, "v", false, "Verbose output")
 }
 
-var os = new(internal.Std)
+var os = new(linux.Std)
 
 func main() {
 	// linux/sched/coredump.h
 	if _, _, errno := syscall.RawSyscall(syscall.SYS_PRCTL, syscall.PR_SET_DUMPABLE, 0, 0); errno != 0 {
-		fmsg.Printf("fortify: cannot set SUID_DUMP_DISABLE: %s", errno.Error())
+		fmsg.Printf("cannot set SUID_DUMP_DISABLE: %s", errno.Error())
 	}
 
 	flag.Parse()
@@ -33,10 +31,6 @@ func main() {
 	if os.SdBooted() {
 		fmsg.VPrintln("system booted with systemd as init system")
 	}
-
-	// shim/init early exit
-	init0.Try()
-	shim.Try()
 
 	// root check
 	if os.Geteuid() == 0 {

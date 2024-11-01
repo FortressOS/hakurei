@@ -1,4 +1,4 @@
-package shim
+package shim0
 
 import (
 	"fmt"

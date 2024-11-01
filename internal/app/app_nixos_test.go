@@ -9,8 +9,8 @@ import (
 	"git.ophivana.moe/security/fortify/acl"
 	"git.ophivana.moe/security/fortify/dbus"
 	"git.ophivana.moe/security/fortify/helper/bwrap"
-	"git.ophivana.moe/security/fortify/internal"
 	"git.ophivana.moe/security/fortify/internal/app"
+	"git.ophivana.moe/security/fortify/internal/linux"
 	"git.ophivana.moe/security/fortify/internal/system"
 )
 
@@ -579,8 +579,12 @@ func (s *stubNixOS) Exit(code int) {
 	panic("called exit on stub with code " + strconv.Itoa(code))
 }
 
-func (s *stubNixOS) Paths() internal.Paths {
-	return internal.Paths{
+func (s *stubNixOS) FshimPath() string {
+	return "/nix/store/00000000000000000000000000000000-fortify-0.0.10/bin/.fshim"
+}
+
+func (s *stubNixOS) Paths() linux.Paths {
+	return linux.Paths{
 		SharePath:   "/tmp/fortify.1971",
 		RuntimePath: "/run/user/1971",
 		RunDirPath:  "/run/user/1971/fortify",

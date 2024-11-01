@@ -7,14 +7,14 @@ import (
 	"time"
 
 	"git.ophivana.moe/security/fortify/helper/bwrap"
-	"git.ophivana.moe/security/fortify/internal"
 	"git.ophivana.moe/security/fortify/internal/app"
+	"git.ophivana.moe/security/fortify/internal/linux"
 	"git.ophivana.moe/security/fortify/internal/system"
 )
 
 type sealTestCase struct {
 	name      string
-	os        internal.System
+	os        linux.System
 	config    *app.Config
 	id        app.ID
 	wantSys   *system.I

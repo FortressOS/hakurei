@@ -3,11 +3,11 @@ package main
 import (
 	"flag"
 	"fmt"
+
+	"git.ophivana.moe/security/fortify/internal"
 )
 
 var (
-	Version = "impure"
-
 	printVersion bool
 )
 
@@ -17,7 +17,11 @@ func init() {
 
 func tryVersion() {
 	if printVersion {
-		fmt.Println(Version)
+		if v, ok := internal.Check(internal.Version); ok {
+			fmt.Println(v)
+		} else {
+			fmt.Println("impure")
+		}
 		os.Exit(0)
 	}
 }

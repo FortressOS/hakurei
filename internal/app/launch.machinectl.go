@@ -47,8 +47,8 @@ func (a *app) commandBuilderMachineCtl(shimEnv string) (args []string) {
 	}
 	innerCommand.WriteString("; ")
 
-	// launch fortify as shim
-	innerCommand.WriteString("exec " + a.seal.sys.executable + " shim")
+	// launch fortify shim
+	innerCommand.WriteString("exec " + a.os.FshimPath())
 
 	// append inner command
 	args = append(args, innerCommand.String())

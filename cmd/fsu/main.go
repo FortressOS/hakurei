@@ -8,18 +8,15 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+
+	"git.ophivana.moe/security/fortify/internal"
 )
 
 const (
 	fsuConfFile = "/etc/fsurc"
 	envShim     = "FORTIFY_SHIM"
 	envAID      = "FORTIFY_APP_ID"
-
-	fpPoison = "INVALIDINVALIDINVALIDINVALIDINVALID"
 )
-
-// FortifyPath is the path to fortify, set at compile time.
-var FortifyPath = fpPoison
 
 func main() {
 	log.SetFlags(0)
@@ -35,9 +32,11 @@ func main() {
 		log.Fatal("this program must not be started by root")
 	}
 
-	// validate compiled in fortify path
-	if FortifyPath == fpPoison || !path.IsAbs(FortifyPath) {
+	var fmain string
+	if p, ok := internal.Path(internal.Fmain); !ok {
 		log.Fatal("invalid fortify path, this copy of fsu is not compiled correctly")
+	} else {
+		fmain = p
 	}
 
 	pexe := path.Join("/proc", strconv.Itoa(os.Getppid()), "exe")
@@ -45,7 +44,7 @@ func main() {
 		log.Fatalf("cannot read parent executable path: %v", err)
 	} else if strings.HasSuffix(p, " (deleted)") {
 		log.Fatal("fortify executable has been deleted")
-	} else if p != FortifyPath {
+	} else if p != fmain {
 		log.Fatal("this program must be started by fortify")
 	}
 
@@ -86,7 +85,7 @@ func main() {
 	if err := syscall.Setresuid(uid, uid, uid); err != nil {
 		log.Fatalf("cannot set uid: %v", err)
 	}
-	if err := syscall.Exec(FortifyPath, []string{"fortify", "shim"}, []string{envShim + "=" + shimSetupPath}); err != nil {
+	if err := syscall.Exec(fmain, []string{"fortify", "shim"}, []string{envShim + "=" + shimSetupPath}); err != nil {
 		log.Fatalf("cannot start shim: %v", err)
 	}
 

@@ -5,7 +5,7 @@ import (
 
 	"git.ophivana.moe/security/fortify/dbus"
 	"git.ophivana.moe/security/fortify/helper/bwrap"
-	"git.ophivana.moe/security/fortify/internal"
+	"git.ophivana.moe/security/fortify/internal/linux"
 	"git.ophivana.moe/security/fortify/internal/system"
 )
 
@@ -17,8 +17,6 @@ type appSealSys struct {
 
 	// default formatted XDG_RUNTIME_DIR of User
 	runtime string
-	// sealed path to fortify executable, used by shim
-	executable string
 	// target user sealed from config
 	user *user.User
 
@@ -30,7 +28,7 @@ type appSealSys struct {
 }
 
 // shareAll calls all share methods in sequence
-func (seal *appSeal) shareAll(bus [2]*dbus.Config, os internal.System) error {
+func (seal *appSeal) shareAll(bus [2]*dbus.Config, os linux.System) error {
 	if seal.shared {
 		panic("seal shared twice")
 	}
