@@ -2,8 +2,8 @@ package main
 
 import (
 	"flag"
-	"syscall"
 
+	"git.ophivana.moe/security/fortify/internal"
 	"git.ophivana.moe/security/fortify/internal/app"
 	"git.ophivana.moe/security/fortify/internal/fmsg"
 	"git.ophivana.moe/security/fortify/internal/linux"
@@ -20,9 +20,9 @@ func init() {
 var os = new(linux.Std)
 
 func main() {
-	// linux/sched/coredump.h
-	if _, _, errno := syscall.RawSyscall(syscall.SYS_PRCTL, syscall.PR_SET_DUMPABLE, 0, 0); errno != 0 {
-		fmsg.Printf("cannot set SUID_DUMP_DISABLE: %s", errno.Error())
+	if err := internal.PR_SET_DUMPABLE__SUID_DUMP_DISABLE(); err != nil {
+		fmsg.Printf("cannot set SUID_DUMP_DISABLE: %s", err)
+		// not fatal: this program runs as the privileged user
 	}
 
 	flag.Parse()
