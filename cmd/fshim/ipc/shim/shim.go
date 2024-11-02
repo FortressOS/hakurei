@@ -117,7 +117,8 @@ func (s *Shim) Start(f CommandBuilder) (*time.Time, error) {
 			conn = c
 		}
 	case <-time.After(shimSetupTimeout):
-		err := errors.New("timed out waiting for shim")
+		err := fmsg.WrapError(errors.New("timed out waiting for shim"),
+			"timed out waiting for shim to connect")
 		s.AbortWait(err)
 		return &startTime, err
 	}
