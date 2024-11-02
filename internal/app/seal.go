@@ -41,6 +41,8 @@ type appSeal struct {
 	id string
 	// wayland mediation, disabled if nil
 	wl *shim.Wayland
+	// dbus proxy message buffer retriever
+	dbusMsg func(f func(msgbuf []string))
 
 	// freedesktop application ID
 	fid string

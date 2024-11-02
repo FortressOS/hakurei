@@ -1,8 +1,11 @@
 package system
 
 import (
+	"bytes"
 	"errors"
 	"os"
+	"strings"
+	"sync"
 
 	"git.ophivana.moe/security/fortify/dbus"
 	"git.ophivana.moe/security/fortify/internal/fmsg"
@@ -13,14 +16,14 @@ var (
 )
 
 func (sys *I) MustProxyDBus(sessionPath string, session *dbus.Config, systemPath string, system *dbus.Config) *I {
-	if err := sys.ProxyDBus(session, system, sessionPath, systemPath); err != nil {
+	if _, err := sys.ProxyDBus(session, system, sessionPath, systemPath); err != nil {
 		panic(err.Error())
 	} else {
 		return sys
 	}
 }
 
-func (sys *I) ProxyDBus(session, system *dbus.Config, sessionPath, systemPath string) error {
+func (sys *I) ProxyDBus(session, system *dbus.Config, sessionPath, systemPath string) (func(f func(msgbuf []string)), error) {
 	d := new(DBus)
 
 	// used by waiting goroutine to notify process exit
@@ -28,7 +31,7 @@ func (sys *I) ProxyDBus(session, system *dbus.Config, sessionPath, systemPath st
 
 	// session bus is mandatory
 	if session == nil {
-		return fmsg.WrapError(ErrDBusConfig,
+		return nil, fmsg.WrapError(ErrDBusConfig,
 			"attempted to seal message bus proxy without session bus config")
 	}
 
@@ -61,13 +64,15 @@ func (sys *I) ProxyDBus(session, system *dbus.Config, sessionPath, systemPath st
 	sys.ops = append(sys.ops, d)
 
 	// seal dbus proxy
-	return fmsg.WrapErrorSuffix(d.proxy.Seal(session, system),
+	d.out = &scanToFmsg{msg: new(strings.Builder)}
+	return d.out.F, fmsg.WrapErrorSuffix(d.proxy.Seal(session, system),
 		"cannot seal message bus proxy:")
 }
 
 type DBus struct {
 	proxy *dbus.Proxy
 
+	out *scanToFmsg
 	// whether system bus proxy is enabled
 	system bool
 	// notification from goroutine waiting for dbus.Proxy
@@ -88,7 +93,7 @@ func (d *DBus) apply(_ *I) error {
 	ready := make(chan error, 1)
 
 	// background dbus proxy start
-	if err := d.proxy.Start(ready, os.Stderr, true); err != nil {
+	if err := d.proxy.Start(ready, d.out, true); err != nil {
 		return fmsg.WrapErrorSuffix(err,
 			"cannot start message bus proxy:")
 	}
@@ -163,4 +168,35 @@ func (d *DBus) Path() string {
 
 func (d *DBus) String() string {
 	return d.proxy.String()
+}
+
+type scanToFmsg struct {
+	msg    *strings.Builder
+	msgbuf []string
+
+	mu sync.RWMutex
+}
+
+func (s *scanToFmsg) Write(p []byte) (n int, err error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.write(p, 0)
+}
+
+func (s *scanToFmsg) write(p []byte, a int) (int, error) {
+	if i := bytes.IndexByte(p, '\n'); i == -1 {
+		n, _ := s.msg.Write(p)
+		return a + n, nil
+	} else {
+		n, _ := s.msg.Write(p[:i])
+		s.msgbuf = append(s.msgbuf, s.msg.String())
+		s.msg.Reset()
+		return s.write(p[i+1:], a+n+1)
+	}
+}
+
+func (s *scanToFmsg) F(f func(msgbuf []string)) {
+	s.mu.RLock()
+	f(s.msgbuf)
+	s.mu.RUnlock()
 }

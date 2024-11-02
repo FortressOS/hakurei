@@ -185,6 +185,15 @@ func (a *app) Wait() (int, error) {
 	// child process exited, resume output
 	fmsg.Resume()
 
+	// print queued up dbus messages
+	if a.seal.dbusMsg != nil {
+		a.seal.dbusMsg(func(msgbuf []string) {
+			for _, msg := range msgbuf {
+				fmsg.Println(msg)
+			}
+		})
+	}
+
 	// close wayland connection
 	if a.seal.wl != nil {
 		if err := a.seal.wl.Close(); err != nil {

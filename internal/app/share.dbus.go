@@ -22,8 +22,10 @@ func (seal *appSeal) shareDBus(config [2]*dbus.Config) error {
 	sessionPath, systemPath := path.Join(seal.share, "bus"), path.Join(seal.share, "system_bus_socket")
 
 	// configure dbus proxy
-	if err := seal.sys.ProxyDBus(config[0], config[1], sessionPath, systemPath); err != nil {
+	if f, err := seal.sys.ProxyDBus(config[0], config[1], sessionPath, systemPath); err != nil {
 		return err
+	} else {
+		seal.dbusMsg = f
 	}
 
 	// share proxy sockets
