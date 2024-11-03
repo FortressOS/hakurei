@@ -8,6 +8,11 @@ import (
 	"git.ophivana.moe/security/fortify/internal/system"
 )
 
+const (
+	mappedID       = 65534
+	mappedIDString = "65534"
+)
+
 // Config is used to seal an *App
 type Config struct {
 	// D-Bus application ID
@@ -95,7 +100,7 @@ func (s *SandboxConfig) Bwrap() *bwrap.Config {
 		// initialise map
 		Chmod: make(map[string]os.FileMode),
 	}).
-		SetUID(65534).SetGID(65534).
+		SetUID(mappedID).SetGID(mappedID).
 		Procfs("/proc").DevTmpfs("/dev").Mqueue("/dev/mqueue").
 		Tmpfs("/dev/fortify", 4*1024)
 

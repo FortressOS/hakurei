@@ -139,7 +139,7 @@ func (a *app) Seal(config *Config) error {
 		}
 	} else {
 		seal.sys.user = u
-		seal.sys.runtime = path.Join("/run/user", u.Uid)
+		seal.sys.runtime = path.Join("/run/user", mappedIDString)
 	}
 
 	// map sandbox config to bwrap

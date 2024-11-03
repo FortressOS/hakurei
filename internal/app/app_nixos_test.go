@@ -47,7 +47,7 @@ var testCasesNixos = []sealTestCase{
 				"SHELL":             "/run/current-system/sw/bin/zsh",
 				"TERM":              "xterm-256color",
 				"USER":              "chronos",
-				"XDG_RUNTIME_DIR":   "/run/user/150",
+				"XDG_RUNTIME_DIR":   "/run/user/65534",
 				"XDG_SESSION_CLASS": "user",
 				"XDG_SESSION_TYPE":  "tty"},
 			Chmod:         make(bwrap.ChmodConfig),
@@ -183,7 +183,7 @@ var testCasesNixos = []sealTestCase{
 			Bind("/tmp/fortify.1971/tmpdir/150", "/tmp", false, true).
 			Tmpfs("/tmp/fortify.1971", 1048576).
 			Tmpfs("/run/user", 1048576).
-			Tmpfs("/run/user/150", 8388608).
+			Tmpfs("/run/user/65534", 8388608).
 			Bind("/tmp/fortify.1971/4a450b6596d7bc15bd01780eb9a607ac/passwd", "/etc/passwd").
 			Bind("/tmp/fortify.1971/4a450b6596d7bc15bd01780eb9a607ac/group", "/etc/group").
 			Tmpfs("/var/run/nscd", 8192),
@@ -287,16 +287,16 @@ var testCasesNixos = []sealTestCase{
 			UserNS:   true,
 			Clearenv: true,
 			SetEnv: map[string]string{
-				"DBUS_SESSION_BUS_ADDRESS": "unix:path=/run/user/150/bus",
+				"DBUS_SESSION_BUS_ADDRESS": "unix:path=/run/user/65534/bus",
 				"DBUS_SYSTEM_BUS_ADDRESS":  "unix:path=/run/dbus/system_bus_socket",
 				"HOME":                     "/home/chronos",
 				"PULSE_COOKIE":             "/tmp/fortify.1971/ebf083d1b175911782d413369b64ce7c/pulse-cookie",
-				"PULSE_SERVER":             "unix:/run/user/150/pulse/native",
+				"PULSE_SERVER":             "unix:/run/user/65534/pulse/native",
 				"SHELL":                    "/run/current-system/sw/bin/zsh",
 				"TERM":                     "xterm-256color",
 				"USER":                     "chronos",
-				"WAYLAND_DISPLAY":          "/run/user/150/wayland-0",
-				"XDG_RUNTIME_DIR":          "/run/user/150",
+				"WAYLAND_DISPLAY":          "/run/user/65534/wayland-0",
+				"XDG_RUNTIME_DIR":          "/run/user/65534",
 				"XDG_SESSION_CLASS":        "user",
 				"XDG_SESSION_TYPE":         "tty",
 			},
@@ -434,13 +434,13 @@ var testCasesNixos = []sealTestCase{
 			Bind("/tmp/fortify.1971/tmpdir/150", "/tmp", false, true).
 			Tmpfs("/tmp/fortify.1971", 1048576).
 			Tmpfs("/run/user", 1048576).
-			Tmpfs("/run/user/150", 8388608).
+			Tmpfs("/run/user/65534", 8388608).
 			Bind("/tmp/fortify.1971/ebf083d1b175911782d413369b64ce7c/passwd", "/etc/passwd").
 			Bind("/tmp/fortify.1971/ebf083d1b175911782d413369b64ce7c/group", "/etc/group").
-			Bind("/run/user/1971/fortify/ebf083d1b175911782d413369b64ce7c/wayland", "/run/user/150/wayland-0").
-			Bind("/run/user/1971/fortify/ebf083d1b175911782d413369b64ce7c/pulse", "/run/user/150/pulse/native").
+			Bind("/run/user/1971/fortify/ebf083d1b175911782d413369b64ce7c/wayland", "/run/user/65534/wayland-0").
+			Bind("/run/user/1971/fortify/ebf083d1b175911782d413369b64ce7c/pulse", "/run/user/65534/pulse/native").
 			Bind("/tmp/fortify.1971/ebf083d1b175911782d413369b64ce7c/pulse-cookie", "/tmp/fortify.1971/ebf083d1b175911782d413369b64ce7c/pulse-cookie").
-			Bind("/tmp/fortify.1971/ebf083d1b175911782d413369b64ce7c/bus", "/run/user/150/bus").
+			Bind("/tmp/fortify.1971/ebf083d1b175911782d413369b64ce7c/bus", "/run/user/65534/bus").
 			Bind("/tmp/fortify.1971/ebf083d1b175911782d413369b64ce7c/system_bus_socket", "/run/dbus/system_bus_socket").
 			Tmpfs("/var/run/nscd", 8192),
 	},
