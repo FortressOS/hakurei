@@ -58,12 +58,12 @@ func (seal *appSeal) sharePasswd(os linux.System) {
 		homeDir = seal.sys.user.HomeDir
 		seal.sys.bwrap.SetEnv["HOME"] = seal.sys.user.HomeDir
 	}
-	passwd := username + ":x:" + mappedIDString + ":" + mappedIDString + ":Fortify:" + homeDir + ":" + sh + "\n"
+	passwd := username + ":x:" + seal.sys.mappedIDString + ":" + seal.sys.mappedIDString + ":Fortify:" + homeDir + ":" + sh + "\n"
 	seal.sys.Write(passwdPath, passwd)
 
 	// write /etc/group
 	groupPath := path.Join(seal.share, "group")
-	seal.sys.Write(groupPath, "fortify:x:"+mappedIDString+":\n")
+	seal.sys.Write(groupPath, "fortify:x:"+seal.sys.mappedIDString+":\n")
 
 	// bind /etc/passwd and /etc/group
 	seal.sys.bwrap.Bind(passwdPath, "/etc/passwd")

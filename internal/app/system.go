@@ -20,6 +20,11 @@ type appSealSys struct {
 	// target user sealed from config
 	user *user.User
 
+	// mapped uid and gid in user namespace
+	mappedID int
+	// string representation of mappedID
+	mappedIDString string
+
 	needRevert bool
 	saveState  bool
 	*system.I

@@ -129,6 +129,15 @@ func (a *app) Seal(config *Config) error {
 	// create seal system component
 	seal.sys = new(appSealSys)
 
+	// mapped uid
+	if config.Confinement.Sandbox != nil && config.Confinement.Sandbox.UseRealUID {
+		seal.sys.mappedID = a.os.Geteuid()
+	} else {
+		seal.sys.mappedID = 65534
+	}
+	seal.sys.mappedIDString = strconv.Itoa(seal.sys.mappedID)
+	seal.sys.runtime = path.Join("/run/user", seal.sys.mappedIDString)
+
 	// look up user from system
 	if u, err := a.os.Lookup(config.User); err != nil {
 		if errors.As(err, new(user.UnknownUserError)) {
@@ -139,7 +148,6 @@ func (a *app) Seal(config *Config) error {
 		}
 	} else {
 		seal.sys.user = u
-		seal.sys.runtime = path.Join("/run/user", mappedIDString)
 	}
 
 	// map sandbox config to bwrap
@@ -228,7 +236,7 @@ func (a *app) Seal(config *Config) error {
 
 		config.Confinement.Sandbox = conf
 	}
-	seal.sys.bwrap = config.Confinement.Sandbox.Bwrap()
+	seal.sys.bwrap = config.Confinement.Sandbox.Bwrap(a.os.Geteuid())
 	seal.sys.override = config.Confinement.Sandbox.Override
 	if seal.sys.bwrap.SetEnv == nil {
 		seal.sys.bwrap.SetEnv = make(map[string]string)

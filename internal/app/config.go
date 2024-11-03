@@ -8,11 +8,6 @@ import (
 	"git.ophivana.moe/security/fortify/internal/system"
 )
 
-const (
-	mappedID       = 65534
-	mappedIDString = "65534"
-)
-
 // Config is used to seal an *App
 type Config struct {
 	// D-Bus application ID
@@ -54,6 +49,8 @@ type SandboxConfig struct {
 	Net bool `json:"net,omitempty"`
 	// do not run in new session
 	NoNewSession bool `json:"no_new_session,omitempty"`
+	// map target user uid to privileged user uid in the user namespace
+	UseRealUID bool `json:"use_real_uid"`
 	// mediated access to wayland socket
 	Wayland bool `json:"wayland,omitempty"`
 
@@ -82,9 +79,13 @@ type FilesystemConfig struct {
 
 // Bwrap returns the address of the corresponding bwrap.Config to s.
 // Note that remaining tmpfs entries must be queued by the caller prior to launch.
-func (s *SandboxConfig) Bwrap() *bwrap.Config {
+func (s *SandboxConfig) Bwrap(uid int) *bwrap.Config {
 	if s == nil {
 		return nil
+	}
+
+	if !s.UseRealUID {
+		uid = 65534
 	}
 
 	conf := (&bwrap.Config{
@@ -100,7 +101,7 @@ func (s *SandboxConfig) Bwrap() *bwrap.Config {
 		// initialise map
 		Chmod: make(map[string]os.FileMode),
 	}).
-		SetUID(mappedID).SetGID(mappedID).
+		SetUID(uid).SetGID(uid).
 		Procfs("/proc").DevTmpfs("/dev").Mqueue("/dev/mqueue").
 		Tmpfs("/dev/fortify", 4*1024)
 
