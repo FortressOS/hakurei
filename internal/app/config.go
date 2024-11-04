@@ -1,10 +1,11 @@
 package app
 
 import (
-	"os"
+	"errors"
 
 	"git.ophivana.moe/security/fortify/dbus"
 	"git.ophivana.moe/security/fortify/helper/bwrap"
+	"git.ophivana.moe/security/fortify/internal/linux"
 	"git.ophivana.moe/security/fortify/internal/system"
 )
 
@@ -60,6 +61,8 @@ type SandboxConfig struct {
 	Filesystem []*FilesystemConfig `json:"filesystem"`
 	// symlinks created inside the sandbox
 	Link [][2]string `json:"symlink"`
+	// automatically set up /etc symlinks
+	AutoEtc bool `json:"auto_etc"`
 	// paths to override by mounting tmpfs over them
 	Override []string `json:"override"`
 }
@@ -79,13 +82,16 @@ type FilesystemConfig struct {
 
 // Bwrap returns the address of the corresponding bwrap.Config to s.
 // Note that remaining tmpfs entries must be queued by the caller prior to launch.
-func (s *SandboxConfig) Bwrap(uid int) *bwrap.Config {
+func (s *SandboxConfig) Bwrap(os linux.System) (*bwrap.Config, error) {
 	if s == nil {
-		return nil
+		return nil, errors.New("nil sandbox config")
 	}
 
+	var uid int
 	if !s.UseRealUID {
 		uid = 65534
+	} else {
+		uid = os.Geteuid()
 	}
 
 	conf := (&bwrap.Config{
@@ -99,11 +105,15 @@ func (s *SandboxConfig) Bwrap(uid int) *bwrap.Config {
 		AsInit:        true,
 
 		// initialise map
-		Chmod: make(map[string]os.FileMode),
+		Chmod: make(bwrap.ChmodConfig),
 	}).
 		SetUID(uid).SetGID(uid).
 		Procfs("/proc").DevTmpfs("/dev").Mqueue("/dev/mqueue").
 		Tmpfs("/dev/fortify", 4*1024)
+
+	if !s.AutoEtc {
+		conf.Dir("/etc")
+	}
 
 	for _, c := range s.Filesystem {
 		if c == nil {
@@ -121,7 +131,29 @@ func (s *SandboxConfig) Bwrap(uid int) *bwrap.Config {
 		conf.Symlink(l[0], l[1])
 	}
 
-	return conf
+	if s.AutoEtc {
+		conf.Bind("/etc", "/dev/fortify/etc")
+
+		// link host /etc contents to prevent passwd/group from being overwritten
+		if d, err := os.ReadDir("/etc"); err != nil {
+			return nil, err
+		} else {
+			for _, ent := range d {
+				name := ent.Name()
+				switch name {
+				case "passwd":
+				case "group":
+
+				case "mtab":
+					conf.Symlink("/proc/mounts", "/etc/"+name)
+				default:
+					conf.Symlink("/dev/fortify/etc/"+name, "/etc/"+name)
+				}
+			}
+		}
+	}
+
+	return conf, nil
 }
 
 // Template returns a fully populated instance of Config.
@@ -153,12 +185,15 @@ func Template() *Config {
 					"GOOGLE_DEFAULT_CLIENT_SECRET": "OTJgUOQcT7lO7GsGZq2G4IlT",
 				},
 				Filesystem: []*FilesystemConfig{
-					{Src: "/nix"},
-					{Src: "/storage/emulated/0", Write: true, Must: true},
-					{Src: "/data/user/0", Dst: "/data/data", Write: true, Must: true},
-					{Src: "/var/tmp", Write: true},
+					{Src: "/nix/store"},
+					{Src: "/run/current-system"},
+					{Src: "/run/opengl-driver"},
+					{Src: "/var/db/nix-channels"},
+					{Src: "/home/chronos", Write: true, Must: true},
+					{Src: "/dev/dri", Device: true},
 				},
-				Link:     [][2]string{{"/dev/fortify/etc", "/etc"}},
+				Link:     [][2]string{{"/run/user/65534", "/run/user/150"}},
+				AutoEtc:  true,
 				Override: []string{"/var/run/nscd"},
 			},
 			SystemBus: &dbus.Config{

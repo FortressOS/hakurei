@@ -58,7 +58,6 @@ var testCasesNixos = []sealTestCase{
 			Tmpfs("/dev/fortify", 4096).
 			Bind("/bin", "/bin", false, true).
 			Bind("/boot", "/boot", false, true).
-			Bind("/etc", "/dev/fortify/etc").
 			Bind("/home", "/home", false, true).
 			Bind("/lib", "/lib", false, true).
 			Bind("/lib64", "/lib64", false, true).
@@ -102,6 +101,7 @@ var testCasesNixos = []sealTestCase{
 			Bind("/run/wrappers", "/run/wrappers", false, true).
 			Bind("/run/zed.pid", "/run/zed.pid", false, true).
 			Bind("/run/zed.state", "/run/zed.state", false, true).
+			Bind("/etc", "/dev/fortify/etc").
 			Symlink("/dev/fortify/etc/alsa", "/etc/alsa").
 			Symlink("/dev/fortify/etc/bashrc", "/etc/bashrc").
 			Symlink("/dev/fortify/etc/binfmt.d", "/etc/binfmt.d").
@@ -308,7 +308,6 @@ var testCasesNixos = []sealTestCase{
 			Tmpfs("/dev/fortify", 4096).
 			Bind("/bin", "/bin", false, true).
 			Bind("/boot", "/boot", false, true).
-			Bind("/etc", "/dev/fortify/etc").
 			Bind("/home", "/home", false, true).
 			Bind("/lib", "/lib", false, true).
 			Bind("/lib64", "/lib64", false, true).
@@ -353,6 +352,7 @@ var testCasesNixos = []sealTestCase{
 			Bind("/run/zed.pid", "/run/zed.pid", false, true).
 			Bind("/run/zed.state", "/run/zed.state", false, true).
 			Bind("/dev/dri", "/dev/dri", true, true, true).
+			Bind("/etc", "/dev/fortify/etc").
 			Symlink("/dev/fortify/etc/alsa", "/etc/alsa").
 			Symlink("/dev/fortify/etc/bashrc", "/etc/bashrc").
 			Symlink("/dev/fortify/etc/binfmt.d", "/etc/binfmt.d").
