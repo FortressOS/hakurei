@@ -28,10 +28,11 @@ buildGoModule rec {
       [
         "-s"
         "-w"
+        "-X"
+        "main.Fmain=${placeholder "out"}/bin/.fortify-wrapped"
       ]
       {
         Version = "v${version}";
-        Fmain = "${placeholder "out"}/bin/.fortify-wrapped";
         Fsu = "/run/wrappers/bin/fsu";
         Fshim = "${placeholder "out"}/bin/.fshim";
         Finit = "${placeholder "out"}/bin/.finit";

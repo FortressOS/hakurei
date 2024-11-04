@@ -3,7 +3,6 @@ package internal
 import "path"
 
 var (
-	Fmain = compPoison
 	Fsu   = compPoison
 	Fshim = compPoison
 	Finit = compPoison

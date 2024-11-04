@@ -8,15 +8,16 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
-
-	"git.ophivana.moe/security/fortify/internal"
 )
 
 const (
+	compPoison  = "INVALIDINVALIDINVALIDINVALIDINVALID"
 	fsuConfFile = "/etc/fsurc"
 	envShim     = "FORTIFY_SHIM"
 	envAID      = "FORTIFY_APP_ID"
 )
+
+var Fmain = compPoison
 
 func main() {
 	log.SetFlags(0)
@@ -33,7 +34,7 @@ func main() {
 	}
 
 	var fmain string
-	if p, ok := internal.Path(internal.Fmain); !ok {
+	if p, ok := checkPath(Fmain); !ok {
 		log.Fatal("invalid fortify path, this copy of fsu is not compiled correctly")
 	} else {
 		fmain = p
@@ -136,4 +137,8 @@ func parseConfig(p string, puid int) (fid int, ok bool) {
 		}
 		return -1, false
 	}
+}
+
+func checkPath(p string) (string, bool) {
+	return p, p != compPoison && p != "" && path.IsAbs(p)
 }
