@@ -1,6 +1,7 @@
 package linux
 
 import (
+	"io"
 	"io/fs"
 	"os/user"
 	"path"
@@ -31,6 +32,8 @@ type System interface {
 	Open(name string) (fs.File, error)
 	// Exit provides [os.Exit].
 	Exit(code int)
+	// Stdout provides [os.Stdout].
+	Stdout() io.Writer
 
 	// FshimPath returns an absolute path to the fshim binary.
 	FshimPath() string

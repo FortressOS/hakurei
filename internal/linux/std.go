@@ -2,6 +2,7 @@ package linux
 
 import (
 	"errors"
+	"io"
 	"io/fs"
 	"os"
 	"os/exec"
@@ -34,6 +35,7 @@ func (s *Std) ReadDir(name string) ([]os.DirEntry, error) { return os.ReadDir(na
 func (s *Std) Stat(name string) (fs.FileInfo, error)      { return os.Stat(name) }
 func (s *Std) Open(name string) (fs.File, error)          { return os.Open(name) }
 func (s *Std) Exit(code int)                              { fmsg.Exit(code) }
+func (s *Std) Stdout() io.Writer                          { return os.Stdout }
 
 const xdgRuntimeDir = "XDG_RUNTIME_DIR"
 
