@@ -33,5 +33,11 @@ jobs:
 
       - name: Build for Linux
         run: >-
-          sh -c "go build -v -ldflags '-s -w -X main.Version=${{ github.ref_name }}' -o bin/fortify &&
-          sha256sum --tag -b bin/fortify > bin/fortify.sha256"
+          go build -v -ldflags '-s -w
+          -X git.ophivana.moe/security/fortify/internal.Version=${{ github.ref_name }}
+          -X git.ophivana.moe/security/fortify/internal.Fsu=/usr/bin/fsu
+          -X git.ophivana.moe/security/fortify/internal.Fshim=/usr/libexec/fortify/fshim
+          -X git.ophivana.moe/security/fortify/internal.Finit=/usr/libexec/fortify/finit
+          -X main.Fmain=/usr/bin/fortify'
+          -o bin/ ./... &&
+          (cd bin && sha512sum --tag -b * > sha512sums)
