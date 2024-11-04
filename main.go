@@ -35,16 +35,7 @@ func main() {
 		// not fatal: this program runs as the privileged user
 	}
 
-	flag.Parse()
-	fmsg.SetVerbose(flagVerbose)
-
-	// root check
-	if os.Geteuid() == 0 {
-		fmsg.Fatal("this program must not run as root")
-		panic("unreachable")
-	}
-
-	printHelp := func() {
+	flag.CommandLine.Usage = func() {
 		fmt.Println()
 		fmt.Println("Usage:\tfortify [-v] COMMAND [OPTIONS]")
 		fmt.Println()
@@ -67,10 +58,18 @@ func main() {
 		}
 		fmt.Println()
 	}
+	flag.Parse()
+	fmsg.SetVerbose(flagVerbose)
+
+	// root check
+	if os.Geteuid() == 0 {
+		fmsg.Fatal("this program must not run as root")
+		panic("unreachable")
+	}
 
 	args := flag.Args()
 	if len(args) == 0 {
-		printHelp()
+		flag.CommandLine.Usage()
 		fmsg.Exit(0)
 	}
 
@@ -94,7 +93,7 @@ func main() {
 		}
 		fmsg.Exit(0)
 	case "help": // print help message
-		printHelp()
+		flag.CommandLine.Usage()
 		fmsg.Exit(0)
 	case "ps": // print all state info
 		var w *tabwriter.Writer
