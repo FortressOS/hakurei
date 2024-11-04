@@ -143,6 +143,7 @@ func Template() *Config {
 				UserNS:       true,
 				Net:          true,
 				NoNewSession: true,
+				UseRealUID:   true,
 				Wayland:      false,
 				// example API credentials pulled from Google Chrome
 				// DO NOT USE THESE IN A REAL BROWSER
