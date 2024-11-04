@@ -16,20 +16,17 @@ func SetPrefix(prefix string) {
 
 func Print(v ...any) {
 	dequeueOnce.Do(dequeue)
-	queueSync.Add(1)
-	msgbuf <- dPrint(v)
+	queue(dPrint(v))
 }
 
 func Printf(format string, v ...any) {
 	dequeueOnce.Do(dequeue)
-	queueSync.Add(1)
-	msgbuf <- &dPrintf{format, v}
+	queue(&dPrintf{format, v})
 }
 
 func Println(v ...any) {
 	dequeueOnce.Do(dequeue)
-	queueSync.Add(1)
-	msgbuf <- dPrintln(v)
+	queue(dPrintln(v))
 }
 
 func Fatal(v ...any) {

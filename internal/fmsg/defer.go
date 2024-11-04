@@ -8,6 +8,7 @@ import (
 
 var (
 	wstate   atomic.Bool
+	dropped  atomic.Uint64
 	withhold = make(chan struct{}, 1)
 	msgbuf   = make(chan dOp, 64) // these ops are tiny so a large buffer is allocated for withholding output
 
@@ -29,6 +30,25 @@ func dequeue() {
 	}()
 }
 
+// queue submits ops to msgbuf but drops messages
+// when the buffer is full and dequeue is withholding
+func queue(op dOp) {
+	select {
+	case msgbuf <- op:
+		queueSync.Add(1)
+	default:
+		// send the op anyway if not withholding
+		// as dequeue will get to it eventually
+		if !wstate.Load() {
+			queueSync.Add(1)
+			msgbuf <- op
+		} else {
+			// increment dropped message count
+			dropped.Add(1)
+		}
+	}
+}
+
 type dOp interface{ Do() }
 
 func Exit(code int) {
@@ -47,6 +67,9 @@ func Resume() {
 	dequeueOnce.Do(dequeue)
 	if wstate.CompareAndSwap(true, false) {
 		withhold <- struct{}{}
+		if d := dropped.Swap(0); d != 0 {
+			Printf("dropped %d messages during withhold", d)
+		}
 	}
 }
 
