@@ -35,6 +35,11 @@ func main() {
 		// not fatal: this program runs as the privileged user
 	}
 
+	if os.Geteuid() == 0 {
+		fmsg.Fatal("this program must not run as root")
+		panic("unreachable")
+	}
+
 	flag.CommandLine.Usage = func() {
 		fmt.Println()
 		fmt.Println("Usage:\tfortify [-v] COMMAND [OPTIONS]")
@@ -54,18 +59,12 @@ func main() {
 			_, _ = fmt.Fprintf(w, "\t%s\t%s\n", c[0], c[1])
 		}
 		if err := w.Flush(); err != nil {
-			fmsg.Fatalf("cannot print help: %v", err)
+			fmt.Printf("fortify: cannot write command list: %v\n", err)
 		}
 		fmt.Println()
 	}
 	flag.Parse()
 	fmsg.SetVerbose(flagVerbose)
-
-	// root check
-	if os.Geteuid() == 0 {
-		fmsg.Fatal("this program must not run as root")
-		panic("unreachable")
-	}
 
 	args := flag.Args()
 	if len(args) == 0 {
