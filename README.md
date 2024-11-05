@@ -2,6 +2,7 @@ Fortify
 =======
 
 [![Go Reference](https://pkg.go.dev/badge/git.ophivana.moe/security/fortify.svg)](https://pkg.go.dev/git.ophivana.moe/security/fortify)
+[![Go Report Card](https://goreportcard.com/badge/git.ophivana.moe/security/fortify)](https://goreportcard.com/report/git.ophivana.moe/security/fortify)
 
 Lets you run graphical applications as another user in a confined environment with a nice NixOS
 module to configure target users and provide launchers and desktop files for your privileged user.
@@ -77,40 +78,54 @@ This adds the `environment.fortify` option:
           claws-mail.capability.pulse = false;
 
           discord = {
+            id = "dev.vencord.Vesktop";
             command = "vesktop --ozone-platform-hint=wayland";
+            userns = true;
+            useRealUid = true;
+            dbus = {
+              session =
+                f:
+                f {
+                  talk = [ "org.kde.StatusNotifierWatcher" ];
+                  own = [ ];
+                  call = { };
+                  broadcast = { };
+                };
+              system.filter = true;
+            };
             share = pkgs.vesktop;
           };
 
-          chromium.dbus = {
-            configSystem = {
-              filter = true;
-              talk = [
-                "org.bluez"
-                "org.freedesktop.Avahi"
-                "org.freedesktop.UPower"
-              ];
-            };
-            config = {
-              filter = true;
-              talk = [
-                "org.freedesktop.DBus"
-                "org.freedesktop.FileManager1"
-                "org.freedesktop.Notifications"
-                "org.freedesktop.ScreenSaver"
-                "org.freedesktop.secrets"
-                "org.kde.kwalletd5"    
-                "org.kde.kwalletd6"
-              ];   
-              own = [
-                "org.chromium.Chromium.*"
-                "org.mpris.MediaPlayer2.org.chromium.Chromium.*"
-                "org.mpris.MediaPlayer2.chromium.*"
-              ];
-              call = {
-                "org.freedesktop.portal.*" = "*";
+          chromium = {
+            id = "org.chromium.Chromium";
+            userns = true;
+            useRealUid = true;
+            dbus = {
+              system = {
+                filter = true;
+                talk = [
+                  "org.bluez"
+                  "org.freedesktop.Avahi"
+                  "org.freedesktop.UPower"
+                ];
               };
-              broadcast = {
-                "org.freedesktop.portal.*" = "@/org/freedesktop/portal/*";
+              session = f: f {
+                talk = [
+                  "org.freedesktop.DBus"
+                  "org.freedesktop.FileManager1"
+                  "org.freedesktop.Notifications"
+                  "org.freedesktop.ScreenSaver"
+                  "org.freedesktop.secrets"
+                  "org.kde.kwalletd5"    
+                  "org.kde.kwalletd6"
+                ];   
+                own = [
+                  "org.chromium.Chromium.*"
+                  "org.mpris.MediaPlayer2.org.chromium.Chromium.*"
+                  "org.mpris.MediaPlayer2.chromium.*"
+                ];
+                call = { };
+                broadcast = { };
               };
             };
           };
@@ -156,15 +171,29 @@ This adds the `environment.fortify` option:
 
       The available options are:
 
+        * `id`, the freedesktop application ID, primarily used by dbus, null to disable.
+
         * `command`, the command to run as the target user. Defaults to launcher name.
 
-        * `dbus.config`, D-Bus proxy custom configuration.
+        * `dbus.session`, D-Bus session proxy custom configuration.
 
-        * `dbus.configSystem`, D-Bus system bus custom configuration, null to disable.
+        * `dbus.configSystem`, D-Bus system proxy custom configuration, null to disable.
 
-        * `dbus.id`, D-Bus application id, has no effect if `dbus.config` is set.
+        * `env`, attrset of environment variables to set for the initial process in the sandbox.
 
-        * `dbus.mpris`, whether to enable MPRIS defaults, has no effect if `dbus.config` is set.
+        * `nix`, whether to allow nix daemon connections from within the sandbox.
+
+        * `userns`, whether to allow userns within the sandbox.
+
+        * `useRealUid`, whether to map to the real UID within the sandbox.
+
+        * `net`, whether to allow network access within the sandbox.
+
+        * `gpu`, target process GPU and driver access, null to follow Wayland or X capability.
+
+        * `dev`, whether to allow full device access within the sandbox.
+
+        * `extraPaths`, a list of extra paths to make available inside the sandbox.
 
         * `capability.wayland`, whether to share the Wayland socket.
 
@@ -176,4 +205,4 @@ This adds the `environment.fortify` option:
 
         * `share`, package containing desktop/icon files. Defaults to launcher name.
 
-        * `method`, the launch method for the sandboxed program, can be `"fortify"`, `"fortify-sudo"`, `"sudo"`.
+        * `method`, the launch method for the sandboxed program, can be `"sudo"`, `"systemd"`, `"simple"`.
