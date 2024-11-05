@@ -15,6 +15,7 @@ let
     mapAttrsToList
     foldlAttrs
     optional
+    optionals
     ;
 
   cfg = config.environment.fortify;
@@ -39,6 +40,7 @@ in
               listOf
               attrsOf
               nullOr
+              functionTo
               ;
           in
           attrsOf (submodule {
@@ -54,6 +56,14 @@ in
               launchers = mkOption {
                 type = attrsOf (submodule {
                   options = {
+                    id = mkOption {
+                      type = nullOr str;
+                      default = null;
+                      description = ''
+                        Freedesktop application ID.
+                      '';
+                    };
+
                     command = mkOption {
                       type = nullOr str;
                       default = null;
@@ -63,17 +73,29 @@ in
                       '';
                     };
 
+                    method = mkOption {
+                      type = enum [
+                        "simple"
+                        "sudo"
+                        "systemd"
+                      ];
+                      default = "systemd";
+                      description = ''
+                        Launch method for the sandboxed program.
+                      '';
+                    };
+
                     dbus = {
-                      config = mkOption {
-                        type = nullOr anything;
+                      session = mkOption {
+                        type = nullOr (functionTo anything);
                         default = null;
                         description = ''
-                          D-Bus custom configuration.
+                          D-Bus session bus custom configuration.
                           Setting this to null will enable built-in defaults.
                         '';
                       };
 
-                      configSystem = mkOption {
+                      system = mkOption {
                         type = nullOr anything;
                         default = null;
                         description = ''
@@ -81,24 +103,55 @@ in
                           Setting this to null will disable the system bus proxy.
                         '';
                       };
+                    };
 
-                      id = mkOption {
-                        type = nullOr str;
-                        default = null;
-                        description = ''
-                          D-Bus application id.
-                          Setting this to null will disable own path in defaults.
-                          Has no effect if custom configuration is set.
-                        '';
+                    env = mkOption {
+                      type = nullOr (attrsOf str);
+                      default = null;
+                      description = ''
+                        Environment variables to set for the initial process in the sandbox.
+                      '';
+                    };
+
+                    nix = mkEnableOption ''
+                      Whether to allow nix daemon connections from within sandbox.
+                    '';
+
+                    userns = mkEnableOption ''
+                      Whether to allow userns within sandbox.
+                    '';
+
+                    useRealUid = mkEnableOption ''
+                      Whether to map to fortify's real UID within the sandbox.
+                    '';
+
+                    net =
+                      mkEnableOption ''
+                        Whether to allow network access within sandbox.
+                      ''
+                      // {
+                        default = true;
                       };
 
-                      mpris = mkOption {
-                        type = bool;
-                        default = false;
-                        description = ''
-                          Whether to enable MPRIS in D-Bus defaults.
-                        '';
-                      };
+                    gpu = mkOption {
+                      type = nullOr bool;
+                      default = null;
+                      description = ''
+                        Target process GPU and driver access.
+                        Setting this to null will enable GPU whenever X or Wayland is enabled.
+                      '';
+                    };
+
+                    dev = mkEnableOption ''
+                      Whether to allow access to all devices within sandbox.
+                    '';
+
+                    extraPaths = mkOption {
+                      type = listOf anything;
+                      default = [ ];
+                      description = ''
+                        Extra paths to make available inside the sandbox.
+                      '';
                     };
 
                     capability = {
@@ -141,18 +194,6 @@ in
                       description = ''
                         Package containing share files.
                         Setting this to null will default package name to wrapper name.
-                      '';
-                    };
-
-                    method = mkOption {
-                      type = enum [
-                        "simple"
-                        "sudo"
-                        "systemd"
-                      ];
-                      default = "systemd";
-                      description = ''
-                        Launch method for the sandboxed program.
                       '';
                     };
                   };
@@ -222,26 +263,113 @@ in
                 name: launcher:
                 with launcher.capability;
                 let
-                  command = if launcher.command == null then name else launcher.command;
+                  extendDBusDefault = id: ext: {
+                    filter = true;
+
+                    talk = [ "org.freedesktop.Notifications" ] ++ ext.talk;
+                    own =
+                      (optionals (launcher.id != null) [
+                        "${id}.*"
+                        "org.mpris.MediaPlayer2.${id}.*"
+                      ])
+                      ++ ext.own;
+                    call = {
+                      "org.freedesktop.portal.*" = "*";
+                    } // ext.call;
+                    broadcast = {
+                      "org.freedesktop.portal.*" = "@/org/freedesktop/portal/*";
+                    } // ext.broadcast;
+                  };
                   dbusConfig =
-                    if launcher.dbus.config != null then
-                      pkgs.writeText "${name}-dbus.json" (builtins.toJSON launcher.dbus.config)
-                    else
-                      null;
-                  dbusSystem =
-                    if launcher.dbus.configSystem != null then
-                      pkgs.writeText "${name}-dbus-system.json" (builtins.toJSON launcher.dbus.configSystem)
-                    else
-                      null;
-                  capArgs =
-                    (if wayland then " --wayland" else "")
-                    + (if x11 then " -X" else "")
-                    + (if dbus then " --dbus" else "")
-                    + (if pulse then " --pulse" else "")
-                    + (if launcher.dbus.mpris then " --mpris" else "")
-                    + (if launcher.dbus.id != null then " --dbus-id ${launcher.dbus.id}" else "")
-                    + (if dbusConfig != null then " --dbus-config ${dbusConfig}" else "")
-                    + (if dbusSystem != null then " --dbus-system ${dbusSystem}" else "");
+                    let
+                      default = {
+                        talk = [ ];
+                        own = [ ];
+                        call = { };
+                        broadcast = { };
+                      };
+                    in
+                    {
+                      session_bus =
+                        if launcher.dbus.session != null then
+                          (launcher.dbus.session (extendDBusDefault launcher.id))
+                        else
+                          (extendDBusDefault launcher.id default);
+                      system_bus = launcher.dbus.system;
+                    };
+                  command = if launcher.command == null then name else launcher.command;
+                  enablements =
+                    (if wayland then 1 else 0)
+                    + (if x11 then 2 else 0)
+                    + (if dbus then 4 else 0)
+                    + (if pulse then 8 else 0);
+                  conf = {
+                    inherit (launcher) id method;
+                    inherit user;
+                    command = [
+                      "/run/current-system/sw/bin/zsh"
+                      (pkgs.writeShellScript "${name}-start" ("exec " + command + " $@"))
+                    ];
+                    confinement = {
+                      sandbox = {
+                        inherit (launcher)
+                          userns
+                          net
+                          dev
+                          env
+                          ;
+                        use_real_uid = launcher.useRealUid;
+                        filesystem =
+                          [
+                            { src = "/bin"; }
+                            { src = "/usr/bin"; }
+                            { src = "/nix/store"; }
+                            { src = "/run/current-system"; }
+                            {
+                              src = "/sys/block";
+                              require = false;
+                            }
+                            {
+                              src = "/sys/bus";
+                              require = false;
+                            }
+                            {
+                              src = "/sys/class";
+                              require = false;
+                            }
+                            {
+                              src = "/sys/dev";
+                              require = false;
+                            }
+                            {
+                              src = "/sys/devices";
+                              require = false;
+                            }
+                            {
+                              src = "/home/${user}";
+                              write = true;
+                              require = true;
+                            }
+                          ]
+                          ++ optionals launcher.nix [
+                            { src = "/nix/var"; }
+                            { src = "/var/db/nix-channels"; }
+                          ]
+                          ++ optionals (if launcher.gpu != null then launcher.gpu else wayland || x11) [
+                            { src = "/run/opengl-driver"; }
+                            {
+                              src = "/dev/dri";
+                              dev = true;
+                            }
+                          ]
+                          ++ launcher.extraPaths;
+                        auto_etc = true;
+                        override = [ "/var/run/nscd" ];
+                      };
+                      inherit enablements;
+                      inherit (dbusConfig) session_bus system_bus;
+                    };
+                  };
                 in
                 pkgs.writeShellScriptBin name (
                   if launcher.method == "simple" then
@@ -250,7 +378,7 @@ in
                     ''
                   else
                     ''
-                      exec fortify${capArgs} --method ${launcher.method} -u ${user} $SHELL -c "exec ${command} $@"
+                      exec fortify app ${pkgs.writeText "fortify-${name}.json" (builtins.toJSON conf)} $@
                     ''
                 )
               ) launchers;
