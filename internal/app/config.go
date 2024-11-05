@@ -9,6 +9,8 @@ import (
 	"git.ophivana.moe/security/fortify/internal/system"
 )
 
+const fTmp = "/fortify"
+
 // Config is used to seal an *App
 type Config struct {
 	// D-Bus application ID
@@ -48,6 +50,8 @@ type SandboxConfig struct {
 	UserNS bool `json:"userns,omitempty"`
 	// share net namespace
 	Net bool `json:"net,omitempty"`
+	// share all devices
+	Dev bool `json:"dev,omitempty"`
 	// do not run in new session
 	NoNewSession bool `json:"no_new_session,omitempty"`
 	// map target user uid to privileged user uid in the user namespace
@@ -108,8 +112,14 @@ func (s *SandboxConfig) Bwrap(os linux.System) (*bwrap.Config, error) {
 		Chmod: make(bwrap.ChmodConfig),
 	}).
 		SetUID(uid).SetGID(uid).
-		Procfs("/proc").DevTmpfs("/dev").Mqueue("/dev/mqueue").
-		Tmpfs("/dev/fortify", 4*1024)
+		Procfs("/proc").
+		Tmpfs(fTmp, 4*1024)
+
+	if !s.Dev {
+		conf.DevTmpfs("/dev").Mqueue("/dev/mqueue")
+	} else {
+		conf.Bind("/dev", "/dev", false, true, true)
+	}
 
 	if !s.AutoEtc {
 		conf.Dir("/etc")
@@ -132,7 +142,7 @@ func (s *SandboxConfig) Bwrap(os linux.System) (*bwrap.Config, error) {
 	}
 
 	if s.AutoEtc {
-		conf.Bind("/etc", "/dev/fortify/etc")
+		conf.Bind("/etc", fTmp+"/etc")
 
 		// link host /etc contents to prevent passwd/group from being overwritten
 		if d, err := os.ReadDir("/etc"); err != nil {
@@ -147,7 +157,7 @@ func (s *SandboxConfig) Bwrap(os linux.System) (*bwrap.Config, error) {
 				case "mtab":
 					conf.Symlink("/proc/mounts", "/etc/"+name)
 				default:
-					conf.Symlink("/dev/fortify/etc/"+name, "/etc/"+name)
+					conf.Symlink(fTmp+"/etc/"+name, "/etc/"+name)
 				}
 			}
 		}
@@ -176,6 +186,7 @@ func Template() *Config {
 				Net:          true,
 				NoNewSession: true,
 				UseRealUID:   true,
+				Dev:          true,
 				Wayland:      false,
 				// example API credentials pulled from Google Chrome
 				// DO NOT USE THESE IN A REAL BROWSER
