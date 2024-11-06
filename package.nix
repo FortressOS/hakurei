@@ -34,8 +34,8 @@ buildGoModule rec {
       {
         Version = "v${version}";
         Fsu = "/run/wrappers/bin/fsu";
-        Fshim = "${placeholder "out"}/bin/.fshim";
-        Finit = "${placeholder "out"}/bin/.finit";
+        Fshim = "${placeholder "out"}/bin/fshim";
+        Finit = "${placeholder "out"}/bin/finit";
       };
 
   buildInputs = [
@@ -54,7 +54,5 @@ buildGoModule rec {
     }
 
     mv $out/bin/fsu $out/bin/.fsu
-    mv $out/bin/fshim $out/bin/.fshim
-    mv $out/bin/finit $out/bin/.finit
   '';
 }
