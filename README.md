@@ -173,7 +173,9 @@ This adds the `environment.fortify` option:
 
         * `id`, the freedesktop application ID, primarily used by dbus, null to disable.
 
-        * `command`, the command to run as the target user. Defaults to launcher name.
+        * `script`, application launch script.
+
+        * `command`, the command to run as the target user. Defaults to launcher name. Has no effect when script is set.
 
         * `dbus.session`, D-Bus session proxy custom configuration.
 

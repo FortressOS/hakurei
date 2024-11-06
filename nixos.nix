@@ -64,12 +64,21 @@ in
                       '';
                     };
 
+                    script = mkOption {
+                      type = nullOr str;
+                      default = null;
+                      description = ''
+                        Application launch script.
+                      '';
+                    };
+
                     command = mkOption {
                       type = nullOr str;
                       default = null;
                       description = ''
                         Command to run as the target user.
                         Setting this to null will default command to wrapper name.
+                        Has no effect when script is set.
                       '';
                     };
 
@@ -298,6 +307,7 @@ in
                       system_bus = launcher.dbus.system;
                     };
                   command = if launcher.command == null then name else launcher.command;
+                  script = if launcher.script == null then ("exec " + command + " $@") else launcher.script;
                   enablements =
                     (if wayland then 1 else 0)
                     + (if x11 then 2 else 0)
@@ -307,8 +317,10 @@ in
                     inherit (launcher) id method;
                     inherit user;
                     command = [
-                      "/run/current-system/sw/bin/zsh"
-                      (pkgs.writeShellScript "${name}-start" ("exec " + command + " $@"))
+                      (pkgs.writeScript "${name}-start" ''
+                        #!${pkgs.zsh}${pkgs.zsh.shellPath}
+                        ${script}
+                      '')
                     ];
                     confinement = {
                       sandbox = {
