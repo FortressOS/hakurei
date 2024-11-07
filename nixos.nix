@@ -402,7 +402,7 @@ in
               shares: name: launcher:
               let
                 pkg = if launcher.share != null then launcher.share else pkgs.${name};
-                link = source: "[ -d '${source}' ] && ln -sv '${source}' $out/share || true";
+                copy = source: "[ -d '${source}' ] && cp -Lrv '${source}' $out/share || true";
               in
               shares
               ++
@@ -410,9 +410,13 @@ in
                   (
                     pkgs.runCommand "${name}-share" { } ''
                       mkdir -p $out/share
-                      ${link "${pkg}/share/applications"}
-                      ${link "${pkg}/share/icons"}
-                      ${link "${pkg}/share/man"}
+                      ${copy "${pkg}/share/applications"}
+                      ${copy "${pkg}/share/icons"}
+                      ${copy "${pkg}/share/man"}
+
+                      substituteInPlace $out/share/applications/* \
+                        --replace-warn '${pkg}/bin/' "" \
+                        --replace-warn '${pkg}/libexec/' ""
                     ''
                   )
             ) (wrap user target.launchers) target.launchers)
