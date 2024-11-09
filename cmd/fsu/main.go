@@ -15,6 +15,8 @@ const (
 	fsuConfFile = "/etc/fsurc"
 	envShim     = "FORTIFY_SHIM"
 	envAID      = "FORTIFY_APP_ID"
+
+	PR_SET_NO_NEW_PRIVS = 0x26
 )
 
 var Fmain = compPoison
@@ -85,6 +87,9 @@ func main() {
 	}
 	if err := syscall.Setresuid(uid, uid, uid); err != nil {
 		log.Fatalf("cannot set uid: %v", err)
+	}
+	if _, _, errno := syscall.AllThreadsSyscall(syscall.SYS_PRCTL, PR_SET_NO_NEW_PRIVS, 1, 0); errno != 0 {
+		log.Fatalf("cannot set no_new_privs flag: %s", errno.Error())
 	}
 	if err := syscall.Exec(fmain, []string{"fortify", "shim"}, []string{envShim + "=" + shimSetupPath}); err != nil {
 		log.Fatalf("cannot start shim: %v", err)
