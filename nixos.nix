@@ -130,7 +130,7 @@ in
                       Whether to allow userns within sandbox.
                     '';
 
-                    useRealUid = mkEnableOption ''
+                    mapRealUid = mkEnableOption ''
                       Whether to map to fortify's real UID within the sandbox.
                     '';
 
@@ -330,7 +330,7 @@ in
                           dev
                           env
                           ;
-                        use_real_uid = launcher.useRealUid;
+                        map_real_uid = launcher.mapRealUid;
                         filesystem =
                           [
                             { src = "/bin"; }

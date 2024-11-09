@@ -55,7 +55,7 @@ type SandboxConfig struct {
 	// do not run in new session
 	NoNewSession bool `json:"no_new_session,omitempty"`
 	// map target user uid to privileged user uid in the user namespace
-	UseRealUID bool `json:"use_real_uid"`
+	MapRealUID bool `json:"map_real_uid"`
 	// mediated access to wayland socket
 	Wayland bool `json:"wayland,omitempty"`
 
@@ -92,7 +92,7 @@ func (s *SandboxConfig) Bwrap(os linux.System) (*bwrap.Config, error) {
 	}
 
 	var uid int
-	if !s.UseRealUID {
+	if !s.MapRealUID {
 		uid = 65534
 	} else {
 		uid = os.Geteuid()
@@ -185,7 +185,7 @@ func Template() *Config {
 				UserNS:       true,
 				Net:          true,
 				NoNewSession: true,
-				UseRealUID:   true,
+				MapRealUID:   true,
 				Dev:          true,
 				Wayland:      false,
 				// example API credentials pulled from Google Chrome

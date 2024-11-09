@@ -130,7 +130,7 @@ func (a *app) Seal(config *Config) error {
 	seal.sys = new(appSealSys)
 
 	// mapped uid
-	if config.Confinement.Sandbox != nil && config.Confinement.Sandbox.UseRealUID {
+	if config.Confinement.Sandbox != nil && config.Confinement.Sandbox.MapRealUID {
 		seal.sys.mappedID = a.os.Geteuid()
 	} else {
 		seal.sys.mappedID = 65534
