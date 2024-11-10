@@ -282,12 +282,8 @@ in
                         "org.mpris.MediaPlayer2.${id}.*"
                       ])
                       ++ ext.own;
-                    call = {
-                      "org.freedesktop.portal.*" = "*";
-                    } // ext.call;
-                    broadcast = {
-                      "org.freedesktop.portal.*" = "@/org/freedesktop/portal/*";
-                    } // ext.broadcast;
+
+                    inherit (ext) call broadcast;
                   };
                   dbusConfig =
                     let
