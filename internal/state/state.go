@@ -33,8 +33,6 @@ type State struct {
 	// capability enablements applied to child
 	Capability system.Enablements
 
-	// user switch method
-	Method string
 	// full argv whe launching
 	Argv []string
 	// process start time

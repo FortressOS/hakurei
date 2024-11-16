@@ -2,8 +2,8 @@ package app
 
 import (
 	"errors"
+	"fmt"
 	"io/fs"
-	"os/user"
 	"path"
 	"strconv"
 
@@ -15,24 +15,10 @@ import (
 	"git.ophivana.moe/security/fortify/internal/system"
 )
 
-const (
-	LaunchMethodSudo uint8 = iota
-	LaunchMethodMachineCtl
-)
-
-var method = [...]string{
-	LaunchMethodSudo:       "sudo",
-	LaunchMethodMachineCtl: "systemd",
-}
-
 var (
 	ErrConfig = errors.New("no configuration to seal")
-	ErrUser   = errors.New("unknown user")
-	ErrLaunch = errors.New("invalid launch method")
-
-	ErrSudo       = errors.New("sudo not available")
-	ErrSystemd    = errors.New("systemd not available")
-	ErrMachineCtl = errors.New("machinectl not available")
+	ErrUser   = errors.New("invalid aid")
+	ErrHome   = errors.New("invalid home directory")
 )
 
 // appSeal seals the application with child-related information
@@ -51,15 +37,11 @@ type appSeal struct {
 	// persistent process state store
 	store state.Store
 
-	// uint8 representation of launch method sealed from config
-	launchOption uint8
 	// process-specific share directory path
 	share string
 	// process-specific share directory path local to XDG_RUNTIME_DIR
 	shareLocal string
 
-	// path to launcher program
-	toolPath string
 	// pass-through enablement tracking from config
 	et system.Enablements
 
@@ -98,34 +80,6 @@ func (a *app) Seal(config *Config) error {
 	seal.fid = config.ID
 	seal.command = config.Command
 
-	// parses launch method text and looks up tool path
-	switch config.Method {
-	case method[LaunchMethodSudo]:
-		seal.launchOption = LaunchMethodSudo
-		if sudoPath, err := a.os.LookPath("sudo"); err != nil {
-			return fmsg.WrapError(ErrSudo,
-				"sudo not found")
-		} else {
-			seal.toolPath = sudoPath
-		}
-	case method[LaunchMethodMachineCtl]:
-		seal.launchOption = LaunchMethodMachineCtl
-		if !a.os.SdBooted() {
-			return fmsg.WrapError(ErrSystemd,
-				"system has not been booted with systemd as init system")
-		}
-
-		if machineCtlPath, err := a.os.LookPath("machinectl"); err != nil {
-			return fmsg.WrapError(ErrMachineCtl,
-				"machinectl not found")
-		} else {
-			seal.toolPath = machineCtlPath
-		}
-	default:
-		return fmsg.WrapError(ErrLaunch,
-			"invalid launch method")
-	}
-
 	// create seal system component
 	seal.sys = new(appSealSys)
 
@@ -138,16 +92,44 @@ func (a *app) Seal(config *Config) error {
 	seal.sys.mappedIDString = strconv.Itoa(seal.sys.mappedID)
 	seal.sys.runtime = path.Join("/run/user", seal.sys.mappedIDString)
 
-	// look up user from system
-	if u, err := a.os.Lookup(config.User); err != nil {
-		if errors.As(err, new(user.UnknownUserError)) {
-			return fmsg.WrapError(ErrUser, "unknown user", config.User)
-		} else {
-			// unreachable
-			panic(err)
-		}
+	// validate uid and set user info
+	if config.Confinement.AppID < 0 || config.Confinement.AppID > 9999 {
+		return fmsg.WrapError(ErrUser,
+			fmt.Sprintf("aid %d out of range", config.Confinement.AppID))
 	} else {
-		seal.sys.user = u
+		seal.sys.user = appUser{
+			aid:      config.Confinement.AppID,
+			as:       strconv.Itoa(config.Confinement.AppID),
+			home:     config.Confinement.Home,
+			username: config.Confinement.Username,
+		}
+		if seal.sys.user.username == "" {
+			seal.sys.user.username = "chronos"
+		}
+		if seal.sys.user.home == "" || !path.IsAbs(seal.sys.user.home) {
+			return fmsg.WrapError(ErrHome,
+				fmt.Sprintf("invalid home directory %q", seal.sys.user.home))
+		}
+
+		// invoke fsu for full uid
+		if u, err := a.os.Uid(seal.sys.user.aid); err != nil {
+			return fmsg.WrapErrorSuffix(err,
+				"cannot obtain uid from fsu:")
+		} else {
+			seal.sys.user.uid = u
+			seal.sys.user.us = strconv.Itoa(u)
+		}
+
+		// resolve supplementary group ids from names
+		seal.sys.user.supp = make([]string, len(config.Confinement.Groups))
+		for i, name := range config.Confinement.Groups {
+			if g, err := a.os.LookupGroup(name); err != nil {
+				return fmsg.WrapError(err,
+					fmt.Sprintf("unknown group %q", name))
+			} else {
+				seal.sys.user.supp[i] = g.Gid
+			}
+		}
 	}
 
 	// map sandbox config to bwrap
@@ -230,15 +212,10 @@ func (a *app) Seal(config *Config) error {
 	// open process state store
 	// the simple store only starts holding an open file after first action
 	// store activity begins after Start is called and must end before Wait
-	seal.store = state.NewSimple(seal.RunDirPath, seal.sys.user.Uid)
+	seal.store = state.NewSimple(seal.RunDirPath, seal.sys.user.as)
 
-	// parse string UID
-	if u, err := strconv.Atoi(seal.sys.user.Uid); err != nil {
-		// unreachable unless kernel bug
-		panic("uid parse")
-	} else {
-		seal.sys.I = system.New(u)
-	}
+	// initialise system interface with full uid
+	seal.sys.I = system.New(seal.sys.user.uid)
 
 	// pass through enablements
 	seal.et = config.Confinement.Enablements
@@ -249,11 +226,8 @@ func (a *app) Seal(config *Config) error {
 	}
 
 	// verbose log seal information
-	fmsg.VPrintln("created application seal as user",
-		seal.sys.user.Username, "("+seal.sys.user.Uid+"),",
-		"method:", config.Method+",",
-		"launcher:", seal.toolPath+",",
-		"command:", config.Command)
+	fmsg.VPrintf("created application seal for uid %s (%s) groups: %v, command: %s",
+		seal.sys.user.us, seal.sys.user.username, config.Confinement.Groups, config.Command)
 
 	// seal app and release lock
 	a.seal = seal

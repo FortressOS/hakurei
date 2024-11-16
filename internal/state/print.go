@@ -67,10 +67,10 @@ func (s *simpleStore) mustPrintLauncherState(w **tabwriter.Writer, now time.Time
 
 				// write header when initialising
 				if !fmsg.Verbose() {
-					_, _ = fmt.Fprintln(*w, "\tUID\tPID\tUptime\tEnablements\tMethod\tCommand")
+					_, _ = fmt.Fprintln(*w, "\tPID\tApp\tUptime\tEnablements\tCommand")
 				} else {
 					// argv is emitted in body when verbose
-					_, _ = fmt.Fprintln(*w, "\tUID\tPID\tArgv")
+					_, _ = fmt.Fprintln(*w, "\tPID\tApp\tArgv")
 				}
 			}
 
@@ -96,13 +96,13 @@ func (s *simpleStore) mustPrintLauncherState(w **tabwriter.Writer, now time.Time
 				}
 
 				if !fmsg.Verbose() {
-					_, _ = fmt.Fprintf(*w, "\t%s\t%d\t%s\t%s\t%s\t%s\n",
-						s.path[len(s.path)-1], state.PID, now.Sub(state.Time).Round(time.Second).String(), strings.TrimPrefix(ets.String(), ", "), state.Method,
+					_, _ = fmt.Fprintf(*w, "\t%d\t%s\t%s\t%s\t%s\n",
+						state.PID, s.path[len(s.path)-1], now.Sub(state.Time).Round(time.Second).String(), strings.TrimPrefix(ets.String(), ", "),
 						state.Command)
 				} else {
 					// emit argv instead when verbose
-					_, _ = fmt.Fprintf(*w, "\t%s\t%d\t%s\n",
-						s.path[len(s.path)-1], state.PID, state.Argv)
+					_, _ = fmt.Fprintf(*w, "\t%d\t%s\t%s\n",
+						state.PID, s.path[len(s.path)-1], state.Argv)
 				}
 			}
 

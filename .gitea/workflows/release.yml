@@ -33,9 +33,9 @@ jobs:
           go build -v -ldflags '-s -w
           -X git.ophivana.moe/security/fortify/internal.Version=${{ github.ref_name }}
           -X git.ophivana.moe/security/fortify/internal.Fsu=/usr/bin/fsu
-          -X git.ophivana.moe/security/fortify/internal.Fshim=/usr/libexec/fortify/fshim
           -X git.ophivana.moe/security/fortify/internal.Finit=/usr/libexec/fortify/finit
-          -X main.Fmain=/usr/bin/fortify'
+          -X main.Fmain=/usr/bin/fortify
+          -X main.Fshim=/usr/libexec/fortify/fshim'
           -o bin/ ./... &&
           (cd bin && sha512sum --tag -b * > sha512sums)
 

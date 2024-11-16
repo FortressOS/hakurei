@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"strings"
 	"text/tabwriter"
 
 	"git.ophivana.moe/security/fortify/dbus"
@@ -28,6 +29,20 @@ func init() {
 }
 
 var os = new(linux.Std)
+
+type gl []string
+
+func (g *gl) String() string {
+	if g == nil {
+		return "<nil>"
+	}
+	return strings.Join(*g, " ")
+}
+
+func (g *gl) Set(v string) error {
+	*g = append(*g, v)
+	return nil
+}
 
 func main() {
 	if err := internal.PR_SET_DUMPABLE__SUID_DUMP_DISABLE(); err != nil {
@@ -135,10 +150,11 @@ func main() {
 			mpris             bool
 			dbusVerbose       bool
 
+			aid         int
+			groups      gl
+			homeDir     string
 			userName    string
 			enablements [system.ELen]bool
-
-			launchMethodText string
 		)
 
 		set.StringVar(&dbusConfigSession, "dbus-config", "builtin", "Path to D-Bus proxy config file, or \"builtin\" for defaults")
@@ -147,17 +163,14 @@ func main() {
 		set.BoolVar(&mpris, "mpris", false, "Allow owning MPRIS D-Bus path, has no effect if custom config is available")
 		set.BoolVar(&dbusVerbose, "dbus-log", false, "Force logging in the D-Bus proxy")
 
-		set.StringVar(&userName, "u", "chronos", "Passwd name of user to run as")
+		set.IntVar(&aid, "a", 0, "Fortify application ID")
+		set.Var(&groups, "g", "Groups inherited by the app process")
+		set.StringVar(&homeDir, "d", "/var/empty", "Application home directory")
+		set.StringVar(&userName, "u", "chronos", "Passwd name within sandbox")
 		set.BoolVar(&enablements[system.EWayland], "wayland", false, "Share Wayland socket")
 		set.BoolVar(&enablements[system.EX11], "X", false, "Share X11 socket and allow connection")
 		set.BoolVar(&enablements[system.EDBus], "dbus", false, "Proxy D-Bus connection")
 		set.BoolVar(&enablements[system.EPulse], "pulse", false, "Share PulseAudio socket and cookie")
-
-		methodHelpString := "Method of launching the child process, can be one of \"sudo\""
-		if os.SdBooted() {
-			methodHelpString += ", \"systemd\""
-		}
-		set.StringVar(&launchMethodText, "method", "sudo", methodHelpString)
 
 		// Ignore errors; set is set for ExitOnError.
 		_ = set.Parse(args[1:])
@@ -165,10 +178,18 @@ func main() {
 		// initialise config from flags
 		config := &app.Config{
 			ID:      dbusID,
-			User:    userName,
 			Command: set.Args(),
-			Method:  launchMethodText,
 		}
+
+		if aid < 0 || aid > 9999 {
+			fmsg.Fatalf("aid %d out of range", aid)
+			panic("unreachable")
+		}
+
+		config.Confinement.AppID = aid
+		config.Confinement.Groups = groups
+		config.Confinement.Home = homeDir
+		config.Confinement.Username = userName
 
 		// enablements from flags
 		for i := system.Enablement(0); i < system.Enablement(system.ELen); i++ {

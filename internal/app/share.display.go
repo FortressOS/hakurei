@@ -58,7 +58,7 @@ func (seal *appSeal) shareDisplay(os linux.System) error {
 			return fmsg.WrapError(ErrXDisplay,
 				"DISPLAY is not set")
 		} else {
-			seal.sys.ChangeHosts(seal.sys.user.Username)
+			seal.sys.ChangeHosts(seal.sys.user.us)
 			seal.sys.bwrap.SetEnv[display] = d
 			seal.sys.bwrap.Bind("/tmp/.X11-unix", "/tmp/.X11-unix")
 		}

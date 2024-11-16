@@ -19,9 +19,12 @@ var testCasesNixos = []sealTestCase{
 	{
 		"nixos permissive defaults no enablements", new(stubNixOS),
 		&app.Config{
-			User:    "chronos",
 			Command: make([]string, 0),
-			Method:  "sudo",
+			Confinement: app.ConfinementConfig{
+				AppID:    0,
+				Username: "chronos",
+				Home:     "/home/chronos",
+			},
 		},
 		app.ID{
 			0x4a, 0x45, 0x0b, 0x65,
@@ -29,11 +32,11 @@ var testCasesNixos = []sealTestCase{
 			0xbd, 0x01, 0x78, 0x0e,
 			0xb9, 0xa6, 0x07, 0xac,
 		},
-		system.New(150).
-			Ensure("/tmp/fortify.1971", 0701).
-			Ephemeral(system.Process, "/tmp/fortify.1971/4a450b6596d7bc15bd01780eb9a607ac", 0701).
+		system.New(1000000).
+			Ensure("/tmp/fortify.1971", 0711).
+			Ephemeral(system.Process, "/tmp/fortify.1971/4a450b6596d7bc15bd01780eb9a607ac", 0711).
 			Ensure("/tmp/fortify.1971/tmpdir", 0700).UpdatePermType(system.User, "/tmp/fortify.1971/tmpdir", acl.Execute).
-			Ensure("/tmp/fortify.1971/tmpdir/150", 01700).UpdatePermType(system.User, "/tmp/fortify.1971/tmpdir/150", acl.Read, acl.Write, acl.Execute).
+			Ensure("/tmp/fortify.1971/tmpdir/0", 01700).UpdatePermType(system.User, "/tmp/fortify.1971/tmpdir/0", acl.Read, acl.Write, acl.Execute).
 			Ensure("/run/user/1971/fortify", 0700).UpdatePermType(system.User, "/run/user/1971/fortify", acl.Execute).
 			Ensure("/run/user/1971", 0700).UpdatePermType(system.User, "/run/user/1971", acl.Execute). // this is ordered as is because the previous Ensure only calls mkdir if XDG_RUNTIME_DIR is unset
 			Ephemeral(system.Process, "/run/user/1971/fortify/4a450b6596d7bc15bd01780eb9a607ac", 0700).UpdatePermType(system.Process, "/run/user/1971/fortify/4a450b6596d7bc15bd01780eb9a607ac", acl.Execute).
@@ -43,6 +46,7 @@ var testCasesNixos = []sealTestCase{
 			Net:      true,
 			UserNS:   true,
 			Clearenv: true,
+			Chdir:    "/home/chronos",
 			SetEnv: map[string]string{
 				"HOME":              "/home/chronos",
 				"SHELL":             "/run/current-system/sw/bin/zsh",
@@ -182,10 +186,11 @@ var testCasesNixos = []sealTestCase{
 			Symlink("/fortify/etc/zprofile", "/etc/zprofile").
 			Symlink("/fortify/etc/zshenv", "/etc/zshenv").
 			Symlink("/fortify/etc/zshrc", "/etc/zshrc").
-			Bind("/tmp/fortify.1971/tmpdir/150", "/tmp", false, true).
+			Bind("/tmp/fortify.1971/tmpdir/0", "/tmp", false, true).
 			Tmpfs("/tmp/fortify.1971", 1048576).
 			Tmpfs("/run/user", 1048576).
 			Tmpfs("/run/user/65534", 8388608).
+			Bind("/home/chronos", "/home/chronos", false, true).
 			Bind("/tmp/fortify.1971/4a450b6596d7bc15bd01780eb9a607ac/passwd", "/etc/passwd").
 			Bind("/tmp/fortify.1971/4a450b6596d7bc15bd01780eb9a607ac/group", "/etc/group").
 			Tmpfs("/var/run/nscd", 8192),
@@ -194,9 +199,12 @@ var testCasesNixos = []sealTestCase{
 		"nixos permissive defaults chromium", new(stubNixOS),
 		&app.Config{
 			ID:      "org.chromium.Chromium",
-			User:    "chronos",
 			Command: []string{"/run/current-system/sw/bin/zsh", "-c", "exec chromium "},
 			Confinement: app.ConfinementConfig{
+				AppID:    9,
+				Groups:   []string{"video"},
+				Username: "chronos",
+				Home:     "/home/chronos",
 				SessionBus: &dbus.Config{
 					Talk: []string{
 						"org.freedesktop.Notifications",
@@ -230,7 +238,6 @@ var testCasesNixos = []sealTestCase{
 				},
 				Enablements: system.EWayland.Mask() | system.EDBus.Mask() | system.EPulse.Mask(),
 			},
-			Method: "systemd",
 		},
 		app.ID{
 			0xeb, 0xf0, 0x83, 0xd1,
@@ -238,11 +245,11 @@ var testCasesNixos = []sealTestCase{
 			0x82, 0xd4, 0x13, 0x36,
 			0x9b, 0x64, 0xce, 0x7c,
 		},
-		system.New(150).
-			Ensure("/tmp/fortify.1971", 0701).
-			Ephemeral(system.Process, "/tmp/fortify.1971/ebf083d1b175911782d413369b64ce7c", 0701).
+		system.New(1000009).
+			Ensure("/tmp/fortify.1971", 0711).
+			Ephemeral(system.Process, "/tmp/fortify.1971/ebf083d1b175911782d413369b64ce7c", 0711).
 			Ensure("/tmp/fortify.1971/tmpdir", 0700).UpdatePermType(system.User, "/tmp/fortify.1971/tmpdir", acl.Execute).
-			Ensure("/tmp/fortify.1971/tmpdir/150", 01700).UpdatePermType(system.User, "/tmp/fortify.1971/tmpdir/150", acl.Read, acl.Write, acl.Execute).
+			Ensure("/tmp/fortify.1971/tmpdir/9", 01700).UpdatePermType(system.User, "/tmp/fortify.1971/tmpdir/9", acl.Read, acl.Write, acl.Execute).
 			Ensure("/run/user/1971/fortify", 0700).UpdatePermType(system.User, "/run/user/1971/fortify", acl.Execute).
 			Ensure("/run/user/1971", 0700).UpdatePermType(system.User, "/run/user/1971", acl.Execute). // this is ordered as is because the previous Ensure only calls mkdir if XDG_RUNTIME_DIR is unset
 			Ephemeral(system.Process, "/run/user/1971/fortify/ebf083d1b175911782d413369b64ce7c", 0700).UpdatePermType(system.Process, "/run/user/1971/fortify/ebf083d1b175911782d413369b64ce7c", acl.Execute).
@@ -287,6 +294,7 @@ var testCasesNixos = []sealTestCase{
 		(&bwrap.Config{
 			Net:      true,
 			UserNS:   true,
+			Chdir:    "/home/chronos",
 			Clearenv: true,
 			SetEnv: map[string]string{
 				"DBUS_SESSION_BUS_ADDRESS": "unix:path=/run/user/65534/bus",
@@ -434,10 +442,11 @@ var testCasesNixos = []sealTestCase{
 			Symlink("/fortify/etc/zprofile", "/etc/zprofile").
 			Symlink("/fortify/etc/zshenv", "/etc/zshenv").
 			Symlink("/fortify/etc/zshrc", "/etc/zshrc").
-			Bind("/tmp/fortify.1971/tmpdir/150", "/tmp", false, true).
+			Bind("/tmp/fortify.1971/tmpdir/9", "/tmp", false, true).
 			Tmpfs("/tmp/fortify.1971", 1048576).
 			Tmpfs("/run/user", 1048576).
 			Tmpfs("/run/user/65534", 8388608).
+			Bind("/home/chronos", "/home/chronos", false, true).
 			Bind("/tmp/fortify.1971/ebf083d1b175911782d413369b64ce7c/passwd", "/etc/passwd").
 			Bind("/tmp/fortify.1971/ebf083d1b175911782d413369b64ce7c/group", "/etc/group").
 			Bind("/run/user/1971/fortify/ebf083d1b175911782d413369b64ce7c/wayland", "/run/user/65534/wayland-0").
@@ -504,23 +513,12 @@ func (s *stubNixOS) Executable() (string, error) {
 	return "/home/ophestra/.nix-profile/bin/fortify", nil
 }
 
-func (s *stubNixOS) Lookup(username string) (*user.User, error) {
-	if s.usernameErr != nil {
-		if err, ok := s.usernameErr[username]; ok {
-			return nil, err
-		}
-	}
-
-	switch username {
-	case "chronos":
-		return &user.User{
-			Uid:      "150",
-			Gid:      "101",
-			Username: "chronos",
-			HomeDir:  "/home/chronos",
-		}, nil
+func (s *stubNixOS) LookupGroup(name string) (*user.Group, error) {
+	switch name {
+	case "video":
+		return &user.Group{Gid: "26", Name: "video"}, nil
 	default:
-		return nil, user.UnknownUserError(username)
+		return nil, user.UnknownGroupError(name)
 	}
 }
 
@@ -586,16 +584,16 @@ func (s *stubNixOS) Stdout() io.Writer {
 	panic("requested stdout")
 }
 
-func (s *stubNixOS) FshimPath() string {
-	return "/nix/store/00000000000000000000000000000000-fortify-0.0.10/bin/.fshim"
-}
-
 func (s *stubNixOS) Paths() linux.Paths {
 	return linux.Paths{
 		SharePath:   "/tmp/fortify.1971",
 		RuntimePath: "/run/user/1971",
 		RunDirPath:  "/run/user/1971/fortify",
 	}
+}
+
+func (s *stubNixOS) Uid(aid int) (int, error) {
+	return 1000000 + 0*10000 + aid, nil
 }
 
 func (s *stubNixOS) SdBooted() bool {

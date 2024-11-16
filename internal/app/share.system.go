@@ -16,12 +16,12 @@ const (
 func (seal *appSeal) shareSystem() {
 	// ensure Share (e.g. `/tmp/fortify.%d`)
 	// acl is unnecessary as this directory is world executable
-	seal.sys.Ensure(seal.SharePath, 0701)
+	seal.sys.Ensure(seal.SharePath, 0711)
 
 	// ensure process-specific share (e.g. `/tmp/fortify.%d/%s`)
 	// acl is unnecessary as this directory is world executable
 	seal.share = path.Join(seal.SharePath, seal.id)
-	seal.sys.Ephemeral(system.Process, seal.share, 0701)
+	seal.sys.Ephemeral(system.Process, seal.share, 0711)
 
 	// ensure child tmpdir parent directory (e.g. `/tmp/fortify.%d/tmpdir`)
 	targetTmpdirParent := path.Join(seal.SharePath, "tmpdir")
@@ -29,7 +29,7 @@ func (seal *appSeal) shareSystem() {
 	seal.sys.UpdatePermType(system.User, targetTmpdirParent, acl.Execute)
 
 	// ensure child tmpdir (e.g. `/tmp/fortify.%d/tmpdir/%d`)
-	targetTmpdir := path.Join(targetTmpdirParent, seal.sys.user.Uid)
+	targetTmpdir := path.Join(targetTmpdirParent, seal.sys.user.as)
 	seal.sys.Ensure(targetTmpdir, 01700)
 	seal.sys.UpdatePermType(system.User, targetTmpdir, acl.Read, acl.Write, acl.Execute)
 	seal.sys.bwrap.Bind(targetTmpdir, "/tmp", false, true)
@@ -49,15 +49,21 @@ func (seal *appSeal) sharePasswd(os linux.System) {
 	// generate /etc/passwd
 	passwdPath := path.Join(seal.share, "passwd")
 	username := "chronos"
-	if seal.sys.user.Username != "" {
-		username = seal.sys.user.Username
-		seal.sys.bwrap.SetEnv["USER"] = seal.sys.user.Username
+	if seal.sys.user.username != "" {
+		username = seal.sys.user.username
 	}
 	homeDir := "/var/empty"
-	if seal.sys.user.HomeDir != "" {
-		homeDir = seal.sys.user.HomeDir
-		seal.sys.bwrap.SetEnv["HOME"] = seal.sys.user.HomeDir
+	if seal.sys.user.home != "" {
+		homeDir = seal.sys.user.home
 	}
+
+	// bind home directory
+	seal.sys.bwrap.Bind(homeDir, homeDir, false, true)
+	seal.sys.bwrap.Chdir = homeDir
+
+	seal.sys.bwrap.SetEnv["USER"] = username
+	seal.sys.bwrap.SetEnv["HOME"] = homeDir
+
 	passwd := username + ":x:" + seal.sys.mappedIDString + ":" + seal.sys.mappedIDString + ":Fortify:" + homeDir + ":" + sh + "\n"
 	seal.sys.Write(passwdPath, passwd)
 

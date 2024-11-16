@@ -22,8 +22,8 @@ type System interface {
 	LookPath(file string) (string, error)
 	// Executable provides [os.Executable].
 	Executable() (string, error)
-	// Lookup provides [user.Lookup].
-	Lookup(username string) (*user.User, error)
+	// LookupGroup provides [user.LookupGroup].
+	LookupGroup(name string) (*user.Group, error)
 	// ReadDir provides [os.ReadDir].
 	ReadDir(name string) ([]fs.DirEntry, error)
 	// Stat provides [os.Stat].
@@ -35,10 +35,10 @@ type System interface {
 	// Stdout provides [os.Stdout].
 	Stdout() io.Writer
 
-	// FshimPath returns an absolute path to the fshim binary.
-	FshimPath() string
 	// Paths returns a populated [Paths] struct.
 	Paths() Paths
+	// Uid invokes fsu and returns target uid.
+	Uid(aid int) (int, error)
 	// SdBooted implements https://www.freedesktop.org/software/systemd/man/sd_booted.html
 	SdBooted() bool
 }

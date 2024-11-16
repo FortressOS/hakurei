@@ -15,12 +15,8 @@ const fTmp = "/fortify"
 type Config struct {
 	// D-Bus application ID
 	ID string `json:"id"`
-	// username of the target user to switch to
-	User string `json:"user"`
 	// value passed through to the child process as its argv
 	Command []string `json:"command"`
-	// string representation of the child's launch method
-	Method string `json:"method"`
 
 	// child confinement configuration
 	Confinement ConfinementConfig `json:"confinement"`
@@ -28,6 +24,14 @@ type Config struct {
 
 // ConfinementConfig defines fortified child's confinement
 type ConfinementConfig struct {
+	// numerical application id, determines uid in the init namespace
+	AppID int `json:"app_id"`
+	// list of supplementary groups to inherit
+	Groups []string `json:"groups"`
+	// passwd username in the sandbox, defaults to chronos
+	Username string `json:"username,omitempty"`
+	// home directory in sandbox
+	Home string `json:"home"`
 	// bwrap sandbox confinement configuration
 	Sandbox *SandboxConfig `json:"sandbox"`
 
@@ -169,8 +173,7 @@ func (s *SandboxConfig) Bwrap(os linux.System) (*bwrap.Config, error) {
 // Template returns a fully populated instance of Config.
 func Template() *Config {
 	return &Config{
-		ID:   "org.chromium.Chromium",
-		User: "chronos",
+		ID: "org.chromium.Chromium",
 		Command: []string{
 			"chromium",
 			"--ignore-gpu-blocklist",
@@ -178,8 +181,11 @@ func Template() *Config {
 			"--enable-features=UseOzonePlatform",
 			"--ozone-platform=wayland",
 		},
-		Method: "sudo",
 		Confinement: ConfinementConfig{
+			AppID:    9,
+			Groups:   []string{"video"},
+			Username: "chronos",
+			Home:     "/var/lib/persist/home/org.chromium.Chromium",
 			Sandbox: &SandboxConfig{
 				Hostname:     "localhost",
 				UserNS:       true,

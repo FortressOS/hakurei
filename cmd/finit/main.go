@@ -103,7 +103,7 @@ func main() {
 	if err := cmd.Start(); err != nil {
 		fmsg.Fatalf("cannot start %q: %v", payload.Argv0, err)
 	}
-	fmsg.Withhold()
+	fmsg.Suspend()
 
 	// close setup pipe as setup is now complete
 	if err := setup.Close(); err != nil {

@@ -56,9 +56,10 @@ func Exit(code int) {
 	os.Exit(code)
 }
 
-func Withhold() {
+func Suspend() {
 	dequeueOnce.Do(dequeue)
 	if wstate.CompareAndSwap(false, true) {
+		queueSync.Wait()
 		withhold <- struct{}{}
 	}
 }

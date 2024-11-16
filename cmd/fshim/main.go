@@ -58,7 +58,7 @@ func main() {
 	// dial setup socket
 	var conn *net.UnixConn
 	if c, err := net.DialUnix("unix", nil, &net.UnixAddr{Name: socketPath, Net: "unix"}); err != nil {
-		fmsg.Fatal("cannot dial setup socket:", err)
+		fmsg.Fatal(err.Error())
 		panic("unreachable")
 	} else {
 		conn = c
@@ -67,7 +67,7 @@ func main() {
 	// decode payload gob stream
 	var payload shim.Payload
 	if err := gob.NewDecoder(conn).Decode(&payload); err != nil {
-		fmsg.Fatal("cannot decode shim payload:", err)
+		fmsg.Fatalf("cannot decode shim payload: %v", err)
 	} else {
 		fmsg.SetVerbose(payload.Verbose)
 	}
@@ -80,7 +80,7 @@ func main() {
 	wfd := -1
 	if payload.WL {
 		if fd, err := receiveWLfd(conn); err != nil {
-			fmsg.Fatal("cannot receive wayland fd:", err)
+			fmsg.Fatalf("cannot receive wayland fd: %v", err)
 		} else {
 			wfd = fd
 		}
@@ -102,7 +102,10 @@ func main() {
 	} else {
 		// no argv, look up shell instead
 		var ok bool
-		if ic.Argv0, ok = os.LookupEnv("SHELL"); !ok {
+		if payload.Bwrap.SetEnv == nil {
+			fmsg.Fatal("no command was specified and environment is unset")
+		}
+		if ic.Argv0, ok = payload.Bwrap.SetEnv["SHELL"]; !ok {
 			fmsg.Fatal("no command was specified and $SHELL was unset")
 		}
 
@@ -125,7 +128,7 @@ func main() {
 
 	// share config pipe
 	if r, w, err := os.Pipe(); err != nil {
-		fmsg.Fatal("cannot pipe:", err)
+		fmsg.Fatalf("cannot pipe: %v", err)
 	} else {
 		conf.SetEnv[init0.Env] = strconv.Itoa(3 + len(extraFiles))
 		extraFiles = append(extraFiles, r)
@@ -134,7 +137,7 @@ func main() {
 		go func() {
 			// stream config to pipe
 			if err = gob.NewEncoder(w).Encode(&ic); err != nil {
-				fmsg.Fatal("cannot transmit init config:", err)
+				fmsg.Fatalf("cannot transmit init config: %v", err)
 			}
 		}()
 	}
@@ -142,7 +145,7 @@ func main() {
 	helper.BubblewrapName = payload.Exec[0] // resolved bwrap path by parent
 	if b, err := helper.NewBwrap(conf, nil, finitPath,
 		func(int, int) []string { return make([]string, 0) }); err != nil {
-		fmsg.Fatal("malformed sandbox config:", err)
+		fmsg.Fatalf("malformed sandbox config: %v", err)
 	} else {
 		cmd := b.Unwrap()
 		cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
@@ -154,7 +157,7 @@ func main() {
 
 		// run and pass through exit code
 		if err = b.Start(); err != nil {
-			fmsg.Fatal("cannot start target process:", err)
+			fmsg.Fatalf("cannot start target process: %v", err)
 		} else if err = b.Wait(); err != nil {
 			fmsg.VPrintln("wait:", err)
 		}

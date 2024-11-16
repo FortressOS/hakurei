@@ -41,19 +41,13 @@ func (a *app) Start() error {
 		}
 	}
 
-	// select command builder
-	var commandBuilder shim.CommandBuilder
-	switch a.seal.launchOption {
-	case LaunchMethodSudo:
-		commandBuilder = a.commandBuilderSudo
-	case LaunchMethodMachineCtl:
-		commandBuilder = a.commandBuilderMachineCtl
-	default:
-		panic("unreachable")
-	}
-
 	// construct shim manager
-	a.shim = shim.New(a.seal.toolPath, uint32(a.seal.sys.UID()), path.Join(a.seal.share, "shim"), a.seal.wl,
+	a.shim = shim.New(
+		uint32(a.seal.sys.UID()),
+		a.seal.sys.user.as,
+		a.seal.sys.user.supp,
+		path.Join(a.seal.share, "shim"),
+		a.seal.wl,
 		&shim0.Payload{
 			Argv:  a.seal.command,
 			Exec:  shimExec,
@@ -62,9 +56,6 @@ func (a *app) Start() error {
 
 			Verbose: fmsg.Verbose(),
 		},
-		// checkPid is impossible at the moment since there is no reliable way to obtain shim's pid
-		// this feature is disabled here until sudo is replaced by fortify suid wrapper
-		false,
 	)
 
 	// startup will go ahead, commit system setup
@@ -73,7 +64,7 @@ func (a *app) Start() error {
 	}
 	a.seal.sys.needRevert = true
 
-	if startTime, err := a.shim.Start(commandBuilder); err != nil {
+	if startTime, err := a.shim.Start(); err != nil {
 		return err
 	} else {
 		// shim start and setup success, create process state
@@ -81,7 +72,6 @@ func (a *app) Start() error {
 			PID:        a.shim.Unwrap().Process.Pid,
 			Command:    a.seal.command,
 			Capability: a.seal.et,
-			Method:     method[a.seal.launchOption],
 			Argv:       a.shim.Unwrap().Args,
 			Time:       *startTime,
 		}
@@ -166,20 +156,31 @@ func (a *app) Wait() (int, error) {
 		// failure prior to process start
 		r = 255
 	} else {
-		// wait for process and resolve exit code
-		if err := cmd.Wait(); err != nil {
-			var exitError *exec.ExitError
-			if !errors.As(err, &exitError) {
-				// should be unreachable
-				a.waitErr = err
-			}
+		wait := make(chan error, 1)
+		go func() { wait <- cmd.Wait() }()
 
-			// store non-zero return code
-			r = exitError.ExitCode()
-		} else {
-			r = cmd.ProcessState.ExitCode()
+		select {
+		// wait for process and resolve exit code
+		case err := <-wait:
+			if err != nil {
+				var exitError *exec.ExitError
+				if !errors.As(err, &exitError) {
+					// should be unreachable
+					a.waitErr = err
+				}
+
+				// store non-zero return code
+				r = exitError.ExitCode()
+			} else {
+				r = cmd.ProcessState.ExitCode()
+			}
+			fmsg.VPrintf("process %d exited with exit code %d", cmd.Process.Pid, r)
+
+		// alternative exit path when kill was unsuccessful
+		case err := <-a.shim.WaitFallback():
+			r = 255
+			fmsg.Printf("cannot terminate shim on faulted setup: %v", err)
 		}
-		fmsg.VPrintf("process %d exited with exit code %d", cmd.Process.Pid, r)
 	}
 
 	// child process exited, resume output

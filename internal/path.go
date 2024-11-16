@@ -4,7 +4,6 @@ import "path"
 
 var (
 	Fsu   = compPoison
-	Fshim = compPoison
 	Finit = compPoison
 )
 

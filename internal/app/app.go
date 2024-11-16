@@ -53,7 +53,7 @@ func (a *app) String() string {
 	}
 
 	if a.seal != nil {
-		return "(sealed fortified app as uid " + a.seal.sys.user.Uid + ")"
+		return "(sealed fortified app as uid " + a.seal.sys.user.us + ")"
 	}
 
 	return "(unsealed fortified app)"

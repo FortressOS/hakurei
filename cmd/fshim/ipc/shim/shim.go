@@ -5,6 +5,7 @@ import (
 	"net"
 	"os"
 	"os/exec"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"syscall"
@@ -12,6 +13,7 @@ import (
 
 	"git.ophivana.moe/security/fortify/acl"
 	shim0 "git.ophivana.moe/security/fortify/cmd/fshim/ipc"
+	"git.ophivana.moe/security/fortify/internal"
 	"git.ophivana.moe/security/fortify/internal/fmsg"
 )
 
@@ -24,24 +26,26 @@ type Shim struct {
 	cmd *exec.Cmd
 	// uid of shim target user
 	uid uint32
-	// whether to check shim pid
-	checkPid bool
-	// user switcher executable path
-	executable string
+	// string representation of application id
+	aid string
+	// string representation of supplementary group ids
+	supp []string
 	// path to setup socket
 	socket string
 	// shim setup abort reason and completion
 	abort     chan error
 	abortErr  atomic.Pointer[error]
 	abortOnce sync.Once
+	// fallback exit notifier with error returned killing the process
+	killFallback chan error
 	// wayland mediation, nil if disabled
 	wl *shim0.Wayland
 	// shim setup payload
 	payload *shim0.Payload
 }
 
-func New(executable string, uid uint32, socket string, wl *shim0.Wayland, payload *shim0.Payload, checkPid bool) *Shim {
-	return &Shim{uid: uid, executable: executable, socket: socket, wl: wl, payload: payload, checkPid: checkPid}
+func New(uid uint32, aid string, supp []string, socket string, wl *shim0.Wayland, payload *shim0.Payload) *Shim {
+	return &Shim{uid: uid, aid: aid, supp: supp, socket: socket, wl: wl, payload: payload}
 }
 
 func (s *Shim) String() string {
@@ -68,9 +72,11 @@ func (s *Shim) AbortWait(err error) {
 	<-s.abort
 }
 
-type CommandBuilder func(shimEnv string) (args []string)
+func (s *Shim) WaitFallback() chan error {
+	return s.killFallback
+}
 
-func (s *Shim) Start(f CommandBuilder) (*time.Time, error) {
+func (s *Shim) Start() (*time.Time, error) {
 	var (
 		cf     chan *net.UnixConn
 		accept func()
@@ -87,22 +93,37 @@ func (s *Shim) Start(f CommandBuilder) (*time.Time, error) {
 	}
 
 	// start user switcher process and save time
-	s.cmd = exec.Command(s.executable, f(shim0.Env+"="+s.socket)...)
-	s.cmd.Env = []string{}
+	var fsu string
+	if p, ok := internal.Check(internal.Fsu); !ok {
+		fmsg.Fatal("invalid fsu path, this copy of fshim is not compiled correctly")
+		panic("unreachable")
+	} else {
+		fsu = p
+	}
+	s.cmd = exec.Command(fsu)
+	s.cmd.Env = []string{
+		shim0.Env + "=" + s.socket,
+		"FORTIFY_APP_ID=" + s.aid,
+	}
+	if len(s.supp) > 0 {
+		fmsg.VPrintf("attaching supplementary group ids %s", s.supp)
+		s.cmd.Env = append(s.cmd.Env, "FORTIFY_GROUPS="+strings.Join(s.supp, " "))
+	}
 	s.cmd.Stdin, s.cmd.Stdout, s.cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
 	s.cmd.Dir = "/"
-	fmsg.VPrintln("starting shim via user switcher:", s.cmd)
-	fmsg.Withhold() // withhold messages to stderr
+	fmsg.VPrintln("starting shim via fsu:", s.cmd)
+	fmsg.Suspend() // withhold messages to stderr
 	if err := s.cmd.Start(); err != nil {
 		return nil, fmsg.WrapErrorSuffix(err,
-			"cannot start user switcher:")
+			"cannot start fsu:")
 	}
 	startTime := time.Now().UTC()
 
 	// kill shim if something goes wrong and an error is returned
+	s.killFallback = make(chan error, 1)
 	killShim := func() {
 		if err := s.cmd.Process.Signal(os.Interrupt); err != nil {
-			fmsg.Println("cannot terminate shim on faulted setup:", err)
+			s.killFallback <- err
 		}
 	}
 	defer func() { killShim() }()
@@ -132,7 +153,7 @@ func (s *Shim) Start(f CommandBuilder) (*time.Time, error) {
 		err = errors.New("compromised fortify build")
 		s.Abort(err)
 		return &startTime, err
-	} else if s.checkPid && cred.Pid != int32(s.cmd.Process.Pid) {
+	} else if cred.Pid != int32(s.cmd.Process.Pid) {
 		fmsg.Printf("process %d tried to connect to shim setup socket, expecting shim %d",
 			cred.Pid, s.cmd.Process.Pid)
 		err = errors.New("compromised target user")

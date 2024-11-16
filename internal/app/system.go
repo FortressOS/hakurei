@@ -1,8 +1,6 @@
 package app
 
 import (
-	"os/user"
-
 	"git.ophivana.moe/security/fortify/dbus"
 	"git.ophivana.moe/security/fortify/helper/bwrap"
 	"git.ophivana.moe/security/fortify/internal/linux"
@@ -18,7 +16,7 @@ type appSealSys struct {
 	// default formatted XDG_RUNTIME_DIR of User
 	runtime string
 	// target user sealed from config
-	user *user.User
+	user appUser
 
 	// mapped uid and gid in user namespace
 	mappedID int
@@ -30,6 +28,26 @@ type appSealSys struct {
 	*system.I
 
 	// protected by upstream mutex
+}
+
+type appUser struct {
+	// full uid resolved by fsu
+	uid int
+	// string representation of uid
+	us string
+
+	// supplementary group ids
+	supp []string
+
+	// application id
+	aid int
+	// string representation of aid
+	as string
+
+	// app user home directory
+	home string
+	// passwd database username
+	username string
 }
 
 // shareAll calls all share methods in sequence
