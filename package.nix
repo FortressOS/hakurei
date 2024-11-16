@@ -31,12 +31,12 @@ buildGoModule rec {
         "-X"
         "main.Fmain=${placeholder "out"}/bin/.fortify-wrapped"
         "-X"
-        "main.Fshim=${placeholder "out"}/bin/fshim"
+        "main.Fshim=${placeholder "out"}/libexec/fshim"
       ]
       {
         Version = "v${version}";
         Fsu = "/run/wrappers/bin/fsu";
-        Finit = "${placeholder "out"}/bin/finit";
+        Finit = "${placeholder "out"}/libexec/finit";
       };
 
   buildInputs = [
@@ -54,6 +54,7 @@ buildGoModule rec {
       ]
     }
 
-    mv $out/bin/fsu $out/bin/.fsu
+    mkdir $out/libexec
+    (cd $out/bin && mv fsu fshim finit fuserdb ../libexec/)
   '';
 }
