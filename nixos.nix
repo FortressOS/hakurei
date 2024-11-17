@@ -11,8 +11,12 @@ let
     mkOption
     mkEnableOption
     mkIf
+    mkDefault
     mapAttrs
     mapAttrsToList
+    mergeAttrsList
+    imap1
+    foldr
     foldlAttrs
     optional
     optionals
@@ -26,8 +30,24 @@ in
     environment.fortify = {
       enable = mkEnableOption "fortify";
 
-      target = mkOption {
-        default = { };
+      package = mkOption {
+        type = types.package;
+        default = pkgs.callPackage ./package.nix { };
+        description = "Package providing fortify.";
+      };
+
+      users = mkOption {
+        type =
+          let
+            inherit (types) attrsOf ints;
+          in
+          attrsOf (ints.between 0 99);
+        description = ''
+          Users allowed to spawn fortify apps, as well as their fortify ID value.
+        '';
+      };
+
+      apps = mkOption {
         type =
           let
             inherit (types)
@@ -43,8 +63,23 @@ in
               functionTo
               ;
           in
-          attrsOf (submodule {
+          listOf (submodule {
             options = {
+              name = mkOption {
+                type = str;
+                description = ''
+                  App name, typically command.
+                '';
+              };
+
+              id = mkOption {
+                type = nullOr str;
+                default = null;
+                description = ''
+                  Freedesktop application ID.
+                '';
+              };
+
               packages = mkOption {
                 type = listOf package;
                 default = [ ];
@@ -53,200 +88,153 @@ in
                 '';
               };
 
-              launchers = mkOption {
-                type = attrsOf (submodule {
-                  options = {
-                    id = mkOption {
-                      type = nullOr str;
-                      default = null;
-                      description = ''
-                        Freedesktop application ID.
-                      '';
-                    };
-
-                    script = mkOption {
-                      type = nullOr str;
-                      default = null;
-                      description = ''
-                        Application launch script.
-                      '';
-                    };
-
-                    command = mkOption {
-                      type = nullOr str;
-                      default = null;
-                      description = ''
-                        Command to run as the target user.
-                        Setting this to null will default command to wrapper name.
-                        Has no effect when script is set.
-                      '';
-                    };
-
-                    method = mkOption {
-                      type = enum [
-                        "simple"
-                        "sudo"
-                        "systemd"
-                      ];
-                      default = "systemd";
-                      description = ''
-                        Launch method for the sandboxed program.
-                      '';
-                    };
-
-                    dbus = {
-                      session = mkOption {
-                        type = nullOr (functionTo anything);
-                        default = null;
-                        description = ''
-                          D-Bus session bus custom configuration.
-                          Setting this to null will enable built-in defaults.
-                        '';
-                      };
-
-                      system = mkOption {
-                        type = nullOr anything;
-                        default = null;
-                        description = ''
-                          D-Bus system bus custom configuration.
-                          Setting this to null will disable the system bus proxy.
-                        '';
-                      };
-                    };
-
-                    env = mkOption {
-                      type = nullOr (attrsOf str);
-                      default = null;
-                      description = ''
-                        Environment variables to set for the initial process in the sandbox.
-                      '';
-                    };
-
-                    nix = mkEnableOption ''
-                      Whether to allow nix daemon connections from within sandbox.
-                    '';
-
-                    userns = mkEnableOption ''
-                      Whether to allow userns within sandbox.
-                    '';
-
-                    mapRealUid = mkEnableOption ''
-                      Whether to map to fortify's real UID within the sandbox.
-                    '';
-
-                    net =
-                      mkEnableOption ''
-                        Whether to allow network access within sandbox.
-                      ''
-                      // {
-                        default = true;
-                      };
-
-                    gpu = mkOption {
-                      type = nullOr bool;
-                      default = null;
-                      description = ''
-                        Target process GPU and driver access.
-                        Setting this to null will enable GPU whenever X or Wayland is enabled.
-                      '';
-                    };
-
-                    dev = mkEnableOption ''
-                      Whether to allow access to all devices within sandbox.
-                    '';
-
-                    extraPaths = mkOption {
-                      type = listOf anything;
-                      default = [ ];
-                      description = ''
-                        Extra paths to make available inside the sandbox.
-                      '';
-                    };
-
-                    capability = {
-                      wayland = mkOption {
-                        type = bool;
-                        default = true;
-                        description = ''
-                          Whether to share the Wayland socket.
-                        '';
-                      };
-
-                      x11 = mkOption {
-                        type = bool;
-                        default = false;
-                        description = ''
-                          Whether to share the X11 socket and allow connection.
-                        '';
-                      };
-
-                      dbus = mkOption {
-                        type = bool;
-                        default = true;
-                        description = ''
-                          Whether to proxy D-Bus.
-                        '';
-                      };
-
-                      pulse = mkOption {
-                        type = bool;
-                        default = true;
-                        description = ''
-                          Whether to share the PulseAudio socket and cookie.
-                        '';
-                      };
-                    };
-
-                    share = mkOption {
-                      type = nullOr package;
-                      default = null;
-                      description = ''
-                        Package containing share files.
-                        Setting this to null will default package name to wrapper name.
-                      '';
-                    };
-                  };
-                });
-                default = { };
-              };
-
-              persistence = mkOption {
-                type = submodule {
-                  options = {
-                    directories = mkOption {
-                      type = listOf anything;
-                      default = [ ];
-                    };
-
-                    files = mkOption {
-                      type = listOf anything;
-                      default = [ ];
-                    };
-                  };
-                };
-                description = ''
-                  Per-user state passed to github:nix-community/impermanence.
-                '';
-              };
-
               extraConfig = mkOption {
                 type = anything;
                 default = { };
                 description = "Extra home-manager configuration.";
               };
+
+              script = mkOption {
+                type = nullOr str;
+                default = null;
+                description = ''
+                  Application launch script.
+                '';
+              };
+
+              command = mkOption {
+                type = nullOr str;
+                default = null;
+                description = ''
+                  Command to run as the target user.
+                  Setting this to null will default command to wrapper name.
+                  Has no effect when script is set.
+                '';
+              };
+
+              groups = mkOption {
+                type = listOf str;
+                default = [ ];
+                description = ''
+                  List of groups to inherit from the privileged user.
+                '';
+              };
+
+              dbus = {
+                session = mkOption {
+                  type = nullOr (functionTo anything);
+                  default = null;
+                  description = ''
+                    D-Bus session bus custom configuration.
+                    Setting this to null will enable built-in defaults.
+                  '';
+                };
+
+                system = mkOption {
+                  type = nullOr anything;
+                  default = null;
+                  description = ''
+                    D-Bus system bus custom configuration.
+                    Setting this to null will disable the system bus proxy.
+                  '';
+                };
+              };
+
+              env = mkOption {
+                type = nullOr (attrsOf str);
+                default = null;
+                description = ''
+                  Environment variables to set for the initial process in the sandbox.
+                '';
+              };
+
+              nix = mkEnableOption ''
+                Whether to allow nix daemon connections from within sandbox.
+              '';
+
+              userns = mkEnableOption ''
+                Whether to allow userns within sandbox.
+              '';
+
+              mapRealUid = mkEnableOption ''
+                Whether to map to fortify's real UID within the sandbox.
+              '';
+
+              net =
+                mkEnableOption ''
+                  Whether to allow network access within sandbox.
+                ''
+                // {
+                  default = true;
+                };
+
+              gpu = mkOption {
+                type = nullOr bool;
+                default = null;
+                description = ''
+                  Target process GPU and driver access.
+                  Setting this to null will enable GPU whenever X or Wayland is enabled.
+                '';
+              };
+
+              dev = mkEnableOption ''
+                Whether to allow access to all devices within sandbox.
+              '';
+
+              extraPaths = mkOption {
+                type = listOf anything;
+                default = [ ];
+                description = ''
+                  Extra paths to make available inside the sandbox.
+                '';
+              };
+
+              capability = {
+                wayland = mkOption {
+                  type = bool;
+                  default = true;
+                  description = ''
+                    Whether to share the Wayland socket.
+                  '';
+                };
+
+                x11 = mkOption {
+                  type = bool;
+                  default = false;
+                  description = ''
+                    Whether to share the X11 socket and allow connection.
+                  '';
+                };
+
+                dbus = mkOption {
+                  type = bool;
+                  default = true;
+                  description = ''
+                    Whether to proxy D-Bus.
+                  '';
+                };
+
+                pulse = mkOption {
+                  type = bool;
+                  default = true;
+                  description = ''
+                    Whether to share the PulseAudio socket and cookie.
+                  '';
+                };
+              };
+
+              share = mkOption {
+                type = nullOr package;
+                default = null;
+                description = ''
+                  Package containing share files.
+                  Setting this to null will default package name to wrapper name.
+                '';
+              };
             };
           });
-      };
-
-      package = mkOption {
-        type = types.package;
-        default = pkgs.callPackage ./package.nix { };
-        description = "Package providing fortify.";
-      };
-
-      user = mkOption {
-        type = types.str;
-        description = "Privileged user account.";
+        default = [ ];
+        description = "Applications managed by fortify.";
       };
 
       stateDir = mkOption {
@@ -259,25 +247,50 @@ in
   };
 
   config = mkIf cfg.enable {
-    environment.persistence.${cfg.stateDir}.users = mapAttrs (_: target: target.persistence) cfg.target;
+    security.wrappers.fsu = {
+      source = "${cfg.package}/libexec/fsu";
+      setuid = true;
+      owner = "root";
+      setgid = true;
+      group = "root";
+    };
 
-    home-manager.users =
-      mapAttrs (_: target: target.extraConfig // { home.packages = target.packages; }) cfg.target
-      // {
-        ${cfg.user}.home.packages =
-          let
-            wrap =
-              user: launchers:
-              mapAttrsToList (
-                name: launcher:
-                with launcher.capability;
+    environment.etc = {
+      fsurc = {
+        mode = "0400";
+        text = foldlAttrs (
+          acc: username: fid:
+          "${toString config.users.users.${username}.uid} ${toString fid}\n" + acc
+        ) "" cfg.users;
+      };
+
+      userdb.source = pkgs.runCommand "generate-userdb" { } ''
+        ${cfg.package}/libexec/fuserdb -o $out ${
+          foldlAttrs (
+            acc: username: fid:
+            acc + " ${username}:${toString fid}"
+          ) "-s /run/current-system/sw/bin/nologin -d ${cfg.stateDir}" cfg.users
+        }
+      '';
+    };
+
+    services.userdbd.enable = mkDefault true;
+
+    home-manager =
+      let
+        privPackages = mapAttrs (username: fid: {
+          home.packages =
+            let
+              # aid 0 is reserved
+              wrappers = imap1 (
+                aid: app:
                 let
                   extendDBusDefault = id: ext: {
                     filter = true;
 
                     talk = [ "org.freedesktop.Notifications" ] ++ ext.talk;
                     own =
-                      (optionals (launcher.id != null) [
+                      (optionals (app.id != null) [
                         "${id}.*"
                         "org.mpris.MediaPlayer2.${id}.*"
                       ])
@@ -296,37 +309,41 @@ in
                     in
                     {
                       session_bus =
-                        if launcher.dbus.session != null then
-                          (launcher.dbus.session (extendDBusDefault launcher.id))
+                        if app.dbus.session != null then
+                          (app.dbus.session (extendDBusDefault app.id))
                         else
-                          (extendDBusDefault launcher.id default);
-                      system_bus = launcher.dbus.system;
+                          (extendDBusDefault app.id default);
+                      system_bus = app.dbus.system;
                     };
-                  command = if launcher.command == null then name else launcher.command;
-                  script = if launcher.script == null then ("exec " + command + " $@") else launcher.script;
+                  command = if app.command == null then app.name else app.command;
+                  script = if app.script == null then ("exec " + command + " $@") else app.script;
                   enablements =
+                    with app.capability;
                     (if wayland then 1 else 0)
                     + (if x11 then 2 else 0)
                     + (if dbus then 4 else 0)
                     + (if pulse then 8 else 0);
                   conf = {
-                    inherit (launcher) id method;
-                    inherit user;
+                    inherit (app) id;
                     command = [
-                      (pkgs.writeScript "${name}-start" ''
+                      (pkgs.writeScript "${app.name}-start" ''
                         #!${pkgs.zsh}${pkgs.zsh.shellPath}
                         ${script}
                       '')
                     ];
                     confinement = {
+                      app_id = aid;
+                      inherit (app) groups;
+                      username = "u${toString fid}_a${toString aid}";
+                      home = "${cfg.stateDir}/${toString fid}/${toString aid}";
                       sandbox = {
-                        inherit (launcher)
+                        inherit (app)
                           userns
                           net
                           dev
                           env
                           ;
-                        map_real_uid = launcher.mapRealUid;
+                        map_real_uid = app.mapRealUid;
                         filesystem =
                           [
                             { src = "/bin"; }
@@ -353,24 +370,19 @@ in
                               src = "/sys/devices";
                               require = false;
                             }
-                            {
-                              src = "/home/${user}";
-                              write = true;
-                              require = true;
-                            }
                           ]
-                          ++ optionals launcher.nix [
+                          ++ optionals app.nix [
                             { src = "/nix/var"; }
                             { src = "/var/db/nix-channels"; }
                           ]
-                          ++ optionals (if launcher.gpu != null then launcher.gpu else wayland || x11) [
+                          ++ optionals (if app.gpu != null then app.gpu else app.capability.wayland || app.capability.x11) [
                             { src = "/run/opengl-driver"; }
                             {
                               src = "/dev/dri";
                               dev = true;
                             }
                           ]
-                          ++ launcher.extraPaths;
+                          ++ app.extraPaths;
                         auto_etc = true;
                         override = [ "/var/run/nscd" ];
                       };
@@ -379,58 +391,48 @@ in
                     };
                   };
                 in
-                pkgs.writeShellScriptBin name (
-                  if launcher.method == "simple" then
-                    ''
-                      exec sudo -u ${user} -i ${command} $@
-                    ''
-                  else
-                    ''
-                      exec fortify app ${pkgs.writeText "fortify-${name}.json" (builtins.toJSON conf)} $@
-                    ''
-                )
-              ) launchers;
-          in
-          foldlAttrs (
-            acc: user: target:
-            acc
-            ++ (foldlAttrs (
-              shares: name: launcher:
+                pkgs.writeShellScriptBin app.name ''
+                  exec fortify app ${pkgs.writeText "fortify-${app.name}.json" (builtins.toJSON conf)} $@
+                ''
+              ) cfg.apps;
+            in
+            foldr (
+              app: acc:
               let
-                pkg = if launcher.share != null then launcher.share else pkgs.${name};
+                pkg = if app.share != null then app.share else pkgs.${app.name};
                 copy = source: "[ -d '${source}' ] && cp -Lrv '${source}' $out/share || true";
               in
-              shares
-              ++
-                optional (launcher.method != "simple" && (launcher.capability.wayland || launcher.capability.x11))
-                  (
-                    pkgs.runCommand "${name}-share" { } ''
-                      mkdir -p $out/share
-                      ${copy "${pkg}/share/applications"}
-                      ${copy "${pkg}/share/icons"}
-                      ${copy "${pkg}/share/man"}
+              optional (app.capability.wayland || app.capability.x11) (
+                pkgs.runCommand "${app.name}-share" { } ''
+                  mkdir -p $out/share
+                  ${copy "${pkg}/share/applications"}
+                  ${copy "${pkg}/share/icons"}
+                  ${copy "${pkg}/share/man"}
 
-                      substituteInPlace $out/share/applications/* \
-                        --replace-warn '${pkg}/bin/' "" \
-                        --replace-warn '${pkg}/libexec/' ""
-                    ''
-                  )
-            ) (wrap user target.launchers) target.launchers)
-          ) [ cfg.package ] cfg.target;
-      };
-
-    security.polkit.extraConfig =
-      let
-        allowList = builtins.toJSON (mapAttrsToList (name: _: name) cfg.target);
+                  substituteInPlace $out/share/applications/* \
+                    --replace-warn '${pkg}/bin/' "" \
+                    --replace-warn '${pkg}/libexec/' ""
+                ''
+              )
+              ++ acc
+            ) (wrappers ++ [ cfg.package ]) cfg.apps;
+        }) cfg.users;
       in
-      ''
-        polkit.addRule(function(action, subject) {
-          if (action.id == "org.freedesktop.machine1.host-shell" &&
-            ${allowList}.indexOf(action.lookup("user")) > -1 &&
-            subject.user == "${cfg.user}") {
-                return polkit.Result.YES;
-          }
-        });
-      '';
+      {
+        useUserPackages = false; # prevent users.users entries from being added
+
+        users = foldlAttrs (
+          acc: _: fid:
+          mergeAttrsList (
+            # aid 0 is reserved
+            imap1 (aid: app: {
+              "u${toString fid}_a${toString aid}" = app.extraConfig // {
+                home.packages = app.packages;
+              };
+            }) cfg.apps
+          )
+          // acc
+        ) privPackages cfg.users;
+      };
   };
 }
