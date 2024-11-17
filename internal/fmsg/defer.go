@@ -33,16 +33,17 @@ func dequeue() {
 // queue submits ops to msgbuf but drops messages
 // when the buffer is full and dequeue is withholding
 func queue(op dOp) {
+	queueSync.Add(1)
+
 	select {
 	case msgbuf <- op:
-		queueSync.Add(1)
 	default:
 		// send the op anyway if not withholding
 		// as dequeue will get to it eventually
 		if !wstate.Load() {
-			queueSync.Add(1)
 			msgbuf <- op
 		} else {
+			queueSync.Done()
 			// increment dropped message count
 			dropped.Add(1)
 		}
