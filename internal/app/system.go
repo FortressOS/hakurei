@@ -44,6 +44,8 @@ type appUser struct {
 	// string representation of aid
 	as string
 
+	// home directory host path
+	data string
 	// app user home directory
 	home string
 	// passwd database username

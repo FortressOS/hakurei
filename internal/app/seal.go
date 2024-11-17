@@ -100,15 +100,19 @@ func (a *app) Seal(config *Config) error {
 		seal.sys.user = appUser{
 			aid:      config.Confinement.AppID,
 			as:       strconv.Itoa(config.Confinement.AppID),
-			home:     config.Confinement.Home,
+			data:     config.Confinement.Outer,
+			home:     config.Confinement.Inner,
 			username: config.Confinement.Username,
 		}
 		if seal.sys.user.username == "" {
 			seal.sys.user.username = "chronos"
 		}
-		if seal.sys.user.home == "" || !path.IsAbs(seal.sys.user.home) {
+		if seal.sys.user.data == "" || !path.IsAbs(seal.sys.user.data) {
 			return fmsg.WrapError(ErrHome,
-				fmt.Sprintf("invalid home directory %q", seal.sys.user.home))
+				fmt.Sprintf("invalid home directory %q", seal.sys.user.data))
+		}
+		if seal.sys.user.home == "" {
+			seal.sys.user.home = seal.sys.user.data
 		}
 
 		// invoke fsu for full uid

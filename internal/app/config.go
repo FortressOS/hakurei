@@ -30,8 +30,10 @@ type ConfinementConfig struct {
 	Groups []string `json:"groups"`
 	// passwd username in the sandbox, defaults to chronos
 	Username string `json:"username,omitempty"`
-	// home directory in sandbox
-	Home string `json:"home"`
+	// home directory in sandbox, empty for outer
+	Inner string `json:"home_inner"`
+	// home directory in init namespace
+	Outer string `json:"home"`
 	// bwrap sandbox confinement configuration
 	Sandbox *SandboxConfig `json:"sandbox"`
 
@@ -185,7 +187,8 @@ func Template() *Config {
 			AppID:    9,
 			Groups:   []string{"video"},
 			Username: "chronos",
-			Home:     "/var/lib/persist/home/org.chromium.Chromium",
+			Outer:    "/var/lib/persist/home/org.chromium.Chromium",
+			Inner:    "/var/lib/fortify",
 			Sandbox: &SandboxConfig{
 				Hostname:     "localhost",
 				UserNS:       true,

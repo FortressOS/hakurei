@@ -58,7 +58,7 @@ func (seal *appSeal) sharePasswd(os linux.System) {
 	}
 
 	// bind home directory
-	seal.sys.bwrap.Bind(homeDir, homeDir, false, true)
+	seal.sys.bwrap.Bind(seal.sys.user.data, homeDir, false, true)
 	seal.sys.bwrap.Chdir = homeDir
 
 	seal.sys.bwrap.SetEnv["USER"] = username

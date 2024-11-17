@@ -23,7 +23,7 @@ var testCasesNixos = []sealTestCase{
 			Confinement: app.ConfinementConfig{
 				AppID:    0,
 				Username: "chronos",
-				Home:     "/home/chronos",
+				Outer:    "/home/chronos",
 			},
 		},
 		app.ID{
@@ -204,7 +204,7 @@ var testCasesNixos = []sealTestCase{
 				AppID:    9,
 				Groups:   []string{"video"},
 				Username: "chronos",
-				Home:     "/home/chronos",
+				Outer:    "/home/chronos",
 				SessionBus: &dbus.Config{
 					Talk: []string{
 						"org.freedesktop.Notifications",

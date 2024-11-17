@@ -188,7 +188,7 @@ func main() {
 
 		config.Confinement.AppID = aid
 		config.Confinement.Groups = groups
-		config.Confinement.Home = homeDir
+		config.Confinement.Outer = homeDir
 		config.Confinement.Username = userName
 
 		// enablements from flags
