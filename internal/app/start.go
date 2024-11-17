@@ -251,9 +251,16 @@ func (a *app) Wait() (int, error) {
 				}
 			}
 
-			a.shim.AbortWait(errors.New("shim exited"))
-			if err := a.seal.sys.Revert(ec); err != nil {
-				return err.(RevertCompoundError)
+			if a.shim.Unwrap() == nil {
+				fmsg.VPrintln("fault before shim start")
+			} else {
+				a.shim.AbortWait(errors.New("shim exited"))
+			}
+
+			if a.seal.sys.needRevert {
+				if err := a.seal.sys.Revert(ec); err != nil {
+					return err.(RevertCompoundError)
+				}
 			}
 
 			return nil
