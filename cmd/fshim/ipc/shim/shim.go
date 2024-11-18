@@ -5,6 +5,7 @@ import (
 	"net"
 	"os"
 	"os/exec"
+	"os/signal"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -127,6 +128,16 @@ func (s *Shim) Start() (*time.Time, error) {
 		}
 	}
 	defer func() { killShim() }()
+
+	// take alternative exit path on signal
+	sig := make(chan os.Signal, 2)
+	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
+	go func() {
+		v := <-sig
+		fmsg.Printf("got %s after program start", v)
+		s.killFallback <- nil
+		signal.Ignore(syscall.SIGINT, syscall.SIGTERM)
+	}()
 
 	accept()
 	var conn *net.UnixConn

@@ -179,7 +179,11 @@ func (a *app) Wait() (int, error) {
 		// alternative exit path when kill was unsuccessful
 		case err := <-a.shim.WaitFallback():
 			r = 255
-			fmsg.Printf("cannot terminate shim on faulted setup: %v", err)
+			if err != nil {
+				fmsg.Printf("cannot terminate shim on faulted setup: %v", err)
+			} else {
+				fmsg.VPrintln("alternative exit path selected")
+			}
 		}
 	}
 
