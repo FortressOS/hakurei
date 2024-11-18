@@ -29,7 +29,7 @@ buildGoModule rec {
         "-s"
         "-w"
         "-X"
-        "main.Fmain=${placeholder "out"}/bin/.fortify-wrapped"
+        "main.Fmain=${placeholder "out"}/libexec/fortify"
         "-X"
         "main.Fshim=${placeholder "out"}/libexec/fshim"
       ]
@@ -47,14 +47,15 @@ buildGoModule rec {
   nativeBuildInputs = [ makeBinaryWrapper ];
 
   postInstall = ''
-    wrapProgram $out/bin/${pname} --prefix PATH : ${
-      lib.makeBinPath [
-        bubblewrap
-        xdg-dbus-proxy
-      ]
-    }
+    mkdir "$out/libexec"
+    mv "$out"/bin/* "$out/libexec/"
 
-    mkdir $out/libexec
-    (cd $out/bin && mv fsu fshim finit fuserdb ../libexec/)
+    makeBinaryWrapper "$out/libexec/fortify" "$out/bin/fortify" \
+      --inherit-argv0 --prefix PATH : ${
+        lib.makeBinPath [
+          bubblewrap
+          xdg-dbus-proxy
+        ]
+      }
   '';
 }
