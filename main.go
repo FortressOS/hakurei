@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"os/user"
+	"strconv"
 	"strings"
 	"text/tabwriter"
 
@@ -165,7 +167,7 @@ func main() {
 
 		set.IntVar(&aid, "a", 0, "Fortify application ID")
 		set.Var(&groups, "g", "Groups inherited by the app process")
-		set.StringVar(&homeDir, "d", "/var/empty", "Application home directory")
+		set.StringVar(&homeDir, "d", "os", "Application home directory")
 		set.StringVar(&userName, "u", "chronos", "Passwd name within sandbox")
 		set.BoolVar(&enablements[system.EWayland], "wayland", false, "Share Wayland socket")
 		set.BoolVar(&enablements[system.EX11], "X", false, "Share X11 socket and allow connection")
@@ -184,6 +186,22 @@ func main() {
 		if aid < 0 || aid > 9999 {
 			fmsg.Fatalf("aid %d out of range", aid)
 			panic("unreachable")
+		}
+
+		// resolve home directory from os when flag is unset
+		if homeDir == "os" {
+			var us string
+			if uid, err := os.Uid(aid); err != nil {
+				fmsg.Fatalf("cannot obtain uid from fsu: %v", err)
+			} else {
+				us = strconv.Itoa(uid)
+			}
+			if u, err := user.LookupId(us); err != nil {
+				fmsg.VPrintf("cannot look up uid %s", us)
+				homeDir = "/var/empty"
+			} else {
+				homeDir = u.HomeDir
+			}
 		}
 
 		config.Confinement.AppID = aid
