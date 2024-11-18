@@ -406,6 +406,7 @@ in
                 pkgs.runCommand "${app.name}-share" { } ''
                   mkdir -p $out/share
                   ${copy "${pkg}/share/applications"}
+                  ${copy "${pkg}/share/pixmaps"}
                   ${copy "${pkg}/share/icons"}
                   ${copy "${pkg}/share/man"}
 
