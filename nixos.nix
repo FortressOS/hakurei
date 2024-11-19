@@ -43,7 +43,7 @@ in
         ) "" cfg.users;
       };
 
-      userdb.source = pkgs.runCommand "generate-userdb" { } ''
+      userdb.source = pkgs.runCommand "fortify-userdb" { } ''
         ${cfg.package}/libexec/fuserdb -o $out ${
           foldlAttrs (
             acc: username: fid:

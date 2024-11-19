@@ -12,7 +12,7 @@ in
       package = mkOption {
         type = types.package;
         default = pkgs.callPackage ./package.nix { };
-        description = "Package providing fortify.";
+        description = "The fortify package to use.";
       };
 
       users = mkOption {
@@ -22,7 +22,7 @@ in
           in
           attrsOf (ints.between 0 99);
         description = ''
-          Users allowed to spawn fortify apps, as well as their fortify ID value.
+          Users allowed to spawn fortify apps and their corresponding fortify fid.
         '';
       };
 
@@ -47,7 +47,7 @@ in
               name = mkOption {
                 type = str;
                 description = ''
-                  App name, typically command.
+                  Name of the app's launcher script.
                 '';
               };
 
@@ -70,7 +70,9 @@ in
               extraConfig = mkOption {
                 type = anything;
                 default = { };
-                description = "Extra home-manager configuration.";
+                description = ''
+                  Extra home-manager configuration.
+                '';
               };
 
               script = mkOption {
@@ -86,7 +88,7 @@ in
                 default = null;
                 description = ''
                   Command to run as the target user.
-                  Setting this to null will default command to wrapper name.
+                  Setting this to null will default command to launcher name.
                   Has no effect when script is set.
                 '';
               };
@@ -127,25 +129,14 @@ in
                 '';
               };
 
-              nix = mkEnableOption ''
-                Whether to allow nix daemon connections from within sandbox.
-              '';
+              nix = mkEnableOption "nix daemon access within the sandbox";
+              userns = mkEnableOption "userns within the sandbox";
+              mapRealUid = mkEnableOption "mapping to fortify's real UID within the sandbox";
+              dev = mkEnableOption "access to all devices within the sandbox";
 
-              userns = mkEnableOption ''
-                Whether to allow userns within sandbox.
-              '';
-
-              mapRealUid = mkEnableOption ''
-                Whether to map to fortify's real UID within the sandbox.
-              '';
-
-              net =
-                mkEnableOption ''
-                  Whether to allow network access within sandbox.
-                ''
-                // {
-                  default = true;
-                };
+              net = mkEnableOption "network access within the sandbox" // {
+                default = true;
+              };
 
               gpu = mkOption {
                 type = nullOr bool;
@@ -156,15 +147,11 @@ in
                 '';
               };
 
-              dev = mkEnableOption ''
-                Whether to allow access to all devices within sandbox.
-              '';
-
               extraPaths = mkOption {
                 type = listOf anything;
                 default = [ ];
                 description = ''
-                  Extra paths to make available inside the sandbox.
+                  Extra paths to make available to the sandbox.
                 '';
               };
 
@@ -213,13 +200,13 @@ in
             };
           });
         default = [ ];
-        description = "Applications managed by fortify.";
+        description = "Declarative fortify apps.";
       };
 
       stateDir = mkOption {
         type = types.str;
         description = ''
-          The path to persistent storage where per-user state should be stored.
+          The state directory where app home directories are stored.
         '';
       };
     };
