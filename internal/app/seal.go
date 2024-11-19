@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/fs"
 	"path"
+	"regexp"
 	"strconv"
 
 	shim "git.ophivana.moe/security/fortify/cmd/fshim/ipc"
@@ -19,7 +20,10 @@ var (
 	ErrConfig = errors.New("no configuration to seal")
 	ErrUser   = errors.New("invalid aid")
 	ErrHome   = errors.New("invalid home directory")
+	ErrName   = errors.New("invalid username")
 )
+
+var posixUsername = regexp.MustCompilePOSIX("^[a-z_]([A-Za-z0-9_-]{0,31}|[A-Za-z0-9_-]{0,30}\\$)$")
 
 // appSeal seals the application with child-related information
 type appSeal struct {
@@ -106,6 +110,9 @@ func (a *app) Seal(config *Config) error {
 		}
 		if seal.sys.user.username == "" {
 			seal.sys.user.username = "chronos"
+		} else if !posixUsername.MatchString(seal.sys.user.username) {
+			return fmsg.WrapError(ErrName,
+				fmt.Sprintf("invalid user name %q", seal.sys.user.username))
 		}
 		if seal.sys.user.data == "" || !path.IsAbs(seal.sys.user.data) {
 			return fmsg.WrapError(ErrHome,
