@@ -32,7 +32,9 @@ nix run git+https://git.ophivana.moe/security/fortify -- -h
 
 ## Module usage
 
-The NixOS module currently requires home-manager and impermanence to function correctly.
+The NixOS module currently requires home-manager to function correctly.
+
+Full module documentation can be found [here](options.md).
 
 To use the module, import it into your configuration with
 
@@ -168,5 +170,3 @@ This adds the `environment.fortify` option:
   };
 }
 ```
-
-Full module documentation can be found [here](options.md).
