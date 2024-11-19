@@ -42,6 +42,33 @@
             with nixpkgsFor.${system};
             self.packages.${system}.fortify.buildInputs ++ [ self.packages.${system}.fortify ];
         };
+
+        generateDoc =
+          let
+            pkgs = nixpkgsFor.${system};
+            inherit (pkgs) lib;
+
+            doc =
+              let
+                eval = lib.evalModules {
+                  specialArgs = {
+                    inherit pkgs;
+                  };
+                  modules = [ ./options.nix ];
+                };
+                cleanEval = lib.filterAttrsRecursive (n: v: n != "_module") eval;
+              in
+              pkgs.nixosOptionsDoc { inherit (cleanEval) options; };
+            docText = pkgs.runCommand "fortify-module-docs.md" { } ''
+              cat ${doc.optionsCommonMark} > $out
+              sed -i '/*Declared by:*/,+1 d' $out
+            '';
+          in
+          nixpkgsFor.${system}.mkShell {
+            shellHook = ''
+              exec cat ${docText} > options.md
+            '';
+          };
       });
     };
 }

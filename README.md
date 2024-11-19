@@ -69,142 +69,104 @@ This adds the `environment.fortify` option:
 {
   environment.fortify = {
     enable = true;
-    user = "nixos";
-    stateDir = "/var/lib/persist/module";
-    target = {
-      chronos = {
-        launchers = {
-          weechat.method = "sudo";
-          claws-mail.capability.pulse = false;
+    stateDir = "/var/lib/persist/module/fortify";
+    users = {
+      alice = 0;
+      nixos = 10;
+    };
 
-          discord = {
-            id = "dev.vencord.Vesktop";
-            command = "vesktop --ozone-platform-hint=wayland";
-            userns = true;
-            useRealUid = true;
-            dbus = {
-              session =
-                f:
-                f {
-                  talk = [ "org.kde.StatusNotifierWatcher" ];
-                  own = [ ];
-                  call = { };
-                  broadcast = { };
-                };
-              system.filter = true;
-            };
-            share = pkgs.vesktop;
+    apps = [
+      {
+        name = "chromium";
+        id = "org.chromium.Chromium";
+        packages = [ pkgs.chromium ];
+        userns = true;
+        mapRealUid = true;
+        dbus = {
+          system = {
+            filter = true;
+            talk = [
+              "org.bluez"
+              "org.freedesktop.Avahi"
+              "org.freedesktop.UPower"
+            ];
           };
-
-          chromium = {
-            id = "org.chromium.Chromium";
-            userns = true;
-            useRealUid = true;
-            dbus = {
-              system = {
-                filter = true;
-                talk = [
-                  "org.bluez"
-                  "org.freedesktop.Avahi"
-                  "org.freedesktop.UPower"
-                ];
-              };
-              session = f: f {
-                talk = [
-                  "org.freedesktop.DBus"
-                  "org.freedesktop.FileManager1"
-                  "org.freedesktop.Notifications"
-                  "org.freedesktop.ScreenSaver"
-                  "org.freedesktop.secrets"
-                  "org.kde.kwalletd5"    
-                  "org.kde.kwalletd6"
-                ];   
-                own = [
-                  "org.chromium.Chromium.*"
-                  "org.mpris.MediaPlayer2.org.chromium.Chromium.*"
-                  "org.mpris.MediaPlayer2.chromium.*"
-                ];
-                call = { };
-                broadcast = { };
-              };
+          session =
+            f:
+            f {
+              talk = [
+                "org.freedesktop.DBus"
+                "org.freedesktop.FileManager1"
+                "org.freedesktop.Notifications"
+                "org.freedesktop.ScreenSaver"
+                "org.freedesktop.secrets"
+                "org.kde.kwalletd5"
+                "org.kde.kwalletd6"
+              ];
+              own = [
+                "org.chromium.Chromium.*"
+                "org.mpris.MediaPlayer2.org.chromium.Chromium.*"
+                "org.mpris.MediaPlayer2.chromium.*"
+              ];
+              call = { };
+              broadcast = { };
             };
-          };
         };
-        packages = with pkgs; [
-          weechat
-          claws-mail
-          vesktop
-          chromium
-        ];
-        persistence.directories = [
-          ".config/weechat"
-          ".claws-mail"
-          ".config/vesktop"
+      }
+      {
+        name = "claws-mail";
+        id = "org.claws_mail.Claws-Mail";
+        packages = [ pkgs.claws-mail ];
+        gpu = false;
+        capability.pulse = false;
+      }
+      {
+        name = "weechat";
+        packages = [ pkgs.weechat ];
+        capability = {
+          wayland = false;
+          x11 = false;
+          dbus = true;
+          pulse = false;
+        };
+      }
+      {
+        name = "discord";
+        id = "dev.vencord.Vesktop";
+        packages = [ pkgs.vesktop ];
+        share = pkgs.vesktop;
+        command = "vesktop --ozone-platform-hint=wayland";
+        userns = true;
+        mapRealUid = true;
+        capability.x11 = true;
+        dbus = {
+          session =
+            f:
+            f {
+              talk = [ "org.kde.StatusNotifierWatcher" ];
+              own = [ ];
+              call = { };
+              broadcast = { };
+            };
+          system.filter = true;
+        };
+      }
+      {
+        name = "looking-glass-client";
+        groups = [ "plugdev" ];
+        extraPaths = [
+          {
+            src = "/dev/shm/looking-glass";
+            write = true;
+          }
         ];
         extraConfig = {
           programs.looking-glass-client.enable = true;
         };
-      };
-    };
+      }
+    ];
   };
 }
 ```
 
-* `enable` determines whether the module should be enabled or not. Useful when sharing configurations between graphical
-  and headless systems. Defaults to `false`.
-
-* `user` specifies the privileged user with access to fortified applications.
-
-* `stateDir` is the path to your persistent storage location. It is directly passed through to the impermanence module.
-
-* `target` is an attribute set of submodules, where the attribute name is the username of the unprivileged target user.
-
-  The available options are:
-
-    * `packages`, the list of packages to make available in the target user's environment.
-
-    * `persistence`, user persistence attribute set passed to impermanence.
-
-    * `extraConfig`, extra home-manager configuration for the target user.
-
-    * `launchers`, attribute set where the attribute name is the name of the launcher.
-
-      The available options are:
-
-        * `id`, the freedesktop application ID, primarily used by dbus, null to disable.
-
-        * `script`, application launch script.
-
-        * `command`, the command to run as the target user. Defaults to launcher name. Has no effect when script is set.
-
-        * `dbus.session`, D-Bus session proxy custom configuration.
-
-        * `dbus.configSystem`, D-Bus system proxy custom configuration, null to disable.
-
-        * `env`, attrset of environment variables to set for the initial process in the sandbox.
-
-        * `nix`, whether to allow nix daemon connections from within the sandbox.
-
-        * `userns`, whether to allow userns within the sandbox.
-
-        * `useRealUid`, whether to map to the real UID within the sandbox.
-
-        * `net`, whether to allow network access within the sandbox.
-
-        * `gpu`, target process GPU and driver access, null to follow Wayland or X capability.
-
-        * `dev`, whether to allow full device access within the sandbox.
-
-        * `extraPaths`, a list of extra paths to make available inside the sandbox.
-
-        * `capability.wayland`, whether to share the Wayland socket.
-
-        * `capability.x11`, whether to share the X11 socket and allow connection.
-
-        * `capability.dbus`, whether to proxy D-Bus.
-
-        * `capability.pulse`, whether to share the PulseAudio socket and cookie.
-
-        * `share`, package containing desktop/icon files. Defaults to launcher name.
-
-        * `method`, the launch method for the sandboxed program, can be `"sudo"`, `"systemd"`, `"simple"`.
+Full module documentation can be found [here](options.md).
