@@ -8,6 +8,7 @@ import (
 	"os/user"
 	"strconv"
 	"strings"
+	"sync"
 	"text/tabwriter"
 
 	"git.ophivana.moe/security/fortify/dbus"
@@ -188,20 +189,41 @@ func main() {
 			panic("unreachable")
 		}
 
-		// resolve home directory from os when flag is unset
+		// resolve home/username from os when flag is unset
+		var (
+			passwd     *user.User
+			passwdOnce sync.Once
+			passwdFunc = func() {
+				var us string
+				if uid, err := os.Uid(aid); err != nil {
+					fmsg.Fatalf("cannot obtain uid from fsu: %v", err)
+				} else {
+					us = strconv.Itoa(uid)
+				}
+
+				if u, err := user.LookupId(us); err != nil {
+					fmsg.VPrintf("cannot look up uid %s", us)
+					passwd = &user.User{
+						Uid:      us,
+						Gid:      us,
+						Username: "chronos",
+						Name:     "Fortify",
+						HomeDir:  "/var/empty",
+					}
+				} else {
+					passwd = u
+				}
+			}
+		)
+
 		if homeDir == "os" {
-			var us string
-			if uid, err := os.Uid(aid); err != nil {
-				fmsg.Fatalf("cannot obtain uid from fsu: %v", err)
-			} else {
-				us = strconv.Itoa(uid)
-			}
-			if u, err := user.LookupId(us); err != nil {
-				fmsg.VPrintf("cannot look up uid %s", us)
-				homeDir = "/var/empty"
-			} else {
-				homeDir = u.HomeDir
-			}
+			passwdOnce.Do(passwdFunc)
+			homeDir = passwd.HomeDir
+		}
+
+		if userName == "chronos" {
+			passwdOnce.Do(passwdFunc)
+			userName = passwd.Username
 		}
 
 		config.Confinement.AppID = aid
