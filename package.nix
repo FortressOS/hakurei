@@ -47,6 +47,8 @@ buildGoModule rec {
   nativeBuildInputs = [ makeBinaryWrapper ];
 
   postInstall = ''
+    install -D --target-directory=$out/share/zsh/site-functions comp/*
+
     mkdir "$out/libexec"
     mv "$out"/bin/* "$out/libexec/"
 

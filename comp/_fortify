@@ -1,0 +1,51 @@
+#compdef fortify
+
+_fortify_app() {
+  _path_files -g "*.(json|ftfy)"
+}
+
+_fortify_run() {
+  _arguments \
+    '-a[Fortify application ID]: :_numbers' \
+    '-g[Groups inherited by the app process]: :_groups' \
+    '-d[Application home directory]: :_files -/' \
+    '-u[Passwd name within sandbox]: :_users' \
+    '--wayland[Share Wayland socket]' \
+    '-X[Share X11 socket and allow connection]' \
+    '--dbus[Proxy D-Bus connection]' \
+    '--pulse[Share PulseAudio socket and cookie]' \
+    '--dbus-config[Path to D-Bus proxy config file]: :_files -g "*.json"' \
+    '--dbus-system[Path to system D-Bus proxy config file]: :_files -g "*.json"' \
+    '--dbus-id[D-Bus ID of application, leave empty to disable own paths]:id' \
+    '--mpris[Allow owning MPRIS D-Bus path]' \
+    '--dbus-log[Force logging in the D-Bus proxy]'
+}
+
+(( $+functions[_fortify_commands] )) || _fortify_commands()
+{
+  local -a _fortify_cmds
+  _fortify_cmds=(
+    "app:Launch app defined by the specified config file"
+    "run:Configure and start a permissive default sandbox"
+    "ps:List active apps and their state"
+    "version:Show fortify version"
+    "license:Show full license text"
+    "template:Produce a config template"
+    "help:Show help message"
+  )
+  if (( CURRENT == 1 )); then
+    _describe -t commands 'fortify command' _fortify_cmds || compadd "$@"
+  else
+    local curcontext="$curcontext"
+    cmd="${${_fortify_cmds[(r)$words[1]:*]%%:*}}"
+    if (( $+functions[_fortify_$cmd] )); then
+      _fortify_$cmd
+    else
+      _message "no more options"
+    fi
+  fi
+}
+
+_arguments -C \
+  '-v[Verbose output]' \
+  '*::fortify command:_fortify_commands'
