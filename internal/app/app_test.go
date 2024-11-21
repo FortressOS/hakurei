@@ -22,7 +22,7 @@ type sealTestCase struct {
 }
 
 func TestApp(t *testing.T) {
-	testCases := append(testCasesNixos)
+	testCases := append(testCasesPd, testCasesNixos...)
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
