@@ -97,7 +97,6 @@ This adds the `environment.fortify` option:
             f:
             f {
               talk = [
-                "org.freedesktop.DBus"
                 "org.freedesktop.FileManager1"
                 "org.freedesktop.Notifications"
                 "org.freedesktop.ScreenSaver"
