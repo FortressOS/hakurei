@@ -133,6 +133,7 @@ in
               userns = mkEnableOption "userns within the sandbox";
               mapRealUid = mkEnableOption "mapping to fortify's real UID within the sandbox";
               dev = mkEnableOption "access to all devices within the sandbox";
+              tty = mkEnableOption "allow access to the controlling terminal";
 
               net = mkEnableOption "network access within the sandbox" // {
                 default = true;

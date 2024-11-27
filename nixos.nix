@@ -123,6 +123,7 @@ in
                           env
                           ;
                         map_real_uid = app.mapRealUid;
+                        no_new_session = app.tty;
                         filesystem =
                           [
                             { src = "/bin"; }

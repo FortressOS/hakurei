@@ -36,7 +36,7 @@ package
 
 
 *Default:*
-` <derivation fortify-0.1.0> `
+` <derivation fortify-0.2.1> `
 
 
 
@@ -474,6 +474,30 @@ null or package
 
 *Default:*
 ` null `
+
+
+
+
+## environment\.fortify\.apps\.\*\.tty
+
+
+
+Whether to enable allow access to the controlling terminal\.
+
+
+
+*Type:*
+boolean
+
+
+
+*Default:*
+` false `
+
+
+
+*Example:*
+` true `
 
 
 
