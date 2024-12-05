@@ -4,7 +4,11 @@
   makeBinaryWrapper,
   xdg-dbus-proxy,
   bubblewrap,
+  pkg-config,
   acl,
+  wayland,
+  wayland-scanner,
+  wayland-protocols,
   xorg,
 }:
 
@@ -41,10 +45,20 @@ buildGoModule rec {
 
   buildInputs = [
     acl
+    wayland
+    wayland-protocols
     xorg.libxcb
   ];
 
-  nativeBuildInputs = [ makeBinaryWrapper ];
+  nativeBuildInputs = [
+    pkg-config
+    wayland-scanner
+    makeBinaryWrapper
+  ];
+
+  preConfigure = ''
+    HOME=$(mktemp -d) go generate ./...
+  '';
 
   postInstall = ''
     install -D --target-directory=$out/share/zsh/site-functions comp/*

@@ -23,3 +23,6 @@ go.work.sum
 .env
 .idea
 .vscode
+
+# go generate
+security-context-v1-protocol.*

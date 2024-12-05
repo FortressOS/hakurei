@@ -8,7 +8,23 @@ on:
 jobs:
   release:
     runs-on: ubuntu-latest
+    container:
+      image: node:16-bookworm-slim
     steps:
+      - name: Get dependencies
+        run: >-
+          echo 'deb http://deb.debian.org/debian bookworm-backports main' >> /etc/apt/sources.list.d/backports.list &&
+          apt-get update &&
+          apt-get install -y
+          git
+          gcc
+          pkg-config
+          libwayland-dev
+          wayland-protocols/bookworm-backports
+          libxcb1-dev
+          libacl1-dev
+        if: ${{ runner.os == 'Linux' }}
+
       - name: Checkout
         uses: actions/checkout@v4
         with:
@@ -19,14 +35,9 @@ jobs:
         with:
           go-version: '>=1.23.0'
 
-      - name: Get dependencies
+      - name: Go generate
         run: >-
-          apt-get update &&
-          apt-get install -y
-          gcc
-          pkg-config
-          libacl1-dev
-        if: ${{ runner.os == 'Linux' }}
+          go generate ./...
 
       - name: Build for Linux
         run: >-
