@@ -31,23 +31,36 @@ func (seal *appSeal) shareDisplay(os linux.System) error {
 
 	// set up wayland
 	if seal.et.Has(system.EWayland) {
+		var wp string
 		if wd, ok := os.LookupEnv(waylandDisplay); !ok {
 			return fmsg.WrapError(ErrWayland,
 				"WAYLAND_DISPLAY is not set")
-		} else if seal.wl == nil {
+		} else {
+			wp = path.Join(seal.RuntimePath, wd)
+		}
+
+		w := path.Join(seal.sys.runtime, "wayland-0")
+		seal.sys.bwrap.SetEnv[waylandDisplay] = w
+
+		if seal.directWayland {
 			// hardlink wayland socket
-			wp := path.Join(seal.RuntimePath, wd)
 			wpi := path.Join(seal.shareLocal, "wayland")
-			w := path.Join(seal.sys.runtime, "wayland-0")
 			seal.sys.Link(wp, wpi)
-			seal.sys.bwrap.SetEnv[waylandDisplay] = w
 			seal.sys.bwrap.Bind(wpi, w)
 
 			// ensure Wayland socket ACL (e.g. `/run/user/%d/wayland-%d`)
 			seal.sys.UpdatePermType(system.EWayland, wp, acl.Read, acl.Write, acl.Execute)
 		} else {
-			// set wayland socket path for mediation (e.g. `/run/user/%d/wayland-%d`)
-			seal.wl.Path = path.Join(seal.RuntimePath, wd)
+			wc := path.Join(seal.SharePath, "wayland")
+			wt := path.Join(wc, seal.id)
+			seal.sys.Ensure(wc, 0711)
+			appID := seal.fid
+			if appID == "" {
+				// use instance ID in case app id is not set
+				appID = "moe.ophivana.fortify." + seal.id
+			}
+			seal.sys.Wayland(wt, wp, appID, seal.id)
+			seal.sys.bwrap.Bind(wt, w)
 		}
 	}
 

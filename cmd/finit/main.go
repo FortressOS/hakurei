@@ -92,14 +92,6 @@ func main() {
 	cmd.Args = payload.Argv
 	cmd.Env = os.Environ()
 
-	// pass wayland fd
-	if payload.WL != -1 {
-		if f := os.NewFile(uintptr(payload.WL), "wayland"); f != nil {
-			cmd.Env = append(cmd.Env, "WAYLAND_SOCKET="+strconv.Itoa(3+len(cmd.ExtraFiles)))
-			cmd.ExtraFiles = append(cmd.ExtraFiles, f)
-		}
-	}
-
 	if err := cmd.Start(); err != nil {
 		fmsg.Fatalf("cannot start %q: %v", payload.Argv0, err)
 	}

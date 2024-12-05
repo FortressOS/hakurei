@@ -7,8 +7,6 @@ type Payload struct {
 	Argv0 string
 	// child full argv
 	Argv []string
-	// wayland fd, -1 to disable
-	WL int
 
 	// verbosity pass through
 	Verbose bool

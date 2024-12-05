@@ -8,7 +8,6 @@ import (
 	"regexp"
 	"strconv"
 
-	shim "git.ophivana.moe/security/fortify/cmd/fshim/ipc"
 	"git.ophivana.moe/security/fortify/dbus"
 	"git.ophivana.moe/security/fortify/internal/fmsg"
 	"git.ophivana.moe/security/fortify/internal/linux"
@@ -29,8 +28,6 @@ var posixUsername = regexp.MustCompilePOSIX("^[a-z_]([A-Za-z0-9_-]{0,31}|[A-Za-z
 type appSeal struct {
 	// app unique ID string representation
 	id string
-	// wayland mediation, disabled if nil
-	wl *shim.Wayland
 	// dbus proxy message buffer retriever
 	dbusMsg func(f func(msgbuf []string))
 
@@ -48,6 +45,8 @@ type appSeal struct {
 
 	// pass-through enablement tracking from config
 	et system.Enablements
+	// wayland socket direct access
+	directWayland bool
 
 	// prevents sharing from happening twice
 	shared bool
@@ -204,6 +203,7 @@ func (a *app) Seal(config *Config) error {
 
 		config.Confinement.Sandbox = conf
 	}
+	seal.directWayland = config.Confinement.Sandbox.DirectWayland
 	if b, err := config.Confinement.Sandbox.Bwrap(a.os); err != nil {
 		return err
 	} else {
@@ -212,12 +212,6 @@ func (a *app) Seal(config *Config) error {
 	seal.sys.override = config.Confinement.Sandbox.Override
 	if seal.sys.bwrap.SetEnv == nil {
 		seal.sys.bwrap.SetEnv = make(map[string]string)
-	}
-
-	// create wayland struct and client wait channel if mediated wayland is enabled
-	// this field being set enables mediated wayland setup later on
-	if config.Confinement.Sandbox.Wayland {
-		seal.wl = shim.NewWayland()
 	}
 
 	// open process state store

@@ -248,8 +248,8 @@ var testCasesPd = []sealTestCase{
 			Ephemeral(system.Process, "/run/user/1971/fortify/ebf083d1b175911782d413369b64ce7c", 0700).UpdatePermType(system.Process, "/run/user/1971/fortify/ebf083d1b175911782d413369b64ce7c", acl.Execute).
 			WriteType(system.Process, "/tmp/fortify.1971/ebf083d1b175911782d413369b64ce7c/passwd", "chronos:x:65534:65534:Fortify:/home/chronos:/run/current-system/sw/bin/zsh\n").
 			WriteType(system.Process, "/tmp/fortify.1971/ebf083d1b175911782d413369b64ce7c/group", "fortify:x:65534:\n").
-			Link("/run/user/1971/wayland-0", "/run/user/1971/fortify/ebf083d1b175911782d413369b64ce7c/wayland").
-			UpdatePermType(system.EWayland, "/run/user/1971/wayland-0", acl.Read, acl.Write, acl.Execute).
+			Ensure("/tmp/fortify.1971/wayland", 0711).
+			Wayland("/tmp/fortify.1971/wayland/ebf083d1b175911782d413369b64ce7c", "/run/user/1971/wayland-0", "org.chromium.Chromium", "ebf083d1b175911782d413369b64ce7c").
 			Link("/run/user/1971/pulse/native", "/run/user/1971/fortify/ebf083d1b175911782d413369b64ce7c/pulse").
 			CopyFile("/tmp/fortify.1971/ebf083d1b175911782d413369b64ce7c/pulse-cookie", "/home/ophestra/xdg/config/pulse/cookie").
 			MustProxyDBus("/tmp/fortify.1971/ebf083d1b175911782d413369b64ce7c/bus", &dbus.Config{
@@ -442,7 +442,7 @@ var testCasesPd = []sealTestCase{
 			Bind("/home/chronos", "/home/chronos", false, true).
 			Bind("/tmp/fortify.1971/ebf083d1b175911782d413369b64ce7c/passwd", "/etc/passwd").
 			Bind("/tmp/fortify.1971/ebf083d1b175911782d413369b64ce7c/group", "/etc/group").
-			Bind("/run/user/1971/fortify/ebf083d1b175911782d413369b64ce7c/wayland", "/run/user/65534/wayland-0").
+			Bind("/tmp/fortify.1971/wayland/ebf083d1b175911782d413369b64ce7c", "/run/user/65534/wayland-0").
 			Bind("/run/user/1971/fortify/ebf083d1b175911782d413369b64ce7c/pulse", "/run/user/65534/pulse/native").
 			Bind("/tmp/fortify.1971/ebf083d1b175911782d413369b64ce7c/pulse-cookie", "/tmp/fortify.1971/ebf083d1b175911782d413369b64ce7c/pulse-cookie").
 			Bind("/tmp/fortify.1971/ebf083d1b175911782d413369b64ce7c/bus", "/run/user/65534/bus").

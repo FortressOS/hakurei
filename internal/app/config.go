@@ -62,8 +62,8 @@ type SandboxConfig struct {
 	NoNewSession bool `json:"no_new_session,omitempty"`
 	// map target user uid to privileged user uid in the user namespace
 	MapRealUID bool `json:"map_real_uid"`
-	// mediated access to wayland socket
-	Wayland bool `json:"wayland,omitempty"`
+	// direct access to wayland socket
+	DirectWayland bool `json:"direct_wayland,omitempty"`
 
 	// final environment variables
 	Env map[string]string `json:"env"`
@@ -190,13 +190,13 @@ func Template() *Config {
 			Outer:    "/var/lib/persist/home/org.chromium.Chromium",
 			Inner:    "/var/lib/fortify",
 			Sandbox: &SandboxConfig{
-				Hostname:     "localhost",
-				UserNS:       true,
-				Net:          true,
-				NoNewSession: true,
-				MapRealUID:   true,
-				Dev:          true,
-				Wayland:      false,
+				Hostname:      "localhost",
+				UserNS:        true,
+				Net:           true,
+				NoNewSession:  true,
+				MapRealUID:    true,
+				Dev:           true,
+				DirectWayland: false,
 				// example API credentials pulled from Google Chrome
 				// DO NOT USE THESE IN A REAL BROWSER
 				Env: map[string]string{

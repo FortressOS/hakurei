@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/gob"
-	"errors"
 	"net"
 	"os"
 	"path"
@@ -76,14 +75,9 @@ func main() {
 		fmsg.Fatal("bwrap config not supplied")
 	}
 
-	// receive wayland fd over socket
-	wfd := -1
-	if payload.WL {
-		if fd, err := receiveWLfd(conn); err != nil {
-			fmsg.Fatalf("cannot receive wayland fd: %v", err)
-		} else {
-			wfd = fd
-		}
+	// restore bwrap sync fd
+	if payload.Sync != nil {
+		payload.Bwrap.SetSync(os.NewFile(*payload.Sync, "sync"))
 	}
 
 	// close setup socket
@@ -115,16 +109,6 @@ func main() {
 	conf := payload.Bwrap
 
 	var extraFiles []*os.File
-
-	// pass wayland fd
-	if wfd != -1 {
-		if f := os.NewFile(uintptr(wfd), "wayland"); f != nil {
-			ic.WL = 3 + len(extraFiles)
-			extraFiles = append(extraFiles, f)
-		}
-	} else {
-		ic.WL = -1
-	}
 
 	// share config pipe
 	if r, w, err := os.Pipe(); err != nil {
@@ -166,32 +150,5 @@ func main() {
 		} else {
 			fmsg.Exit(127)
 		}
-	}
-}
-
-func receiveWLfd(conn *net.UnixConn) (int, error) {
-	oob := make([]byte, syscall.CmsgSpace(4)) // single fd
-
-	if _, oobn, _, _, err := conn.ReadMsgUnix(nil, oob); err != nil {
-		return -1, err
-	} else if len(oob) != oobn {
-		return -1, errors.New("invalid message length")
-	}
-
-	var msg syscall.SocketControlMessage
-	if messages, err := syscall.ParseSocketControlMessage(oob); err != nil {
-		return -1, err
-	} else if len(messages) != 1 {
-		return -1, errors.New("unexpected message count")
-	} else {
-		msg = messages[0]
-	}
-
-	if fds, err := syscall.ParseUnixRights(&msg); err != nil {
-		return -1, err
-	} else if len(fds) != 1 {
-		return -1, errors.New("unexpected fd count")
-	} else {
-		return fds[0], nil
 	}
 }

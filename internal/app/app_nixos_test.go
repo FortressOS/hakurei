@@ -10,7 +10,7 @@ import (
 
 var testCasesNixos = []sealTestCase{
 	{
-		"nixos chromium", new(stubNixOS),
+		"nixos chromium direct wayland", new(stubNixOS),
 		&app.Config{
 			ID:      "org.chromium.Chromium",
 			Command: []string{"/nix/store/yqivzpzzn7z5x0lq9hmbzygh45d8rhqd-chromium-start"},
@@ -18,7 +18,7 @@ var testCasesNixos = []sealTestCase{
 				AppID: 1, Groups: []string{}, Username: "u0_a1",
 				Outer: "/var/lib/persist/module/fortify/0/1",
 				Sandbox: &app.SandboxConfig{
-					UserNS: true, Net: true, MapRealUID: true, Env: nil,
+					UserNS: true, Net: true, MapRealUID: true, DirectWayland: true, Env: nil,
 					Filesystem: []*app.FilesystemConfig{
 						{Src: "/bin", Must: true}, {Src: "/usr/bin", Must: true},
 						{Src: "/nix/store", Must: true}, {Src: "/run/current-system", Must: true},

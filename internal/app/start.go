@@ -47,12 +47,10 @@ func (a *app) Start() error {
 		a.seal.sys.user.as,
 		a.seal.sys.user.supp,
 		path.Join(a.seal.share, "shim"),
-		a.seal.wl,
 		&shim0.Payload{
 			Argv:  a.seal.command,
 			Exec:  shimExec,
 			Bwrap: a.seal.sys.bwrap,
-			WL:    a.seal.wl != nil,
 
 			Verbose: fmsg.Verbose(),
 		},
@@ -63,6 +61,9 @@ func (a *app) Start() error {
 		return err
 	}
 	a.seal.sys.needRevert = true
+
+	// export sync pipe from sys
+	a.seal.sys.bwrap.SetSync(a.seal.sys.Sync())
 
 	if startTime, err := a.shim.Start(); err != nil {
 		return err
@@ -197,13 +198,6 @@ func (a *app) Wait() (int, error) {
 				fmsg.Println(msg)
 			}
 		})
-	}
-
-	// close wayland connection
-	if a.seal.wl != nil {
-		if err := a.seal.wl.Close(); err != nil {
-			fmsg.Println("cannot close wayland connection:", err)
-		}
 	}
 
 	// update store and revert app setup transaction

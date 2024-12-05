@@ -39,14 +39,12 @@ type Shim struct {
 	abortOnce sync.Once
 	// fallback exit notifier with error returned killing the process
 	killFallback chan error
-	// wayland mediation, nil if disabled
-	wl *shim0.Wayland
 	// shim setup payload
 	payload *shim0.Payload
 }
 
-func New(uid uint32, aid string, supp []string, socket string, wl *shim0.Wayland, payload *shim0.Payload) *Shim {
-	return &Shim{uid: uid, aid: aid, supp: supp, socket: socket, wl: wl, payload: payload}
+func New(uid uint32, aid string, supp []string, socket string, payload *shim0.Payload) *Shim {
+	return &Shim{uid: uid, aid: aid, supp: supp, socket: socket, payload: payload}
 }
 
 func (s *Shim) String() string {
@@ -112,6 +110,14 @@ func (s *Shim) Start() (*time.Time, error) {
 	}
 	s.cmd.Stdin, s.cmd.Stdout, s.cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
 	s.cmd.Dir = "/"
+
+	// pass sync fd if set
+	if s.payload.Bwrap.Sync() != nil {
+		fd := uintptr(3 + len(s.cmd.ExtraFiles))
+		s.payload.Sync = &fd
+		s.cmd.ExtraFiles = append(s.cmd.ExtraFiles, s.payload.Bwrap.Sync())
+	}
+
 	fmsg.VPrintln("starting shim via fsu:", s.cmd)
 	fmsg.Suspend() // withhold messages to stderr
 	if err := s.cmd.Start(); err != nil {
@@ -172,9 +178,9 @@ func (s *Shim) Start() (*time.Time, error) {
 		return &startTime, err
 	}
 
-	// serve payload and wayland fd if enabled
+	// serve payload
 	// this also closes the connection
-	err := s.payload.Serve(conn, s.wl)
+	err := s.payload.Serve(conn)
 	if err == nil {
 		killShim = func() {}
 	}
