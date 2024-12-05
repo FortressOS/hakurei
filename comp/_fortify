@@ -6,6 +6,7 @@ _fortify_app() {
 
 _fortify_run() {
   _arguments \
+    '--id[App ID, leave empty to disable security context app_id]:id' \
     '-a[Fortify application ID]: :_numbers' \
     '-g[Groups inherited by the app process]: :_groups' \
     '-d[Application home directory]: :_files -/' \
@@ -16,7 +17,6 @@ _fortify_run() {
     '--pulse[Share PulseAudio socket and cookie]' \
     '--dbus-config[Path to D-Bus proxy config file]: :_files -g "*.json"' \
     '--dbus-system[Path to system D-Bus proxy config file]: :_files -g "*.json"' \
-    '--dbus-id[D-Bus ID of application, leave empty to disable own paths]:id' \
     '--mpris[Allow owning MPRIS D-Bus path]' \
     '--dbus-log[Force logging in the D-Bus proxy]'
 }

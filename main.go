@@ -149,10 +149,10 @@ func main() {
 		var (
 			dbusConfigSession string
 			dbusConfigSystem  string
-			dbusID            string
 			mpris             bool
 			dbusVerbose       bool
 
+			fid         string
 			aid         int
 			groups      gl
 			homeDir     string
@@ -162,15 +162,15 @@ func main() {
 
 		set.StringVar(&dbusConfigSession, "dbus-config", "builtin", "Path to D-Bus proxy config file, or \"builtin\" for defaults")
 		set.StringVar(&dbusConfigSystem, "dbus-system", "nil", "Path to system D-Bus proxy config file, or \"nil\" to disable")
-		set.StringVar(&dbusID, "dbus-id", "", "D-Bus ID of application, leave empty to disable own paths, has no effect if custom config is available")
 		set.BoolVar(&mpris, "mpris", false, "Allow owning MPRIS D-Bus path, has no effect if custom config is available")
 		set.BoolVar(&dbusVerbose, "dbus-log", false, "Force logging in the D-Bus proxy")
 
+		set.StringVar(&fid, "id", "", "App ID, leave empty to disable security context app_id")
 		set.IntVar(&aid, "a", 0, "Fortify application ID")
 		set.Var(&groups, "g", "Groups inherited by the app process")
 		set.StringVar(&homeDir, "d", "os", "Application home directory")
 		set.StringVar(&userName, "u", "chronos", "Passwd name within sandbox")
-		set.BoolVar(&enablements[system.EWayland], "wayland", false, "Share Wayland socket")
+		set.BoolVar(&enablements[system.EWayland], "wayland", false, "Allow Wayland connections")
 		set.BoolVar(&enablements[system.EX11], "X", false, "Share X11 socket and allow connection")
 		set.BoolVar(&enablements[system.EDBus], "dbus", false, "Proxy D-Bus connection")
 		set.BoolVar(&enablements[system.EPulse], "pulse", false, "Share PulseAudio socket and cookie")
@@ -180,7 +180,7 @@ func main() {
 
 		// initialise config from flags
 		config := &app.Config{
-			ID:      dbusID,
+			ID:      fid,
 			Command: set.Args(),
 		}
 
@@ -241,7 +241,7 @@ func main() {
 		// parse D-Bus config file from flags if applicable
 		if enablements[system.EDBus] {
 			if dbusConfigSession == "builtin" {
-				config.Confinement.SessionBus = dbus.NewConfig(dbusID, true, mpris)
+				config.Confinement.SessionBus = dbus.NewConfig(fid, true, mpris)
 			} else {
 				if c, err := dbus.NewConfigFromFile(dbusConfigSession); err != nil {
 					fmsg.Fatalf("cannot load session bus proxy config from %q: %s", dbusConfigSession, err)
