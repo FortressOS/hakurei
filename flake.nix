@@ -2,7 +2,7 @@
   description = "fortify sandbox tool and nixos module";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable-small";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.11-small";
   };
 
   outputs =
