@@ -2,6 +2,7 @@ package system
 
 import (
 	"errors"
+	"os"
 	"sync"
 
 	"git.ophivana.moe/security/fortify/internal/fmsg"
@@ -56,6 +57,7 @@ func TypeString(e Enablement) string {
 type I struct {
 	uid int
 	ops []Op
+	sp  *os.File
 
 	state [2]bool
 	lock  sync.Mutex
@@ -63,6 +65,10 @@ type I struct {
 
 func (sys *I) UID() int {
 	return sys.uid
+}
+
+func (sys *I) Sync() *os.File {
+	return sys.sp
 }
 
 func (sys *I) Equal(v *I) bool {
