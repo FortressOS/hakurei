@@ -68,13 +68,16 @@ type Config struct {
 	// (--as-pid-1)
 	AsInit bool `json:"as_init"`
 
+	// keep this fd open while sandbox is running
+	// (--sync-fd FD)
+	sync *os.File
+
 	/* unmapped options include:
 	    --unshare-user-try           Create new user namespace if possible else continue by skipping it
 	    --unshare-cgroup-try         Create new cgroup namespace if possible else continue by skipping it
 	    --userns FD                  Use this user namespace (cannot combine with --unshare-user)
 	    --userns2 FD                 After setup switch to this user namespace, only useful with --userns
 	    --pidns FD                   Use this pid namespace (as parent namespace if using --unshare-pid)
-		--sync-fd FD                 Keep this fd open while sandbox is running
 	    --exec-label LABEL           Exec label for the sandbox
 	    --file-label LABEL           File label for temporary sandbox content
 	    --file FD DEST               Copy from FD to destination DEST
@@ -90,6 +93,12 @@ type Config struct {
 	    --cap-drop CAP               Drop cap CAP when running as privileged user
 
 	among which --args is used internally for passing arguments */
+}
+
+// Sync keep this fd open while sandbox is running
+// (--sync-fd FD)
+func (c *Config) Sync() *os.File {
+	return c.sync
 }
 
 type UnshareConfig struct {

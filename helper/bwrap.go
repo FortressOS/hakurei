@@ -3,6 +3,7 @@ package helper
 import (
 	"errors"
 	"io"
+	"os"
 	"os/exec"
 	"strconv"
 	"sync"
@@ -19,6 +20,8 @@ type bubblewrap struct {
 
 	// bwrap pipes
 	p *pipes
+	// sync pipe
+	sync *os.File
 	// returns an array of arguments passed directly
 	// to the child process spawned by bwrap
 	argF func(argsFD, statFD int) []string
@@ -70,6 +73,11 @@ func (b *bubblewrap) StartNotify(ready chan error) error {
 		b.Cmd.Env = append(b.Cmd.Env, FortifyHelper+"=1", FortifyStatus+"=0")
 	} else {
 		b.Cmd.Env = append(b.Cmd.Env, FortifyHelper+"=1", FortifyStatus+"=-1")
+	}
+
+	if b.sync != nil {
+		b.Cmd.Args = append(b.Cmd.Args, "--sync-fd", strconv.Itoa(3+len(b.Cmd.ExtraFiles)))
+		b.Cmd.ExtraFiles = append(b.Cmd.ExtraFiles, b.sync)
 	}
 
 	if err := b.Cmd.Start(); err != nil {
@@ -131,6 +139,7 @@ func NewBwrap(conf *bwrap.Config, wt io.WriterTo, name string, argF func(argsFD,
 		b.p = &pipes{args: args}
 	}
 
+	b.sync = conf.Sync()
 	b.argF = argF
 	b.name = name
 	if wt != nil {
