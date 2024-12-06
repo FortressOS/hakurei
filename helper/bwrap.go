@@ -9,6 +9,7 @@ import (
 	"sync"
 
 	"git.ophivana.moe/security/fortify/helper/bwrap"
+	"git.ophivana.moe/security/fortify/internal/proc"
 )
 
 // BubblewrapName is the file name or path to bubblewrap.
@@ -76,8 +77,7 @@ func (b *bubblewrap) StartNotify(ready chan error) error {
 	}
 
 	if b.sync != nil {
-		b.Cmd.Args = append(b.Cmd.Args, "--sync-fd", strconv.Itoa(3+len(b.Cmd.ExtraFiles)))
-		b.Cmd.ExtraFiles = append(b.Cmd.ExtraFiles, b.sync)
+		b.Cmd.Args = append(b.Cmd.Args, "--sync-fd", strconv.Itoa(int(proc.ExtraFile(b.Cmd, b.sync))))
 	}
 
 	if err := b.Cmd.Start(); err != nil {

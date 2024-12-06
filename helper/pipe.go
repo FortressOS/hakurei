@@ -5,6 +5,8 @@ import (
 	"io"
 	"os"
 	"os/exec"
+
+	"git.ophivana.moe/security/fortify/internal/proc"
 )
 
 type pipes struct {
@@ -47,24 +49,21 @@ func (p *pipes) pipe() error {
 }
 
 // calls pipe to create pipes and sets them up as ExtraFiles, returning their fd
-func (p *pipes) prepareCmd(cmd *exec.Cmd) (int, int, error) {
-	if err := p.pipe(); err != nil {
-		return -1, -1, err
+func (p *pipes) prepareCmd(cmd *exec.Cmd) (argsFd, statFd int, err error) {
+	argsFd, statFd = -1, -1
+	if err = p.pipe(); err != nil {
+		return
 	}
 
 	// save a reference of cmd for future use
 	p.cmd = cmd
 
-	// ExtraFiles: If non-nil, entry i becomes file descriptor 3+i.
-	argsFd := 3 + len(cmd.ExtraFiles)
-	cmd.ExtraFiles = append(cmd.ExtraFiles, p.argsP[0])
-
+	argsFd = int(proc.ExtraFile(cmd, p.argsP[0]))
 	if p.ready != nil {
-		cmd.ExtraFiles = append(cmd.ExtraFiles, p.statP[1])
-		return argsFd, argsFd + 1, nil
-	} else {
-		return argsFd, -1, nil
+		statFd = int(proc.ExtraFile(cmd, p.statP[1]))
 	}
+
+	return
 }
 
 func (p *pipes) readyWriteArgs() error {

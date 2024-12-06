@@ -16,6 +16,7 @@ import (
 	shim0 "git.ophivana.moe/security/fortify/cmd/fshim/ipc"
 	"git.ophivana.moe/security/fortify/internal"
 	"git.ophivana.moe/security/fortify/internal/fmsg"
+	"git.ophivana.moe/security/fortify/internal/proc"
 )
 
 const shimSetupTimeout = 5 * time.Second
@@ -113,9 +114,8 @@ func (s *Shim) Start() (*time.Time, error) {
 
 	// pass sync fd if set
 	if s.payload.Bwrap.Sync() != nil {
-		fd := uintptr(3 + len(s.cmd.ExtraFiles))
+		fd := proc.ExtraFile(s.cmd, s.payload.Bwrap.Sync())
 		s.payload.Sync = &fd
-		s.cmd.ExtraFiles = append(s.cmd.ExtraFiles, s.payload.Bwrap.Sync())
 	}
 
 	fmsg.VPrintln("starting shim via fsu:", s.cmd)
