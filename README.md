@@ -15,19 +15,10 @@ Why would you want this?
 
 - It provides UID isolation on top of the standard application sandbox.
 
-There are a few different things to set up for this to work:
-
-- A set of users, each for a group of applications that should be allowed access to each other
-
-- A tool to switch users, currently sudo and machinectl are supported.
-
-- If you are running NixOS, the module in this repository can take care of launchers and desktop files in the privileged
-  user's environment, as well as packages and extra home-manager configuration for target users.
-
 If you have a flakes-enabled nix environment, you can try out the tool by running:
 
 ```shell
-nix run git+https://git.ophivana.moe/security/fortify -- -h
+nix run git+https://git.ophivana.moe/security/fortify -- help
 ```
 
 ## Module usage
