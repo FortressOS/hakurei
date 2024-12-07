@@ -114,7 +114,7 @@ in
                       app_id = aid;
                       inherit (app) groups;
                       username = "u${toString fid}_a${toString aid}";
-                      home = "${cfg.stateDir}/${toString fid}/${toString aid}";
+                      home = "${cfg.stateDir}/u${toString fid}/a${toString aid}";
                       sandbox = {
                         inherit (app)
                           userns
