@@ -53,6 +53,8 @@ in
       '';
     };
 
+    systemd.services.nix-daemon.unitConfig.RequiresMountsFor = [ "/etc/userdb" ];
+
     services.userdbd.enable = mkDefault true;
 
     home-manager =
