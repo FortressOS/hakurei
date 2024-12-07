@@ -54,7 +54,7 @@ func main() {
 			realName := fmt.Sprintf("Fortify subordinate user %d (%s)", aid, u.name)
 			var homeDirectory string
 			if *homeDir != varEmpty {
-				homeDirectory = path.Join(*homeDir, fidString, strconv.Itoa(aid))
+				homeDirectory = path.Join(*homeDir, "u"+fidString, "a"+strconv.Itoa(aid))
 			} else {
 				homeDirectory = varEmpty
 			}
