@@ -32,6 +32,11 @@ func (w Wayland) Type() Enablement {
 }
 
 func (w Wayland) apply(sys *I) error {
+	// the Wayland op is not repeatable
+	if sys.sp != nil {
+		return errors.New("attempted to attach multiple wayland sockets")
+	}
+
 	if err := w.conn.Attach(w.pair[1]); err != nil {
 		return fmsg.WrapErrorSuffix(err,
 			fmt.Sprintf("cannot attach to wayland on %q:", w.pair[1]))
