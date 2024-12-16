@@ -20,6 +20,10 @@ var (
 )
 
 func TestUpdatePerm(t *testing.T) {
+	if os.Getenv("GO_TEST_SKIP_ACL") == "1" {
+		t.Log("acl test skipped")
+		t.SkipNow()
+	}
 
 	if f, err := os.Create(testFilePath); err != nil {
 		t.Fatalf("Create: error = %v", err)

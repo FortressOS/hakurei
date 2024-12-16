@@ -43,6 +43,9 @@ buildGoModule rec {
         Finit = "${placeholder "out"}/libexec/finit";
       };
 
+  # nix build environment does not allow acls
+  GO_TEST_SKIP_ACL = 1;
+
   buildInputs = [
     acl
     wayland
