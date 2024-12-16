@@ -1,0 +1,26 @@
+name: check
+
+on:
+  - push
+  - pull_request
+
+jobs:
+  tests:
+    name: nix-flake-check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@08dcb3a5e62fa31e2da3d490afc4176ef55ecd72 # v30
+        with:
+          # explicitly enable sandbox
+          install_options: --daemon
+          extra_nix_config: |
+            sandbox = true
+            system-features = nixos-test benchmark big-parallel kvm
+          enable_kvm: true
+
+      - name: Run tests
+        run: nix --print-build-logs --experimental-features 'nix-command flakes' flake check --all-systems
