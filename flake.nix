@@ -3,10 +3,19 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.11-small";
+
+    home-manager = {
+      url = "github:nix-community/home-manager/release-24.11";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
-    { self, nixpkgs }:
+    {
+      self,
+      nixpkgs,
+      home-manager,
+    }:
     let
       supportedSystems = [
         "aarch64-linux"
@@ -27,6 +36,7 @@
 
           inherit (pkgs)
             runCommandLocal
+            callPackage
             nixfmt-rfc-style
             deadnix
             statix
@@ -63,6 +73,8 @@
 
                 touch $out
               '';
+
+          nixos-tests = callPackage ./test.nix { inherit self home-manager; };
         }
       );
 
