@@ -31,7 +31,6 @@ in
           let
             inherit (types)
               str
-              enum
               bool
               package
               anything

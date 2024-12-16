@@ -20,6 +20,52 @@
     {
       nixosModules.fortify = import ./nixos.nix;
 
+      checks = forAllSystems (
+        system:
+        let
+          pkgs = nixpkgsFor.${system};
+
+          inherit (pkgs)
+            runCommandLocal
+            nixfmt-rfc-style
+            deadnix
+            statix
+            ;
+        in
+        {
+          check-formatting =
+            runCommandLocal "check-formatting" { nativeBuildInputs = [ nixfmt-rfc-style ]; }
+              ''
+                cd ${./.}
+
+                echo "running nixfmt..."
+                nixfmt --check .
+
+                touch $out
+              '';
+
+          check-lint =
+            runCommandLocal "check-lint"
+              {
+                nativeBuildInputs = [
+                  deadnix
+                  statix
+                ];
+              }
+              ''
+                cd ${./.}
+
+                echo "running deadnix..."
+                deadnix --fail
+
+                echo "running statix..."
+                statix check .
+
+                touch $out
+              '';
+        }
+      );
+
       packages = forAllSystems (
         system:
         let
@@ -56,7 +102,7 @@
                   };
                   modules = [ ./options.nix ];
                 };
-                cleanEval = lib.filterAttrsRecursive (n: v: n != "_module") eval;
+                cleanEval = lib.filterAttrsRecursive (n: _: n != "_module") eval;
               in
               pkgs.nixosOptionsDoc { inherit (cleanEval) options; };
             docText = pkgs.runCommand "fortify-module-docs.md" { } ''

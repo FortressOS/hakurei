@@ -10,7 +10,6 @@ let
     mkIf
     mkDefault
     mapAttrs
-    mapAttrsToList
     mergeAttrsList
     imap1
     foldr
