@@ -123,6 +123,11 @@ func main() {
 		suppGroups = []int{uid}
 	}
 
+	// final bounds check to catch any bugs
+	if uid < 1000000 || uid >= 2000000 {
+		panic("uid out of bounds")
+	}
+
 	// careful! users in the allowlist is effectively allowed to drop groups via fsu
 
 	if err := syscall.Setresgid(uid, uid, uid); err != nil {
