@@ -1,4 +1,4 @@
-name: Release
+name: Create distribution
 
 on:
   push:
@@ -41,21 +41,13 @@ jobs:
         run: >-
           go generate ./...
 
-      - name: Build for Linux
-        run: >-
-          go build -v -ldflags '-s -w
-          -X git.ophivana.moe/security/fortify/internal.Version=${{ github.ref_name }}
-          -X git.ophivana.moe/security/fortify/internal.Fsu=/usr/bin/fsu
-          -X git.ophivana.moe/security/fortify/internal.Finit=/usr/libexec/fortify/finit
-          -X main.Fmain=/usr/bin/fortify
-          -X main.Fshim=/usr/libexec/fortify/fshim'
-          -o bin/ ./... &&
-          (cd bin && sha512sum --tag -b * > sha512sums)
+      - name: Build for release
+        run: FORTIFY_VERSION='${{ github.ref_name }}' ./dist/release.sh
 
       - name: Release
         id: use-go-action
         uses: https://gitea.com/actions/release-action@main
         with:
           files: |-
-            bin/**
+            dist/fortify-**
           api_key: '${{secrets.RELEASE_TOKEN}}'

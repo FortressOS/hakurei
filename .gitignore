@@ -26,3 +26,6 @@ go.work.sum
 
 # go generate
 security-context-v1-protocol.*
+
+# release
+/dist/fortify-*
