@@ -5,7 +5,7 @@
 }:
 
 nixosTest {
-  name = "fortify-test";
+  name = "fortify";
 
   # adapted from nixos sway integration tests
 
