@@ -1,4 +1,5 @@
 {
+  system,
   self,
   home-manager,
   nixosTest,
@@ -31,11 +32,14 @@ nixosTest {
       services.getty.autologinUser = "alice";
 
       environment = {
-        # For glinfo and wayland-info:
         systemPackages = with pkgs; [
+          # For glinfo and wayland-info:
           mesa-demos
           wayland-utils
           alacritty
+
+          # For go tests:
+          self.devShells.${system}.fhs
         ];
 
         variables = {
@@ -139,7 +143,11 @@ nixosTest {
     start_all()
     machine.wait_for_unit("multi-user.target")
 
-    # To check the version:
+    # Run fortify Go tests outside of nix build:
+    machine.succeed("rm -rf /tmp/src && cp -a '${self.packages.${system}.fortify.src}' /tmp/src")
+    print(machine.succeed("fortify-fhs -c '(cd /tmp/src && go generate ./... && go test ./...)'"))
+
+    # To check sway's version:
     print(machine.succeed("sway --version"))
 
     # Wait for Sway to complete startup:
@@ -185,7 +193,8 @@ nixosTest {
     machine.send_chars("glinfo && touch /tmp/success-client-x11\n")
     machine.wait_for_file("/tmp/fortify.1000/tmpdir/0/success-client-x11")
     machine.screenshot("alacritty_x11_permissive")
-    machine.succeed("pkill alacritty")
+    machine.send_chars("exit\n")
+    machine.wait_until_fails("pgrep alacritty")
 
     # Exit Sway and verify process exit status 0:
     swaymsg("exit", succeed=False)

@@ -74,7 +74,7 @@
                 touch $out
               '';
 
-          nixos-tests = callPackage ./test.nix { inherit self home-manager; };
+          nixos-tests = callPackage ./test.nix { inherit system self home-manager; };
         }
       );
 
@@ -93,6 +93,26 @@
       devShells = forAllSystems (system: {
         default = nixpkgsFor.${system}.mkShell {
           buildInputs = with nixpkgsFor.${system}; self.packages.${system}.fortify.buildInputs;
+        };
+
+        fhs = nixpkgsFor.${system}.buildFHSEnv {
+          pname = "fortify-fhs";
+          inherit (self.packages.${system}.fortify) version;
+          targetPkgs =
+            pkgs: with pkgs; [
+              go
+              gcc
+              pkg-config
+              acl
+              wayland
+              wayland-scanner
+              wayland-protocols
+              xorg.libxcb
+            ];
+          extraOutputsToInstall = [ "dev" ];
+          profile = ''
+            export PKG_CONFIG_PATH="/usr/share/pkgconfig:$PKG_CONFIG_PATH"
+          '';
         };
 
         withPackage = nixpkgsFor.${system}.mkShell {
