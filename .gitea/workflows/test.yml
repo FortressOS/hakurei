@@ -11,19 +11,22 @@ jobs:
     container:
       image: node:16-bookworm-slim
     steps:
-      - name: Get dependencies
+      - name: Enable backports
         run: >-
-          echo 'deb http://deb.debian.org/debian bookworm-backports main' >> /etc/apt/sources.list.d/backports.list &&
-          apt-get update &&
-          apt-get install -y
-          acl
-          git
-          gcc
-          pkg-config
-          libwayland-dev
-          wayland-protocols/bookworm-backports
-          libxcb1-dev
-          libacl1-dev
+          echo 'deb http://deb.debian.org/debian bookworm-backports main' >> /etc/apt/sources.list.d/backports.list
+        if: ${{ runner.os == 'Linux' }}
+
+      - name: Ensure environment
+        run: >-
+          apt-get update && apt-get install -y curl wget sudo libxml2
+        if: ${{ runner.os == 'Linux' }}
+
+      - name: Get dependencies
+        uses: awalsh128/cache-apt-pkgs-action@latest
+        with:
+          packages: acl git gcc pkg-config libwayland-dev wayland-protocols/bookworm-backports libxcb1-dev libacl1-dev
+          version: 1.0
+          #execute_install_scripts: true
         if: ${{ runner.os == 'Linux' }}
 
       - name: Checkout
