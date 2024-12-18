@@ -12,6 +12,16 @@ var (
 	ErrInvalid = errors.New("bad file descriptor")
 )
 
+func Setup(extraFiles *[]*os.File) (int, *gob.Encoder, error) {
+	if r, w, err := os.Pipe(); err != nil {
+		return -1, nil, err
+	} else {
+		fd := 3 + len(*extraFiles)
+		*extraFiles = append(*extraFiles, r)
+		return fd, gob.NewEncoder(w), nil
+	}
+}
+
 func Receive(key string, e any) (func() error, error) {
 	var setup *os.File
 
