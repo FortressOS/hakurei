@@ -173,8 +173,12 @@ nixosTest {
     machine.send_chars("wayland-info && touch /tmp/success-client\n")
     machine.wait_for_file("/tmp/fortify.1000/tmpdir/0/success-client")
     machine.screenshot("foot_wayland_permissive")
+    # Verify acl on XDG_RUNTIME_DIR:
+    print(machine.succeed("getfacl --absolute-names --omit-header --numeric /run/user/1000 | grep 1000000"))
     machine.send_chars("exit\n")
     machine.wait_until_fails("pgrep foot")
+    # Verify acl cleanup on XDG_RUNTIME_DIR:
+    machine.wait_until_fails("getfacl --absolute-names --omit-header --numeric /run/user/1000 | grep 1000000")
 
     # Start a terminal (foot) within fortify from a terminal on workspace 4:
     machine.send_key("alt-4")
