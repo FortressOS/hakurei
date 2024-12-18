@@ -1,19 +1,18 @@
 package main
 
 import (
-	"encoding/gob"
 	"errors"
 	"os"
 	"os/exec"
 	"os/signal"
 	"path"
-	"strconv"
 	"syscall"
 	"time"
 
 	init0 "git.ophivana.moe/security/fortify/cmd/finit/ipc"
 	"git.ophivana.moe/security/fortify/internal"
 	"git.ophivana.moe/security/fortify/internal/fmsg"
+	"git.ophivana.moe/security/fortify/internal/proc"
 )
 
 const (
@@ -48,30 +47,24 @@ func main() {
 		}
 	}
 
-	// setup pipe fd from environment
-	var setup *os.File
-	if s, ok := os.LookupEnv(init0.Env); !ok {
-		fmsg.Fatal("FORTIFY_INIT not set")
-		panic("unreachable")
-	} else {
-		if fd, err := strconv.Atoi(s); err != nil {
-			fmsg.Fatalf("cannot parse %q: %v", s, err)
-			panic("unreachable")
-		} else {
-			setup = os.NewFile(uintptr(fd), "setup")
-			if setup == nil {
-				fmsg.Fatal("invalid config descriptor")
-				panic("unreachable")
-			}
+	// receive setup payload
+	var (
+		payload    init0.Payload
+		closeSetup func() error
+	)
+	if f, err := proc.Receive(init0.Env, &payload); err != nil {
+		if errors.Is(err, proc.ErrInvalid) {
+			fmsg.Fatal("invalid config descriptor")
 		}
-	}
+		if errors.Is(err, proc.ErrNotSet) {
+			fmsg.Fatal("FORTIFY_INIT not set")
+		}
 
-	var payload init0.Payload
-	if err := gob.NewDecoder(setup).Decode(&payload); err != nil {
-		fmsg.Fatal("cannot decode init setup payload:", err)
+		fmsg.Fatalf("cannot decode init setup payload: %v", err)
 		panic("unreachable")
 	} else {
 		fmsg.SetVerbose(payload.Verbose)
+		closeSetup = f
 
 		// child does not need to see this
 		if err = os.Unsetenv(init0.Env); err != nil {
@@ -98,7 +91,7 @@ func main() {
 	fmsg.Suspend()
 
 	// close setup pipe as setup is now complete
-	if err := setup.Close(); err != nil {
+	if err := closeSetup(); err != nil {
 		fmsg.Println("cannot close setup pipe:", err)
 		// not fatal
 	}
