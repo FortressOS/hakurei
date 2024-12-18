@@ -22,6 +22,17 @@ jobs:
             system-features = nixos-test benchmark big-parallel kvm
           enable_kvm: true
 
+      - name: Ensure environment
+        run: >-
+          apt-get update && apt-get install -y sqlite3
+        if: ${{ runner.os == 'Linux' }}
+
+      - name: Restore Nix store
+        uses: nix-community/cache-nix-action@v5
+        with:
+          primary-key: nix-${{ runner.os }}-${{ hashFiles('**/*.nix') }}
+          restore-prefixes-first-match: nix-${{ runner.os }}-
+
       - name: Run tests
         run: |
           nix --print-build-logs --experimental-features 'nix-command flakes' flake check --all-systems
