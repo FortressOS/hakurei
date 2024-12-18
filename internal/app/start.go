@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"os/exec"
-	"path"
 	"path/filepath"
 	"strings"
 
@@ -46,7 +45,6 @@ func (a *app) Start() error {
 		uint32(a.seal.sys.UID()),
 		a.seal.sys.user.as,
 		a.seal.sys.user.supp,
-		path.Join(a.seal.share, "shim"),
 		&shim0.Payload{
 			Argv:  a.seal.command,
 			Exec:  shimExec,
@@ -250,12 +248,6 @@ func (a *app) Wait() (int, error) {
 				if len(labels) > 0 {
 					fmsg.VPrintln("reverting operations labelled", strings.Join(labels, ", "))
 				}
-			}
-
-			if a.shim.Unwrap() == nil {
-				fmsg.VPrintln("fault before shim start")
-			} else {
-				a.shim.AbortWait(errors.New("shim exited"))
 			}
 
 			if a.seal.sys.needRevert {

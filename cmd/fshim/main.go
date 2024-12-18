@@ -1,8 +1,7 @@
 package main
 
 import (
-	"encoding/gob"
-	"net"
+	"errors"
 	"os"
 	"path"
 	"strconv"
@@ -38,15 +37,6 @@ func main() {
 		}
 	}
 
-	// lookup socket path from environment
-	var socketPath string
-	if s, ok := os.LookupEnv(shim.Env); !ok {
-		fmsg.Fatal("FORTIFY_SHIM not set")
-		panic("unreachable")
-	} else {
-		socketPath = s
-	}
-
 	// check path to finit
 	var finitPath string
 	if p, ok := internal.Path(internal.Finit); !ok {
@@ -55,21 +45,24 @@ func main() {
 		finitPath = p
 	}
 
-	// dial setup socket
-	var conn *net.UnixConn
-	if c, err := net.DialUnix("unix", nil, &net.UnixAddr{Name: socketPath, Net: "unix"}); err != nil {
-		fmsg.Fatal(err.Error())
+	// receive setup payload
+	var (
+		payload    shim.Payload
+		closeSetup func() error
+	)
+	if f, err := proc.Receive(shim.Env, &payload); err != nil {
+		if errors.Is(err, proc.ErrInvalid) {
+			fmsg.Fatal("invalid config descriptor")
+		}
+		if errors.Is(err, proc.ErrNotSet) {
+			fmsg.Fatal("FORTIFY_SHIM not set")
+		}
+
+		fmsg.Fatalf("cannot decode shim setup payload: %v", err)
 		panic("unreachable")
 	} else {
-		conn = c
-	}
-
-	// decode payload gob stream
-	var payload shim.Payload
-	if err := gob.NewDecoder(conn).Decode(&payload); err != nil {
-		fmsg.Fatalf("cannot decode shim payload: %v", err)
-	} else {
 		fmsg.SetVerbose(payload.Verbose)
+		closeSetup = f
 	}
 
 	if payload.Bwrap == nil {
@@ -82,8 +75,8 @@ func main() {
 	}
 
 	// close setup socket
-	if err := conn.Close(); err != nil {
-		fmsg.Println("cannot close setup socket:", err)
+	if err := closeSetup(); err != nil {
+		fmsg.Println("cannot close setup pipe:", err)
 		// not fatal
 	}
 

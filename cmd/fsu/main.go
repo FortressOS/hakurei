@@ -83,17 +83,17 @@ func main() {
 		uid += aid
 	}
 
-	// pass through setup path to shim
-	var shimSetupPath string
+	// pass through setup fd to shim
+	var shimSetupFd string
 	if s, ok := os.LookupEnv(envShim); !ok {
 		// fortify requests target uid
 		// print resolved uid and exit
 		fmt.Print(uid)
 		os.Exit(0)
-	} else if !path.IsAbs(s) {
-		log.Fatal("FORTIFY_SHIM is not absolute")
+	} else if len(s) != 1 || s[0] > '9' || s[0] < '3' {
+		log.Fatal("FORTIFY_SHIM holds an invalid value")
 	} else {
-		shimSetupPath = s
+		shimSetupFd = s
 	}
 
 	// supplementary groups
@@ -142,7 +142,7 @@ func main() {
 	if _, _, errno := syscall.AllThreadsSyscall(syscall.SYS_PRCTL, PR_SET_NO_NEW_PRIVS, 1, 0); errno != 0 {
 		log.Fatalf("cannot set no_new_privs flag: %s", errno.Error())
 	}
-	if err := syscall.Exec(fshim, []string{"fshim"}, []string{envShim + "=" + shimSetupPath}); err != nil {
+	if err := syscall.Exec(fshim, []string{"fshim"}, []string{envShim + "=" + shimSetupFd}); err != nil {
 		log.Fatalf("cannot start shim: %v", err)
 	}
 
