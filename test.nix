@@ -140,6 +140,11 @@ nixosTest {
 
         retry(func)
 
+    def collect_state_ui(name):
+        swaymsg(f"exec fortify ps > '/tmp/{name}.ps'")
+        machine.copy_from_vm(f"/tmp/{name}.ps", "")
+        machine.screenshot(name)
+
     start_all()
     machine.wait_for_unit("multi-user.target")
 
@@ -172,7 +177,7 @@ nixosTest {
     wait_for_window("u0_a0@machine")
     machine.send_chars("wayland-info && touch /tmp/success-client\n")
     machine.wait_for_file("/tmp/fortify.1000/tmpdir/0/success-client")
-    machine.screenshot("foot_wayland_permissive")
+    collect_state_ui("foot_wayland_permissive")
     # Verify acl on XDG_RUNTIME_DIR:
     print(machine.succeed("getfacl --absolute-names --omit-header --numeric /run/user/1000 | grep 1000000"))
     machine.send_chars("exit\n")
@@ -187,7 +192,7 @@ nixosTest {
     wait_for_window("u0_a0@machine")
     machine.send_chars("wayland-info && touch /tmp/success-client-term\n")
     machine.wait_for_file("/tmp/fortify.1000/tmpdir/0/success-client-term")
-    machine.screenshot("foot_wayland_permissive_term")
+    collect_state_ui("foot_wayland_permissive_term")
     machine.send_chars("exit\n")
     machine.wait_until_fails("pgrep foot")
 
@@ -196,7 +201,7 @@ nixosTest {
     wait_for_window("u0_a0@machine")
     machine.send_chars("glinfo && touch /tmp/success-client-x11\n")
     machine.wait_for_file("/tmp/fortify.1000/tmpdir/0/success-client-x11")
-    machine.screenshot("alacritty_x11_permissive")
+    collect_state_ui("alacritty_x11_permissive")
     machine.send_chars("exit\n")
     machine.wait_until_fails("pgrep alacritty")
 
