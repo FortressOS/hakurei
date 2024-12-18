@@ -13,6 +13,7 @@ import (
 	"git.ophivana.moe/security/fortify/helper"
 	"git.ophivana.moe/security/fortify/internal"
 	"git.ophivana.moe/security/fortify/internal/fmsg"
+	"git.ophivana.moe/security/fortify/internal/proc"
 )
 
 // everything beyond this point runs as unconstrained target user
@@ -110,17 +111,14 @@ func main() {
 
 	var extraFiles []*os.File
 
-	// share config pipe
-	if r, w, err := os.Pipe(); err != nil {
+	// serve setup payload
+	if fd, encoder, err := proc.Setup(&extraFiles); err != nil {
 		fmsg.Fatalf("cannot pipe: %v", err)
 	} else {
-		conf.SetEnv[init0.Env] = strconv.Itoa(3 + len(extraFiles))
-		extraFiles = append(extraFiles, r)
-
-		fmsg.VPrintln("transmitting config to init")
+		conf.SetEnv[init0.Env] = strconv.Itoa(fd)
 		go func() {
-			// stream config to pipe
-			if err = gob.NewEncoder(w).Encode(&ic); err != nil {
+			fmsg.VPrintln("transmitting config to init")
+			if err = encoder.Encode(&ic); err != nil {
 				fmsg.Fatalf("cannot transmit init config: %v", err)
 			}
 		}()
