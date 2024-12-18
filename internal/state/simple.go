@@ -176,6 +176,10 @@ func (b *simpleBackend) Save(state *State) error {
 	b.lock.Lock()
 	defer b.lock.Unlock()
 
+	if state.Config == nil {
+		return errors.New("state does not contain config")
+	}
+
 	statePath := b.filename(state.PID)
 
 	// create and open state data file

@@ -70,11 +70,10 @@ func (a *app) Start() error {
 	} else {
 		// shim start and setup success, create process state
 		sd := state.State{
-			PID:        a.shim.Unwrap().Process.Pid,
-			Command:    a.seal.command,
-			Capability: a.seal.et,
-			Argv:       a.shim.Unwrap().Args,
-			Time:       *startTime,
+			ID:     *a.id,
+			PID:    a.shim.Unwrap().Process.Pid,
+			Config: a.ct.Unwrap(),
+			Time:   *startTime,
 		}
 
 		// register process state
@@ -227,8 +226,12 @@ func (a *app) Wait() (int, error) {
 				}
 
 				// accumulate capabilities of other launchers
-				for _, s := range states {
-					*rt |= s.Capability
+				for i, s := range states {
+					if s.Config != nil {
+						*rt |= s.Config.Confinement.Enablements
+					} else {
+						fmsg.Printf("state entry %d does not contain config", i)
+					}
 				}
 			}
 			// invert accumulated enablements for cleanup

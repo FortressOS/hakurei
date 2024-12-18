@@ -3,7 +3,7 @@ package state
 import (
 	"time"
 
-	"git.ophivana.moe/security/fortify/internal/system"
+	"git.ophivana.moe/security/fortify/fipc"
 )
 
 type Store interface {
@@ -26,15 +26,13 @@ type Backend interface {
 
 // State is the on-disk format for a fortified process's state information
 type State struct {
+	// fortify instance id
+	ID [16]byte `json:"instance"`
 	// child process PID value
-	PID int
-	// command used to seal the app
-	Command []string
-	// capability enablements applied to child
-	Capability system.Enablements
+	PID int `json:"pid"`
+	// sealed app configuration
+	Config *fipc.Config `json:"config"`
 
-	// full argv whe launching
-	Argv []string
 	// process start time
 	Time time.Time
 }

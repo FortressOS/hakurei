@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"git.ophivana.moe/security/fortify/fipc"
 	"git.ophivana.moe/security/fortify/helper/bwrap"
 	"git.ophivana.moe/security/fortify/internal/app"
 	"git.ophivana.moe/security/fortify/internal/linux"
@@ -15,7 +16,7 @@ import (
 type sealTestCase struct {
 	name      string
 	os        linux.System
-	config    *app.Config
+	config    *fipc.Config
 	id        app.ID
 	wantSys   *system.I
 	wantBwrap *bwrap.Config

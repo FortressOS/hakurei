@@ -12,6 +12,7 @@ import (
 	"text/tabwriter"
 
 	"git.ophivana.moe/security/fortify/dbus"
+	"git.ophivana.moe/security/fortify/fipc"
 	"git.ophivana.moe/security/fortify/internal"
 	"git.ophivana.moe/security/fortify/internal/app"
 	"git.ophivana.moe/security/fortify/internal/fmsg"
@@ -102,7 +103,7 @@ func main() {
 		fmt.Println(license)
 		fmsg.Exit(0)
 	case "template": // print full template configuration
-		if s, err := json.MarshalIndent(app.Template(), "", "  "); err != nil {
+		if s, err := json.MarshalIndent(fipc.Template(), "", "  "); err != nil {
 			fmsg.Fatalf("cannot generate template: %v", err)
 			panic("unreachable")
 		} else {
@@ -129,7 +130,7 @@ func main() {
 			fmsg.Fatal("app requires at least 1 argument")
 		}
 
-		config := new(app.Config)
+		config := new(fipc.Config)
 		if f, err := os.Open(args[1]); err != nil {
 			fmsg.Fatalf("cannot access config file %q: %s", args[1], err)
 			panic("unreachable")
@@ -179,7 +180,7 @@ func main() {
 		_ = set.Parse(args[1:])
 
 		// initialise config from flags
-		config := &app.Config{
+		config := &fipc.Config{
 			ID:      fid,
 			Command: set.Args(),
 		}
@@ -275,7 +276,7 @@ func main() {
 	panic("unreachable")
 }
 
-func runApp(config *app.Config) {
+func runApp(config *fipc.Config) {
 	if os.SdBooted() {
 		fmsg.VPrintln("system booted with systemd as init system")
 	}

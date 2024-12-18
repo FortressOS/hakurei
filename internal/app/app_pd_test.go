@@ -3,6 +3,7 @@ package app_test
 import (
 	"git.ophivana.moe/security/fortify/acl"
 	"git.ophivana.moe/security/fortify/dbus"
+	"git.ophivana.moe/security/fortify/fipc"
 	"git.ophivana.moe/security/fortify/helper/bwrap"
 	"git.ophivana.moe/security/fortify/internal/app"
 	"git.ophivana.moe/security/fortify/internal/system"
@@ -11,9 +12,9 @@ import (
 var testCasesPd = []sealTestCase{
 	{
 		"nixos permissive defaults no enablements", new(stubNixOS),
-		&app.Config{
+		&fipc.Config{
 			Command: make([]string, 0),
-			Confinement: app.ConfinementConfig{
+			Confinement: fipc.ConfinementConfig{
 				AppID:    0,
 				Username: "chronos",
 				Outer:    "/home/chronos",
@@ -190,10 +191,10 @@ var testCasesPd = []sealTestCase{
 	},
 	{
 		"nixos permissive defaults chromium", new(stubNixOS),
-		&app.Config{
+		&fipc.Config{
 			ID:      "org.chromium.Chromium",
 			Command: []string{"/run/current-system/sw/bin/zsh", "-c", "exec chromium "},
-			Confinement: app.ConfinementConfig{
+			Confinement: fipc.ConfinementConfig{
 				AppID:    9,
 				Groups:   []string{"video"},
 				Username: "chronos",

@@ -2,8 +2,10 @@ package app
 
 import (
 	"sync"
+	"sync/atomic"
 
 	"git.ophivana.moe/security/fortify/cmd/fshim/ipc/shim"
+	"git.ophivana.moe/security/fortify/fipc"
 	"git.ophivana.moe/security/fortify/internal/linux"
 )
 
@@ -17,11 +19,14 @@ type App interface {
 	// WaitErr returns error returned by the underlying wait syscall.
 	WaitErr() error
 
-	Seal(config *Config) error
+	Seal(config *fipc.Config) error
 	String() string
 }
 
 type app struct {
+	// single-use config reference
+	ct *appCt
+
 	// application unique identifier
 	id *ID
 	// operating system interface
@@ -68,4 +73,25 @@ func New(os linux.System) (App, error) {
 	a.id = new(ID)
 	a.os = os
 	return a, newAppID(a.id)
+}
+
+// appCt ensures its wrapped val is only accessed once
+type appCt struct {
+	val  *fipc.Config
+	done *atomic.Bool
+}
+
+func (a *appCt) Unwrap() *fipc.Config {
+	if !a.done.Load() {
+		defer a.done.Store(true)
+		return a.val
+	}
+	panic("attempted to access config reference twice")
+}
+
+func newAppCt(config *fipc.Config) (ct *appCt) {
+	ct = new(appCt)
+	ct.done = new(atomic.Bool)
+	ct.val = config
+	return ct
 }

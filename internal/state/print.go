@@ -82,27 +82,41 @@ func (s *simpleStore) mustPrintLauncherState(w **tabwriter.Writer, now time.Time
 					continue
 				}
 
-				// build enablements string
-				ets := strings.Builder{}
-				// append enablement strings in order
-				for i := system.Enablement(0); i < system.Enablement(system.ELen); i++ {
-					if state.Capability.Has(i) {
-						ets.WriteString(", " + i.String())
+				// build enablements and command string
+				var (
+					ets *strings.Builder
+					cs  = "(No command information)"
+				)
+
+				// check if enablements are provided
+				if state.Config != nil {
+					ets = new(strings.Builder)
+					// append enablement strings in order
+					for i := system.Enablement(0); i < system.Enablement(system.ELen); i++ {
+						if state.Config.Confinement.Enablements.Has(i) {
+							ets.WriteString(", " + i.String())
+						}
 					}
+
+					cs = fmt.Sprintf("%q", state.Config.Command)
 				}
-				// prevent an empty string when
-				if ets.Len() == 0 {
-					ets.WriteString("(No enablements)")
+				if ets != nil {
+					// prevent an empty string
+					if ets.Len() == 0 {
+						ets.WriteString("(No enablements)")
+					}
+				} else {
+					ets = new(strings.Builder)
+					ets.WriteString("(No confinement information)")
 				}
 
 				if !fmsg.Verbose() {
 					_, _ = fmt.Fprintf(*w, "\t%d\t%s\t%s\t%s\t%s\n",
-						state.PID, s.path[len(s.path)-1], now.Sub(state.Time).Round(time.Second).String(), strings.TrimPrefix(ets.String(), ", "),
-						state.Command)
+						state.PID, s.path[len(s.path)-1], now.Sub(state.Time).Round(time.Second).String(), strings.TrimPrefix(ets.String(), ", "), cs)
 				} else {
 					// emit argv instead when verbose
 					_, _ = fmt.Fprintf(*w, "\t%d\t%s\t%s\n",
-						state.PID, s.path[len(s.path)-1], state.Argv)
+						state.PID, s.path[len(s.path)-1], state.ID)
 				}
 			}
 
