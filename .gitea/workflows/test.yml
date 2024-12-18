@@ -44,13 +44,16 @@ jobs:
         run: >-
           go test ./...
 
-      - name: Build for Linux
+      - name: Build for test
+        id: build-test
         run: >-
-          go build -v -ldflags '-s -w
-          -X git.ophivana.moe/security/fortify/internal.Version=${{ github.ref_name }}
-          -X git.ophivana.moe/security/fortify/internal.Fsu=/usr/bin/fsu
-          -X git.ophivana.moe/security/fortify/internal.Finit=/usr/libexec/fortify/finit
-          -X main.Fmain=/usr/bin/fortify
-          -X main.Fshim=/usr/libexec/fortify/fshim'
-          -o bin/ ./... &&
-          (cd bin && sha512sum --tag -b * > sha512sums)
+          FORTIFY_VERSION="$(git rev-parse --short HEAD)"
+          bash -c './dist/release.sh &&
+          echo "rev=$FORTIFY_VERSION" >> $GITHUB_OUTPUT'
+
+      - name: Upload test build
+        uses: actions/upload-artifact@v3
+        with:
+          name: "fortify-${{ steps.build-test.outputs.rev }}"
+          path: dist/fortify-*
+          retention-days: 1
