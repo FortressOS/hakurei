@@ -1,4 +1,4 @@
-package fipc
+package fst
 
 import (
 	"errors"

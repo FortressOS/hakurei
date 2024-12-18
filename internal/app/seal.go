@@ -9,7 +9,7 @@ import (
 	"strconv"
 
 	"git.ophivana.moe/security/fortify/dbus"
-	"git.ophivana.moe/security/fortify/fipc"
+	"git.ophivana.moe/security/fortify/fst"
 	"git.ophivana.moe/security/fortify/internal/fmsg"
 	"git.ophivana.moe/security/fortify/internal/linux"
 	"git.ophivana.moe/security/fortify/internal/state"
@@ -60,7 +60,7 @@ type appSeal struct {
 }
 
 // Seal seals the app launch context
-func (a *app) Seal(config *fipc.Config) error {
+func (a *app) Seal(config *fst.Config) error {
 	a.lock.Lock()
 	defer a.lock.Unlock()
 
@@ -148,7 +148,7 @@ func (a *app) Seal(config *fipc.Config) error {
 		fmsg.VPrintln("sandbox configuration not supplied, PROCEED WITH CAUTION")
 
 		// permissive defaults
-		conf := &fipc.SandboxConfig{
+		conf := &fst.SandboxConfig{
 			UserNS:       true,
 			Net:          true,
 			NoNewSession: true,
@@ -158,7 +158,7 @@ func (a *app) Seal(config *fipc.Config) error {
 		if d, err := a.os.ReadDir("/"); err != nil {
 			return err
 		} else {
-			b := make([]*fipc.FilesystemConfig, 0, len(d))
+			b := make([]*fst.FilesystemConfig, 0, len(d))
 			for _, ent := range d {
 				p := "/" + ent.Name()
 				switch p {
@@ -170,7 +170,7 @@ func (a *app) Seal(config *fipc.Config) error {
 				case "/etc":
 
 				default:
-					b = append(b, &fipc.FilesystemConfig{Src: p, Write: true, Must: true})
+					b = append(b, &fst.FilesystemConfig{Src: p, Write: true, Must: true})
 				}
 			}
 			conf.Filesystem = append(conf.Filesystem, b...)
@@ -179,7 +179,7 @@ func (a *app) Seal(config *fipc.Config) error {
 		if d, err := a.os.ReadDir("/run"); err != nil {
 			return err
 		} else {
-			b := make([]*fipc.FilesystemConfig, 0, len(d))
+			b := make([]*fst.FilesystemConfig, 0, len(d))
 			for _, ent := range d {
 				name := ent.Name()
 				switch name {
@@ -187,7 +187,7 @@ func (a *app) Seal(config *fipc.Config) error {
 				case "dbus":
 				default:
 					p := "/run/" + name
-					b = append(b, &fipc.FilesystemConfig{Src: p, Write: true, Must: true})
+					b = append(b, &fst.FilesystemConfig{Src: p, Write: true, Must: true})
 				}
 			}
 			conf.Filesystem = append(conf.Filesystem, b...)
@@ -199,7 +199,7 @@ func (a *app) Seal(config *fipc.Config) error {
 		}
 		// bind GPU stuff
 		if config.Confinement.Enablements.Has(system.EX11) || config.Confinement.Enablements.Has(system.EWayland) {
-			conf.Filesystem = append(conf.Filesystem, &fipc.FilesystemConfig{Src: "/dev/dri", Device: true})
+			conf.Filesystem = append(conf.Filesystem, &fst.FilesystemConfig{Src: "/dev/dri", Device: true})
 		}
 
 		config.Confinement.Sandbox = conf

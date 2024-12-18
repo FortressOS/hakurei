@@ -3,24 +3,23 @@ package app_test
 import (
 	"git.ophivana.moe/security/fortify/acl"
 	"git.ophivana.moe/security/fortify/dbus"
-	"git.ophivana.moe/security/fortify/fipc"
+	"git.ophivana.moe/security/fortify/fst"
 	"git.ophivana.moe/security/fortify/helper/bwrap"
-	"git.ophivana.moe/security/fortify/internal/app"
 	"git.ophivana.moe/security/fortify/internal/system"
 )
 
 var testCasesNixos = []sealTestCase{
 	{
 		"nixos chromium direct wayland", new(stubNixOS),
-		&fipc.Config{
+		&fst.Config{
 			ID:      "org.chromium.Chromium",
 			Command: []string{"/nix/store/yqivzpzzn7z5x0lq9hmbzygh45d8rhqd-chromium-start"},
-			Confinement: fipc.ConfinementConfig{
+			Confinement: fst.ConfinementConfig{
 				AppID: 1, Groups: []string{}, Username: "u0_a1",
 				Outer: "/var/lib/persist/module/fortify/0/1",
-				Sandbox: &fipc.SandboxConfig{
+				Sandbox: &fst.SandboxConfig{
 					UserNS: true, Net: true, MapRealUID: true, DirectWayland: true, Env: nil,
-					Filesystem: []*fipc.FilesystemConfig{
+					Filesystem: []*fst.FilesystemConfig{
 						{Src: "/bin", Must: true}, {Src: "/usr/bin", Must: true},
 						{Src: "/nix/store", Must: true}, {Src: "/run/current-system", Must: true},
 						{Src: "/sys/block"}, {Src: "/sys/bus"}, {Src: "/sys/class"}, {Src: "/sys/dev"}, {Src: "/sys/devices"},
@@ -49,7 +48,7 @@ var testCasesNixos = []sealTestCase{
 				Enablements: system.EWayland.Mask() | system.EDBus.Mask() | system.EPulse.Mask(),
 			},
 		},
-		app.ID{
+		fst.ID{
 			0x8e, 0x2c, 0x76, 0xb0,
 			0x66, 0xda, 0xbe, 0x57,
 			0x4c, 0xf0, 0x73, 0xbd,

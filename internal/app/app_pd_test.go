@@ -3,24 +3,23 @@ package app_test
 import (
 	"git.ophivana.moe/security/fortify/acl"
 	"git.ophivana.moe/security/fortify/dbus"
-	"git.ophivana.moe/security/fortify/fipc"
+	"git.ophivana.moe/security/fortify/fst"
 	"git.ophivana.moe/security/fortify/helper/bwrap"
-	"git.ophivana.moe/security/fortify/internal/app"
 	"git.ophivana.moe/security/fortify/internal/system"
 )
 
 var testCasesPd = []sealTestCase{
 	{
 		"nixos permissive defaults no enablements", new(stubNixOS),
-		&fipc.Config{
+		&fst.Config{
 			Command: make([]string, 0),
-			Confinement: fipc.ConfinementConfig{
+			Confinement: fst.ConfinementConfig{
 				AppID:    0,
 				Username: "chronos",
 				Outer:    "/home/chronos",
 			},
 		},
-		app.ID{
+		fst.ID{
 			0x4a, 0x45, 0x0b, 0x65,
 			0x96, 0xd7, 0xbc, 0x15,
 			0xbd, 0x01, 0x78, 0x0e,
@@ -191,10 +190,10 @@ var testCasesPd = []sealTestCase{
 	},
 	{
 		"nixos permissive defaults chromium", new(stubNixOS),
-		&fipc.Config{
+		&fst.Config{
 			ID:      "org.chromium.Chromium",
 			Command: []string{"/run/current-system/sw/bin/zsh", "-c", "exec chromium "},
-			Confinement: fipc.ConfinementConfig{
+			Confinement: fst.ConfinementConfig{
 				AppID:    9,
 				Groups:   []string{"video"},
 				Username: "chronos",
@@ -233,7 +232,7 @@ var testCasesPd = []sealTestCase{
 				Enablements: system.EWayland.Mask() | system.EDBus.Mask() | system.EPulse.Mask(),
 			},
 		},
-		app.ID{
+		fst.ID{
 			0xeb, 0xf0, 0x83, 0xd1,
 			0xb1, 0x75, 0x91, 0x17,
 			0x82, 0xd4, 0x13, 0x36,

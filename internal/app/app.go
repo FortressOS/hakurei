@@ -5,13 +5,13 @@ import (
 	"sync/atomic"
 
 	"git.ophivana.moe/security/fortify/cmd/fshim/ipc/shim"
-	"git.ophivana.moe/security/fortify/fipc"
+	"git.ophivana.moe/security/fortify/fst"
 	"git.ophivana.moe/security/fortify/internal/linux"
 )
 
 type App interface {
 	// ID returns a copy of App's unique ID.
-	ID() ID
+	ID() fst.ID
 	// Start sets up the system and starts the App.
 	Start() error
 	// Wait waits for App's process to exit and reverts system setup.
@@ -19,7 +19,7 @@ type App interface {
 	// WaitErr returns error returned by the underlying wait syscall.
 	WaitErr() error
 
-	Seal(config *fipc.Config) error
+	Seal(config *fst.Config) error
 	String() string
 }
 
@@ -28,7 +28,7 @@ type app struct {
 	ct *appCt
 
 	// application unique identifier
-	id *ID
+	id *fst.ID
 	// operating system interface
 	os linux.System
 	// shim process manager
@@ -41,7 +41,7 @@ type app struct {
 	lock sync.RWMutex
 }
 
-func (a *app) ID() ID {
+func (a *app) ID() fst.ID {
 	return *a.id
 }
 
@@ -70,18 +70,18 @@ func (a *app) WaitErr() error {
 
 func New(os linux.System) (App, error) {
 	a := new(app)
-	a.id = new(ID)
+	a.id = new(fst.ID)
 	a.os = os
-	return a, newAppID(a.id)
+	return a, fst.NewAppID(a.id)
 }
 
 // appCt ensures its wrapped val is only accessed once
 type appCt struct {
-	val  *fipc.Config
+	val  *fst.Config
 	done *atomic.Bool
 }
 
-func (a *appCt) Unwrap() *fipc.Config {
+func (a *appCt) Unwrap() *fst.Config {
 	if !a.done.Load() {
 		defer a.done.Store(true)
 		return a.val
@@ -89,7 +89,7 @@ func (a *appCt) Unwrap() *fipc.Config {
 	panic("attempted to access config reference twice")
 }
 
-func newAppCt(config *fipc.Config) (ct *appCt) {
+func newAppCt(config *fst.Config) (ct *appCt) {
 	ct = new(appCt)
 	ct.done = new(atomic.Bool)
 	ct.val = config

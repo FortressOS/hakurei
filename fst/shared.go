@@ -1,4 +1,5 @@
-package app
+// Package fst exports shared fortify types.
+package fst
 
 import (
 	"crypto/rand"
@@ -11,7 +12,7 @@ func (a *ID) String() string {
 	return hex.EncodeToString(a[:])
 }
 
-func newAppID(id *ID) error {
+func NewAppID(id *ID) error {
 	_, err := rand.Read(id[:])
 	return err
 }
