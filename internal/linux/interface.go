@@ -39,8 +39,6 @@ type System interface {
 	Paths() Paths
 	// Uid invokes fsu and returns target uid.
 	Uid(aid int) (int, error)
-	// SdBooted implements https://www.freedesktop.org/software/systemd/man/sd_booted.html
-	SdBooted() bool
 }
 
 // Paths contains environment dependent paths used by fortify.

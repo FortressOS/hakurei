@@ -1,7 +1,6 @@
 package linux
 
 import (
-	"errors"
 	"io"
 	"io/fs"
 	"os"
@@ -18,9 +17,6 @@ import (
 type Std struct {
 	paths     Paths
 	pathsOnce sync.Once
-
-	sdBooted     bool
-	sdBootedOnce sync.Once
 
 	uidOnce sync.Once
 	uidCopy map[int]struct {
@@ -89,32 +85,4 @@ func (s *Std) Uid(aid int) (int, error) {
 		}
 		return u.uid, u.err
 	}
-}
-
-func (s *Std) SdBooted() bool {
-	s.sdBootedOnce.Do(func() { s.sdBooted = copySdBooted() })
-	return s.sdBooted
-}
-
-const systemdCheckPath = "/run/systemd/system"
-
-func copySdBooted() bool {
-	if v, err := sdBooted(); err != nil {
-		fmsg.Println("cannot read systemd marker:", err)
-		return false
-	} else {
-		return v
-	}
-}
-
-func sdBooted() (bool, error) {
-	_, err := os.Stat(systemdCheckPath)
-	if err != nil {
-		if errors.Is(err, fs.ErrNotExist) {
-			err = nil
-		}
-		return false, err
-	}
-
-	return true, nil
 }

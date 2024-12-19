@@ -277,10 +277,6 @@ func main() {
 }
 
 func runApp(config *fst.Config) {
-	if os.SdBooted() {
-		fmsg.VPrintln("system booted with systemd as init system")
-	}
-
 	a, err := app.New(os)
 	if err != nil {
 		fmsg.Fatalf("cannot create app: %s\n", err)
