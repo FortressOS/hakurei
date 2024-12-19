@@ -3,7 +3,7 @@ package system
 import (
 	"testing"
 
-	"git.ophivana.moe/security/fortify/acl"
+	"git.gensokyo.uk/security/fortify/acl"
 )
 
 func TestUpdatePerm(t *testing.T) {

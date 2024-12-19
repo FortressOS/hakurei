@@ -1,7 +1,7 @@
 package shim0
 
 import (
-	"git.ophivana.moe/security/fortify/helper/bwrap"
+	"git.gensokyo.uk/security/fortify/helper/bwrap"
 )
 
 const Env = "FORTIFY_SHIM"

@@ -9,8 +9,8 @@ import (
 	"strconv"
 	"sync"
 
-	"git.ophivana.moe/security/fortify/internal"
-	"git.ophivana.moe/security/fortify/internal/fmsg"
+	"git.gensokyo.uk/security/fortify/internal"
+	"git.gensokyo.uk/security/fortify/internal/fmsg"
 )
 
 // Std implements System using the standard library.

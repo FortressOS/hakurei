@@ -1,8 +1,8 @@
 Fortify
 =======
 
-[![Go Reference](https://pkg.go.dev/badge/git.ophivana.moe/security/fortify.svg)](https://pkg.go.dev/git.ophivana.moe/security/fortify)
-[![Go Report Card](https://goreportcard.com/badge/git.ophivana.moe/security/fortify)](https://goreportcard.com/report/git.ophivana.moe/security/fortify)
+[![Go Reference](https://pkg.go.dev/badge/git.gensokyo.uk/security/fortify.svg)](https://pkg.go.dev/git.gensokyo.uk/security/fortify)
+[![Go Report Card](https://goreportcard.com/badge/git.gensokyo.uk/security/fortify)](https://goreportcard.com/report/git.gensokyo.uk/security/fortify)
 
 Lets you run graphical applications as another user in a confined environment with a nice NixOS
 module to configure target users and provide launchers and desktop files for your privileged user.
@@ -18,7 +18,7 @@ Why would you want this?
 If you have a flakes-enabled nix environment, you can try out the tool by running:
 
 ```shell
-nix run git+https://git.ophivana.moe/security/fortify -- help
+nix run git+https://git.gensokyo.uk/security/fortify -- help
 ```
 
 ## Module usage
@@ -35,7 +35,7 @@ To use the module, import it into your configuration with
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.05";
 
     fortify = {
-      url = "git+https://git.ophivana.moe/security/fortify";
+      url = "git+https://git.gensokyo.uk/security/fortify";
 
       # Optional but recommended to limit the size of your system closure.
       inputs.nixpkgs.follows = "nixpkgs";

@@ -5,7 +5,7 @@ import (
 	"os"
 	"path"
 
-	"git.ophivana.moe/security/fortify/internal/fmsg"
+	"git.gensokyo.uk/security/fortify/internal/fmsg"
 )
 
 type payloadU struct {

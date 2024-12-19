@@ -1,11 +1,11 @@
 package app_test
 
 import (
-	"git.ophivana.moe/security/fortify/acl"
-	"git.ophivana.moe/security/fortify/dbus"
-	"git.ophivana.moe/security/fortify/fst"
-	"git.ophivana.moe/security/fortify/helper/bwrap"
-	"git.ophivana.moe/security/fortify/internal/system"
+	"git.gensokyo.uk/security/fortify/acl"
+	"git.gensokyo.uk/security/fortify/dbus"
+	"git.gensokyo.uk/security/fortify/fst"
+	"git.gensokyo.uk/security/fortify/helper/bwrap"
+	"git.gensokyo.uk/security/fortify/internal/system"
 )
 
 var testCasesPd = []sealTestCase{

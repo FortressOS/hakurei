@@ -4,10 +4,10 @@ import (
 	"errors"
 	"path"
 
-	"git.ophivana.moe/security/fortify/acl"
-	"git.ophivana.moe/security/fortify/internal/fmsg"
-	"git.ophivana.moe/security/fortify/internal/linux"
-	"git.ophivana.moe/security/fortify/internal/system"
+	"git.gensokyo.uk/security/fortify/acl"
+	"git.gensokyo.uk/security/fortify/internal/fmsg"
+	"git.gensokyo.uk/security/fortify/internal/linux"
+	"git.gensokyo.uk/security/fortify/internal/system"
 )
 
 const (

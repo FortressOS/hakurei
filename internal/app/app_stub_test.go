@@ -7,7 +7,7 @@ import (
 	"os/user"
 	"strconv"
 
-	"git.ophivana.moe/security/fortify/internal/linux"
+	"git.gensokyo.uk/security/fortify/internal/linux"
 )
 
 // fs methods are not implemented using a real FS

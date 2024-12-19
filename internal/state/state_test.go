@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"git.ophivana.moe/security/fortify/fst"
-	"git.ophivana.moe/security/fortify/internal/state"
+	"git.gensokyo.uk/security/fortify/fst"
+	"git.gensokyo.uk/security/fortify/internal/state"
 )
 
 func testStore(t *testing.T, s state.Store) {

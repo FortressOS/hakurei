@@ -7,7 +7,7 @@ import (
 	"path"
 	"strconv"
 
-	"git.ophivana.moe/security/fortify/internal/fmsg"
+	"git.gensokyo.uk/security/fortify/internal/fmsg"
 )
 
 // System provides safe access to operating system resources.

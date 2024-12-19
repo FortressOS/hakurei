@@ -3,7 +3,7 @@ package state
 import (
 	"time"
 
-	"git.ophivana.moe/security/fortify/fst"
+	"git.gensokyo.uk/security/fortify/fst"
 )
 
 type Entries map[fst.ID]*State

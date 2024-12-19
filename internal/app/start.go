@@ -7,12 +7,12 @@ import (
 	"path/filepath"
 	"strings"
 
-	shim0 "git.ophivana.moe/security/fortify/cmd/fshim/ipc"
-	"git.ophivana.moe/security/fortify/cmd/fshim/ipc/shim"
-	"git.ophivana.moe/security/fortify/helper"
-	"git.ophivana.moe/security/fortify/internal/fmsg"
-	"git.ophivana.moe/security/fortify/internal/state"
-	"git.ophivana.moe/security/fortify/internal/system"
+	shim0 "git.gensokyo.uk/security/fortify/cmd/fshim/ipc"
+	"git.gensokyo.uk/security/fortify/cmd/fshim/ipc/shim"
+	"git.gensokyo.uk/security/fortify/helper"
+	"git.gensokyo.uk/security/fortify/internal/fmsg"
+	"git.gensokyo.uk/security/fortify/internal/state"
+	"git.gensokyo.uk/security/fortify/internal/system"
 )
 
 // Start selects a user switcher and starts shim.

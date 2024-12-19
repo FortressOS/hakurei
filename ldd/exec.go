@@ -6,8 +6,8 @@ import (
 	"os/exec"
 	"strings"
 
-	"git.ophivana.moe/security/fortify/helper"
-	"git.ophivana.moe/security/fortify/helper/bwrap"
+	"git.gensokyo.uk/security/fortify/helper"
+	"git.gensokyo.uk/security/fortify/helper/bwrap"
 )
 
 func Exec(p string) ([]*Entry, error) {

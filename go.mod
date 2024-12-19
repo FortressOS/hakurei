@@ -1,3 +1,3 @@
-module git.ophivana.moe/security/fortify
+module git.gensokyo.uk/security/fortify
 
 go 1.22

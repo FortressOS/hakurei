@@ -3,8 +3,8 @@ package main
 import (
 	"errors"
 
-	"git.ophivana.moe/security/fortify/internal/app"
-	"git.ophivana.moe/security/fortify/internal/fmsg"
+	"git.gensokyo.uk/security/fortify/internal/app"
+	"git.gensokyo.uk/security/fortify/internal/fmsg"
 )
 
 func logWaitError(err error) {

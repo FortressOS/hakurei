@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"git.ophivana.moe/security/fortify/internal/fmsg"
+	"git.gensokyo.uk/security/fortify/internal/fmsg"
 )
 
 // Ensure the existence and mode of a directory.

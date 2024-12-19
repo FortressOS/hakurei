@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"git.ophivana.moe/security/fortify/fst"
+	"git.gensokyo.uk/security/fortify/fst"
 )
 
 func TestParseAppID(t *testing.T) {

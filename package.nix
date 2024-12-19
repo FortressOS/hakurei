@@ -26,7 +26,7 @@ buildGoModule rec {
         ldflags
         ++ [
           "-X"
-          "git.ophivana.moe/security/fortify/internal.${name}=${value}"
+          "git.gensokyo.uk/security/fortify/internal.${name}=${value}"
         ]
       )
       [

@@ -7,8 +7,8 @@ import (
 	"strings"
 	"sync"
 
-	"git.ophivana.moe/security/fortify/dbus"
-	"git.ophivana.moe/security/fortify/internal/fmsg"
+	"git.gensokyo.uk/security/fortify/dbus"
+	"git.gensokyo.uk/security/fortify/internal/fmsg"
 )
 
 var (

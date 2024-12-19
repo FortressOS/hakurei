@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"os"
 
-	"git.ophivana.moe/security/fortify/acl"
-	"git.ophivana.moe/security/fortify/internal/fmsg"
-	"git.ophivana.moe/security/fortify/wl"
+	"git.gensokyo.uk/security/fortify/acl"
+	"git.gensokyo.uk/security/fortify/internal/fmsg"
+	"git.gensokyo.uk/security/fortify/wl"
 )
 
 // Wayland sets up a wayland socket with a security context attached.

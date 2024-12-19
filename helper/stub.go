@@ -10,8 +10,8 @@ import (
 	"syscall"
 	"testing"
 
-	"git.ophivana.moe/security/fortify/helper/bwrap"
-	"git.ophivana.moe/security/fortify/internal/fmsg"
+	"git.gensokyo.uk/security/fortify/helper/bwrap"
+	"git.gensokyo.uk/security/fortify/internal/fmsg"
 )
 
 // InternalChildStub is an internal function but exported because it is cross-package;

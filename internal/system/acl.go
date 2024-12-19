@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"slices"
 
-	"git.ophivana.moe/security/fortify/acl"
-	"git.ophivana.moe/security/fortify/internal/fmsg"
+	"git.gensokyo.uk/security/fortify/acl"
+	"git.gensokyo.uk/security/fortify/internal/fmsg"
 )
 
 // UpdatePerm appends an ephemeral acl update Op.

@@ -11,14 +11,14 @@ import (
 	"sync"
 	"text/tabwriter"
 
-	"git.ophivana.moe/security/fortify/dbus"
-	"git.ophivana.moe/security/fortify/fst"
-	"git.ophivana.moe/security/fortify/internal"
-	"git.ophivana.moe/security/fortify/internal/app"
-	"git.ophivana.moe/security/fortify/internal/fmsg"
-	"git.ophivana.moe/security/fortify/internal/linux"
-	"git.ophivana.moe/security/fortify/internal/state"
-	"git.ophivana.moe/security/fortify/internal/system"
+	"git.gensokyo.uk/security/fortify/dbus"
+	"git.gensokyo.uk/security/fortify/fst"
+	"git.gensokyo.uk/security/fortify/internal"
+	"git.gensokyo.uk/security/fortify/internal/app"
+	"git.gensokyo.uk/security/fortify/internal/fmsg"
+	"git.gensokyo.uk/security/fortify/internal/linux"
+	"git.gensokyo.uk/security/fortify/internal/state"
+	"git.gensokyo.uk/security/fortify/internal/system"
 )
 
 var (

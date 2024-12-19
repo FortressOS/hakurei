@@ -3,10 +3,10 @@ package fst
 import (
 	"errors"
 
-	"git.ophivana.moe/security/fortify/dbus"
-	"git.ophivana.moe/security/fortify/helper/bwrap"
-	"git.ophivana.moe/security/fortify/internal/linux"
-	"git.ophivana.moe/security/fortify/internal/system"
+	"git.gensokyo.uk/security/fortify/dbus"
+	"git.gensokyo.uk/security/fortify/helper/bwrap"
+	"git.gensokyo.uk/security/fortify/internal/linux"
+	"git.gensokyo.uk/security/fortify/internal/system"
 )
 
 const fTmp = "/fortify"

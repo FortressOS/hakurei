@@ -8,9 +8,9 @@ mkdir -p "${out}"
 cp "README.md" "dist/fsurc.default" "dist/install.sh" "${out}"
 
 go build -v -o "${out}/bin/" -ldflags "-s -w
-  -X git.ophivana.moe/security/fortify/internal.Version=${VERSION}
-  -X git.ophivana.moe/security/fortify/internal.Fsu=/usr/bin/fsu
-  -X git.ophivana.moe/security/fortify/internal.Finit=/usr/libexec/fortify/finit
+  -X git.gensokyo.uk/security/fortify/internal.Version=${VERSION}
+  -X git.gensokyo.uk/security/fortify/internal.Fsu=/usr/bin/fsu
+  -X git.gensokyo.uk/security/fortify/internal.Finit=/usr/libexec/fortify/finit
   -X main.Fmain=/usr/bin/fortify
   -X main.Fshim=/usr/libexec/fortify/fshim" ./...
 

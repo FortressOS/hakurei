@@ -6,7 +6,7 @@ import (
 	"os"
 	"os/exec"
 
-	"git.ophivana.moe/security/fortify/internal/proc"
+	"git.gensokyo.uk/security/fortify/internal/proc"
 )
 
 type pipes struct {

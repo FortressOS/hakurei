@@ -4,9 +4,9 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"git.ophivana.moe/security/fortify/cmd/fshim/ipc/shim"
-	"git.ophivana.moe/security/fortify/fst"
-	"git.ophivana.moe/security/fortify/internal/linux"
+	"git.gensokyo.uk/security/fortify/cmd/fshim/ipc/shim"
+	"git.gensokyo.uk/security/fortify/fst"
+	"git.gensokyo.uk/security/fortify/internal/linux"
 )
 
 type App interface {

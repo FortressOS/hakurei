@@ -6,11 +6,11 @@ import (
 	"testing"
 	"time"
 
-	"git.ophivana.moe/security/fortify/fst"
-	"git.ophivana.moe/security/fortify/helper/bwrap"
-	"git.ophivana.moe/security/fortify/internal/app"
-	"git.ophivana.moe/security/fortify/internal/linux"
-	"git.ophivana.moe/security/fortify/internal/system"
+	"git.gensokyo.uk/security/fortify/fst"
+	"git.gensokyo.uk/security/fortify/helper/bwrap"
+	"git.gensokyo.uk/security/fortify/internal/app"
+	"git.gensokyo.uk/security/fortify/internal/linux"
+	"git.gensokyo.uk/security/fortify/internal/system"
 )
 
 type sealTestCase struct {

@@ -3,7 +3,7 @@ package dbus_test
 import (
 	"testing"
 
-	"git.ophivana.moe/security/fortify/helper"
+	"git.gensokyo.uk/security/fortify/helper"
 )
 
 func TestHelperChildStub(t *testing.T) {

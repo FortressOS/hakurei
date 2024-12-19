@@ -7,7 +7,7 @@ import (
 	"reflect"
 	"testing"
 
-	"git.ophivana.moe/security/fortify/acl"
+	"git.gensokyo.uk/security/fortify/acl"
 )
 
 const testFileName = "acl.test"

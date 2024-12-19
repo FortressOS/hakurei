@@ -1,10 +1,10 @@
 package app
 
 import (
-	"git.ophivana.moe/security/fortify/fst"
-	"git.ophivana.moe/security/fortify/helper/bwrap"
-	"git.ophivana.moe/security/fortify/internal/linux"
-	"git.ophivana.moe/security/fortify/internal/system"
+	"git.gensokyo.uk/security/fortify/fst"
+	"git.gensokyo.uk/security/fortify/helper/bwrap"
+	"git.gensokyo.uk/security/fortify/internal/linux"
+	"git.gensokyo.uk/security/fortify/internal/system"
 )
 
 func NewWithID(id fst.ID, os linux.System) App {

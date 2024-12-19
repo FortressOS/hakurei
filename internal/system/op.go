@@ -5,7 +5,7 @@ import (
 	"os"
 	"sync"
 
-	"git.ophivana.moe/security/fortify/internal/fmsg"
+	"git.gensokyo.uk/security/fortify/internal/fmsg"
 )
 
 const (

@@ -8,8 +8,8 @@ import (
 	"strconv"
 	"sync"
 
-	"git.ophivana.moe/security/fortify/helper/bwrap"
-	"git.ophivana.moe/security/fortify/internal/proc"
+	"git.gensokyo.uk/security/fortify/helper/bwrap"
+	"git.gensokyo.uk/security/fortify/internal/proc"
 )
 
 // BubblewrapName is the file name or path to bubblewrap.

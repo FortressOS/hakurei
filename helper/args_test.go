@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"git.ophivana.moe/security/fortify/helper"
+	"git.gensokyo.uk/security/fortify/helper"
 )
 
 func Test_argsFD_String(t *testing.T) {

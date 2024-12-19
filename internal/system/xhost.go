@@ -3,8 +3,8 @@ package system
 import (
 	"fmt"
 
-	"git.ophivana.moe/security/fortify/internal/fmsg"
-	"git.ophivana.moe/security/fortify/xcb"
+	"git.gensokyo.uk/security/fortify/internal/fmsg"
+	"git.gensokyo.uk/security/fortify/xcb"
 )
 
 // ChangeHosts appends an X11 ChangeHosts command Op.

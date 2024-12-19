@@ -11,8 +11,8 @@ import (
 	"sync"
 	"syscall"
 
-	"git.ophivana.moe/security/fortify/fst"
-	"git.ophivana.moe/security/fortify/internal/fmsg"
+	"git.gensokyo.uk/security/fortify/fst"
+	"git.gensokyo.uk/security/fortify/internal/fmsg"
 )
 
 // fine-grained locking and access

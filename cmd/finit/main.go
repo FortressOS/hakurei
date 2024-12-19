@@ -9,10 +9,10 @@ import (
 	"syscall"
 	"time"
 
-	init0 "git.ophivana.moe/security/fortify/cmd/finit/ipc"
-	"git.ophivana.moe/security/fortify/internal"
-	"git.ophivana.moe/security/fortify/internal/fmsg"
-	"git.ophivana.moe/security/fortify/internal/proc"
+	init0 "git.gensokyo.uk/security/fortify/cmd/finit/ipc"
+	"git.gensokyo.uk/security/fortify/internal"
+	"git.gensokyo.uk/security/fortify/internal/fmsg"
+	"git.gensokyo.uk/security/fortify/internal/proc"
 )
 
 const (

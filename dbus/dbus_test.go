@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"git.ophivana.moe/security/fortify/dbus"
-	"git.ophivana.moe/security/fortify/helper"
+	"git.gensokyo.uk/security/fortify/dbus"
+	"git.gensokyo.uk/security/fortify/helper"
 )
 
 func TestNew(t *testing.T) {
