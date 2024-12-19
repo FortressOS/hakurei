@@ -15,8 +15,6 @@ const testFileName = "acl.test"
 var (
 	uid  = os.Geteuid()
 	cred = int32(os.Geteuid())
-
-	testFilePath = path.Join(os.TempDir(), testFileName)
 )
 
 func TestUpdatePerm(t *testing.T) {
@@ -24,6 +22,8 @@ func TestUpdatePerm(t *testing.T) {
 		t.Log("acl test skipped")
 		t.SkipNow()
 	}
+
+	testFilePath := path.Join(t.TempDir(), testFileName)
 
 	if f, err := os.Create(testFilePath); err != nil {
 		t.Fatalf("Create: error = %v", err)
@@ -64,16 +64,16 @@ func TestUpdatePerm(t *testing.T) {
 		}
 	})
 
-	testUpdate(t, "r--", cur, fAclPermRead, acl.Read)
-	testUpdate(t, "-w-", cur, fAclPermWrite, acl.Write)
-	testUpdate(t, "--x", cur, fAclPermExecute, acl.Execute)
-	testUpdate(t, "-wx", cur, fAclPermWrite|fAclPermExecute, acl.Write, acl.Execute)
-	testUpdate(t, "r-x", cur, fAclPermRead|fAclPermExecute, acl.Read, acl.Execute)
-	testUpdate(t, "rw-", cur, fAclPermRead|fAclPermWrite, acl.Read, acl.Write)
-	testUpdate(t, "rwx", cur, fAclPermRead|fAclPermWrite|fAclPermExecute, acl.Read, acl.Write, acl.Execute)
+	testUpdate(t, testFilePath, "r--", cur, fAclPermRead, acl.Read)
+	testUpdate(t, testFilePath, "-w-", cur, fAclPermWrite, acl.Write)
+	testUpdate(t, testFilePath, "--x", cur, fAclPermExecute, acl.Execute)
+	testUpdate(t, testFilePath, "-wx", cur, fAclPermWrite|fAclPermExecute, acl.Write, acl.Execute)
+	testUpdate(t, testFilePath, "r-x", cur, fAclPermRead|fAclPermExecute, acl.Read, acl.Execute)
+	testUpdate(t, testFilePath, "rw-", cur, fAclPermRead|fAclPermWrite, acl.Read, acl.Write)
+	testUpdate(t, testFilePath, "rwx", cur, fAclPermRead|fAclPermWrite|fAclPermExecute, acl.Read, acl.Write, acl.Execute)
 }
 
-func testUpdate(t *testing.T, name string, cur []*getFAclResp, val fAclPerm, perms ...acl.Perm) {
+func testUpdate(t *testing.T, testFilePath, name string, cur []*getFAclResp, val fAclPerm, perms ...acl.Perm) {
 	t.Run(name, func(t *testing.T) {
 		t.Cleanup(func() {
 			if err := acl.UpdatePerm(testFilePath, uid); err != nil {
