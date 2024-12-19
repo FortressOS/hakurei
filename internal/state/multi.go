@@ -11,8 +11,8 @@ import (
 	"syscall"
 )
 
-// file-based locking
-type simpleStore struct {
+// fine-grained locking and access
+type multiStore struct {
 	path []string
 
 	// created/opened by prepare
@@ -25,7 +25,7 @@ type simpleStore struct {
 	lock sync.Mutex
 }
 
-func (s *simpleStore) Do(f func(b Backend)) (bool, error) {
+func (s *multiStore) Do(f func(b Backend)) (bool, error) {
 	s.init.Do(s.prepare)
 	if s.initErr != nil {
 		return false, s.initErr
@@ -40,7 +40,7 @@ func (s *simpleStore) Do(f func(b Backend)) (bool, error) {
 	}
 
 	// initialise new backend for caller
-	b := new(simpleBackend)
+	b := new(multiBackend)
 	b.path = path.Join(s.path...)
 	f(b)
 	// disable backend
@@ -50,7 +50,7 @@ func (s *simpleStore) Do(f func(b Backend)) (bool, error) {
 	return true, s.unlockFile()
 }
 
-func (s *simpleStore) lockFileAct(lt int) (err error) {
+func (s *multiStore) lockFileAct(lt int) (err error) {
 	op := "LockAct"
 	switch lt {
 	case syscall.LOCK_EX:
@@ -75,15 +75,15 @@ func (s *simpleStore) lockFileAct(lt int) (err error) {
 	return nil
 }
 
-func (s *simpleStore) lockFile() error {
+func (s *multiStore) lockFile() error {
 	return s.lockFileAct(syscall.LOCK_EX)
 }
 
-func (s *simpleStore) unlockFile() error {
+func (s *multiStore) unlockFile() error {
 	return s.lockFileAct(syscall.LOCK_UN)
 }
 
-func (s *simpleStore) prepare() {
+func (s *multiStore) prepare() {
 	s.initErr = func() error {
 		prefix := path.Join(s.path...)
 		// ensure directory
@@ -102,7 +102,7 @@ func (s *simpleStore) prepare() {
 	}()
 }
 
-func (s *simpleStore) Close() error {
+func (s *multiStore) Close() error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
@@ -113,19 +113,19 @@ func (s *simpleStore) Close() error {
 	return err
 }
 
-type simpleBackend struct {
+type multiBackend struct {
 	path string
 
 	lock sync.RWMutex
 }
 
-func (b *simpleBackend) filename(pid int) string {
+func (b *multiBackend) filename(pid int) string {
 	return path.Join(b.path, strconv.Itoa(pid))
 }
 
 // reads all launchers in simpleBackend
 // file contents are ignored if decode is false
-func (b *simpleBackend) load(decode bool) ([]*State, error) {
+func (b *multiBackend) load(decode bool) ([]*State, error) {
 	b.lock.RLock()
 	defer b.lock.RUnlock()
 
@@ -172,7 +172,7 @@ func (b *simpleBackend) load(decode bool) ([]*State, error) {
 }
 
 // Save writes process state to filesystem
-func (b *simpleBackend) Save(state *State) error {
+func (b *multiBackend) Save(state *State) error {
 	b.lock.Lock()
 	defer b.lock.Unlock()
 
@@ -197,18 +197,18 @@ func (b *simpleBackend) Save(state *State) error {
 	}
 }
 
-func (b *simpleBackend) Destroy(pid int) error {
+func (b *multiBackend) Destroy(pid int) error {
 	b.lock.Lock()
 	defer b.lock.Unlock()
 
 	return os.Remove(b.filename(pid))
 }
 
-func (b *simpleBackend) Load() ([]*State, error) {
+func (b *multiBackend) Load() ([]*State, error) {
 	return b.load(true)
 }
 
-func (b *simpleBackend) Len() (int, error) {
+func (b *multiBackend) Len() (int, error) {
 	// rn consists of only nil entries but has the correct length
 	rn, err := b.load(false)
 	return len(rn), err
@@ -216,7 +216,7 @@ func (b *simpleBackend) Len() (int, error) {
 
 // NewSimple returns an instance of a file-based store.
 func NewSimple(runDir string, prefix ...string) Store {
-	b := new(simpleStore)
+	b := new(multiStore)
 	b.path = append([]string{runDir, "state"}, prefix...)
 	return b
 }

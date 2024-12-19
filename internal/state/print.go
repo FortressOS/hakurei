@@ -37,7 +37,7 @@ func MustPrintLauncherStateSimpleGlobal(w **tabwriter.Writer, runDir string) {
 			}
 
 			// obtain temporary store
-			s := NewSimple(runDir, e.Name()).(*simpleStore)
+			s := NewSimple(runDir, e.Name()).(*multiStore)
 
 			// print states belonging to this store
 			s.mustPrintLauncherState(w, now)
@@ -50,7 +50,7 @@ func MustPrintLauncherStateSimpleGlobal(w **tabwriter.Writer, runDir string) {
 	}
 }
 
-func (s *simpleStore) mustPrintLauncherState(w **tabwriter.Writer, now time.Time) {
+func (s *multiStore) mustPrintLauncherState(w **tabwriter.Writer, now time.Time) {
 	var innerErr error
 
 	if ok, err := s.Do(func(b Backend) {
