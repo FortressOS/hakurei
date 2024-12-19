@@ -214,5 +214,8 @@ nixosTest {
     swaymsg("exit", succeed=False)
     machine.wait_until_fails("pgrep -x sway")
     machine.wait_for_file("/tmp/sway-exit-ok")
+
+    # Print fortify runDir contents:
+    print(machine.succeed("find /run/user/1000/fortify"))
   '';
 }

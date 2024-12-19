@@ -218,7 +218,7 @@ func (a *app) Seal(config *fst.Config) error {
 	// open process state store
 	// the simple store only starts holding an open file after first action
 	// store activity begins after Start is called and must end before Wait
-	seal.store = state.NewSimple(seal.RunDirPath, seal.sys.user.as)
+	seal.store = state.NewMulti(seal.RunDirPath)
 
 	// initialise system interface with full uid
 	seal.sys.I = system.New(seal.sys.user.uid)

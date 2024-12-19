@@ -76,8 +76,8 @@ func (a *app) Start() error {
 
 		// register process state
 		var err0 = new(StateStoreError)
-		err0.Inner, err0.DoErr = a.seal.store.Do(func(b state.Backend) {
-			err0.InnerErr = b.Save(&sd)
+		err0.Inner, err0.DoErr = a.seal.store.Do(a.seal.sys.user.aid, func(c state.Cursor) {
+			err0.InnerErr = c.Save(&sd)
 		})
 		a.seal.sys.saveState = true
 		return err0.equiv("cannot save process state:")
@@ -199,11 +199,11 @@ func (a *app) Wait() (int, error) {
 
 	// update store and revert app setup transaction
 	e := new(StateStoreError)
-	e.Inner, e.DoErr = a.seal.store.Do(func(b state.Backend) {
+	e.Inner, e.DoErr = a.seal.store.Do(a.seal.sys.user.aid, func(b state.Cursor) {
 		e.InnerErr = func() error {
 			// destroy defunct state entry
 			if cmd := a.shim.Unwrap(); cmd != nil && a.seal.sys.saveState {
-				if err := b.Destroy(cmd.Process.Pid); err != nil {
+				if err := b.Destroy(*a.id); err != nil {
 					return err
 				}
 			}

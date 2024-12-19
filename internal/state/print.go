@@ -1,11 +1,8 @@
 package state
 
 import (
-	"errors"
 	"fmt"
 	"os"
-	"path"
-	"strconv"
 	"strings"
 	"text/tabwriter"
 	"time"
@@ -18,45 +15,31 @@ import (
 // in an implementation-specific way.
 func MustPrintLauncherStateSimpleGlobal(w **tabwriter.Writer, runDir string) {
 	now := time.Now().UTC()
+	s := NewMulti(runDir)
 
 	// read runtime directory to get all UIDs
-	if dirs, err := os.ReadDir(path.Join(runDir, "state")); err != nil && !errors.Is(err, os.ErrNotExist) {
-		fmsg.Fatal("cannot read runtime directory:", err)
+	if aids, err := s.List(); err != nil {
+		fmsg.Fatal("cannot list store:", err)
 	} else {
-		for _, e := range dirs {
-			// skip non-directories
-			if !e.IsDir() {
-				fmsg.VPrintf("skipped non-directory entry %q", e.Name())
-				continue
-			}
-
-			// skip non-numerical names
-			if _, err = strconv.Atoi(e.Name()); err != nil {
-				fmsg.VPrintf("skipped non-uid entry %q", e.Name())
-				continue
-			}
-
-			// obtain temporary store
-			s := NewSimple(runDir, e.Name()).(*multiStore)
-
+		for _, aid := range aids {
 			// print states belonging to this store
-			s.mustPrintLauncherState(w, now)
-
-			// mustPrintLauncherState causes store activity so store needs to be closed
-			if err = s.Close(); err != nil {
-				fmsg.Printf("cannot close store for user %q: %s", e.Name(), err)
-			}
+			s.(*multiStore).mustPrintLauncherState(aid, w, now)
 		}
+	}
+
+	// mustPrintLauncherState causes store activity so store needs to be closed
+	if err := s.Close(); err != nil {
+		fmsg.Printf("cannot close store: %v", err)
 	}
 }
 
-func (s *multiStore) mustPrintLauncherState(w **tabwriter.Writer, now time.Time) {
+func (s *multiStore) mustPrintLauncherState(aid int, w **tabwriter.Writer, now time.Time) {
 	var innerErr error
 
-	if ok, err := s.Do(func(b Backend) {
+	if ok, err := s.Do(aid, func(c Cursor) {
 		innerErr = func() error {
 			// read launcher states
-			states, err := b.Load()
+			states, err := c.Load()
 			if err != nil {
 				return err
 			}
@@ -111,25 +94,25 @@ func (s *multiStore) mustPrintLauncherState(w **tabwriter.Writer, now time.Time)
 				}
 
 				if !fmsg.Verbose() {
-					_, _ = fmt.Fprintf(*w, "\t%d\t%s\t%s\t%s\t%s\n",
-						state.PID, s.path[len(s.path)-1], now.Sub(state.Time).Round(time.Second).String(), strings.TrimPrefix(ets.String(), ", "), cs)
+					_, _ = fmt.Fprintf(*w, "\t%d\t%d\t%s\t%s\t%s\n",
+						state.PID, aid, now.Sub(state.Time).Round(time.Second).String(), strings.TrimPrefix(ets.String(), ", "), cs)
 				} else {
 					// emit argv instead when verbose
-					_, _ = fmt.Fprintf(*w, "\t%d\t%s\t%s\n",
-						state.PID, s.path[len(s.path)-1], state.ID)
+					_, _ = fmt.Fprintf(*w, "\t%d\t%d\t%s\n",
+						state.PID, aid, state.ID)
 				}
 			}
 
 			return nil
 		}()
 	}); err != nil {
-		fmsg.Printf("cannot perform action on store %q: %s", path.Join(s.path...), err)
+		fmsg.Printf("cannot perform action on app %d: %v", aid, err)
 		if !ok {
 			fmsg.Fatal("store faulted before printing")
 		}
 	}
 
 	if innerErr != nil {
-		fmsg.Fatalf("cannot print launcher state for store %q: %s", path.Join(s.path...), innerErr)
+		fmsg.Fatalf("cannot print launcher state of app %d: %s", aid, innerErr)
 	}
 }
