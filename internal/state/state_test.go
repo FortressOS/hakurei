@@ -94,6 +94,14 @@ func testStore(t *testing.T, s state.Store) {
 		}
 	})
 
+	t.Run("join store", func(t *testing.T) {
+		if entries, err := state.Join(s); err != nil {
+			t.Fatalf("Join: error = %v", err)
+		} else if len(entries) != 3 {
+			t.Fatalf("Join(s) = %#v", entries)
+		}
+	})
+
 	t.Run("clear aid 1", func(t *testing.T) {
 		do(1, func(c state.Cursor) {
 			if err := c.Destroy(tc[insertEntryOtherApp].ID); err != nil {
