@@ -1,5 +1,9 @@
 package system
 
+import (
+	"strings"
+)
+
 type (
 	// Enablement represents an optional system resource
 	Enablement uint8
@@ -46,4 +50,19 @@ func (es *Enablements) Set(e Enablement) {
 	}
 
 	*es |= e.Mask()
+}
+
+func (es *Enablements) String() string {
+	buf := new(strings.Builder)
+	for i := Enablement(0); i < Enablement(ELen); i++ {
+		if es.Has(i) {
+			buf.WriteString(", " + i.String())
+		}
+	}
+
+	if buf.Len() == 0 {
+		buf.WriteString("(No enablements)")
+	}
+
+	return strings.TrimPrefix(buf.String(), ", ")
 }
