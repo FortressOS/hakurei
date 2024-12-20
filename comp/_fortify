@@ -27,6 +27,7 @@ _fortify_run() {
   _fortify_cmds=(
     "app:Launch app defined by the specified config file"
     "run:Configure and start a permissive default sandbox"
+    "show:Show the contents of an app configuration"
     "ps:List active apps and their state"
     "version:Show fortify version"
     "license:Show full license text"
@@ -34,7 +35,7 @@ _fortify_run() {
     "help:Show help message"
   )
   if (( CURRENT == 1 )); then
-    _describe -t commands 'fortify command' _fortify_cmds || compadd "$@"
+    _describe -t commands 'action' _fortify_cmds || compadd "$@"
   else
     local curcontext="$curcontext"
     cmd="${${_fortify_cmds[(r)$words[1]:*]%%:*}}"
@@ -48,4 +49,5 @@ _fortify_run() {
 
 _arguments -C \
   '-v[Verbose output]' \
+  '--json[Format output in JSON when applicable]' \
   '*::fortify command:_fortify_commands'

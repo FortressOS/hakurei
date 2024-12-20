@@ -10,6 +10,7 @@ import (
 	"strings"
 	"sync"
 	"text/tabwriter"
+	"time"
 
 	"git.gensokyo.uk/security/fortify/dbus"
 	"git.gensokyo.uk/security/fortify/fst"
@@ -23,6 +24,7 @@ import (
 
 var (
 	flagVerbose bool
+	flagJSON    bool
 
 	//go:embed LICENSE
 	license string
@@ -30,6 +32,7 @@ var (
 
 func init() {
 	flag.BoolVar(&flagVerbose, "v", false, "Verbose output")
+	flag.BoolVar(&flagJSON, "json", false, "Format output in JSON when applicable")
 }
 
 var os = new(linux.Std)
@@ -61,13 +64,14 @@ func main() {
 
 	flag.CommandLine.Usage = func() {
 		fmt.Println()
-		fmt.Println("Usage:\tfortify [-v] COMMAND [OPTIONS]")
+		fmt.Println("Usage:\tfortify [-v] [--json] COMMAND [OPTIONS]")
 		fmt.Println()
 		fmt.Println("Commands:")
 		w := tabwriter.NewWriter(os.Stdout(), 0, 1, 4, ' ', 0)
 		commands := [][2]string{
 			{"app", "Launch app defined by the specified config file"},
 			{"run", "Configure and start a permissive default sandbox"},
+			{"show", "Show the contents of an app configuration"},
 			{"ps", "List active apps and their state"},
 			{"version", "Show fortify version"},
 			{"license", "Show full license text"},
@@ -122,6 +126,200 @@ func main() {
 			}
 		} else {
 			fmt.Println("No information available")
+		}
+
+		fmsg.Exit(0)
+	case "show": // pretty-print app info
+		if len(args) != 2 {
+			fmsg.Fatal("show requires 1 argument")
+		}
+
+		likePrefix := false
+		if len(args[1]) <= 32 {
+			likePrefix = true
+			for _, c := range args[1] {
+				if c >= '0' && c <= '9' {
+					continue
+				}
+				if c >= 'a' && c <= 'f' {
+					continue
+				}
+				likePrefix = false
+				break
+			}
+		}
+
+		var (
+			config   *fst.Config
+			instance *state.State
+		)
+
+		// try to match from state store
+		if likePrefix && len(args[1]) >= 8 {
+			fmsg.VPrintln("argument looks like prefix")
+
+			s := state.NewMulti(os.Paths().RunDirPath)
+			if entries, err := state.Join(s); err != nil {
+				fmsg.Printf("cannot join store: %v", err)
+				// drop to fetch from file
+			} else {
+				for id := range entries {
+					v := id.String()
+					if strings.HasPrefix(v, args[1]) {
+						// match, use config from this state entry
+						instance = entries[id]
+						config = instance.Config
+						break
+					}
+
+					fmsg.VPrintf("instance %s skipped", v)
+				}
+			}
+		}
+
+		if config == nil {
+			fmsg.VPrintf("reading from file")
+
+			config = new(fst.Config)
+			if f, err := os.Open(args[1]); err != nil {
+				fmsg.Fatalf("cannot access config file %q: %s", args[1], err)
+				panic("unreachable")
+			} else if err = json.NewDecoder(f).Decode(&config); err != nil {
+				fmsg.Fatalf("cannot parse config file %q: %s", args[1], err)
+				panic("unreachable")
+			}
+		}
+
+		if flagJSON {
+			v := interface{}(config)
+			if instance != nil {
+				v = instance
+			}
+
+			if s, err := json.MarshalIndent(v, "", "  "); err != nil {
+				fmsg.Fatalf("cannot serialise as JSON: %v", err)
+				panic("unreachable")
+			} else {
+				fmt.Println(string(s))
+			}
+		} else {
+			buf := new(strings.Builder)
+			w := tabwriter.NewWriter(buf, 0, 1, 4, ' ', 0)
+			printf := func(format string, a ...any) {
+				if _, err := w.Write([]byte(fmt.Sprintf(format, a...))); err != nil {
+					fmsg.Fatalf("cannot write to buffer: %v", err)
+				}
+			}
+
+			if instance != nil {
+				printf("State\n")
+				printf(" Instance:\t%s (%d)\n", instance.ID.String(), instance.PID)
+				printf(" Uptime:\t%s\n", time.Now().Sub(instance.Time).Round(time.Second).String())
+				printf("\n")
+			}
+
+			printf("App\n")
+			if config.ID != "" {
+				printf(" ID:\t%d (%s)\n", config.Confinement.AppID, config.ID)
+			} else {
+				printf(" ID:\t%d\n", config.Confinement.AppID)
+			}
+			printf(" Enablements:\t%s\n", config.Confinement.Enablements.String())
+			if len(config.Confinement.Groups) > 0 {
+				printf(" Groups:\t%q\n", config.Confinement.Groups)
+			}
+			printf(" Directory:\t%s\n", config.Confinement.Outer)
+			if config.Confinement.Sandbox != nil {
+				sandbox := config.Confinement.Sandbox
+				if sandbox.Hostname != "" {
+					printf(" Hostname:\t%q\n", sandbox.Hostname)
+				}
+				flags := make([]string, 0, 7)
+				writeFlag := func(name string, value bool) {
+					if value {
+						flags = append(flags, name)
+					}
+				}
+				writeFlag("userns", sandbox.UserNS)
+				writeFlag("net", sandbox.Net)
+				writeFlag("dev", sandbox.Dev)
+				writeFlag("tty", sandbox.NoNewSession)
+				writeFlag("mapuid", sandbox.MapRealUID)
+				writeFlag("directwl", sandbox.DirectWayland)
+				writeFlag("autoetc", sandbox.AutoEtc)
+				if len(flags) == 0 {
+					flags = append(flags, "none")
+				}
+				printf(" Flags:\t%s\n", strings.Join(flags, " "))
+				printf(" Overrides:\t%s\n", strings.Join(sandbox.Override, " "))
+
+				// Env           map[string]string   `json:"env"`
+				// Link          [][2]string         `json:"symlink"`
+			} else {
+				// this gets printed before everything else
+				fmt.Println("WARNING: current configuration uses permissive defaults!")
+			}
+			printf(" Command:\t%s\n", strings.Join(config.Command, " "))
+			printf("\n")
+
+			if config.Confinement.Sandbox != nil && len(config.Confinement.Sandbox.Filesystem) > 0 {
+				printf("Filesystem:\n")
+				for _, f := range config.Confinement.Sandbox.Filesystem {
+					expr := new(strings.Builder)
+					if f.Device {
+						expr.WriteString(" d")
+					} else if f.Write {
+						expr.WriteString(" w")
+					} else {
+						expr.WriteString(" ")
+					}
+					if f.Must {
+						expr.WriteString("*")
+					} else {
+						expr.WriteString("+")
+					}
+					expr.WriteString(f.Src)
+					if f.Dst != "" {
+						expr.WriteString(":" + f.Dst)
+					}
+					printf("%s\n", expr.String())
+				}
+				printf("\n")
+			}
+
+			printDBus := func(c *dbus.Config) {
+				printf(" Filter:\t%v\n", c.Filter)
+				if len(c.See) > 0 {
+					printf(" See:\t%q\n", c.See)
+				}
+				if len(c.Talk) > 0 {
+					printf(" Talk:\t%q\n", c.Talk)
+				}
+				if len(c.Own) > 0 {
+					printf(" Own:\t%q\n", c.Own)
+				}
+				if len(c.Call) > 0 {
+					printf(" Call:\t%q\n", c.Call)
+				}
+				if len(c.Broadcast) > 0 {
+					printf(" Broadcast:\t%q\n", c.Broadcast)
+				}
+			}
+			if config.Confinement.SessionBus != nil {
+				printf("Session bus\n")
+				printDBus(config.Confinement.SessionBus)
+				printf("\n")
+			}
+			if config.Confinement.SystemBus != nil {
+				printf("System bus\n")
+				printDBus(config.Confinement.SystemBus)
+				printf("\n")
+			}
+
+			if err := w.Flush(); err != nil {
+				fmsg.Fatalf("cannot flush tabwriter: %v", err)
+			}
+			fmt.Print(buf.String())
 		}
 
 		fmsg.Exit(0)
