@@ -16,7 +16,11 @@ buildGoModule rec {
   pname = "fortify";
   version = "0.2.5";
 
-  src = ./.;
+  src = builtins.path {
+    name = "fortify-src";
+    path = lib.cleanSource ./.;
+    filter = path: type: !(type != "directory" && lib.hasSuffix ".nix" path);
+  };
   vendorHash = null;
 
   ldflags =
