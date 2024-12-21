@@ -106,12 +106,7 @@ func main() {
 		fmt.Println(license)
 		fmsg.Exit(0)
 	case "template": // print full template configuration
-		if s, err := json.MarshalIndent(fst.Template(), "", "  "); err != nil {
-			fmsg.Fatalf("cannot generate template: %v", err)
-			panic("unreachable")
-		} else {
-			fmt.Println(string(s))
-		}
+		printJSON(fst.Template())
 		fmsg.Exit(0)
 	case "help": // print help message
 		flag.CommandLine.Usage()
