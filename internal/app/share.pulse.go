@@ -66,7 +66,7 @@ func (seal *appSeal) sharePulse(os linux.System) error {
 
 	// publish current user's pulse cookie for target user
 	if src, err := discoverPulseCookie(os); err != nil {
-		return err
+		fmsg.VPrintln(err.(*fmsg.BaseError).Message())
 	} else {
 		dst := path.Join(seal.share, "pulse-cookie")
 		seal.sys.bwrap.SetEnv[pulseCookie] = dst
