@@ -175,7 +175,11 @@ func printPs(short bool) {
 	}
 
 	if flagJSON {
-		printJSON(entries)
+		es := make(map[string]*state.State, len(entries))
+		for id, instance := range entries {
+			es[id.String()] = instance
+		}
+		printJSON(es)
 		return
 	}
 
@@ -215,7 +219,7 @@ func printJSON(v any) {
 	encoder := json.NewEncoder(direct.Stdout)
 	encoder.SetIndent("", "  ")
 	if err := encoder.Encode(v); err != nil {
-		fmsg.Fatalf("cannot serialise as JSON: %v", err)
+		fmsg.Fatalf("cannot serialise: %v", err)
 		panic("unreachable")
 	}
 }
