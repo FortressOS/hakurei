@@ -172,7 +172,7 @@ nixosTest {
     machine.wait_for_file("/tmp/fortify.1000/tmpdir/0/success-bare")
 
     # Start fortify within Wayland session:
-    swaymsg("exec fortify -v run --wayland touch /tmp/success-session")
+    swaymsg("exec fortify -v run --wayland --dbus touch /tmp/success-session")
     machine.wait_for_file("/tmp/fortify.1000/tmpdir/0/success-session")
 
     # Start a terminal (foot) within fortify:
