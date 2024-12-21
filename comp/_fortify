@@ -1,7 +1,8 @@
 #compdef fortify
 
 _fortify_app() {
-  _path_files -g "*.(json|ftfy)"
+  __fortify_files
+  return $?
 }
 
 _fortify_run() {
@@ -24,6 +25,29 @@ _fortify_run() {
 _fortify_ps() {
   _arguments \
     '--short[Print instance id]'
+}
+
+_fortify_show() {
+  _alternative \
+    'instances:domains:__fortify_instances' \
+    'files:files:__fortify_files'
+}
+
+__fortify_files() {
+  _files -g "*.(json|ftfy)"
+  return $?
+}
+
+__fortify_instances() {
+  local -a out
+  shift -p
+  out=( ${(f)"$(_call_program commands fortify ps --short 2>&1)"} )
+  if (( $#out == 0 )); then
+    _message "No active instances"
+  else
+    _describe "active instances" out
+  fi
+  return $?
 }
 
 (( $+functions[_fortify_commands] )) || _fortify_commands()
