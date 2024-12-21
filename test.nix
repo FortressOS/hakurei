@@ -188,7 +188,7 @@ nixosTest {
     # Start a terminal (foot) within fortify:
     swaymsg("exec fortify run --wayland foot")
     wait_for_window("u0_a0@machine")
-    machine.send_chars("wayland-info && touch /tmp/success-client\n")
+    machine.send_chars("clear; wayland-info && touch /tmp/success-client\n")
     machine.wait_for_file("/tmp/fortify.1000/tmpdir/0/success-client")
     collect_state_ui("foot_wayland_permissive")
     # Verify acl on XDG_RUNTIME_DIR:
@@ -201,7 +201,7 @@ nixosTest {
     # Start a terminal (foot) within fortify from a terminal:
     swaymsg("exec foot fortify run --wayland foot")
     wait_for_window("u0_a0@machine")
-    machine.send_chars("wayland-info && touch /tmp/success-client-term\n")
+    machine.send_chars("clear; wayland-info && touch /tmp/success-client-term\n")
     machine.wait_for_file("/tmp/fortify.1000/tmpdir/0/success-client-term")
     collect_state_ui("foot_wayland_permissive_term")
     machine.send_chars("exit\n")
@@ -210,7 +210,7 @@ nixosTest {
     # Test PulseAudio (fortify does not support PipeWire yet):
     swaymsg("exec fortify run --wayland --pulse foot")
     wait_for_window("u0_a0@machine")
-    machine.send_chars("pactl info && touch /tmp/success-pulse\n")
+    machine.send_chars("clear; pactl info && touch /tmp/success-pulse\n")
     machine.wait_for_file("/tmp/fortify.1000/tmpdir/0/success-pulse")
     collect_state_ui("pulse_wayland")
     machine.send_chars("exit\n")
@@ -219,7 +219,7 @@ nixosTest {
     # Test XWayland (foot does not support X):
     swaymsg("exec fortify run -X alacritty")
     wait_for_window("u0_a0@machine")
-    machine.send_chars("glinfo && touch /tmp/success-client-x11\n")
+    machine.send_chars("clear; glinfo && touch /tmp/success-client-x11\n")
     machine.wait_for_file("/tmp/fortify.1000/tmpdir/0/success-client-x11")
     collect_state_ui("alacritty_x11_permissive")
     machine.send_chars("exit\n")
