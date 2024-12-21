@@ -112,16 +112,14 @@ func main() {
 		flag.CommandLine.Usage()
 		fmsg.Exit(0)
 	case "ps": // print all state info
-		var w *tabwriter.Writer
-		state.MustPrintLauncherStateSimpleGlobal(&w, os.Paths().RunDirPath)
-		if w != nil {
-			if err := w.Flush(); err != nil {
-				fmsg.Println("cannot format output:", err)
-			}
-		} else {
-			fmt.Println("No information available")
-		}
+		set := flag.NewFlagSet("ps", flag.ExitOnError)
+		var short bool
+		set.BoolVar(&short, "short", false, "Print instance id")
 
+		// Ignore errors; set is set for ExitOnError.
+		_ = set.Parse(args[1:])
+
+		printPs(short)
 		fmsg.Exit(0)
 	case "show": // pretty-print app info
 		if len(args) != 2 {

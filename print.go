@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	direct "os"
+	"strconv"
 	"strings"
 	"text/tabwriter"
 	"time"
@@ -136,6 +137,78 @@ func printShow(instance *state.State, config *fst.Config) {
 	if err := w.Flush(); err != nil {
 		fmsg.Fatalf("cannot flush tabwriter: %v", err)
 	}
+}
+
+func printPs(short bool) {
+	now := time.Now().UTC()
+
+	var entries state.Entries
+	s := state.NewMulti(os.Paths().RunDirPath)
+	if e, err := state.Join(s); err != nil {
+		fmsg.Fatalf("cannot join store: %v", err)
+	} else {
+		entries = e
+	}
+	if err := s.Close(); err != nil {
+		fmsg.Printf("cannot close store: %v", err)
+	}
+
+	if short {
+		var v []string
+		if flagJSON {
+			v = make([]string, 0, len(entries))
+		}
+
+		for _, instance := range entries {
+			if !flagJSON {
+				fmt.Println(instance.ID.String())
+			} else {
+				v = append(v, instance.ID.String())
+			}
+		}
+
+		if flagJSON {
+			printJSON(v)
+		}
+
+		return
+	}
+
+	if flagJSON {
+		printJSON(entries)
+		return
+	}
+
+	// buffer output to reduce terminal activity
+	w := tabwriter.NewWriter(direct.Stdout, 0, 1, 4, ' ', 0)
+	fmt.Fprintln(w, "\tInstance\tPID\tApp\tUptime\tEnablements\tCommand")
+	for _, instance := range entries {
+		printInstance(w, instance, now)
+	}
+	if err := w.Flush(); err != nil {
+		fmsg.Fatalf("cannot flush tabwriter: %v", err)
+	}
+}
+
+func printInstance(w *tabwriter.Writer, instance *state.State, now time.Time) {
+	// gracefully skip nil states
+	if instance == nil {
+		fmsg.Println("got invalid state entry")
+		return
+	}
+
+	var (
+		es = "(No confinement information)"
+		cs = "(No command information)"
+		as = "(No configuration information)"
+	)
+	if instance.Config != nil {
+		es = instance.Config.Confinement.Enablements.String()
+		cs = fmt.Sprintf("%q", instance.Config.Command)
+		as = strconv.Itoa(instance.Config.Confinement.AppID)
+	}
+	fmt.Fprintf(w, "\t%s\t%d\t%s\t%s\t%s\t%s\n",
+		instance.ID.String()[:8], instance.PID, as, now.Sub(instance.Time).Round(time.Second).String(), strings.TrimPrefix(es, ", "), cs)
 }
 
 func printJSON(v any) {

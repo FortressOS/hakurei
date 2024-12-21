@@ -21,6 +21,11 @@ _fortify_run() {
     '--dbus-log[Force logging in the D-Bus proxy]'
 }
 
+_fortify_ps() {
+  _arguments \
+    '--short[Print instance id]'
+}
+
 (( $+functions[_fortify_commands] )) || _fortify_commands()
 {
   local -a _fortify_cmds
