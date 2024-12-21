@@ -153,9 +153,9 @@ nixosTest {
     start_all()
     machine.wait_for_unit("multi-user.target")
 
-    # Run fortify Go tests outside of nix build:
+    # Run fortify Go tests outside of nix build in the background:
     machine.succeed("rm -rf /tmp/src && cp -a '${self.packages.${system}.fortify.src}' /tmp/src")
-    print(machine.succeed("fortify-fhs -c '(cd /tmp/src && go generate ./... && go test ./...)'"))
+    machine.succeed("fortify-fhs -c '(cd /tmp/src && go generate ./... && go test ./... && touch /tmp/success-gotest)' &> /tmp/gotest &")
 
     # To check sway's version:
     print(machine.succeed("sway --version"))
@@ -213,5 +213,10 @@ nixosTest {
 
     # Print fortify runDir contents:
     print(machine.succeed("find /run/user/1000/fortify"))
+
+    # Verify go test status:
+    machine.wait_for_file("/tmp/gotest")
+    print(machine.succeed("cat /tmp/gotest"))
+    machine.wait_for_file("/tmp/success-gotest")
   '';
 }
