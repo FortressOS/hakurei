@@ -155,10 +155,26 @@ nixosTest {
 
         retry(func)
 
+
     def collect_state_ui(name):
         swaymsg(f"exec fortify ps > '/tmp/{name}.ps'")
         machine.copy_from_vm(f"/tmp/{name}.ps", "")
+        swaymsg(f"exec fortify --json ps > '/tmp/{name}.json'")
+        machine.copy_from_vm(f"/tmp/{name}.json", "")
         machine.screenshot(name)
+
+
+    def check_state(command, enablements):
+        instances = json.loads(machine.succeed("sudo -u alice -i XDG_RUNTIME_DIR=/run/user/1000 fortify --json ps"))
+        if len(instances) != 1:
+            raise Exception(f"unexpected state length {len(instances)}")
+        instance = next(iter(instances.values()))
+
+        if instance['config']['command'] != command:
+            raise Exception(f"unexpected command {instance['config']['command']}")
+
+        if instance['config']['confinement']['enablements'] != enablements:
+            raise Exception(f"unexpected enablements {instance['config']['confinement']['enablements']}")
 
     start_all()
     machine.wait_for_unit("multi-user.target")
@@ -191,6 +207,7 @@ nixosTest {
     machine.send_chars("clear; wayland-info && touch /tmp/success-client\n")
     machine.wait_for_file("/tmp/fortify.1000/tmpdir/0/success-client")
     collect_state_ui("foot_wayland_permissive")
+    check_state(["foot"], 1)
     # Verify acl on XDG_RUNTIME_DIR:
     print(machine.succeed("getfacl --absolute-names --omit-header --numeric /run/user/1000 | grep 1000000"))
     machine.send_chars("exit\n")
@@ -204,6 +221,7 @@ nixosTest {
     machine.send_chars("clear; wayland-info && touch /tmp/success-client-term\n")
     machine.wait_for_file("/tmp/fortify.1000/tmpdir/0/success-client-term")
     collect_state_ui("foot_wayland_permissive_term")
+    check_state(["foot"], 1)
     machine.send_chars("exit\n")
     machine.wait_until_fails("pgrep foot")
 
@@ -213,6 +231,7 @@ nixosTest {
     machine.send_chars("clear; pactl info && touch /tmp/success-pulse\n")
     machine.wait_for_file("/tmp/fortify.1000/tmpdir/0/success-pulse")
     collect_state_ui("pulse_wayland")
+    check_state(["foot"], 9)
     machine.send_chars("exit\n")
     machine.wait_until_fails("pgrep foot")
 
@@ -222,6 +241,7 @@ nixosTest {
     machine.send_chars("clear; glinfo && touch /tmp/success-client-x11\n")
     machine.wait_for_file("/tmp/fortify.1000/tmpdir/0/success-client-x11")
     collect_state_ui("alacritty_x11_permissive")
+    check_state(["alacritty"], 2)
     machine.send_chars("exit\n")
     machine.wait_until_fails("pgrep alacritty")
 
