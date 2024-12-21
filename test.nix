@@ -175,9 +175,7 @@ nixosTest {
     swaymsg("exec fortify -v run --wayland touch /tmp/success-session")
     machine.wait_for_file("/tmp/fortify.1000/tmpdir/0/success-session")
 
-    # Start a terminal (foot) within fortify on workspace 3:
-    machine.send_key("alt-3")
-    machine.sleep(3)
+    # Start a terminal (foot) within fortify:
     swaymsg("exec fortify run --wayland foot")
     wait_for_window("u0_a0@machine")
     machine.send_chars("wayland-info && touch /tmp/success-client\n")
@@ -190,9 +188,7 @@ nixosTest {
     # Verify acl cleanup on XDG_RUNTIME_DIR:
     machine.wait_until_fails("getfacl --absolute-names --omit-header --numeric /run/user/1000 | grep 1000000")
 
-    # Start a terminal (foot) within fortify from a terminal on workspace 4:
-    machine.send_key("alt-4")
-    machine.sleep(3)
+    # Start a terminal (foot) within fortify from a terminal:
     swaymsg("exec foot fortify run --wayland foot")
     wait_for_window("u0_a0@machine")
     machine.send_chars("wayland-info && touch /tmp/success-client-term\n")
