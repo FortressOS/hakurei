@@ -9,7 +9,7 @@ import (
 	"git.gensokyo.uk/security/fortify/internal/system"
 )
 
-const fTmp = "/fortify"
+const Tmp = "/.fortify"
 
 // Config is used to seal an *App
 type Config struct {
@@ -119,7 +119,7 @@ func (s *SandboxConfig) Bwrap(os linux.System) (*bwrap.Config, error) {
 	}).
 		SetUID(uid).SetGID(uid).
 		Procfs("/proc").
-		Tmpfs(fTmp, 4*1024)
+		Tmpfs(Tmp, 4*1024)
 
 	if !s.Dev {
 		conf.DevTmpfs("/dev").Mqueue("/dev/mqueue")
@@ -148,7 +148,7 @@ func (s *SandboxConfig) Bwrap(os linux.System) (*bwrap.Config, error) {
 	}
 
 	if s.AutoEtc {
-		conf.Bind("/etc", fTmp+"/etc")
+		conf.Bind("/etc", Tmp+"/etc")
 
 		// link host /etc contents to prevent passwd/group from being overwritten
 		if d, err := os.ReadDir("/etc"); err != nil {
@@ -163,7 +163,7 @@ func (s *SandboxConfig) Bwrap(os linux.System) (*bwrap.Config, error) {
 				case "mtab":
 					conf.Symlink("/proc/mounts", "/etc/"+name)
 				default:
-					conf.Symlink(fTmp+"/etc/"+name, "/etc/"+name)
+					conf.Symlink(Tmp+"/etc/"+name, "/etc/"+name)
 				}
 			}
 		}

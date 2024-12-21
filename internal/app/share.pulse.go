@@ -6,6 +6,7 @@ import (
 	"io/fs"
 	"path"
 
+	"git.gensokyo.uk/security/fortify/fst"
 	"git.gensokyo.uk/security/fortify/internal/fmsg"
 	"git.gensokyo.uk/security/fortify/internal/linux"
 	"git.gensokyo.uk/security/fortify/internal/system"
@@ -69,9 +70,10 @@ func (seal *appSeal) sharePulse(os linux.System) error {
 		fmsg.VPrintln(err.(*fmsg.BaseError).Message())
 	} else {
 		dst := path.Join(seal.share, "pulse-cookie")
-		seal.sys.bwrap.SetEnv[pulseCookie] = dst
+		innerDst := fst.Tmp + "/pulse-cookie"
+		seal.sys.bwrap.SetEnv[pulseCookie] = innerDst
 		seal.sys.CopyFile(dst, src)
-		seal.sys.bwrap.Bind(dst, dst)
+		seal.sys.bwrap.Bind(dst, innerDst)
 	}
 
 	return nil

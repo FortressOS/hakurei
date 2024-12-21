@@ -33,9 +33,6 @@ func (seal *appSeal) shareSystem() {
 	seal.sys.Ensure(targetTmpdir, 01700)
 	seal.sys.UpdatePermType(system.User, targetTmpdir, acl.Read, acl.Write, acl.Execute)
 	seal.sys.bwrap.Bind(targetTmpdir, "/tmp", false, true)
-
-	// mount tmpfs on inner shared directory (e.g. `/tmp/fortify.%d`)
-	seal.sys.bwrap.Tmpfs(seal.SharePath, 1*1024*1024)
 }
 
 func (seal *appSeal) sharePasswd(os linux.System) {

@@ -53,7 +53,7 @@ var testCasesPd = []sealTestCase{
 			AsInit:        true,
 		}).SetUID(65534).SetGID(65534).
 			Procfs("/proc").
-			Tmpfs("/fortify", 4096).
+			Tmpfs(fst.Tmp, 4096).
 			DevTmpfs("/dev").Mqueue("/dev/mqueue").
 			Bind("/bin", "/bin", false, true).
 			Bind("/boot", "/boot", false, true).
@@ -100,87 +100,86 @@ var testCasesPd = []sealTestCase{
 			Bind("/run/wrappers", "/run/wrappers", false, true).
 			Bind("/run/zed.pid", "/run/zed.pid", false, true).
 			Bind("/run/zed.state", "/run/zed.state", false, true).
-			Bind("/etc", "/fortify/etc").
-			Symlink("/fortify/etc/alsa", "/etc/alsa").
-			Symlink("/fortify/etc/bashrc", "/etc/bashrc").
-			Symlink("/fortify/etc/binfmt.d", "/etc/binfmt.d").
-			Symlink("/fortify/etc/dbus-1", "/etc/dbus-1").
-			Symlink("/fortify/etc/default", "/etc/default").
-			Symlink("/fortify/etc/ethertypes", "/etc/ethertypes").
-			Symlink("/fortify/etc/fonts", "/etc/fonts").
-			Symlink("/fortify/etc/fstab", "/etc/fstab").
-			Symlink("/fortify/etc/fuse.conf", "/etc/fuse.conf").
-			Symlink("/fortify/etc/host.conf", "/etc/host.conf").
-			Symlink("/fortify/etc/hostid", "/etc/hostid").
-			Symlink("/fortify/etc/hostname", "/etc/hostname").
-			Symlink("/fortify/etc/hostname.CHECKSUM", "/etc/hostname.CHECKSUM").
-			Symlink("/fortify/etc/hosts", "/etc/hosts").
-			Symlink("/fortify/etc/inputrc", "/etc/inputrc").
-			Symlink("/fortify/etc/ipsec.d", "/etc/ipsec.d").
-			Symlink("/fortify/etc/issue", "/etc/issue").
-			Symlink("/fortify/etc/kbd", "/etc/kbd").
-			Symlink("/fortify/etc/libblockdev", "/etc/libblockdev").
-			Symlink("/fortify/etc/locale.conf", "/etc/locale.conf").
-			Symlink("/fortify/etc/localtime", "/etc/localtime").
-			Symlink("/fortify/etc/login.defs", "/etc/login.defs").
-			Symlink("/fortify/etc/lsb-release", "/etc/lsb-release").
-			Symlink("/fortify/etc/lvm", "/etc/lvm").
-			Symlink("/fortify/etc/machine-id", "/etc/machine-id").
-			Symlink("/fortify/etc/man_db.conf", "/etc/man_db.conf").
-			Symlink("/fortify/etc/modprobe.d", "/etc/modprobe.d").
-			Symlink("/fortify/etc/modules-load.d", "/etc/modules-load.d").
+			Bind("/etc", fst.Tmp+"/etc").
+			Symlink(fst.Tmp+"/etc/alsa", "/etc/alsa").
+			Symlink(fst.Tmp+"/etc/bashrc", "/etc/bashrc").
+			Symlink(fst.Tmp+"/etc/binfmt.d", "/etc/binfmt.d").
+			Symlink(fst.Tmp+"/etc/dbus-1", "/etc/dbus-1").
+			Symlink(fst.Tmp+"/etc/default", "/etc/default").
+			Symlink(fst.Tmp+"/etc/ethertypes", "/etc/ethertypes").
+			Symlink(fst.Tmp+"/etc/fonts", "/etc/fonts").
+			Symlink(fst.Tmp+"/etc/fstab", "/etc/fstab").
+			Symlink(fst.Tmp+"/etc/fuse.conf", "/etc/fuse.conf").
+			Symlink(fst.Tmp+"/etc/host.conf", "/etc/host.conf").
+			Symlink(fst.Tmp+"/etc/hostid", "/etc/hostid").
+			Symlink(fst.Tmp+"/etc/hostname", "/etc/hostname").
+			Symlink(fst.Tmp+"/etc/hostname.CHECKSUM", "/etc/hostname.CHECKSUM").
+			Symlink(fst.Tmp+"/etc/hosts", "/etc/hosts").
+			Symlink(fst.Tmp+"/etc/inputrc", "/etc/inputrc").
+			Symlink(fst.Tmp+"/etc/ipsec.d", "/etc/ipsec.d").
+			Symlink(fst.Tmp+"/etc/issue", "/etc/issue").
+			Symlink(fst.Tmp+"/etc/kbd", "/etc/kbd").
+			Symlink(fst.Tmp+"/etc/libblockdev", "/etc/libblockdev").
+			Symlink(fst.Tmp+"/etc/locale.conf", "/etc/locale.conf").
+			Symlink(fst.Tmp+"/etc/localtime", "/etc/localtime").
+			Symlink(fst.Tmp+"/etc/login.defs", "/etc/login.defs").
+			Symlink(fst.Tmp+"/etc/lsb-release", "/etc/lsb-release").
+			Symlink(fst.Tmp+"/etc/lvm", "/etc/lvm").
+			Symlink(fst.Tmp+"/etc/machine-id", "/etc/machine-id").
+			Symlink(fst.Tmp+"/etc/man_db.conf", "/etc/man_db.conf").
+			Symlink(fst.Tmp+"/etc/modprobe.d", "/etc/modprobe.d").
+			Symlink(fst.Tmp+"/etc/modules-load.d", "/etc/modules-load.d").
 			Symlink("/proc/mounts", "/etc/mtab").
-			Symlink("/fortify/etc/nanorc", "/etc/nanorc").
-			Symlink("/fortify/etc/netgroup", "/etc/netgroup").
-			Symlink("/fortify/etc/NetworkManager", "/etc/NetworkManager").
-			Symlink("/fortify/etc/nix", "/etc/nix").
-			Symlink("/fortify/etc/nixos", "/etc/nixos").
-			Symlink("/fortify/etc/NIXOS", "/etc/NIXOS").
-			Symlink("/fortify/etc/nscd.conf", "/etc/nscd.conf").
-			Symlink("/fortify/etc/nsswitch.conf", "/etc/nsswitch.conf").
-			Symlink("/fortify/etc/opensnitchd", "/etc/opensnitchd").
-			Symlink("/fortify/etc/os-release", "/etc/os-release").
-			Symlink("/fortify/etc/pam", "/etc/pam").
-			Symlink("/fortify/etc/pam.d", "/etc/pam.d").
-			Symlink("/fortify/etc/pipewire", "/etc/pipewire").
-			Symlink("/fortify/etc/pki", "/etc/pki").
-			Symlink("/fortify/etc/polkit-1", "/etc/polkit-1").
-			Symlink("/fortify/etc/profile", "/etc/profile").
-			Symlink("/fortify/etc/protocols", "/etc/protocols").
-			Symlink("/fortify/etc/qemu", "/etc/qemu").
-			Symlink("/fortify/etc/resolv.conf", "/etc/resolv.conf").
-			Symlink("/fortify/etc/resolvconf.conf", "/etc/resolvconf.conf").
-			Symlink("/fortify/etc/rpc", "/etc/rpc").
-			Symlink("/fortify/etc/samba", "/etc/samba").
-			Symlink("/fortify/etc/sddm.conf", "/etc/sddm.conf").
-			Symlink("/fortify/etc/secureboot", "/etc/secureboot").
-			Symlink("/fortify/etc/services", "/etc/services").
-			Symlink("/fortify/etc/set-environment", "/etc/set-environment").
-			Symlink("/fortify/etc/shadow", "/etc/shadow").
-			Symlink("/fortify/etc/shells", "/etc/shells").
-			Symlink("/fortify/etc/ssh", "/etc/ssh").
-			Symlink("/fortify/etc/ssl", "/etc/ssl").
-			Symlink("/fortify/etc/static", "/etc/static").
-			Symlink("/fortify/etc/subgid", "/etc/subgid").
-			Symlink("/fortify/etc/subuid", "/etc/subuid").
-			Symlink("/fortify/etc/sudoers", "/etc/sudoers").
-			Symlink("/fortify/etc/sysctl.d", "/etc/sysctl.d").
-			Symlink("/fortify/etc/systemd", "/etc/systemd").
-			Symlink("/fortify/etc/terminfo", "/etc/terminfo").
-			Symlink("/fortify/etc/tmpfiles.d", "/etc/tmpfiles.d").
-			Symlink("/fortify/etc/udev", "/etc/udev").
-			Symlink("/fortify/etc/udisks2", "/etc/udisks2").
-			Symlink("/fortify/etc/UPower", "/etc/UPower").
-			Symlink("/fortify/etc/vconsole.conf", "/etc/vconsole.conf").
-			Symlink("/fortify/etc/X11", "/etc/X11").
-			Symlink("/fortify/etc/zfs", "/etc/zfs").
-			Symlink("/fortify/etc/zinputrc", "/etc/zinputrc").
-			Symlink("/fortify/etc/zoneinfo", "/etc/zoneinfo").
-			Symlink("/fortify/etc/zprofile", "/etc/zprofile").
-			Symlink("/fortify/etc/zshenv", "/etc/zshenv").
-			Symlink("/fortify/etc/zshrc", "/etc/zshrc").
+			Symlink(fst.Tmp+"/etc/nanorc", "/etc/nanorc").
+			Symlink(fst.Tmp+"/etc/netgroup", "/etc/netgroup").
+			Symlink(fst.Tmp+"/etc/NetworkManager", "/etc/NetworkManager").
+			Symlink(fst.Tmp+"/etc/nix", "/etc/nix").
+			Symlink(fst.Tmp+"/etc/nixos", "/etc/nixos").
+			Symlink(fst.Tmp+"/etc/NIXOS", "/etc/NIXOS").
+			Symlink(fst.Tmp+"/etc/nscd.conf", "/etc/nscd.conf").
+			Symlink(fst.Tmp+"/etc/nsswitch.conf", "/etc/nsswitch.conf").
+			Symlink(fst.Tmp+"/etc/opensnitchd", "/etc/opensnitchd").
+			Symlink(fst.Tmp+"/etc/os-release", "/etc/os-release").
+			Symlink(fst.Tmp+"/etc/pam", "/etc/pam").
+			Symlink(fst.Tmp+"/etc/pam.d", "/etc/pam.d").
+			Symlink(fst.Tmp+"/etc/pipewire", "/etc/pipewire").
+			Symlink(fst.Tmp+"/etc/pki", "/etc/pki").
+			Symlink(fst.Tmp+"/etc/polkit-1", "/etc/polkit-1").
+			Symlink(fst.Tmp+"/etc/profile", "/etc/profile").
+			Symlink(fst.Tmp+"/etc/protocols", "/etc/protocols").
+			Symlink(fst.Tmp+"/etc/qemu", "/etc/qemu").
+			Symlink(fst.Tmp+"/etc/resolv.conf", "/etc/resolv.conf").
+			Symlink(fst.Tmp+"/etc/resolvconf.conf", "/etc/resolvconf.conf").
+			Symlink(fst.Tmp+"/etc/rpc", "/etc/rpc").
+			Symlink(fst.Tmp+"/etc/samba", "/etc/samba").
+			Symlink(fst.Tmp+"/etc/sddm.conf", "/etc/sddm.conf").
+			Symlink(fst.Tmp+"/etc/secureboot", "/etc/secureboot").
+			Symlink(fst.Tmp+"/etc/services", "/etc/services").
+			Symlink(fst.Tmp+"/etc/set-environment", "/etc/set-environment").
+			Symlink(fst.Tmp+"/etc/shadow", "/etc/shadow").
+			Symlink(fst.Tmp+"/etc/shells", "/etc/shells").
+			Symlink(fst.Tmp+"/etc/ssh", "/etc/ssh").
+			Symlink(fst.Tmp+"/etc/ssl", "/etc/ssl").
+			Symlink(fst.Tmp+"/etc/static", "/etc/static").
+			Symlink(fst.Tmp+"/etc/subgid", "/etc/subgid").
+			Symlink(fst.Tmp+"/etc/subuid", "/etc/subuid").
+			Symlink(fst.Tmp+"/etc/sudoers", "/etc/sudoers").
+			Symlink(fst.Tmp+"/etc/sysctl.d", "/etc/sysctl.d").
+			Symlink(fst.Tmp+"/etc/systemd", "/etc/systemd").
+			Symlink(fst.Tmp+"/etc/terminfo", "/etc/terminfo").
+			Symlink(fst.Tmp+"/etc/tmpfiles.d", "/etc/tmpfiles.d").
+			Symlink(fst.Tmp+"/etc/udev", "/etc/udev").
+			Symlink(fst.Tmp+"/etc/udisks2", "/etc/udisks2").
+			Symlink(fst.Tmp+"/etc/UPower", "/etc/UPower").
+			Symlink(fst.Tmp+"/etc/vconsole.conf", "/etc/vconsole.conf").
+			Symlink(fst.Tmp+"/etc/X11", "/etc/X11").
+			Symlink(fst.Tmp+"/etc/zfs", "/etc/zfs").
+			Symlink(fst.Tmp+"/etc/zinputrc", "/etc/zinputrc").
+			Symlink(fst.Tmp+"/etc/zoneinfo", "/etc/zoneinfo").
+			Symlink(fst.Tmp+"/etc/zprofile", "/etc/zprofile").
+			Symlink(fst.Tmp+"/etc/zshenv", "/etc/zshenv").
+			Symlink(fst.Tmp+"/etc/zshrc", "/etc/zshrc").
 			Bind("/tmp/fortify.1971/tmpdir/0", "/tmp", false, true).
-			Tmpfs("/tmp/fortify.1971", 1048576).
 			Tmpfs("/run/user", 1048576).
 			Tmpfs("/run/user/65534", 8388608).
 			Bind("/home/chronos", "/home/chronos", false, true).
@@ -293,7 +292,7 @@ var testCasesPd = []sealTestCase{
 				"DBUS_SESSION_BUS_ADDRESS": "unix:path=/run/user/65534/bus",
 				"DBUS_SYSTEM_BUS_ADDRESS":  "unix:path=/run/dbus/system_bus_socket",
 				"HOME":                     "/home/chronos",
-				"PULSE_COOKIE":             "/tmp/fortify.1971/ebf083d1b175911782d413369b64ce7c/pulse-cookie",
+				"PULSE_COOKIE":             fst.Tmp + "/pulse-cookie",
 				"PULSE_SERVER":             "unix:/run/user/65534/pulse/native",
 				"SHELL":                    "/run/current-system/sw/bin/zsh",
 				"TERM":                     "xterm-256color",
@@ -308,7 +307,7 @@ var testCasesPd = []sealTestCase{
 			AsInit:        true,
 		}).SetUID(65534).SetGID(65534).
 			Procfs("/proc").
-			Tmpfs("/fortify", 4096).
+			Tmpfs(fst.Tmp, 4096).
 			DevTmpfs("/dev").Mqueue("/dev/mqueue").
 			Bind("/bin", "/bin", false, true).
 			Bind("/boot", "/boot", false, true).
@@ -356,87 +355,86 @@ var testCasesPd = []sealTestCase{
 			Bind("/run/zed.pid", "/run/zed.pid", false, true).
 			Bind("/run/zed.state", "/run/zed.state", false, true).
 			Bind("/dev/dri", "/dev/dri", true, true, true).
-			Bind("/etc", "/fortify/etc").
-			Symlink("/fortify/etc/alsa", "/etc/alsa").
-			Symlink("/fortify/etc/bashrc", "/etc/bashrc").
-			Symlink("/fortify/etc/binfmt.d", "/etc/binfmt.d").
-			Symlink("/fortify/etc/dbus-1", "/etc/dbus-1").
-			Symlink("/fortify/etc/default", "/etc/default").
-			Symlink("/fortify/etc/ethertypes", "/etc/ethertypes").
-			Symlink("/fortify/etc/fonts", "/etc/fonts").
-			Symlink("/fortify/etc/fstab", "/etc/fstab").
-			Symlink("/fortify/etc/fuse.conf", "/etc/fuse.conf").
-			Symlink("/fortify/etc/host.conf", "/etc/host.conf").
-			Symlink("/fortify/etc/hostid", "/etc/hostid").
-			Symlink("/fortify/etc/hostname", "/etc/hostname").
-			Symlink("/fortify/etc/hostname.CHECKSUM", "/etc/hostname.CHECKSUM").
-			Symlink("/fortify/etc/hosts", "/etc/hosts").
-			Symlink("/fortify/etc/inputrc", "/etc/inputrc").
-			Symlink("/fortify/etc/ipsec.d", "/etc/ipsec.d").
-			Symlink("/fortify/etc/issue", "/etc/issue").
-			Symlink("/fortify/etc/kbd", "/etc/kbd").
-			Symlink("/fortify/etc/libblockdev", "/etc/libblockdev").
-			Symlink("/fortify/etc/locale.conf", "/etc/locale.conf").
-			Symlink("/fortify/etc/localtime", "/etc/localtime").
-			Symlink("/fortify/etc/login.defs", "/etc/login.defs").
-			Symlink("/fortify/etc/lsb-release", "/etc/lsb-release").
-			Symlink("/fortify/etc/lvm", "/etc/lvm").
-			Symlink("/fortify/etc/machine-id", "/etc/machine-id").
-			Symlink("/fortify/etc/man_db.conf", "/etc/man_db.conf").
-			Symlink("/fortify/etc/modprobe.d", "/etc/modprobe.d").
-			Symlink("/fortify/etc/modules-load.d", "/etc/modules-load.d").
+			Bind("/etc", fst.Tmp+"/etc").
+			Symlink(fst.Tmp+"/etc/alsa", "/etc/alsa").
+			Symlink(fst.Tmp+"/etc/bashrc", "/etc/bashrc").
+			Symlink(fst.Tmp+"/etc/binfmt.d", "/etc/binfmt.d").
+			Symlink(fst.Tmp+"/etc/dbus-1", "/etc/dbus-1").
+			Symlink(fst.Tmp+"/etc/default", "/etc/default").
+			Symlink(fst.Tmp+"/etc/ethertypes", "/etc/ethertypes").
+			Symlink(fst.Tmp+"/etc/fonts", "/etc/fonts").
+			Symlink(fst.Tmp+"/etc/fstab", "/etc/fstab").
+			Symlink(fst.Tmp+"/etc/fuse.conf", "/etc/fuse.conf").
+			Symlink(fst.Tmp+"/etc/host.conf", "/etc/host.conf").
+			Symlink(fst.Tmp+"/etc/hostid", "/etc/hostid").
+			Symlink(fst.Tmp+"/etc/hostname", "/etc/hostname").
+			Symlink(fst.Tmp+"/etc/hostname.CHECKSUM", "/etc/hostname.CHECKSUM").
+			Symlink(fst.Tmp+"/etc/hosts", "/etc/hosts").
+			Symlink(fst.Tmp+"/etc/inputrc", "/etc/inputrc").
+			Symlink(fst.Tmp+"/etc/ipsec.d", "/etc/ipsec.d").
+			Symlink(fst.Tmp+"/etc/issue", "/etc/issue").
+			Symlink(fst.Tmp+"/etc/kbd", "/etc/kbd").
+			Symlink(fst.Tmp+"/etc/libblockdev", "/etc/libblockdev").
+			Symlink(fst.Tmp+"/etc/locale.conf", "/etc/locale.conf").
+			Symlink(fst.Tmp+"/etc/localtime", "/etc/localtime").
+			Symlink(fst.Tmp+"/etc/login.defs", "/etc/login.defs").
+			Symlink(fst.Tmp+"/etc/lsb-release", "/etc/lsb-release").
+			Symlink(fst.Tmp+"/etc/lvm", "/etc/lvm").
+			Symlink(fst.Tmp+"/etc/machine-id", "/etc/machine-id").
+			Symlink(fst.Tmp+"/etc/man_db.conf", "/etc/man_db.conf").
+			Symlink(fst.Tmp+"/etc/modprobe.d", "/etc/modprobe.d").
+			Symlink(fst.Tmp+"/etc/modules-load.d", "/etc/modules-load.d").
 			Symlink("/proc/mounts", "/etc/mtab").
-			Symlink("/fortify/etc/nanorc", "/etc/nanorc").
-			Symlink("/fortify/etc/netgroup", "/etc/netgroup").
-			Symlink("/fortify/etc/NetworkManager", "/etc/NetworkManager").
-			Symlink("/fortify/etc/nix", "/etc/nix").
-			Symlink("/fortify/etc/nixos", "/etc/nixos").
-			Symlink("/fortify/etc/NIXOS", "/etc/NIXOS").
-			Symlink("/fortify/etc/nscd.conf", "/etc/nscd.conf").
-			Symlink("/fortify/etc/nsswitch.conf", "/etc/nsswitch.conf").
-			Symlink("/fortify/etc/opensnitchd", "/etc/opensnitchd").
-			Symlink("/fortify/etc/os-release", "/etc/os-release").
-			Symlink("/fortify/etc/pam", "/etc/pam").
-			Symlink("/fortify/etc/pam.d", "/etc/pam.d").
-			Symlink("/fortify/etc/pipewire", "/etc/pipewire").
-			Symlink("/fortify/etc/pki", "/etc/pki").
-			Symlink("/fortify/etc/polkit-1", "/etc/polkit-1").
-			Symlink("/fortify/etc/profile", "/etc/profile").
-			Symlink("/fortify/etc/protocols", "/etc/protocols").
-			Symlink("/fortify/etc/qemu", "/etc/qemu").
-			Symlink("/fortify/etc/resolv.conf", "/etc/resolv.conf").
-			Symlink("/fortify/etc/resolvconf.conf", "/etc/resolvconf.conf").
-			Symlink("/fortify/etc/rpc", "/etc/rpc").
-			Symlink("/fortify/etc/samba", "/etc/samba").
-			Symlink("/fortify/etc/sddm.conf", "/etc/sddm.conf").
-			Symlink("/fortify/etc/secureboot", "/etc/secureboot").
-			Symlink("/fortify/etc/services", "/etc/services").
-			Symlink("/fortify/etc/set-environment", "/etc/set-environment").
-			Symlink("/fortify/etc/shadow", "/etc/shadow").
-			Symlink("/fortify/etc/shells", "/etc/shells").
-			Symlink("/fortify/etc/ssh", "/etc/ssh").
-			Symlink("/fortify/etc/ssl", "/etc/ssl").
-			Symlink("/fortify/etc/static", "/etc/static").
-			Symlink("/fortify/etc/subgid", "/etc/subgid").
-			Symlink("/fortify/etc/subuid", "/etc/subuid").
-			Symlink("/fortify/etc/sudoers", "/etc/sudoers").
-			Symlink("/fortify/etc/sysctl.d", "/etc/sysctl.d").
-			Symlink("/fortify/etc/systemd", "/etc/systemd").
-			Symlink("/fortify/etc/terminfo", "/etc/terminfo").
-			Symlink("/fortify/etc/tmpfiles.d", "/etc/tmpfiles.d").
-			Symlink("/fortify/etc/udev", "/etc/udev").
-			Symlink("/fortify/etc/udisks2", "/etc/udisks2").
-			Symlink("/fortify/etc/UPower", "/etc/UPower").
-			Symlink("/fortify/etc/vconsole.conf", "/etc/vconsole.conf").
-			Symlink("/fortify/etc/X11", "/etc/X11").
-			Symlink("/fortify/etc/zfs", "/etc/zfs").
-			Symlink("/fortify/etc/zinputrc", "/etc/zinputrc").
-			Symlink("/fortify/etc/zoneinfo", "/etc/zoneinfo").
-			Symlink("/fortify/etc/zprofile", "/etc/zprofile").
-			Symlink("/fortify/etc/zshenv", "/etc/zshenv").
-			Symlink("/fortify/etc/zshrc", "/etc/zshrc").
+			Symlink(fst.Tmp+"/etc/nanorc", "/etc/nanorc").
+			Symlink(fst.Tmp+"/etc/netgroup", "/etc/netgroup").
+			Symlink(fst.Tmp+"/etc/NetworkManager", "/etc/NetworkManager").
+			Symlink(fst.Tmp+"/etc/nix", "/etc/nix").
+			Symlink(fst.Tmp+"/etc/nixos", "/etc/nixos").
+			Symlink(fst.Tmp+"/etc/NIXOS", "/etc/NIXOS").
+			Symlink(fst.Tmp+"/etc/nscd.conf", "/etc/nscd.conf").
+			Symlink(fst.Tmp+"/etc/nsswitch.conf", "/etc/nsswitch.conf").
+			Symlink(fst.Tmp+"/etc/opensnitchd", "/etc/opensnitchd").
+			Symlink(fst.Tmp+"/etc/os-release", "/etc/os-release").
+			Symlink(fst.Tmp+"/etc/pam", "/etc/pam").
+			Symlink(fst.Tmp+"/etc/pam.d", "/etc/pam.d").
+			Symlink(fst.Tmp+"/etc/pipewire", "/etc/pipewire").
+			Symlink(fst.Tmp+"/etc/pki", "/etc/pki").
+			Symlink(fst.Tmp+"/etc/polkit-1", "/etc/polkit-1").
+			Symlink(fst.Tmp+"/etc/profile", "/etc/profile").
+			Symlink(fst.Tmp+"/etc/protocols", "/etc/protocols").
+			Symlink(fst.Tmp+"/etc/qemu", "/etc/qemu").
+			Symlink(fst.Tmp+"/etc/resolv.conf", "/etc/resolv.conf").
+			Symlink(fst.Tmp+"/etc/resolvconf.conf", "/etc/resolvconf.conf").
+			Symlink(fst.Tmp+"/etc/rpc", "/etc/rpc").
+			Symlink(fst.Tmp+"/etc/samba", "/etc/samba").
+			Symlink(fst.Tmp+"/etc/sddm.conf", "/etc/sddm.conf").
+			Symlink(fst.Tmp+"/etc/secureboot", "/etc/secureboot").
+			Symlink(fst.Tmp+"/etc/services", "/etc/services").
+			Symlink(fst.Tmp+"/etc/set-environment", "/etc/set-environment").
+			Symlink(fst.Tmp+"/etc/shadow", "/etc/shadow").
+			Symlink(fst.Tmp+"/etc/shells", "/etc/shells").
+			Symlink(fst.Tmp+"/etc/ssh", "/etc/ssh").
+			Symlink(fst.Tmp+"/etc/ssl", "/etc/ssl").
+			Symlink(fst.Tmp+"/etc/static", "/etc/static").
+			Symlink(fst.Tmp+"/etc/subgid", "/etc/subgid").
+			Symlink(fst.Tmp+"/etc/subuid", "/etc/subuid").
+			Symlink(fst.Tmp+"/etc/sudoers", "/etc/sudoers").
+			Symlink(fst.Tmp+"/etc/sysctl.d", "/etc/sysctl.d").
+			Symlink(fst.Tmp+"/etc/systemd", "/etc/systemd").
+			Symlink(fst.Tmp+"/etc/terminfo", "/etc/terminfo").
+			Symlink(fst.Tmp+"/etc/tmpfiles.d", "/etc/tmpfiles.d").
+			Symlink(fst.Tmp+"/etc/udev", "/etc/udev").
+			Symlink(fst.Tmp+"/etc/udisks2", "/etc/udisks2").
+			Symlink(fst.Tmp+"/etc/UPower", "/etc/UPower").
+			Symlink(fst.Tmp+"/etc/vconsole.conf", "/etc/vconsole.conf").
+			Symlink(fst.Tmp+"/etc/X11", "/etc/X11").
+			Symlink(fst.Tmp+"/etc/zfs", "/etc/zfs").
+			Symlink(fst.Tmp+"/etc/zinputrc", "/etc/zinputrc").
+			Symlink(fst.Tmp+"/etc/zoneinfo", "/etc/zoneinfo").
+			Symlink(fst.Tmp+"/etc/zprofile", "/etc/zprofile").
+			Symlink(fst.Tmp+"/etc/zshenv", "/etc/zshenv").
+			Symlink(fst.Tmp+"/etc/zshrc", "/etc/zshrc").
 			Bind("/tmp/fortify.1971/tmpdir/9", "/tmp", false, true).
-			Tmpfs("/tmp/fortify.1971", 1048576).
 			Tmpfs("/run/user", 1048576).
 			Tmpfs("/run/user/65534", 8388608).
 			Bind("/home/chronos", "/home/chronos", false, true).
@@ -444,7 +442,7 @@ var testCasesPd = []sealTestCase{
 			Bind("/tmp/fortify.1971/ebf083d1b175911782d413369b64ce7c/group", "/etc/group").
 			Bind("/tmp/fortify.1971/wayland/ebf083d1b175911782d413369b64ce7c", "/run/user/65534/wayland-0").
 			Bind("/run/user/1971/fortify/ebf083d1b175911782d413369b64ce7c/pulse", "/run/user/65534/pulse/native").
-			Bind("/tmp/fortify.1971/ebf083d1b175911782d413369b64ce7c/pulse-cookie", "/tmp/fortify.1971/ebf083d1b175911782d413369b64ce7c/pulse-cookie").
+			Bind("/tmp/fortify.1971/ebf083d1b175911782d413369b64ce7c/pulse-cookie", fst.Tmp+"/pulse-cookie").
 			Bind("/tmp/fortify.1971/ebf083d1b175911782d413369b64ce7c/bus", "/run/user/65534/bus").
 			Bind("/tmp/fortify.1971/ebf083d1b175911782d413369b64ce7c/system_bus_socket", "/run/dbus/system_bus_socket").
 			Tmpfs("/var/run/nscd", 8192),
