@@ -77,6 +77,16 @@ nixosTest {
 
       programs.sway.enable = true;
 
+      # For PulseAudio tests:
+      security.rtkit.enable = true;
+      services.pipewire = {
+        enable = true;
+        alsa.enable = true;
+        alsa.support32Bit = true;
+        pulse.enable = true;
+        jack.enable = true;
+      };
+
       virtualisation.qemu.options = [
         # Need to switch to a different GPU driver than the default one (-vga std) so that Sway can launch:
         "-vga none -device virtio-gpu-pci"
@@ -194,6 +204,15 @@ nixosTest {
     machine.send_chars("wayland-info && touch /tmp/success-client-term\n")
     machine.wait_for_file("/tmp/fortify.1000/tmpdir/0/success-client-term")
     collect_state_ui("foot_wayland_permissive_term")
+    machine.send_chars("exit\n")
+    machine.wait_until_fails("pgrep foot")
+
+    # Test PulseAudio (fortify does not support PipeWire yet):
+    swaymsg("exec fortify run --wayland --pulse foot")
+    wait_for_window("u0_a0@machine")
+    machine.send_chars("pactl info && touch /tmp/success-pulse\n")
+    machine.wait_for_file("/tmp/fortify.1000/tmpdir/0/success-pulse")
+    collect_state_ui("pulse_wayland")
     machine.send_chars("exit\n")
     machine.wait_until_fails("pgrep foot")
 
