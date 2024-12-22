@@ -180,7 +180,7 @@ func printPs(short bool) {
 		}
 		exp = append(exp, &expandedStateEntry{s: id.String(), State: instance})
 	}
-	slices.SortFunc(exp, func(a, b *expandedStateEntry) int { return strings.Compare(a.s, b.s) })
+	slices.SortFunc(exp, func(a, b *expandedStateEntry) int { return a.Time.Compare(b.Time) })
 
 	if short {
 		if flagJSON {
