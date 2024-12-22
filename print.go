@@ -161,7 +161,7 @@ func printPs(short bool) {
 
 		for _, instance := range entries {
 			if !flagJSON {
-				fmt.Println(instance.ID.String())
+				fmt.Println(instance.ID.String()[:8])
 			} else {
 				v = append(v, instance.ID.String())
 			}
