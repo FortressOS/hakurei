@@ -122,14 +122,21 @@ func main() {
 		printPs(short)
 		fmsg.Exit(0)
 	case "show": // pretty-print app info
-		if len(args) != 2 {
+		set := flag.NewFlagSet("show", flag.ExitOnError)
+		var short bool
+		set.BoolVar(&short, "short", false, "Omit filesystem information")
+
+		// Ignore errors; set is set for ExitOnError.
+		_ = set.Parse(args[1:])
+
+		if len(set.Args()) != 1 {
 			fmsg.Fatal("show requires 1 argument")
 		}
 
 		likePrefix := false
-		if len(args[1]) <= 32 {
+		if len(set.Args()[0]) <= 32 {
 			likePrefix = true
-			for _, c := range args[1] {
+			for _, c := range set.Args()[0] {
 				if c >= '0' && c <= '9' {
 					continue
 				}
@@ -147,7 +154,7 @@ func main() {
 		)
 
 		// try to match from state store
-		if likePrefix && len(args[1]) >= 8 {
+		if likePrefix && len(set.Args()[0]) >= 8 {
 			fmsg.VPrintln("argument looks like prefix")
 
 			s := state.NewMulti(os.Paths().RunDirPath)
@@ -157,7 +164,7 @@ func main() {
 			} else {
 				for id := range entries {
 					v := id.String()
-					if strings.HasPrefix(v, args[1]) {
+					if strings.HasPrefix(v, set.Args()[0]) {
 						// match, use config from this state entry
 						instance = entries[id]
 						config = instance.Config
@@ -173,16 +180,16 @@ func main() {
 			fmsg.VPrintf("reading from file")
 
 			config = new(fst.Config)
-			if f, err := os.Open(args[1]); err != nil {
-				fmsg.Fatalf("cannot access config file %q: %s", args[1], err)
+			if f, err := os.Open(set.Args()[0]); err != nil {
+				fmsg.Fatalf("cannot access config file %q: %s", set.Args()[0], err)
 				panic("unreachable")
 			} else if err = json.NewDecoder(f).Decode(&config); err != nil {
-				fmsg.Fatalf("cannot parse config file %q: %s", args[1], err)
+				fmsg.Fatalf("cannot parse config file %q: %s", set.Args()[0], err)
 				panic("unreachable")
 			}
 		}
 
-		printShow(instance, config)
+		printShow(instance, config, short)
 		fmsg.Exit(0)
 	case "app": // launch app from configuration file
 		if len(args) < 2 {

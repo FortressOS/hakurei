@@ -16,7 +16,7 @@ import (
 	"git.gensokyo.uk/security/fortify/internal/state"
 )
 
-func printShow(instance *state.State, config *fst.Config) {
+func printShow(instance *state.State, config *fst.Config, short bool) {
 	if flagJSON {
 		v := any(config)
 		if instance != nil {
@@ -81,7 +81,7 @@ func printShow(instance *state.State, config *fst.Config) {
 	fmt.Fprintf(w, " Command:\t%s\n", strings.Join(config.Command, " "))
 	fmt.Fprintf(w, "\n")
 
-	if config.Confinement.Sandbox != nil && len(config.Confinement.Sandbox.Filesystem) > 0 {
+	if !short && config.Confinement.Sandbox != nil && len(config.Confinement.Sandbox.Filesystem) > 0 {
 		fmt.Fprintf(w, "Filesystem:\n")
 		for _, f := range config.Confinement.Sandbox.Filesystem {
 			expr := new(strings.Builder)
