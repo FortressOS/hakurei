@@ -100,6 +100,7 @@ var testCasesPd = []sealTestCase{
 			Bind("/run/wrappers", "/run/wrappers", false, true).
 			Bind("/run/zed.pid", "/run/zed.pid", false, true).
 			Bind("/run/zed.state", "/run/zed.state", false, true).
+			Bind("/dev/kvm", "/dev/kvm", true, true, true).
 			Bind("/etc", fst.Tmp+"/etc").
 			Symlink(fst.Tmp+"/etc/alsa", "/etc/alsa").
 			Symlink(fst.Tmp+"/etc/bashrc", "/etc/bashrc").
@@ -355,6 +356,7 @@ var testCasesPd = []sealTestCase{
 			Bind("/run/zed.pid", "/run/zed.pid", false, true).
 			Bind("/run/zed.state", "/run/zed.state", false, true).
 			Bind("/dev/dri", "/dev/dri", true, true, true).
+			Bind("/dev/kvm", "/dev/kvm", true, true, true).
 			Bind("/etc", fst.Tmp+"/etc").
 			Symlink(fst.Tmp+"/etc/alsa", "/etc/alsa").
 			Symlink(fst.Tmp+"/etc/bashrc", "/etc/bashrc").

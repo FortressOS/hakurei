@@ -201,6 +201,8 @@ func (a *app) Seal(config *fst.Config) error {
 		if config.Confinement.Enablements.Has(system.EX11) || config.Confinement.Enablements.Has(system.EWayland) {
 			conf.Filesystem = append(conf.Filesystem, &fst.FilesystemConfig{Src: "/dev/dri", Device: true})
 		}
+		// opportunistically bind kvm
+		conf.Filesystem = append(conf.Filesystem, &fst.FilesystemConfig{Src: "/dev/kvm", Device: true})
 
 		config.Confinement.Sandbox = conf
 	}
