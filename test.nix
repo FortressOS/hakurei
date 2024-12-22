@@ -212,7 +212,7 @@ nixosTest {
     machine.succeed("pkill -9 mako")
 
     # Start a terminal (foot) within fortify:
-    swaymsg("exec fortify run --wayland foot")
+    fortify("run --wayland foot")
     wait_for_window("u0_a0@machine")
     machine.send_chars("clear; wayland-info && touch /tmp/success-client\n")
     machine.wait_for_file("/tmp/fortify.1000/tmpdir/0/success-client")
@@ -226,17 +226,20 @@ nixosTest {
     machine.wait_until_fails("getfacl --absolute-names --omit-header --numeric /run/user/1000 | grep 1000000")
 
     # Start a terminal (foot) within fortify from a terminal:
-    swaymsg("exec foot fortify run --wayland foot")
+    swaymsg("exec foot $SHELL -c '(fortify run --wayland foot) & sleep 1 && fortify show --short $(fortify ps --short) && touch /tmp/ps-show-ok && cat'")
     wait_for_window("u0_a0@machine")
     machine.send_chars("clear; wayland-info && touch /tmp/success-client-term\n")
     machine.wait_for_file("/tmp/fortify.1000/tmpdir/0/success-client-term")
+    machine.wait_for_file("/tmp/ps-show-ok")
     collect_state_ui("foot_wayland_permissive_term")
     check_state(["foot"], 1)
     machine.send_chars("exit\n")
+    wait_for_window("foot")
+    machine.send_key("ctrl-c")
     machine.wait_until_fails("pgrep foot")
 
     # Test PulseAudio (fortify does not support PipeWire yet):
-    swaymsg("exec fortify run --wayland --pulse foot")
+    fortify("run --wayland --pulse foot")
     wait_for_window("u0_a0@machine")
     machine.send_chars("clear; pactl info && touch /tmp/success-pulse\n")
     machine.wait_for_file("/tmp/fortify.1000/tmpdir/0/success-pulse")
@@ -246,7 +249,7 @@ nixosTest {
     machine.wait_until_fails("pgrep foot")
 
     # Test XWayland (foot does not support X):
-    swaymsg("exec fortify run -X alacritty")
+    fortify("run -X alacritty")
     wait_for_window("u0_a0@machine")
     machine.send_chars("clear; glinfo && touch /tmp/success-client-x11\n")
     machine.wait_for_file("/tmp/fortify.1000/tmpdir/0/success-client-x11")
