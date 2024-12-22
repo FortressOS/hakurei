@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	direct "os"
+	"slices"
 	"strconv"
 	"strings"
 	"text/tabwriter"
@@ -153,27 +154,6 @@ func printPs(short bool) {
 		fmsg.Printf("cannot close store: %v", err)
 	}
 
-	if short {
-		var v []string
-		if flagJSON {
-			v = make([]string, 0, len(entries))
-		}
-
-		for _, instance := range entries {
-			if !flagJSON {
-				fmt.Println(instance.ID.String()[:8])
-			} else {
-				v = append(v, instance.ID.String())
-			}
-		}
-
-		if flagJSON {
-			printJSON(v)
-		}
-
-		return
-	}
-
 	if flagJSON {
 		es := make(map[string]*state.State, len(entries))
 		for id, instance := range entries {
@@ -183,36 +163,69 @@ func printPs(short bool) {
 		return
 	}
 
+	// sort state entries by id string to ensure consistency between runs
+	exp := make([]*expandedStateEntry, 0, len(entries))
+	for id, instance := range entries {
+		// gracefully skip nil states
+		if instance == nil {
+			fmsg.Printf("got invalid state entry %s", id.String())
+			continue
+		}
+
+		// gracefully skip inconsistent states
+		if id != instance.ID {
+			fmt.Printf("possible store corruption: entry %s has id %s",
+				id.String(), instance.ID.String())
+			continue
+		}
+		exp = append(exp, &expandedStateEntry{s: id.String(), State: instance})
+	}
+	slices.SortFunc(exp, func(a, b *expandedStateEntry) int { return strings.Compare(a.s, b.s) })
+
+	if short {
+		if flagJSON {
+			v := make([]string, len(exp))
+			for i, e := range exp {
+				v[i] = e.s
+			}
+			printJSON(v)
+		} else {
+			for _, e := range exp {
+				fmt.Println(e.s[:8])
+			}
+		}
+		return
+	}
+
 	// buffer output to reduce terminal activity
 	w := tabwriter.NewWriter(direct.Stdout, 0, 1, 4, ' ', 0)
 	fmt.Fprintln(w, "\tInstance\tPID\tApp\tUptime\tEnablements\tCommand")
-	for _, instance := range entries {
-		printInstance(w, instance, now)
+	for _, e := range exp {
+		printInstance(w, e, now)
 	}
 	if err := w.Flush(); err != nil {
 		fmsg.Fatalf("cannot flush tabwriter: %v", err)
 	}
 }
 
-func printInstance(w *tabwriter.Writer, instance *state.State, now time.Time) {
-	// gracefully skip nil states
-	if instance == nil {
-		fmsg.Println("got invalid state entry")
-		return
-	}
+type expandedStateEntry struct {
+	s string
+	*state.State
+}
 
+func printInstance(w *tabwriter.Writer, e *expandedStateEntry, now time.Time) {
 	var (
 		es = "(No confinement information)"
 		cs = "(No command information)"
 		as = "(No configuration information)"
 	)
-	if instance.Config != nil {
-		es = instance.Config.Confinement.Enablements.String()
-		cs = fmt.Sprintf("%q", instance.Config.Command)
-		as = strconv.Itoa(instance.Config.Confinement.AppID)
+	if e.Config != nil {
+		es = e.Config.Confinement.Enablements.String()
+		cs = fmt.Sprintf("%q", e.Config.Command)
+		as = strconv.Itoa(e.Config.Confinement.AppID)
 	}
 	fmt.Fprintf(w, "\t%s\t%d\t%s\t%s\t%s\t%s\n",
-		instance.ID.String()[:8], instance.PID, as, now.Sub(instance.Time).Round(time.Second).String(), strings.TrimPrefix(es, ", "), cs)
+		e.s[:8], e.PID, as, now.Sub(e.Time).Round(time.Second).String(), strings.TrimPrefix(es, ", "), cs)
 }
 
 func printJSON(v any) {
