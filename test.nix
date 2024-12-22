@@ -38,6 +38,10 @@ nixosTest {
           wayland-utils
           alacritty
 
+          # For D-Bus tests:
+          libnotify
+          mako
+
           # For go tests:
           self.devShells.${system}.fhs
         ];
@@ -176,6 +180,10 @@ nixosTest {
         if instance['config']['confinement']['enablements'] != enablements:
             raise Exception(f"unexpected enablements {instance['config']['confinement']['enablements']}")
 
+
+    def fortify(command):
+        swaymsg(f"exec fortify {command}")
+
     start_all()
     machine.wait_for_unit("multi-user.target")
 
@@ -198,8 +206,10 @@ nixosTest {
     machine.wait_for_file("/tmp/fortify.1000/tmpdir/0/success-bare")
 
     # Start fortify within Wayland session:
-    swaymsg("exec fortify -v run --wayland --dbus touch /tmp/success-session")
-    machine.wait_for_file("/tmp/fortify.1000/tmpdir/0/success-session")
+    fortify('-v run --wayland --dbus notify-send -a "NixOS Tests" "Test notification" "Notification from within sandbox." && touch /tmp/dbus-done')
+    machine.wait_for_file("/tmp/dbus-done")
+    collect_state_ui("dbus_notify_exited")
+    machine.succeed("pkill -9 mako")
 
     # Start a terminal (foot) within fortify:
     swaymsg("exec fortify run --wayland foot")
