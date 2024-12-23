@@ -2,7 +2,6 @@ package main
 
 import (
 	_ "embed"
-	"encoding/json"
 	"flag"
 	"fmt"
 	"os/user"
@@ -129,64 +128,21 @@ func main() {
 		// Ignore errors; set is set for ExitOnError.
 		_ = set.Parse(args[1:])
 
-		if len(set.Args()) != 1 {
-			fmsg.Fatal("show requires 1 argument")
-		}
-
-		likePrefix := false
-		if len(set.Args()[0]) <= 32 {
-			likePrefix = true
-			for _, c := range set.Args()[0] {
-				if c >= '0' && c <= '9' {
-					continue
-				}
-				if c >= 'a' && c <= 'f' {
-					continue
-				}
-				likePrefix = false
-				break
-			}
-		}
-
 		var (
 			config   *fst.Config
 			instance *state.State
+			name     string
 		)
 
-		// try to match from state store
-		if likePrefix && len(set.Args()[0]) >= 8 {
-			fmsg.VPrintln("argument looks like prefix")
-
-			s := state.NewMulti(os.Paths().RunDirPath)
-			if entries, err := state.Join(s); err != nil {
-				fmsg.Printf("cannot join store: %v", err)
-				// drop to fetch from file
-			} else {
-				for id := range entries {
-					v := id.String()
-					if strings.HasPrefix(v, set.Args()[0]) {
-						// match, use config from this state entry
-						instance = entries[id]
-						config = instance.Config
-						break
-					}
-
-					fmsg.VPrintf("instance %s skipped", v)
-				}
-			}
+		if len(set.Args()) != 1 {
+			fmsg.Fatal("show requires 1 argument")
+		} else {
+			name = set.Args()[0]
+			config, instance = tryShort(name)
 		}
 
 		if config == nil {
-			fmsg.VPrintf("reading from file")
-
-			config = new(fst.Config)
-			if f, err := os.Open(set.Args()[0]); err != nil {
-				fmsg.Fatalf("cannot access config file %q: %s", set.Args()[0], err)
-				panic("unreachable")
-			} else if err = json.NewDecoder(f).Decode(&config); err != nil {
-				fmsg.Fatalf("cannot parse config file %q: %s", set.Args()[0], err)
-				panic("unreachable")
-			}
+			config = tryPath(name)
 		}
 
 		printShow(instance, config, short)
@@ -196,20 +152,13 @@ func main() {
 			fmsg.Fatal("app requires at least 1 argument")
 		}
 
-		config := new(fst.Config)
-		if f, err := os.Open(args[1]); err != nil {
-			fmsg.Fatalf("cannot access config file %q: %s", args[1], err)
-			panic("unreachable")
-		} else if err = json.NewDecoder(f).Decode(&config); err != nil {
-			fmsg.Fatalf("cannot parse config file %q: %s", args[1], err)
-			panic("unreachable")
-		}
-
-		// append extra args
+		// config extraArgs...
+		config := tryPath(args[1])
 		config.Command = append(config.Command, args[2:]...)
 
 		// invoke app
 		runApp(config)
+		panic("unreachable")
 	case "run": // run app in permissive defaults usage pattern
 		set := flag.NewFlagSet("run", flag.ExitOnError)
 
