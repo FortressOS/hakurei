@@ -2,9 +2,12 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"io"
 	direct "os"
+	"strconv"
 	"strings"
+	"syscall"
 
 	"git.gensokyo.uk/security/fortify/fst"
 	"git.gensokyo.uk/security/fortify/internal/fmsg"
@@ -16,12 +19,23 @@ func tryPath(name string) (config *fst.Config) {
 	config = new(fst.Config)
 
 	if name != "-" {
-		if f, err := os.Open(name); err != nil {
-			fmsg.Fatalf("cannot access configuration file %q: %s", name, err)
-			panic("unreachable")
+		r = tryFd(name)
+		if r == nil {
+			fmsg.VPrintln("load configuration from file")
+
+			if f, err := os.Open(name); err != nil {
+				fmsg.Fatalf("cannot access configuration file %q: %s", name, err)
+				panic("unreachable")
+			} else {
+				// finalizer closes f
+				r = f
+			}
 		} else {
-			// finalizer closes f
-			r = f
+			defer func() {
+				if err := r.(io.ReadCloser).Close(); err != nil {
+					fmsg.Printf("cannot close config fd: %v", err)
+				}
+			}()
 		}
 	} else {
 		r = direct.Stdin
@@ -33,6 +47,22 @@ func tryPath(name string) (config *fst.Config) {
 	}
 
 	return
+}
+
+func tryFd(name string) io.ReadCloser {
+	if v, err := strconv.Atoi(name); err != nil {
+		fmsg.VPrintf("name cannot be interpreted as int64: %v", err)
+		return nil
+	} else {
+		fd := uintptr(v)
+		if _, _, errno := syscall.Syscall(syscall.SYS_FCNTL, fd, syscall.F_GETFD, 0); errno != 0 {
+			if errors.Is(errno, syscall.EBADF) {
+				return nil
+			}
+			fmsg.Fatalf("cannot get fd %d: %v", fd, errno)
+		}
+		return direct.NewFile(fd, strconv.Itoa(v))
+	}
 }
 
 func tryShort(name string) (config *fst.Config, instance *state.State) {
