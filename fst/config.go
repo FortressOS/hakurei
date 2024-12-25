@@ -13,12 +13,11 @@ const Tmp = "/.fortify"
 
 // Config is used to seal an *App
 type Config struct {
-	// D-Bus application ID
+	// application ID
 	ID string `json:"id"`
 	// value passed through to the child process as its argv
 	Command []string `json:"command"`
 
-	// child confinement configuration
 	Confinement ConfinementConfig `json:"confinement"`
 }
 
@@ -28,7 +27,7 @@ type ConfinementConfig struct {
 	AppID int `json:"app_id"`
 	// list of supplementary groups to inherit
 	Groups []string `json:"groups"`
-	// passwd username in the sandbox, defaults to chronos
+	// passwd username in the sandbox, defaults to passwd name of target uid or chronos
 	Username string `json:"username,omitempty"`
 	// home directory in sandbox, empty for outer
 	Inner string `json:"home_inner"`
@@ -44,7 +43,7 @@ type ConfinementConfig struct {
 	// nil value makes session bus proxy assume built-in defaults
 	SessionBus *dbus.Config `json:"session_bus,omitempty"`
 
-	// child capability enablements
+	// system resources to expose to the sandbox
 	Enablements system.Enablements `json:"enablements"`
 }
 
@@ -52,7 +51,7 @@ type ConfinementConfig struct {
 type SandboxConfig struct {
 	// unix hostname within sandbox
 	Hostname string `json:"hostname,omitempty"`
-	// userns availability within sandbox
+	// allow userns within sandbox
 	UserNS bool `json:"userns,omitempty"`
 	// share net namespace
 	Net bool `json:"net,omitempty"`
@@ -86,7 +85,7 @@ type FilesystemConfig struct {
 	Write bool `json:"write,omitempty"`
 	// device access
 	Device bool `json:"dev,omitempty"`
-	// exit if unable to share
+	// fail if mount fails
 	Must bool `json:"require,omitempty"`
 }
 
