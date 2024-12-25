@@ -7,4 +7,6 @@ install -vDm0755 "bin/finit" "${FORTIFY_INSTALL_PREFIX}/usr/libexec/fortify/fini
 install -vDm0755 "bin/fuserdb" "${FORTIFY_INSTALL_PREFIX}/usr/libexec/fortify/fuserdb"
 
 install -vDm6511 "bin/fsu" "${FORTIFY_INSTALL_PREFIX}/usr/bin/fsu"
-install -vDm0400 "fsurc.default" "${FORTIFY_INSTALL_PREFIX}/etc/fsurc"
+if [ ! -f "${FORTIFY_INSTALL_PREFIX}/etc/fsurc" ]; then
+    install -vDm0400 "fsurc.default" "${FORTIFY_INSTALL_PREFIX}/etc/fsurc"
+fi
