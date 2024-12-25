@@ -10,3 +10,5 @@ install -vDm6511 "bin/fsu" "${FORTIFY_INSTALL_PREFIX}/usr/bin/fsu"
 if [ ! -f "${FORTIFY_INSTALL_PREFIX}/etc/fsurc" ]; then
     install -vDm0400 "fsurc.default" "${FORTIFY_INSTALL_PREFIX}/etc/fsurc"
 fi
+
+install -vDm0644 "comp/_fortify" "${FORTIFY_INSTALL_PREFIX}/usr/share/zsh/site-functions/_fortify"

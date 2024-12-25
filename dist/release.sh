@@ -5,7 +5,8 @@ pname="fortify-${VERSION}"
 out="dist/${pname}"
 
 mkdir -p "${out}"
-cp "README.md" "dist/fsurc.default" "dist/install.sh" "${out}"
+cp -v "README.md" "dist/fsurc.default" "dist/install.sh" "${out}"
+cp -rv "comp" "${out}"
 
 go build -v -o "${out}/bin/" -ldflags "-s -w
   -X git.gensokyo.uk/security/fortify/internal.Version=${VERSION}
