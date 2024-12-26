@@ -10,6 +10,7 @@ cp -rv "comp" "${out}"
 
 go build -trimpath -v -o "${out}/bin/" -ldflags "-s -w
   -X git.gensokyo.uk/security/fortify/internal.Version=${VERSION}
+  -X git.gensokyo.uk/security/fortify/internal.Fortify=/usr/bin/fortify
   -X git.gensokyo.uk/security/fortify/internal.Fsu=/usr/bin/fsu
   -X git.gensokyo.uk/security/fortify/internal.Finit=/usr/libexec/fortify/finit
   -X main.Fmain=/usr/bin/fortify
