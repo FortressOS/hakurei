@@ -93,6 +93,9 @@ func (p *Proxy) Start(ready chan error, output io.Writer, sandbox bool) error {
 			if path.IsAbs(ent.Path) {
 				roBindTarget[path.Dir(ent.Path)] = struct{}{}
 			}
+			if path.IsAbs(ent.Name) {
+				roBindTarget[path.Dir(ent.Name)] = struct{}{}
+			}
 		}
 
 		// resolve upstream bus directories
