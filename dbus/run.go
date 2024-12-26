@@ -46,14 +46,16 @@ func (p *Proxy) Start(ready chan error, output io.Writer, sandbox bool) error {
 		// look up absolute path if name is just a file name
 		toolPath := p.name
 		if filepath.Base(p.name) == p.name {
-			if s, err := exec.LookPath(p.name); err == nil {
+			if s, err := exec.LookPath(p.name); err != nil {
+				return err
+			} else {
 				toolPath = s
 			}
 		}
 
 		// resolve libraries by parsing ldd output
 		var proxyDeps []*ldd.Entry
-		if path.IsAbs(toolPath) {
+		if toolPath != "/nonexistent-xdg-dbus-proxy" {
 			if l, err := ldd.Exec(toolPath); err != nil {
 				return err
 			} else {

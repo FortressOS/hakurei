@@ -124,6 +124,8 @@ func testProxyStartWaitCloseString(t *testing.T, sandbox bool) {
 
 		t.Run("proxy for "+id, func(t *testing.T) {
 			helper.InternalReplaceExecCommand(t)
+			overridePath(t)
+
 			p := dbus.New(tc[0].bus, tc[1].bus)
 			output := new(strings.Builder)
 
@@ -174,7 +176,7 @@ func testProxyStartWaitCloseString(t *testing.T, sandbox bool) {
 
 				t.Run("sealed start of "+id, func(t *testing.T) {
 					if err := p.Start(nil, output, sandbox); err != nil {
-						t.Errorf("Start(nil, nil) error = %v",
+						t.Fatalf("Start(nil, nil) error = %v",
 							err)
 					}
 
@@ -212,4 +214,12 @@ func testProxyStartWaitCloseString(t *testing.T, sandbox bool) {
 			})
 		})
 	}
+}
+
+func overridePath(t *testing.T) {
+	proxyName := dbus.ProxyName
+	dbus.ProxyName = "/nonexistent-xdg-dbus-proxy"
+	t.Cleanup(func() {
+		dbus.ProxyName = proxyName
+	})
 }
