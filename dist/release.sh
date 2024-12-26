@@ -17,4 +17,4 @@ go build -v -o "${out}/bin/" -ldflags "-s -w
 
 rm -f "./${out}.tar.gz" && tar -C dist -czf "${out}.tar.gz" "${pname}"
 rm -rf "./${out}"
-sha512sum "${out}.tar.gz" > "${out}.tar.gz.sha512"
+(cd dist && sha512sum "${pname}.tar.gz" > "${pname}.tar.gz.sha512")
