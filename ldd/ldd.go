@@ -32,7 +32,7 @@ func Parse(stdout fmt.Stringer) ([]*Entry, error) {
 		switch len(segment) {
 		case 2: // /lib/ld-musl-x86_64.so.1 (0x7f04d14ef000)
 			iL = 1
-			result[i] = &Entry{Name: segment[0]}
+			result[i] = &Entry{Name: strings.TrimSpace(segment[0])}
 		case 4: // libc.musl-x86_64.so.1 => /lib/ld-musl-x86_64.so.1 (0x7f04d14ef000)
 			iL = 3
 			if segment[1] != "=>" {
@@ -42,7 +42,7 @@ func Parse(stdout fmt.Stringer) ([]*Entry, error) {
 				return nil, ErrPathNotAbsolute
 			}
 			result[i] = &Entry{
-				Name: segment[0],
+				Name: strings.TrimSpace(segment[0]),
 				Path: segment[2],
 			}
 		default:
