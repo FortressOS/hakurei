@@ -9,6 +9,7 @@ import (
 
 	init0 "git.gensokyo.uk/security/fortify/cmd/finit/ipc"
 	shim "git.gensokyo.uk/security/fortify/cmd/fshim/ipc"
+	"git.gensokyo.uk/security/fortify/fst"
 	"git.gensokyo.uk/security/fortify/helper"
 	"git.gensokyo.uk/security/fortify/internal"
 	"git.gensokyo.uk/security/fortify/internal/fmsg"
@@ -117,8 +118,12 @@ func main() {
 		}()
 	}
 
+	// bind finit inside sandbox
+	finitInnerPath := path.Join(fst.Tmp, "sbin", "init")
+	conf.Bind(finitPath, finitInnerPath)
+
 	helper.BubblewrapName = payload.Exec[0] // resolved bwrap path by parent
-	if b, err := helper.NewBwrap(conf, nil, finitPath,
+	if b, err := helper.NewBwrap(conf, nil, finitInnerPath,
 		func(int, int) []string { return make([]string, 0) }); err != nil {
 		fmsg.Fatalf("malformed sandbox config: %v", err)
 	} else {
