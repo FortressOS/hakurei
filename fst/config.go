@@ -70,6 +70,8 @@ type SandboxConfig struct {
 	Filesystem []*FilesystemConfig `json:"filesystem"`
 	// symlinks created inside the sandbox
 	Link [][2]string `json:"symlink"`
+	// read-only /etc directory
+	Etc string `json:"etc,omitempty"`
 	// automatically set up /etc symlinks
 	AutoEtc bool `json:"auto_etc"`
 	// paths to override by mounting tmpfs over them
@@ -127,7 +129,11 @@ func (s *SandboxConfig) Bwrap(os linux.System) (*bwrap.Config, error) {
 	}
 
 	if !s.AutoEtc {
-		conf.Dir("/etc")
+		if s.Etc == "" {
+			conf.Dir("/etc")
+		} else {
+			conf.Bind(s.Etc, "/etc")
+		}
 	}
 
 	for _, c := range s.Filesystem {
@@ -147,7 +153,11 @@ func (s *SandboxConfig) Bwrap(os linux.System) (*bwrap.Config, error) {
 	}
 
 	if s.AutoEtc {
-		conf.Bind("/etc", Tmp+"/etc")
+		if s.Etc == "" {
+			conf.Bind("/etc", Tmp+"/etc")
+		} else {
+			conf.Bind(s.Etc, Tmp+"/etc")
+		}
 
 		// link host /etc contents to prevent passwd/group from being overwritten
 		if d, err := os.ReadDir("/etc"); err != nil {

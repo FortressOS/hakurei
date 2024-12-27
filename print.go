@@ -70,7 +70,16 @@ func printShow(instance *state.State, config *fst.Config, short bool) {
 			flags = append(flags, "none")
 		}
 		fmt.Fprintf(w, " Flags:\t%s\n", strings.Join(flags, " "))
-		fmt.Fprintf(w, " Overrides:\t%s\n", strings.Join(sandbox.Override, " "))
+
+		etc := sandbox.Etc
+		if etc == "" {
+			etc = "/etc"
+		}
+		fmt.Fprintf(w, " Etc:\t%s\n", etc)
+
+		if len(sandbox.Override) > 0 {
+			fmt.Fprintf(w, " Overrides:\t%s\n", strings.Join(sandbox.Override, " "))
+		}
 
 		// Env           map[string]string   `json:"env"`
 		// Link          [][2]string         `json:"symlink"`
