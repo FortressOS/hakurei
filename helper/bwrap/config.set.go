@@ -106,7 +106,7 @@ func (c *Config) Mqueue(dest string) *Config {
 // Dir create dir in sandbox
 // (--dir DEST)
 func (c *Config) Dir(dest string) *Config {
-	c.Filesystem = append(c.Filesystem, &stringF{stringArgs[Dir], dest})
+	c.Filesystem = append(c.Filesystem, &stringF{awkwardArgs[Dir], dest})
 	return c
 }
 
