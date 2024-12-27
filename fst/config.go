@@ -153,14 +153,14 @@ func (s *SandboxConfig) Bwrap(os linux.System) (*bwrap.Config, error) {
 	}
 
 	if s.AutoEtc {
-		if s.Etc == "" {
-			conf.Bind("/etc", Tmp+"/etc")
-		} else {
-			conf.Bind(s.Etc, Tmp+"/etc")
+		etc := s.Etc
+		if etc == "" {
+			etc = "/etc"
 		}
+		conf.Bind(etc, Tmp+"/etc")
 
 		// link host /etc contents to prevent passwd/group from being overwritten
-		if d, err := os.ReadDir("/etc"); err != nil {
+		if d, err := os.ReadDir(etc); err != nil {
 			return nil, err
 		} else {
 			for _, ent := range d {
