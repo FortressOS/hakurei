@@ -36,7 +36,7 @@ func (sys *I) ProxyDBus(session, system *dbus.Config, sessionPath, systemPath st
 	}
 
 	// system bus is optional
-	d.system = system == nil
+	d.system = system != nil
 
 	// upstream address, downstream socket path
 	var sessionBus, systemBus [2]string
