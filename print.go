@@ -90,33 +90,47 @@ func printShow(instance *state.State, config *fst.Config, short bool) {
 	fmt.Fprintf(w, " Command:\t%s\n", strings.Join(config.Command, " "))
 	fmt.Fprintf(w, "\n")
 
-	if !short && config.Confinement.Sandbox != nil && len(config.Confinement.Sandbox.Filesystem) > 0 {
-		fmt.Fprintf(w, "Filesystem:\n")
-		for _, f := range config.Confinement.Sandbox.Filesystem {
-			if f == nil {
-				continue
-			}
+	if !short {
+		if config.Confinement.Sandbox != nil && len(config.Confinement.Sandbox.Filesystem) > 0 {
+			fmt.Fprintf(w, "Filesystem\n")
+			for _, f := range config.Confinement.Sandbox.Filesystem {
+				if f == nil {
+					continue
+				}
 
-			expr := new(strings.Builder)
-			if f.Device {
-				expr.WriteString(" d")
-			} else if f.Write {
-				expr.WriteString(" w")
-			} else {
-				expr.WriteString(" ")
+				expr := new(strings.Builder)
+				expr.Grow(3 + len(f.Src) + 1 + len(f.Dst))
+
+				if f.Device {
+					expr.WriteString(" d")
+				} else if f.Write {
+					expr.WriteString(" w")
+				} else {
+					expr.WriteString(" ")
+				}
+				if f.Must {
+					expr.WriteString("*")
+				} else {
+					expr.WriteString("+")
+				}
+				expr.WriteString(f.Src)
+				if f.Dst != "" {
+					expr.WriteString(":" + f.Dst)
+				}
+				fmt.Fprintf(w, "%s\n", expr.String())
 			}
-			if f.Must {
-				expr.WriteString("*")
-			} else {
-				expr.WriteString("+")
-			}
-			expr.WriteString(f.Src)
-			if f.Dst != "" {
-				expr.WriteString(":" + f.Dst)
-			}
-			fmt.Fprintf(w, "%s\n", expr.String())
+			fmt.Fprintf(w, "\n")
 		}
-		fmt.Fprintf(w, "\n")
+		if len(config.Confinement.ExtraPerms) > 0 {
+			fmt.Fprintf(w, "Extra ACL\n")
+			for _, p := range config.Confinement.ExtraPerms {
+				if p == nil {
+					continue
+				}
+				fmt.Fprintf(w, " %s\n", p.String())
+			}
+			fmt.Fprintf(w, "\n")
+		}
 	}
 
 	printDBus := func(c *dbus.Config) {

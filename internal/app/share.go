@@ -292,6 +292,14 @@ func (seal *appSeal) setupShares(bus [2]*dbus.Config, os linux.System) error {
 		seal.sys.bwrap.Tmpfs(dest, 8*1024)
 	}
 
+	// append extra perms
+	for _, p := range seal.extraPerms {
+		if p == nil {
+			continue
+		}
+		seal.sys.UpdatePermType(system.User, p.name, p.perms...)
+	}
+
 	return nil
 }
 

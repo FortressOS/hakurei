@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"strconv"
 
+	"git.gensokyo.uk/security/fortify/acl"
 	"git.gensokyo.uk/security/fortify/dbus"
 	"git.gensokyo.uk/security/fortify/fst"
 	"git.gensokyo.uk/security/fortify/internal/fmsg"
@@ -48,6 +49,8 @@ type appSeal struct {
 	et system.Enablements
 	// wayland socket direct access
 	directWayland bool
+	// extra UpdatePerm ops
+	extraPerms []*sealedExtraPerm
 
 	// prevents sharing from happening twice
 	shared bool
@@ -57,6 +60,11 @@ type appSeal struct {
 	linux.Paths
 
 	// protected by upstream mutex
+}
+
+type sealedExtraPerm struct {
+	name  string
+	perms acl.Perms
 }
 
 // Seal seals the app launch context
@@ -100,46 +108,66 @@ func (a *app) Seal(config *fst.Config) error {
 	if config.Confinement.AppID < 0 || config.Confinement.AppID > 9999 {
 		return fmsg.WrapError(ErrUser,
 			fmt.Sprintf("aid %d out of range", config.Confinement.AppID))
+	}
+	seal.sys.user = appUser{
+		aid:      config.Confinement.AppID,
+		as:       strconv.Itoa(config.Confinement.AppID),
+		data:     config.Confinement.Outer,
+		home:     config.Confinement.Inner,
+		username: config.Confinement.Username,
+	}
+	if seal.sys.user.username == "" {
+		seal.sys.user.username = "chronos"
+	} else if !posixUsername.MatchString(seal.sys.user.username) {
+		return fmsg.WrapError(ErrName,
+			fmt.Sprintf("invalid user name %q", seal.sys.user.username))
+	}
+	if seal.sys.user.data == "" || !path.IsAbs(seal.sys.user.data) {
+		return fmsg.WrapError(ErrHome,
+			fmt.Sprintf("invalid home directory %q", seal.sys.user.data))
+	}
+	if seal.sys.user.home == "" {
+		seal.sys.user.home = seal.sys.user.data
+	}
+
+	// invoke fsu for full uid
+	if u, err := a.os.Uid(seal.sys.user.aid); err != nil {
+		return fmsg.WrapErrorSuffix(err,
+			"cannot obtain uid from fsu:")
 	} else {
-		seal.sys.user = appUser{
-			aid:      config.Confinement.AppID,
-			as:       strconv.Itoa(config.Confinement.AppID),
-			data:     config.Confinement.Outer,
-			home:     config.Confinement.Inner,
-			username: config.Confinement.Username,
-		}
-		if seal.sys.user.username == "" {
-			seal.sys.user.username = "chronos"
-		} else if !posixUsername.MatchString(seal.sys.user.username) {
-			return fmsg.WrapError(ErrName,
-				fmt.Sprintf("invalid user name %q", seal.sys.user.username))
-		}
-		if seal.sys.user.data == "" || !path.IsAbs(seal.sys.user.data) {
-			return fmsg.WrapError(ErrHome,
-				fmt.Sprintf("invalid home directory %q", seal.sys.user.data))
-		}
-		if seal.sys.user.home == "" {
-			seal.sys.user.home = seal.sys.user.data
-		}
+		seal.sys.user.uid = u
+		seal.sys.user.us = strconv.Itoa(u)
+	}
 
-		// invoke fsu for full uid
-		if u, err := a.os.Uid(seal.sys.user.aid); err != nil {
-			return fmsg.WrapErrorSuffix(err,
-				"cannot obtain uid from fsu:")
+	// resolve supplementary group ids from names
+	seal.sys.user.supp = make([]string, len(config.Confinement.Groups))
+	for i, name := range config.Confinement.Groups {
+		if g, err := a.os.LookupGroup(name); err != nil {
+			return fmsg.WrapError(err,
+				fmt.Sprintf("unknown group %q", name))
 		} else {
-			seal.sys.user.uid = u
-			seal.sys.user.us = strconv.Itoa(u)
+			seal.sys.user.supp[i] = g.Gid
+		}
+	}
+
+	// build extra perms
+	seal.extraPerms = make([]*sealedExtraPerm, len(config.Confinement.ExtraPerms))
+	for i, p := range config.Confinement.ExtraPerms {
+		if p == nil {
+			continue
 		}
 
-		// resolve supplementary group ids from names
-		seal.sys.user.supp = make([]string, len(config.Confinement.Groups))
-		for i, name := range config.Confinement.Groups {
-			if g, err := a.os.LookupGroup(name); err != nil {
-				return fmsg.WrapError(err,
-					fmt.Sprintf("unknown group %q", name))
-			} else {
-				seal.sys.user.supp[i] = g.Gid
-			}
+		seal.extraPerms[i] = new(sealedExtraPerm)
+		seal.extraPerms[i].name = p.Path
+		seal.extraPerms[i].perms = make(acl.Perms, 0, 3)
+		if p.Read {
+			seal.extraPerms[i].perms = append(seal.extraPerms[i].perms, acl.Read)
+		}
+		if p.Write {
+			seal.extraPerms[i].perms = append(seal.extraPerms[i].perms, acl.Write)
+		}
+		if p.Execute {
+			seal.extraPerms[i].perms = append(seal.extraPerms[i].perms, acl.Execute)
 		}
 	}
 

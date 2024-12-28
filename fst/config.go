@@ -35,6 +35,8 @@ type ConfinementConfig struct {
 	Outer string `json:"home"`
 	// bwrap sandbox confinement configuration
 	Sandbox *SandboxConfig `json:"sandbox"`
+	// extra acl entries to append
+	ExtraPerms []*ExtraPermConfig `json:"extra_perms,omitempty"`
 
 	// reference to a system D-Bus proxy configuration,
 	// nil value disables system bus proxy
@@ -76,6 +78,29 @@ type SandboxConfig struct {
 	AutoEtc bool `json:"auto_etc"`
 	// paths to override by mounting tmpfs over them
 	Override []string `json:"override"`
+}
+
+type ExtraPermConfig struct {
+	Path    string `json:"path"`
+	Read    bool   `json:"r,omitempty"`
+	Write   bool   `json:"w,omitempty"`
+	Execute bool   `json:"x,omitempty"`
+}
+
+func (e *ExtraPermConfig) String() string {
+	buf := make([]byte, 0, 4+len(e.Path))
+	buf = append(buf, '-', '-', '-', ':')
+	buf = append(buf, []byte(e.Path)...)
+	if e.Read {
+		buf[0] = 'r'
+	}
+	if e.Write {
+		buf[1] = 'w'
+	}
+	if e.Execute {
+		buf[2] = 'x'
+	}
+	return string(buf)
 }
 
 type FilesystemConfig struct {
