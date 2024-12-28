@@ -81,6 +81,21 @@ func main() {
 		// not fatal
 	}
 
+	// ensure home directory as target user
+	if s, err := os.Stat(payload.Home); err != nil {
+		if os.IsNotExist(err) {
+			if err = os.Mkdir(payload.Home, 0700); err != nil {
+				fmsg.Fatalf("cannot create home directory: %v", err)
+			}
+		} else {
+			fmsg.Fatalf("cannot access home directory: %v", err)
+		}
+
+		// home directory is created, proceed
+	} else if !s.IsDir() {
+		fmsg.Fatalf("data path %q is not a directory", payload.Home)
+	}
+
 	var ic init0.Payload
 
 	// resolve argv0

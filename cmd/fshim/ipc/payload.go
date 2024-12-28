@@ -13,6 +13,8 @@ type Payload struct {
 	Exec [2]string
 	// bwrap config
 	Bwrap *bwrap.Config
+	// path to outer home directory
+	Home string
 	// sync fd
 	Sync *uintptr
 

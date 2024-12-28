@@ -49,6 +49,7 @@ func (a *app) Start() error {
 			Argv:  a.seal.command,
 			Exec:  shimExec,
 			Bwrap: a.seal.sys.bwrap,
+			Home:  a.seal.sys.user.data,
 
 			Verbose: fmsg.Verbose(),
 		},
