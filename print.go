@@ -93,6 +93,10 @@ func printShow(instance *state.State, config *fst.Config, short bool) {
 	if !short && config.Confinement.Sandbox != nil && len(config.Confinement.Sandbox.Filesystem) > 0 {
 		fmt.Fprintf(w, "Filesystem:\n")
 		for _, f := range config.Confinement.Sandbox.Filesystem {
+			if f == nil {
+				continue
+			}
+
 			expr := new(strings.Builder)
 			if f.Device {
 				expr.WriteString(" d")
