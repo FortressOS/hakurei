@@ -222,6 +222,7 @@ func Template() *Config {
 					{Src: "/dev/dri", Device: true},
 				},
 				Link:     [][2]string{{"/run/user/65534", "/run/user/150"}},
+				Etc:      "/etc",
 				AutoEtc:  true,
 				Override: []string{"/var/run/nscd"},
 			},
