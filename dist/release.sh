@@ -8,7 +8,7 @@ mkdir -p "${out}"
 cp -v "README.md" "dist/fsurc.default" "dist/install.sh" "${out}"
 cp -rv "comp" "${out}"
 
-go build -v -o "${out}/bin/" -ldflags "-s -w
+go build -trimpath -v -o "${out}/bin/" -ldflags "-s -w
   -X git.gensokyo.uk/security/fortify/internal.Version=${VERSION}
   -X git.gensokyo.uk/security/fortify/internal.Fsu=/usr/bin/fsu
   -X git.gensokyo.uk/security/fortify/internal.Finit=/usr/libexec/fortify/finit
