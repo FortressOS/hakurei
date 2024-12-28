@@ -11,7 +11,7 @@ import (
 func actionStart(args []string) {
 	set := flag.NewFlagSet("start", flag.ExitOnError)
 	var dropShell bool
-	set.BoolVar(&dropShell, "s", false, "Drop to a shell on activation")
+	set.BoolVar(&dropShell, "s", false, "Drop to a shell")
 
 	// Ignore errors; set is set for ExitOnError.
 	_ = set.Parse(args)
