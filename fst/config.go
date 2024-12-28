@@ -81,6 +81,7 @@ type SandboxConfig struct {
 }
 
 type ExtraPermConfig struct {
+	Ensure  bool   `json:"ensure,omitempty"`
 	Path    string `json:"path"`
 	Read    bool   `json:"r,omitempty"`
 	Write   bool   `json:"w,omitempty"`
@@ -88,8 +89,12 @@ type ExtraPermConfig struct {
 }
 
 func (e *ExtraPermConfig) String() string {
-	buf := make([]byte, 0, 4+len(e.Path))
-	buf = append(buf, '-', '-', '-', ':')
+	buf := make([]byte, 0, 5+len(e.Path))
+	buf = append(buf, '-', '-', '-')
+	if e.Ensure {
+		buf = append(buf, '+')
+	}
+	buf = append(buf, ':')
 	buf = append(buf, []byte(e.Path)...)
 	if e.Read {
 		buf[0] = 'r'

@@ -297,6 +297,9 @@ func (seal *appSeal) setupShares(bus [2]*dbus.Config, os linux.System) error {
 		if p == nil {
 			continue
 		}
+		if p.ensure {
+			seal.sys.Ensure(p.name, 0700)
+		}
 		seal.sys.UpdatePermType(system.User, p.name, p.perms...)
 	}
 

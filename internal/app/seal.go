@@ -63,8 +63,9 @@ type appSeal struct {
 }
 
 type sealedExtraPerm struct {
-	name  string
-	perms acl.Perms
+	name   string
+	perms  acl.Perms
+	ensure bool
 }
 
 // Seal seals the app launch context
@@ -169,6 +170,7 @@ func (a *app) Seal(config *fst.Config) error {
 		if p.Execute {
 			seal.extraPerms[i].perms = append(seal.extraPerms[i].perms, acl.Execute)
 		}
+		seal.extraPerms[i].ensure = p.Ensure
 	}
 
 	// map sandbox config to bwrap
