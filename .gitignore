@@ -4,6 +4,7 @@
 *.dll
 *.so
 *.dylib
+*.pkg
 /fortify
 
 # Test binary, built with `go test -c`

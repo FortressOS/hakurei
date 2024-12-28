@@ -29,6 +29,21 @@
     {
       nixosModules.fortify = import ./nixos.nix;
 
+      fortifyBundle = forAllSystems (
+        system:
+        nixpkgsFor.${system}.callPackage (
+          import ./bundle.nix {
+            inherit
+              nixpkgsFor
+              system
+              self
+              nixpkgs
+              home-manager
+              ;
+          }
+        )
+      );
+
       checks = forAllSystems (
         system:
         let
