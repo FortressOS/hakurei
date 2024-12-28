@@ -229,7 +229,7 @@ func (a *app) Seal(config *fst.Config) error {
 	seal.et = config.Confinement.Enablements
 
 	// this method calls all share methods in sequence
-	if err := seal.shareAll([2]*dbus.Config{config.Confinement.SessionBus, config.Confinement.SystemBus}, a.os); err != nil {
+	if err := seal.setupShares([2]*dbus.Config{config.Confinement.SessionBus, config.Confinement.SystemBus}, a.os); err != nil {
 		return err
 	}
 
