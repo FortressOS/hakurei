@@ -5,6 +5,7 @@ import (
 	"flag"
 	"os"
 	"path"
+	"strings"
 
 	"git.gensokyo.uk/security/fortify/fst"
 	"git.gensokyo.uk/security/fortify/internal/fmsg"
@@ -123,98 +124,37 @@ func actionInstall(args []string) {
 		Setup steps for files owned by the target user.
 	*/
 
-	installConfig := &fst.Config{
-		ID: bundle.ID,
-		Command: []string{shell, "-lc", "export BUNDLE=" + fst.Tmp + "/bundle && " + // export inner bundle path in the environment
-			"mkdir -p etc && chmod -R +w etc && rm -rf etc && cp -dRf $BUNDLE/etc etc && " + // replace inner /etc
-			"mkdir -p nix && chmod -R +w nix && rm -rf nix && cp -dRf /nix nix && " + // replace inner /nix
-			"nix copy --offline --no-check-sigs --all --from file://$BUNDLE/res --to $PWD && " + // copy from binary cache
-			"chmod 0755 .", // make cache directory world-readable for autoetc
-		},
-		Confinement: fst.ConfinementConfig{
-			AppID:    bundle.AppID,
-			Username: "nixos",
-			Inner:    path.Join("/data/data", bundle.ID, "cache"),
-			Outer:    pathSet.cacheDir, // this also ensures cacheDir via fshim
-			Sandbox: &fst.SandboxConfig{
-				Hostname:     formatHostname(bundle.Name) + "-install",
-				NoNewSession: dropShellInstall, // nix copy should not need job control
-				Filesystem: []*fst.FilesystemConfig{
-					{Src: path.Join(workDir, "nix"), Dst: "/nix", Must: true},
-					{Src: workDir, Dst: path.Join(fst.Tmp, "bundle"), Must: true},
-				},
-				Link: [][2]string{
-					{bundle.CurrentSystem, "/run/current-system"},
-					{"/run/current-system/sw/bin", "/bin"},
-					{"/run/current-system/sw/bin", "/usr/bin"},
-				},
-				Etc:     path.Join(workDir, "etc"),
-				AutoEtc: true,
-			},
-			ExtraPerms: []*fst.ExtraPermConfig{
-				{Path: dataHome, Execute: true},
-				{Ensure: true, Path: pathSet.baseDir, Read: true, Write: true, Execute: true},
-				{Path: workDir, Execute: true},
-			},
-		},
-	}
-
-	if dropShellInstall {
-		installConfig.Command = []string{shell, "-l"}
-		fortifyApp(installConfig, cleanup)
-		cleanup()
-		fmsg.Exit(0)
-	}
-	fortifyApp(installConfig, cleanup)
+	withCacheDir("install", []string{
+		// export inner bundle path in the environment
+		"export BUNDLE=" + fst.Tmp + "/bundle",
+		// replace inner /etc
+		"mkdir -p etc",
+		"chmod -R +w etc",
+		"rm -rf etc",
+		"cp -dRf $BUNDLE/etc etc",
+		// replace inner /nix
+		"mkdir -p nix",
+		"chmod -R +w nix",
+		"rm -rf nix",
+		"cp -dRf /nix nix",
+		// copy from binary cache
+		"nix copy --offline --no-check-sigs --all --from file://$BUNDLE/res --to $PWD",
+		// make cache directory world-readable for autoetc
+		"chmod 0755 .",
+	}, workDir, bundle, pathSet, dropShellInstall, cleanup)
 
 	/*
 		Activate home-manager generation.
 	*/
 
-	activateConfig := &fst.Config{
-		ID: bundle.ID,
-		Command: []string{shell, "-lc", "mkdir -p .local/state/{nix,home-manager} && chmod -R +w .local/state/{nix,home-manager} && rm -rf .local/state/{nix,home-manager} && " + // clean up broken links
-			"nix-daemon --store / & " + // start nix-daemon
-			"(while [ ! -S /nix/var/nix/daemon-socket/socket ]; do sleep 0.01; done) && " + // wait for socket to appear
-			bundle.ActivationPackage + "/activate && " + // run activation script
-			"pkill nix-daemon", // terminate nix-daemon
-		},
-		Confinement: fst.ConfinementConfig{
-			AppID:    bundle.AppID,
-			Groups:   bundle.Groups,
-			Username: "fortify",
-			Inner:    path.Join("/data/data", bundle.ID),
-			Outer:    pathSet.homeDir,
-			Sandbox: &fst.SandboxConfig{
-				Hostname:     formatHostname(bundle.Name) + "-activate",
-				UserNS:       true,              // nix sandbox requires userns
-				NoNewSession: dropShellActivate, // home-manager activation should not need job control
-				Filesystem: []*fst.FilesystemConfig{
-					{Src: pathSet.nixPath, Dst: "/nix", Write: true, Must: true},
-				},
-				Link: [][2]string{
-					{bundle.CurrentSystem, "/run/current-system"},
-					{"/run/current-system/sw/bin", "/bin"},
-					{"/run/current-system/sw/bin", "/usr/bin"},
-				},
-				Etc:     path.Join(pathSet.cacheDir, "etc"),
-				AutoEtc: true,
-			},
-			ExtraPerms: []*fst.ExtraPermConfig{
-				{Path: dataHome, Execute: true},
-				{Ensure: true, Path: pathSet.baseDir, Read: true, Write: true, Execute: true},
-				{Path: workDir, Execute: true},
-			},
-		},
-	}
-
-	if dropShellActivate {
-		activateConfig.Command = []string{shell, "-l"}
-		fortifyApp(activateConfig, cleanup)
-		cleanup()
-		fmsg.Exit(0)
-	}
-	fortifyApp(activateConfig, cleanup)
+	withNixDaemon("activate", []string{
+		// clean up broken links
+		"mkdir -p .local/state/{nix,home-manager}",
+		"chmod -R +w .local/state/{nix,home-manager}",
+		"rm -rf .local/state/{nix,home-manager}",
+		// run activation script
+		bundle.ActivationPackage + "/activate",
+	}, workDir, bundle, pathSet, dropShellActivate, cleanup)
 
 	/*
 		Installation complete. Write metadata to block re-installs or downgrades.
@@ -241,4 +181,89 @@ func actionInstall(args []string) {
 	}
 
 	cleanup()
+}
+
+func withNixDaemon(action string, command []string, workDir string, bundle *bundleInfo, pathSet *appPathSet, dropShell bool, beforeFail func()) {
+	fortifyAppDropShell(&fst.Config{
+		ID: bundle.ID,
+		Command: []string{shell, "-lc", "rm -f /nix/var/nix/daemon-socket/socket && " +
+			// start nix-daemon
+			"nix-daemon --store / & " +
+			// wait for socket to appear
+			"(while [ ! -S /nix/var/nix/daemon-socket/socket ]; do sleep 0.01; done) && " +
+			strings.Join(command, " && ") +
+			// terminate nix-daemon
+			" && pkill nix-daemon",
+		},
+		Confinement: fst.ConfinementConfig{
+			AppID:    bundle.AppID,
+			Groups:   bundle.Groups,
+			Username: "fortify",
+			Inner:    path.Join("/data/data", bundle.ID),
+			Outer:    pathSet.homeDir,
+			Sandbox: &fst.SandboxConfig{
+				Hostname:     formatHostname(bundle.Name) + "-" + action,
+				UserNS:       true, // nix sandbox requires userns
+				NoNewSession: dropShell,
+				Filesystem: []*fst.FilesystemConfig{
+					{Src: pathSet.nixPath, Dst: "/nix", Write: true, Must: true},
+				},
+				Link: [][2]string{
+					{bundle.CurrentSystem, "/run/current-system"},
+					{"/run/current-system/sw/bin", "/bin"},
+					{"/run/current-system/sw/bin", "/usr/bin"},
+				},
+				Etc:     path.Join(pathSet.cacheDir, "etc"),
+				AutoEtc: true,
+			},
+			ExtraPerms: []*fst.ExtraPermConfig{
+				{Path: dataHome, Execute: true},
+				{Ensure: true, Path: pathSet.baseDir, Read: true, Write: true, Execute: true},
+				{Path: workDir, Execute: true},
+			},
+		},
+	}, dropShell, beforeFail)
+}
+
+func withCacheDir(action string, command []string, workDir string, bundle *bundleInfo, pathSet *appPathSet, dropShell bool, beforeFail func()) {
+	fortifyAppDropShell(&fst.Config{
+		ID:      bundle.ID,
+		Command: []string{shell, "-lc", strings.Join(command, " && ")},
+		Confinement: fst.ConfinementConfig{
+			AppID:    bundle.AppID,
+			Username: "nixos",
+			Inner:    path.Join("/data/data", bundle.ID, "cache"),
+			Outer:    pathSet.cacheDir, // this also ensures cacheDir via fshim
+			Sandbox: &fst.SandboxConfig{
+				Hostname:     formatHostname(bundle.Name) + "-" + action,
+				NoNewSession: dropShell,
+				Filesystem: []*fst.FilesystemConfig{
+					{Src: path.Join(workDir, "nix"), Dst: "/nix", Must: true},
+					{Src: workDir, Dst: path.Join(fst.Tmp, "bundle"), Must: true},
+				},
+				Link: [][2]string{
+					{bundle.CurrentSystem, "/run/current-system"},
+					{"/run/current-system/sw/bin", "/bin"},
+					{"/run/current-system/sw/bin", "/usr/bin"},
+				},
+				Etc:     path.Join(workDir, "etc"),
+				AutoEtc: true,
+			},
+			ExtraPerms: []*fst.ExtraPermConfig{
+				{Path: dataHome, Execute: true},
+				{Ensure: true, Path: pathSet.baseDir, Read: true, Write: true, Execute: true},
+				{Path: workDir, Execute: true},
+			},
+		},
+	}, dropShell, beforeFail)
+}
+
+func fortifyAppDropShell(config *fst.Config, dropShell bool, beforeFail func()) {
+	if dropShell {
+		config.Command = []string{shell, "-l"}
+		fortifyApp(config, beforeFail)
+		beforeFail()
+		fmsg.Exit(0)
+	}
+	fortifyApp(config, beforeFail)
 }
