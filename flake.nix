@@ -29,7 +29,7 @@
     {
       nixosModules.fortify = import ./nixos.nix;
 
-      fortifyBundle = forAllSystems (
+      buildPackage = forAllSystems (
         system:
         nixpkgsFor.${system}.callPackage (
           import ./bundle.nix {
