@@ -40,11 +40,11 @@ type bundleInfo struct {
 
 	// allow gpu access within sandbox
 	GPU bool `json:"gpu"`
-	// inner nix store path to activate-and-exec script
+	// store path to activate-and-exec script
 	Launcher string `json:"launcher"`
 	// store path to /run/current-system
 	CurrentSystem string `json:"current_system"`
-	// home-manager activation package
+	// store path to home-manager activation package
 	ActivationPackage string `json:"activation_package"`
 }
 

@@ -97,7 +97,9 @@ func actionInstall(args []string) {
 
 	if app != bundle {
 		// do not try to re-install
-		if app.Launcher == bundle.Launcher {
+		if app.CurrentSystem == bundle.CurrentSystem &&
+			app.Launcher == bundle.Launcher &&
+			app.ActivationPackage == bundle.ActivationPackage {
 			cleanup()
 			fmsg.Printf("package %q is identical to local application %q", pkgPath, app.ID)
 			fmsg.Exit(0)
