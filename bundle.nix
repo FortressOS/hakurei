@@ -66,7 +66,10 @@ let
   extraNixOSConfig =
     { pkgs, ... }:
     {
-      environment.systemPackages = [ pkgs.nix ];
+      environment = {
+        etc.nixpkgs.source = nixpkgs.outPath;
+        systemPackages = [ pkgs.nix ];
+      };
     };
   nixos = nixpkgs.lib.nixosSystem {
     inherit system;
