@@ -47,7 +47,15 @@ let
 
   homeManagerConfiguration = home-manager.lib.homeManagerConfiguration {
     pkgs = nixpkgsFor.${system};
-    inherit modules;
+    modules = modules ++ [
+      {
+        home = {
+          username = "fortify";
+          homeDirectory = "/data/data/${id}";
+          stateVersion = "22.11";
+        };
+      }
+    ];
   };
 
   launcher = writeScript "fortify-${pname}" ''
