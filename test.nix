@@ -198,8 +198,8 @@ nixosTest {
     machine.wait_for_file("/run/user/1000/wayland-1")
     machine.wait_for_file("/tmp/sway-ipc.sock")
 
-    # Create fortify aid 0 home directory:
-    machine.succeed("install -dm 0700 -o 1000000 -g 1000000 /var/lib/fortify/u0/a0")
+    # Create fortify uid 0 state directory:
+    machine.succeed("install -dm 0755 -o u0_a0 -g users /var/lib/fortify/u0")
 
     # Start fortify outside Wayland session:
     print(machine.succeed("sudo -u alice -i fortify -v run -a 0 touch /tmp/success-bare"))
