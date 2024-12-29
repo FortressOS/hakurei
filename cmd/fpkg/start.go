@@ -84,7 +84,31 @@ func actionStart(args []string) {
 
 	if app.GPU {
 		config.Confinement.Sandbox.Filesystem = append(config.Confinement.Sandbox.Filesystem,
-			&fst.FilesystemConfig{Src: "/dev/dri", Device: true})
+			// flatpak commit 763a686d874dd668f0236f911de00b80766ffe79
+			&fst.FilesystemConfig{Src: "/dev/dri", Device: true},
+			// mali
+			&fst.FilesystemConfig{Src: "/dev/mali", Device: true},
+			&fst.FilesystemConfig{Src: "/dev/mali0", Device: true},
+			&fst.FilesystemConfig{Src: "/dev/umplock", Device: true},
+			// nvidia
+			&fst.FilesystemConfig{Src: "/dev/nvidiactl", Device: true},
+			&fst.FilesystemConfig{Src: "/dev/nvidia-modeset", Device: true},
+			// nvidia OpenCL/CUDA
+			&fst.FilesystemConfig{Src: "/dev/nvidia-uvm", Device: true},
+			&fst.FilesystemConfig{Src: "/dev/nvidia-uvm-tools", Device: true},
+
+			// flatpak commit d2dff2875bb3b7e2cd92d8204088d743fd07f3ff
+			&fst.FilesystemConfig{Src: "/dev/nvidia0", Device: true}, &fst.FilesystemConfig{Src: "/dev/nvidia1", Device: true},
+			&fst.FilesystemConfig{Src: "/dev/nvidia2", Device: true}, &fst.FilesystemConfig{Src: "/dev/nvidia3", Device: true},
+			&fst.FilesystemConfig{Src: "/dev/nvidia4", Device: true}, &fst.FilesystemConfig{Src: "/dev/nvidia5", Device: true},
+			&fst.FilesystemConfig{Src: "/dev/nvidia6", Device: true}, &fst.FilesystemConfig{Src: "/dev/nvidia7", Device: true},
+			&fst.FilesystemConfig{Src: "/dev/nvidia8", Device: true}, &fst.FilesystemConfig{Src: "/dev/nvidia9", Device: true},
+			&fst.FilesystemConfig{Src: "/dev/nvidia10", Device: true}, &fst.FilesystemConfig{Src: "/dev/nvidia11", Device: true},
+			&fst.FilesystemConfig{Src: "/dev/nvidia12", Device: true}, &fst.FilesystemConfig{Src: "/dev/nvidia13", Device: true},
+			&fst.FilesystemConfig{Src: "/dev/nvidia14", Device: true}, &fst.FilesystemConfig{Src: "/dev/nvidia15", Device: true},
+			&fst.FilesystemConfig{Src: "/dev/nvidia16", Device: true}, &fst.FilesystemConfig{Src: "/dev/nvidia17", Device: true},
+			&fst.FilesystemConfig{Src: "/dev/nvidia18", Device: true}, &fst.FilesystemConfig{Src: "/dev/nvidia19", Device: true},
+		)
 	}
 
 	fortifyApp(config, func() {})
