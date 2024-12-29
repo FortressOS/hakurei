@@ -155,7 +155,7 @@ func actionInstall(args []string) {
 		"rm -rf .local/state/{nix,home-manager}",
 		// run activation script
 		bundle.ActivationPackage + "/activate",
-	}, false, workDir, bundle, pathSet, dropShellActivate, cleanup)
+	}, false, bundle, pathSet, dropShellActivate, cleanup)
 
 	/*
 		Installation complete. Write metadata to block re-installs or downgrades.
@@ -184,7 +184,7 @@ func actionInstall(args []string) {
 	cleanup()
 }
 
-func withNixDaemon(action string, command []string, net bool, workDir string, bundle *bundleInfo, pathSet *appPathSet, dropShell bool, beforeFail func()) {
+func withNixDaemon(action string, command []string, net bool, bundle *bundleInfo, pathSet *appPathSet, dropShell bool, beforeFail func()) {
 	fortifyAppDropShell(&fst.Config{
 		ID: bundle.ID,
 		Command: []string{shell, "-lc", "rm -f /nix/var/nix/daemon-socket/socket && " +
@@ -221,7 +221,6 @@ func withNixDaemon(action string, command []string, net bool, workDir string, bu
 			ExtraPerms: []*fst.ExtraPermConfig{
 				{Path: dataHome, Execute: true},
 				{Ensure: true, Path: pathSet.baseDir, Read: true, Write: true, Execute: true},
-				{Path: workDir, Execute: true},
 			},
 		},
 	}, dropShell, beforeFail)
