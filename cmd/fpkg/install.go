@@ -5,7 +5,6 @@ import (
 	"flag"
 	"os"
 	"path"
-	"strings"
 
 	"git.gensokyo.uk/security/fortify/fst"
 	"git.gensokyo.uk/security/fortify/internal/fmsg"
@@ -144,6 +143,15 @@ func actionInstall(args []string) {
 		"chmod 0755 .",
 	}, workDir, bundle, pathSet, dropShellInstall, cleanup)
 
+	if bundle.GPU {
+		withCacheDir("mesa-wrappers", []string{
+			// link nixGL mesa wrappers
+			"mkdir -p nix/.nixGL",
+			"ln -s " + bundle.Mesa + "/bin/nixGLIntel nix/.nixGL/nixGL",
+			"ln -s " + bundle.Mesa + "/bin/nixVulkanIntel nix/.nixGL/nixVulkan",
+		}, workDir, bundle, pathSet, false, cleanup)
+	}
+
 	/*
 		Activate home-manager generation.
 	*/
@@ -155,7 +163,7 @@ func actionInstall(args []string) {
 		"rm -rf .local/state/{nix,home-manager}",
 		// run activation script
 		bundle.ActivationPackage + "/activate",
-	}, false, bundle, pathSet, dropShellActivate, cleanup)
+	}, false, func(config *fst.Config) *fst.Config { return config }, bundle, pathSet, dropShellActivate, cleanup)
 
 	/*
 		Installation complete. Write metadata to block re-installs or downgrades.
@@ -182,89 +190,4 @@ func actionInstall(args []string) {
 	}
 
 	cleanup()
-}
-
-func withNixDaemon(action string, command []string, net bool, bundle *bundleInfo, pathSet *appPathSet, dropShell bool, beforeFail func()) {
-	fortifyAppDropShell(&fst.Config{
-		ID: bundle.ID,
-		Command: []string{shell, "-lc", "rm -f /nix/var/nix/daemon-socket/socket && " +
-			// start nix-daemon
-			"nix-daemon --store / & " +
-			// wait for socket to appear
-			"(while [ ! -S /nix/var/nix/daemon-socket/socket ]; do sleep 0.01; done) && " +
-			strings.Join(command, " && ") +
-			// terminate nix-daemon
-			" && pkill nix-daemon",
-		},
-		Confinement: fst.ConfinementConfig{
-			AppID:    bundle.AppID,
-			Groups:   bundle.Groups,
-			Username: "fortify",
-			Inner:    path.Join("/data/data", bundle.ID),
-			Outer:    pathSet.homeDir,
-			Sandbox: &fst.SandboxConfig{
-				Hostname:     formatHostname(bundle.Name) + "-" + action,
-				UserNS:       true, // nix sandbox requires userns
-				Net:          net,
-				NoNewSession: dropShell,
-				Filesystem: []*fst.FilesystemConfig{
-					{Src: pathSet.nixPath, Dst: "/nix", Write: true, Must: true},
-				},
-				Link: [][2]string{
-					{bundle.CurrentSystem, "/run/current-system"},
-					{"/run/current-system/sw/bin", "/bin"},
-					{"/run/current-system/sw/bin", "/usr/bin"},
-				},
-				Etc:     path.Join(pathSet.cacheDir, "etc"),
-				AutoEtc: true,
-			},
-			ExtraPerms: []*fst.ExtraPermConfig{
-				{Path: dataHome, Execute: true},
-				{Ensure: true, Path: pathSet.baseDir, Read: true, Write: true, Execute: true},
-			},
-		},
-	}, dropShell, beforeFail)
-}
-
-func withCacheDir(action string, command []string, workDir string, bundle *bundleInfo, pathSet *appPathSet, dropShell bool, beforeFail func()) {
-	fortifyAppDropShell(&fst.Config{
-		ID:      bundle.ID,
-		Command: []string{shell, "-lc", strings.Join(command, " && ")},
-		Confinement: fst.ConfinementConfig{
-			AppID:    bundle.AppID,
-			Username: "nixos",
-			Inner:    path.Join("/data/data", bundle.ID, "cache"),
-			Outer:    pathSet.cacheDir, // this also ensures cacheDir via fshim
-			Sandbox: &fst.SandboxConfig{
-				Hostname:     formatHostname(bundle.Name) + "-" + action,
-				NoNewSession: dropShell,
-				Filesystem: []*fst.FilesystemConfig{
-					{Src: path.Join(workDir, "nix"), Dst: "/nix", Must: true},
-					{Src: workDir, Dst: path.Join(fst.Tmp, "bundle"), Must: true},
-				},
-				Link: [][2]string{
-					{bundle.CurrentSystem, "/run/current-system"},
-					{"/run/current-system/sw/bin", "/bin"},
-					{"/run/current-system/sw/bin", "/usr/bin"},
-				},
-				Etc:     path.Join(workDir, "etc"),
-				AutoEtc: true,
-			},
-			ExtraPerms: []*fst.ExtraPermConfig{
-				{Path: dataHome, Execute: true},
-				{Ensure: true, Path: pathSet.baseDir, Read: true, Write: true, Execute: true},
-				{Path: workDir, Execute: true},
-			},
-		},
-	}, dropShell, beforeFail)
-}
-
-func fortifyAppDropShell(config *fst.Config, dropShell bool, beforeFail func()) {
-	if dropShell {
-		config.Command = []string{shell, "-l"}
-		fortifyApp(config, beforeFail)
-		beforeFail()
-		fmsg.Exit(0)
-	}
-	fortifyApp(config, beforeFail)
 }

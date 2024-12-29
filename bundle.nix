@@ -10,6 +10,7 @@
   writeScript,
   runtimeShell,
   writeText,
+  symlinkJoin,
   vmTools,
   runCommand,
   fetchFromGitHub,
@@ -117,6 +118,23 @@ let
     hash = "sha256-lnzZQYG0+EXl/6NkGpyIz+FEOc/DSEG57AP1VsdeNrM=";
   };
 
+  mesaWrappers =
+    let
+      isIntelX86Platform = system == "x86_64-linux";
+      nixGLPackages = import (nixGL + "/default.nix") {
+        pkgs = nixpkgs.legacyPackages.${system};
+        enable32bits = isIntelX86Platform;
+        enableIntelX86Extensions = isIntelX86Platform;
+      };
+    in
+    symlinkJoin {
+      name = "nixGL-mesa";
+      paths = with nixGLPackages; [
+        nixGLIntel
+        nixVulkanIntel
+      ];
+    };
+
   info = builtins.toJSON {
     inherit
       name
@@ -152,6 +170,7 @@ let
       + (if allow_dbus then 4 else 0)
       + (if allow_pulse then 8 else 0);
 
+    mesa = if gpu then mesaWrappers else null;
     nix_gl = if gpu then nixGL else null;
     current_system = nixos.config.system.build.toplevel;
     activation_package = homeManagerConfiguration.activationPackage;
@@ -169,7 +188,7 @@ writeScript "fortify-${pname}-bundle-prelude" ''
   chmod -R +r "$OUT/nix/var"
   nix copy --no-check-sigs --to "file://$OUT/res?compression=zstd&compression-level=19&parallel-compression=true" \
     "${homeManagerConfiguration.activationPackage}" \
-    "${launcher}" ${if gpu then nixGL else ""}
+    "${launcher}" ${if gpu then "${mesaWrappers} ${nixGL}" else ""}
   mkdir -p "$OUT/etc"
   tar -C "$OUT/etc" -xf "${etc}/etc.tar"
   cp "${writeText "bundle.json" info}" "$OUT/bundle.json"

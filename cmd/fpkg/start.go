@@ -10,8 +10,14 @@ import (
 
 func actionStart(args []string) {
 	set := flag.NewFlagSet("start", flag.ExitOnError)
-	var dropShell bool
+	var (
+		dropShell      bool
+		dropShellNixGL bool
+		autoDrivers    bool
+	)
 	set.BoolVar(&dropShell, "s", false, "Drop to a shell")
+	set.BoolVar(&dropShellNixGL, "sg", false, "Drop to a shell on nixGL build")
+	set.BoolVar(&autoDrivers, "autodrivers", false, "Attempt automatic opengl driver detection")
 
 	// Ignore errors; set is set for ExitOnError.
 	_ = set.Parse(args)
@@ -21,13 +27,52 @@ func actionStart(args []string) {
 	if len(args) < 1 {
 		fmsg.Fatal("invalid argument")
 	}
+
+	/*
+		Parse app metadata.
+	*/
+
 	id := args[0]
 	pathSet := pathSetByApp(id)
 	app := loadBundleInfo(pathSet.metaPath, func() {})
-
 	if app.ID != id {
 		fmsg.Fatalf("app %q claims to have identifier %q", id, app.ID)
 	}
+
+	/*
+		Prepare nixGL.
+	*/
+
+	if app.GPU && autoDrivers {
+		withNixDaemon("nix-gl", []string{
+			"mkdir -p /nix/.nixGL/auto",
+			"rm -rf /nix/.nixGL/auto",
+			"export NIXPKGS_ALLOW_UNFREE=1",
+			"nix build --impure " +
+				"--out-link /nix/.nixGL/auto/opengl " +
+				"--override-input nixpkgs path:/etc/nixpkgs " +
+				"path:" + app.NixGL,
+			"nix build --impure " +
+				"--out-link /nix/.nixGL/auto/vulkan " +
+				"--override-input nixpkgs path:/etc/nixpkgs " +
+				"path:" + app.NixGL + "#nixVulkanNvidia",
+		}, true, func(config *fst.Config) *fst.Config {
+			config.Confinement.Sandbox.Filesystem = append(config.Confinement.Sandbox.Filesystem, []*fst.FilesystemConfig{
+				{Src: "/etc/resolv.conf"},
+				{Src: "/sys/block"},
+				{Src: "/sys/bus"},
+				{Src: "/sys/class"},
+				{Src: "/sys/dev"},
+				{Src: "/sys/devices"},
+			}...)
+			appendGPUFilesystem(config)
+			return config
+		}, app, pathSet, dropShellNixGL, func() {})
+	}
+
+	/*
+		Create app configuration.
+	*/
 
 	command := make([]string, 1, len(args))
 	if !dropShell {
@@ -82,35 +127,49 @@ func actionStart(args []string) {
 		},
 	}
 
+	/*
+		Expose GPU devices.
+	*/
+
 	if app.GPU {
 		config.Confinement.Sandbox.Filesystem = append(config.Confinement.Sandbox.Filesystem,
-			// flatpak commit 763a686d874dd668f0236f911de00b80766ffe79
-			&fst.FilesystemConfig{Src: "/dev/dri", Device: true},
-			// mali
-			&fst.FilesystemConfig{Src: "/dev/mali", Device: true},
-			&fst.FilesystemConfig{Src: "/dev/mali0", Device: true},
-			&fst.FilesystemConfig{Src: "/dev/umplock", Device: true},
-			// nvidia
-			&fst.FilesystemConfig{Src: "/dev/nvidiactl", Device: true},
-			&fst.FilesystemConfig{Src: "/dev/nvidia-modeset", Device: true},
-			// nvidia OpenCL/CUDA
-			&fst.FilesystemConfig{Src: "/dev/nvidia-uvm", Device: true},
-			&fst.FilesystemConfig{Src: "/dev/nvidia-uvm-tools", Device: true},
-
-			// flatpak commit d2dff2875bb3b7e2cd92d8204088d743fd07f3ff
-			&fst.FilesystemConfig{Src: "/dev/nvidia0", Device: true}, &fst.FilesystemConfig{Src: "/dev/nvidia1", Device: true},
-			&fst.FilesystemConfig{Src: "/dev/nvidia2", Device: true}, &fst.FilesystemConfig{Src: "/dev/nvidia3", Device: true},
-			&fst.FilesystemConfig{Src: "/dev/nvidia4", Device: true}, &fst.FilesystemConfig{Src: "/dev/nvidia5", Device: true},
-			&fst.FilesystemConfig{Src: "/dev/nvidia6", Device: true}, &fst.FilesystemConfig{Src: "/dev/nvidia7", Device: true},
-			&fst.FilesystemConfig{Src: "/dev/nvidia8", Device: true}, &fst.FilesystemConfig{Src: "/dev/nvidia9", Device: true},
-			&fst.FilesystemConfig{Src: "/dev/nvidia10", Device: true}, &fst.FilesystemConfig{Src: "/dev/nvidia11", Device: true},
-			&fst.FilesystemConfig{Src: "/dev/nvidia12", Device: true}, &fst.FilesystemConfig{Src: "/dev/nvidia13", Device: true},
-			&fst.FilesystemConfig{Src: "/dev/nvidia14", Device: true}, &fst.FilesystemConfig{Src: "/dev/nvidia15", Device: true},
-			&fst.FilesystemConfig{Src: "/dev/nvidia16", Device: true}, &fst.FilesystemConfig{Src: "/dev/nvidia17", Device: true},
-			&fst.FilesystemConfig{Src: "/dev/nvidia18", Device: true}, &fst.FilesystemConfig{Src: "/dev/nvidia19", Device: true},
-		)
+			&fst.FilesystemConfig{Src: path.Join(pathSet.nixPath, ".nixGL"), Dst: path.Join(fst.Tmp, "nixGL")})
+		appendGPUFilesystem(config)
 	}
+
+	/*
+		Spawn app.
+	*/
 
 	fortifyApp(config, func() {})
 	fmsg.Exit(0)
+}
+
+func appendGPUFilesystem(config *fst.Config) {
+	config.Confinement.Sandbox.Filesystem = append(config.Confinement.Sandbox.Filesystem, []*fst.FilesystemConfig{
+		// flatpak commit 763a686d874dd668f0236f911de00b80766ffe79
+		{Src: "/dev/dri", Device: true},
+		// mali
+		{Src: "/dev/mali", Device: true},
+		{Src: "/dev/mali0", Device: true},
+		{Src: "/dev/umplock", Device: true},
+		// nvidia
+		{Src: "/dev/nvidiactl", Device: true},
+		{Src: "/dev/nvidia-modeset", Device: true},
+		// nvidia OpenCL/CUDA
+		{Src: "/dev/nvidia-uvm", Device: true},
+		{Src: "/dev/nvidia-uvm-tools", Device: true},
+
+		// flatpak commit d2dff2875bb3b7e2cd92d8204088d743fd07f3ff
+		{Src: "/dev/nvidia0", Device: true}, {Src: "/dev/nvidia1", Device: true},
+		{Src: "/dev/nvidia2", Device: true}, {Src: "/dev/nvidia3", Device: true},
+		{Src: "/dev/nvidia4", Device: true}, {Src: "/dev/nvidia5", Device: true},
+		{Src: "/dev/nvidia6", Device: true}, {Src: "/dev/nvidia7", Device: true},
+		{Src: "/dev/nvidia8", Device: true}, {Src: "/dev/nvidia9", Device: true},
+		{Src: "/dev/nvidia10", Device: true}, {Src: "/dev/nvidia11", Device: true},
+		{Src: "/dev/nvidia12", Device: true}, {Src: "/dev/nvidia13", Device: true},
+		{Src: "/dev/nvidia14", Device: true}, {Src: "/dev/nvidia15", Device: true},
+		{Src: "/dev/nvidia16", Device: true}, {Src: "/dev/nvidia17", Device: true},
+		{Src: "/dev/nvidia18", Device: true}, {Src: "/dev/nvidia19", Device: true},
+	}...)
 }

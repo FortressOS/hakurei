@@ -40,6 +40,8 @@ type bundleInfo struct {
 
 	// allow gpu access within sandbox
 	GPU bool `json:"gpu"`
+	// store path to nixGL mesa wrappers
+	Mesa string `json:"mesa,omitempty"`
 	// store path to nixGL source
 	NixGL string `json:"nix_gl,omitempty"`
 	// store path to activate-and-exec script
