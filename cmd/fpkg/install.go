@@ -98,7 +98,8 @@ func actionInstall(args []string) {
 
 	if app != bundle {
 		// do not try to re-install
-		if app.CurrentSystem == bundle.CurrentSystem &&
+		if app.NixGL == bundle.NixGL &&
+			app.CurrentSystem == bundle.CurrentSystem &&
 			app.Launcher == bundle.Launcher &&
 			app.ActivationPackage == bundle.ActivationPackage {
 			cleanup()

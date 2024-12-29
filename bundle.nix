@@ -12,6 +12,7 @@
   writeText,
   vmTools,
   runCommand,
+  fetchFromGitHub,
 
   nix,
 
@@ -109,6 +110,13 @@ let
     inherit (ext) call broadcast;
   };
 
+  nixGL = fetchFromGitHub {
+    owner = "nix-community";
+    repo = "nixGL";
+    rev = "310f8e49a149e4c9ea52f1adf70cdc768ec53f8a";
+    hash = "sha256-lnzZQYG0+EXl/6NkGpyIz+FEOc/DSEG57AP1VsdeNrM=";
+  };
+
   info = builtins.toJSON {
     inherit
       name
@@ -144,6 +152,7 @@ let
       + (if allow_dbus then 4 else 0)
       + (if allow_pulse then 8 else 0);
 
+    nix_gl = if gpu then nixGL else null;
     current_system = nixos.config.system.build.toplevel;
     activation_package = homeManagerConfiguration.activationPackage;
   };
@@ -158,7 +167,9 @@ writeScript "fortify-${pname}-bundle-prelude" ''
   nix copy --no-check-sigs --to "$OUT" "${nix}" "${nixos.config.system.build.toplevel}"
   nix store --store "$OUT" optimise
   chmod -R +r "$OUT/nix/var"
-  nix copy --no-check-sigs --to "file://$OUT/res?compression=zstd&compression-level=19&parallel-compression=true" "${homeManagerConfiguration.activationPackage}" "${launcher}"
+  nix copy --no-check-sigs --to "file://$OUT/res?compression=zstd&compression-level=19&parallel-compression=true" \
+    "${homeManagerConfiguration.activationPackage}" \
+    "${launcher}" ${if gpu then nixGL else ""}
   mkdir -p "$OUT/etc"
   tar -C "$OUT/etc" -xf "${etc}/etc.tar"
   cp "${writeText "bundle.json" info}" "$OUT/bundle.json"

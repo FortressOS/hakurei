@@ -40,6 +40,8 @@ type bundleInfo struct {
 
 	// allow gpu access within sandbox
 	GPU bool `json:"gpu"`
+	// store path to nixGL source
+	NixGL string `json:"nix_gl,omitempty"`
 	// store path to activate-and-exec script
 	Launcher string `json:"launcher"`
 	// store path to /run/current-system
