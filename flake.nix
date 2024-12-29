@@ -36,7 +36,6 @@
             inherit
               nixpkgsFor
               system
-              self
               nixpkgs
               home-manager
               ;
