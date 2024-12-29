@@ -171,7 +171,8 @@ func actionInstall(args []string) {
 
 	activateConfig := &fst.Config{
 		ID: bundle.ID,
-		Command: []string{shell, "-lc", "nix-daemon --store / & " + // start nix-daemon
+		Command: []string{shell, "-lc", "mkdir -p .local/state/{nix,home-manager} && chmod -R +w .local/state/{nix,home-manager} && rm -rf .local/state/{nix,home-manager} && " + // clean up broken links
+			"nix-daemon --store / & " + // start nix-daemon
 			"(while [ ! -S /nix/var/nix/daemon-socket/socket ]; do sleep 0.01; done) && " + // wait for socket to appear
 			bundle.ActivationPackage + "/activate && " + // run activation script
 			"pkill nix-daemon", // terminate nix-daemon
