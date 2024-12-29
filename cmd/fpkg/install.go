@@ -139,6 +139,8 @@ func actionInstall(args []string) {
 		"cp -dRf /nix nix",
 		// copy from binary cache
 		"nix copy --offline --no-check-sigs --all --from file://$BUNDLE/res --to $PWD",
+		// deduplicate nix store
+		"nix store --offline --store $PWD optimise",
 		// make cache directory world-readable for autoetc
 		"chmod 0755 .",
 	}, workDir, bundle, pathSet, dropShellInstall, cleanup)
