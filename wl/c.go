@@ -74,7 +74,7 @@ static int32_t bind_wayland_fd(char *socket_path, int fd, const char *app_id, co
 
   struct wp_security_context_v1 *security_context;
   security_context = wp_security_context_manager_v1_create_listener(security_context_manager, listen_fd, sync_fd);
-  wp_security_context_v1_set_sandbox_engine(security_context, "moe.ophivana.fortify");
+  wp_security_context_v1_set_sandbox_engine(security_context, "uk.gensokyo.fortify");
   wp_security_context_v1_set_app_id(security_context, app_id);
   wp_security_context_v1_set_instance_id(security_context, instance_id);
   wp_security_context_v1_commit(security_context);

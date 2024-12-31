@@ -1,13 +1,13 @@
 {
   "see": [
-    "moe.ophivana.CrashTestDummy1"
+    "uk.gensokyo.CrashTestDummy1"
   ],
   "talk":[
     "org.freedesktop.Notifications"
   ],
   "own":[
-    "moe.ophivana.CrashTestDummy.*",
-    "org.mpris.MediaPlayer2.moe.ophivana.CrashTestDummy.*"
+    "uk.gensokyo.CrashTestDummy.*",
+    "org.mpris.MediaPlayer2.uk.gensokyo.CrashTestDummy.*"
   ],
   "call":{
     "org.freedesktop.portal.*":"*"

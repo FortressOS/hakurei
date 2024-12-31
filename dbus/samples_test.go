@@ -82,10 +82,10 @@ var samples = []dbusTestCase{
 	},
 
 	{
-		"moe.ophivana.CrashTestDummy", &dbus.Config{
-			See:       []string{"moe.ophivana.CrashTestDummy1"},
+		"uk.gensokyo.CrashTestDummy", &dbus.Config{
+			See:       []string{"uk.gensokyo.CrashTestDummy1"},
 			Talk:      []string{"org.freedesktop.Notifications"},
-			Own:       []string{"moe.ophivana.CrashTestDummy.*", "org.mpris.MediaPlayer2.moe.ophivana.CrashTestDummy.*"},
+			Own:       []string{"uk.gensokyo.CrashTestDummy.*", "org.mpris.MediaPlayer2.uk.gensokyo.CrashTestDummy.*"},
 			Call:      map[string]string{"org.freedesktop.portal.*": "*"},
 			Broadcast: map[string]string{"org.freedesktop.portal.*": "@/org/freedesktop/portal/*"},
 			Log:       true,
@@ -96,19 +96,19 @@ var samples = []dbusTestCase{
 			"unix:path=/run/user/1971/bus",
 			"/tmp/fortify.1971/5da7845287a936efbc2fa75d7d81e501/bus",
 			"--filter",
-			"--see=moe.ophivana.CrashTestDummy1",
+			"--see=uk.gensokyo.CrashTestDummy1",
 			"--talk=org.freedesktop.Notifications",
-			"--own=moe.ophivana.CrashTestDummy.*",
-			"--own=org.mpris.MediaPlayer2.moe.ophivana.CrashTestDummy.*",
+			"--own=uk.gensokyo.CrashTestDummy.*",
+			"--own=org.mpris.MediaPlayer2.uk.gensokyo.CrashTestDummy.*",
 			"--call=org.freedesktop.portal.*=*",
 			"--broadcast=org.freedesktop.portal.*=@/org/freedesktop/portal/*",
 			"--log"},
 	},
 	{
-		"moe.ophivana.CrashTestDummy1", &dbus.Config{
-			See:       []string{"moe.ophivana.CrashTestDummy"},
+		"uk.gensokyo.CrashTestDummy1", &dbus.Config{
+			See:       []string{"uk.gensokyo.CrashTestDummy"},
 			Talk:      []string{"org.freedesktop.Notifications"},
-			Own:       []string{"moe.ophivana.CrashTestDummy1.*", "org.mpris.MediaPlayer2.moe.ophivana.CrashTestDummy1.*"},
+			Own:       []string{"uk.gensokyo.CrashTestDummy1.*", "org.mpris.MediaPlayer2.uk.gensokyo.CrashTestDummy1.*"},
 			Call:      map[string]string{"org.freedesktop.portal.*": "*"},
 			Broadcast: map[string]string{"org.freedesktop.portal.*": "@/org/freedesktop/portal/*"},
 			Log:       true,
@@ -119,10 +119,10 @@ var samples = []dbusTestCase{
 			"unix:path=/run/user/1971/bus",
 			"/tmp/fortify.1971/5da7845287a936efbc2fa75d7d81e501/bus",
 			"--filter",
-			"--see=moe.ophivana.CrashTestDummy",
+			"--see=uk.gensokyo.CrashTestDummy",
 			"--talk=org.freedesktop.Notifications",
-			"--own=moe.ophivana.CrashTestDummy1.*",
-			"--own=org.mpris.MediaPlayer2.moe.ophivana.CrashTestDummy1.*",
+			"--own=uk.gensokyo.CrashTestDummy1.*",
+			"--own=org.mpris.MediaPlayer2.uk.gensokyo.CrashTestDummy1.*",
 			"--call=org.freedesktop.portal.*=*",
 			"--broadcast=org.freedesktop.portal.*=@/org/freedesktop/portal/*",
 			"--log"},

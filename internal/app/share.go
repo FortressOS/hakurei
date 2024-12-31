@@ -170,7 +170,7 @@ func (seal *appSeal) setupShares(bus [2]*dbus.Config, os linux.System) error {
 			appID := seal.fid
 			if appID == "" {
 				// use instance ID in case app id is not set
-				appID = "moe.ophivana.fortify." + seal.id
+				appID = "uk.gensokyo.fortify." + seal.id
 			}
 			seal.sys.Wayland(wt, wp, appID, seal.id)
 			seal.sys.bwrap.Bind(wt, w)
