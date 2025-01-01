@@ -16,7 +16,6 @@ import (
 	"git.gensokyo.uk/security/fortify/internal/app"
 	"git.gensokyo.uk/security/fortify/internal/fmsg"
 	"git.gensokyo.uk/security/fortify/internal/linux"
-	"git.gensokyo.uk/security/fortify/internal/state"
 	"git.gensokyo.uk/security/fortify/internal/system"
 )
 
@@ -128,24 +127,20 @@ func main() {
 		// Ignore errors; set is set for ExitOnError.
 		_ = set.Parse(args[1:])
 
-		var (
-			config   *fst.Config
-			instance *state.State
-			name     string
-		)
-
-		if len(set.Args()) != 1 {
+		switch len(set.Args()) {
+		case 0: // system
+			printShowSystem(short)
+		case 1: // instance
+			name := set.Args()[0]
+			config, instance := tryShort(name)
+			if config == nil {
+				config = tryPath(name)
+			}
+			printShowInstance(instance, config, short)
+		default:
 			fmsg.Fatal("show requires 1 argument")
-		} else {
-			name = set.Args()[0]
-			config, instance = tryShort(name)
 		}
 
-		if config == nil {
-			config = tryPath(name)
-		}
-
-		printShow(instance, config, short)
 		fmsg.Exit(0)
 	case "app": // launch app from configuration file
 		if len(args) < 2 {

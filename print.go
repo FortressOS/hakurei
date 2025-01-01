@@ -16,14 +16,37 @@ import (
 	"git.gensokyo.uk/security/fortify/internal/state"
 )
 
-func printShow(instance *state.State, config *fst.Config, short bool) {
-	if flagJSON {
-		v := any(config)
-		if instance != nil {
-			v = instance
-		}
+func printShowSystem(short bool) {
+	info := new(fst.Info)
 
-		printJSON(v)
+	// get fid by querying uid of aid 0
+	if uid, err := os.Uid(0); err != nil {
+		fmsg.Fatalf("cannot obtain uid from fsu: %v", err)
+	} else {
+		info.User = (uid / 10000) - 100
+	}
+
+	if flagJSON {
+		printJSON(info)
+		return
+	}
+
+	w := tabwriter.NewWriter(direct.Stdout, 0, 1, 4, ' ', 0)
+
+	fmt.Fprintf(w, "User:\t%d\n", info.User)
+
+	if err := w.Flush(); err != nil {
+		fmsg.Fatalf("cannot flush tabwriter: %v", err)
+	}
+}
+
+func printShowInstance(instance *state.State, config *fst.Config, short bool) {
+	if flagJSON {
+		if instance != nil {
+			printJSON(instance)
+		} else {
+			printJSON(config)
+		}
 		return
 	}
 
