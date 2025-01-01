@@ -20,7 +20,7 @@ func printShowSystem(short bool) {
 	info := new(fst.Info)
 
 	// get fid by querying uid of aid 0
-	if uid, err := os.Uid(0); err != nil {
+	if uid, err := sys.Uid(0); err != nil {
 		fmsg.Fatalf("cannot obtain uid from fsu: %v", err)
 	} else {
 		info.User = (uid / 10000) - 100
@@ -194,7 +194,7 @@ func printPs(short bool) {
 	now := time.Now().UTC()
 
 	var entries state.Entries
-	s := state.NewMulti(os.Paths().RunDirPath)
+	s := state.NewMulti(sys.Paths().RunDirPath)
 	if e, err := state.Join(s); err != nil {
 		fmsg.Fatalf("cannot join store: %v", err)
 	} else {

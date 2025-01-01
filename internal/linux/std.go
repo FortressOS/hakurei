@@ -1,6 +1,7 @@
 package linux
 
 import (
+	"errors"
 	"io"
 	"io/fs"
 	"os"
@@ -8,6 +9,7 @@ import (
 	"os/user"
 	"strconv"
 	"sync"
+	"syscall"
 
 	"git.gensokyo.uk/security/fortify/internal"
 	"git.gensokyo.uk/security/fortify/internal/fmsg"
@@ -79,9 +81,15 @@ func (s *Std) Uid(aid int) (int, error) {
 		cmd.Stderr = os.Stderr // pass through fatal messages
 		cmd.Env = []string{"FORTIFY_APP_ID=" + strconv.Itoa(aid)}
 		cmd.Dir = "/"
-		var p []byte
+		var (
+			p         []byte
+			exitError *exec.ExitError
+		)
+
 		if p, u.err = cmd.Output(); u.err == nil {
 			u.uid, u.err = strconv.Atoi(string(p))
+		} else if errors.As(u.err, &exitError) && exitError != nil && exitError.ExitCode() == 1 {
+			u.err = syscall.EACCES
 		}
 		return u.uid, u.err
 	}

@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
-	direct "os"
+	"os"
 	"strconv"
 	"strings"
 	"syscall"
@@ -38,7 +38,7 @@ func tryPath(name string) (config *fst.Config) {
 			}()
 		}
 	} else {
-		r = direct.Stdin
+		r = os.Stdin
 	}
 
 	if err := json.NewDecoder(r).Decode(&config); err != nil {
@@ -61,7 +61,7 @@ func tryFd(name string) io.ReadCloser {
 			}
 			fmsg.Fatalf("cannot get fd %d: %v", fd, errno)
 		}
-		return direct.NewFile(fd, strconv.Itoa(v))
+		return os.NewFile(fd, strconv.Itoa(v))
 	}
 }
 
@@ -85,7 +85,7 @@ func tryShort(name string) (config *fst.Config, instance *state.State) {
 	if likePrefix && len(name) >= 8 {
 		fmsg.VPrintln("argument looks like prefix")
 
-		s := state.NewMulti(os.Paths().RunDirPath)
+		s := state.NewMulti(sys.Paths().RunDirPath)
 		if entries, err := state.Join(s); err != nil {
 			fmsg.Printf("cannot join store: %v", err)
 			// drop to fetch from file

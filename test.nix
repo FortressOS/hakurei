@@ -19,11 +19,19 @@ nixosTest {
   nodes.machine =
     { lib, pkgs, ... }:
     {
-      users.users.alice = {
-        isNormalUser = true;
-        description = "Alice Foobar";
-        password = "foobar";
-        uid = 1000;
+      users.users = {
+        alice = {
+          isNormalUser = true;
+          description = "Alice Foobar";
+          password = "foobar";
+          uid = 1000;
+        };
+        untrusted = {
+          isNormalUser = true;
+          description = "Untrusted user";
+          password = "foobar";
+          uid = 1001;
+        };
       };
 
       home-manager.users.alice.home.stateVersion = "24.11";
@@ -197,6 +205,9 @@ nixosTest {
     # Wait for Sway to complete startup:
     machine.wait_for_file("/run/user/1000/wayland-1")
     machine.wait_for_file("/tmp/sway-ipc.sock")
+
+    # Deny unmapped uid:
+    print(machine.fail("sudo -u untrusted -i ${self.packages.${system}.fortify}/bin/fortify -v run"))
 
     # Create fortify uid 0 state directory:
     machine.succeed("install -dm 0755 -o u0_a0 -g users /var/lib/fortify/u0")

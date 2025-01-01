@@ -4,6 +4,7 @@ import (
 	_ "embed"
 	"flag"
 	"fmt"
+	"os"
 	"os/user"
 	"strconv"
 	"strings"
@@ -32,7 +33,7 @@ func init() {
 	flag.BoolVar(&flagJSON, "json", false, "Format output in JSON when applicable")
 }
 
-var os = new(linux.Std)
+var sys linux.System = new(linux.Std)
 
 type gl []string
 
@@ -64,7 +65,7 @@ func main() {
 		fmt.Println("Usage:\tfortify [-v] [--json] COMMAND [OPTIONS]")
 		fmt.Println()
 		fmt.Println("Commands:")
-		w := tabwriter.NewWriter(os.Stdout(), 0, 1, 4, ' ', 0)
+		w := tabwriter.NewWriter(os.Stdout, 0, 1, 4, ' ', 0)
 		commands := [][2]string{
 			{"app", "Launch app defined by the specified config file"},
 			{"run", "Configure and start a permissive default sandbox"},
@@ -206,7 +207,7 @@ func main() {
 			passwdOnce sync.Once
 			passwdFunc = func() {
 				var us string
-				if uid, err := os.Uid(aid); err != nil {
+				if uid, err := sys.Uid(aid); err != nil {
 					fmsg.Fatalf("cannot obtain uid from fsu: %v", err)
 				} else {
 					us = strconv.Itoa(uid)
@@ -287,7 +288,7 @@ func main() {
 }
 
 func runApp(config *fst.Config) {
-	a, err := app.New(os)
+	a, err := app.New(sys)
 	if err != nil {
 		fmsg.Fatalf("cannot create app: %s\n", err)
 	} else if err = a.Seal(config); err != nil {
