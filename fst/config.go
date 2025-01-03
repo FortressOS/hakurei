@@ -136,11 +136,17 @@ func (s *SandboxConfig) Bwrap(os linux.System) (*bwrap.Config, error) {
 	}
 
 	conf := (&bwrap.Config{
-		Net:           s.Net,
-		UserNS:        s.UserNS,
-		Hostname:      s.Hostname,
-		Clearenv:      true,
-		SetEnv:        s.Env,
+		Net:      s.Net,
+		UserNS:   s.UserNS,
+		Hostname: s.Hostname,
+		Clearenv: true,
+		SetEnv:   s.Env,
+
+		/* this is only 4 KiB of memory on a 64-bit system,
+		permissive defaults on NixOS results in around 100 entries
+		so this capacity should eliminate copies for most setups */
+		Filesystem: make([]bwrap.FSBuilder, 0, 256),
+
 		NewSession:    !s.NoNewSession,
 		DieWithParent: true,
 		AsInit:        true,
