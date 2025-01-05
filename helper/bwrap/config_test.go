@@ -1,19 +1,21 @@
-package bwrap
+package bwrap_test
 
 import (
 	"slices"
 	"testing"
+
+	"git.gensokyo.uk/security/fortify/helper/bwrap"
 )
 
 func TestConfig_Args(t *testing.T) {
 	testCases := []struct {
 		name string
-		conf *Config
+		conf *bwrap.Config
 		want []string
 	}{
 		{
 			name: "xdg-dbus-proxy constraint sample",
-			conf: (&Config{
+			conf: (&bwrap.Config{
 				Unshare:       nil,
 				UserNS:        false,
 				Clearenv:      true,
@@ -71,7 +73,7 @@ func TestConfig_Args(t *testing.T) {
 		},
 		{
 			name: "fortify permissive default nixos",
-			conf: (&Config{
+			conf: (&bwrap.Config{
 				Unshare:  nil,
 				Net:      true,
 				UserNS:   true,
