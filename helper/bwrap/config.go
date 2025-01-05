@@ -52,7 +52,7 @@ type Config struct {
 	LockFile []string `json:"lock_file,omitempty"`
 
 	// ordered filesystem args
-	Filesystem []FSBuilder
+	Filesystem []FSBuilder `json:"filesystem,omitempty"`
 
 	// change permissions (must already exist)
 	// (--chmod OCTAL PATH)
