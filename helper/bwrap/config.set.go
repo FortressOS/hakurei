@@ -96,6 +96,31 @@ func (c *Config) Tmpfs(dest string, size int, perm ...os.FileMode) *Config {
 	return c
 }
 
+// Overlay mount overlayfs on DEST, with writes going to an invisible tmpfs
+// (--tmp-overlay DEST)
+func (c *Config) Overlay(dest string, src ...string) *Config {
+	c.Filesystem = append(c.Filesystem, &OverlayConfig{Src: src, Dest: dest})
+	return c
+}
+
+// Join mount overlayfs read-only on DEST
+// (--ro-overlay DEST)
+func (c *Config) Join(dest string, src ...string) *Config {
+	c.Filesystem = append(c.Filesystem, &OverlayConfig{Src: src, Dest: dest, Persist: new([2]string)})
+	return c
+}
+
+// Persist mount overlayfs on DEST, with RWSRC as the host path for writes and
+// WORKDIR an empty directory on the same filesystem as RWSRC
+// (--overlay RWSRC WORKDIR DEST)
+func (c *Config) Persist(dest, rwsrc, workdir string, src ...string) *Config {
+	if rwsrc == "" || workdir == "" {
+		panic("persist called without required paths")
+	}
+	c.Filesystem = append(c.Filesystem, &OverlayConfig{Src: src, Dest: dest, Persist: &[2]string{rwsrc, workdir}})
+	return c
+}
+
 // Mqueue mount new mqueue in sandbox
 // (--mqueue DEST)
 func (c *Config) Mqueue(dest string) *Config {

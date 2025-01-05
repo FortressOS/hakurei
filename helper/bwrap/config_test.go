@@ -14,6 +14,25 @@ func TestConfig_Args(t *testing.T) {
 		want []string
 	}{
 		{
+			name: "overlayfs",
+			conf: (new(bwrap.Config)).
+				Overlay("/etc", "/etc").
+				Join("/.fortify/bin", "/bin", "/usr/bin", "/usr/local/bin").
+				Persist("/nix", "/data/data/org.chromium.Chromium/overlay/rwsrc", "/data/data/org.chromium.Chromium/workdir", "/data/app/org.chromium.Chromium/nix"),
+			want: []string{
+				"--unshare-all", "--unshare-user",
+				"--disable-userns", "--assert-userns-disabled",
+				// Overlay("/etc", "/etc")
+				"--overlay-src", "/etc", "--tmp-overlay", "/etc",
+				// Join("/.fortify/bin", "/bin", "/usr/bin", "/usr/local/bin")
+				"--overlay-src", "/bin", "--overlay-src", "/usr/bin",
+				"--overlay-src", "/usr/local/bin", "--ro-overlay", "/.fortify/bin",
+				// Persist("/nix", "/data/data/org.chromium.Chromium/overlay/rwsrc", "/data/data/org.chromium.Chromium/workdir", "/data/app/org.chromium.Chromium/nix")
+				"--overlay-src", "/data/app/org.chromium.Chromium/nix",
+				"--overlay", "/data/data/org.chromium.Chromium/overlay/rwsrc", "/data/data/org.chromium.Chromium/workdir", "/nix",
+			},
+		},
+		{
 			name: "xdg-dbus-proxy constraint sample",
 			conf: (&bwrap.Config{
 				Unshare:       nil,

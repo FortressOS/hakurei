@@ -78,6 +78,8 @@ type Config struct {
 	    --userns FD                  Use this user namespace (cannot combine with --unshare-user)
 	    --userns2 FD                 After setup switch to this user namespace, only useful with --userns
 	    --pidns FD                   Use this pid namespace (as parent namespace if using --unshare-pid)
+	    --bind-fd FD DEST            Bind open directory or path fd on DEST
+	    --ro-bind-fd FD DEST         Bind open directory or path fd read-only on DEST
 	    --exec-label LABEL           Exec label for the sandbox
 	    --file-label LABEL           File label for temporary sandbox content
 	    --file FD DEST               Copy from FD to destination DEST
@@ -176,6 +178,74 @@ func (t *TmpfsConfig) Append(args *[]string) {
 		*args = append(*args, intArgs[Size], strconv.Itoa(t.Size))
 	}
 	*args = append(*args, awkwardArgs[Tmpfs], t.Dir)
+}
+
+type OverlayConfig struct {
+	/*
+		read files from SRC in the following overlay
+		(--overlay-src SRC)
+	*/
+	Src []string `json:"src,omitempty"`
+
+	/*
+		mount overlayfs on DEST, with RWSRC as the host path for writes and
+		WORKDIR an empty directory on the same filesystem as RWSRC
+		(--overlay RWSRC WORKDIR DEST)
+
+		if nil, mount overlayfs on DEST, with writes going to an invisible tmpfs
+		(--tmp-overlay DEST)
+
+		if either strings are empty, mount overlayfs read-only on DEST
+		(--ro-overlay DEST)
+	*/
+	Persist *[2]string `json:"persist,omitempty"`
+
+	/*
+		--overlay RWSRC WORKDIR DEST
+
+		--tmp-overlay DEST
+
+		--ro-overlay DEST
+	*/
+	Dest string `json:"dest"`
+}
+
+func (o *OverlayConfig) Path() string {
+	return o.Dest
+}
+
+func (o *OverlayConfig) Len() int {
+	// (--tmp-overlay DEST) or (--ro-overlay DEST)
+	p := 2
+	// (--overlay RWSRC WORKDIR DEST)
+	if o.Persist != nil && o.Persist[0] != "" && o.Persist[1] != "" {
+		p = 4
+	}
+
+	return p + len(o.Src)*2
+}
+
+func (o *OverlayConfig) Append(args *[]string) {
+	// --overlay-src SRC
+	for _, src := range o.Src {
+		*args = append(*args, awkwardArgs[OverlaySrc], src)
+	}
+
+	if o.Persist != nil {
+		if o.Persist[0] != "" && o.Persist[1] != "" {
+			// --overlay RWSRC WORKDIR
+			*args = append(*args, awkwardArgs[Overlay], o.Persist[0], o.Persist[1])
+		} else {
+			// --ro-overlay
+			*args = append(*args, awkwardArgs[ROOverlay])
+		}
+	} else {
+		// --tmp-overlay
+		*args = append(*args, awkwardArgs[TmpOverlay])
+	}
+
+	// DEST
+	*args = append(*args, o.Dest)
 }
 
 type SymlinkConfig [2]string
