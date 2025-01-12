@@ -13,7 +13,7 @@ import (
 )
 
 func TestConfig_Args(t *testing.T) {
-	for _, tc := range testCases() {
+	for _, tc := range makeTestCases() {
 		if tc.wantErr {
 			// args does not check for nulls
 			continue
@@ -30,7 +30,7 @@ func TestConfig_Args(t *testing.T) {
 }
 
 func TestNewConfigFromFile(t *testing.T) {
-	for _, tc := range testCases() {
+	for _, tc := range makeTestCases() {
 		name := new(strings.Builder)
 		name.WriteString("parse configuration file for application ")
 		name.WriteString(tc.id)

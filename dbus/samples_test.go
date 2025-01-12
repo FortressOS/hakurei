@@ -145,7 +145,7 @@ var (
 	testCaseOnce sync.Once
 )
 
-func testCases() []dbusTestCase {
+func makeTestCases() []dbusTestCase {
 	testCaseOnce.Do(testCaseGenerate)
 	return testCasesV
 }
