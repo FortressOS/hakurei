@@ -9,6 +9,7 @@ import (
 func init() {
 	gob.Register(new(PermConfig[SymlinkConfig]))
 	gob.Register(new(PermConfig[*TmpfsConfig]))
+	gob.Register(new(OverlayConfig))
 }
 
 type Config struct {
