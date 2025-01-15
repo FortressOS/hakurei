@@ -12,6 +12,7 @@ var (
 	ErrInvalid = errors.New("bad file descriptor")
 )
 
+// Setup appends the read end of a pipe for payload transmission and returns its fd.
 func Setup(extraFiles *[]*os.File) (int, *gob.Encoder, error) {
 	if r, w, err := os.Pipe(); err != nil {
 		return -1, nil, err
@@ -22,6 +23,8 @@ func Setup(extraFiles *[]*os.File) (int, *gob.Encoder, error) {
 	}
 }
 
+// Receive retrieves payload pipe fd from the environment,
+// receives its payload and returns the Close method of the pipe.
 func Receive(key string, e any) (func() error, error) {
 	var setup *os.File
 

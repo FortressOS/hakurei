@@ -1,14 +1,13 @@
 package shim
 
 import (
+	"context"
 	"encoding/gob"
 	"errors"
 	"os"
 	"os/exec"
-	"os/signal"
 	"strconv"
 	"strings"
-	"syscall"
 	"time"
 
 	shim0 "git.gensokyo.uk/security/fortify/cmd/fshim/ipc"
@@ -16,8 +15,6 @@ import (
 	"git.gensokyo.uk/security/fortify/internal/fmsg"
 	"git.gensokyo.uk/security/fortify/internal/proc"
 )
-
-const shimSetupTimeout = 5 * time.Second
 
 // used by the parent process
 
@@ -34,6 +31,8 @@ type Shim struct {
 	killFallback chan error
 	// shim setup payload
 	payload *shim0.Payload
+	// monitor to shim encoder
+	encoder *gob.Encoder
 }
 
 func New(uid uint32, aid string, supp []string, payload *shim0.Payload) *Shim {
@@ -56,7 +55,7 @@ func (s *Shim) WaitFallback() chan error {
 }
 
 func (s *Shim) Start() (*time.Time, error) {
-	// start user switcher process and save time
+	// prepare user switcher invocation
 	var fsu string
 	if p, ok := internal.Check(internal.Fsu); !ok {
 		fmsg.Fatal("invalid fsu path, this copy of fshim is not compiled correctly")
@@ -66,18 +65,19 @@ func (s *Shim) Start() (*time.Time, error) {
 	}
 	s.cmd = exec.Command(fsu)
 
-	var encoder *gob.Encoder
+	// pass shim setup pipe
 	if fd, e, err := proc.Setup(&s.cmd.ExtraFiles); err != nil {
 		return nil, fmsg.WrapErrorSuffix(err,
 			"cannot create shim setup pipe:")
 	} else {
-		encoder = e
+		s.encoder = e
 		s.cmd.Env = []string{
 			shim0.Env + "=" + strconv.Itoa(fd),
 			"FORTIFY_APP_ID=" + s.aid,
 		}
 	}
 
+	// format fsu supplementary groups
 	if len(s.supp) > 0 {
 		fmsg.VPrintf("attaching supplementary group ids %s", s.supp)
 		s.cmd.Env = append(s.cmd.Env, "FORTIFY_GROUPS="+strings.Join(s.supp, " "))
@@ -92,13 +92,17 @@ func (s *Shim) Start() (*time.Time, error) {
 	}
 
 	fmsg.VPrintln("starting shim via fsu:", s.cmd)
-	fmsg.Suspend() // withhold messages to stderr
+	// withhold messages to stderr
+	fmsg.Suspend()
 	if err := s.cmd.Start(); err != nil {
 		return nil, fmsg.WrapErrorSuffix(err,
 			"cannot start fsu:")
 	}
 	startTime := time.Now().UTC()
+	return &startTime, nil
+}
 
+func (s *Shim) Serve(ctx context.Context) error {
 	// kill shim if something goes wrong and an error is returned
 	s.killFallback = make(chan error, 1)
 	killShim := func() {
@@ -108,30 +112,31 @@ func (s *Shim) Start() (*time.Time, error) {
 	}
 	defer func() { killShim() }()
 
-	// take alternative exit path on signal
-	sig := make(chan os.Signal, 2)
-	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
-	go func() {
-		v := <-sig
-		fmsg.Printf("got %s after program start", v)
-		s.killFallback <- nil
-		signal.Ignore(syscall.SIGINT, syscall.SIGTERM)
-	}()
-
-	shimErr := make(chan error)
-	go func() { shimErr <- encoder.Encode(s.payload) }()
+	encodeErr := make(chan error)
+	go func() { encodeErr <- s.encoder.Encode(s.payload) }()
 
 	select {
-	case err := <-shimErr:
+	// encode return indicates setup completion
+	case err := <-encodeErr:
 		if err != nil {
-			return &startTime, fmsg.WrapErrorSuffix(err,
+			return fmsg.WrapErrorSuffix(err,
 				"cannot transmit shim config:")
 		}
 		killShim = func() {}
-	case <-time.After(shimSetupTimeout):
-		return &startTime, fmsg.WrapError(errors.New("timed out waiting for shim"),
-			"timed out waiting for shim")
-	}
+		return nil
 
-	return &startTime, nil
+	// setup canceled before payload was accepted
+	case <-ctx.Done():
+		err := ctx.Err()
+		if errors.Is(err, context.Canceled) {
+			return fmsg.WrapError(errors.New("shim setup canceled"),
+				"shim setup canceled")
+		}
+		if errors.Is(err, context.DeadlineExceeded) {
+			return fmsg.WrapError(errors.New("deadline exceeded waiting for shim"),
+				"deadline exceeded waiting for shim")
+		}
+		// unreachable
+		return err
+	}
 }

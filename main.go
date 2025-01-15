@@ -1,14 +1,17 @@
 package main
 
 import (
+	"context"
 	_ "embed"
 	"flag"
 	"fmt"
 	"os"
+	"os/signal"
 	"os/user"
 	"strconv"
 	"strings"
 	"sync"
+	"syscall"
 	"text/tabwriter"
 
 	"git.gensokyo.uk/security/fortify/dbus"
@@ -288,27 +291,38 @@ func main() {
 }
 
 func runApp(config *fst.Config) {
-	a, err := app.New(sys)
-	if err != nil {
+	rs := new(app.RunState)
+	ctx, cancel := context.WithCancel(context.Background())
+
+	// handle signals for graceful shutdown
+	sig := make(chan os.Signal, 2)
+	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
+	go func() {
+		v := <-sig
+		fmsg.Printf("got %s after program start", v)
+		cancel()
+		signal.Ignore(syscall.SIGINT, syscall.SIGTERM)
+	}()
+
+	if a, err := app.New(sys); err != nil {
 		fmsg.Fatalf("cannot create app: %s\n", err)
 	} else if err = a.Seal(config); err != nil {
 		logBaseError(err, "cannot seal app:")
 		fmsg.Exit(1)
-	} else if err = a.Start(); err != nil {
-		logBaseError(err, "cannot start app:")
-	}
-
-	var r int
-	// wait must be called regardless of result of start
-	if r, err = a.Wait(); err != nil {
-		if r < 1 {
-			r = 1
+	} else if err = a.Run(ctx, rs); err != nil {
+		if !rs.Start {
+			logBaseError(err, "cannot start app:")
+		} else {
+			logWaitError(err)
 		}
-		logWaitError(err)
 	}
-	if err = a.WaitErr(); err != nil {
-		fmsg.Println("inner wait failed:", err)
+	if rs.WaitErr != nil {
+		fmsg.Println("inner wait failed:", rs.WaitErr)
 	}
-	fmsg.Exit(r)
+	if rs.ExitCode < 0 {
+		fmsg.VPrintf("got negative exit %v", rs.ExitCode)
+		fmsg.Exit(1)
+	}
+	fmsg.Exit(rs.ExitCode)
 	panic("unreachable")
 }

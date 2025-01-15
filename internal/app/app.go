@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"sync"
 	"sync/atomic"
 
@@ -12,15 +13,20 @@ import (
 type App interface {
 	// ID returns a copy of App's unique ID.
 	ID() fst.ID
-	// Start sets up the system and starts the App.
-	Start() error
-	// Wait waits for App's process to exit and reverts system setup.
-	Wait() (int, error)
-	// WaitErr returns error returned by the underlying wait syscall.
-	WaitErr() error
+	// Run sets up the system and runs the App.
+	Run(ctx context.Context, rs *RunState) error
 
 	Seal(config *fst.Config) error
 	String() string
+}
+
+type RunState struct {
+	// Start is true if fsu is successfully started.
+	Start bool
+	// ExitCode is the value returned by fshim.
+	ExitCode int
+	// WaitErr is error returned by the underlying wait syscall.
+	WaitErr error
 }
 
 type app struct {
@@ -35,8 +41,6 @@ type app struct {
 	shim *shim.Shim
 	// child process related information
 	seal *appSeal
-	// error returned waiting for process
-	waitErr error
 
 	lock sync.RWMutex
 }
@@ -62,10 +66,6 @@ func (a *app) String() string {
 	}
 
 	return "(unsealed fortified app)"
-}
-
-func (a *app) WaitErr() error {
-	return a.waitErr
 }
 
 func New(os linux.System) (App, error) {
