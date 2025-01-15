@@ -2,8 +2,13 @@ package fst
 
 import (
 	"errors"
+	"fmt"
+	"io/fs"
+	"path"
 
+	"git.gensokyo.uk/security/fortify/dbus"
 	"git.gensokyo.uk/security/fortify/helper/bwrap"
+	"git.gensokyo.uk/security/fortify/internal/fmsg"
 	"git.gensokyo.uk/security/fortify/internal/linux"
 )
 
@@ -68,7 +73,8 @@ func (s *SandboxConfig) Bwrap(os linux.System) (*bwrap.Config, error) {
 		DieWithParent: true,
 		AsInit:        true,
 
-		// initialise map
+		// initialise unconditionally as Once cannot be justified
+		// for saving such a miniscule amount of memory
 		Chmod: make(bwrap.ChmodConfig),
 	}).
 		SetUID(uid).SetGID(uid).
@@ -89,16 +95,85 @@ func (s *SandboxConfig) Bwrap(os linux.System) (*bwrap.Config, error) {
 		}
 	}
 
+	// retrieve paths and hide them if they're made available in the sandbox
+	var hidePaths []string
+	sc := os.Paths()
+	hidePaths = append(hidePaths, sc.RuntimePath, sc.SharePath)
+	_, systemBusAddr := dbus.Address()
+	if entries, err := dbus.Parse([]byte(systemBusAddr)); err != nil {
+		return nil, err
+	} else {
+		// there is usually only one, do not preallocate
+		for _, entry := range entries {
+			if entry.Method != "unix" {
+				continue
+			}
+			for _, pair := range entry.Values {
+				if pair[0] == "path" {
+					if path.IsAbs(pair[1]) {
+						// get parent dir of socket
+						dir := path.Dir(pair[1])
+						if dir == "." || dir == "/" {
+							fmsg.VPrintf("dbus socket %q is in an unusual location", pair[1])
+						}
+						hidePaths = append(hidePaths, dir)
+					} else {
+						fmsg.VPrintf("dbus socket %q is not absolute", pair[1])
+					}
+				}
+			}
+		}
+	}
+	hidePathMatch := make([]bool, len(hidePaths))
+	for i := range hidePaths {
+		if err := evalSymlinks(os, &hidePaths[i]); err != nil {
+			return nil, err
+		}
+	}
+
 	for _, c := range s.Filesystem {
 		if c == nil {
 			continue
 		}
-		src := c.Src
+
+		if !path.IsAbs(c.Src) {
+			return nil, fmt.Errorf("src path %q is not absolute", c.Src)
+		}
+
 		dest := c.Dst
 		if c.Dst == "" {
 			dest = c.Src
+		} else if !path.IsAbs(dest) {
+			return nil, fmt.Errorf("dst path %q is not absolute", dest)
 		}
-		conf.Bind(src, dest, !c.Must, c.Write, c.Device)
+
+		srcH := c.Src
+		if err := evalSymlinks(os, &srcH); err != nil {
+			return nil, err
+		}
+
+		for i := range hidePaths {
+			// skip matched entries
+			if hidePathMatch[i] {
+				continue
+			}
+
+			if ok, err := deepContainsH(srcH, hidePaths[i]); err != nil {
+				return nil, err
+			} else if ok {
+				hidePathMatch[i] = true
+				fmsg.VPrintf("hiding paths from %q", c.Src)
+			}
+		}
+
+		conf.Bind(c.Src, dest, !c.Must, c.Write, c.Device)
+	}
+
+	// hide marked paths before setting up shares
+	for i, ok := range hidePathMatch {
+		if ok {
+			conf.Tmpfs(hidePaths[i], 8192)
+		}
 	}
 
 	for _, l := range s.Link {
@@ -132,4 +207,16 @@ func (s *SandboxConfig) Bwrap(os linux.System) (*bwrap.Config, error) {
 	}
 
 	return conf, nil
+}
+
+func evalSymlinks(os linux.System, v *string) error {
+	if p, err := os.EvalSymlinks(*v); err != nil {
+		if !errors.Is(err, fs.ErrNotExist) {
+			return err
+		}
+		fmsg.VPrintf("path %q does not yet exist", *v)
+	} else {
+		*v = p
+	}
+	return nil
 }

@@ -194,7 +194,6 @@ func (a *app) Seal(config *fst.Config) error {
 				switch p {
 				case "/proc":
 				case "/dev":
-				case "/run":
 				case "/tmp":
 				case "/mnt":
 				case "/etc":
@@ -205,23 +204,7 @@ func (a *app) Seal(config *fst.Config) error {
 			}
 			conf.Filesystem = append(conf.Filesystem, b...)
 		}
-		// bind entries in /run
-		if d, err := a.os.ReadDir("/run"); err != nil {
-			return err
-		} else {
-			b := make([]*fst.FilesystemConfig, 0, len(d))
-			for _, ent := range d {
-				name := ent.Name()
-				switch name {
-				case "user":
-				case "dbus":
-				default:
-					p := "/run/" + name
-					b = append(b, &fst.FilesystemConfig{Src: p, Write: true, Must: true})
-				}
-			}
-			conf.Filesystem = append(conf.Filesystem, b...)
-		}
+
 		// hide nscd from sandbox if present
 		nscd := "/var/run/nscd"
 		if _, err := a.os.Stat(nscd); !errors.Is(err, fs.ErrNotExist) {

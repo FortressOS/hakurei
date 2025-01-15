@@ -1,6 +1,7 @@
 package app_test
 
 import (
+	"encoding/json"
 	"io/fs"
 	"reflect"
 	"testing"
@@ -48,11 +49,19 @@ func TestApp(t *testing.T) {
 
 			t.Run("compare bwrap", func(t *testing.T) {
 				if !reflect.DeepEqual(gotBwrap, tc.wantBwrap) {
-					t.Errorf("seal: bwrap = %#v, want %#v",
-						gotBwrap, tc.wantBwrap)
+					t.Errorf("seal: bwrap =\n%s\n, want\n%s",
+						mustMarshal(gotBwrap), mustMarshal(tc.wantBwrap))
 				}
 			})
 		})
+	}
+}
+
+func mustMarshal(v any) string {
+	if b, err := json.Marshal(v); err != nil {
+		panic(err.Error())
+	} else {
+		return string(b)
 	}
 }
 

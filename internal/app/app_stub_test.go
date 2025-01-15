@@ -2,7 +2,6 @@ package app_test
 
 import (
 	"fmt"
-	"io"
 	"io/fs"
 	"os/user"
 	"strconv"
@@ -128,12 +127,12 @@ func (s *stubNixOS) Open(name string) (fs.File, error) {
 	}
 }
 
-func (s *stubNixOS) Exit(code int) {
-	panic("called exit on stub with code " + strconv.Itoa(code))
+func (s *stubNixOS) EvalSymlinks(path string) (string, error) {
+	return path, nil
 }
 
-func (s *stubNixOS) Stdout() io.Writer {
-	panic("requested stdout")
+func (s *stubNixOS) Exit(code int) {
+	panic("called exit on stub with code " + strconv.Itoa(code))
 }
 
 func (s *stubNixOS) Paths() linux.Paths {

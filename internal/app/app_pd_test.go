@@ -62,45 +62,14 @@ var testCasesPd = []sealTestCase{
 			Bind("/lib64", "/lib64", false, true).
 			Bind("/nix", "/nix", false, true).
 			Bind("/root", "/root", false, true).
+			Bind("/run", "/run", false, true).
 			Bind("/srv", "/srv", false, true).
 			Bind("/sys", "/sys", false, true).
 			Bind("/usr", "/usr", false, true).
 			Bind("/var", "/var", false, true).
-			Bind("/run/agetty.reload", "/run/agetty.reload", false, true).
-			Bind("/run/binfmt", "/run/binfmt", false, true).
-			Bind("/run/booted-system", "/run/booted-system", false, true).
-			Bind("/run/credentials", "/run/credentials", false, true).
-			Bind("/run/cryptsetup", "/run/cryptsetup", false, true).
-			Bind("/run/current-system", "/run/current-system", false, true).
-			Bind("/run/host", "/run/host", false, true).
-			Bind("/run/keys", "/run/keys", false, true).
-			Bind("/run/libvirt", "/run/libvirt", false, true).
-			Bind("/run/libvirtd.pid", "/run/libvirtd.pid", false, true).
-			Bind("/run/lock", "/run/lock", false, true).
-			Bind("/run/log", "/run/log", false, true).
-			Bind("/run/lvm", "/run/lvm", false, true).
-			Bind("/run/mount", "/run/mount", false, true).
-			Bind("/run/NetworkManager", "/run/NetworkManager", false, true).
-			Bind("/run/nginx", "/run/nginx", false, true).
-			Bind("/run/nixos", "/run/nixos", false, true).
-			Bind("/run/nscd", "/run/nscd", false, true).
-			Bind("/run/opengl-driver", "/run/opengl-driver", false, true).
-			Bind("/run/pppd", "/run/pppd", false, true).
-			Bind("/run/resolvconf", "/run/resolvconf", false, true).
-			Bind("/run/sddm", "/run/sddm", false, true).
-			Bind("/run/store", "/run/store", false, true).
-			Bind("/run/syncoid", "/run/syncoid", false, true).
-			Bind("/run/system", "/run/system", false, true).
-			Bind("/run/systemd", "/run/systemd", false, true).
-			Bind("/run/tmpfiles.d", "/run/tmpfiles.d", false, true).
-			Bind("/run/udev", "/run/udev", false, true).
-			Bind("/run/udisks2", "/run/udisks2", false, true).
-			Bind("/run/utmp", "/run/utmp", false, true).
-			Bind("/run/virtlogd.pid", "/run/virtlogd.pid", false, true).
-			Bind("/run/wrappers", "/run/wrappers", false, true).
-			Bind("/run/zed.pid", "/run/zed.pid", false, true).
-			Bind("/run/zed.state", "/run/zed.state", false, true).
 			Bind("/dev/kvm", "/dev/kvm", true, true, true).
+			Tmpfs("/run/user/1971", 8192).
+			Tmpfs("/run/dbus", 8192).
 			Bind("/etc", fst.Tmp+"/etc").
 			Symlink(fst.Tmp+"/etc/alsa", "/etc/alsa").
 			Symlink(fst.Tmp+"/etc/bashrc", "/etc/bashrc").
@@ -317,46 +286,15 @@ var testCasesPd = []sealTestCase{
 			Bind("/lib64", "/lib64", false, true).
 			Bind("/nix", "/nix", false, true).
 			Bind("/root", "/root", false, true).
+			Bind("/run", "/run", false, true).
 			Bind("/srv", "/srv", false, true).
 			Bind("/sys", "/sys", false, true).
 			Bind("/usr", "/usr", false, true).
 			Bind("/var", "/var", false, true).
-			Bind("/run/agetty.reload", "/run/agetty.reload", false, true).
-			Bind("/run/binfmt", "/run/binfmt", false, true).
-			Bind("/run/booted-system", "/run/booted-system", false, true).
-			Bind("/run/credentials", "/run/credentials", false, true).
-			Bind("/run/cryptsetup", "/run/cryptsetup", false, true).
-			Bind("/run/current-system", "/run/current-system", false, true).
-			Bind("/run/host", "/run/host", false, true).
-			Bind("/run/keys", "/run/keys", false, true).
-			Bind("/run/libvirt", "/run/libvirt", false, true).
-			Bind("/run/libvirtd.pid", "/run/libvirtd.pid", false, true).
-			Bind("/run/lock", "/run/lock", false, true).
-			Bind("/run/log", "/run/log", false, true).
-			Bind("/run/lvm", "/run/lvm", false, true).
-			Bind("/run/mount", "/run/mount", false, true).
-			Bind("/run/NetworkManager", "/run/NetworkManager", false, true).
-			Bind("/run/nginx", "/run/nginx", false, true).
-			Bind("/run/nixos", "/run/nixos", false, true).
-			Bind("/run/nscd", "/run/nscd", false, true).
-			Bind("/run/opengl-driver", "/run/opengl-driver", false, true).
-			Bind("/run/pppd", "/run/pppd", false, true).
-			Bind("/run/resolvconf", "/run/resolvconf", false, true).
-			Bind("/run/sddm", "/run/sddm", false, true).
-			Bind("/run/store", "/run/store", false, true).
-			Bind("/run/syncoid", "/run/syncoid", false, true).
-			Bind("/run/system", "/run/system", false, true).
-			Bind("/run/systemd", "/run/systemd", false, true).
-			Bind("/run/tmpfiles.d", "/run/tmpfiles.d", false, true).
-			Bind("/run/udev", "/run/udev", false, true).
-			Bind("/run/udisks2", "/run/udisks2", false, true).
-			Bind("/run/utmp", "/run/utmp", false, true).
-			Bind("/run/virtlogd.pid", "/run/virtlogd.pid", false, true).
-			Bind("/run/wrappers", "/run/wrappers", false, true).
-			Bind("/run/zed.pid", "/run/zed.pid", false, true).
-			Bind("/run/zed.state", "/run/zed.state", false, true).
 			Bind("/dev/dri", "/dev/dri", true, true, true).
 			Bind("/dev/kvm", "/dev/kvm", true, true, true).
+			Tmpfs("/run/user/1971", 8192).
+			Tmpfs("/run/dbus", 8192).
 			Bind("/etc", fst.Tmp+"/etc").
 			Symlink(fst.Tmp+"/etc/alsa", "/etc/alsa").
 			Symlink(fst.Tmp+"/etc/bashrc", "/etc/bashrc").

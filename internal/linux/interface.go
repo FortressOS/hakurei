@@ -1,7 +1,6 @@
 package linux
 
 import (
-	"io"
 	"io/fs"
 	"os/user"
 	"path"
@@ -30,10 +29,10 @@ type System interface {
 	Stat(name string) (fs.FileInfo, error)
 	// Open provides [os.Open]
 	Open(name string) (fs.File, error)
+	// EvalSymlinks provides [filepath.EvalSymlinks]
+	EvalSymlinks(path string) (string, error)
 	// Exit provides [os.Exit].
 	Exit(code int)
-	// Stdout provides [os.Stdout].
-	Stdout() io.Writer
 
 	// Paths returns a populated [Paths] struct.
 	Paths() Paths
