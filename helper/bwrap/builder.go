@@ -39,46 +39,60 @@ func (c *Config) Bind(src, dest string, opts ...bool) *Config {
 
 	if dev {
 		if try {
-			c.Filesystem = append(c.Filesystem, &pairF{pairArgs[DevBindTry], src, dest})
+			c.Filesystem = append(c.Filesystem, &pairF{DevBindTry.Unwrap(), src, dest})
 		} else {
-			c.Filesystem = append(c.Filesystem, &pairF{pairArgs[DevBind], src, dest})
+			c.Filesystem = append(c.Filesystem, &pairF{DevBind.Unwrap(), src, dest})
 		}
 		return c
 	} else if write {
 		if try {
-			c.Filesystem = append(c.Filesystem, &pairF{pairArgs[BindTry], src, dest})
+			c.Filesystem = append(c.Filesystem, &pairF{BindTry.Unwrap(), src, dest})
 		} else {
-			c.Filesystem = append(c.Filesystem, &pairF{pairArgs[Bind], src, dest})
+			c.Filesystem = append(c.Filesystem, &pairF{Bind.Unwrap(), src, dest})
 		}
 		return c
 	} else {
 		if try {
-			c.Filesystem = append(c.Filesystem, &pairF{pairArgs[ROBindTry], src, dest})
+			c.Filesystem = append(c.Filesystem, &pairF{ROBindTry.Unwrap(), src, dest})
 		} else {
-			c.Filesystem = append(c.Filesystem, &pairF{pairArgs[ROBind], src, dest})
+			c.Filesystem = append(c.Filesystem, &pairF{ROBind.Unwrap(), src, dest})
 		}
 		return c
 	}
 }
 
+// Dir create dir in sandbox
+// (--dir DEST)
+func (c *Config) Dir(dest string) *Config {
+	c.Filesystem = append(c.Filesystem, &stringF{Dir.Unwrap(), dest})
+	return c
+}
+
 // RemountRO remount path as readonly; does not recursively remount
 // (--remount-ro DEST)
 func (c *Config) RemountRO(dest string) *Config {
-	c.Filesystem = append(c.Filesystem, &stringF{stringArgs[RemountRO], dest})
+	c.Filesystem = append(c.Filesystem, &stringF{RemountRO.Unwrap(), dest})
 	return c
 }
 
 // Procfs mount new procfs in sandbox
 // (--proc DEST)
 func (c *Config) Procfs(dest string) *Config {
-	c.Filesystem = append(c.Filesystem, &stringF{stringArgs[Procfs], dest})
+	c.Filesystem = append(c.Filesystem, &stringF{Procfs.Unwrap(), dest})
 	return c
 }
 
 // DevTmpfs mount new dev in sandbox
 // (--dev DEST)
 func (c *Config) DevTmpfs(dest string) *Config {
-	c.Filesystem = append(c.Filesystem, &stringF{stringArgs[DevTmpfs], dest})
+	c.Filesystem = append(c.Filesystem, &stringF{DevTmpfs.Unwrap(), dest})
+	return c
+}
+
+// Mqueue mount new mqueue in sandbox
+// (--mqueue DEST)
+func (c *Config) Mqueue(dest string) *Config {
+	c.Filesystem = append(c.Filesystem, &stringF{Mqueue.Unwrap(), dest})
 	return c
 }
 
@@ -118,20 +132,6 @@ func (c *Config) Persist(dest, rwsrc, workdir string, src ...string) *Config {
 		panic("persist called without required paths")
 	}
 	c.Filesystem = append(c.Filesystem, &OverlayConfig{Src: src, Dest: dest, Persist: &[2]string{rwsrc, workdir}})
-	return c
-}
-
-// Mqueue mount new mqueue in sandbox
-// (--mqueue DEST)
-func (c *Config) Mqueue(dest string) *Config {
-	c.Filesystem = append(c.Filesystem, &stringF{stringArgs[Mqueue], dest})
-	return c
-}
-
-// Dir create dir in sandbox
-// (--dir DEST)
-func (c *Config) Dir(dest string) *Config {
-	c.Filesystem = append(c.Filesystem, &stringF{awkwardArgs[Dir], dest})
 	return c
 }
 

@@ -20,7 +20,7 @@ type bubblewrap struct {
 	name string
 
 	// bwrap pipes
-	p *pipes
+	control *pipes
 	// sync pipe
 	sync *os.File
 	// returns an array of arguments passed directly
@@ -29,7 +29,7 @@ type bubblewrap struct {
 
 	// pipes received by the child
 	// nil if no pipes are required
-	cp *pipes
+	controlPt *pipes
 
 	lock sync.RWMutex
 	*exec.Cmd
@@ -39,7 +39,7 @@ func (b *bubblewrap) StartNotify(ready chan error) error {
 	b.lock.Lock()
 	defer b.lock.Unlock()
 
-	if ready != nil && b.cp == nil {
+	if ready != nil && b.controlPt == nil {
 		panic("attempted to start with status monitoring on a bwrap child initialised without pipes")
 	}
 
@@ -50,16 +50,16 @@ func (b *bubblewrap) StartNotify(ready chan error) error {
 	}
 
 	// prepare bwrap pipe and args
-	if argsFD, _, err := b.p.prepareCmd(b.Cmd); err != nil {
+	if argsFD, _, err := b.control.prepareCmd(b.Cmd); err != nil {
 		return err
 	} else {
 		b.Cmd.Args = append(b.Cmd.Args, "--args", strconv.Itoa(argsFD), "--", b.name)
 	}
 
 	// prepare child args and pipes if enabled
-	if b.cp != nil {
-		b.cp.ready = ready
-		if argsFD, statFD, err := b.cp.prepareCmd(b.Cmd); err != nil {
+	if b.controlPt != nil {
+		b.controlPt.ready = ready
+		if argsFD, statFD, err := b.controlPt.prepareCmd(b.Cmd); err != nil {
 			return err
 		} else {
 			b.Cmd.Args = append(b.Cmd.Args, b.argF(argsFD, statFD)...)
@@ -70,7 +70,7 @@ func (b *bubblewrap) StartNotify(ready chan error) error {
 
 	if ready != nil {
 		b.Cmd.Env = append(b.Cmd.Env, FortifyHelper+"=1", FortifyStatus+"=1")
-	} else if b.cp != nil {
+	} else if b.controlPt != nil {
 		b.Cmd.Env = append(b.Cmd.Env, FortifyHelper+"=1", FortifyStatus+"=0")
 	} else {
 		b.Cmd.Env = append(b.Cmd.Env, FortifyHelper+"=1", FortifyStatus+"=-1")
@@ -85,13 +85,13 @@ func (b *bubblewrap) StartNotify(ready chan error) error {
 	}
 
 	// write bwrap args first
-	if err := b.p.readyWriteArgs(); err != nil {
+	if err := b.control.readyWriteArgs(); err != nil {
 		return err
 	}
 
 	// write child args if enabled
-	if b.cp != nil {
-		if err := b.cp.readyWriteArgs(); err != nil {
+	if b.controlPt != nil {
+		if err := b.controlPt.readyWriteArgs(); err != nil {
 			return err
 		}
 	}
@@ -100,11 +100,11 @@ func (b *bubblewrap) StartNotify(ready chan error) error {
 }
 
 func (b *bubblewrap) Close() error {
-	if b.cp == nil {
+	if b.controlPt == nil {
 		panic("attempted to close bwrap child initialised without pipes")
 	}
 
-	return b.cp.closeStatus()
+	return b.controlPt.closeStatus()
 }
 
 func (b *bubblewrap) Start() error {
@@ -136,14 +136,14 @@ func NewBwrap(conf *bwrap.Config, wt io.WriterTo, name string, argF func(argsFD,
 	if args, err := NewCheckedArgs(conf.Args()); err != nil {
 		return nil, err
 	} else {
-		b.p = &pipes{args: args}
+		b.control = &pipes{args: args}
 	}
 
 	b.sync = conf.Sync()
 	b.argF = argF
 	b.name = name
 	if wt != nil {
-		b.cp = &pipes{args: wt}
+		b.controlPt = &pipes{args: wt}
 	}
 	b.Cmd = execCommand(BubblewrapName)
 
