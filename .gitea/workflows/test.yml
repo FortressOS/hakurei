@@ -1,62 +1,46 @@
-name: Tests
+name: Test
 
 on:
   - push
   - pull_request
 
 jobs:
-  test:
-    name: Go tests
+  tests:
+    name: Run NixOS test
     runs-on: ubuntu-latest
-    container:
-      image: node:16-bookworm-slim
     steps:
-      - name: Enable backports
-        run: >-
-          echo 'deb http://deb.debian.org/debian bookworm-backports main' >> /etc/apt/sources.list.d/backports.list
-        if: ${{ runner.os == 'Linux' }}
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@08dcb3a5e62fa31e2da3d490afc4176ef55ecd72 # v30
+        with:
+          # explicitly enable sandbox
+          install_options: --daemon
+          extra_nix_config: |
+            sandbox = true
+            system-features = nixos-test benchmark big-parallel kvm
+          enable_kvm: true
 
       - name: Ensure environment
         run: >-
-          apt-get update && apt-get install -y curl wget sudo libxml2
+          apt-get update && apt-get install -y sqlite3
         if: ${{ runner.os == 'Linux' }}
 
-      - name: Get dependencies
-        uses: awalsh128/cache-apt-pkgs-action@latest
+      - name: Restore Nix store
+        uses: nix-community/cache-nix-action@v5
         with:
-          packages: acl git gcc pkg-config libwayland-dev wayland-protocols/bookworm-backports libxcb1-dev libacl1-dev
-          version: 1.0
-          #execute_install_scripts: true
-        if: ${{ runner.os == 'Linux' }}
-
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Setup go
-        uses: https://github.com/actions/setup-go@v5
-        with:
-          go-version: '>=1.23.0'
-
-      - name: Go generate
-        run: >-
-          go generate ./...
+          primary-key: nix-${{ runner.os }}-${{ hashFiles('**/*.nix') }}
+          restore-prefixes-first-match: nix-${{ runner.os }}-
 
       - name: Run tests
-        run: >-
-          go test ./...
+        run: |
+          nix --print-build-logs --experimental-features 'nix-command flakes' flake check --all-systems
+          nix build --out-link "result" --print-out-paths --print-build-logs .#checks.x86_64-linux.nixos-tests
 
-      - name: Build for test
-        id: build-test
-        run: >-
-          FORTIFY_VERSION="$(git rev-parse --short HEAD)"
-          bash -c './dist/release.sh &&
-          echo "rev=$FORTIFY_VERSION" >> $GITHUB_OUTPUT'
-
-      - name: Upload test build
+      - name: Upload test output
         uses: actions/upload-artifact@v3
         with:
-          name: "fortify-${{ steps.build-test.outputs.rev }}"
-          path: dist/fortify-*
+          name: "result"
+          path: result/*
           retention-days: 1

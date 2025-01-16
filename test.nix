@@ -51,7 +51,7 @@ nixosTest {
           mako
 
           # For go tests:
-          self.devShells.${system}.fhs
+          self.packages.${system}.fhs
         ];
 
         variables = {

@@ -4,12 +4,13 @@ package wl
 //go:generate sh -c "wayland-scanner private-code `pkg-config --variable=datarootdir wayland-protocols`/wayland-protocols/staging/security-context/security-context-v1.xml security-context-v1-protocol.c"
 
 /*
-#cgo linux pkg-config: wayland-client
+#cgo linux pkg-config: --static wayland-client
 #cgo freebsd openbsd LDFLAGS: -lwayland-client
 
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 
 #include <unistd.h>
 #include <sys/socket.h>

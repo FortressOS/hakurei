@@ -9,7 +9,7 @@ import (
 )
 
 /*
-#cgo linux pkg-config: libacl
+#cgo linux pkg-config: --static libacl
 
 #include <stdlib.h>
 #include <sys/acl.h>

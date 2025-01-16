@@ -6,7 +6,7 @@ import (
 )
 
 /*
-#cgo linux pkg-config: xcb
+#cgo linux pkg-config: --static xcb
 
 #include <stdlib.h>
 #include <xcb/xcb.h>

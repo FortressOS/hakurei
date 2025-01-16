@@ -1,15 +1,11 @@
 {
   lib,
   buildGoModule,
-  makeBinaryWrapper,
   xdg-dbus-proxy,
   bubblewrap,
+  pkgsStatic,
   pkg-config,
-  acl,
-  wayland,
   wayland-scanner,
-  wayland-protocols,
-  xorg,
 }:
 
 buildGoModule rec {
@@ -27,19 +23,13 @@ buildGoModule rec {
     lib.attrsets.foldlAttrs
       (
         ldflags: name: value:
-        ldflags
-        ++ [
-          "-X"
-          "git.gensokyo.uk/security/fortify/internal.${name}=${value}"
-        ]
+        ldflags ++ [ "-X git.gensokyo.uk/security/fortify/internal.${name}=${value}" ]
       )
       [
-        "-s"
-        "-w"
-        "-X"
-        "main.Fmain=${placeholder "out"}/libexec/fortify"
-        "-X"
-        "main.Fshim=${placeholder "out"}/libexec/fshim"
+        "-s -w"
+        "-extldflags '-static'"
+        "-X main.Fmain=${placeholder "out"}/libexec/fortify"
+        "-X main.Fshim=${placeholder "out"}/libexec/fshim"
       ]
       {
         Version = "v${version}";
@@ -51,17 +41,26 @@ buildGoModule rec {
   # nix build environment does not allow acls
   GO_TEST_SKIP_ACL = 1;
 
-  buildInputs = [
-    acl
-    wayland
-    wayland-protocols
-    xorg.libxcb
-  ];
+  buildInputs =
+    # cannot find a cleaner way to do this
+    with pkgsStatic;
+    [
+      musl
+      libffi
+      acl
+      wayland
+      wayland-protocols
+    ]
+    ++ (with xorg; [
+      libxcb
+      libXau
+      libXdmcp
+    ]);
 
   nativeBuildInputs = [
     pkg-config
     wayland-scanner
-    makeBinaryWrapper
+    pkgsStatic.makeBinaryWrapper
   ];
 
   preConfigure = ''

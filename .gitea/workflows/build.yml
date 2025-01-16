@@ -1,12 +1,12 @@
-name: Nix
+name: Build
 
 on:
   - push
   - pull_request
 
 jobs:
-  tests:
-    name: NixOS tests
+  dist:
+    name: Create distribution
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -30,17 +30,21 @@ jobs:
       - name: Restore Nix store
         uses: nix-community/cache-nix-action@v5
         with:
-          primary-key: nix-${{ runner.os }}-${{ hashFiles('**/*.nix') }}
-          restore-prefixes-first-match: nix-${{ runner.os }}-
+          primary-key: nix-small-${{ runner.os }}-${{ hashFiles('**/*.nix') }}
+          restore-prefixes-first-match: nix-small-${{ runner.os }}-
 
-      - name: Run tests
-        run: |
-          nix --print-build-logs --experimental-features 'nix-command flakes' flake check --all-systems
-          nix build --out-link "result" --print-out-paths --print-build-logs .#checks.x86_64-linux.nixos-tests
+      - name: Build for test
+        id: build-test
+        run: >-
+          export FORTIFY_REV="$(git rev-parse --short HEAD)" &&
+          sed -i.old 's/version = /version = "0.0.0-'$FORTIFY_REV'"; # version = /' package.nix &&
+          nix build --print-out-paths --print-build-logs .#dist &&
+          mv package.nix.old package.nix &&
+          echo "rev=$FORTIFY_REV" >> $GITHUB_OUTPUT
 
-      - name: Upload test output
+      - name: Upload test build
         uses: actions/upload-artifact@v3
         with:
-          name: "result"
+          name: "fortify-${{ steps.build-test.outputs.rev }}"
           path: result/*
           retention-days: 1

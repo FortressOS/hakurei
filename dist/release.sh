@@ -8,7 +8,8 @@ mkdir -p "${out}"
 cp -v "README.md" "dist/fsurc.default" "dist/install.sh" "${out}"
 cp -rv "comp" "${out}"
 
-go build -trimpath -v -o "${out}/bin/" -ldflags "-s -w
+go generate ./...
+go build -trimpath -v -o "${out}/bin/" -ldflags "-s -w -buildid= -extldflags '-static'
   -X git.gensokyo.uk/security/fortify/internal.Version=${VERSION}
   -X git.gensokyo.uk/security/fortify/internal.Fortify=/usr/bin/fortify
   -X git.gensokyo.uk/security/fortify/internal.Fsu=/usr/bin/fsu
