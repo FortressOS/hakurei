@@ -12,7 +12,7 @@ func PR_SET_DUMPABLE__SUID_DUMP_DISABLE() error {
 }
 
 func PR_SET_PDEATHSIG__SIGKILL() error {
-	if _, _, errno := syscall.AllThreadsSyscall(syscall.SYS_PRCTL, syscall.PR_SET_PDEATHSIG, uintptr(syscall.SIGKILL), 0); errno != 0 {
+	if _, _, errno := syscall.RawSyscall(syscall.SYS_PRCTL, syscall.PR_SET_PDEATHSIG, uintptr(syscall.SIGKILL), 0); errno != 0 {
 		return errno
 	}
 
