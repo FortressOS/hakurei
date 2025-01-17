@@ -1,8 +1,6 @@
-package shim0
+package shim
 
-import (
-	"git.gensokyo.uk/security/fortify/helper/bwrap"
-)
+import "git.gensokyo.uk/security/fortify/helper/bwrap"
 
 const Env = "FORTIFY_SHIM"
 

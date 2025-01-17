@@ -10,7 +10,6 @@ import (
 	"strings"
 	"time"
 
-	shim0 "git.gensokyo.uk/security/fortify/cmd/fshim/ipc"
 	"git.gensokyo.uk/security/fortify/internal"
 	"git.gensokyo.uk/security/fortify/internal/fmsg"
 	"git.gensokyo.uk/security/fortify/internal/proc"
@@ -30,12 +29,12 @@ type Shim struct {
 	// fallback exit notifier with error returned killing the process
 	killFallback chan error
 	// shim setup payload
-	payload *shim0.Payload
+	payload *Payload
 	// monitor to shim encoder
 	encoder *gob.Encoder
 }
 
-func New(uid uint32, aid string, supp []string, payload *shim0.Payload) *Shim {
+func New(uid uint32, aid string, supp []string, payload *Payload) *Shim {
 	return &Shim{uid: uid, aid: aid, supp: supp, payload: payload}
 }
 
@@ -58,7 +57,7 @@ func (s *Shim) Start() (*time.Time, error) {
 	// prepare user switcher invocation
 	var fsu string
 	if p, ok := internal.Check(internal.Fsu); !ok {
-		fmsg.Fatal("invalid fsu path, this copy of fshim is not compiled correctly")
+		fmsg.Fatal("invalid fsu path, this copy of fortify is not compiled correctly")
 		panic("unreachable")
 	} else {
 		fsu = p
@@ -72,7 +71,7 @@ func (s *Shim) Start() (*time.Time, error) {
 	} else {
 		s.encoder = e
 		s.cmd.Env = []string{
-			shim0.Env + "=" + strconv.Itoa(fd),
+			Env + "=" + strconv.Itoa(fd),
 			"FORTIFY_APP_ID=" + s.aid,
 		}
 	}

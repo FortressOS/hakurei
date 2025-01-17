@@ -1,4 +1,4 @@
-package main
+package shim
 
 import (
 	"errors"
@@ -8,7 +8,6 @@ import (
 	"syscall"
 
 	init0 "git.gensokyo.uk/security/fortify/cmd/finit/ipc"
-	shim "git.gensokyo.uk/security/fortify/cmd/fshim/ipc"
 	"git.gensokyo.uk/security/fortify/fst"
 	"git.gensokyo.uk/security/fortify/helper"
 	"git.gensokyo.uk/security/fortify/internal"
@@ -19,7 +18,7 @@ import (
 // everything beyond this point runs as unconstrained target user
 // proceed with caution!
 
-func main() {
+func Main() {
 	// sharing stdout with fortify
 	// USE WITH CAUTION
 	fmsg.SetPrefix("shim")
@@ -31,8 +30,8 @@ func main() {
 	}
 
 	// re-exec
-	if len(os.Args) > 0 && (os.Args[0] != "fshim" || len(os.Args) != 1) && path.IsAbs(os.Args[0]) {
-		if err := syscall.Exec(os.Args[0], []string{"fshim"}, os.Environ()); err != nil {
+	if len(os.Args) > 0 && (os.Args[0] != "fortify" || os.Args[1] != "shim" || len(os.Args) != 2) && path.IsAbs(os.Args[0]) {
+		if err := syscall.Exec(os.Args[0], []string{"fortify", "shim"}, os.Environ()); err != nil {
 			fmsg.Println("cannot re-exec self:", err)
 			// continue anyway
 		}
@@ -41,17 +40,17 @@ func main() {
 	// check path to finit
 	var finitPath string
 	if p, ok := internal.Path(internal.Finit); !ok {
-		fmsg.Fatal("invalid finit path, this copy of fshim is not compiled correctly")
+		fmsg.Fatal("invalid finit path, this copy of fortify is not compiled correctly")
 	} else {
 		finitPath = p
 	}
 
 	// receive setup payload
 	var (
-		payload    shim.Payload
+		payload    Payload
 		closeSetup func() error
 	)
-	if f, err := proc.Receive(shim.Env, &payload); err != nil {
+	if f, err := proc.Receive(Env, &payload); err != nil {
 		if errors.Is(err, proc.ErrInvalid) {
 			fmsg.Fatal("invalid config descriptor")
 		}

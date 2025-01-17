@@ -73,7 +73,7 @@ func (s *Std) Uid(aid int) (int, error) {
 
 	u.uid = -1
 	if fsu, ok := internal.Check(internal.Fsu); !ok {
-		fmsg.Fatal("invalid fsu path, this copy of fshim is not compiled correctly")
+		fmsg.Fatal("invalid fsu path, this copy of fortify is not compiled correctly")
 		panic("unreachable")
 	} else {
 		cmd := exec.Command(fsu)

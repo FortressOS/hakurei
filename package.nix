@@ -33,7 +33,6 @@ buildGoModule rec {
       [
         "-s -w"
         "-X main.Fmain=${placeholder "out"}/libexec/fortify"
-        "-X main.Fshim=${placeholder "out"}/libexec/fshim"
       ]
       {
         Version = "v${version}";

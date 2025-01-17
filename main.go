@@ -20,6 +20,7 @@ import (
 	"git.gensokyo.uk/security/fortify/internal/app"
 	"git.gensokyo.uk/security/fortify/internal/fmsg"
 	"git.gensokyo.uk/security/fortify/internal/linux"
+	"git.gensokyo.uk/security/fortify/internal/proc/priv/shim"
 	"git.gensokyo.uk/security/fortify/internal/system"
 )
 
@@ -283,6 +284,12 @@ func main() {
 
 		// invoke app
 		runApp(config)
+
+	// internal commands
+	case "shim":
+		shim.Main()
+		fmsg.Exit(0)
+
 	default:
 		fmsg.Fatalf("%q is not a valid command", args[0])
 	}

@@ -5,9 +5,9 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"git.gensokyo.uk/security/fortify/cmd/fshim/ipc/shim"
 	"git.gensokyo.uk/security/fortify/fst"
 	"git.gensokyo.uk/security/fortify/internal/linux"
+	"git.gensokyo.uk/security/fortify/internal/proc/priv/shim"
 )
 
 type App interface {
@@ -23,7 +23,7 @@ type App interface {
 type RunState struct {
 	// Start is true if fsu is successfully started.
 	Start bool
-	// ExitCode is the value returned by fshim.
+	// ExitCode is the value returned by shim.
 	ExitCode int
 	// WaitErr is error returned by the underlying wait syscall.
 	WaitErr error

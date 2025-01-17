@@ -62,7 +62,7 @@ func withCacheDir(action string, command []string, workDir string, app *bundleIn
 			AppID:    app.AppID,
 			Username: "nixos",
 			Inner:    path.Join("/data/data", app.ID, "cache"),
-			Outer:    pathSet.cacheDir, // this also ensures cacheDir via fshim
+			Outer:    pathSet.cacheDir, // this also ensures cacheDir via shim
 			Sandbox: &fst.SandboxConfig{
 				Hostname:     formatHostname(app.Name) + "-" + action,
 				NoNewSession: dropShell,

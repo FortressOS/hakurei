@@ -9,10 +9,9 @@ import (
 	"strings"
 	"time"
 
-	shim0 "git.gensokyo.uk/security/fortify/cmd/fshim/ipc"
-	"git.gensokyo.uk/security/fortify/cmd/fshim/ipc/shim"
 	"git.gensokyo.uk/security/fortify/helper"
 	"git.gensokyo.uk/security/fortify/internal/fmsg"
+	"git.gensokyo.uk/security/fortify/internal/proc/priv/shim"
 	"git.gensokyo.uk/security/fortify/internal/state"
 	"git.gensokyo.uk/security/fortify/internal/system"
 )
@@ -51,7 +50,7 @@ func (a *app) Run(ctx context.Context, rs *RunState) error {
 		uint32(a.seal.sys.UID()),
 		a.seal.sys.user.as,
 		a.seal.sys.user.supp,
-		&shim0.Payload{
+		&shim.Payload{
 			Argv:  a.seal.command,
 			Exec:  shimExec,
 			Bwrap: a.seal.sys.bwrap,
