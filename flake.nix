@@ -166,8 +166,28 @@
                 go
                 gcc
               ]
-              ++ fortify.buildInputs
-              ++ fortify.nativeBuildInputs;
+              # buildInputs
+              ++ (
+                with pkgsStatic;
+                [
+                  musl
+                  libffi
+                  acl
+                  wayland
+                  wayland-protocols
+                ]
+                ++ (with xorg; [
+                  libxcb
+                  libXau
+                  libXdmcp
+                ])
+              )
+              # nativeBuildInputs
+              ++ [
+                pkg-config
+                wayland-scanner
+                makeBinaryWrapper
+              ];
           };
 
           fhs = fhs.env;

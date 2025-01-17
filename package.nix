@@ -1,11 +1,16 @@
 {
   lib,
   buildGoModule,
+  makeBinaryWrapper,
   xdg-dbus-proxy,
   bubblewrap,
-  pkgsStatic,
   pkg-config,
+  libffi,
+  acl,
+  wayland,
+  wayland-protocols,
   wayland-scanner,
+  xorg,
 }:
 
 buildGoModule rec {
@@ -27,7 +32,6 @@ buildGoModule rec {
       )
       [
         "-s -w"
-        "-extldflags '-static'"
         "-X main.Fmain=${placeholder "out"}/libexec/fortify"
         "-X main.Fshim=${placeholder "out"}/libexec/fshim"
       ]
@@ -42,10 +46,7 @@ buildGoModule rec {
   GO_TEST_SKIP_ACL = 1;
 
   buildInputs =
-    # cannot find a cleaner way to do this
-    with pkgsStatic;
     [
-      musl
       libffi
       acl
       wayland
@@ -60,7 +61,7 @@ buildGoModule rec {
   nativeBuildInputs = [
     pkg-config
     wayland-scanner
-    pkgsStatic.makeBinaryWrapper
+    makeBinaryWrapper
   ];
 
   preConfigure = ''
