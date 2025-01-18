@@ -56,7 +56,7 @@ func (s *Shim) WaitFallback() chan error {
 func (s *Shim) Start() (*time.Time, error) {
 	// prepare user switcher invocation
 	var fsu string
-	if p, ok := internal.Check(internal.Fsu); !ok {
+	if p, ok := internal.Path(internal.Fsu); !ok {
 		fmsg.Fatal("invalid fsu path, this copy of fortify is not compiled correctly")
 		panic("unreachable")
 	} else {

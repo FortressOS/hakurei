@@ -37,14 +37,6 @@ func Main() {
 		}
 	}
 
-	// check path to fortify
-	var fortifyPath string
-	if p, ok := internal.Path(internal.Fortify); !ok {
-		fmsg.Fatal("invalid fortify path, this copy of fortify is not compiled correctly")
-	} else {
-		fortifyPath = p
-	}
-
 	// receive setup payload
 	var (
 		payload    Payload
@@ -135,7 +127,7 @@ func Main() {
 	// bind fortify inside sandbox
 	innerSbin := path.Join(fst.Tmp, "sbin")
 	fortifyInnerPath := path.Join(innerSbin, "fortify")
-	conf.Bind(fortifyPath, fortifyInnerPath)
+	conf.Bind(proc.MustExecutable(), fortifyInnerPath)
 	conf.Symlink(fortifyInnerPath, path.Join(innerSbin, "init"))
 
 	helper.BubblewrapName = payload.Exec[0] // resolved bwrap path by parent

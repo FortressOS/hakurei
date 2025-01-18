@@ -11,7 +11,6 @@ cp -rv "comp" "${out}"
 go generate ./...
 go build -trimpath -v -o "${out}/bin/" -ldflags "-s -w -buildid= -extldflags '-static'
   -X git.gensokyo.uk/security/fortify/internal.Version=${VERSION}
-  -X git.gensokyo.uk/security/fortify/internal.Fortify=/usr/bin/fortify
   -X git.gensokyo.uk/security/fortify/internal.Fsu=/usr/bin/fsu
   -X main.Fmain=/usr/bin/fortify" ./...
 
