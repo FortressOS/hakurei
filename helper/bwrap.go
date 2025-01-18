@@ -49,6 +49,11 @@ func (b *bubblewrap) StartNotify(ready chan error) error {
 		return errors.New("exec: already started")
 	}
 
+	// pass sync fd to bwrap
+	if b.sync != nil {
+		b.Cmd.Args = append(b.Cmd.Args, "--sync-fd", strconv.Itoa(int(proc.ExtraFile(b.Cmd, b.sync))))
+	}
+
 	// prepare bwrap pipe and args
 	if argsFD, _, err := b.control.prepareCmd(b.Cmd); err != nil {
 		return err
@@ -74,10 +79,6 @@ func (b *bubblewrap) StartNotify(ready chan error) error {
 		b.Cmd.Env = append(b.Cmd.Env, FortifyHelper+"=1", FortifyStatus+"=0")
 	} else {
 		b.Cmd.Env = append(b.Cmd.Env, FortifyHelper+"=1", FortifyStatus+"=-1")
-	}
-
-	if b.sync != nil {
-		b.Cmd.Args = append(b.Cmd.Args, "--sync-fd", strconv.Itoa(int(proc.ExtraFile(b.Cmd, b.sync))))
 	}
 
 	if err := b.Cmd.Start(); err != nil {
