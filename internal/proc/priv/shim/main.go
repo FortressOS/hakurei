@@ -7,12 +7,12 @@ import (
 	"strconv"
 	"syscall"
 
-	init0 "git.gensokyo.uk/security/fortify/cmd/finit/ipc"
 	"git.gensokyo.uk/security/fortify/fst"
 	"git.gensokyo.uk/security/fortify/helper"
 	"git.gensokyo.uk/security/fortify/internal"
 	"git.gensokyo.uk/security/fortify/internal/fmsg"
 	"git.gensokyo.uk/security/fortify/internal/proc"
+	init0 "git.gensokyo.uk/security/fortify/internal/proc/priv/init"
 )
 
 // everything beyond this point runs as unconstrained target user
@@ -37,12 +37,12 @@ func Main() {
 		}
 	}
 
-	// check path to finit
-	var finitPath string
-	if p, ok := internal.Path(internal.Finit); !ok {
-		fmsg.Fatal("invalid finit path, this copy of fortify is not compiled correctly")
+	// check path to fortify
+	var fortifyPath string
+	if p, ok := internal.Path(internal.Fortify); !ok {
+		fmsg.Fatal("invalid fortify path, this copy of fortify is not compiled correctly")
 	} else {
-		finitPath = p
+		fortifyPath = p
 	}
 
 	// receive setup payload
@@ -132,13 +132,15 @@ func Main() {
 		}()
 	}
 
-	// bind finit inside sandbox
-	finitInnerPath := path.Join(fst.Tmp, "sbin", "init")
-	conf.Bind(finitPath, finitInnerPath)
+	// bind fortify inside sandbox
+	innerSbin := path.Join(fst.Tmp, "sbin")
+	fortifyInnerPath := path.Join(innerSbin, "fortify")
+	conf.Bind(fortifyPath, fortifyInnerPath)
+	conf.Symlink(fortifyInnerPath, path.Join(innerSbin, "init"))
 
 	helper.BubblewrapName = payload.Exec[0] // resolved bwrap path by parent
-	if b, err := helper.NewBwrap(conf, nil, finitInnerPath,
-		func(int, int) []string { return make([]string, 0) }); err != nil {
+	if b, err := helper.NewBwrap(conf, nil, fortifyInnerPath,
+		func(int, int) []string { return []string{"init"} }); err != nil {
 		fmsg.Fatalf("malformed sandbox config: %v", err)
 	} else {
 		cmd := b.Unwrap()

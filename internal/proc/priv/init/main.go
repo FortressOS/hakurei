@@ -1,4 +1,4 @@
-package main
+package init0
 
 import (
 	"errors"
@@ -9,7 +9,6 @@ import (
 	"syscall"
 	"time"
 
-	init0 "git.gensokyo.uk/security/fortify/cmd/finit/ipc"
 	"git.gensokyo.uk/security/fortify/internal"
 	"git.gensokyo.uk/security/fortify/internal/fmsg"
 	"git.gensokyo.uk/security/fortify/internal/proc"
@@ -23,7 +22,7 @@ const (
 // everything beyond this point runs within pid namespace
 // proceed with caution!
 
-func main() {
+func Main() {
 	// sharing stdout with shim
 	// USE WITH CAUTION
 	fmsg.SetPrefix("init")
@@ -40,8 +39,8 @@ func main() {
 	}
 
 	// re-exec
-	if len(os.Args) > 0 && (os.Args[0] != "finit" || len(os.Args) != 1) && path.IsAbs(os.Args[0]) {
-		if err := syscall.Exec(os.Args[0], []string{"finit"}, os.Environ()); err != nil {
+	if len(os.Args) > 0 && (os.Args[0] != "fortify" || os.Args[1] != "init" || len(os.Args) != 2) && path.IsAbs(os.Args[0]) {
+		if err := syscall.Exec(os.Args[0], []string{"fortify", "init"}, os.Environ()); err != nil {
 			fmsg.Println("cannot re-exec self:", err)
 			// continue anyway
 		}
@@ -49,10 +48,10 @@ func main() {
 
 	// receive setup payload
 	var (
-		payload    init0.Payload
+		payload    Payload
 		closeSetup func() error
 	)
-	if f, err := proc.Receive(init0.Env, &payload); err != nil {
+	if f, err := proc.Receive(Env, &payload); err != nil {
 		if errors.Is(err, proc.ErrInvalid) {
 			fmsg.Fatal("invalid config descriptor")
 		}
@@ -67,8 +66,8 @@ func main() {
 		closeSetup = f
 
 		// child does not need to see this
-		if err = os.Unsetenv(init0.Env); err != nil {
-			fmsg.Printf("cannot unset %s: %v", init0.Env, err)
+		if err = os.Unsetenv(Env); err != nil {
+			fmsg.Printf("cannot unset %s: %v", Env, err)
 			// not fatal
 		} else {
 			fmsg.VPrintln("received configuration")

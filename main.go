@@ -20,6 +20,7 @@ import (
 	"git.gensokyo.uk/security/fortify/internal/app"
 	"git.gensokyo.uk/security/fortify/internal/fmsg"
 	"git.gensokyo.uk/security/fortify/internal/linux"
+	init0 "git.gensokyo.uk/security/fortify/internal/proc/priv/init"
 	"git.gensokyo.uk/security/fortify/internal/proc/priv/shim"
 	"git.gensokyo.uk/security/fortify/internal/system"
 )
@@ -288,6 +289,9 @@ func main() {
 	// internal commands
 	case "shim":
 		shim.Main()
+		fmsg.Exit(0)
+	case "init":
+		init0.Main()
 		fmsg.Exit(0)
 
 	default:

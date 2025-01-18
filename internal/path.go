@@ -5,7 +5,6 @@ import "path"
 var (
 	Fortify = compPoison
 	Fsu     = compPoison
-	Finit   = compPoison
 )
 
 func Path(p string) (string, bool) {
