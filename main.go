@@ -55,6 +55,9 @@ func (g *gl) Set(v string) error {
 }
 
 func main() {
+	// early init argv0 check, skips root check and duplicate PR_SET_DUMPABLE
+	init0.TryArgv0()
+
 	if err := internal.PR_SET_DUMPABLE__SUID_DUMP_DISABLE(); err != nil {
 		fmsg.Printf("cannot set SUID_DUMP_DISABLE: %s", err)
 		// not fatal: this program runs as the privileged user

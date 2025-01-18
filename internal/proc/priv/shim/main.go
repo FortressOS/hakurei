@@ -125,14 +125,17 @@ func Main() {
 	}
 
 	// bind fortify inside sandbox
-	innerSbin := path.Join(fst.Tmp, "sbin")
-	fortifyInnerPath := path.Join(innerSbin, "fortify")
-	conf.Bind(proc.MustExecutable(), fortifyInnerPath)
-	conf.Symlink(fortifyInnerPath, path.Join(innerSbin, "init"))
+	var (
+		innerSbin    = path.Join(fst.Tmp, "sbin")
+		innerFortify = path.Join(innerSbin, "fortify")
+		innerInit    = path.Join(innerSbin, "init")
+	)
+	conf.Bind(proc.MustExecutable(), innerFortify)
+	conf.Symlink("fortify", innerInit)
 
 	helper.BubblewrapName = payload.Exec[0] // resolved bwrap path by parent
-	if b, err := helper.NewBwrap(conf, nil, fortifyInnerPath,
-		func(int, int) []string { return []string{"init"} }); err != nil {
+	if b, err := helper.NewBwrap(conf, nil, innerInit,
+		func(int, int) []string { return make([]string, 0) }); err != nil {
 		fmsg.Fatalf("malformed sandbox config: %v", err)
 	} else {
 		cmd := b.Unwrap()

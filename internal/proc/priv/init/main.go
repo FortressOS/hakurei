@@ -5,7 +5,6 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
-	"path"
 	"syscall"
 	"time"
 
@@ -36,14 +35,6 @@ func Main() {
 	if os.Getpid() != 1 {
 		fmsg.Fatal("this process must run as pid 1")
 		panic("unreachable")
-	}
-
-	// re-exec
-	if len(os.Args) > 0 && (os.Args[0] != "fortify" || os.Args[1] != "init" || len(os.Args) != 2) && path.IsAbs(os.Args[0]) {
-		if err := syscall.Exec(os.Args[0], []string{"fortify", "init"}, os.Environ()); err != nil {
-			fmsg.Println("cannot re-exec self:", err)
-			// continue anyway
-		}
 	}
 
 	// receive setup payload
