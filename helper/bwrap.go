@@ -15,15 +15,19 @@ import (
 // BubblewrapName is the file name or path to bubblewrap.
 var BubblewrapName = "bwrap"
 
+type BwrapExtraFile struct {
+	Name string
+	File *os.File
+}
+
 type bubblewrap struct {
 	// bwrap child file name
 	name string
 
 	// bwrap pipes
 	control *pipes
-	// keep this fd open while sandbox is running
-	// (--sync-fd FD)
-	sync *os.File
+	// extra files with fd passed as argument
+	extra []BwrapExtraFile
 	// returns an array of arguments passed directly
 	// to the child process spawned by bwrap
 	argF func(argsFD, statFD int) []string
@@ -50,9 +54,12 @@ func (b *bubblewrap) StartNotify(ready chan error) error {
 		return errors.New("exec: already started")
 	}
 
-	// pass sync fd to bwrap
-	if b.sync != nil {
-		b.Cmd.Args = append(b.Cmd.Args, "--sync-fd", strconv.Itoa(int(proc.ExtraFile(b.Cmd, b.sync))))
+	// pass extra fd to bwrap
+	for _, e := range b.extra {
+		if e.File == nil {
+			continue
+		}
+		b.Cmd.Args = append(b.Cmd.Args, e.Name, strconv.Itoa(int(proc.ExtraFile(b.Cmd, e.File))))
 	}
 
 	// prepare bwrap pipe and args
@@ -123,9 +130,9 @@ func (b *bubblewrap) Unwrap() *exec.Cmd {
 func MustNewBwrap(
 	conf *bwrap.Config, name string,
 	wt io.WriterTo, argF func(argsFD, statFD int) []string,
-	syncFd *os.File,
+	extra []BwrapExtraFile,
 ) Helper {
-	b, err := NewBwrap(conf, name, wt, argF, syncFd)
+	b, err := NewBwrap(conf, name, wt, argF, extra)
 	if err != nil {
 		panic(err.Error())
 	} else {
@@ -139,7 +146,7 @@ func MustNewBwrap(
 func NewBwrap(
 	conf *bwrap.Config, name string,
 	wt io.WriterTo, argF func(argsFD, statFD int) []string,
-	syncFd *os.File,
+	extra []BwrapExtraFile,
 ) (Helper, error) {
 	b := new(bubblewrap)
 
@@ -149,7 +156,7 @@ func NewBwrap(
 		b.control = &pipes{args: args}
 	}
 
-	b.sync = syncFd
+	b.extra = extra
 	b.argF = argF
 	b.name = name
 	if wt != nil {

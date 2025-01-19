@@ -138,7 +138,11 @@ func Main() {
 	if b, err := helper.NewBwrap(
 		conf, innerInit,
 		nil, func(int, int) []string { return make([]string, 0) },
-		syncFd,
+		[]helper.BwrapExtraFile{
+			// keep this fd open while sandbox is running
+			// (--sync-fd FD)
+			{"--sync-fd", syncFd},
+		},
 	); err != nil {
 		fmsg.Fatalf("malformed sandbox config: %v", err)
 	} else {
