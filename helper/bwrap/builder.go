@@ -161,10 +161,3 @@ func (c *Config) SetGID(gid int) *Config {
 	}
 	return c
 }
-
-// SetSync sets the sync pipe kept open while sandbox is running
-// (--sync-fd FD)
-func (c *Config) SetSync(s *os.File) *Config {
-	c.sync = s
-	return c
-}

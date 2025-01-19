@@ -16,13 +16,15 @@ func Exec(p string) ([]*Entry, error) {
 		cmd *exec.Cmd
 	)
 
-	if b, err := helper.NewBwrap((&bwrap.Config{
-		Hostname:      "fortify-ldd",
-		Chdir:         "/",
-		NewSession:    true,
-		DieWithParent: true,
-	}).Bind("/", "/").DevTmpfs("/dev"),
-		nil, "ldd", func(_, _ int) []string { return []string{p} }); err != nil {
+	if b, err := helper.NewBwrap(
+		(&bwrap.Config{
+			Hostname:      "fortify-ldd",
+			Chdir:         "/",
+			NewSession:    true,
+			DieWithParent: true,
+		}).Bind("/", "/").DevTmpfs("/dev"), "ldd",
+		nil, func(_, _ int) []string { return []string{p} }, nil,
+	); err != nil {
 		return nil, err
 	} else {
 		cmd = b.Unwrap()

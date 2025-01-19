@@ -21,7 +21,8 @@ type bubblewrap struct {
 
 	// bwrap pipes
 	control *pipes
-	// sync pipe
+	// keep this fd open while sandbox is running
+	// (--sync-fd FD)
 	sync *os.File
 	// returns an array of arguments passed directly
 	// to the child process spawned by bwrap
@@ -119,8 +120,12 @@ func (b *bubblewrap) Unwrap() *exec.Cmd {
 // MustNewBwrap initialises a new Bwrap instance with wt as the null-terminated argument writer.
 // If wt is nil, the child process spawned by bwrap will not get an argument pipe.
 // Function argF returns an array of arguments passed directly to the child process.
-func MustNewBwrap(conf *bwrap.Config, wt io.WriterTo, name string, argF func(argsFD, statFD int) []string) Helper {
-	b, err := NewBwrap(conf, wt, name, argF)
+func MustNewBwrap(
+	conf *bwrap.Config, name string,
+	wt io.WriterTo, argF func(argsFD, statFD int) []string,
+	syncFd *os.File,
+) Helper {
+	b, err := NewBwrap(conf, name, wt, argF, syncFd)
 	if err != nil {
 		panic(err.Error())
 	} else {
@@ -131,7 +136,11 @@ func MustNewBwrap(conf *bwrap.Config, wt io.WriterTo, name string, argF func(arg
 // NewBwrap initialises a new Bwrap instance with wt as the null-terminated argument writer.
 // If wt is nil, the child process spawned by bwrap will not get an argument pipe.
 // Function argF returns an array of arguments passed directly to the child process.
-func NewBwrap(conf *bwrap.Config, wt io.WriterTo, name string, argF func(argsFD, statFD int) []string) (Helper, error) {
+func NewBwrap(
+	conf *bwrap.Config, name string,
+	wt io.WriterTo, argF func(argsFD, statFD int) []string,
+	syncFd *os.File,
+) (Helper, error) {
 	b := new(bubblewrap)
 
 	if args, err := NewCheckedArgs(conf.Args()); err != nil {
@@ -140,7 +149,7 @@ func NewBwrap(conf *bwrap.Config, wt io.WriterTo, name string, argF func(argsFD,
 		b.control = &pipes{args: args}
 	}
 
-	b.sync = conf.Sync()
+	b.sync = syncFd
 	b.argF = argF
 	b.name = name
 	if wt != nil {

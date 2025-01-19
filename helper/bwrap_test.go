@@ -31,7 +31,11 @@ func TestBwrap(t *testing.T) {
 			helper.BubblewrapName = bubblewrapName
 		})
 
-		h := helper.MustNewBwrap(sc, argsWt, "fortify", argF)
+		h := helper.MustNewBwrap(
+			sc, "fortify",
+			argsWt, argF,
+			nil,
+		)
 
 		if err := h.Start(); !errors.Is(err, os.ErrNotExist) {
 			t.Errorf("Start() error = %v, wantErr %v",
@@ -40,7 +44,11 @@ func TestBwrap(t *testing.T) {
 	})
 
 	t.Run("valid new helper nil check", func(t *testing.T) {
-		if got := helper.MustNewBwrap(sc, argsWt, "fortify", argF); got == nil {
+		if got := helper.MustNewBwrap(
+			sc, "fortify",
+			argsWt, argF,
+			nil,
+		); got == nil {
 			t.Errorf("MustNewBwrap(%#v, %#v, %#v) got nil",
 				sc, argsWt, "fortify")
 			return
@@ -56,7 +64,11 @@ func TestBwrap(t *testing.T) {
 			}
 		}()
 
-		helper.MustNewBwrap(&bwrap.Config{Hostname: "\x00"}, nil, "fortify", argF)
+		helper.MustNewBwrap(
+			&bwrap.Config{Hostname: "\x00"}, "fortify",
+			nil, argF,
+			nil,
+		)
 	})
 
 	t.Run("start notify without pipes panic", func(t *testing.T) {
@@ -69,13 +81,21 @@ func TestBwrap(t *testing.T) {
 		}()
 
 		panic(fmt.Sprintf("unreachable: %v",
-			helper.MustNewBwrap(sc, nil, "fortify", argF).StartNotify(make(chan error))))
+			helper.MustNewBwrap(
+				sc, "fortify",
+				nil, argF,
+				nil,
+			).StartNotify(make(chan error))))
 	})
 
 	t.Run("start without pipes", func(t *testing.T) {
 		helper.InternalReplaceExecCommand(t)
 
-		h := helper.MustNewBwrap(sc, nil, "crash-test-dummy", argFChecked)
+		h := helper.MustNewBwrap(
+			sc, "crash-test-dummy",
+			nil, argFChecked,
+			nil,
+		)
 		cmd := h.Unwrap()
 
 		stdout, stderr := new(strings.Builder), new(strings.Builder)
@@ -107,6 +127,6 @@ func TestBwrap(t *testing.T) {
 	})
 
 	t.Run("implementation compliance", func(t *testing.T) {
-		testHelper(t, func() helper.Helper { return helper.MustNewBwrap(sc, argsWt, "crash-test-dummy", argF) })
+		testHelper(t, func() helper.Helper { return helper.MustNewBwrap(sc, "crash-test-dummy", argsWt, argF, nil) })
 	})
 }

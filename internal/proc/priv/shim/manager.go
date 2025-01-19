@@ -24,6 +24,8 @@ type Shim struct {
 	killFallback chan error
 	// monitor to shim encoder
 	encoder *gob.Encoder
+	// bwrap --sync-fd value
+	sync *uintptr
 }
 
 func (s *Shim) String() string {
@@ -46,8 +48,8 @@ func (s *Shim) Start(
 	aid string,
 	// string representation of supplementary group ids
 	supp []string,
-	// shim setup payload
-	payload *Payload,
+	// bwrap --sync-fd
+	syncFd *os.File,
 ) (*time.Time, error) {
 	// prepare user switcher invocation
 	var fsu string
@@ -80,9 +82,9 @@ func (s *Shim) Start(
 	s.cmd.Dir = "/"
 
 	// pass sync fd if set
-	if payload.Bwrap.Sync() != nil {
-		fd := proc.ExtraFile(s.cmd, payload.Bwrap.Sync())
-		payload.Sync = &fd
+	if syncFd != nil {
+		fd := proc.ExtraFile(s.cmd, syncFd)
+		s.sync = &fd
 	}
 
 	fmsg.VPrintln("starting shim via fsu:", s.cmd)
@@ -106,6 +108,7 @@ func (s *Shim) Serve(ctx context.Context, payload *Payload) error {
 	}
 	defer func() { killShim() }()
 
+	payload.Sync = s.sync
 	encodeErr := make(chan error)
 	go func() { encodeErr <- s.encoder.Encode(payload) }()
 

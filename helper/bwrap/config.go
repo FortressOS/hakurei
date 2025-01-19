@@ -1,9 +1,5 @@
 package bwrap
 
-import (
-	"os"
-)
-
 type Config struct {
 	// unshare every namespace we support by default if nil
 	// (--unshare-all)
@@ -61,10 +57,6 @@ type Config struct {
 	// (--as-pid-1)
 	AsInit bool `json:"as_init"`
 
-	// keep this fd open while sandbox is running
-	// (--sync-fd FD)
-	sync *os.File
-
 	/* unmapped options include:
 	    --unshare-user-try           Create new user namespace if possible else continue by skipping it
 	    --unshare-cgroup-try         Create new cgroup namespace if possible else continue by skipping it
@@ -88,12 +80,6 @@ type Config struct {
 	    --cap-drop CAP               Drop cap CAP when running as privileged user
 
 	among which --args is used internally for passing arguments */
-}
-
-// Sync keep this fd open while sandbox is running
-// (--sync-fd FD)
-func (c *Config) Sync() *os.File {
-	return c.sync
 }
 
 type UnshareConfig struct {

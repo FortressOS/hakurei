@@ -62,8 +62,9 @@ func Main() {
 	}
 
 	// restore bwrap sync fd
+	var syncFd *os.File
 	if payload.Sync != nil {
-		payload.Bwrap.SetSync(os.NewFile(*payload.Sync, "sync"))
+		syncFd = os.NewFile(*payload.Sync, "sync")
 	}
 
 	// close setup socket
@@ -134,8 +135,11 @@ func Main() {
 	conf.Symlink("fortify", innerInit)
 
 	helper.BubblewrapName = payload.Exec[0] // resolved bwrap path by parent
-	if b, err := helper.NewBwrap(conf, nil, innerInit,
-		func(int, int) []string { return make([]string, 0) }); err != nil {
+	if b, err := helper.NewBwrap(
+		conf, innerInit,
+		nil, func(int, int) []string { return make([]string, 0) },
+		syncFd,
+	); err != nil {
 		fmsg.Fatalf("malformed sandbox config: %v", err)
 	} else {
 		cmd := b.Unwrap()

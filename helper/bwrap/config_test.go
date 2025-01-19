@@ -126,8 +126,7 @@ func TestConfig_Args(t *testing.T) {
 			name: "uid gid sync",
 			conf: (new(bwrap.Config)).
 				SetUID(1971).
-				SetGID(100).
-				SetSync(os.Stdin),
+				SetGID(100),
 			want: []string{
 				"--unshare-all", "--unshare-user",
 				"--disable-userns", "--assert-userns-disabled",
@@ -135,8 +134,6 @@ func TestConfig_Args(t *testing.T) {
 				"--uid", "1971",
 				// SetGID(100)
 				"--gid", "100",
-				// SetSync(os.Stdin)
-				// this is set when the process is created
 			},
 		},
 		{
@@ -245,11 +242,5 @@ func TestConfig_Args(t *testing.T) {
 			}
 		}()
 		(new(bwrap.Config)).Persist("/run", "", "")
-	})
-
-	t.Run("sync file", func(t *testing.T) {
-		if s := (new(bwrap.Config)).SetSync(os.Stdout).Sync(); s != os.Stdout {
-			t.Errorf("Sync() = %v", s)
-		}
 	})
 }

@@ -45,32 +45,19 @@ func (a *app) Run(ctx context.Context, rs *RunState) error {
 		}
 	}
 
-	a.shim = new(shim.Shim)
-	// keep a reference to shim payload for sync fd
-	payload := &shim.Payload{
-		Argv:  a.seal.command,
-		Exec:  shimExec,
-		Bwrap: a.seal.sys.bwrap,
-		Home:  a.seal.sys.user.data,
-
-		Verbose: fmsg.Verbose(),
-	}
-
 	// startup will go ahead, commit system setup
 	if err := a.seal.sys.Commit(); err != nil {
 		return err
 	}
 	a.seal.sys.needRevert = true
 
-	// export sync pipe from sys
-	a.seal.sys.bwrap.SetSync(a.seal.sys.Sync())
-
 	// start shim via manager
+	a.shim = new(shim.Shim)
 	waitErr := make(chan error, 1)
 	if startTime, err := a.shim.Start(
 		a.seal.sys.user.as,
 		a.seal.sys.user.supp,
-		payload,
+		a.seal.sys.Sync(),
 	); err != nil {
 		return err
 	} else {
@@ -88,7 +75,14 @@ func (a *app) Run(ctx context.Context, rs *RunState) error {
 		}()
 
 		// send payload
-		if err = a.shim.Serve(shimSetupCtx, payload); err != nil {
+		if err = a.shim.Serve(shimSetupCtx, &shim.Payload{
+			Argv:  a.seal.command,
+			Exec:  shimExec,
+			Bwrap: a.seal.sys.bwrap,
+			Home:  a.seal.sys.user.data,
+
+			Verbose: fmsg.Verbose(),
+		}); err != nil {
 			return err
 		}
 
