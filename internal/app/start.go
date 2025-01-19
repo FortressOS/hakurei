@@ -45,20 +45,16 @@ func (a *app) Run(ctx context.Context, rs *RunState) error {
 		}
 	}
 
-	// construct shim manager
-	a.shim = shim.New(
-		uint32(a.seal.sys.UID()),
-		a.seal.sys.user.as,
-		a.seal.sys.user.supp,
-		&shim.Payload{
-			Argv:  a.seal.command,
-			Exec:  shimExec,
-			Bwrap: a.seal.sys.bwrap,
-			Home:  a.seal.sys.user.data,
+	a.shim = new(shim.Shim)
+	// keep a reference to shim payload for sync fd
+	payload := &shim.Payload{
+		Argv:  a.seal.command,
+		Exec:  shimExec,
+		Bwrap: a.seal.sys.bwrap,
+		Home:  a.seal.sys.user.data,
 
-			Verbose: fmsg.Verbose(),
-		},
-	)
+		Verbose: fmsg.Verbose(),
+	}
 
 	// startup will go ahead, commit system setup
 	if err := a.seal.sys.Commit(); err != nil {
@@ -71,7 +67,11 @@ func (a *app) Run(ctx context.Context, rs *RunState) error {
 
 	// start shim via manager
 	waitErr := make(chan error, 1)
-	if startTime, err := a.shim.Start(); err != nil {
+	if startTime, err := a.shim.Start(
+		a.seal.sys.user.as,
+		a.seal.sys.user.supp,
+		payload,
+	); err != nil {
 		return err
 	} else {
 		// shim process created
@@ -88,7 +88,7 @@ func (a *app) Run(ctx context.Context, rs *RunState) error {
 		}()
 
 		// send payload
-		if err = a.shim.Serve(shimSetupCtx); err != nil {
+		if err = a.shim.Serve(shimSetupCtx, payload); err != nil {
 			return err
 		}
 

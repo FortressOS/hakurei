@@ -20,22 +20,10 @@ import (
 type Shim struct {
 	// user switcher process
 	cmd *exec.Cmd
-	// uid of shim target user
-	uid uint32
-	// string representation of application id
-	aid string
-	// string representation of supplementary group ids
-	supp []string
 	// fallback exit notifier with error returned killing the process
 	killFallback chan error
-	// shim setup payload
-	payload *Payload
 	// monitor to shim encoder
 	encoder *gob.Encoder
-}
-
-func New(uid uint32, aid string, supp []string, payload *Payload) *Shim {
-	return &Shim{uid: uid, aid: aid, supp: supp, payload: payload}
 }
 
 func (s *Shim) String() string {
@@ -53,7 +41,14 @@ func (s *Shim) WaitFallback() chan error {
 	return s.killFallback
 }
 
-func (s *Shim) Start() (*time.Time, error) {
+func (s *Shim) Start(
+	// string representation of application id
+	aid string,
+	// string representation of supplementary group ids
+	supp []string,
+	// shim setup payload
+	payload *Payload,
+) (*time.Time, error) {
 	// prepare user switcher invocation
 	var fsu string
 	if p, ok := internal.Path(internal.Fsu); !ok {
@@ -72,22 +67,22 @@ func (s *Shim) Start() (*time.Time, error) {
 		s.encoder = e
 		s.cmd.Env = []string{
 			Env + "=" + strconv.Itoa(fd),
-			"FORTIFY_APP_ID=" + s.aid,
+			"FORTIFY_APP_ID=" + aid,
 		}
 	}
 
 	// format fsu supplementary groups
-	if len(s.supp) > 0 {
-		fmsg.VPrintf("attaching supplementary group ids %s", s.supp)
-		s.cmd.Env = append(s.cmd.Env, "FORTIFY_GROUPS="+strings.Join(s.supp, " "))
+	if len(supp) > 0 {
+		fmsg.VPrintf("attaching supplementary group ids %s", supp)
+		s.cmd.Env = append(s.cmd.Env, "FORTIFY_GROUPS="+strings.Join(supp, " "))
 	}
 	s.cmd.Stdin, s.cmd.Stdout, s.cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
 	s.cmd.Dir = "/"
 
 	// pass sync fd if set
-	if s.payload.Bwrap.Sync() != nil {
-		fd := proc.ExtraFile(s.cmd, s.payload.Bwrap.Sync())
-		s.payload.Sync = &fd
+	if payload.Bwrap.Sync() != nil {
+		fd := proc.ExtraFile(s.cmd, payload.Bwrap.Sync())
+		payload.Sync = &fd
 	}
 
 	fmsg.VPrintln("starting shim via fsu:", s.cmd)
@@ -101,7 +96,7 @@ func (s *Shim) Start() (*time.Time, error) {
 	return &startTime, nil
 }
 
-func (s *Shim) Serve(ctx context.Context) error {
+func (s *Shim) Serve(ctx context.Context, payload *Payload) error {
 	// kill shim if something goes wrong and an error is returned
 	s.killFallback = make(chan error, 1)
 	killShim := func() {
@@ -112,7 +107,7 @@ func (s *Shim) Serve(ctx context.Context) error {
 	defer func() { killShim() }()
 
 	encodeErr := make(chan error)
-	go func() { encodeErr <- s.encoder.Encode(s.payload) }()
+	go func() { encodeErr <- s.encoder.Encode(payload) }()
 
 	select {
 	// encode return indicates setup completion
