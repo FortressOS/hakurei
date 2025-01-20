@@ -150,10 +150,6 @@ func Main() {
 		cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
 		cmd.ExtraFiles = extraFiles
 
-		if fmsg.Verbose() {
-			fmsg.VPrintln("bwrap args:", conf.Args())
-		}
-
 		// run and pass through exit code
 		if err = b.Start(); err != nil {
 			fmsg.Fatalf("cannot start target process: %v", err)
