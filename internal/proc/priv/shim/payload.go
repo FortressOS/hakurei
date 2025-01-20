@@ -1,6 +1,9 @@
 package shim
 
-import "git.gensokyo.uk/security/fortify/helper/bwrap"
+import (
+	"git.gensokyo.uk/security/fortify/fst"
+	"git.gensokyo.uk/security/fortify/helper/bwrap"
+)
 
 const Env = "FORTIFY_SHIM"
 
@@ -15,6 +18,8 @@ type Payload struct {
 	Home string
 	// sync fd
 	Sync *uintptr
+	// seccomp opts pass through
+	Syscall *fst.SyscallConfig
 
 	// verbosity pass through
 	Verbose bool

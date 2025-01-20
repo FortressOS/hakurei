@@ -47,6 +47,8 @@ type appSeal struct {
 
 	// pass-through enablement tracking from config
 	et system.Enablements
+	// pass-through seccomp config from config
+	scmp *fst.SyscallConfig
 	// wayland socket direct access
 	directWayland bool
 	// extra UpdatePerm ops
@@ -218,6 +220,12 @@ func (a *app) Seal(config *fst.Config) error {
 		conf.Filesystem = append(conf.Filesystem, &fst.FilesystemConfig{Src: "/dev/kvm", Device: true})
 
 		config.Confinement.Sandbox = conf
+
+		// ensure syscall filter
+		if config.Confinement.Syscall == nil {
+			config.Confinement.Syscall = new(fst.SyscallConfig)
+			config.Confinement.Syscall.Multiarch = true
+		}
 	}
 	seal.directWayland = config.Confinement.Sandbox.DirectWayland
 	if b, err := config.Confinement.Sandbox.Bwrap(a.os); err != nil {
@@ -238,8 +246,9 @@ func (a *app) Seal(config *fst.Config) error {
 	// initialise system interface with full uid
 	seal.sys.I = system.New(seal.sys.user.uid)
 
-	// pass through enablements
+	// pass through enablements and seccomp
 	seal.et = config.Confinement.Enablements
+	seal.scmp = config.Confinement.Syscall
 
 	// this method calls all share methods in sequence
 	if err := seal.setupShares([2]*dbus.Config{config.Confinement.SessionBus, config.Confinement.SystemBus}, a.os); err != nil {

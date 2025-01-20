@@ -76,10 +76,11 @@ func (a *app) Run(ctx context.Context, rs *RunState) error {
 
 		// send payload
 		if err = a.shim.Serve(shimSetupCtx, &shim.Payload{
-			Argv:  a.seal.command,
-			Exec:  shimExec,
-			Bwrap: a.seal.sys.bwrap,
-			Home:  a.seal.sys.user.data,
+			Argv:    a.seal.command,
+			Exec:    shimExec,
+			Bwrap:   a.seal.sys.bwrap,
+			Home:    a.seal.sys.user.data,
+			Syscall: a.seal.scmp,
 
 			Verbose: fmsg.Verbose(),
 		}); err != nil {
