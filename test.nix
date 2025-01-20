@@ -237,7 +237,7 @@ nixosTest {
     machine.wait_until_fails("getfacl --absolute-names --omit-header --numeric /run/user/1000 | grep 1000000")
 
     # Start a terminal (foot) within fortify from a terminal:
-    swaymsg("exec foot $SHELL -c '(fortify run --wayland foot) & sleep 1 && fortify show --short $(fortify ps --short) && touch /tmp/ps-show-ok && cat'")
+    swaymsg("exec foot $SHELL -c '(fortify run --wayland foot) & sleep 1 && fortify show $(fortify ps --short) && touch /tmp/ps-show-ok && cat'")
     wait_for_window("u0_a0@machine")
     machine.send_chars("clear; wayland-info && touch /tmp/success-client-term\n")
     machine.wait_for_file("/tmp/fortify.1000/tmpdir/0/success-client-term")
