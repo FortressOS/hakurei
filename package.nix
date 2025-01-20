@@ -6,6 +6,7 @@
   bubblewrap,
   pkg-config,
   libffi,
+  libseccomp,
   acl,
   wayland,
   wayland-protocols,
@@ -45,6 +46,7 @@ buildGoModule rec {
   buildInputs =
     [
       libffi
+      libseccomp
       acl
       wayland
       wayland-protocols

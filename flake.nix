@@ -132,6 +132,7 @@
                 [
                   musl
                   libffi
+                  libseccomp
                   acl
                   wayland
                   wayland-protocols
@@ -172,6 +173,7 @@
                 [
                   musl
                   libffi
+                  libseccomp
                   acl
                   wayland
                   wayland-protocols
