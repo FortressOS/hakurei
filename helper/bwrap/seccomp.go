@@ -1,9 +1,9 @@
-package shim
+package bwrap
 
 /*
 #cgo linux pkg-config: --static libseccomp
 
-#include "export.h"
+#include "seccomp-export.h"
 */
 import "C"
 import (
@@ -11,9 +11,9 @@ import (
 	"fmt"
 	"os"
 	"runtime"
-
-	"git.gensokyo.uk/security/fortify/internal/fmsg"
 )
+
+var CPrintln func(v ...any)
 
 var resErr = [...]error{
 	0: nil,
@@ -77,5 +77,7 @@ func exportFilter(fd uintptr, opts syscallOpts) error {
 
 //export F_println
 func F_println(v *C.char) {
-	fmsg.VPrintln(C.GoString(v))
+	if CPrintln != nil {
+		CPrintln(C.GoString(v))
+	}
 }

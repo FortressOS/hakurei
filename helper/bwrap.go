@@ -9,16 +9,10 @@ import (
 	"sync"
 
 	"git.gensokyo.uk/security/fortify/helper/bwrap"
-	"git.gensokyo.uk/security/fortify/internal/proc"
 )
 
 // BubblewrapName is the file name or path to bubblewrap.
 var BubblewrapName = "bwrap"
-
-type BwrapExtraFile struct {
-	Name string
-	File *os.File
-}
 
 type bubblewrap struct {
 	// bwrap child file name
@@ -26,8 +20,6 @@ type bubblewrap struct {
 
 	// bwrap pipes
 	control *pipes
-	// extra files with fd passed as argument
-	extra []BwrapExtraFile
 	// returns an array of arguments passed directly
 	// to the child process spawned by bwrap
 	argF func(argsFD, statFD int) []string
@@ -52,14 +44,6 @@ func (b *bubblewrap) StartNotify(ready chan error) error {
 	// call to Start succeeded, we don't want to spuriously close its pipes.
 	if b.Cmd.Process != nil {
 		return errors.New("exec: already started")
-	}
-
-	// pass extra fd to bwrap
-	for _, e := range b.extra {
-		if e.File == nil {
-			continue
-		}
-		b.Cmd.Args = append(b.Cmd.Args, e.Name, strconv.Itoa(int(proc.ExtraFile(b.Cmd, e.File))))
 	}
 
 	// prepare bwrap pipe and args
@@ -130,9 +114,10 @@ func (b *bubblewrap) Unwrap() *exec.Cmd {
 func MustNewBwrap(
 	conf *bwrap.Config, name string,
 	wt io.WriterTo, argF func(argsFD, statFD int) []string,
-	extra []BwrapExtraFile,
+	extraFiles []*os.File,
+	syncFd *os.File,
 ) Helper {
-	b, err := NewBwrap(conf, name, wt, argF, extra)
+	b, err := NewBwrap(conf, name, wt, argF, extraFiles, syncFd)
 	if err != nil {
 		panic(err.Error())
 	} else {
@@ -146,23 +131,27 @@ func MustNewBwrap(
 func NewBwrap(
 	conf *bwrap.Config, name string,
 	wt io.WriterTo, argF func(argsFD, statFD int) []string,
-	extra []BwrapExtraFile,
+	extraFiles []*os.File,
+	syncFd *os.File,
 ) (Helper, error) {
 	b := new(bubblewrap)
 
-	if args, err := NewCheckedArgs(conf.Args()); err != nil {
-		return nil, err
-	} else {
-		b.control = &pipes{args: args}
-	}
-
-	b.extra = extra
 	b.argF = argF
 	b.name = name
 	if wt != nil {
 		b.controlPt = &pipes{args: wt}
 	}
+
 	b.Cmd = execCommand(BubblewrapName)
+	b.control = new(pipes)
+	args := conf.Args()
+	if fdArgs, err := conf.FDArgs(syncFd, &extraFiles); err != nil {
+		return nil, err
+	} else if b.control.args, err = NewCheckedArgs(append(args, fdArgs...)); err != nil {
+		return nil, err
+	} else {
+		b.Cmd.ExtraFiles = extraFiles
+	}
 
 	return b, nil
 }

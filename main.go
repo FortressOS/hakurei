@@ -291,7 +291,7 @@ func main() {
 
 	// internal commands
 	case "shim":
-		shim.Main(args)
+		shim.Main()
 		fmsg.Exit(0)
 	case "init":
 		init0.Main()

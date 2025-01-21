@@ -23,7 +23,8 @@ func Exec(p string) ([]*Entry, error) {
 			NewSession:    true,
 			DieWithParent: true,
 		}).Bind("/", "/").DevTmpfs("/dev"), "ldd",
-		nil, func(_, _ int) []string { return []string{p} }, nil,
+		nil, func(_, _ int) []string { return []string{p} },
+		nil, nil,
 	); err != nil {
 		return nil, err
 	} else {

@@ -99,7 +99,7 @@ func (d *DBus) apply(_ *I) error {
 	}
 	fmsg.VPrintln("starting message bus proxy:", d.proxy)
 	if fmsg.Verbose() { // save the extra bwrap arg build when verbose logging is off
-		fmsg.VPrintln("message bus proxy bwrap args:", d.proxy.Bwrap())
+		fmsg.VPrintln("message bus proxy bwrap args:", d.proxy.BwrapStatic())
 	}
 
 	// background wait for proxy instance and notify completion

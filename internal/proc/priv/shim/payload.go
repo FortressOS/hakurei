@@ -1,7 +1,6 @@
 package shim
 
 import (
-	"git.gensokyo.uk/security/fortify/fst"
 	"git.gensokyo.uk/security/fortify/helper/bwrap"
 )
 
@@ -18,8 +17,6 @@ type Payload struct {
 	Home string
 	// sync fd
 	Sync *uintptr
-	// seccomp opts pass through
-	Syscall *fst.SyscallConfig
 
 	// verbosity pass through
 	Verbose bool

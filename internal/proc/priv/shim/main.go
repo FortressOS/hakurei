@@ -2,8 +2,6 @@ package shim
 
 import (
 	"errors"
-	"flag"
-	"io"
 	"os"
 	"path"
 	"strconv"
@@ -20,7 +18,7 @@ import (
 // everything beyond this point runs as unconstrained target user
 // proceed with caution!
 
-func Main(args []string) {
+func Main() {
 	// sharing stdout with fortify
 	// USE WITH CAUTION
 	fmsg.SetPrefix("shim")
@@ -29,46 +27,6 @@ func Main(args []string) {
 	if err := internal.PR_SET_DUMPABLE__SUID_DUMP_DISABLE(); err != nil {
 		fmsg.Fatalf("cannot set SUID_DUMP_DISABLE: %s", err)
 		panic("unreachable")
-	}
-
-	set := flag.NewFlagSet("shim", flag.ExitOnError)
-
-	// debug: export seccomp filter
-	debugExportSeccomp := set.String("export-seccomp", "", "export the seccomp filter to file")
-	debugExportSeccompFlags := [...]struct {
-		o syscallOpts
-		v *bool
-	}{
-		{flagDenyNS, set.Bool("deny-ns", false, "deny namespace-related syscalls")},
-		{flagDenyTTY, set.Bool("deny-tty", false, "deny faking input ioctls")},
-		{flagDenyDevel, set.Bool("deny-devel", false, "deny development syscalls")},
-		{flagMultiarch, set.Bool("multiarch", false, "allow multiarch")},
-		{flagLinux32, set.Bool("linux32", false, "allow PER_LINUX32")},
-		{flagCan, set.Bool("can", false, "allow AF_CAN")},
-		{flagBluetooth, set.Bool("bluetooth", false, "AF_BLUETOOTH")},
-	}
-
-	// Ignore errors; set is set for ExitOnError.
-	_ = set.Parse(args[1:])
-
-	// debug: export seccomp filter
-	if *debugExportSeccomp != "" {
-		var opts syscallOpts
-		for _, opt := range debugExportSeccompFlags {
-			if *opt.v {
-				opts |= opt.o
-			}
-		}
-
-		if f, err := os.Create(*debugExportSeccomp); err != nil {
-			fmsg.Fatalf("cannot create %q: %v", *debugExportSeccomp, err)
-		} else {
-			mustExportFilter(f, opts)
-			if err = f.Close(); err != nil {
-				fmsg.Fatalf("cannot close %q: %v", *debugExportSeccomp, err)
-			}
-		}
-		fmsg.Exit(0)
 	}
 
 	// receive setup payload
@@ -169,23 +127,19 @@ func Main(args []string) {
 	conf.Symlink("fortify", innerInit)
 
 	helper.BubblewrapName = payload.Exec[0] // resolved bwrap path by parent
+	if fmsg.Verbose() {
+		bwrap.CPrintln = fmsg.Println
+	}
 	if b, err := helper.NewBwrap(
 		conf, innerInit,
 		nil, func(int, int) []string { return make([]string, 0) },
-		[]helper.BwrapExtraFile{
-			// keep this fd open while sandbox is running
-			// (--sync-fd FD)
-			{"--sync-fd", syncFd},
-			// load and use seccomp rules from FD (not repeatable)
-			// (--seccomp FD)
-			{"--seccomp", mustResolveSeccomp(payload.Bwrap, payload.Syscall)},
-		},
+		extraFiles,
+		syncFd,
 	); err != nil {
 		fmsg.Fatalf("malformed sandbox config: %v", err)
 	} else {
 		cmd := b.Unwrap()
 		cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
-		cmd.ExtraFiles = extraFiles
 
 		// run and pass through exit code
 		if err = b.Start(); err != nil {
@@ -198,67 +152,5 @@ func Main(args []string) {
 		} else {
 			fmsg.Exit(127)
 		}
-	}
-}
-
-func mustResolveSeccomp(bwrap *bwrap.Config, syscall *fst.SyscallConfig) (seccompFd *os.File) {
-	if syscall == nil {
-		fmsg.VPrintln("syscall filter not configured, PROCEED WITH CAUTION")
-		return
-	}
-
-	// resolve seccomp filter opts
-	var (
-		opts    syscallOpts
-		optd    []string
-		optCond = [...]struct {
-			v bool
-			o syscallOpts
-			d string
-		}{
-			{!bwrap.UserNS, flagDenyNS, "denyns"},
-			{bwrap.NewSession, flagDenyTTY, "denytty"},
-			{syscall.DenyDevel, flagDenyDevel, "denydevel"},
-			{syscall.Multiarch, flagMultiarch, "multiarch"},
-			{syscall.Linux32, flagLinux32, "linux32"},
-			{syscall.Can, flagCan, "can"},
-			{syscall.Bluetooth, flagBluetooth, "bluetooth"},
-		}
-	)
-	if fmsg.Verbose() {
-		optd = make([]string, 1, len(optCond)+1)
-		optd[0] = "fortify"
-	}
-	for _, opt := range optCond {
-		if opt.v {
-			opts |= opt.o
-			if fmsg.Verbose() {
-				optd = append(optd, opt.d)
-			}
-		}
-	}
-	if fmsg.Verbose() {
-		fmsg.VPrintf("seccomp flags: %s", optd)
-	}
-
-	// export seccomp filter to tmpfile
-	if f, err := tmpfile(); err != nil {
-		fmsg.Fatalf("cannot create tmpfile: %v", err)
-		panic("unreachable")
-	} else {
-		mustExportFilter(f, opts)
-		seccompFd = f
-		return
-	}
-}
-
-func mustExportFilter(f *os.File, opts syscallOpts) {
-	if err := exportFilter(f.Fd(), opts); err != nil {
-		fmsg.Fatalf("cannot export seccomp filter: %v", err)
-		panic("unreachable")
-	}
-	if _, err := f.Seek(0, io.SeekStart); err != nil {
-		fmsg.Fatalf("cannot lseek seccomp file: %v", err)
-		panic("unreachable")
 	}
 }

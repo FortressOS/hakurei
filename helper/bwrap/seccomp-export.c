@@ -2,7 +2,7 @@
 #define _GNU_SOURCE // CLONE_NEWUSER
 #endif
 
-#include "export.h"
+#include "seccomp-export.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>

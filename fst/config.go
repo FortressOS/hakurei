@@ -31,8 +31,6 @@ type ConfinementConfig struct {
 	Outer string `json:"home"`
 	// bwrap sandbox confinement configuration
 	Sandbox *SandboxConfig `json:"sandbox"`
-	// seccomp syscall filter configuration
-	Syscall *SyscallConfig `json:"syscall"`
 	// extra acl entries to append
 	ExtraPerms []*ExtraPermConfig `json:"extra_perms,omitempty"`
 
@@ -45,14 +43,6 @@ type ConfinementConfig struct {
 
 	// system resources to expose to the sandbox
 	Enablements system.Enablements `json:"enablements"`
-}
-
-type SyscallConfig struct {
-	DenyDevel bool `json:"deny_devel"`
-	Multiarch bool `json:"multiarch"`
-	Linux32   bool `json:"linux32"`
-	Can       bool `json:"can"`
-	Bluetooth bool `json:"bluetooth"`
 }
 
 type ExtraPermConfig struct {

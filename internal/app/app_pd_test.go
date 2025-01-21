@@ -39,6 +39,7 @@ var testCasesPd = []sealTestCase{
 			Net:      true,
 			UserNS:   true,
 			Clearenv: true,
+			Syscall:  new(bwrap.SyscallPolicy),
 			Chdir:    "/home/chronos",
 			SetEnv: map[string]string{
 				"HOME":              "/home/chronos",
@@ -258,6 +259,7 @@ var testCasesPd = []sealTestCase{
 			UserNS:   true,
 			Chdir:    "/home/chronos",
 			Clearenv: true,
+			Syscall:  new(bwrap.SyscallPolicy),
 			SetEnv: map[string]string{
 				"DBUS_SESSION_BUS_ADDRESS": "unix:path=/run/user/65534/bus",
 				"DBUS_SYSTEM_BUS_ADDRESS":  "unix:path=/run/dbus/system_bus_socket",

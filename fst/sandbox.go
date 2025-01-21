@@ -22,6 +22,8 @@ type SandboxConfig struct {
 	Net bool `json:"net,omitempty"`
 	// share all devices
 	Dev bool `json:"dev,omitempty"`
+	// seccomp syscall filter policy
+	Syscall *bwrap.SyscallPolicy `json:"syscall"`
 	// do not run in new session
 	NoNewSession bool `json:"no_new_session,omitempty"`
 	// map target user uid to privileged user uid in the user namespace
@@ -50,6 +52,10 @@ func (s *SandboxConfig) Bwrap(os linux.System) (*bwrap.Config, error) {
 		return nil, errors.New("nil sandbox config")
 	}
 
+	if s.Syscall == nil {
+		fmsg.VPrintln("syscall filter not configured, PROCEED WITH CAUTION")
+	}
+
 	var uid int
 	if !s.MapRealUID {
 		uid = 65534
@@ -69,6 +75,7 @@ func (s *SandboxConfig) Bwrap(os linux.System) (*bwrap.Config, error) {
 		so this capacity should eliminate copies for most setups */
 		Filesystem: make([]bwrap.FSBuilder, 0, 256),
 
+		Syscall:       s.Syscall,
 		NewSession:    !s.NoNewSession,
 		DieWithParent: true,
 		AsInit:        true,

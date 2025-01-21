@@ -47,6 +47,10 @@ type Config struct {
 	// (--chmod OCTAL PATH)
 	Chmod ChmodConfig `json:"chmod,omitempty"`
 
+	// load and use seccomp rules from FD (not repeatable)
+	// (--seccomp FD)
+	Syscall *SyscallPolicy
+
 	// create a new terminal session
 	// (--new-session)
 	NewSession bool `json:"new_session"`
@@ -70,7 +74,6 @@ type Config struct {
 	    --file FD DEST               Copy from FD to destination DEST
 	    --bind-data FD DEST          Copy from FD to file which is bind-mounted on DEST
 	    --ro-bind-data FD DEST       Copy from FD to file which is readonly bind-mounted on DEST
-	    --seccomp FD                 Load and use seccomp rules from FD (not repeatable)
 	    --add-seccomp-fd FD          Load and use seccomp rules from FD (repeatable)
 	    --block-fd FD                Block on FD until some data to read is available
 	    --userns-block-fd FD         Block on FD until the user namespace is ready

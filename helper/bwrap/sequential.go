@@ -43,6 +43,9 @@ const (
 	Overlay
 	TmpOverlay
 	ROOverlay
+
+	SyncFd
+	Seccomp
 )
 
 var positionalArgs = [...]string{
@@ -70,6 +73,9 @@ var positionalArgs = [...]string{
 	Overlay:    "--overlay",
 	TmpOverlay: "--tmp-overlay",
 	ROOverlay:  "--ro-overlay",
+
+	SyncFd:  "--sync-fd",
+	Seccomp: "--seccomp",
 }
 
 type PermConfig[T FSBuilder] struct {

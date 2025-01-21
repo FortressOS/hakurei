@@ -66,7 +66,7 @@ func (p *Proxy) String() string {
 	return "(unsealed dbus proxy)"
 }
 
-func (p *Proxy) Bwrap() []string {
+func (p *Proxy) BwrapStatic() []string {
 	return p.bwrap.Args()
 }
 

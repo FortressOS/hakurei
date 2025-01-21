@@ -110,7 +110,7 @@ func (p *Proxy) Start(ready chan error, output io.Writer, sandbox bool) error {
 			bc.Bind(k, k)
 		}
 
-		h = helper.MustNewBwrap(bc, toolPath, p.seal, argF, nil)
+		h = helper.MustNewBwrap(bc, toolPath, p.seal, argF, nil, nil)
 		cmd = h.Unwrap()
 		p.bwrap = bc
 	}
