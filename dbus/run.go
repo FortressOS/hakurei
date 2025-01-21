@@ -16,7 +16,7 @@ import (
 
 // Start launches the D-Bus proxy and sets up the Wait method.
 // ready should be buffered and must only be received from once.
-func (p *Proxy) Start(ready chan error, output io.Writer, sandbox bool) error {
+func (p *Proxy) Start(ready chan error, output io.Writer, sandbox, seccomp bool) error {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 
@@ -67,9 +67,14 @@ func (p *Proxy) Start(ready chan error, output io.Writer, sandbox bool) error {
 			Unshare:       nil,
 			Hostname:      "fortify-dbus",
 			Chdir:         "/",
+			Syscall:       &bwrap.SyscallPolicy{DenyDevel: true, Multiarch: true},
 			Clearenv:      true,
 			NewSession:    true,
 			DieWithParent: true,
+		}
+
+		if !seccomp {
+			bc.Syscall = nil
 		}
 
 		// resolve proxy socket directories

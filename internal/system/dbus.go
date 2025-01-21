@@ -93,7 +93,7 @@ func (d *DBus) apply(_ *I) error {
 	ready := make(chan error, 1)
 
 	// background dbus proxy start
-	if err := d.proxy.Start(ready, d.out, true); err != nil {
+	if err := d.proxy.Start(ready, d.out, true, true); err != nil {
 		return fmsg.WrapErrorSuffix(err,
 			"cannot start message bus proxy:")
 	}

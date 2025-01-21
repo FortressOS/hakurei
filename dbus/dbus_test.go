@@ -141,7 +141,7 @@ func testProxyStartWaitCloseString(t *testing.T, sandbox bool) {
 
 				t.Run("unsealed start of "+id, func(t *testing.T) {
 					want := "proxy not sealed"
-					if err := p.Start(nil, nil, sandbox); err == nil || err.Error() != want {
+					if err := p.Start(nil, nil, sandbox, false); err == nil || err.Error() != want {
 						t.Errorf("Start() error = %v, wantErr %q",
 							err, errors.New(want))
 						return
@@ -175,7 +175,7 @@ func testProxyStartWaitCloseString(t *testing.T, sandbox bool) {
 				}
 
 				t.Run("sealed start of "+id, func(t *testing.T) {
-					if err := p.Start(nil, output, sandbox); err != nil {
+					if err := p.Start(nil, output, sandbox, false); err != nil {
 						t.Fatalf("Start(nil, nil) error = %v",
 							err)
 					}
