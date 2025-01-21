@@ -16,6 +16,7 @@ import (
 
 	"git.gensokyo.uk/security/fortify/dbus"
 	"git.gensokyo.uk/security/fortify/fst"
+	"git.gensokyo.uk/security/fortify/helper/bwrap"
 	"git.gensokyo.uk/security/fortify/internal"
 	"git.gensokyo.uk/security/fortify/internal/app"
 	"git.gensokyo.uk/security/fortify/internal/fmsg"
@@ -307,6 +308,10 @@ func main() {
 func runApp(config *fst.Config) {
 	rs := new(app.RunState)
 	ctx, cancel := context.WithCancel(context.Background())
+
+	if fmsg.Verbose() {
+		bwrap.CPrintln = fmsg.Println
+	}
 
 	// handle signals for graceful shutdown
 	sig := make(chan os.Signal, 2)
