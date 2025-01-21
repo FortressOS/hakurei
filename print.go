@@ -53,6 +53,10 @@ func printShowInstance(instance *state.State, config *fst.Config, short bool) {
 	now := time.Now().UTC()
 	w := tabwriter.NewWriter(direct.Stdout, 0, 1, 4, ' ', 0)
 
+	if config.Confinement.Sandbox == nil {
+		fmt.Print("Warning: this configuration uses permissive defaults!\n\n")
+	}
+
 	if instance != nil {
 		fmt.Fprintf(w, "State\n")
 		fmt.Fprintf(w, " Instance:\t%s (%d)\n", instance.ID.String(), instance.PID)
@@ -106,9 +110,6 @@ func printShowInstance(instance *state.State, config *fst.Config, short bool) {
 
 		// Env           map[string]string   `json:"env"`
 		// Link          [][2]string         `json:"symlink"`
-	} else {
-		// this gets printed before everything else
-		fmt.Println("WARNING: current configuration uses permissive defaults!")
 	}
 	fmt.Fprintf(w, " Command:\t%s\n", strings.Join(config.Command, " "))
 	fmt.Fprintf(w, "\n")
