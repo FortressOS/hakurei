@@ -20,6 +20,7 @@ func Exec(p string) ([]*Entry, error) {
 		(&bwrap.Config{
 			Hostname:      "fortify-ldd",
 			Chdir:         "/",
+			Syscall:       &bwrap.SyscallPolicy{DenyDevel: true, Multiarch: true},
 			NewSession:    true,
 			DieWithParent: true,
 		}).Bind("/", "/").DevTmpfs("/dev"), "ldd",
