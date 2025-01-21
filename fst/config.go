@@ -7,7 +7,7 @@ import (
 
 const Tmp = "/.fortify"
 
-// Config is used to seal an *App
+// Config is used to seal an app
 type Config struct {
 	// application ID
 	ID string `json:"id"`

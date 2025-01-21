@@ -1,8 +1,11 @@
 package app
 
 import (
+	"bytes"
+	"encoding/gob"
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"path"
 	"regexp"
@@ -47,6 +50,8 @@ type appSeal struct {
 
 	// pass-through enablement tracking from config
 	et system.Enablements
+	// initial config gob encoding buffer
+	ct io.WriterTo
 	// pass-through seccomp config from config
 	scmp *fst.SyscallConfig
 	// wayland socket direct access
@@ -86,6 +91,14 @@ func (a *app) Seal(config *fst.Config) error {
 
 	// create seal
 	seal := new(appSeal)
+
+	// encode initial configuration for state tracking
+	ct := new(bytes.Buffer)
+	if err := gob.NewEncoder(ct).Encode(config); err != nil {
+		return fmsg.WrapErrorSuffix(err,
+			"cannot encode initial config:")
+	}
+	seal.ct = ct
 
 	// fetch system constants
 	seal.Paths = a.os.Paths()
@@ -261,6 +274,5 @@ func (a *app) Seal(config *fst.Config) error {
 
 	// seal app and release lock
 	a.seal = seal
-	a.ct = newAppCt(config)
 	return nil
 }

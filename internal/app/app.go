@@ -3,7 +3,6 @@ package app
 import (
 	"context"
 	"sync"
-	"sync/atomic"
 
 	"git.gensokyo.uk/security/fortify/fst"
 	"git.gensokyo.uk/security/fortify/internal/linux"
@@ -30,9 +29,6 @@ type RunState struct {
 }
 
 type app struct {
-	// single-use config reference
-	ct *appCt
-
 	// application unique identifier
 	id *fst.ID
 	// operating system interface
@@ -73,25 +69,4 @@ func New(os linux.System) (App, error) {
 	a.id = new(fst.ID)
 	a.os = os
 	return a, fst.NewAppID(a.id)
-}
-
-// appCt ensures its wrapped val is only accessed once
-type appCt struct {
-	val  *fst.Config
-	done *atomic.Bool
-}
-
-func (a *appCt) Unwrap() *fst.Config {
-	if !a.done.Load() {
-		defer a.done.Store(true)
-		return a.val
-	}
-	panic("attempted to access config reference twice")
-}
-
-func newAppCt(config *fst.Config) (ct *appCt) {
-	ct = new(appCt)
-	ct.done = new(atomic.Bool)
-	ct.val = config
-	return ct
 }

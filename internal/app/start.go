@@ -89,16 +89,15 @@ func (a *app) Run(ctx context.Context, rs *RunState) error {
 
 		// shim accepted setup payload, create process state
 		sd := state.State{
-			ID:     *a.id,
-			PID:    a.shim.Unwrap().Process.Pid,
-			Config: a.ct.Unwrap(),
-			Time:   *startTime,
+			ID:   *a.id,
+			PID:  a.shim.Unwrap().Process.Pid,
+			Time: *startTime,
 		}
 
 		// register process state
 		var err0 = new(StateStoreError)
 		err0.Inner, err0.DoErr = a.seal.store.Do(a.seal.sys.user.aid, func(c state.Cursor) {
-			err0.InnerErr = c.Save(&sd)
+			err0.InnerErr = c.Save(&sd, a.seal.ct)
 		})
 		a.seal.sys.saveState = true
 		if err = err0.equiv("cannot save process state:"); err != nil {

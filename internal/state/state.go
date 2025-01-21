@@ -1,10 +1,14 @@
 package state
 
 import (
+	"errors"
+	"io"
 	"time"
 
 	"git.gensokyo.uk/security/fortify/fst"
 )
+
+var ErrNoConfig = errors.New("state does not contain config")
 
 type Entries map[fst.ID]*State
 
@@ -24,13 +28,13 @@ type Store interface {
 
 // Cursor provides access to the store
 type Cursor interface {
-	Save(state *State) error
+	Save(state *State, configWriter io.WriterTo) error
 	Destroy(id fst.ID) error
 	Load() (Entries, error)
 	Len() (int, error)
 }
 
-// State is the on-disk format for a fortified process's state information
+// State is a fortify process's state
 type State struct {
 	// fortify instance id
 	ID fst.ID `json:"instance"`
@@ -40,5 +44,5 @@ type State struct {
 	Config *fst.Config `json:"config"`
 
 	// process start time
-	Time time.Time
+	Time time.Time `json:"time"`
 }
