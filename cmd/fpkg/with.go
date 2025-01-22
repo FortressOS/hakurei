@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"git.gensokyo.uk/security/fortify/fst"
+	"git.gensokyo.uk/security/fortify/helper/bwrap"
 	"git.gensokyo.uk/security/fortify/internal/fmsg"
 )
 
@@ -34,6 +35,7 @@ func withNixDaemon(
 				Hostname:     formatHostname(app.Name) + "-" + action,
 				UserNS:       true, // nix sandbox requires userns
 				Net:          net,
+				Syscall:      &bwrap.SyscallPolicy{Multiarch: true},
 				NoNewSession: dropShell,
 				Filesystem: []*fst.FilesystemConfig{
 					{Src: pathSet.nixPath, Dst: "/nix", Write: true, Must: true},
@@ -65,6 +67,7 @@ func withCacheDir(action string, command []string, workDir string, app *bundleIn
 			Outer:    pathSet.cacheDir, // this also ensures cacheDir via shim
 			Sandbox: &fst.SandboxConfig{
 				Hostname:     formatHostname(app.Name) + "-" + action,
+				Syscall:      &bwrap.SyscallPolicy{Multiarch: true},
 				NoNewSession: dropShell,
 				Filesystem: []*fst.FilesystemConfig{
 					{Src: path.Join(workDir, "nix"), Dst: "/nix", Must: true},

@@ -38,6 +38,13 @@ type bundleInfo struct {
 	// passed through to [fst.Config]
 	Enablements system.Enablements `json:"enablements"`
 
+	// passed through inverted to [bwrap.SyscallPolicy]
+	Devel bool `json:"devel,omitempty"`
+	// passed through to [bwrap.SyscallPolicy]
+	Multiarch bool `json:"multiarch,omitempty"`
+	// passed through to [bwrap.SyscallPolicy]
+	Bluetooth bool `json:"bluetooth,omitempty"`
+
 	// allow gpu access within sandbox
 	GPU bool `json:"gpu"`
 	// store path to nixGL mesa wrappers

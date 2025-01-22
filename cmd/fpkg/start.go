@@ -5,6 +5,7 @@ import (
 	"path"
 
 	"git.gensokyo.uk/security/fortify/fst"
+	"git.gensokyo.uk/security/fortify/helper/bwrap"
 	"git.gensokyo.uk/security/fortify/internal/fmsg"
 )
 
@@ -96,6 +97,7 @@ func actionStart(args []string) {
 				UserNS:        app.UserNS,
 				Net:           app.Net,
 				Dev:           app.Dev,
+				Syscall:       &bwrap.SyscallPolicy{DenyDevel: !app.Devel, Multiarch: app.Multiarch, Bluetooth: app.Bluetooth},
 				NoNewSession:  app.NoNewSession || dropShell,
 				MapRealUID:    app.MapRealUID,
 				DirectWayland: app.DirectWayland,
