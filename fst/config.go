@@ -2,6 +2,7 @@ package fst
 
 import (
 	"git.gensokyo.uk/security/fortify/dbus"
+	"git.gensokyo.uk/security/fortify/helper/bwrap"
 	"git.gensokyo.uk/security/fortify/internal/system"
 )
 
@@ -107,9 +108,10 @@ func Template() *Config {
 				Hostname:      "localhost",
 				UserNS:        true,
 				Net:           true,
+				Dev:           true,
+				Syscall:       &bwrap.SyscallPolicy{DenyDevel: true, Multiarch: true},
 				NoNewSession:  true,
 				MapRealUID:    true,
-				Dev:           true,
 				DirectWayland: false,
 				// example API credentials pulled from Google Chrome
 				// DO NOT USE THESE IN A REAL BROWSER
@@ -123,13 +125,18 @@ func Template() *Config {
 					{Src: "/run/current-system"},
 					{Src: "/run/opengl-driver"},
 					{Src: "/var/db/nix-channels"},
-					{Src: "/home/chronos", Write: true, Must: true},
+					{Src: "/var/lib/fortify/u0/org.chromium.Chromium",
+						Dst: "/data/data/org.chromium.Chromium", Write: true, Must: true},
 					{Src: "/dev/dri", Device: true},
 				},
 				Link:     [][2]string{{"/run/user/65534", "/run/user/150"}},
 				Etc:      "/etc",
 				AutoEtc:  true,
 				Override: []string{"/var/run/nscd"},
+			},
+			ExtraPerms: []*ExtraPermConfig{
+				{Path: "/var/lib/fortify/u0", Ensure: true, Execute: true},
+				{Path: "/var/lib/fortify/u0/org.chromium.Chromium", Read: true, Write: true, Execute: true},
 			},
 			SystemBus: &dbus.Config{
 				See:       nil,
