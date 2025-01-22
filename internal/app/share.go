@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/fs"
 	"path"
+	"strings"
 
 	"git.gensokyo.uk/security/fortify/acl"
 	"git.gensokyo.uk/security/fortify/dbus"
@@ -240,7 +241,7 @@ func (seal *appSeal) setupShares(bus [2]*dbus.Config, os linux.System) error {
 		// publish current user's pulse cookie for target user
 		if src, err := discoverPulseCookie(os); err != nil {
 			// not fatal
-			fmsg.VPrintln(err.(*fmsg.BaseError).Message())
+			fmsg.VPrintln(strings.TrimSpace(err.(*fmsg.BaseError).Message()))
 		} else {
 			dst := path.Join(seal.share, "pulse-cookie")
 			innerDst := fst.Tmp + "/pulse-cookie"
