@@ -46,7 +46,7 @@ jobs:
       - name: Upload test output
         uses: actions/upload-artifact@v3
         with:
-          name: "result"
+          name: "nixos-vm-output"
           path: result/*
           retention-days: 1
 
