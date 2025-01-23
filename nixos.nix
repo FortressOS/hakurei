@@ -118,7 +118,8 @@ in
                           env
                           ;
                         syscall = {
-                          inherit (app) devel multiarch bluetooth;
+                          inherit (app) multiarch bluetooth;
+                          deny_devel = !app.devel;
                         };
                         map_real_uid = app.mapRealUid;
                         no_new_session = app.tty;
