@@ -36,7 +36,7 @@ package
 
 
 *Default:*
-` <derivation fortify-0.2.10> `
+` <derivation fortify-0.2.11> `
 
 
 
@@ -73,6 +73,30 @@ list of package
 
 *Default:*
 ` [ ] `
+
+
+
+
+## environment\.fortify\.apps\.\*\.bluetooth
+
+
+
+Whether to enable AF_BLUETOOTH socket operations\.
+
+
+
+*Type:*
+boolean
+
+
+
+*Default:*
+` false `
+
+
+
+*Example:*
+` true `
 
 
 
@@ -218,7 +242,31 @@ null or anything
 
 
 
-Whether to enable access to all devices within the sandbox\.
+Whether to enable access to all devices\.
+
+
+
+*Type:*
+boolean
+
+
+
+*Default:*
+` false `
+
+
+
+*Example:*
+` true `
+
+
+
+
+## environment\.fortify\.apps\.\*\.devel
+
+
+
+Whether to enable development kernel APIs\.
 
 
 
@@ -357,7 +405,31 @@ null or string
 
 
 
-Whether to enable mapping to fortify’s real UID within the sandbox\.
+Whether to enable mapping to priv-user uid\.
+
+
+
+*Type:*
+boolean
+
+
+
+*Default:*
+` false `
+
+
+
+*Example:*
+` true `
+
+
+
+
+## environment\.fortify\.apps\.\*\.multiarch
+
+
+
+Whether to enable multiarch kernel support\.
 
 
 
@@ -395,7 +467,7 @@ string
 
 
 
-Whether to enable network access within the sandbox\.
+Whether to enable network access\.
 
 
 
@@ -419,7 +491,7 @@ boolean
 
 
 
-Whether to enable nix daemon access within the sandbox\.
+Whether to enable nix daemon\.
 
 
 
@@ -482,7 +554,7 @@ null or package
 
 
 
-Whether to enable allow access to the controlling terminal\.
+Whether to enable access to the controlling terminal\.
 
 
 
@@ -506,7 +578,7 @@ boolean
 
 
 
-Whether to enable userns within the sandbox\.
+Whether to enable user namespace\.
 
 
 
@@ -522,6 +594,44 @@ boolean
 
 *Example:*
 ` true `
+
+
+
+
+## environment\.fortify\.apps\.\*\.verbose
+
+
+
+Whether to enable launchers with verbose output\.
+
+
+
+*Type:*
+boolean
+
+
+
+*Default:*
+` false `
+
+
+
+*Example:*
+` true `
+
+
+
+
+## environment\.fortify\.home-manager
+
+
+
+Target user shared home-manager configuration\.
+
+
+
+*Type:*
+function that evaluates to a(n) function that evaluates to a(n) attribute set of anything
 
 
 
