@@ -44,7 +44,6 @@ nixosTest {
           # For glinfo and wayland-info:
           mesa-demos
           wayland-utils
-          alacritty
 
           # For D-Bus tests:
           libnotify
@@ -111,6 +110,43 @@ nixosTest {
         enable = true;
         stateDir = "/var/lib/fortify";
         users.alice = 0;
+
+        home-manager = _: _: { home.stateVersion = "23.05"; };
+
+        apps = [
+          {
+            name = "ne-foot";
+            verbose = true;
+            share = pkgs.foot;
+            packages = [ pkgs.foot ];
+            command = "foot";
+            capability = {
+              dbus = false;
+              pulse = false;
+            };
+          }
+          {
+            name = "pa-foot";
+            verbose = true;
+            share = pkgs.foot;
+            packages = [ pkgs.foot ];
+            command = "foot";
+            capability.dbus = false;
+          }
+          {
+            name = "x11-alacritty";
+            verbose = true;
+            share = pkgs.alacritty;
+            packages = [ pkgs.alacritty ];
+            command = "alacritty";
+            capability = {
+              wayland = false;
+              x11 = true;
+              dbus = false;
+              pulse = false;
+            };
+          }
+        ];
       };
 
       imports = [
@@ -176,16 +212,18 @@ nixosTest {
         machine.screenshot(name)
 
 
-    def check_state(command, enablements):
+    def check_state(name, enablements):
         instances = json.loads(machine.succeed("sudo -u alice -i XDG_RUNTIME_DIR=/run/user/1000 fortify --json ps"))
         if len(instances) != 1:
             raise Exception(f"unexpected state length {len(instances)}")
         instance = next(iter(instances.values()))
 
-        if instance['config']['command'] != command:
+        config = instance['config']
+
+        if len(config['command']) != 1 or not(config['command'][0].startswith("/nix/store/")) or not(config['command'][0].endswith(f"{name}-start")):
             raise Exception(f"unexpected command {instance['config']['command']}")
 
-        if instance['config']['confinement']['enablements'] != enablements:
+        if config['confinement']['enablements'] != enablements:
             raise Exception(f"unexpected enablements {instance['config']['confinement']['enablements']}")
 
 
@@ -212,60 +250,60 @@ nixosTest {
     # Create fortify uid 0 state directory:
     machine.succeed("install -dm 0755 -o u0_a0 -g users /var/lib/fortify/u0")
 
-    # Start fortify outside Wayland session:
+    # Start fortify permissive defaults outside Wayland session:
     print(machine.succeed("sudo -u alice -i fortify -v run -a 0 touch /tmp/success-bare"))
     machine.wait_for_file("/tmp/fortify.1000/tmpdir/0/success-bare")
 
-    # Start fortify within Wayland session:
+    # Start fortify permissive defaults within Wayland session:
     fortify('-v run --wayland --dbus notify-send -a "NixOS Tests" "Test notification" "Notification from within sandbox." && touch /tmp/dbus-done')
     machine.wait_for_file("/tmp/dbus-done")
     collect_state_ui("dbus_notify_exited")
     machine.succeed("pkill -9 mako")
 
-    # Start a terminal (foot) within fortify:
-    fortify("run --wayland foot")
-    wait_for_window("u0_a0@machine")
+    # Start app (foot) with Wayland enablement:
+    swaymsg("exec ne-foot")
+    wait_for_window("u0_a1@machine")
     machine.send_chars("clear; wayland-info && touch /tmp/success-client\n")
-    machine.wait_for_file("/tmp/fortify.1000/tmpdir/0/success-client")
-    collect_state_ui("foot_wayland_permissive")
-    check_state(["foot"], 1)
+    machine.wait_for_file("/tmp/fortify.1000/tmpdir/1/success-client")
+    collect_state_ui("foot_wayland")
+    check_state("ne-foot", 1)
     # Verify acl on XDG_RUNTIME_DIR:
-    print(machine.succeed("getfacl --absolute-names --omit-header --numeric /run/user/1000 | grep 1000000"))
+    print(machine.succeed("getfacl --absolute-names --omit-header --numeric /run/user/1000 | grep 1000001"))
     machine.send_chars("exit\n")
     machine.wait_until_fails("pgrep foot")
     # Verify acl cleanup on XDG_RUNTIME_DIR:
-    machine.wait_until_fails("getfacl --absolute-names --omit-header --numeric /run/user/1000 | grep 1000000")
+    machine.wait_until_fails("getfacl --absolute-names --omit-header --numeric /run/user/1000 | grep 1000001")
 
-    # Start a terminal (foot) within fortify from a terminal:
-    swaymsg("exec foot $SHELL -c '(fortify run --wayland foot) & sleep 1 && fortify show $(fortify ps --short) && touch /tmp/ps-show-ok && cat'")
-    wait_for_window("u0_a0@machine")
+    # Start app (foot) with Wayland enablement from a terminal:
+    swaymsg("exec foot $SHELL -c '(ne-foot) & sleep 1 && fortify show $(fortify ps --short) && touch /tmp/ps-show-ok && cat'")
+    wait_for_window("u0_a1@machine")
     machine.send_chars("clear; wayland-info && touch /tmp/success-client-term\n")
-    machine.wait_for_file("/tmp/fortify.1000/tmpdir/0/success-client-term")
+    machine.wait_for_file("/tmp/fortify.1000/tmpdir/1/success-client-term")
     machine.wait_for_file("/tmp/ps-show-ok")
-    collect_state_ui("foot_wayland_permissive_term")
-    check_state(["foot"], 1)
+    collect_state_ui("foot_wayland_term")
+    check_state("ne-foot", 1)
     machine.send_chars("exit\n")
     wait_for_window("foot")
     machine.send_key("ctrl-c")
     machine.wait_until_fails("pgrep foot")
 
     # Test PulseAudio (fortify does not support PipeWire yet):
-    fortify("run --wayland --pulse foot")
-    wait_for_window("u0_a0@machine")
+    swaymsg("exec pa-foot")
+    wait_for_window("u0_a2@machine")
     machine.send_chars("clear; pactl info && touch /tmp/success-pulse\n")
-    machine.wait_for_file("/tmp/fortify.1000/tmpdir/0/success-pulse")
+    machine.wait_for_file("/tmp/fortify.1000/tmpdir/2/success-pulse")
     collect_state_ui("pulse_wayland")
-    check_state(["foot"], 9)
+    check_state("pa-foot", 9)
     machine.send_chars("exit\n")
     machine.wait_until_fails("pgrep foot")
 
     # Test XWayland (foot does not support X):
-    fortify("run -X alacritty")
-    wait_for_window("u0_a0@machine")
+    swaymsg("exec x11-alacritty")
+    wait_for_window("u0_a3@machine")
     machine.send_chars("clear; glinfo && touch /tmp/success-client-x11\n")
-    machine.wait_for_file("/tmp/fortify.1000/tmpdir/0/success-client-x11")
-    collect_state_ui("alacritty_x11_permissive")
-    check_state(["alacritty"], 2)
+    machine.wait_for_file("/tmp/fortify.1000/tmpdir/3/success-client-x11")
+    collect_state_ui("alacritty_x11")
+    check_state("x11-alacritty", 2)
     machine.send_chars("exit\n")
     machine.wait_until_fails("pgrep alacritty")
 

@@ -7,6 +7,7 @@
 
 let
   inherit (lib)
+    mkMerge
     mkIf
     mkDefault
     mapAttrs
@@ -19,6 +20,10 @@ let
     ;
 
   cfg = config.environment.fortify;
+
+  getsubuid = fid: aid: 1000000 + fid * 10000 + aid;
+  getsubname = fid: aid: "u${toString fid}_a${toString aid}";
+  getsubhome = fid: aid: "${cfg.stateDir}/u${toString fid}/a${toString aid}";
 in
 
 {
@@ -33,23 +38,12 @@ in
       group = "root";
     };
 
-    environment.etc = {
-      fsurc = {
-        mode = "0400";
-        text = foldlAttrs (
-          acc: username: fid:
-          "${toString config.users.users.${username}.uid} ${toString fid}\n" + acc
-        ) "" cfg.users;
-      };
-
-      userdb.source = pkgs.runCommand "fortify-userdb" { } ''
-        ${cfg.package}/libexec/fuserdb -o $out ${
-          foldlAttrs (
-            acc: username: fid:
-            acc + " ${username}:${toString fid}"
-          ) "-s /run/current-system/sw/bin/nologin -d ${cfg.stateDir}" cfg.users
-        }
-      '';
+    environment.etc.fsurc = {
+      mode = "0400";
+      text = foldlAttrs (
+        acc: username: fid:
+        "${toString config.users.users.${username}.uid} ${toString fid}\n" + acc
+      ) "" cfg.users;
     };
 
     systemd.services.nix-daemon.unitConfig.RequiresMountsFor = [ "/etc/userdb" ];
@@ -114,8 +108,8 @@ in
                     confinement = {
                       app_id = aid;
                       inherit (app) groups;
-                      username = "u${toString fid}_a${toString aid}";
-                      home = "${cfg.stateDir}/u${toString fid}/a${toString aid}";
+                      username = getsubname fid aid;
+                      home = getsubhome fid aid;
                       sandbox = {
                         inherit (app)
                           userns
@@ -173,7 +167,9 @@ in
                   };
                 in
                 pkgs.writeShellScriptBin app.name ''
-                  exec fortify app ${pkgs.writeText "fortify-${app.name}.json" (builtins.toJSON conf)} $@
+                  exec fortify${
+                    if app.verbose then " -v" else ""
+                  } app ${pkgs.writeText "fortify-${app.name}.json" (builtins.toJSON conf)} $@
                 ''
               ) cfg.apps;
             in
@@ -208,13 +204,57 @@ in
           mergeAttrsList (
             # aid 0 is reserved
             imap1 (aid: app: {
-              "u${toString fid}_a${toString aid}" = app.extraConfig // {
-                home.packages = app.packages;
-              };
+              ${getsubname fid aid} = mkMerge [
+                (cfg.home-manager (getsubname fid aid) (getsubuid fid aid))
+                app.extraConfig
+                { home.packages = app.packages; }
+              ];
             }) cfg.apps
           )
           // acc
         ) privPackages cfg.users;
+      };
+
+    users =
+      let
+        getuser = fid: aid: {
+          isSystemUser = true;
+          createHome = true;
+          description = "Fortify subordinate user ${toString aid} (u${toString fid})";
+          group = getsubname fid aid;
+          home = getsubhome fid aid;
+          uid = getsubuid fid aid;
+        };
+        getgroup = fid: aid: { gid = getsubuid fid aid; };
+      in
+      {
+        users = foldlAttrs (
+          acc: _: fid:
+          mkMerge [
+            (mergeAttrsList (
+              # aid 0 is reserved
+              imap1 (aid: _: {
+                ${getsubname fid aid} = getuser fid aid;
+              }) cfg.apps
+            ))
+            { ${getsubname fid 0} = getuser fid 0; }
+            acc
+          ]
+        ) { } cfg.users;
+
+        groups = foldlAttrs (
+          acc: _: fid:
+          mkMerge [
+            (mergeAttrsList (
+              # aid 0 is reserved
+              imap1 (aid: _: {
+                ${getsubname fid aid} = getgroup fid aid;
+              }) cfg.apps
+            ))
+            { ${getsubname fid 0} = getgroup fid 0; }
+            acc
+          ]
+        ) { } cfg.users;
       };
   };
 }

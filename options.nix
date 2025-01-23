@@ -26,6 +26,17 @@ in
         '';
       };
 
+      home-manager = mkOption {
+        type =
+          let
+            inherit (types) functionTo attrsOf anything;
+          in
+          functionTo (functionTo (attrsOf anything));
+        description = ''
+          Target user shared home-manager configuration.
+        '';
+      };
+
       apps = mkOption {
         type =
           let
@@ -49,6 +60,8 @@ in
                   Name of the app's launcher script.
                 '';
               };
+
+              verbose = mkEnableOption "launchers with verbose output";
 
               id = mkOption {
                 type = nullOr str;
