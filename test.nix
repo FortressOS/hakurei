@@ -83,7 +83,7 @@ nixosTest {
           sed s/Mod4/Mod1/ /etc/sway/config > ~/.config/sway/config
 
           sway --validate
-          sway && touch /tmp/sway-exit-ok
+          systemd-cat --identifier=sway sway && touch /tmp/sway-exit-ok
         fi
       '';
 
