@@ -141,15 +141,19 @@ in
                 '';
               };
 
-              nix = mkEnableOption "nix daemon access within the sandbox";
-              userns = mkEnableOption "userns within the sandbox";
-              mapRealUid = mkEnableOption "mapping to fortify's real UID within the sandbox";
-              dev = mkEnableOption "access to all devices within the sandbox";
-              tty = mkEnableOption "allow access to the controlling terminal";
+              nix = mkEnableOption "nix daemon";
+              userns = mkEnableOption "user namespace";
+              mapRealUid = mkEnableOption "mapping to priv-user uid";
+              dev = mkEnableOption "access to all devices";
+              tty = mkEnableOption "access to the controlling terminal";
 
-              net = mkEnableOption "network access within the sandbox" // {
+              net = mkEnableOption "network access" // {
                 default = true;
               };
+
+              devel = mkEnableOption "development kernel APIs";
+              multiarch = mkEnableOption "multiarch kernel support";
+              bluetooth = mkEnableOption "AF_BLUETOOTH socket operations";
 
               gpu = mkOption {
                 type = nullOr bool;

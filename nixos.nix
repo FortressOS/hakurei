@@ -117,6 +117,9 @@ in
                           dev
                           env
                           ;
+                        syscall = {
+                          inherit (app) devel multiarch bluetooth;
+                        };
                         map_real_uid = app.mapRealUid;
                         no_new_session = app.tty;
                         filesystem =
