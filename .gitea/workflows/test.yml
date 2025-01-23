@@ -5,7 +5,7 @@ on:
   - pull_request
 
 jobs:
-  tests:
+  test:
     name: Run NixOS test
     runs-on: ubuntu-latest
     steps:
@@ -30,8 +30,8 @@ jobs:
       - name: Restore Nix store
         uses: nix-community/cache-nix-action@v5
         with:
-          primary-key: nix-${{ runner.os }}-${{ hashFiles('**/*.nix') }}
-          restore-prefixes-first-match: nix-${{ runner.os }}-
+          primary-key: flake-check-${{ runner.os }}-${{ hashFiles('**/*.nix') }}
+          restore-prefixes-first-match: flake-check-${{ runner.os }}-
 
       - name: Run tests
         run: |
@@ -42,5 +42,49 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: "result"
+          path: result/*
+          retention-days: 1
+
+  dist:
+    name: Create distribution
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@08dcb3a5e62fa31e2da3d490afc4176ef55ecd72 # v30
+        with:
+          # explicitly enable sandbox
+          install_options: --daemon
+          extra_nix_config: |
+            sandbox = true
+            system-features = nixos-test benchmark big-parallel kvm
+          enable_kvm: true
+
+      - name: Ensure environment
+        run: >-
+          apt-get update && apt-get install -y sqlite3
+        if: ${{ runner.os == 'Linux' }}
+
+      - name: Restore Nix store
+        uses: nix-community/cache-nix-action@v5
+        with:
+          primary-key: build-dist-${{ runner.os }}-${{ hashFiles('**/*.nix') }}
+          restore-prefixes-first-match: build-dist-${{ runner.os }}-
+
+      - name: Build for test
+        id: build-test
+        run: >-
+          export FORTIFY_REV="$(git rev-parse --short HEAD)" &&
+          sed -i.old 's/version = /version = "0.0.0-'$FORTIFY_REV'"; # version = /' package.nix &&
+          nix build --print-out-paths --print-build-logs .#dist &&
+          mv package.nix.old package.nix &&
+          echo "rev=$FORTIFY_REV" >> $GITHUB_OUTPUT
+
+      - name: Upload test build
+        uses: actions/upload-artifact@v3
+        with:
+          name: "fortify-${{ steps.build-test.outputs.rev }}"
           path: result/*
           retention-days: 1
