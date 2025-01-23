@@ -204,17 +204,20 @@ in
 
         users = foldlAttrs (
           acc: _: fid:
-          mergeAttrsList (
-            # aid 0 is reserved
-            imap1 (aid: app: {
-              ${getsubname fid aid} = mkMerge [
-                (cfg.home-manager (getsubname fid aid) (getsubuid fid aid))
-                app.extraConfig
-                { home.packages = app.packages; }
-              ];
-            }) cfg.apps
-          )
-          // acc
+          mkMerge [
+            (mergeAttrsList (
+              # aid 0 is reserved
+              imap1 (aid: app: {
+                ${getsubname fid aid} = mkMerge [
+                  (cfg.home-manager (getsubname fid aid) (getsubuid fid aid))
+                  app.extraConfig
+                  { home.packages = app.packages; }
+                ];
+              }) cfg.apps
+            ))
+            { ${getsubname fid 0} = cfg.home-manager (getsubname fid 0) (getsubuid fid 0); }
+            acc
+          ]
         ) privPackages cfg.users;
       };
 
