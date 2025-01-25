@@ -16,7 +16,7 @@
 
 buildGoModule rec {
   pname = "fortify";
-  version = "0.2.11";
+  version = "0.2.12";
 
   src = builtins.path {
     name = "fortify-src";
@@ -63,7 +63,7 @@ buildGoModule rec {
     makeBinaryWrapper
   ];
 
-  preConfigure = ''
+  preBuild = ''
     HOME=$(mktemp -d) go generate ./...
   '';
 

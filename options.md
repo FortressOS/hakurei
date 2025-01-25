@@ -36,7 +36,7 @@ package
 
 
 *Default:*
-` <derivation fortify-0.2.11> `
+` <derivation fortify-0.2.12> `
 
 
 
@@ -194,6 +194,30 @@ null or string
 
 *Default:*
 ` null `
+
+
+
+
+## environment\.fortify\.apps\.\*\.compat
+
+
+
+Whether to enable disable syscall filter extensions\.
+
+
+
+*Type:*
+boolean
+
+
+
+*Default:*
+` false `
+
+
+
+*Example:*
+` true `
 
 
 
