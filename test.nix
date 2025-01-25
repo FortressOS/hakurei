@@ -237,8 +237,8 @@ nixosTest {
     machine.succeed("rm -rf /tmp/src && cp -a '${self.packages.${system}.fortify.src}' /tmp/src")
     machine.succeed("fortify-fhs -c '(cd /tmp/src && go generate ./... && go test ./... && touch /tmp/success-gotest)' &> /tmp/gotest &")
 
-    # To check sway's version:
-    print(machine.succeed("sway --version"))
+    # To check fortify's version:
+    print(machine.succeed("sudo -u alice -i fortify version"))
 
     # Wait for Sway to complete startup:
     machine.wait_for_file("/run/user/1000/wayland-1")
@@ -253,6 +253,11 @@ nixosTest {
     # Start fortify permissive defaults outside Wayland session:
     print(machine.succeed("sudo -u alice -i fortify -v run -a 0 touch /tmp/success-bare"))
     machine.wait_for_file("/tmp/fortify.1000/tmpdir/0/success-bare")
+
+    # Verify silent output permissive defaults:
+    output = machine.succeed("sudo -u alice -i fortify run -a 0 true &>/dev/stdout")
+    if output != "":
+        raise Exception(f"unexpected output\n{output}")
 
     # Start fortify permissive defaults within Wayland session:
     fortify('-v run --wayland --dbus notify-send -a "NixOS Tests" "Test notification" "Notification from within sandbox." && touch /tmp/dbus-done')
