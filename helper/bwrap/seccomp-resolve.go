@@ -9,10 +9,17 @@ import (
 )
 
 type SyscallPolicy struct {
+	// disable fortify extensions
+	Compat bool `json:"compat"`
+	// deny development syscalls
 	DenyDevel bool `json:"deny_devel"`
+	// deny multiarch/emulation syscalls
 	Multiarch bool `json:"multiarch"`
-	Linux32   bool `json:"linux32"`
-	Can       bool `json:"can"`
+	// allow PER_LINUX32
+	Linux32 bool `json:"linux32"`
+	// allow AF_CAN
+	Can bool `json:"can"`
+	// allow AF_BLUETOOTH
 	Bluetooth bool `json:"bluetooth"`
 }
 
@@ -53,6 +60,7 @@ func (c *Config) resolveSeccomp() (*os.File, error) {
 			o syscallOpts
 			d string
 		}{
+			{!c.Syscall.Compat, flagExt, "fortify"},
 			{!c.UserNS, flagDenyNS, "denyns"},
 			{c.NewSession, flagDenyTTY, "denytty"},
 			{c.Syscall.DenyDevel, flagDenyDevel, "denydevel"},

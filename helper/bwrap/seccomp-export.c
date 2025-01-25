@@ -28,7 +28,7 @@ struct f_syscall_act {
 #define LEN(arr) (sizeof(arr) / sizeof((arr)[0]))
 
 #define SECCOMP_RULESET_ADD(ruleset) do {                                                                      \
-  F_println("adding seccomp ruleset \"" #ruleset "\""); \
+  F_println("adding seccomp ruleset \"" #ruleset "\"");                                                        \
   for (int i = 0; i < LEN(ruleset); i++) {                                                                     \
     assert(ruleset[i].m_errno == EPERM || ruleset[i].m_errno == ENOSYS);                                       \
                                                                                                                \
@@ -89,6 +89,31 @@ int32_t f_export_bpf(int fd, uint32_t arch, uint32_t multiarch, f_syscall_opts o
     {SCMP_SYS(migrate_pages), EPERM},
   };
 
+  // fortify: project-specific extensions
+  struct f_syscall_act deny_common_ext[] = {
+    // system calls for changing the system clock
+    {SCMP_SYS(adjtimex), EPERM},
+    {SCMP_SYS(clock_adjtime), EPERM},
+    {SCMP_SYS(clock_adjtime64), EPERM},
+    {SCMP_SYS(clock_settime), EPERM},
+    {SCMP_SYS(clock_settime64), EPERM},
+    {SCMP_SYS(settimeofday), EPERM},
+
+    // loading and unloading of kernel modules
+    {SCMP_SYS(delete_module), EPERM},
+    {SCMP_SYS(finit_module), EPERM},
+    {SCMP_SYS(init_module), EPERM},
+
+    // system calls for rebooting and reboot preparation
+    {SCMP_SYS(kexec_file_load), EPERM},
+    {SCMP_SYS(kexec_load), EPERM},
+    {SCMP_SYS(reboot), EPERM},
+
+    // system calls for enabling/disabling swap devices
+    {SCMP_SYS(swapoff), EPERM},
+    {SCMP_SYS(swapon), EPERM},
+  };
+
   struct f_syscall_act deny_ns[] = {
     // Don't allow subnamespace setups:
     {SCMP_SYS(unshare), EPERM},
@@ -126,6 +151,34 @@ int32_t f_export_bpf(int fd, uint32_t arch, uint32_t multiarch, f_syscall_opts o
     {SCMP_SYS(mount_setattr), ENOSYS},
   };
 
+  // fortify: project-specific extensions
+  struct f_syscall_act deny_ns_ext[] = {
+    // changing file ownership
+    {SCMP_SYS(chown), EPERM},
+    {SCMP_SYS(chown32), EPERM},
+    {SCMP_SYS(fchown), EPERM},
+    {SCMP_SYS(fchown32), EPERM},
+    {SCMP_SYS(fchownat), EPERM},
+    {SCMP_SYS(lchown), EPERM},
+    {SCMP_SYS(lchown32), EPERM},
+
+    // system calls for changing user ID and group ID credentials
+    {SCMP_SYS(setgid), EPERM},
+    {SCMP_SYS(setgid32), EPERM},
+    {SCMP_SYS(setgroups), EPERM},
+    {SCMP_SYS(setgroups32), EPERM},
+    {SCMP_SYS(setregid), EPERM},
+    {SCMP_SYS(setregid32), EPERM},
+    {SCMP_SYS(setresgid), EPERM},
+    {SCMP_SYS(setresgid32), EPERM},
+    {SCMP_SYS(setresuid), EPERM},
+    {SCMP_SYS(setresuid32), EPERM},
+    {SCMP_SYS(setreuid), EPERM},
+    {SCMP_SYS(setreuid32), EPERM},
+    {SCMP_SYS(setuid), EPERM},
+    {SCMP_SYS(setuid32), EPERM},
+  };
+
   struct f_syscall_act deny_tty[] = {
     // Don't allow faking input to the controlling tty (CVE-2017-5226)
     {SCMP_SYS(ioctl), EPERM, &SCMP_A1(SCMP_CMP_MASKED_EQ, 0xFFFFFFFFu, (int)TIOCSTI)},
@@ -143,6 +196,22 @@ int32_t f_export_bpf(int fd, uint32_t arch, uint32_t multiarch, f_syscall_opts o
     {SCMP_SYS(personality), EPERM, &SCMP_A0(SCMP_CMP_NE, allowed_personality)},
 
     {SCMP_SYS(ptrace), EPERM}
+  };
+
+  struct f_syscall_act deny_emu[] = {
+    // modify_ldt is a historic source of interesting information leaks,
+    // so it's disabled as a hardening measure.
+    // However, it is required to run old 16-bit applications
+    // as well as some Wine patches, so it's allowed in multiarch.
+    {SCMP_SYS(modify_ldt), EPERM},
+  };
+
+  // fortify: project-specific extensions
+  struct f_syscall_act deny_emu_ext[] = {
+    {SCMP_SYS(subpage_prot), ENOSYS},
+    {SCMP_SYS(switch_endian), ENOSYS},
+    {SCMP_SYS(vm86), ENOSYS},
+    {SCMP_SYS(vm86old), ENOSYS},
   };
 
   // Blocklist all but unix, inet, inet6 and netlink
@@ -199,26 +268,11 @@ int32_t f_export_bpf(int fd, uint32_t arch, uint32_t multiarch, f_syscall_opts o
   if (opts & F_DENY_NS) SECCOMP_RULESET_ADD(deny_ns);
   if (opts & F_DENY_TTY) SECCOMP_RULESET_ADD(deny_tty);
   if (opts & F_DENY_DEVEL) SECCOMP_RULESET_ADD(deny_devel);
-
-  if (!allow_multiarch) {
-    F_println("disabling modify_ldt");
-
-    // modify_ldt is a historic source of interesting information leaks,
-    // so it's disabled as a hardening measure.
-    // However, it is required to run old 16-bit applications
-    // as well as some Wine patches, so it's allowed in multiarch.
-    ret = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(modify_ldt), 0);
-
-    // See above for the meaning of EFAULT.
-    if (ret == -EFAULT) {
-      // call fmsg here?
-      res = 4;
-      goto out;
-    } else if (ret < 0) {
-      res = 5;
-      errno = -ret;
-      goto out;
-    }
+  if (!allow_multiarch) SECCOMP_RULESET_ADD(deny_emu);
+  if (opts & F_EXT) {
+    SECCOMP_RULESET_ADD(deny_common_ext);
+    if (opts & F_DENY_NS) SECCOMP_RULESET_ADD(deny_ns_ext);
+    if (!allow_multiarch) SECCOMP_RULESET_ADD(deny_emu_ext);
   }
 
   // Socket filtering doesn't work on e.g. i386, so ignore failures here

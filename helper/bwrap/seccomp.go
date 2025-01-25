@@ -30,6 +30,7 @@ type (
 )
 
 const (
+	flagExt       syscallOpts = C.F_EXT
 	flagDenyNS    syscallOpts = C.F_DENY_NS
 	flagDenyTTY   syscallOpts = C.F_DENY_TTY
 	flagDenyDevel syscallOpts = C.F_DENY_DEVEL

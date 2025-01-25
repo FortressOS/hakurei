@@ -8,13 +8,14 @@
 #endif
 
 typedef enum {
-  F_DENY_NS    = 1 << 0,
-  F_DENY_TTY   = 1 << 1,
-  F_DENY_DEVEL = 1 << 2,
-  F_MULTIARCH  = 1 << 3,
-  F_LINUX32    = 1 << 4,
-  F_CAN        = 1 << 5,
-  F_BLUETOOTH  = 1 << 6,
+  F_EXT        = 1 << 0,
+  F_DENY_NS    = 1 << 1,
+  F_DENY_TTY   = 1 << 2,
+  F_DENY_DEVEL = 1 << 3,
+  F_MULTIARCH  = 1 << 4,
+  F_LINUX32    = 1 << 5,
+  F_CAN        = 1 << 6,
+  F_BLUETOOTH  = 1 << 7,
 } f_syscall_opts;
 
 extern void F_println(char *v);
