@@ -8,7 +8,7 @@ import (
 
 	"git.gensokyo.uk/security/fortify/fst"
 	"git.gensokyo.uk/security/fortify/helper"
-	"git.gensokyo.uk/security/fortify/helper/bwrap"
+	"git.gensokyo.uk/security/fortify/helper/seccomp"
 	"git.gensokyo.uk/security/fortify/internal"
 	"git.gensokyo.uk/security/fortify/internal/fmsg"
 	"git.gensokyo.uk/security/fortify/internal/proc"
@@ -128,7 +128,7 @@ func Main() {
 
 	helper.BubblewrapName = payload.Exec[0] // resolved bwrap path by parent
 	if fmsg.Verbose() {
-		bwrap.CPrintln = fmsg.Println
+		seccomp.CPrintln = fmsg.Println
 	}
 	if b, err := helper.NewBwrap(
 		conf, innerInit,

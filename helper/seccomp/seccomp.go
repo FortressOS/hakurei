@@ -1,4 +1,4 @@
-package bwrap
+package seccomp
 
 /*
 #cgo linux pkg-config: --static libseccomp
@@ -25,19 +25,17 @@ var resErr = [...]error{
 	6: errors.New("seccomp_export_bpf failed"),
 }
 
-type (
-	syscallOpts = C.f_syscall_opts
-)
+type SyscallOpts = C.f_syscall_opts
 
 const (
-	flagExt       syscallOpts = C.F_EXT
-	flagDenyNS    syscallOpts = C.F_DENY_NS
-	flagDenyTTY   syscallOpts = C.F_DENY_TTY
-	flagDenyDevel syscallOpts = C.F_DENY_DEVEL
-	flagMultiarch syscallOpts = C.F_MULTIARCH
-	flagLinux32   syscallOpts = C.F_LINUX32
-	flagCan       syscallOpts = C.F_CAN
-	flagBluetooth syscallOpts = C.F_BLUETOOTH
+	FlagExt       SyscallOpts = C.F_EXT
+	FlagDenyNS    SyscallOpts = C.F_DENY_NS
+	FlagDenyTTY   SyscallOpts = C.F_DENY_TTY
+	FlagDenyDevel SyscallOpts = C.F_DENY_DEVEL
+	FlagMultiarch SyscallOpts = C.F_MULTIARCH
+	FlagLinux32   SyscallOpts = C.F_LINUX32
+	FlagCan       SyscallOpts = C.F_CAN
+	FlagBluetooth SyscallOpts = C.F_BLUETOOTH
 )
 
 func tmpfile() (*os.File, error) {
@@ -48,7 +46,7 @@ func tmpfile() (*os.File, error) {
 	return os.NewFile(uintptr(fd), "tmpfile"), err
 }
 
-func exportFilter(fd uintptr, opts syscallOpts) error {
+func exportFilter(fd uintptr, opts SyscallOpts) error {
 	var (
 		arch      C.uint32_t = 0
 		multiarch C.uint32_t = 0

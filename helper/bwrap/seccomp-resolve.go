@@ -2,9 +2,9 @@ package bwrap
 
 import (
 	"fmt"
-	"io"
 	"os"
 
+	"git.gensokyo.uk/security/fortify/helper/seccomp"
 	"git.gensokyo.uk/security/fortify/internal/fmsg"
 )
 
@@ -53,24 +53,24 @@ func (c *Config) resolveSeccomp() (*os.File, error) {
 
 	// resolve seccomp filter opts
 	var (
-		opts    syscallOpts
+		opts    seccomp.SyscallOpts
 		optd    []string
 		optCond = [...]struct {
 			v bool
-			o syscallOpts
+			o seccomp.SyscallOpts
 			d string
 		}{
-			{!c.Syscall.Compat, flagExt, "fortify"},
-			{!c.UserNS, flagDenyNS, "denyns"},
-			{c.NewSession, flagDenyTTY, "denytty"},
-			{c.Syscall.DenyDevel, flagDenyDevel, "denydevel"},
-			{c.Syscall.Multiarch, flagMultiarch, "multiarch"},
-			{c.Syscall.Linux32, flagLinux32, "linux32"},
-			{c.Syscall.Can, flagCan, "can"},
-			{c.Syscall.Bluetooth, flagBluetooth, "bluetooth"},
+			{!c.Syscall.Compat, seccomp.FlagExt, "fortify"},
+			{!c.UserNS, seccomp.FlagDenyNS, "denyns"},
+			{c.NewSession, seccomp.FlagDenyTTY, "denytty"},
+			{c.Syscall.DenyDevel, seccomp.FlagDenyDevel, "denydevel"},
+			{c.Syscall.Multiarch, seccomp.FlagMultiarch, "multiarch"},
+			{c.Syscall.Linux32, seccomp.FlagLinux32, "linux32"},
+			{c.Syscall.Can, seccomp.FlagCan, "can"},
+			{c.Syscall.Bluetooth, seccomp.FlagBluetooth, "bluetooth"},
 		}
 	)
-	if CPrintln != nil {
+	if seccomp.CPrintln != nil {
 		optd = make([]string, 1, len(optCond)+1)
 		optd[0] = "common"
 	}
@@ -82,22 +82,9 @@ func (c *Config) resolveSeccomp() (*os.File, error) {
 			}
 		}
 	}
-	if CPrintln != nil {
-		CPrintln(fmt.Sprintf("seccomp flags: %s", optd))
+	if seccomp.CPrintln != nil {
+		seccomp.CPrintln(fmt.Sprintf("seccomp flags: %s", optd))
 	}
 
-	// export seccomp filter to tmpfile
-	if f, err := tmpfile(); err != nil {
-		return nil, err
-	} else {
-		return f, exportAndSeek(f, opts)
-	}
-}
-
-func exportAndSeek(f *os.File, opts syscallOpts) error {
-	if err := exportFilter(f.Fd(), opts); err != nil {
-		return err
-	}
-	_, err := f.Seek(0, io.SeekStart)
-	return err
+	return seccomp.Export(opts)
 }
