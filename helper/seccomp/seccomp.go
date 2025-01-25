@@ -28,6 +28,7 @@ var resErr = [...]error{
 type SyscallOpts = C.f_syscall_opts
 
 const (
+	flagVerbose   SyscallOpts = C.F_VERBOSE
 	FlagExt       SyscallOpts = C.F_EXT
 	FlagDenyNS    SyscallOpts = C.F_DENY_NS
 	FlagDenyTTY   SyscallOpts = C.F_DENY_TTY
@@ -62,6 +63,12 @@ func exportFilter(fd uintptr, opts SyscallOpts) error {
 	case "arm64":
 		arch = C.SCMP_ARCH_AARCH64
 		multiarch = C.SCMP_ARCH_ARM
+	}
+
+	// this removes repeated transitions between C and Go execution
+	// when producing log output via F_println and CPrintln is nil
+	if CPrintln != nil {
+		opts |= flagVerbose
 	}
 
 	res, err := C.f_export_bpf(C.int(fd), arch, multiarch, opts)
