@@ -118,7 +118,7 @@ in
                           env
                           ;
                         syscall = {
-                          inherit (app) multiarch bluetooth;
+                          inherit (app) compat multiarch bluetooth;
                           deny_devel = !app.devel;
                         };
                         map_real_uid = app.mapRealUid;

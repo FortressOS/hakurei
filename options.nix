@@ -151,6 +151,7 @@ in
                 default = true;
               };
 
+              compat = mkEnableOption "disable syscall filter extensions";
               devel = mkEnableOption "development kernel APIs";
               multiarch = mkEnableOption "multiarch kernel support";
               bluetooth = mkEnableOption "AF_BLUETOOTH socket operations";
