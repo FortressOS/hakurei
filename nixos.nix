@@ -124,42 +124,40 @@ in
                         map_real_uid = app.mapRealUid;
                         no_new_session = app.tty;
                         filesystem =
+                          let
+                            bind = src: { inherit src; };
+                            mustBind = src: {
+                              inherit src;
+                              require = true;
+                            };
+                            devBind = src: {
+                              inherit src;
+                              dev = true;
+                            };
+                          in
                           [
-                            { src = "/bin"; }
-                            { src = "/usr/bin"; }
-                            { src = "/nix/store"; }
-                            { src = "/run/current-system"; }
-                            {
-                              src = "/sys/block";
-                              require = false;
-                            }
-                            {
-                              src = "/sys/bus";
-                              require = false;
-                            }
-                            {
-                              src = "/sys/class";
-                              require = false;
-                            }
-                            {
-                              src = "/sys/dev";
-                              require = false;
-                            }
-                            {
-                              src = "/sys/devices";
-                              require = false;
-                            }
+                            (mustBind "/bin")
+                            (mustBind "/usr/bin")
+                            (mustBind "/nix/store")
+                            (mustBind "/run/current-system")
+                            (bind "/sys/block")
+                            (bind "/sys/bus")
+                            (bind "/sys/class")
+                            (bind "/sys/dev")
+                            (bind "/sys/devices")
                           ]
                           ++ optionals app.nix [
-                            { src = "/nix/var"; }
-                            { src = "/var/db/nix-channels"; }
+                            (mustBind "/nix/var")
+                            (bind "/var/db/nix-channels")
                           ]
                           ++ optionals (if app.gpu != null then app.gpu else app.capability.wayland || app.capability.x11) [
-                            { src = "/run/opengl-driver"; }
-                            {
-                              src = "/dev/dri";
-                              dev = true;
-                            }
+                            (bind "/run/opengl-driver")
+                            (devBind "/dev/dri")
+                            (devBind "/dev/nvidiactl")
+                            (devBind "/dev/nvidia-modeset")
+                            (devBind "/dev/nvidia-uvm")
+                            (devBind "/dev/nvidia-uvm-tools")
+                            (devBind "/dev/nvidia0")
                           ]
                           ++ app.extraPaths;
                         auto_etc = true;
