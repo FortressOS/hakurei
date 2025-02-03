@@ -1,17 +1,56 @@
 package seccomp
 
 import (
-	"io"
+	"io/fs"
 	"os"
+	"runtime"
+	"sync"
+	"sync/atomic"
 )
 
-func Export(opts SyscallOpts) (f *os.File, err error) {
-	if f, err = tmpfile(); err != nil {
-		return
+type exporter struct {
+	opts SyscallOpts
+	r, w *os.File
+
+	prepareOnce sync.Once
+	prepareErr  error
+	closeErr    atomic.Pointer[error]
+	exportErr   <-chan error
+}
+
+func (e *exporter) prepare() error {
+	e.prepareOnce.Do(func() {
+		if r, w, err := os.Pipe(); err != nil {
+			e.prepareErr = err
+			return
+		} else {
+			e.r, e.w = r, w
+		}
+
+		ec := make(chan error, 1)
+		go func() { ec <- exportFilter(e.w.Fd(), e.opts); close(ec); _ = e.closeWrite() }()
+		e.exportErr = ec
+		runtime.SetFinalizer(e, (*exporter).closeWrite)
+	})
+	return e.prepareErr
+}
+
+func (e *exporter) closeWrite() error {
+	if !e.closeErr.CompareAndSwap(nil, &fs.ErrInvalid) {
+		return *e.closeErr.Load()
 	}
-	if err = exportFilter(f.Fd(), opts); err != nil {
-		return
+	if e.w == nil {
+		return fs.ErrInvalid
 	}
-	_, err = f.Seek(0, io.SeekStart)
-	return
+	err := e.w.Close()
+	e.closeErr.Store(&err)
+
+	// no need for a finalizer anymore
+	runtime.SetFinalizer(e, nil)
+
+	return err
+}
+
+func newExporter(opts SyscallOpts) *exporter {
+	return &exporter{opts: opts}
 }

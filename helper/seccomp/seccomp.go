@@ -28,14 +28,22 @@ var resErr = [...]error{
 type SyscallOpts = C.f_syscall_opts
 
 const (
-	flagVerbose   SyscallOpts = C.F_VERBOSE
-	FlagExt       SyscallOpts = C.F_EXT
-	FlagDenyNS    SyscallOpts = C.F_DENY_NS
-	FlagDenyTTY   SyscallOpts = C.F_DENY_TTY
+	flagVerbose SyscallOpts = C.F_VERBOSE
+	// FlagExt are project-specific extensions.
+	FlagExt SyscallOpts = C.F_EXT
+	// FlagDenyNS denies namespace setup syscalls.
+	FlagDenyNS SyscallOpts = C.F_DENY_NS
+	// FlagDenyTTY denies faking input.
+	FlagDenyTTY SyscallOpts = C.F_DENY_TTY
+	// FlagDenyDevel denies development-related syscalls.
 	FlagDenyDevel SyscallOpts = C.F_DENY_DEVEL
+	// FlagMultiarch allows multiarch/emulation.
 	FlagMultiarch SyscallOpts = C.F_MULTIARCH
-	FlagLinux32   SyscallOpts = C.F_LINUX32
-	FlagCan       SyscallOpts = C.F_CAN
+	// FlagLinux32 sets PER_LINUX32.
+	FlagLinux32 SyscallOpts = C.F_LINUX32
+	// FlagCan allows AF_CAN.
+	FlagCan SyscallOpts = C.F_CAN
+	// FlagBluetooth allows AF_BLUETOOTH.
 	FlagBluetooth SyscallOpts = C.F_BLUETOOTH
 )
 
