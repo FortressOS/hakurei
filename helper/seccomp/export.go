@@ -40,7 +40,7 @@ func (e *exporter) closeWrite() error {
 		return *e.closeErr.Load()
 	}
 	if e.w == nil {
-		return fs.ErrInvalid
+		panic("closeWrite called on invalid exporter")
 	}
 	err := e.w.Close()
 	e.closeErr.Store(&err)
