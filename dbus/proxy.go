@@ -66,7 +66,14 @@ func (p *Proxy) String() string {
 	return "(unsealed dbus proxy)"
 }
 
+// BwrapStatic builds static bwrap args. This omits any fd-dependant args.
 func (p *Proxy) BwrapStatic() []string {
+	p.lock.RLock()
+	defer p.lock.RUnlock()
+
+	if p.bwrap == nil {
+		return nil
+	}
 	return p.bwrap.Args()
 }
 
