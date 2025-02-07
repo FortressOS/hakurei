@@ -127,6 +127,10 @@ func (d *DBus) apply(_ *I) error {
 
 	// ready is not nil if the proxy process faulted
 	if err := <-ready; err != nil {
+		// dump message buffer as caller does not dump this
+		// in an early fault condition
+		d.out.Dump()
+
 		// note that err here is either an I/O error or a predetermined unexpected behaviour error
 		return fmsg.WrapErrorSuffix(err,
 			"message bus proxy fault after start:")
