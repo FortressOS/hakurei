@@ -248,9 +248,6 @@ nixosTest {
     # Deny unmapped uid:
     print(machine.fail("sudo -u untrusted -i ${self.packages.${system}.fortify}/bin/fortify -v run"))
 
-    # Create fortify uid 0 state directory:
-    machine.succeed("install -dm 0755 -o u0_a0 -g users /var/lib/fortify/u0")
-
     # Start fortify permissive defaults outside Wayland session:
     print(machine.succeed("sudo -u alice -i fortify -v run -a 0 touch /tmp/success-bare"))
     machine.wait_for_file("/tmp/fortify.1000/tmpdir/0/success-bare")
