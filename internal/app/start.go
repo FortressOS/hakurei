@@ -140,11 +140,7 @@ func (a *app) Run(ctx context.Context, rs *RunState) error {
 
 	// print queued up dbus messages
 	if a.seal.dbusMsg != nil {
-		a.seal.dbusMsg(func(msgbuf []string) {
-			for _, msg := range msgbuf {
-				fmsg.Println(msg)
-			}
-		})
+		a.seal.dbusMsg()
 	}
 
 	// update store and revert app setup transaction

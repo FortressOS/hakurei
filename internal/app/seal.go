@@ -34,8 +34,8 @@ var posixUsername = regexp.MustCompilePOSIX("^[a-z_]([A-Za-z0-9_-]{0,31}|[A-Za-z
 type appSeal struct {
 	// app unique ID string representation
 	id string
-	// dbus proxy message buffer retriever
-	dbusMsg func(f func(msgbuf []string))
+	// dump dbus proxy message buffer
+	dbusMsg func()
 
 	// freedesktop application ID
 	fid string

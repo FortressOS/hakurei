@@ -23,7 +23,7 @@ func (sys *I) MustProxyDBus(sessionPath string, session *dbus.Config, systemPath
 	}
 }
 
-func (sys *I) ProxyDBus(session, system *dbus.Config, sessionPath, systemPath string) (func(f func(msgbuf []string)), error) {
+func (sys *I) ProxyDBus(session, system *dbus.Config, sessionPath, systemPath string) (func(), error) {
 	d := new(DBus)
 
 	// used by waiting goroutine to notify process exit
@@ -65,7 +65,7 @@ func (sys *I) ProxyDBus(session, system *dbus.Config, sessionPath, systemPath st
 
 	// seal dbus proxy
 	d.out = &scanToFmsg{msg: new(strings.Builder)}
-	return d.out.F, fmsg.WrapErrorSuffix(d.proxy.Seal(session, system),
+	return d.out.Dump, fmsg.WrapErrorSuffix(d.proxy.Seal(session, system),
 		"cannot seal message bus proxy:")
 }
 
@@ -195,8 +195,10 @@ func (s *scanToFmsg) write(p []byte, a int) (int, error) {
 	}
 }
 
-func (s *scanToFmsg) F(f func(msgbuf []string)) {
+func (s *scanToFmsg) Dump() {
 	s.mu.RLock()
-	f(s.msgbuf)
+	for _, msg := range s.msgbuf {
+		fmsg.Println(msg)
+	}
 	s.mu.RUnlock()
 }
