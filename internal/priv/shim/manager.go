@@ -10,9 +10,9 @@ import (
 	"strings"
 	"time"
 
+	"git.gensokyo.uk/security/fortify/helper/proc"
 	"git.gensokyo.uk/security/fortify/internal"
 	"git.gensokyo.uk/security/fortify/internal/fmsg"
-	"git.gensokyo.uk/security/fortify/internal/proc"
 )
 
 // used by the parent process

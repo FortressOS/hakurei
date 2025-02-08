@@ -6,7 +6,7 @@ import (
 
 	"git.gensokyo.uk/security/fortify/fst"
 	"git.gensokyo.uk/security/fortify/internal/linux"
-	"git.gensokyo.uk/security/fortify/internal/proc/priv/shim"
+	"git.gensokyo.uk/security/fortify/internal/priv/shim"
 )
 
 type App interface {

@@ -6,7 +6,7 @@ import (
 	"slices"
 	"strconv"
 
-	"git.gensokyo.uk/security/fortify/internal/proc"
+	"git.gensokyo.uk/security/fortify/helper/proc"
 )
 
 type Builder interface {

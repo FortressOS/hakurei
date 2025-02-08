@@ -11,7 +11,7 @@ import (
 
 	"git.gensokyo.uk/security/fortify/helper"
 	"git.gensokyo.uk/security/fortify/internal/fmsg"
-	"git.gensokyo.uk/security/fortify/internal/proc/priv/shim"
+	"git.gensokyo.uk/security/fortify/internal/priv/shim"
 	"git.gensokyo.uk/security/fortify/internal/state"
 	"git.gensokyo.uk/security/fortify/internal/system"
 )
