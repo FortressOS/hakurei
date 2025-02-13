@@ -1,6 +1,7 @@
 package helper_test
 
 import (
+	"context"
 	"errors"
 	"os"
 	"testing"
@@ -12,8 +13,8 @@ func TestDirect(t *testing.T) {
 	t.Run("start non-existent helper path", func(t *testing.T) {
 		h := helper.New(argsWt, "/nonexistent", argF)
 
-		if err := h.Start(); !errors.Is(err, os.ErrNotExist) {
-			t.Errorf("Start() error = %v, wantErr %v",
+		if err := h.Start(context.Background(), false); !errors.Is(err, os.ErrNotExist) {
+			t.Errorf("Start: error = %v, wantErr %v",
 				err, os.ErrNotExist)
 		}
 	})
@@ -24,18 +25,6 @@ func TestDirect(t *testing.T) {
 				argsWt, "fortify")
 			return
 		}
-	})
-
-	t.Run("invalid new helper panic", func(t *testing.T) {
-		defer func() {
-			wantPanic := "attempted to create helper with invalid argument writer"
-			if r := recover(); r != wantPanic {
-				t.Errorf("New: panic = %q, want %q",
-					r, wantPanic)
-			}
-		}()
-
-		helper.New(nil, "fortify", argF)
 	})
 
 	t.Run("implementation compliance", func(t *testing.T) {

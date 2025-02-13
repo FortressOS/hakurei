@@ -1,10 +1,8 @@
 package bwrap
 
 import (
-	"encoding/gob"
 	"os"
 	"slices"
-	"strconv"
 
 	"git.gensokyo.uk/security/fortify/helper/proc"
 )
@@ -20,68 +18,8 @@ type FSBuilder interface {
 }
 
 type FDBuilder interface {
-	Len() int
-	Append(args *[]string, extraFiles *[]*os.File) error
-}
-
-func init() {
-	gob.Register(new(pairF))
-	gob.Register(new(stringF))
-}
-
-type pairF [3]string
-
-func (p *pairF) Path() string {
-	return p[2]
-}
-
-func (p *pairF) Len() int {
-	return len(p) // compiler replaces this with 3
-}
-
-func (p *pairF) Append(args *[]string) {
-	*args = append(*args, p[0], p[1], p[2])
-}
-
-type stringF [2]string
-
-func (s stringF) Path() string {
-	return s[1]
-}
-
-func (s stringF) Len() int {
-	return len(s) // compiler replaces this with 2
-}
-
-func (s stringF) Append(args *[]string) {
-	*args = append(*args, s[0], s[1])
-}
-
-type fileF struct {
-	name string
-	file *os.File
-}
-
-func (f *fileF) Len() int {
-	if f.file == nil {
-		return 0
-	}
-	return 2
-}
-
-func (f *fileF) Append(args *[]string, extraFiles *[]*os.File) error {
-	if f.file == nil {
-		return nil
-	}
-	extraFile(args, extraFiles, f.name, f.file)
-	return nil
-}
-
-func extraFile(args *[]string, extraFiles *[]*os.File, name string, f *os.File) {
-	if f == nil {
-		return
-	}
-	*args = append(*args, name, strconv.Itoa(int(proc.ExtraFileSlice(extraFiles, f))))
+	proc.File
+	Builder
 }
 
 // Args returns a slice of bwrap args corresponding to c.
@@ -115,24 +53,36 @@ func (c *Config) Args() (args []string) {
 	return
 }
 
-func (c *Config) FDArgs(syncFd *os.File, extraFiles *[]*os.File) (args []string, err error) {
+func (c *Config) FDArgs(syncFd *os.File, args *[]string, extraFiles *proc.ExtraFilesPre, files *[]proc.File) {
 	builders := []FDBuilder{
-		&seccompBuilder{c},
-		&fileF{positionalArgs[SyncFd], syncFd},
+		c.seccompArgs(),
+		newFile(positionalArgs[SyncFd], syncFd),
 	}
 
 	argc := 0
+	fc := 0
 	for _, b := range builders {
-		argc += b.Len()
+		l := b.Len()
+		if l < 1 {
+			continue
+		}
+		argc += l
+		fc++
+
+		proc.InitFile(b, extraFiles)
 	}
 
-	args = make([]string, 0, argc)
-	*extraFiles = slices.Grow(*extraFiles, len(builders))
+	fc++ // allocate extra slot for stat fd
+	*args = slices.Grow(*args, argc)
+	*files = slices.Grow(*files, fc)
 
 	for _, b := range builders {
-		if err = b.Append(&args, extraFiles); err != nil {
-			break
+		if b.Len() < 1 {
+			continue
 		}
+
+		b.Append(args)
+		*files = append(*files, b)
 	}
 	return
 }

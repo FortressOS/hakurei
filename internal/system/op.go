@@ -1,6 +1,7 @@
 package system
 
 import (
+	"context"
 	"errors"
 	"os"
 	"sync"
@@ -57,10 +58,14 @@ func TypeString(e Enablement) string {
 type I struct {
 	uid int
 	ops []Op
-	sp  *os.File
+	ctx context.Context
+	// sync fd passed to bwrap
+	sp *os.File
 
-	state [2]bool
-	lock  sync.Mutex
+	// whether sys has been reverted
+	state bool
+
+	lock sync.Mutex
 }
 
 func (sys *I) UID() int {
@@ -85,14 +90,14 @@ func (sys *I) Equal(v *I) bool {
 	return true
 }
 
-func (sys *I) Commit() error {
+func (sys *I) Commit(ctx context.Context) error {
 	sys.lock.Lock()
 	defer sys.lock.Unlock()
 
-	if sys.state[0] {
+	if sys.ctx != nil {
 		panic("sys instance committed twice")
 	}
-	sys.state[0] = true
+	sys.ctx = ctx
 
 	sp := New(sys.uid)
 	sp.ops = make([]Op, 0, len(sys.ops)) // prevent copies during commits
@@ -125,10 +130,10 @@ func (sys *I) Revert(ec *Criteria) error {
 	sys.lock.Lock()
 	defer sys.lock.Unlock()
 
-	if sys.state[1] {
+	if sys.state {
 		panic("sys instance reverted twice")
 	}
-	sys.state[1] = true
+	sys.state = true
 
 	// collect errors
 	errs := make([]error, len(sys.ops))

@@ -1,8 +1,10 @@
 package dbus
 
 import (
+	"context"
 	"errors"
 	"io"
+	"os"
 	"os/exec"
 	"path"
 	"path/filepath"
@@ -14,9 +16,8 @@ import (
 	"git.gensokyo.uk/security/fortify/ldd"
 )
 
-// Start launches the D-Bus proxy and sets up the Wait method.
-// ready should be buffered and must only be received from once.
-func (p *Proxy) Start(ready chan error, output io.Writer, sandbox, seccomp bool) error {
+// Start launches the D-Bus proxy.
+func (p *Proxy) Start(ctx context.Context, output io.Writer, sandbox bool) error {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 
@@ -25,8 +26,7 @@ func (p *Proxy) Start(ready chan error, output io.Writer, sandbox, seccomp bool)
 	}
 
 	var (
-		h   helper.Helper
-		cmd *exec.Cmd
+		h helper.Helper
 
 		argF = func(argsFD, statFD int) []string {
 			if statFD == -1 {
@@ -39,9 +39,8 @@ func (p *Proxy) Start(ready chan error, output io.Writer, sandbox, seccomp bool)
 
 	if !sandbox {
 		h = helper.New(p.seal, p.name, argF)
-		cmd = h.Unwrap()
 		// xdg-dbus-proxy does not need to inherit the environment
-		cmd.Env = []string{}
+		h.SetEnv(make([]string, 0))
 	} else {
 		// look up absolute path if name is just a file name
 		toolPath := p.name
@@ -56,7 +55,7 @@ func (p *Proxy) Start(ready chan error, output io.Writer, sandbox, seccomp bool)
 		// resolve libraries by parsing ldd output
 		var proxyDeps []*ldd.Entry
 		if toolPath != "/nonexistent-xdg-dbus-proxy" {
-			if l, err := ldd.Exec(toolPath); err != nil {
+			if l, err := ldd.Exec(ctx, toolPath); err != nil {
 				return err
 			} else {
 				proxyDeps = l
@@ -71,10 +70,6 @@ func (p *Proxy) Start(ready chan error, output io.Writer, sandbox, seccomp bool)
 			Clearenv:      true,
 			NewSession:    true,
 			DieWithParent: true,
-		}
-
-		if !seccomp {
-			bc.Syscall = nil
 		}
 
 		// resolve proxy socket directories
@@ -116,35 +111,65 @@ func (p *Proxy) Start(ready chan error, output io.Writer, sandbox, seccomp bool)
 		}
 
 		h = helper.MustNewBwrap(bc, toolPath, p.seal, argF, nil, nil)
-		cmd = h.Unwrap()
 		p.bwrap = bc
 	}
 
 	if output != nil {
-		cmd.Stdout = output
-		cmd.Stderr = output
+		h.Stdout(output).Stderr(output)
 	}
-	if err := h.StartNotify(ready); err != nil {
+	c, cancel := context.WithCancelCause(ctx)
+	if err := h.Start(c, true); err != nil {
+		cancel(err)
 		return err
 	}
 
 	p.helper = h
+	p.ctx = c
+	p.cancel = cancel
 	return nil
 }
 
-// Wait waits for xdg-dbus-proxy to exit or fault.
+var proxyClosed = errors.New("proxy closed")
+
+// Wait blocks until xdg-dbus-proxy exits and releases resources.
 func (p *Proxy) Wait() error {
 	p.lock.RLock()
 	defer p.lock.RUnlock()
 
 	if p.helper == nil {
-		return errors.New("proxy not started")
+		return errors.New("dbus: not started")
 	}
 
-	return p.helper.Wait()
+	errs := make([]error, 3)
+
+	errs[0] = p.helper.Wait()
+	if p.cancel == nil &&
+		errors.Is(errs[0], context.Canceled) &&
+		errors.Is(context.Cause(p.ctx), proxyClosed) {
+		errs[0] = nil
+	}
+
+	// ensure socket removal so ephemeral directory is empty at revert
+	if err := os.Remove(p.session[1]); err != nil && !errors.Is(err, os.ErrNotExist) {
+		errs[1] = err
+	}
+	if p.sysP {
+		if err := os.Remove(p.system[1]); err != nil && !errors.Is(err, os.ErrNotExist) {
+			errs[2] = err
+		}
+	}
+
+	return errors.Join(errs...)
 }
 
-// Close closes the status file descriptor passed to xdg-dbus-proxy, causing it to stop.
-func (p *Proxy) Close() error {
-	return p.helper.Close()
+// Close cancels the context passed to the helper instance attached to xdg-dbus-proxy.
+func (p *Proxy) Close() {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+
+	if p.cancel == nil {
+		panic("dbus: not started")
+	}
+	p.cancel(proxyClosed)
+	p.cancel = nil
 }

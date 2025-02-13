@@ -2,8 +2,9 @@ package bwrap
 
 import (
 	"fmt"
-	"os"
+	"strconv"
 
+	"git.gensokyo.uk/security/fortify/helper/proc"
 	"git.gensokyo.uk/security/fortify/helper/seccomp"
 	"git.gensokyo.uk/security/fortify/internal/fmsg"
 )
@@ -23,35 +24,13 @@ type SyscallPolicy struct {
 	Bluetooth bool `json:"bluetooth"`
 }
 
-type seccompBuilder struct {
-	config *Config
-}
-
-func (s *seccompBuilder) Len() int {
-	if s == nil {
-		return 0
-	}
-	return 2
-}
-
-func (s *seccompBuilder) Append(args *[]string, extraFiles *[]*os.File) error {
-	if s == nil {
-		return nil
-	}
-	if f, err := s.config.resolveSeccomp(); err != nil {
-		return err
-	} else {
-		extraFile(args, extraFiles, positionalArgs[Seccomp], f)
-		return nil
-	}
-}
-
-func (c *Config) resolveSeccomp() (*os.File, error) {
+func (c *Config) seccompArgs() FDBuilder {
+	// explicitly disable syscall filter
 	if c.Syscall == nil {
-		return nil, nil
+		// nil File skips builder
+		return new(seccompBuilder)
 	}
 
-	// resolve seccomp filter opts
 	var (
 		opts    seccomp.SyscallOpts
 		optd    []string
@@ -86,5 +65,22 @@ func (c *Config) resolveSeccomp() (*os.File, error) {
 		seccomp.CPrintln(fmt.Sprintf("seccomp flags: %s", optd))
 	}
 
-	return seccomp.Export(opts)
+	return &seccompBuilder{seccomp.NewFile(opts)}
+}
+
+type seccompBuilder struct{ proc.File }
+
+func (s *seccompBuilder) Len() int {
+	if s == nil || s.File == nil {
+		return 0
+	}
+	return 2
+}
+
+func (s *seccompBuilder) Append(args *[]string) {
+	if s == nil || s.File == nil {
+		return
+	}
+
+	*args = append(*args, positionalArgs[Seccomp], strconv.Itoa(int(s.Fd())))
 }

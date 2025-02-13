@@ -1,22 +1,15 @@
 package seccomp
 
 import (
+	"context"
 	"errors"
-	"io"
-	"os"
 	"syscall"
+
+	"git.gensokyo.uk/security/fortify/helper/proc"
 )
 
-func Export(opts SyscallOpts) (f *os.File, err error) {
-	if f, err = tmpfile(); err != nil {
-		return
-	}
-	if err = exportFilter(f.Fd(), opts); err != nil {
-		return
-	}
-	_, err = f.Seek(0, io.SeekStart)
-	return
-}
+// New returns an inactive Encoder instance.
+func New(opts SyscallOpts) *Encoder { return &Encoder{newExporter(opts)} }
 
 /*
 An Encoder writes a BPF program to an output stream.
@@ -45,7 +38,31 @@ func (e *Encoder) Close() error {
 	return errors.Join(e.closeWrite(), <-e.exportErr)
 }
 
-// New returns an inactive Encoder instance.
-func New(opts SyscallOpts) *Encoder {
-	return &Encoder{newExporter(opts)}
+// NewFile returns an instance of exporter implementing [proc.File].
+func NewFile(opts SyscallOpts) proc.File { return &File{opts: opts} }
+
+// File implements [proc.File] and provides access to the read end of exporter pipe.
+type File struct {
+	opts SyscallOpts
+	proc.BaseFile
+}
+
+func (f *File) ErrCount() int { return 2 }
+func (f *File) Fulfill(ctx context.Context, dispatchErr func(error)) error {
+	e := newExporter(f.opts)
+	if err := e.prepare(); err != nil {
+		return err
+	}
+	f.Set(e.r)
+	go func() {
+		select {
+		case err := <-e.exportErr:
+			dispatchErr(nil)
+			dispatchErr(err)
+		case <-ctx.Done():
+			dispatchErr(e.closeWrite())
+			dispatchErr(<-e.exportErr)
+		}
+	}()
+	return nil
 }

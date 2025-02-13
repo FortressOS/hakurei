@@ -3,7 +3,6 @@ package system
 import (
 	"bytes"
 	"errors"
-	"os"
 	"strings"
 	"sync"
 
@@ -25,9 +24,6 @@ func (sys *I) MustProxyDBus(sessionPath string, session *dbus.Config, systemPath
 
 func (sys *I) ProxyDBus(session, system *dbus.Config, sessionPath, systemPath string) (func(), error) {
 	d := new(DBus)
-
-	// used by waiting goroutine to notify process exit
-	d.done = make(chan struct{})
 
 	// session bus is mandatory
 	if session == nil {
@@ -75,88 +71,34 @@ type DBus struct {
 	out *scanToFmsg
 	// whether system bus proxy is enabled
 	system bool
-	// notification from goroutine waiting for dbus.Proxy
-	done chan struct{}
 }
 
 func (d *DBus) Type() Enablement {
 	return Process
 }
 
-func (d *DBus) apply(_ *I) error {
+func (d *DBus) apply(sys *I) error {
 	fmsg.VPrintf("session bus proxy on %q for upstream %q", d.proxy.Session()[1], d.proxy.Session()[0])
 	if d.system {
 		fmsg.VPrintf("system bus proxy on %q for upstream %q", d.proxy.System()[1], d.proxy.System()[0])
 	}
 
-	// ready channel passed to dbus package
-	ready := make(chan error, 1)
-
-	// background dbus proxy start
-	if err := d.proxy.Start(ready, d.out, true, true); err != nil {
+	// this starts the process and blocks until ready
+	if err := d.proxy.Start(sys.ctx, d.out, true); err != nil {
+		d.out.Dump()
 		return fmsg.WrapErrorSuffix(err,
 			"cannot start message bus proxy:")
 	}
 	fmsg.VPrintln("starting message bus proxy:", d.proxy)
-	if fmsg.Verbose() { // save the extra bwrap arg build when verbose logging is off
-		fmsg.VPrintln("message bus proxy bwrap args:", d.proxy.BwrapStatic())
-	}
-
-	// background wait for proxy instance and notify completion
-	go func() {
-		if err := d.proxy.Wait(); err != nil {
-			fmsg.Println("message bus proxy exited with error:", err)
-			go func() { ready <- err }()
-		} else {
-			fmsg.VPrintln("message bus proxy exit")
-		}
-
-		// ensure socket removal so ephemeral directory is empty at revert
-		if err := os.Remove(d.proxy.Session()[1]); err != nil && !errors.Is(err, os.ErrNotExist) {
-			fmsg.Println("cannot remove dangling session bus socket:", err)
-		}
-		if d.system {
-			if err := os.Remove(d.proxy.System()[1]); err != nil && !errors.Is(err, os.ErrNotExist) {
-				fmsg.Println("cannot remove dangling system bus socket:", err)
-			}
-		}
-
-		// notify proxy completion
-		close(d.done)
-	}()
-
-	// ready is not nil if the proxy process faulted
-	if err := <-ready; err != nil {
-		// dump message buffer as caller does not dump this
-		// in an early fault condition
-		d.out.Dump()
-
-		// note that err here is either an I/O error or a predetermined unexpected behaviour error
-		return fmsg.WrapErrorSuffix(err,
-			"message bus proxy fault after start:")
-	}
-	fmsg.VPrintln("message bus proxy ready")
-
 	return nil
 }
 
 func (d *DBus) revert(_ *I, _ *Criteria) error {
 	// criteria ignored here since dbus is always process-scoped
 	fmsg.VPrintln("terminating message bus proxy")
-
-	if err := d.proxy.Close(); err != nil {
-		if errors.Is(err, os.ErrClosed) {
-			return fmsg.WrapError(err,
-				"message bus proxy already closed")
-		} else {
-			return fmsg.WrapErrorSuffix(err,
-				"cannot stop message bus proxy:")
-		}
-	}
-
-	// block until proxy wait returns
-	<-d.done
-	return nil
+	d.proxy.Close()
+	defer fmsg.VPrintln("message bus proxy exit")
+	return fmsg.WrapErrorSuffix(d.proxy.Wait(), "message bus proxy error:")
 }
 
 func (d *DBus) Is(o Op) bool {

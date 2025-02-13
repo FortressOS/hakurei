@@ -1,7 +1,9 @@
 package helper
 
 import (
+	"context"
 	"flag"
+	"fmt"
 	"io"
 	"os"
 	"os/exec"
@@ -11,6 +13,7 @@ import (
 	"testing"
 
 	"git.gensokyo.uk/security/fortify/helper/bwrap"
+	"git.gensokyo.uk/security/fortify/helper/proc"
 	"git.gensokyo.uk/security/fortify/internal/fmsg"
 )
 
@@ -18,20 +21,23 @@ import (
 // it is part of the implementation of the helper stub.
 func InternalChildStub() {
 	// this test mocks the helper process
-	if os.Getenv(FortifyHelper) != "1" ||
-		os.Getenv(FortifyStatus) == "-1" { // this indicates the stub is being invoked as a bwrap child without pipes
+	var ap, sp string
+	if v, ok := os.LookupEnv(FortifyHelper); !ok {
 		return
+	} else {
+		ap = v
 	}
-
-	argsFD := flag.Int("args", -1, "")
-	statFD := flag.Int("fd", -1, "")
-	_ = flag.CommandLine.Parse(os.Args[4:])
+	if v, ok := os.LookupEnv(FortifyStatus); !ok {
+		panic(FortifyStatus)
+	} else {
+		sp = v
+	}
 
 	switch os.Args[3] {
 	case "bwrap":
-		bwrapStub(argsFD, statFD)
+		bwrapStub()
 	default:
-		genericStub(argsFD, statFD)
+		genericStub(flagRestoreFiles(4, ap, sp))
 	}
 
 	fmsg.Exit(0)
@@ -40,57 +46,65 @@ func InternalChildStub() {
 // InternalReplaceExecCommand is an internal function but exported because it is cross-package;
 // it is part of the implementation of the helper stub.
 func InternalReplaceExecCommand(t *testing.T) {
-	t.Cleanup(func() {
-		execCommand = exec.Command
-	})
+	t.Cleanup(func() { commandContext = exec.CommandContext })
 
 	// replace execCommand to have the resulting *exec.Cmd launch TestHelperChildStub
-	execCommand = func(name string, arg ...string) *exec.Cmd {
+	commandContext = func(ctx context.Context, name string, arg ...string) *exec.Cmd {
 		// pass through nonexistent path
 		if name == "/nonexistent" && len(arg) == 0 {
-			return exec.Command(name)
+			return exec.CommandContext(ctx, name)
 		}
 
-		return exec.Command(os.Args[0], append([]string{"-test.run=TestHelperChildStub", "--", name}, arg...)...)
+		return exec.CommandContext(ctx, os.Args[0], append([]string{"-test.run=TestHelperChildStub", "--", name}, arg...)...)
 	}
 }
 
-func genericStub(argsFD, statFD *int) {
-	// simulate args pipe behaviour
-	func() {
-		if *argsFD == -1 {
-			panic("attempted to start helper without passing args pipe fd")
-		}
+func newFile(fd int, name, p string) *os.File {
+	present := false
+	switch p {
+	case "0":
+	case "1":
+		present = true
+	default:
+		panic(fmt.Sprintf("%s fd has unexpected presence value %q", name, p))
+	}
 
-		f := os.NewFile(uintptr(*argsFD), "|0")
-		if f == nil {
-			panic("attempted to start helper without args pipe")
-		}
+	f := os.NewFile(uintptr(fd), name)
+	if !present && f != nil {
+		panic(fmt.Sprintf("%s fd set but not present", name))
+	}
+	if present && f == nil {
+		panic(fmt.Sprintf("%s fd preset but unset", name))
+	}
 
-		if _, err := io.Copy(os.Stdout, f); err != nil {
+	return f
+}
+
+func flagRestoreFiles(offset int, ap, sp string) (argsFile, statFile *os.File) {
+	argsFd := flag.Int("args", -1, "")
+	statFd := flag.Int("fd", -1, "")
+	_ = flag.CommandLine.Parse(os.Args[offset:])
+	argsFile = newFile(*argsFd, "args", ap)
+	statFile = newFile(*statFd, "stat", sp)
+	return
+}
+
+func genericStub(argsFile, statFile *os.File) {
+	if argsFile != nil {
+		// this output is checked by parent
+		if _, err := io.Copy(os.Stdout, argsFile); err != nil {
 			panic("cannot read args: " + err.Error())
 		}
-	}()
-
-	var wait chan struct{}
+	}
 
 	// simulate status pipe behaviour
-	if os.Getenv(FortifyStatus) == "1" {
-		if *statFD == -1 {
-			panic("attempted to start helper with status reporting without passing status pipe fd")
+	if statFile != nil {
+		if _, err := statFile.Write([]byte{'x'}); err != nil {
+			panic("cannot write to status pipe: " + err.Error())
 		}
 
-		wait = make(chan struct{})
+		done := make(chan struct{})
 		go func() {
-			f := os.NewFile(uintptr(*statFD), "|1")
-			if f == nil {
-				panic("attempted to start with status reporting without status pipe")
-			}
-
-			if _, err := f.Write([]byte{'x'}); err != nil {
-				panic("cannot write to status pipe: " + err.Error())
-			}
-
 			// wait for status pipe close
 			var epoll int
 			if fd, err := syscall.EpollCreate1(0); err != nil {
@@ -103,7 +117,7 @@ func genericStub(argsFD, statFD *int) {
 				}()
 				epoll = fd
 			}
-			if err := syscall.EpollCtl(epoll, syscall.EPOLL_CTL_ADD, int(f.Fd()), &syscall.EpollEvent{}); err != nil {
+			if err := syscall.EpollCtl(epoll, syscall.EPOLL_CTL_ADD, int(statFile.Fd()), &syscall.EpollEvent{}); err != nil {
 				panic("cannot add status pipe to epoll: " + err.Error())
 			}
 			events := make([]syscall.EpollEvent, 1)
@@ -114,50 +128,36 @@ func genericStub(argsFD, statFD *int) {
 				panic(strconv.Itoa(int(events[0].Events)))
 
 			}
-			close(wait)
+			close(done)
 		}()
-	}
-
-	if wait != nil {
-		<-wait
+		<-done
 	}
 }
 
-func bwrapStub(argsFD, statFD *int) {
-	// the bwrap launcher does not ever launch with sync fd
-	if *statFD != -1 {
-		panic("attempted to launch bwrap with status monitoring")
-	}
+func bwrapStub() {
+	// the bwrap launcher does not launch with a typical sync fd
+	argsFile, _ := flagRestoreFiles(4, "1", "0")
 
 	// test args pipe behaviour
 	func() {
-		if *argsFD == -1 {
-			panic("attempted to start bwrap without passing args pipe fd")
-		}
-
-		f := os.NewFile(uintptr(*argsFD), "|0")
-		if f == nil {
-			panic("attempted to start helper without args pipe")
-		}
-
 		got, want := new(strings.Builder), new(strings.Builder)
-
-		if _, err := io.Copy(got, f); err != nil {
-			panic("cannot read args: " + err.Error())
+		if _, err := io.Copy(got, argsFile); err != nil {
+			panic("cannot read bwrap args: " + err.Error())
 		}
 
 		// hardcoded bwrap configuration used by test
-		if _, err := MustNewCheckedArgs((&bwrap.Config{
-			Unshare:       nil,
+		sc := &bwrap.Config{
 			Net:           true,
-			UserNS:        false,
 			Hostname:      "localhost",
 			Chdir:         "/nonexistent",
 			Clearenv:      true,
 			NewSession:    true,
 			DieWithParent: true,
 			AsInit:        true,
-		}).Args()).WriteTo(want); err != nil {
+		}
+		args := sc.Args()
+		sc.FDArgs(nil, &args, new(proc.ExtraFilesPre), new([]proc.File))
+		if _, err := MustNewCheckedArgs(args).WriteTo(want); err != nil {
 			panic("cannot read want: " + err.Error())
 		}
 

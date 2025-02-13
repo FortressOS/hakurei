@@ -9,7 +9,6 @@ import "C"
 import (
 	"errors"
 	"fmt"
-	"os"
 	"runtime"
 )
 
@@ -46,14 +45,6 @@ const (
 	// FlagBluetooth allows AF_BLUETOOTH.
 	FlagBluetooth SyscallOpts = C.F_BLUETOOTH
 )
-
-func tmpfile() (*os.File, error) {
-	fd, err := C.f_tmpfile_fd()
-	if err != nil {
-		return nil, err
-	}
-	return os.NewFile(uintptr(fd), "tmpfile"), err
-}
 
 func exportFilter(fd uintptr, opts SyscallOpts) error {
 	var (

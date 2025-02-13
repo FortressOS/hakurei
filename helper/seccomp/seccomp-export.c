@@ -48,14 +48,6 @@ struct f_syscall_act {
   }                                                                                                            \
 } while (0)
 
-
-int f_tmpfile_fd() {
-  FILE *f = tmpfile();
-  if (f == NULL)
-    return -1;
-  return fileno(f);
-}
-
 int32_t f_export_bpf(int fd, uint32_t arch, uint32_t multiarch, f_syscall_opts opts) {
   int32_t res = 0; // refer to resErr for meaning
   int allow_multiarch = opts & F_MULTIARCH;

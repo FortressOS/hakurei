@@ -1,9 +1,11 @@
 package dbus_test
 
 import (
+	"context"
 	"errors"
 	"strings"
 	"testing"
+	"time"
 
 	"git.gensokyo.uk/security/fortify/dbus"
 	"git.gensokyo.uk/security/fortify/helper"
@@ -141,7 +143,7 @@ func testProxyStartWaitCloseString(t *testing.T, sandbox bool) {
 
 				t.Run("unsealed start of "+id, func(t *testing.T) {
 					want := "proxy not sealed"
-					if err := p.Start(nil, nil, sandbox, false); err == nil || err.Error() != want {
+					if err := p.Start(context.Background(), nil, sandbox); err == nil || err.Error() != want {
 						t.Errorf("Start() error = %v, wantErr %q",
 							err, errors.New(want))
 						return
@@ -149,7 +151,7 @@ func testProxyStartWaitCloseString(t *testing.T, sandbox bool) {
 				})
 
 				t.Run("unsealed wait of "+id, func(t *testing.T) {
-					wantErr := "proxy not started"
+					wantErr := "dbus: not started"
 					if err := p.Wait(); err == nil || err.Error() != wantErr {
 						t.Errorf("Wait() error = %v, wantErr %v",
 							err, wantErr)
@@ -175,7 +177,10 @@ func testProxyStartWaitCloseString(t *testing.T, sandbox bool) {
 				}
 
 				t.Run("sealed start of "+id, func(t *testing.T) {
-					if err := p.Start(nil, output, sandbox, false); err != nil {
+					ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+					defer cancel()
+
+					if err := p.Start(ctx, output, sandbox); err != nil {
 						t.Fatalf("Start(nil, nil) error = %v",
 							err)
 					}
@@ -189,22 +194,8 @@ func testProxyStartWaitCloseString(t *testing.T, sandbox bool) {
 						}
 					})
 
-					t.Run("sealed closing of "+id+" without status", func(t *testing.T) {
-						wantPanic := "attempted to close helper with no status pipe"
-						defer func() {
-							if r := recover(); r != wantPanic {
-								t.Errorf("Close() panic = %v, wantPanic %v",
-									r, wantPanic)
-							}
-						}()
-
-						if err := p.Close(); err != nil {
-							t.Errorf("Close() error = %v",
-								err)
-						}
-					})
-
 					t.Run("started wait of "+id, func(t *testing.T) {
+						p.Close()
 						if err := p.Wait(); err != nil {
 							t.Errorf("Wait() error = %v\noutput: %s",
 								err, output.String())

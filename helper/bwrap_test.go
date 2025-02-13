@@ -1,11 +1,12 @@
 package helper_test
 
 import (
+	"context"
 	"errors"
-	"fmt"
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"git.gensokyo.uk/security/fortify/helper"
 	"git.gensokyo.uk/security/fortify/helper/bwrap"
@@ -13,9 +14,7 @@ import (
 
 func TestBwrap(t *testing.T) {
 	sc := &bwrap.Config{
-		Unshare:       nil,
 		Net:           true,
-		UserNS:        false,
 		Hostname:      "localhost",
 		Chdir:         "/nonexistent",
 		Clearenv:      true,
@@ -37,8 +36,8 @@ func TestBwrap(t *testing.T) {
 			nil, nil,
 		)
 
-		if err := h.Start(); !errors.Is(err, os.ErrNotExist) {
-			t.Errorf("Start() error = %v, wantErr %v",
+		if err := h.Start(context.Background(), false); !errors.Is(err, os.ErrNotExist) {
+			t.Errorf("Start: error = %v, wantErr %v",
 				err, os.ErrNotExist)
 		}
 	})
@@ -71,23 +70,6 @@ func TestBwrap(t *testing.T) {
 		)
 	})
 
-	t.Run("start notify without pipes panic", func(t *testing.T) {
-		defer func() {
-			wantPanic := "attempted to start with status monitoring on a bwrap child initialised without pipes"
-			if r := recover(); r != wantPanic {
-				t.Errorf("StartNotify: panic = %q, want %q",
-					r, wantPanic)
-			}
-		}()
-
-		panic(fmt.Sprintf("unreachable: %v",
-			helper.MustNewBwrap(
-				sc, "fortify",
-				nil, argF,
-				nil, nil,
-			).StartNotify(make(chan error))))
-	})
-
 	t.Run("start without pipes", func(t *testing.T) {
 		helper.InternalReplaceExecCommand(t)
 
@@ -96,26 +78,15 @@ func TestBwrap(t *testing.T) {
 			nil, argFChecked,
 			nil, nil,
 		)
-		cmd := h.Unwrap()
 
 		stdout, stderr := new(strings.Builder), new(strings.Builder)
-		cmd.Stdout, cmd.Stderr = stdout, stderr
+		h.Stdout(stdout).Stderr(stderr)
 
-		t.Run("close without pipes panic", func(t *testing.T) {
-			defer func() {
-				wantPanic := "attempted to close bwrap child initialised without pipes"
-				if r := recover(); r != wantPanic {
-					t.Errorf("Close: panic = %q, want %q",
-						r, wantPanic)
-				}
-			}()
+		c, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
 
-			panic(fmt.Sprintf("unreachable: %v",
-				h.Close()))
-		})
-
-		if err := h.Start(); err != nil {
-			t.Errorf("Start() error = %v",
+		if err := h.Start(c, false); err != nil {
+			t.Errorf("Start: error = %v",
 				err)
 			return
 		}

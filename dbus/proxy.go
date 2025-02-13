@@ -1,6 +1,7 @@
 package dbus
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -19,29 +20,21 @@ var ProxyName = "xdg-dbus-proxy"
 type Proxy struct {
 	helper helper.Helper
 	bwrap  *bwrap.Config
+	ctx    context.Context
+	cancel context.CancelCauseFunc
 
 	name    string
 	session [2]string
 	system  [2]string
+	sysP    bool
 
 	seal io.WriterTo
 	lock sync.RWMutex
 }
 
-func (p *Proxy) Session() [2]string {
-	return p.session
-}
-
-func (p *Proxy) System() [2]string {
-	return p.system
-}
-
-func (p *Proxy) Sealed() bool {
-	p.lock.RLock()
-	defer p.lock.RUnlock()
-
-	return p.seal != nil
-}
+func (p *Proxy) Session() [2]string { return p.session }
+func (p *Proxy) System() [2]string  { return p.system }
+func (p *Proxy) Sealed() bool       { p.lock.RLock(); defer p.lock.RUnlock(); return p.seal != nil }
 
 var (
 	ErrConfig = errors.New("no configuration to seal")
@@ -56,7 +49,7 @@ func (p *Proxy) String() string {
 	defer p.lock.RUnlock()
 
 	if p.helper != nil {
-		return p.helper.Unwrap().String()
+		return p.helper.String()
 	}
 
 	if p.seal != nil {
@@ -96,6 +89,7 @@ func (p *Proxy) Seal(session, system *Config) error {
 	}
 	if system != nil {
 		args = append(args, system.Args(p.system)...)
+		p.sysP = true
 	}
 	if seal, err := helper.NewCheckedArgs(args); err != nil {
 		return err

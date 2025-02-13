@@ -46,7 +46,7 @@ func (a *app) Run(ctx context.Context, rs *RunState) error {
 	}
 
 	// startup will go ahead, commit system setup
-	if err := a.seal.sys.Commit(); err != nil {
+	if err := a.seal.sys.Commit(ctx); err != nil {
 		return err
 	}
 	a.seal.sys.needRevert = true

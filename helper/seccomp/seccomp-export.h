@@ -20,5 +20,4 @@ typedef enum {
 } f_syscall_opts;
 
 extern void F_println(char *v);
-int f_tmpfile_fd();
 int32_t f_export_bpf(int fd, uint32_t arch, uint32_t multiarch, f_syscall_opts opts);

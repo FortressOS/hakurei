@@ -307,21 +307,13 @@ func main() {
 
 func runApp(config *fst.Config) {
 	rs := new(app.RunState)
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, stop := signal.NotifyContext(context.Background(),
+		syscall.SIGINT, syscall.SIGTERM)
+	defer stop() // unreachable
 
 	if fmsg.Verbose() {
 		seccomp.CPrintln = fmsg.Println
 	}
-
-	// handle signals for graceful shutdown
-	sig := make(chan os.Signal, 2)
-	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
-	go func() {
-		v := <-sig
-		fmsg.Printf("got %s after program start", v)
-		cancel()
-		signal.Ignore(syscall.SIGINT, syscall.SIGTERM)
-	}()
 
 	if a, err := app.New(sys); err != nil {
 		fmsg.Fatalf("cannot create app: %s\n", err)

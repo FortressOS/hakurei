@@ -1,10 +1,14 @@
 package shim
 
 import (
+	"context"
 	"errors"
 	"os"
+	"os/exec"
+	"os/signal"
 	"path"
 	"strconv"
+	"syscall"
 
 	"git.gensokyo.uk/security/fortify/fst"
 	"git.gensokyo.uk/security/fortify/helper"
@@ -138,19 +142,22 @@ func Main() {
 	); err != nil {
 		fmsg.Fatalf("malformed sandbox config: %v", err)
 	} else {
-		cmd := b.Unwrap()
-		cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
+		b.Stdin(os.Stdin).Stdout(os.Stdout).Stderr(os.Stderr)
+		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+		defer stop() // unreachable
 
 		// run and pass through exit code
-		if err = b.Start(); err != nil {
+		if err = b.Start(ctx, false); err != nil {
 			fmsg.Fatalf("cannot start target process: %v", err)
 		} else if err = b.Wait(); err != nil {
-			fmsg.VPrintln("wait:", err)
-		}
-		if b.Unwrap().ProcessState != nil {
-			fmsg.Exit(b.Unwrap().ProcessState.ExitCode())
-		} else {
-			fmsg.Exit(127)
+			var exitError *exec.ExitError
+			if !errors.As(err, &exitError) {
+				fmsg.Println("wait:", err)
+				fmsg.Exit(127)
+				panic("unreachable")
+			}
+			fmsg.Exit(exitError.ExitCode())
+			panic("unreachable")
 		}
 	}
 }
