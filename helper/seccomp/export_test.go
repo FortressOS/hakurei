@@ -121,3 +121,19 @@ func TestExport(t *testing.T) {
 		}
 	})
 }
+
+func BenchmarkExport(b *testing.B) {
+	buf := make([]byte, 8)
+	for i := 0; i < b.N; i++ {
+		e := seccomp.New(seccomp.FlagExt |
+			seccomp.FlagDenyNS | seccomp.FlagDenyTTY | seccomp.FlagDenyDevel |
+			seccomp.FlagMultiarch | seccomp.FlagLinux32 | seccomp.FlagCan |
+			seccomp.FlagBluetooth)
+		if _, err := io.CopyBuffer(io.Discard, e, buf); err != nil {
+			b.Fatalf("cannot export: %v", err)
+		}
+		if err := e.Close(); err != nil {
+			b.Fatalf("cannot close exporter: %v", err)
+		}
+	}
+}
