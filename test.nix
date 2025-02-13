@@ -147,6 +147,18 @@ nixosTest {
               pulse = false;
             };
           }
+          {
+            name = "strace-failure";
+            verbose = true;
+            share = pkgs.strace;
+            command = "strace true";
+            capability = {
+              wayland = false;
+              x11 = false;
+              dbus = false;
+              pulse = false;
+            };
+          }
         ];
       };
 
@@ -309,6 +321,9 @@ nixosTest {
     check_state("x11-alacritty", 2)
     machine.send_chars("exit\n")
     machine.wait_until_fails("pgrep alacritty")
+
+    # Test syscall filter:
+    print(machine.fail("sudo -u alice -i XDG_RUNTIME_DIR=/run/user/1000 strace-failure"))
 
     # Exit Sway and verify process exit status 0:
     swaymsg("exit", succeed=False)
