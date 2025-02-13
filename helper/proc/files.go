@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"os/exec"
+	"sync/atomic"
 	"syscall"
 	"time"
 )
@@ -19,9 +20,9 @@ type File interface {
 	// ErrCount returns count of error values emitted during fulfillment.
 	ErrCount() int
 	// Fulfill is called prior to process creation and must populate its corresponding file address.
-	// Error values sent to ec must match the return value of ErrCount.
+	// Calls to dispatchErr must match the return value of ErrCount.
 	// Fulfill must not be called more than once.
-	Fulfill(ctx context.Context, ec chan<- error) error
+	Fulfill(ctx context.Context, dispatchErr func(error)) error
 }
 
 // ExtraFilesPre is a linked list storing addresses of [os.File].
@@ -69,8 +70,8 @@ func Fulfill(ctx context.Context, cmd *exec.Cmd, files []File, extraFiles *Extra
 	c, cancel := context.WithTimeout(ctx, FulfillmentTimeout)
 	defer cancel()
 
-	for _, o := range files {
-		err = o.Fulfill(c, ec)
+	for _, f := range files {
+		err = f.Fulfill(c, makeDispatchErr(f, ec))
 		if err != nil {
 			return
 		}
@@ -126,6 +127,17 @@ func (f *BaseFile) Fd() uintptr {
 
 func (f *BaseFile) Set(v *os.File) {
 	*f.v = v // runtime guards against use before init
+}
+
+func makeDispatchErr(f File, ec chan<- error) func(error) {
+	c := new(atomic.Int32)
+	c.Store(int32(f.ErrCount()))
+	return func(err error) {
+		if c.Add(-1) < 0 {
+			panic("unexpected error dispatches")
+		}
+		ec <- err
+	}
 }
 
 func ExtraFile(cmd *exec.Cmd, f *os.File) (fd uintptr) {
