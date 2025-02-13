@@ -13,7 +13,7 @@ var FulfillmentTimeout = 2 * time.Second
 // A File is an extra file with deferred initialisation.
 type File interface {
 	// Init initialises File state. Init must not be called more than once.
-	Init(fd uintptr, v **os.File)
+	Init(fd uintptr, v **os.File) uintptr
 	// Fd returns the fd value set on initialisation.
 	Fd() uintptr
 	// ErrCount returns count of error values emitted during fulfillment.
@@ -24,8 +24,42 @@ type File interface {
 	Fulfill(ctx context.Context, ec chan<- error) error
 }
 
+// ExtraFilesPre is a linked list storing addresses of [os.File].
+type ExtraFilesPre struct {
+	n *ExtraFilesPre
+	v *os.File
+}
+
+// Append grows the list by one entry and returns an address of the address of [os.File] stored in the new entry.
+func (f *ExtraFilesPre) Append() (uintptr, **os.File) { return f.append(3) }
+
+// Files returns a slice pointing to a continuous segment of memory containing all addresses stored in f in order.
+func (f *ExtraFilesPre) Files() []*os.File { return f.copy(make([]*os.File, 0, f.len())) }
+
+func (f *ExtraFilesPre) append(i uintptr) (uintptr, **os.File) {
+	if f.n == nil {
+		f.n = new(ExtraFilesPre)
+		return i, &f.v
+	}
+	return f.n.append(i + 1)
+}
+func (f *ExtraFilesPre) len() uintptr {
+	if f == nil {
+		return 0
+	}
+	return f.n.len() + 1
+}
+func (f *ExtraFilesPre) copy(e []*os.File) []*os.File {
+	if f == nil {
+		// the public methods ensure the first call is never nil;
+		// the last element is unused, slice it off here
+		return e[:len(e)-1]
+	}
+	return f.n.copy(append(e, f.v))
+}
+
 // Fulfill calls the [File.Fulfill] method on all files, starts cmd and blocks until all fulfillment completes.
-func Fulfill(ctx context.Context, cmd *exec.Cmd, files []File) (err error) {
+func Fulfill(ctx context.Context, cmd *exec.Cmd, files []File, extraFiles *ExtraFilesPre) (err error) {
 	var ecs int
 	for _, o := range files {
 		ecs += o.ErrCount()
@@ -42,6 +76,7 @@ func Fulfill(ctx context.Context, cmd *exec.Cmd, files []File) (err error) {
 		}
 	}
 
+	cmd.ExtraFiles = extraFiles.Files()
 	if err = cmd.Start(); err != nil {
 		return
 	}
@@ -63,11 +98,7 @@ func Fulfill(ctx context.Context, cmd *exec.Cmd, files []File) (err error) {
 
 // InitFile initialises f as part of the slice extraFiles points to,
 // and returns its final fd value.
-func InitFile(f File, extraFiles *[]*os.File) (fd uintptr) {
-	fd = ExtraFileSlice(extraFiles, nil)
-	f.Init(fd, &(*extraFiles)[len(*extraFiles)-1])
-	return
-}
+func InitFile(f File, extraFiles *ExtraFilesPre) (fd uintptr) { return f.Init(extraFiles.Append()) }
 
 // BaseFile implements the Init method of the File interface and provides indirect access to extra file state.
 type BaseFile struct {
@@ -75,7 +106,7 @@ type BaseFile struct {
 	v  **os.File
 }
 
-func (f *BaseFile) Init(fd uintptr, v **os.File) {
+func (f *BaseFile) Init(fd uintptr, v **os.File) uintptr {
 	if v == nil || fd < 3 {
 		panic("invalid extra file initial state")
 	}
@@ -83,6 +114,7 @@ func (f *BaseFile) Init(fd uintptr, v **os.File) {
 		panic("extra file initialised twice")
 	}
 	f.fd, f.v = fd, v
+	return fd
 }
 
 func (f *BaseFile) Fd() uintptr {
