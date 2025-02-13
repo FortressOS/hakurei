@@ -1,11 +1,9 @@
 package seccomp
 
 import (
-	"io/fs"
 	"os"
 	"runtime"
 	"sync"
-	"sync/atomic"
 )
 
 type exporter struct {
@@ -14,7 +12,8 @@ type exporter struct {
 
 	prepareOnce sync.Once
 	prepareErr  error
-	closeErr    atomic.Pointer[error]
+	closeOnce   sync.Once
+	closeErr    error
 	exportErr   <-chan error
 }
 
@@ -36,19 +35,17 @@ func (e *exporter) prepare() error {
 }
 
 func (e *exporter) closeWrite() error {
-	if !e.closeErr.CompareAndSwap(nil, &fs.ErrInvalid) {
-		return *e.closeErr.Load()
-	}
-	if e.w == nil {
-		panic("closeWrite called on invalid exporter")
-	}
-	err := e.w.Close()
-	e.closeErr.Store(&err)
+	e.closeOnce.Do(func() {
+		if e.w == nil {
+			panic("closeWrite called on invalid exporter")
+		}
+		e.closeErr = e.w.Close()
 
-	// no need for a finalizer anymore
-	runtime.SetFinalizer(e, nil)
+		// no need for a finalizer anymore
+		runtime.SetFinalizer(e, nil)
+	})
 
-	return err
+	return e.closeErr
 }
 
 func newExporter(opts SyscallOpts) *exporter {
