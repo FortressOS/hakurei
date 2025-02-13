@@ -89,7 +89,7 @@ func Fulfill(ctx context.Context, cmd *exec.Cmd, files []File, extraFiles *Extra
 			if err != nil {
 				break
 			}
-		case <-c.Done():
+		case <-ctx.Done():
 			err = syscall.ECANCELED
 			break
 		}
