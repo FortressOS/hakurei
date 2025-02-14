@@ -15,6 +15,7 @@ import (
 	"git.gensokyo.uk/security/fortify/dbus"
 	"git.gensokyo.uk/security/fortify/fst"
 	"git.gensokyo.uk/security/fortify/helper/bwrap"
+	"git.gensokyo.uk/security/fortify/internal"
 	"git.gensokyo.uk/security/fortify/internal/fmsg"
 	"git.gensokyo.uk/security/fortify/internal/linux"
 	"git.gensokyo.uk/security/fortify/internal/state"
@@ -133,7 +134,8 @@ func (a *app) Seal(config *fst.Config) error {
 	}
 	if seal.sys.user.username == "" {
 		seal.sys.user.username = "chronos"
-	} else if !posixUsername.MatchString(seal.sys.user.username) {
+	} else if !posixUsername.MatchString(seal.sys.user.username) ||
+		len(seal.sys.user.username) >= internal.Sysconf_SC_LOGIN_NAME_MAX() {
 		return fmsg.WrapError(ErrName,
 			fmt.Sprintf("invalid user name %q", seal.sys.user.username))
 	}
