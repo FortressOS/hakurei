@@ -1,6 +1,8 @@
 package bwrap
 
-import "os"
+import (
+	"os"
+)
 
 /*
 Bind binds mount src on host to dest in sandbox.
@@ -59,6 +61,29 @@ func (c *Config) Bind(src, dest string, opts ...bool) *Config {
 		}
 		return c
 	}
+}
+
+// Write copy from FD to destination DEST
+// (--file FD DEST)
+func (c *Config) Write(dest string, payload []byte) *Config {
+	c.Filesystem = append(c.Filesystem, &DataConfig{Dest: dest, Data: payload, Type: DataWrite})
+	return c
+}
+
+/*
+CopyBind copy from FD to file which is readonly bind-mounted on DEST
+(--ro-bind-data FD DEST)
+
+CopyBind(dest, payload, true) copy from FD to file which is bind-mounted on DEST
+(--bind-data FD DEST)
+*/
+func (c *Config) CopyBind(dest string, payload []byte, opts ...bool) *Config {
+	t := DataROBind
+	if len(opts) > 0 && opts[0] {
+		t = DataBind
+	}
+	c.Filesystem = append(c.Filesystem, &DataConfig{Dest: dest, Data: payload, Type: t})
+	return c
 }
 
 // Dir create dir in sandbox

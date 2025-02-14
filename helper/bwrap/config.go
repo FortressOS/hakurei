@@ -71,9 +71,6 @@ type Config struct {
 	    --ro-bind-fd FD DEST         Bind open directory or path fd read-only on DEST
 	    --exec-label LABEL           Exec label for the sandbox
 	    --file-label LABEL           File label for temporary sandbox content
-	    --file FD DEST               Copy from FD to destination DEST
-	    --bind-data FD DEST          Copy from FD to file which is bind-mounted on DEST
-	    --ro-bind-data FD DEST       Copy from FD to file which is readonly bind-mounted on DEST
 	    --add-seccomp-fd FD          Load and use seccomp rules from FD (repeatable)
 	    --block-fd FD                Block on FD until some data to read is available
 	    --userns-block-fd FD         Block on FD until the user namespace is ready

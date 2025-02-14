@@ -2,14 +2,19 @@ package bwrap
 
 import (
 	"encoding/gob"
+	"fmt"
+	"io"
 	"os"
 	"strconv"
+
+	"git.gensokyo.uk/security/fortify/helper/proc"
 )
 
 func init() {
 	gob.Register(new(PermConfig[SymlinkConfig]))
 	gob.Register(new(PermConfig[*TmpfsConfig]))
 	gob.Register(new(OverlayConfig))
+	gob.Register(new(DataConfig))
 }
 
 type PositionalArg int
@@ -44,6 +49,10 @@ const (
 
 	SyncFd
 	Seccomp
+
+	File
+	BindData
+	ROBindData
 )
 
 var positionalArgs = [...]string{
@@ -74,6 +83,10 @@ var positionalArgs = [...]string{
 
 	SyncFd:  "--sync-fd",
 	Seccomp: "--seccomp",
+
+	File:       "--file",
+	BindData:   "--bind-data",
+	ROBindData: "--ro-bind-data",
 }
 
 type PermConfig[T FSBuilder] struct {
@@ -202,12 +215,59 @@ func (s SymlinkConfig) Append(args *[]string) { *args = append(*args, Symlink.St
 
 type ChmodConfig map[string]os.FileMode
 
-func (c ChmodConfig) Len() int {
-	return len(c)
-}
-
+func (c ChmodConfig) Len() int { return len(c) }
 func (c ChmodConfig) Append(args *[]string) {
 	for path, mode := range c {
 		*args = append(*args, Chmod.String(), strconv.FormatInt(int64(mode), 8), path)
 	}
+}
+
+const (
+	DataWrite = iota
+	DataBind
+	DataROBind
+)
+
+type DataConfig struct {
+	Dest string `json:"dest"`
+	Data []byte `json:"data,omitempty"`
+	Type int    `json:"type"`
+	proc.File
+}
+
+func (d *DataConfig) Path() string { return d.Dest }
+func (d *DataConfig) Len() int {
+	if d == nil || d.Data == nil {
+		return 0
+	}
+	return 3
+}
+func (d *DataConfig) Init(fd uintptr, v **os.File) uintptr {
+	if d.File != nil {
+		panic("file initialised twice")
+	}
+	d.File = proc.NewWriterTo(d)
+	return d.File.Init(fd, v)
+}
+func (d *DataConfig) WriteTo(w io.Writer) (int64, error) {
+	n, err := w.Write(d.Data)
+	return int64(n), err
+}
+func (d *DataConfig) Append(args *[]string) {
+	if d == nil || d.Data == nil {
+		return
+	}
+	var a PositionalArg
+	switch d.Type {
+	case DataWrite:
+		a = File
+	case DataBind:
+		a = BindData
+	case DataROBind:
+		a = ROBindData
+	default:
+		panic(fmt.Sprintf("invalid type %d", a))
+	}
+
+	*args = append(*args, a.String(), strconv.Itoa(int(d.Fd())), d.Dest)
 }

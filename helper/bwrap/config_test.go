@@ -21,15 +21,14 @@ func TestConfig_Args(t *testing.T) {
 		want []string
 	}{
 		{
-			name: "bind",
-			conf: (new(bwrap.Config)).
+			"bind", (new(bwrap.Config)).
 				Bind("/etc", "/.fortify/etc").
 				Bind("/etc", "/.fortify/etc", true).
 				Bind("/run", "/.fortify/run", false, true).
 				Bind("/sys/devices", "/.fortify/sys/devices", true, true).
 				Bind("/dev/dri", "/.fortify/dev/dri", false, true, true).
 				Bind("/dev/dri", "/.fortify/dev/dri", true, true, true),
-			want: []string{
+			[]string{
 				"--unshare-all", "--unshare-user",
 				"--disable-userns", "--assert-userns-disabled",
 				// Bind("/etc", "/.fortify/etc")
@@ -47,14 +46,13 @@ func TestConfig_Args(t *testing.T) {
 			},
 		},
 		{
-			name: "dir remount-ro proc dev mqueue",
-			conf: (new(bwrap.Config)).
+			"dir remount-ro proc dev mqueue", (new(bwrap.Config)).
 				Dir("/.fortify").
 				RemountRO("/home").
 				Procfs("/proc").
 				DevTmpfs("/dev").
 				Mqueue("/dev/mqueue"),
-			want: []string{
+			[]string{
 				"--unshare-all", "--unshare-user",
 				"--disable-userns", "--assert-userns-disabled",
 				// Dir("/.fortify")
@@ -70,11 +68,10 @@ func TestConfig_Args(t *testing.T) {
 			},
 		},
 		{
-			name: "tmpfs",
-			conf: (new(bwrap.Config)).
+			"tmpfs", (new(bwrap.Config)).
 				Tmpfs("/run/user", 8192).
 				Tmpfs("/run/dbus", 8192, 0755),
-			want: []string{
+			[]string{
 				"--unshare-all", "--unshare-user",
 				"--disable-userns", "--assert-userns-disabled",
 				// Tmpfs("/run/user", 8192)
@@ -84,11 +81,10 @@ func TestConfig_Args(t *testing.T) {
 			},
 		},
 		{
-			name: "symlink",
-			conf: (new(bwrap.Config)).
+			"symlink", (new(bwrap.Config)).
 				Symlink("/.fortify/sbin/init", "/sbin/init").
 				Symlink("/.fortify/sbin/init", "/sbin/init", 0755),
-			want: []string{
+			[]string{
 				"--unshare-all", "--unshare-user",
 				"--disable-userns", "--assert-userns-disabled",
 				// Symlink("/.fortify/sbin/init", "/sbin/init")
@@ -98,12 +94,11 @@ func TestConfig_Args(t *testing.T) {
 			},
 		},
 		{
-			name: "overlayfs",
-			conf: (new(bwrap.Config)).
+			"overlayfs", (new(bwrap.Config)).
 				Overlay("/etc", "/etc").
 				Join("/.fortify/bin", "/bin", "/usr/bin", "/usr/local/bin").
 				Persist("/nix", "/data/data/org.chromium.Chromium/overlay/rwsrc", "/data/data/org.chromium.Chromium/workdir", "/data/app/org.chromium.Chromium/nix"),
-			want: []string{
+			[]string{
 				"--unshare-all", "--unshare-user",
 				"--disable-userns", "--assert-userns-disabled",
 				// Overlay("/etc", "/etc")
@@ -117,8 +112,23 @@ func TestConfig_Args(t *testing.T) {
 			},
 		},
 		{
-			name: "unshare",
-			conf: &bwrap.Config{Unshare: &bwrap.UnshareConfig{
+			"copy", (new(bwrap.Config)).
+				Write("/.fortify/version", make([]byte, 8)).
+				CopyBind("/etc/group", make([]byte, 8)).
+				CopyBind("/etc/passwd", make([]byte, 8), true),
+			[]string{
+				"--unshare-all", "--unshare-user",
+				"--disable-userns", "--assert-userns-disabled",
+				// Write("/.fortify/version", make([]byte, 8))
+				"--file", "3", "/.fortify/version",
+				// CopyBind("/etc/group", make([]byte, 8))
+				"--ro-bind-data", "4", "/etc/group",
+				// CopyBind("/etc/passwd", make([]byte, 8), true)
+				"--bind-data", "5", "/etc/passwd",
+			},
+		},
+		{
+			"unshare", &bwrap.Config{Unshare: &bwrap.UnshareConfig{
 				User:   false,
 				IPC:    false,
 				PID:    false,
@@ -126,14 +136,13 @@ func TestConfig_Args(t *testing.T) {
 				UTS:    false,
 				CGroup: false,
 			}},
-			want: []string{"--disable-userns", "--assert-userns-disabled"},
+			[]string{"--disable-userns", "--assert-userns-disabled"},
 		},
 		{
-			name: "uid gid sync",
-			conf: (new(bwrap.Config)).
+			"uid gid sync", (new(bwrap.Config)).
 				SetUID(1971).
 				SetGID(100),
-			want: []string{
+			[]string{
 				"--unshare-all", "--unshare-user",
 				"--disable-userns", "--assert-userns-disabled",
 				// SetUID(1971)
@@ -143,8 +152,7 @@ func TestConfig_Args(t *testing.T) {
 			},
 		},
 		{
-			name: "hostname chdir setenv unsetenv lockfile chmod syscall",
-			conf: &bwrap.Config{
+			"hostname chdir setenv unsetenv lockfile chmod syscall", &bwrap.Config{
 				Hostname: "fortify",
 				Chdir:    "/.fortify",
 				SetEnv:   map[string]string{"FORTIFY_INIT": "/.fortify/sbin/init"},
@@ -153,7 +161,7 @@ func TestConfig_Args(t *testing.T) {
 				Syscall:  new(bwrap.SyscallPolicy),
 				Chmod:    map[string]os.FileMode{"/.fortify/sbin/init": 0755},
 			},
-			want: []string{
+			[]string{
 				"--unshare-all", "--unshare-user",
 				"--disable-userns", "--assert-userns-disabled",
 				// Hostname: "fortify"
@@ -175,8 +183,7 @@ func TestConfig_Args(t *testing.T) {
 		},
 
 		{
-			name: "xdg-dbus-proxy constraint sample",
-			conf: (&bwrap.Config{Clearenv: true, DieWithParent: true}).
+			"xdg-dbus-proxy constraint sample", (&bwrap.Config{Clearenv: true, DieWithParent: true}).
 				Symlink("usr/bin", "/bin").
 				Symlink("var/home", "/home").
 				Symlink("usr/lib", "/lib").
@@ -199,7 +206,7 @@ func TestConfig_Args(t *testing.T) {
 				Bind("/sysroot", "/sysroot").
 				Bind("/usr", "/usr").
 				Bind("/etc", "/etc"),
-			want: []string{
+			[]string{
 				"--unshare-all", "--unshare-user",
 				"--disable-userns", "--assert-userns-disabled",
 				"--clearenv", "--die-with-parent",
