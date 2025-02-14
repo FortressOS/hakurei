@@ -4,10 +4,9 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"io"
 	"log"
-	"os"
 	"strings"
-	"syscall"
 )
 
 func parseUint32Fast(s string) (int, error) {
@@ -30,48 +29,39 @@ func parseUint32Fast(s string) (int, error) {
 	return n, nil
 }
 
-func parseConfig(p string, puid int) (fid int, ok bool) {
-	// refuse to run if fsurc is not protected correctly
-	if s, err := os.Stat(p); err != nil {
-		log.Fatal(err)
-	} else if s.Mode().Perm() != 0400 {
-		log.Fatal("bad fsurc perm")
-	} else if st := s.Sys().(*syscall.Stat_t); st.Uid != 0 || st.Gid != 0 {
-		log.Fatal("fsurc must be owned by uid 0")
-	}
+func parseConfig(r io.Reader, puid int) (fid int, ok bool, err error) {
+	s := bufio.NewScanner(r)
+	var line, puid0 int
+	for s.Scan() {
+		line++
 
-	if r, err := os.Open(p); err != nil {
-		log.Fatal(err)
-		return -1, false
-	} else {
-		s := bufio.NewScanner(r)
-		var line int
-		for s.Scan() {
-			line++
-
-			// <puid> <fid>
-			lf := strings.SplitN(s.Text(), " ", 2)
-			if len(lf) != 2 {
-				log.Fatalf("invalid entry on line %d", line)
-			}
-
-			var puid0 int
-			if puid0, err = parseUint32Fast(lf[0]); err != nil || puid0 < 1 {
-				log.Fatalf("invalid parent uid on line %d", line)
-			}
-
-			ok = puid0 == puid
-			if ok {
-				// allowed fid range 0 to 99
-				if fid, err = parseUint32Fast(lf[1]); err != nil || fid < 0 || fid > 99 {
-					log.Fatalf("invalid fortify uid on line %d", line)
-				}
-				return
-			}
+		// <puid> <fid>
+		lf := strings.SplitN(s.Text(), " ", 2)
+		if len(lf) != 2 {
+			return -1, false, fmt.Errorf("invalid entry on line %d", line)
 		}
-		if err = s.Err(); err != nil {
-			log.Fatalf("cannot read fsurc: %v", err)
+
+		puid0, err = parseUint32Fast(lf[0])
+		if err != nil || puid0 < 1 {
+			return -1, false, fmt.Errorf("invalid parent uid on line %d", line)
 		}
-		return -1, false
+
+		ok = puid0 == puid
+		if ok {
+			// allowed fid range 0 to 99
+			if fid, err = parseUint32Fast(lf[1]); err != nil || fid < 0 || fid > 99 {
+				return -1, false, fmt.Errorf("invalid fortify uid on line %d", line)
+			}
+			return
+		}
 	}
+	return -1, false, s.Err()
+}
+
+func mustParseConfig(r io.Reader, puid int) (int, bool) {
+	fid, ok, err := parseConfig(r, puid)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return fid, ok
 }

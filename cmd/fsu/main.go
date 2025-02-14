@@ -61,8 +61,19 @@ func main() {
 	//           aid
 	uid := 1000000
 
+	// refuse to run if fsurc is not protected correctly
+	if s, err := os.Stat(fsuConfFile); err != nil {
+		log.Fatal(err)
+	} else if s.Mode().Perm() != 0400 {
+		log.Fatal("bad fsurc perm")
+	} else if st := s.Sys().(*syscall.Stat_t); st.Uid != 0 || st.Gid != 0 {
+		log.Fatal("fsurc must be owned by uid 0")
+	}
+
 	// authenticate before accepting user input
-	if fid, ok := parseConfig(fsuConfFile, puid); !ok {
+	if f, err := os.Open(fsuConfFile); err != nil {
+		log.Fatal(err)
+	} else if fid, ok := mustParseConfig(f, puid); !ok {
 		log.Fatalf("uid %d is not in the fsurc file", puid)
 	} else {
 		uid += fid * 10000
