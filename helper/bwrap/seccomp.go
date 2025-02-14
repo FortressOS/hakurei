@@ -6,7 +6,6 @@ import (
 
 	"git.gensokyo.uk/security/fortify/helper/proc"
 	"git.gensokyo.uk/security/fortify/helper/seccomp"
-	"git.gensokyo.uk/security/fortify/internal/fmsg"
 )
 
 type SyscallPolicy struct {
@@ -56,7 +55,7 @@ func (c *Config) seccompArgs() FDBuilder {
 	for _, opt := range optCond {
 		if opt.v {
 			opts |= opt.o
-			if fmsg.Verbose() {
+			if seccomp.CPrintln != nil {
 				optd = append(optd, opt.d)
 			}
 		}
