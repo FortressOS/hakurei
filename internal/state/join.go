@@ -9,8 +9,19 @@ var (
 	ErrDuplicate = errors.New("store contains duplicates")
 )
 
+/*
+Joiner is the interface that wraps the Join method.
+
+The Join function uses Joiner if available.
+*/
+type Joiner interface{ Join() (Entries, error) }
+
 // Join returns joined state entries of all active aids.
 func Join(s Store) (Entries, error) {
+	if j, ok := s.(Joiner); ok {
+		return j.Join()
+	}
+
 	var (
 		aids    []int
 		entries = make(Entries)
