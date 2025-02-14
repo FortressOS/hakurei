@@ -113,34 +113,25 @@ func (seal *appSeal) setupShares(bus [2]*dbus.Config, os linux.System) error {
 		sh = s
 	}
 
-	// generate /etc/passwd
-	passwdPath := path.Join(seal.share, "passwd")
-	username := "chronos"
-	if seal.sys.user.username != "" {
-		username = seal.sys.user.username
-	}
+	// bind home directory
 	homeDir := "/var/empty"
 	if seal.sys.user.home != "" {
 		homeDir = seal.sys.user.home
 	}
-
-	// bind home directory
+	username := "chronos"
+	if seal.sys.user.username != "" {
+		username = seal.sys.user.username
+	}
 	seal.sys.bwrap.Bind(seal.sys.user.data, homeDir, false, true)
 	seal.sys.bwrap.Chdir = homeDir
-
-	seal.sys.bwrap.SetEnv["USER"] = username
 	seal.sys.bwrap.SetEnv["HOME"] = homeDir
+	seal.sys.bwrap.SetEnv["USER"] = username
 
-	passwd := username + ":x:" + seal.sys.mappedIDString + ":" + seal.sys.mappedIDString + ":Fortify:" + homeDir + ":" + sh + "\n"
-	seal.sys.Write(passwdPath, passwd)
-
-	// write /etc/group
-	groupPath := path.Join(seal.share, "group")
-	seal.sys.Write(groupPath, "fortify:x:"+seal.sys.mappedIDString+":\n")
-
-	// bind /etc/passwd and /etc/group
-	seal.sys.bwrap.Bind(passwdPath, "/etc/passwd")
-	seal.sys.bwrap.Bind(groupPath, "/etc/group")
+	// generate /etc/passwd and /etc/group
+	seal.sys.bwrap.CopyBind("/etc/passwd",
+		[]byte(username+":x:"+seal.sys.mappedIDString+":"+seal.sys.mappedIDString+":Fortify:"+homeDir+":"+sh+"\n"))
+	seal.sys.bwrap.CopyBind("/etc/group",
+		[]byte("fortify:x:"+seal.sys.mappedIDString+":\n"))
 
 	/*
 		Display servers

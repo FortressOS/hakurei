@@ -32,9 +32,7 @@ var testCasesPd = []sealTestCase{
 			Ensure("/tmp/fortify.1971/tmpdir/0", 01700).UpdatePermType(system.User, "/tmp/fortify.1971/tmpdir/0", acl.Read, acl.Write, acl.Execute).
 			Ensure("/run/user/1971/fortify", 0700).UpdatePermType(system.User, "/run/user/1971/fortify", acl.Execute).
 			Ensure("/run/user/1971", 0700).UpdatePermType(system.User, "/run/user/1971", acl.Execute). // this is ordered as is because the previous Ensure only calls mkdir if XDG_RUNTIME_DIR is unset
-			Ephemeral(system.Process, "/run/user/1971/fortify/4a450b6596d7bc15bd01780eb9a607ac", 0700).UpdatePermType(system.Process, "/run/user/1971/fortify/4a450b6596d7bc15bd01780eb9a607ac", acl.Execute).
-			WriteType(system.Process, "/tmp/fortify.1971/4a450b6596d7bc15bd01780eb9a607ac/passwd", "chronos:x:65534:65534:Fortify:/home/chronos:/run/current-system/sw/bin/zsh\n").
-			WriteType(system.Process, "/tmp/fortify.1971/4a450b6596d7bc15bd01780eb9a607ac/group", "fortify:x:65534:\n"),
+			Ephemeral(system.Process, "/run/user/1971/fortify/4a450b6596d7bc15bd01780eb9a607ac", 0700).UpdatePermType(system.Process, "/run/user/1971/fortify/4a450b6596d7bc15bd01780eb9a607ac", acl.Execute),
 		(&bwrap.Config{
 			Net:      true,
 			UserNS:   true,
@@ -154,8 +152,8 @@ var testCasesPd = []sealTestCase{
 			Tmpfs("/run/user", 1048576).
 			Tmpfs("/run/user/65534", 8388608).
 			Bind("/home/chronos", "/home/chronos", false, true).
-			Bind("/tmp/fortify.1971/4a450b6596d7bc15bd01780eb9a607ac/passwd", "/etc/passwd").
-			Bind("/tmp/fortify.1971/4a450b6596d7bc15bd01780eb9a607ac/group", "/etc/group").
+			CopyBind("/etc/passwd", []byte("chronos:x:65534:65534:Fortify:/home/chronos:/run/current-system/sw/bin/zsh\n")).
+			CopyBind("/etc/group", []byte("fortify:x:65534:\n")).
 			Tmpfs("/var/run/nscd", 8192).
 			Bind("/run/wrappers/bin/fortify", "/.fortify/sbin/fortify").
 			Symlink("fortify", "/.fortify/sbin/init"),
@@ -218,8 +216,6 @@ var testCasesPd = []sealTestCase{
 			Ensure("/run/user/1971/fortify", 0700).UpdatePermType(system.User, "/run/user/1971/fortify", acl.Execute).
 			Ensure("/run/user/1971", 0700).UpdatePermType(system.User, "/run/user/1971", acl.Execute). // this is ordered as is because the previous Ensure only calls mkdir if XDG_RUNTIME_DIR is unset
 			Ephemeral(system.Process, "/run/user/1971/fortify/ebf083d1b175911782d413369b64ce7c", 0700).UpdatePermType(system.Process, "/run/user/1971/fortify/ebf083d1b175911782d413369b64ce7c", acl.Execute).
-			WriteType(system.Process, "/tmp/fortify.1971/ebf083d1b175911782d413369b64ce7c/passwd", "chronos:x:65534:65534:Fortify:/home/chronos:/run/current-system/sw/bin/zsh\n").
-			WriteType(system.Process, "/tmp/fortify.1971/ebf083d1b175911782d413369b64ce7c/group", "fortify:x:65534:\n").
 			Ensure("/tmp/fortify.1971/wayland", 0711).
 			Wayland("/tmp/fortify.1971/wayland/ebf083d1b175911782d413369b64ce7c", "/run/user/1971/wayland-0", "org.chromium.Chromium", "ebf083d1b175911782d413369b64ce7c").
 			Link("/run/user/1971/pulse/native", "/run/user/1971/fortify/ebf083d1b175911782d413369b64ce7c/pulse").
@@ -382,8 +378,8 @@ var testCasesPd = []sealTestCase{
 			Tmpfs("/run/user", 1048576).
 			Tmpfs("/run/user/65534", 8388608).
 			Bind("/home/chronos", "/home/chronos", false, true).
-			Bind("/tmp/fortify.1971/ebf083d1b175911782d413369b64ce7c/passwd", "/etc/passwd").
-			Bind("/tmp/fortify.1971/ebf083d1b175911782d413369b64ce7c/group", "/etc/group").
+			CopyBind("/etc/passwd", []byte("chronos:x:65534:65534:Fortify:/home/chronos:/run/current-system/sw/bin/zsh\n")).
+			CopyBind("/etc/group", []byte("fortify:x:65534:\n")).
 			Bind("/tmp/fortify.1971/wayland/ebf083d1b175911782d413369b64ce7c", "/run/user/65534/wayland-0").
 			Bind("/run/user/1971/fortify/ebf083d1b175911782d413369b64ce7c/pulse", "/run/user/65534/pulse/native").
 			Bind("/tmp/fortify.1971/ebf083d1b175911782d413369b64ce7c/pulse-cookie", fst.Tmp+"/pulse-cookie").
