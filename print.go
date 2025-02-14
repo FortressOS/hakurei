@@ -3,7 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"os"
+	"io"
 	"slices"
 	"strconv"
 	"strings"
@@ -16,7 +16,10 @@ import (
 	"git.gensokyo.uk/security/fortify/internal/state"
 )
 
-func printShowSystem(short bool) {
+func printShowSystem(output io.Writer, short bool) {
+	t := newPrinter(output)
+	defer t.MustFlush()
+
 	info := new(fst.Info)
 
 	// get fid by querying uid of aid 0
@@ -27,58 +30,55 @@ func printShowSystem(short bool) {
 	}
 
 	if flagJSON {
-		printJSON(info)
+		printJSON(output, short, info)
 		return
 	}
 
-	w := tabwriter.NewWriter(os.Stdout, 0, 1, 4, ' ', 0)
-
-	fmt.Fprintf(w, "User:\t%d\n", info.User)
-
-	if err := w.Flush(); err != nil {
-		fmsg.Fatalf("cannot flush tabwriter: %v", err)
-	}
+	t.Printf("User:\t%d\n", info.User)
 }
 
-func printShowInstance(instance *state.State, config *fst.Config, short bool) {
+func printShowInstance(
+	output io.Writer, now time.Time,
+	instance *state.State, config *fst.Config,
+	short bool) {
 	if flagJSON {
 		if instance != nil {
-			printJSON(instance)
+			printJSON(output, short, instance)
 		} else {
-			printJSON(config)
+			printJSON(output, short, config)
 		}
 		return
 	}
 
-	now := time.Now().UTC()
-	w := tabwriter.NewWriter(os.Stdout, 0, 1, 4, ' ', 0)
+	t := newPrinter(output)
+	defer t.MustFlush()
 
 	if config.Confinement.Sandbox == nil {
-		fmt.Print("Warning: this configuration uses permissive defaults!\n\n")
+		mustPrint(output, "Warning: this configuration uses permissive defaults!\n\n")
 	}
 
 	if instance != nil {
-		fmt.Fprintf(w, "State\n")
-		fmt.Fprintf(w, " Instance:\t%s (%d)\n", instance.ID.String(), instance.PID)
-		fmt.Fprintf(w, " Uptime:\t%s\n", now.Sub(instance.Time).Round(time.Second).String())
-		fmt.Fprintf(w, "\n")
+		t.Printf("State\n")
+		t.Printf(" Instance:\t%s (%d)\n", instance.ID.String(), instance.PID)
+		t.Printf(" Uptime:\t%s\n", now.Sub(instance.Time).Round(time.Second).String())
+		t.Printf("\n")
 	}
 
-	fmt.Fprintf(w, "App\n")
+	t.Printf("App\n")
 	if config.ID != "" {
-		fmt.Fprintf(w, " ID:\t%d (%s)\n", config.Confinement.AppID, config.ID)
+		t.Printf(" ID:\t%d (%s)\n", config.Confinement.AppID, config.ID)
 	} else {
-		fmt.Fprintf(w, " ID:\t%d\n", config.Confinement.AppID)
+		t.Printf(" ID:\t%d\n", config.Confinement.AppID)
 	}
-	fmt.Fprintf(w, " Enablements:\t%s\n", config.Confinement.Enablements.String())
+	t.Printf(" Enablements:\t%s\n", config.Confinement.Enablements.String())
 	if len(config.Confinement.Groups) > 0 {
-		fmt.Fprintf(w, " Groups:\t%q\n", config.Confinement.Groups)
+		t.Printf(" Groups:\t%q\n", config.Confinement.Groups)
 	}
-	fmt.Fprintf(w, " Directory:\t%s\n", config.Confinement.Outer)
+	t.Printf(" Directory:\t%s\n", config.Confinement.Outer)
 	if config.Confinement.Sandbox != nil {
 		sandbox := config.Confinement.Sandbox
 		if sandbox.Hostname != "" {
-			fmt.Fprintf(w, " Hostname:\t%q\n", sandbox.Hostname)
+			t.Printf(" Hostname:\t%q\n", sandbox.Hostname)
 		}
 		flags := make([]string, 0, 7)
 		writeFlag := func(name string, value bool) {
@@ -96,27 +96,27 @@ func printShowInstance(instance *state.State, config *fst.Config, short bool) {
 		if len(flags) == 0 {
 			flags = append(flags, "none")
 		}
-		fmt.Fprintf(w, " Flags:\t%s\n", strings.Join(flags, " "))
+		t.Printf(" Flags:\t%s\n", strings.Join(flags, " "))
 
 		etc := sandbox.Etc
 		if etc == "" {
 			etc = "/etc"
 		}
-		fmt.Fprintf(w, " Etc:\t%s\n", etc)
+		t.Printf(" Etc:\t%s\n", etc)
 
 		if len(sandbox.Override) > 0 {
-			fmt.Fprintf(w, " Overrides:\t%s\n", strings.Join(sandbox.Override, " "))
+			t.Printf(" Overrides:\t%s\n", strings.Join(sandbox.Override, " "))
 		}
 
 		// Env           map[string]string   `json:"env"`
 		// Link          [][2]string         `json:"symlink"`
 	}
-	fmt.Fprintf(w, " Command:\t%s\n", strings.Join(config.Command, " "))
-	fmt.Fprintf(w, "\n")
+	t.Printf(" Command:\t%s\n", strings.Join(config.Command, " "))
+	t.Printf("\n")
 
 	if !short {
 		if config.Confinement.Sandbox != nil && len(config.Confinement.Sandbox.Filesystem) > 0 {
-			fmt.Fprintf(w, "Filesystem\n")
+			t.Printf("Filesystem\n")
 			for _, f := range config.Confinement.Sandbox.Filesystem {
 				if f == nil {
 					continue
@@ -141,61 +141,54 @@ func printShowInstance(instance *state.State, config *fst.Config, short bool) {
 				if f.Dst != "" {
 					expr.WriteString(":" + f.Dst)
 				}
-				fmt.Fprintf(w, "%s\n", expr.String())
+				t.Printf("%s\n", expr.String())
 			}
-			fmt.Fprintf(w, "\n")
+			t.Printf("\n")
 		}
 		if len(config.Confinement.ExtraPerms) > 0 {
-			fmt.Fprintf(w, "Extra ACL\n")
+			t.Printf("Extra ACL\n")
 			for _, p := range config.Confinement.ExtraPerms {
 				if p == nil {
 					continue
 				}
-				fmt.Fprintf(w, " %s\n", p.String())
+				t.Printf(" %s\n", p.String())
 			}
-			fmt.Fprintf(w, "\n")
+			t.Printf("\n")
 		}
 	}
 
 	printDBus := func(c *dbus.Config) {
-		fmt.Fprintf(w, " Filter:\t%v\n", c.Filter)
+		t.Printf(" Filter:\t%v\n", c.Filter)
 		if len(c.See) > 0 {
-			fmt.Fprintf(w, " See:\t%q\n", c.See)
+			t.Printf(" See:\t%q\n", c.See)
 		}
 		if len(c.Talk) > 0 {
-			fmt.Fprintf(w, " Talk:\t%q\n", c.Talk)
+			t.Printf(" Talk:\t%q\n", c.Talk)
 		}
 		if len(c.Own) > 0 {
-			fmt.Fprintf(w, " Own:\t%q\n", c.Own)
+			t.Printf(" Own:\t%q\n", c.Own)
 		}
 		if len(c.Call) > 0 {
-			fmt.Fprintf(w, " Call:\t%q\n", c.Call)
+			t.Printf(" Call:\t%q\n", c.Call)
 		}
 		if len(c.Broadcast) > 0 {
-			fmt.Fprintf(w, " Broadcast:\t%q\n", c.Broadcast)
+			t.Printf(" Broadcast:\t%q\n", c.Broadcast)
 		}
 	}
 	if config.Confinement.SessionBus != nil {
-		fmt.Fprintf(w, "Session bus\n")
+		t.Printf("Session bus\n")
 		printDBus(config.Confinement.SessionBus)
-		fmt.Fprintf(w, "\n")
+		t.Printf("\n")
 	}
 	if config.Confinement.SystemBus != nil {
-		fmt.Fprintf(w, "System bus\n")
+		t.Printf("System bus\n")
 		printDBus(config.Confinement.SystemBus)
-		fmt.Fprintf(w, "\n")
-	}
-
-	if err := w.Flush(); err != nil {
-		fmsg.Fatalf("cannot flush tabwriter: %v", err)
+		t.Printf("\n")
 	}
 }
 
-func printPs(short bool) {
-	now := time.Now().UTC()
-
+func printPs(output io.Writer, now time.Time, s state.Store, short bool) {
 	var entries state.Entries
-	s := state.NewMulti(sys.Paths().RunDirPath)
 	if e, err := state.Join(s); err != nil {
 		fmsg.Fatalf("cannot join store: %v", err)
 	} else {
@@ -205,12 +198,12 @@ func printPs(short bool) {
 		fmsg.Printf("cannot close store: %v", err)
 	}
 
-	if flagJSON {
+	if !short && flagJSON {
 		es := make(map[string]*state.State, len(entries))
 		for id, instance := range entries {
 			es[id.String()] = instance
 		}
-		printJSON(es)
+		printJSON(output, short, es)
 		return
 	}
 
@@ -225,7 +218,7 @@ func printPs(short bool) {
 
 		// gracefully skip inconsistent states
 		if id != instance.ID {
-			fmt.Printf("possible store corruption: entry %s has id %s",
+			fmsg.Printf("possible store corruption: entry %s has id %s",
 				id.String(), instance.ID.String())
 			continue
 		}
@@ -239,25 +232,34 @@ func printPs(short bool) {
 			for i, e := range exp {
 				v[i] = e.s
 			}
-			printJSON(v)
+			printJSON(output, short, v)
 		} else {
 			for _, e := range exp {
-				fmt.Println(e.s[:8])
+				mustPrintln(output, e.s[:8])
 			}
 		}
 		return
 	}
 
-	// buffer output to reduce terminal activity
-	w := tabwriter.NewWriter(os.Stdout, 0, 1, 4, ' ', 0)
-	fmt.Fprintln(w, "\tInstance\tPID\tApp\tUptime\tEnablements\tCommand")
+	t := newPrinter(output)
+	defer t.MustFlush()
+
+	t.Println("\tInstance\tPID\tApp\tUptime\tEnablements\tCommand")
 	for _, e := range exp {
-		printInstance(w, e, now)
+		var (
+			es = "(No confinement information)"
+			cs = "(No command information)"
+			as = "(No configuration information)"
+		)
+		if e.Config != nil {
+			es = e.Config.Confinement.Enablements.String()
+			cs = fmt.Sprintf("%q", e.Config.Command)
+			as = strconv.Itoa(e.Config.Confinement.AppID)
+		}
+		t.Printf("\t%s\t%d\t%s\t%s\t%s\t%s\n",
+			e.s[:8], e.PID, as, now.Sub(e.Time).Round(time.Second).String(), strings.TrimPrefix(es, ", "), cs)
 	}
-	fmt.Fprintln(w)
-	if err := w.Flush(); err != nil {
-		fmsg.Fatalf("cannot flush tabwriter: %v", err)
-	}
+	t.Println()
 }
 
 type expandedStateEntry struct {
@@ -265,26 +267,48 @@ type expandedStateEntry struct {
 	*state.State
 }
 
-func printInstance(w *tabwriter.Writer, e *expandedStateEntry, now time.Time) {
-	var (
-		es = "(No confinement information)"
-		cs = "(No command information)"
-		as = "(No configuration information)"
-	)
-	if e.Config != nil {
-		es = e.Config.Confinement.Enablements.String()
-		cs = fmt.Sprintf("%q", e.Config.Command)
-		as = strconv.Itoa(e.Config.Confinement.AppID)
+func printJSON(output io.Writer, short bool, v any) {
+	encoder := json.NewEncoder(output)
+	if !short {
+		encoder.SetIndent("", "  ")
 	}
-	fmt.Fprintf(w, "\t%s\t%d\t%s\t%s\t%s\t%s\n",
-		e.s[:8], e.PID, as, now.Sub(e.Time).Round(time.Second).String(), strings.TrimPrefix(es, ", "), cs)
-}
-
-func printJSON(v any) {
-	encoder := json.NewEncoder(os.Stdout)
-	encoder.SetIndent("", "  ")
 	if err := encoder.Encode(v); err != nil {
 		fmsg.Fatalf("cannot serialise: %v", err)
+		panic("unreachable")
+	}
+}
+
+func newPrinter(output io.Writer) *tp { return &tp{tabwriter.NewWriter(output, 0, 1, 4, ' ', 0)} }
+
+type tp struct{ *tabwriter.Writer }
+
+func (p *tp) Printf(format string, a ...any) {
+	if _, err := fmt.Fprintf(p, format, a...); err != nil {
+		fmsg.Fatalf("cannot write to tabwriter: %v", err)
+		panic("unreachable")
+	}
+}
+func (p *tp) Println(a ...any) {
+	if _, err := fmt.Fprintln(p, a...); err != nil {
+		fmsg.Fatalf("cannot write to tabwriter: %v", err)
+		panic("unreachable")
+	}
+}
+func (p *tp) MustFlush() {
+	if err := p.Writer.Flush(); err != nil {
+		fmsg.Fatalf("cannot flush tabwriter: %v", err)
+		panic("unreachable")
+	}
+}
+func mustPrint(output io.Writer, a ...any) {
+	if _, err := fmt.Fprint(output, a...); err != nil {
+		fmsg.Fatalf("cannot print: %v", err)
+		panic("unreachable")
+	}
+}
+func mustPrintln(output io.Writer, a ...any) {
+	if _, err := fmt.Fprintln(output, a...); err != nil {
+		fmsg.Fatalf("cannot print: %v", err)
 		panic("unreachable")
 	}
 }

@@ -13,6 +13,7 @@ import (
 	"sync"
 	"syscall"
 	"text/tabwriter"
+	"time"
 
 	"git.gensokyo.uk/security/fortify/dbus"
 	"git.gensokyo.uk/security/fortify/fst"
@@ -23,6 +24,7 @@ import (
 	"git.gensokyo.uk/security/fortify/internal/linux"
 	init0 "git.gensokyo.uk/security/fortify/internal/priv/init"
 	"git.gensokyo.uk/security/fortify/internal/priv/shim"
+	"git.gensokyo.uk/security/fortify/internal/state"
 	"git.gensokyo.uk/security/fortify/internal/system"
 )
 
@@ -114,7 +116,7 @@ func main() {
 		fmt.Println(license)
 		fmsg.Exit(0)
 	case "template": // print full template configuration
-		printJSON(fst.Template())
+		printJSON(os.Stdout, false, fst.Template())
 		fmsg.Exit(0)
 	case "help": // print help message
 		flag.CommandLine.Usage()
@@ -127,7 +129,7 @@ func main() {
 		// Ignore errors; set is set for ExitOnError.
 		_ = set.Parse(args[1:])
 
-		printPs(short)
+		printPs(os.Stdout, time.Now().UTC(), state.NewMulti(sys.Paths().RunDirPath), short)
 		fmsg.Exit(0)
 	case "show": // pretty-print app info
 		set := flag.NewFlagSet("show", flag.ExitOnError)
@@ -139,14 +141,14 @@ func main() {
 
 		switch len(set.Args()) {
 		case 0: // system
-			printShowSystem(short)
+			printShowSystem(os.Stdout, short)
 		case 1: // instance
 			name := set.Args()[0]
 			config, instance := tryShort(name)
 			if config == nil {
 				config = tryPath(name)
 			}
-			printShowInstance(instance, config, short)
+			printShowInstance(os.Stdout, time.Now().UTC(), instance, config, short)
 		default:
 			fmsg.Fatal("show requires 1 argument")
 		}
