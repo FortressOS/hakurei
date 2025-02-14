@@ -3,7 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	direct "os"
+	"os"
 	"slices"
 	"strconv"
 	"strings"
@@ -31,7 +31,7 @@ func printShowSystem(short bool) {
 		return
 	}
 
-	w := tabwriter.NewWriter(direct.Stdout, 0, 1, 4, ' ', 0)
+	w := tabwriter.NewWriter(os.Stdout, 0, 1, 4, ' ', 0)
 
 	fmt.Fprintf(w, "User:\t%d\n", info.User)
 
@@ -51,7 +51,7 @@ func printShowInstance(instance *state.State, config *fst.Config, short bool) {
 	}
 
 	now := time.Now().UTC()
-	w := tabwriter.NewWriter(direct.Stdout, 0, 1, 4, ' ', 0)
+	w := tabwriter.NewWriter(os.Stdout, 0, 1, 4, ' ', 0)
 
 	if config.Confinement.Sandbox == nil {
 		fmt.Print("Warning: this configuration uses permissive defaults!\n\n")
@@ -249,11 +249,12 @@ func printPs(short bool) {
 	}
 
 	// buffer output to reduce terminal activity
-	w := tabwriter.NewWriter(direct.Stdout, 0, 1, 4, ' ', 0)
+	w := tabwriter.NewWriter(os.Stdout, 0, 1, 4, ' ', 0)
 	fmt.Fprintln(w, "\tInstance\tPID\tApp\tUptime\tEnablements\tCommand")
 	for _, e := range exp {
 		printInstance(w, e, now)
 	}
+	fmt.Fprintln(w)
 	if err := w.Flush(); err != nil {
 		fmsg.Fatalf("cannot flush tabwriter: %v", err)
 	}
@@ -280,7 +281,7 @@ func printInstance(w *tabwriter.Writer, e *expandedStateEntry, now time.Time) {
 }
 
 func printJSON(v any) {
-	encoder := json.NewEncoder(direct.Stdout)
+	encoder := json.NewEncoder(os.Stdout)
 	encoder.SetIndent("", "  ")
 	if err := encoder.Encode(v); err != nil {
 		fmsg.Fatalf("cannot serialise: %v", err)
