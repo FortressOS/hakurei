@@ -42,26 +42,9 @@ func (sys *I) LinkFileType(et Enablement, oldname, newname string) *I {
 	return sys
 }
 
-// Write registers an Op that writes dst with the contents of src.
-func (sys *I) Write(dst, src string) *I {
-	return sys.WriteType(Process, dst, src)
-}
-
-// WriteType registers a file writing Op labelled with type et.
-func (sys *I) WriteType(et Enablement, dst, src string) *I {
-	sys.lock.Lock()
-	sys.ops = append(sys.ops, &Tmpfile{et, tmpfileWrite, dst, src})
-	sys.lock.Unlock()
-
-	sys.UpdatePermType(et, dst, acl.Read)
-
-	return sys
-}
-
 const (
 	tmpfileCopy uint8 = iota
 	tmpfileLink
-	tmpfileWrite
 )
 
 type Tmpfile struct {
@@ -84,10 +67,6 @@ func (t *Tmpfile) apply(_ *I) error {
 		fmsg.VPrintln("linking tmpfile", t)
 		return fmsg.WrapErrorSuffix(os.Link(t.src, t.dst),
 			fmt.Sprintf("cannot link tmpfile %q:", t.dst))
-	case tmpfileWrite:
-		fmsg.VPrintln("writing", t)
-		return fmsg.WrapErrorSuffix(os.WriteFile(t.dst, []byte(t.src), 0600),
-			fmt.Sprintf("cannot write tmpfile %q:", t.dst))
 	default:
 		panic("invalid tmpfile method " + strconv.Itoa(int(t.method)))
 	}
@@ -109,12 +88,7 @@ func (t *Tmpfile) Is(o Op) bool {
 	return ok && t0 != nil && *t == *t0
 }
 
-func (t *Tmpfile) Path() string {
-	if t.method == tmpfileWrite {
-		return fmt.Sprintf("(%d bytes of data)", len(t.src))
-	}
-	return t.src
-}
+func (t *Tmpfile) Path() string { return t.src }
 
 func (t *Tmpfile) String() string {
 	switch t.method {
@@ -122,8 +96,6 @@ func (t *Tmpfile) String() string {
 		return fmt.Sprintf("%q from %q", t.dst, t.src)
 	case tmpfileLink:
 		return fmt.Sprintf("%q from %q", t.dst, t.src)
-	case tmpfileWrite:
-		return fmt.Sprintf("%d bytes of data to %q", len(t.src), t.dst)
 	default:
 		panic("invalid tmpfile method " + strconv.Itoa(int(t.method)))
 	}

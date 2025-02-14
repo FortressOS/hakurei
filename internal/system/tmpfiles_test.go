@@ -1,7 +1,6 @@
 package system
 
 import (
-	"strconv"
 	"testing"
 
 	"git.gensokyo.uk/security/fortify/acl"
@@ -83,47 +82,6 @@ func TestLinkFileType(t *testing.T) {
 	}
 }
 
-func TestWrite(t *testing.T) {
-	testCases := []struct {
-		dst, src string
-	}{
-		{"/etc/passwd", "chronos:x:65534:65534:Fortify:/home/chronos:/run/current-system/sw/bin/zsh\n"},
-		{"/etc/group", "fortify:x:65534:\n"},
-	}
-	for _, tc := range testCases {
-		t.Run("write "+strconv.Itoa(len(tc.src))+" bytes to "+tc.dst, func(t *testing.T) {
-			sys := New(150)
-			sys.Write(tc.dst, tc.src)
-			(&tcOp{Process, "(" + strconv.Itoa(len(tc.src)) + " bytes of data)"}).test(t, sys.ops, []Op{
-				&Tmpfile{Process, tmpfileWrite, tc.dst, tc.src},
-				&ACL{Process, tc.dst, []acl.Perm{acl.Read}},
-			}, "Write")
-		})
-	}
-}
-
-func TestWriteType(t *testing.T) {
-	testCases := []struct {
-		et       Enablement
-		dst, src string
-	}{
-		{Process, "/etc/passwd", "chronos:x:65534:65534:Fortify:/home/chronos:/run/current-system/sw/bin/zsh\n"},
-		{Process, "/etc/group", "fortify:x:65534:\n"},
-		{User, "/etc/passwd", "chronos:x:65534:65534:Fortify:/home/chronos:/run/current-system/sw/bin/zsh\n"},
-		{User, "/etc/group", "fortify:x:65534:\n"},
-	}
-	for _, tc := range testCases {
-		t.Run("write "+strconv.Itoa(len(tc.src))+" bytes to "+tc.dst+" with type "+TypeString(tc.et), func(t *testing.T) {
-			sys := New(150)
-			sys.WriteType(tc.et, tc.dst, tc.src)
-			(&tcOp{tc.et, "(" + strconv.Itoa(len(tc.src)) + " bytes of data)"}).test(t, sys.ops, []Op{
-				&Tmpfile{tc.et, tmpfileWrite, tc.dst, tc.src},
-				&ACL{tc.et, tc.dst, []acl.Perm{acl.Read}},
-			}, "WriteType")
-		})
-	}
-}
-
 func TestTmpfile_String(t *testing.T) {
 	t.Run("invalid method panic", func(t *testing.T) {
 		defer func() {
@@ -147,10 +105,6 @@ func TestTmpfile_String(t *testing.T) {
 			`"/run/user/1971/fortify/4b6bdc9182fb2f1d3a965c5fa8b9b66e/wayland" from "/run/user/1971/wayland-0"`},
 		{tmpfileLink, "/run/user/1971/fortify/4b6bdc9182fb2f1d3a965c5fa8b9b66e/pulse", "/run/user/1971/pulse/native",
 			`"/run/user/1971/fortify/4b6bdc9182fb2f1d3a965c5fa8b9b66e/pulse" from "/run/user/1971/pulse/native"`},
-		{tmpfileWrite, "/tmp/fortify.1971/4b6bdc9182fb2f1d3a965c5fa8b9b66e/passwd", "chronos:x:65534:65534:Fortify:/home/chronos:/run/current-system/sw/bin/zsh\n",
-			`75 bytes of data to "/tmp/fortify.1971/4b6bdc9182fb2f1d3a965c5fa8b9b66e/passwd"`},
-		{tmpfileWrite, "/tmp/fortify.1971/4b6bdc9182fb2f1d3a965c5fa8b9b66e/group", "fortify:x:65534:\n",
-			`17 bytes of data to "/tmp/fortify.1971/4b6bdc9182fb2f1d3a965c5fa8b9b66e/group"`},
 	}
 
 	for _, tc := range testCases {
