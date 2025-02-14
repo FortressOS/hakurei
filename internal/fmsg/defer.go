@@ -53,6 +53,7 @@ func queue(op dOp) {
 type dOp interface{ Do() }
 
 func Exit(code int) {
+	Resume() // resume here to avoid deadlock
 	queueSync.Wait()
 	os.Exit(code)
 }
