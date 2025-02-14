@@ -79,8 +79,9 @@ nixosTest {
           set -e
 
           mkdir -p ~/.config/sway
-          sed s/Mod4/Mod1/ /etc/sway/config > ~/.config/sway/config
-          echo 'output * bg ${pkgs.nixos-artwork.wallpapers.simple-light-gray.gnomeFilePath} fill' >> ~/.config/sway/config
+          (sed s/Mod4/Mod1/ /etc/sway/config &&
+          echo 'output * bg ${pkgs.nixos-artwork.wallpapers.simple-light-gray.gnomeFilePath} fill' &&
+          echo 'output Virtual-1 res 1280x768') > ~/.config/sway/config
 
           sway --validate
           systemd-cat --identifier=sway sway && touch /tmp/sway-exit-ok
