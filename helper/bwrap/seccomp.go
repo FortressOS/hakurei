@@ -81,5 +81,5 @@ func (s *seccompBuilder) Append(args *[]string) {
 		return
 	}
 
-	*args = append(*args, positionalArgs[Seccomp], strconv.Itoa(int(s.Fd())))
+	*args = append(*args, Seccomp.String(), strconv.Itoa(int(s.Fd())))
 }

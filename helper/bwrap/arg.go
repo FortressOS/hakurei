@@ -30,7 +30,7 @@ func (c *Config) Args(syncFd *os.File, extraFiles *proc.ExtraFilesPre, files *[]
 		c.stringArgs(),
 		c.pairArgs(),
 		c.seccompArgs(),
-		newFile(positionalArgs[SyncFd], syncFd),
+		newFile(SyncFd.String(), syncFd),
 	}
 
 	builders = slices.Grow(builders, len(c.Filesystem)+1)

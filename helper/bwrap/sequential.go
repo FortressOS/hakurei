@@ -14,9 +14,7 @@ func init() {
 
 type PositionalArg int
 
-func (p PositionalArg) Unwrap() string {
-	return positionalArgs[p]
-}
+func (p PositionalArg) String() string { return positionalArgs[p] }
 
 const (
 	Tmpfs PositionalArg = iota
@@ -87,9 +85,7 @@ type PermConfig[T FSBuilder] struct {
 	Inner T `json:"path"`
 }
 
-func (p *PermConfig[T]) Path() string {
-	return p.Inner.Path()
-}
+func (p *PermConfig[T]) Path() string { return p.Inner.Path() }
 
 func (p *PermConfig[T]) Len() int {
 	if p.Mode != nil {
@@ -101,7 +97,7 @@ func (p *PermConfig[T]) Len() int {
 
 func (p *PermConfig[T]) Append(args *[]string) {
 	if p.Mode != nil {
-		*args = append(*args, Perms.Unwrap(), strconv.FormatInt(int64(*p.Mode), 8))
+		*args = append(*args, Perms.String(), strconv.FormatInt(int64(*p.Mode), 8))
 	}
 	p.Inner.Append(args)
 }
@@ -115,9 +111,7 @@ type TmpfsConfig struct {
 	Dir string `json:"dir"`
 }
 
-func (t *TmpfsConfig) Path() string {
-	return t.Dir
-}
+func (t *TmpfsConfig) Path() string { return t.Dir }
 
 func (t *TmpfsConfig) Len() int {
 	if t.Size > 0 {
@@ -129,9 +123,9 @@ func (t *TmpfsConfig) Len() int {
 
 func (t *TmpfsConfig) Append(args *[]string) {
 	if t.Size > 0 {
-		*args = append(*args, Size.Unwrap(), strconv.Itoa(t.Size))
+		*args = append(*args, Size.String(), strconv.Itoa(t.Size))
 	}
-	*args = append(*args, Tmpfs.Unwrap(), t.Dir)
+	*args = append(*args, Tmpfs.String(), t.Dir)
 }
 
 type OverlayConfig struct {
@@ -164,9 +158,7 @@ type OverlayConfig struct {
 	Dest string `json:"dest"`
 }
 
-func (o *OverlayConfig) Path() string {
-	return o.Dest
-}
+func (o *OverlayConfig) Path() string { return o.Dest }
 
 func (o *OverlayConfig) Len() int {
 	// (--tmp-overlay DEST) or (--ro-overlay DEST)
@@ -182,20 +174,20 @@ func (o *OverlayConfig) Len() int {
 func (o *OverlayConfig) Append(args *[]string) {
 	// --overlay-src SRC
 	for _, src := range o.Src {
-		*args = append(*args, OverlaySrc.Unwrap(), src)
+		*args = append(*args, OverlaySrc.String(), src)
 	}
 
 	if o.Persist != nil {
 		if o.Persist[0] != "" && o.Persist[1] != "" {
 			// --overlay RWSRC WORKDIR
-			*args = append(*args, Overlay.Unwrap(), o.Persist[0], o.Persist[1])
+			*args = append(*args, Overlay.String(), o.Persist[0], o.Persist[1])
 		} else {
 			// --ro-overlay
-			*args = append(*args, ROOverlay.Unwrap())
+			*args = append(*args, ROOverlay.String())
 		}
 	} else {
 		// --tmp-overlay
-		*args = append(*args, TmpOverlay.Unwrap())
+		*args = append(*args, TmpOverlay.String())
 	}
 
 	// DEST
@@ -204,17 +196,9 @@ func (o *OverlayConfig) Append(args *[]string) {
 
 type SymlinkConfig [2]string
 
-func (s SymlinkConfig) Path() string {
-	return s[1]
-}
-
-func (s SymlinkConfig) Len() int {
-	return 3
-}
-
-func (s SymlinkConfig) Append(args *[]string) {
-	*args = append(*args, Symlink.Unwrap(), s[0], s[1])
-}
+func (s SymlinkConfig) Path() string          { return s[1] }
+func (s SymlinkConfig) Len() int              { return 3 }
+func (s SymlinkConfig) Append(args *[]string) { *args = append(*args, Symlink.String(), s[0], s[1]) }
 
 type ChmodConfig map[string]os.FileMode
 
@@ -224,6 +208,6 @@ func (c ChmodConfig) Len() int {
 
 func (c ChmodConfig) Append(args *[]string) {
 	for path, mode := range c {
-		*args = append(*args, Chmod.Unwrap(), strconv.FormatInt(int64(mode), 8), path)
+		*args = append(*args, Chmod.String(), strconv.FormatInt(int64(mode), 8), path)
 	}
 }

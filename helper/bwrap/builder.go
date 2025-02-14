@@ -39,23 +39,23 @@ func (c *Config) Bind(src, dest string, opts ...bool) *Config {
 
 	if dev {
 		if try {
-			c.Filesystem = append(c.Filesystem, &pairF{DevBindTry.Unwrap(), src, dest})
+			c.Filesystem = append(c.Filesystem, &pairF{DevBindTry.String(), src, dest})
 		} else {
-			c.Filesystem = append(c.Filesystem, &pairF{DevBind.Unwrap(), src, dest})
+			c.Filesystem = append(c.Filesystem, &pairF{DevBind.String(), src, dest})
 		}
 		return c
 	} else if write {
 		if try {
-			c.Filesystem = append(c.Filesystem, &pairF{BindTry.Unwrap(), src, dest})
+			c.Filesystem = append(c.Filesystem, &pairF{BindTry.String(), src, dest})
 		} else {
-			c.Filesystem = append(c.Filesystem, &pairF{Bind.Unwrap(), src, dest})
+			c.Filesystem = append(c.Filesystem, &pairF{Bind.String(), src, dest})
 		}
 		return c
 	} else {
 		if try {
-			c.Filesystem = append(c.Filesystem, &pairF{ROBindTry.Unwrap(), src, dest})
+			c.Filesystem = append(c.Filesystem, &pairF{ROBindTry.String(), src, dest})
 		} else {
-			c.Filesystem = append(c.Filesystem, &pairF{ROBind.Unwrap(), src, dest})
+			c.Filesystem = append(c.Filesystem, &pairF{ROBind.String(), src, dest})
 		}
 		return c
 	}
@@ -64,35 +64,35 @@ func (c *Config) Bind(src, dest string, opts ...bool) *Config {
 // Dir create dir in sandbox
 // (--dir DEST)
 func (c *Config) Dir(dest string) *Config {
-	c.Filesystem = append(c.Filesystem, &stringF{Dir.Unwrap(), dest})
+	c.Filesystem = append(c.Filesystem, &stringF{Dir.String(), dest})
 	return c
 }
 
 // RemountRO remount path as readonly; does not recursively remount
 // (--remount-ro DEST)
 func (c *Config) RemountRO(dest string) *Config {
-	c.Filesystem = append(c.Filesystem, &stringF{RemountRO.Unwrap(), dest})
+	c.Filesystem = append(c.Filesystem, &stringF{RemountRO.String(), dest})
 	return c
 }
 
 // Procfs mount new procfs in sandbox
 // (--proc DEST)
 func (c *Config) Procfs(dest string) *Config {
-	c.Filesystem = append(c.Filesystem, &stringF{Procfs.Unwrap(), dest})
+	c.Filesystem = append(c.Filesystem, &stringF{Procfs.String(), dest})
 	return c
 }
 
 // DevTmpfs mount new dev in sandbox
 // (--dev DEST)
 func (c *Config) DevTmpfs(dest string) *Config {
-	c.Filesystem = append(c.Filesystem, &stringF{DevTmpfs.Unwrap(), dest})
+	c.Filesystem = append(c.Filesystem, &stringF{DevTmpfs.String(), dest})
 	return c
 }
 
 // Mqueue mount new mqueue in sandbox
 // (--mqueue DEST)
 func (c *Config) Mqueue(dest string) *Config {
-	c.Filesystem = append(c.Filesystem, &stringF{Mqueue.Unwrap(), dest})
+	c.Filesystem = append(c.Filesystem, &stringF{Mqueue.String(), dest})
 	return c
 }
 
