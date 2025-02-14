@@ -6,9 +6,15 @@ import (
 	"testing"
 
 	"git.gensokyo.uk/security/fortify/helper/bwrap"
+	"git.gensokyo.uk/security/fortify/helper/proc"
+	"git.gensokyo.uk/security/fortify/helper/seccomp"
+	"git.gensokyo.uk/security/fortify/internal/fmsg"
 )
 
 func TestConfig_Args(t *testing.T) {
+	seccomp.CPrintln = fmsg.Println
+	t.Cleanup(func() { seccomp.CPrintln = nil })
+
 	testCases := []struct {
 		name string
 		conf *bwrap.Config
@@ -137,13 +143,14 @@ func TestConfig_Args(t *testing.T) {
 			},
 		},
 		{
-			name: "hostname chdir setenv unsetenv lockfile chmod",
+			name: "hostname chdir setenv unsetenv lockfile chmod syscall",
 			conf: &bwrap.Config{
 				Hostname: "fortify",
 				Chdir:    "/.fortify",
 				SetEnv:   map[string]string{"FORTIFY_INIT": "/.fortify/sbin/init"},
 				UnsetEnv: []string{"HOME", "HOST"},
 				LockFile: []string{"/.fortify/lock"},
+				Syscall:  new(bwrap.SyscallPolicy),
 				Chmod:    map[string]os.FileMode{"/.fortify/sbin/init": 0755},
 			},
 			want: []string{
@@ -160,6 +167,8 @@ func TestConfig_Args(t *testing.T) {
 				"--lock-file", "/.fortify/lock",
 				// SetEnv: map[string]string{"FORTIFY_INIT": "/.fortify/sbin/init"}
 				"--setenv", "FORTIFY_INIT", "/.fortify/sbin/init",
+				// Syscall: new(bwrap.SyscallPolicy),
+				"--seccomp", "3",
 				// Chmod: map[string]os.FileMode{"/.fortify/sbin/init": 0755}
 				"--chmod", "755", "/.fortify/sbin/init",
 			},
@@ -167,12 +176,7 @@ func TestConfig_Args(t *testing.T) {
 
 		{
 			name: "xdg-dbus-proxy constraint sample",
-			conf: (&bwrap.Config{
-				Unshare:       nil,
-				UserNS:        false,
-				Clearenv:      true,
-				DieWithParent: true,
-			}).
+			conf: (&bwrap.Config{Clearenv: true, DieWithParent: true}).
 				Symlink("usr/bin", "/bin").
 				Symlink("var/home", "/home").
 				Symlink("usr/lib", "/lib").
@@ -227,7 +231,7 @@ func TestConfig_Args(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			if got := tc.conf.Args(); !slices.Equal(got, tc.want) {
+			if got := tc.conf.Args(nil, new(proc.ExtraFilesPre), new([]proc.File)); !slices.Equal(got, tc.want) {
 				t.Errorf("Args() = %#v, want %#v", got, tc.want)
 			}
 		})

@@ -155,9 +155,8 @@ func bwrapStub() {
 			DieWithParent: true,
 			AsInit:        true,
 		}
-		args := sc.Args()
-		sc.FDArgs(nil, &args, new(proc.ExtraFilesPre), new([]proc.File))
-		if _, err := MustNewCheckedArgs(args).WriteTo(want); err != nil {
+		if _, err := MustNewCheckedArgs(sc.Args(nil, new(proc.ExtraFilesPre), new([]proc.File))).
+			WriteTo(want); err != nil {
 			panic("cannot read want: " + err.Error())
 		}
 

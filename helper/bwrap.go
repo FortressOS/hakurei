@@ -75,9 +75,7 @@ func NewBwrap(
 	b.name = name
 	b.helperCmd = newHelperCmd(b, BubblewrapName, wt, argF, extraFiles)
 
-	args := conf.Args()
-	conf.FDArgs(syncFd, &args, b.extraFiles, &b.files)
-	if v, err := NewCheckedArgs(args); err != nil {
+	if v, err := NewCheckedArgs(conf.Args(syncFd, b.extraFiles, &b.files)); err != nil {
 		return nil, err
 	} else {
 		f := proc.NewWriterTo(v)
