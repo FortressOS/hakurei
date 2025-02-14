@@ -156,7 +156,9 @@ var testCasesPd = []sealTestCase{
 			Bind("/home/chronos", "/home/chronos", false, true).
 			Bind("/tmp/fortify.1971/4a450b6596d7bc15bd01780eb9a607ac/passwd", "/etc/passwd").
 			Bind("/tmp/fortify.1971/4a450b6596d7bc15bd01780eb9a607ac/group", "/etc/group").
-			Tmpfs("/var/run/nscd", 8192),
+			Tmpfs("/var/run/nscd", 8192).
+			Bind("/run/wrappers/bin/fortify", "/.fortify/sbin/fortify").
+			Symlink("fortify", "/.fortify/sbin/init"),
 	},
 	{
 		"nixos permissive defaults chromium", new(stubNixOS),
@@ -387,6 +389,8 @@ var testCasesPd = []sealTestCase{
 			Bind("/tmp/fortify.1971/ebf083d1b175911782d413369b64ce7c/pulse-cookie", fst.Tmp+"/pulse-cookie").
 			Bind("/tmp/fortify.1971/ebf083d1b175911782d413369b64ce7c/bus", "/run/user/65534/bus").
 			Bind("/tmp/fortify.1971/ebf083d1b175911782d413369b64ce7c/system_bus_socket", "/run/dbus/system_bus_socket").
-			Tmpfs("/var/run/nscd", 8192),
+			Tmpfs("/var/run/nscd", 8192).
+			Bind("/run/wrappers/bin/fortify", "/.fortify/sbin/fortify").
+			Symlink("fortify", "/.fortify/sbin/init"),
 	},
 }

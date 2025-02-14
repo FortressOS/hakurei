@@ -19,8 +19,8 @@ type System interface {
 	TempDir() string
 	// LookPath provides [exec.LookPath].
 	LookPath(file string) (string, error)
-	// Executable provides [os.Executable].
-	Executable() (string, error)
+	// MustExecutable provides [proc.MustExecutable].
+	MustExecutable() string
 	// LookupGroup provides [user.LookupGroup].
 	LookupGroup(name string) (*user.Group, error)
 	// ReadDir provides [os.ReadDir].

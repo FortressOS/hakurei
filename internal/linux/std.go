@@ -11,6 +11,7 @@ import (
 	"sync"
 	"syscall"
 
+	"git.gensokyo.uk/security/fortify/helper/proc"
 	"git.gensokyo.uk/security/fortify/internal"
 	"git.gensokyo.uk/security/fortify/internal/fmsg"
 )
@@ -32,7 +33,7 @@ func (s *Std) Geteuid() int                                 { return os.Geteuid(
 func (s *Std) LookupEnv(key string) (string, bool)          { return os.LookupEnv(key) }
 func (s *Std) TempDir() string                              { return os.TempDir() }
 func (s *Std) LookPath(file string) (string, error)         { return exec.LookPath(file) }
-func (s *Std) Executable() (string, error)                  { return os.Executable() }
+func (s *Std) MustExecutable() string                       { return proc.MustExecutable() }
 func (s *Std) LookupGroup(name string) (*user.Group, error) { return user.LookupGroup(name) }
 func (s *Std) ReadDir(name string) ([]os.DirEntry, error)   { return os.ReadDir(name) }
 func (s *Std) Stat(name string) (fs.FileInfo, error)        { return os.Stat(name) }

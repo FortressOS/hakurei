@@ -219,6 +219,8 @@ var testCasesNixos = []sealTestCase{
 			Bind("/tmp/fortify.1971/8e2c76b066dabe574cf073bdb46eb5c1/pulse-cookie", fst.Tmp+"/pulse-cookie").
 			Bind("/tmp/fortify.1971/8e2c76b066dabe574cf073bdb46eb5c1/bus", "/run/user/1971/bus").
 			Bind("/tmp/fortify.1971/8e2c76b066dabe574cf073bdb46eb5c1/system_bus_socket", "/run/dbus/system_bus_socket").
-			Tmpfs("/var/run/nscd", 8192),
+			Tmpfs("/var/run/nscd", 8192).
+			Bind("/run/wrappers/bin/fortify", "/.fortify/sbin/fortify").
+			Symlink("fortify", "/.fortify/sbin/init"),
 	},
 }

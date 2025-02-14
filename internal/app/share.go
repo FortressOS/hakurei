@@ -293,6 +293,10 @@ func (seal *appSeal) setupShares(bus [2]*dbus.Config, os linux.System) error {
 		seal.sys.bwrap.Tmpfs(dest, 8*1024)
 	}
 
+	// mount fortify in sandbox for init
+	seal.sys.bwrap.Bind(os.MustExecutable(), path.Join(fst.Tmp, "sbin/fortify"))
+	seal.sys.bwrap.Symlink("fortify", path.Join(fst.Tmp, "sbin/init"))
+
 	// append extra perms
 	for _, p := range seal.extraPerms {
 		if p == nil {

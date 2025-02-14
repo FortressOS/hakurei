@@ -121,21 +121,12 @@ func Main() {
 		}()
 	}
 
-	// bind fortify inside sandbox
-	var (
-		innerSbin    = path.Join(fst.Tmp, "sbin")
-		innerFortify = path.Join(innerSbin, "fortify")
-		innerInit    = path.Join(innerSbin, "init")
-	)
-	conf.Bind(proc.MustExecutable(), innerFortify)
-	conf.Symlink("fortify", innerInit)
-
 	helper.BubblewrapName = payload.Exec[0] // resolved bwrap path by parent
 	if fmsg.Verbose() {
 		seccomp.CPrintln = fmsg.Println
 	}
 	if b, err := helper.NewBwrap(
-		conf, innerInit,
+		conf, path.Join(fst.Tmp, "sbin/init"),
 		nil, func(int, int) []string { return make([]string, 0) },
 		extraFiles,
 		syncFd,

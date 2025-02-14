@@ -16,9 +16,12 @@ type stubNixOS struct {
 	usernameErr map[string]error
 }
 
-func (s *stubNixOS) Geteuid() int {
-	return 1971
-}
+func (s *stubNixOS) Geteuid() int                             { return 1971 }
+func (s *stubNixOS) TempDir() string                          { return "/tmp" }
+func (s *stubNixOS) MustExecutable() string                   { return "/run/wrappers/bin/fortify" }
+func (s *stubNixOS) Exit(code int)                            { panic("called exit on stub with code " + strconv.Itoa(code)) }
+func (s *stubNixOS) EvalSymlinks(path string) (string, error) { return path, nil }
+func (s *stubNixOS) Uid(aid int) (int, error)                 { return 1000000 + 0*10000 + aid, nil }
 
 func (s *stubNixOS) LookupEnv(key string) (string, bool) {
 	switch key {
@@ -39,10 +42,6 @@ func (s *stubNixOS) LookupEnv(key string) (string, bool) {
 	}
 }
 
-func (s *stubNixOS) TempDir() string {
-	return "/tmp"
-}
-
 func (s *stubNixOS) LookPath(file string) (string, error) {
 	if s.lookPathErr != nil {
 		if err, ok := s.lookPathErr[file]; ok {
@@ -58,10 +57,6 @@ func (s *stubNixOS) LookPath(file string) (string, error) {
 	default:
 		panic(fmt.Sprintf("attempted to look up unexpected executable %q", file))
 	}
-}
-
-func (s *stubNixOS) Executable() (string, error) {
-	return "/home/ophestra/.nix-profile/bin/fortify", nil
 }
 
 func (s *stubNixOS) LookupGroup(name string) (*user.Group, error) {
@@ -127,26 +122,10 @@ func (s *stubNixOS) Open(name string) (fs.File, error) {
 	}
 }
 
-func (s *stubNixOS) EvalSymlinks(path string) (string, error) {
-	return path, nil
-}
-
-func (s *stubNixOS) Exit(code int) {
-	panic("called exit on stub with code " + strconv.Itoa(code))
-}
-
 func (s *stubNixOS) Paths() linux.Paths {
 	return linux.Paths{
 		SharePath:   "/tmp/fortify.1971",
 		RuntimePath: "/run/user/1971",
 		RunDirPath:  "/run/user/1971/fortify",
 	}
-}
-
-func (s *stubNixOS) Uid(aid int) (int, error) {
-	return 1000000 + 0*10000 + aid, nil
-}
-
-func (s *stubNixOS) SdBooted() bool {
-	return true
 }
