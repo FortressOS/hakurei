@@ -23,7 +23,7 @@ func parseUint32Fast(s string) (int, error) {
 	for i, ch := range []byte(s) {
 		ch -= '0'
 		if ch > 9 {
-			return -1, fmt.Errorf("invalid character '%s' at index %d", string([]byte{ch}), i)
+			return -1, fmt.Errorf("invalid character '%s' at index %d", string(ch+'0'), i)
 		}
 		n = n*10 + int(ch)
 	}
