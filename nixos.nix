@@ -9,7 +9,6 @@ let
   inherit (lib)
     mkMerge
     mkIf
-    mkDefault
     mapAttrs
     mergeAttrsList
     imap1
@@ -45,10 +44,6 @@ in
         "${toString config.users.users.${username}.uid} ${toString fid}\n" + acc
       ) "" cfg.users;
     };
-
-    systemd.services.nix-daemon.unitConfig.RequiresMountsFor = [ "/etc/userdb" ];
-
-    services.userdbd.enable = mkDefault true;
 
     home-manager =
       let
