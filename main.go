@@ -328,13 +328,13 @@ func runApp(config *fst.Config) {
 		} else {
 			logWaitError(err)
 		}
+
+		if rs.ExitCode == 0 {
+			rs.ExitCode = 126
+		}
 	}
 	if rs.WaitErr != nil {
 		fmsg.Println("inner wait failed:", rs.WaitErr)
-	}
-	if rs.ExitCode < 0 {
-		fmsg.VPrintf("got negative exit %v", rs.ExitCode)
-		fmsg.Exit(1)
 	}
 	fmsg.Exit(rs.ExitCode)
 	panic("unreachable")
