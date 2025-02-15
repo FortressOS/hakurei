@@ -118,6 +118,7 @@ in
                         };
                         map_real_uid = app.mapRealUid;
                         no_new_session = app.tty;
+                        direct_wayland = app.insecureWayland;
                         filesystem =
                           let
                             bind = src: { inherit src; };

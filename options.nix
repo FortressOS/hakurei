@@ -146,6 +146,7 @@ in
               mapRealUid = mkEnableOption "mapping to priv-user uid";
               dev = mkEnableOption "access to all devices";
               tty = mkEnableOption "access to the controlling terminal";
+              insecureWayland = mkEnableOption "direct access to the Wayland socket";
 
               net = mkEnableOption "network access" // {
                 default = true;

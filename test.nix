@@ -81,7 +81,7 @@ nixosTest {
           mkdir -p ~/.config/sway
           (sed s/Mod4/Mod1/ /etc/sway/config &&
           echo 'output * bg ${pkgs.nixos-artwork.wallpapers.simple-light-gray.gnomeFilePath} fill' &&
-          echo 'output Virtual-1 res 1280x768') > ~/.config/sway/config
+          echo 'output Virtual-1 res 1680x1050') > ~/.config/sway/config
 
           sway --validate
           systemd-cat --identifier=sway sway && touch /tmp/sway-exit-ok
@@ -144,6 +144,18 @@ nixosTest {
             capability = {
               wayland = false;
               x11 = true;
+              dbus = false;
+              pulse = false;
+            };
+          }
+          {
+            name = "da-foot";
+            verbose = true;
+            insecureWayland = true;
+            share = pkgs.foot;
+            packages = [ pkgs.foot ];
+            command = "foot";
+            capability = {
               dbus = false;
               pulse = false;
             };
@@ -322,6 +334,20 @@ nixosTest {
     check_state("x11-alacritty", 2)
     machine.send_chars("exit\n")
     machine.wait_until_fails("pgrep alacritty")
+
+    # Start app (foot) with direct Wayland access:
+    swaymsg("exec da-foot")
+    wait_for_window("u0_a4@machine")
+    machine.send_chars("clear; wayland-info && touch /tmp/success-direct\n")
+    machine.wait_for_file("/tmp/fortify.1000/tmpdir/4/success-direct")
+    collect_state_ui("foot_direct")
+    check_state("da-foot", 1)
+    # Verify acl on XDG_RUNTIME_DIR:
+    print(machine.succeed("getfacl --absolute-names --omit-header --numeric /run/user/1000 | grep 1000004"))
+    machine.send_chars("exit\n")
+    machine.wait_until_fails("pgrep foot")
+    # Verify acl cleanup on XDG_RUNTIME_DIR:
+    machine.wait_until_fails("getfacl --absolute-names --omit-header --numeric /run/user/1000 | grep 1000004")
 
     # Test syscall filter:
     print(machine.fail("sudo -u alice -i XDG_RUNTIME_DIR=/run/user/1000 strace-failure"))
