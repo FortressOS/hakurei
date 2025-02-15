@@ -102,7 +102,7 @@ var testCasesNixos = []sealTestCase{
 				"SHELL":                    "/run/current-system/sw/bin/zsh",
 				"TERM":                     "xterm-256color",
 				"USER":                     "u0_a1",
-				"WAYLAND_DISPLAY":          "/run/user/1971/wayland-0",
+				"WAYLAND_DISPLAY":          "wayland-0",
 				"XDG_RUNTIME_DIR":          "/run/user/1971",
 				"XDG_SESSION_CLASS":        "user",
 				"XDG_SESSION_TYPE":         "tty",

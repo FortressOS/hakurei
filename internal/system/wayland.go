@@ -38,6 +38,10 @@ func (w Wayland) apply(sys *I) error {
 	}
 
 	if err := w.conn.Attach(w.pair[1]); err != nil {
+		// make console output less nasty
+		if errors.Is(err, os.ErrNotExist) {
+			err = os.ErrNotExist
+		}
 		return fmsg.WrapErrorSuffix(err,
 			fmt.Sprintf("cannot attach to wayland on %q:", w.pair[1]))
 	} else {

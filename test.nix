@@ -282,6 +282,9 @@ nixosTest {
     if output != "":
         raise Exception(f"unexpected output\n{output}")
 
+    # Verify graceful failure on bad Wayland display name:
+    print(machine.fail("sudo -u alice -i fortify -v run --wayland true"))
+
     # Start fortify permissive defaults within Wayland session:
     fortify('-v run --wayland --dbus notify-send -a "NixOS Tests" "Test notification" "Notification from within sandbox." && touch /tmp/dbus-done')
     machine.wait_for_file("/tmp/dbus-done")

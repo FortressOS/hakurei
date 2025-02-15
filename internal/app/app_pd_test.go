@@ -267,7 +267,7 @@ var testCasesPd = []sealTestCase{
 				"SHELL":                    "/run/current-system/sw/bin/zsh",
 				"TERM":                     "xterm-256color",
 				"USER":                     "chronos",
-				"WAYLAND_DISPLAY":          "/run/user/65534/wayland-0",
+				"WAYLAND_DISPLAY":          "wayland-0",
 				"XDG_RUNTIME_DIR":          "/run/user/65534",
 				"XDG_SESSION_CLASS":        "user",
 				"XDG_SESSION_TYPE":         "tty",

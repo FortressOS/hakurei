@@ -13,6 +13,7 @@ import (
 	"git.gensokyo.uk/security/fortify/internal/fmsg"
 	"git.gensokyo.uk/security/fortify/internal/linux"
 	"git.gensokyo.uk/security/fortify/internal/system"
+	"git.gensokyo.uk/security/fortify/wl"
 )
 
 const (
@@ -27,9 +28,6 @@ const (
 	term    = "TERM"
 	display = "DISPLAY"
 
-	// https://manpages.debian.org/experimental/libwayland-doc/wl_display_connect.3.en.html
-	waylandDisplay = "WAYLAND_DISPLAY"
-
 	pulseServer = "PULSE_SERVER"
 	pulseCookie = "PULSE_COOKIE"
 
@@ -38,7 +36,6 @@ const (
 )
 
 var (
-	ErrWayland  = errors.New(waylandDisplay + " unset")
 	ErrXDisplay = errors.New(display + " unset")
 
 	ErrPulseCookie = errors.New("pulse cookie not present")
@@ -144,34 +141,36 @@ func (seal *appSeal) setupShares(bus [2]*dbus.Config, os linux.System) error {
 
 	// set up wayland
 	if seal.et.Has(system.EWayland) {
-		var wp string
-		if wd, ok := os.LookupEnv(waylandDisplay); !ok {
-			return fmsg.WrapError(ErrWayland,
-				"WAYLAND_DISPLAY is not set")
+		var socketPath string
+		if name, ok := os.LookupEnv(wl.WaylandDisplay); !ok {
+			fmsg.VPrintln(wl.WaylandDisplay + " is not set, assuming " + wl.FallbackName)
+			socketPath = path.Join(seal.RuntimePath, wl.FallbackName)
+		} else if !path.IsAbs(name) {
+			socketPath = path.Join(seal.RuntimePath, name)
 		} else {
-			wp = path.Join(seal.RuntimePath, wd)
+			socketPath = name
 		}
 
-		w := path.Join(seal.sys.runtime, "wayland-0")
-		seal.sys.bwrap.SetEnv[waylandDisplay] = w
+		innerPath := path.Join(seal.sys.runtime, wl.FallbackName)
+		seal.sys.bwrap.SetEnv[wl.WaylandDisplay] = wl.FallbackName
 
 		if !seal.directWayland { // set up security-context-v1
-			wc := path.Join(seal.SharePath, "wayland")
-			wt := path.Join(wc, seal.id)
-			seal.sys.Ensure(wc, 0711)
+			socketDir := path.Join(seal.SharePath, "wayland")
+			outerPath := path.Join(socketDir, seal.id)
+			seal.sys.Ensure(socketDir, 0711)
 			appID := seal.fid
 			if appID == "" {
 				// use instance ID in case app id is not set
 				appID = "uk.gensokyo.fortify." + seal.id
 			}
-			seal.sys.Wayland(wt, wp, appID, seal.id)
-			seal.sys.bwrap.Bind(wt, w)
+			seal.sys.Wayland(outerPath, socketPath, appID, seal.id)
+			seal.sys.bwrap.Bind(outerPath, innerPath)
 		} else { // bind mount wayland socket (insecure)
 			fmsg.VPrintln("direct wayland access, PROCEED WITH CAUTION")
-			seal.sys.bwrap.Bind(wp, w)
+			seal.sys.bwrap.Bind(socketPath, innerPath)
 
 			// ensure Wayland socket ACL (e.g. `/run/user/%d/wayland-%d`)
-			seal.sys.UpdatePermType(system.EWayland, wp, acl.Read, acl.Write, acl.Execute)
+			seal.sys.UpdatePermType(system.EWayland, socketPath, acl.Read, acl.Write, acl.Execute)
 		}
 	}
 
