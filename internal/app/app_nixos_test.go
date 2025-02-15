@@ -62,7 +62,6 @@ var testCasesNixos = []sealTestCase{
 			Ensure("/run/user/1971/fortify", 0700).UpdatePermType(system.User, "/run/user/1971/fortify", acl.Execute).
 			Ensure("/run/user/1971", 0700).UpdatePermType(system.User, "/run/user/1971", acl.Execute). // this is ordered as is because the previous Ensure only calls mkdir if XDG_RUNTIME_DIR is unset
 			Ephemeral(system.Process, "/run/user/1971/fortify/8e2c76b066dabe574cf073bdb46eb5c1", 0700).UpdatePermType(system.Process, "/run/user/1971/fortify/8e2c76b066dabe574cf073bdb46eb5c1", acl.Execute).
-			Link("/run/user/1971/wayland-0", "/run/user/1971/fortify/8e2c76b066dabe574cf073bdb46eb5c1/wayland").
 			UpdatePermType(system.EWayland, "/run/user/1971/wayland-0", acl.Read, acl.Write, acl.Execute).
 			Link("/run/user/1971/pulse/native", "/run/user/1971/fortify/8e2c76b066dabe574cf073bdb46eb5c1/pulse").
 			CopyFile("/tmp/fortify.1971/8e2c76b066dabe574cf073bdb46eb5c1/pulse-cookie", "/home/ophestra/xdg/config/pulse/cookie").
@@ -212,7 +211,7 @@ var testCasesNixos = []sealTestCase{
 			Bind("/var/lib/persist/module/fortify/0/1", "/var/lib/persist/module/fortify/0/1", false, true).
 			CopyBind("/etc/passwd", []byte("u0_a1:x:1971:1971:Fortify:/var/lib/persist/module/fortify/0/1:/run/current-system/sw/bin/zsh\n")).
 			CopyBind("/etc/group", []byte("fortify:x:1971:\n")).
-			Bind("/run/user/1971/fortify/8e2c76b066dabe574cf073bdb46eb5c1/wayland", "/run/user/1971/wayland-0").
+			Bind("/run/user/1971/wayland-0", "/run/user/1971/wayland-0").
 			Bind("/run/user/1971/fortify/8e2c76b066dabe574cf073bdb46eb5c1/pulse", "/run/user/1971/pulse/native").
 			Bind("/tmp/fortify.1971/8e2c76b066dabe574cf073bdb46eb5c1/pulse-cookie", fst.Tmp+"/pulse-cookie").
 			Bind("/tmp/fortify.1971/8e2c76b066dabe574cf073bdb46eb5c1/bus", "/run/user/1971/bus").

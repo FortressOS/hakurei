@@ -167,10 +167,8 @@ func (seal *appSeal) setupShares(bus [2]*dbus.Config, os linux.System) error {
 			seal.sys.Wayland(wt, wp, appID, seal.id)
 			seal.sys.bwrap.Bind(wt, w)
 		} else { // bind mount wayland socket (insecure)
-			// hardlink wayland socket
-			wpi := path.Join(seal.shareLocal, "wayland")
-			seal.sys.Link(wp, wpi)
-			seal.sys.bwrap.Bind(wpi, w)
+			fmsg.VPrintln("direct wayland access, PROCEED WITH CAUTION")
+			seal.sys.bwrap.Bind(wp, w)
 
 			// ensure Wayland socket ACL (e.g. `/run/user/%d/wayland-%d`)
 			seal.sys.UpdatePermType(system.EWayland, wp, acl.Read, acl.Write, acl.Execute)
