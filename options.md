@@ -36,7 +36,7 @@ package
 
 
 *Default:*
-` <derivation fortify-0.2.13> `
+` <derivation fortify-0.2.14> `
 
 
 
@@ -421,6 +421,30 @@ null or string
 
 *Default:*
 ` null `
+
+
+
+
+## environment\.fortify\.apps\.\*\.insecureWayland
+
+
+
+Whether to enable direct access to the Wayland socket\.
+
+
+
+*Type:*
+boolean
+
+
+
+*Default:*
+` false `
+
+
+
+*Example:*
+` true `
 
 
 
