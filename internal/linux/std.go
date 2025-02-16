@@ -13,6 +13,7 @@ import (
 	"syscall"
 
 	"git.gensokyo.uk/security/fortify/internal"
+	"git.gensokyo.uk/security/fortify/internal/fmsg"
 )
 
 // Std implements System using the standard library.
@@ -73,6 +74,7 @@ func (s *Std) Uid(aid int) (int, error) {
 
 	u.uid = -1
 	if fsu, ok := internal.Check(internal.Fsu); !ok {
+		fmsg.BeforeExit()
 		log.Fatal("invalid fsu path, this copy of fortify is not compiled correctly")
 		// unreachable
 		return 0, syscall.EBADE

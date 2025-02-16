@@ -4,6 +4,8 @@ import (
 	"log"
 	"os"
 	"sync"
+
+	"git.gensokyo.uk/security/fortify/internal/fmsg"
 )
 
 var (
@@ -13,6 +15,7 @@ var (
 
 func copyExecutable() {
 	if name, err := os.Executable(); err != nil {
+		fmsg.BeforeExit()
 		log.Fatalf("cannot read executable path: %v", err)
 	} else {
 		executable = name
