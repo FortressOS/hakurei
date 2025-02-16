@@ -78,11 +78,22 @@ CopyBind(dest, payload, true) copy from FD to file which is bind-mounted on DEST
 (--bind-data FD DEST)
 */
 func (c *Config) CopyBind(dest string, payload []byte, opts ...bool) *Config {
+	var p *[]byte
+	c.CopyBindRef(dest, &p, opts...)
+	*p = payload
+	return c
+}
+
+// CopyBindRef is the same as CopyBind but writes the address of DataConfig.Data.
+func (c *Config) CopyBindRef(dest string, payloadRef **[]byte, opts ...bool) *Config {
 	t := DataROBind
 	if len(opts) > 0 && opts[0] {
 		t = DataBind
 	}
-	c.Filesystem = append(c.Filesystem, &DataConfig{Dest: dest, Data: payload, Type: t})
+	d := &DataConfig{Dest: dest, Type: t}
+	*payloadRef = &d.Data
+
+	c.Filesystem = append(c.Filesystem, d)
 	return c
 }
 
