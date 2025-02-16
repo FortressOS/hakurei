@@ -64,7 +64,7 @@ var testCasesNixos = []sealTestCase{
 			Ephemeral(system.Process, "/run/user/1971/fortify/8e2c76b066dabe574cf073bdb46eb5c1", 0700).UpdatePermType(system.Process, "/run/user/1971/fortify/8e2c76b066dabe574cf073bdb46eb5c1", acl.Execute).
 			UpdatePermType(system.EWayland, "/run/user/1971/wayland-0", acl.Read, acl.Write, acl.Execute).
 			Link("/run/user/1971/pulse/native", "/run/user/1971/fortify/8e2c76b066dabe574cf073bdb46eb5c1/pulse").
-			CopyFile("/tmp/fortify.1971/8e2c76b066dabe574cf073bdb46eb5c1/pulse-cookie", "/home/ophestra/xdg/config/pulse/cookie").
+			CopyFile(nil, "/home/ophestra/xdg/config/pulse/cookie", 256, 256).
 			MustProxyDBus("/tmp/fortify.1971/8e2c76b066dabe574cf073bdb46eb5c1/bus", &dbus.Config{
 				Talk: []string{
 					"org.freedesktop.FileManager1", "org.freedesktop.Notifications",
@@ -213,7 +213,7 @@ var testCasesNixos = []sealTestCase{
 			CopyBind("/etc/group", []byte("fortify:x:1971:\n")).
 			Bind("/run/user/1971/wayland-0", "/run/user/1971/wayland-0").
 			Bind("/run/user/1971/fortify/8e2c76b066dabe574cf073bdb46eb5c1/pulse", "/run/user/1971/pulse/native").
-			Bind("/tmp/fortify.1971/8e2c76b066dabe574cf073bdb46eb5c1/pulse-cookie", fst.Tmp+"/pulse-cookie").
+			CopyBind(fst.Tmp+"/pulse-cookie", nil).
 			Bind("/tmp/fortify.1971/8e2c76b066dabe574cf073bdb46eb5c1/bus", "/run/user/1971/bus").
 			Bind("/tmp/fortify.1971/8e2c76b066dabe574cf073bdb46eb5c1/system_bus_socket", "/run/dbus/system_bus_socket").
 			Tmpfs("/var/run/nscd", 8192).

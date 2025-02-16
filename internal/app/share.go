@@ -231,11 +231,11 @@ func (seal *appSeal) setupShares(bus [2]*dbus.Config, os linux.System) error {
 			// not fatal
 			fmsg.Verbose(strings.TrimSpace(err.(*fmsg.BaseError).Message()))
 		} else {
-			dst := path.Join(seal.share, "pulse-cookie")
 			innerDst := fst.Tmp + "/pulse-cookie"
 			seal.sys.bwrap.SetEnv[pulseCookie] = innerDst
-			seal.sys.CopyFile(dst, src)
-			seal.sys.bwrap.Bind(dst, innerDst)
+			payload := new([]byte)
+			seal.sys.bwrap.CopyBindRef(innerDst, &payload)
+			seal.sys.CopyFile(payload, src, 256, 256)
 		}
 	}
 

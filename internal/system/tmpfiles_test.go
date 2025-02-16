@@ -1,46 +1,25 @@
 package system
 
 import (
+	"strconv"
 	"testing"
-
-	"git.gensokyo.uk/security/fortify/acl"
 )
 
 func TestCopyFile(t *testing.T) {
 	testCases := []struct {
-		dst, src string
-	}{
-		{"/tmp/fortify.1971/f587afe9fce3c8e1ad5b64deb6c41ad5/pulse-cookie", "/home/ophestra/xdg/config/pulse/cookie"},
-		{"/tmp/fortify.1971/62154f708b5184ab01f9dcc2bbe7a33b/pulse-cookie", "/home/ophestra/xdg/config/pulse/cookie"},
-	}
-	for _, tc := range testCases {
-		t.Run("copy file "+tc.dst+" from "+tc.src, func(t *testing.T) {
-			sys := New(150)
-			sys.CopyFile(tc.dst, tc.src)
-			(&tcOp{Process, tc.src}).test(t, sys.ops, []Op{
-				&Tmpfile{Process, tmpfileCopy, tc.dst, tc.src},
-				&ACL{Process, tc.dst, []acl.Perm{acl.Read}},
-			}, "CopyFile")
-		})
-	}
-}
-
-func TestCopyFileType(t *testing.T) {
-	testCases := []struct {
 		tcOp
-		dst string
+		cap int
+		n   int64
 	}{
-		{tcOp{User, "/tmp/fortify.1971/f587afe9fce3c8e1ad5b64deb6c41ad5/pulse-cookie"}, "/home/ophestra/xdg/config/pulse/cookie"},
-		{tcOp{Process, "/tmp/fortify.1971/62154f708b5184ab01f9dcc2bbe7a33b/pulse-cookie"}, "/home/ophestra/xdg/config/pulse/cookie"},
+		{tcOp{Process, "/home/ophestra/xdg/config/pulse/cookie"}, 256, 256},
 	}
 	for _, tc := range testCases {
-		t.Run("copy file "+tc.dst+" from "+tc.path+" with type "+TypeString(tc.et), func(t *testing.T) {
+		t.Run("copy file "+tc.path+" with cap = "+strconv.Itoa(tc.cap)+" n = "+strconv.Itoa(int(tc.n)), func(t *testing.T) {
 			sys := New(150)
-			sys.CopyFileType(tc.et, tc.dst, tc.path)
+			sys.CopyFile(new([]byte), tc.path, tc.cap, tc.n)
 			tc.test(t, sys.ops, []Op{
-				&Tmpfile{tc.et, tmpfileCopy, tc.dst, tc.path},
-				&ACL{tc.et, tc.dst, []acl.Perm{acl.Read}},
-			}, "CopyFileType")
+				&Tmpfile{nil, tc.path, tc.n, nil},
+			}, "CopyFile")
 		})
 	}
 }
@@ -83,33 +62,18 @@ func TestLinkFileType(t *testing.T) {
 }
 
 func TestTmpfile_String(t *testing.T) {
-	t.Run("invalid method panic", func(t *testing.T) {
-		defer func() {
-			wantPanic := "invalid tmpfile method 255"
-			if r := recover(); r != wantPanic {
-				t.Errorf("String() panic = %v, want %v",
-					r, wantPanic)
-			}
-		}()
-		_ = (&Tmpfile{method: 255}).String()
-	})
-
 	testCases := []struct {
-		method   uint8
-		dst, src string
-		want     string
+		src  string
+		n    int64
+		want string
 	}{
-		{tmpfileCopy, "/tmp/fortify.1971/4b6bdc9182fb2f1d3a965c5fa8b9b66e/pulse-cookie", "/home/ophestra/xdg/config/pulse/cookie",
-			`"/tmp/fortify.1971/4b6bdc9182fb2f1d3a965c5fa8b9b66e/pulse-cookie" from "/home/ophestra/xdg/config/pulse/cookie"`},
+		{"/home/ophestra/xdg/config/pulse/cookie", 256,
+			`up to 256 bytes from "/home/ophestra/xdg/config/pulse/cookie"`},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.want, func(t *testing.T) {
-			if got := (&Tmpfile{
-				method: tc.method,
-				dst:    tc.dst,
-				src:    tc.src,
-			}).String(); got != tc.want {
+			if got := (&Tmpfile{src: tc.src, n: tc.n}).String(); got != tc.want {
 				t.Errorf("String() = %v, want %v", got, tc.want)
 			}
 		})

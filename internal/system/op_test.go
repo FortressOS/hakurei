@@ -100,7 +100,7 @@ func TestI_Equal(t *testing.T) {
 			"op type mismatch",
 			system.New(150).
 				ChangeHosts("chronos").
-				CopyFile("/tmp/fortify.1971/30c9543e0a2c9621a8bfecb9d874c347/pulse-cookie", "/home/ophestra/xdg/config/pulse/cookie"),
+				CopyFile(new([]byte), "/home/ophestra/xdg/config/pulse/cookie", 0, 256),
 			system.New(150).
 				ChangeHosts("chronos").
 				Ensure("/run", 0755),

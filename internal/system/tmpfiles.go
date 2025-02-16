@@ -1,95 +1,72 @@
 package system
 
 import (
-	"errors"
+	"bytes"
 	"fmt"
 	"io"
 	"os"
-	"strconv"
+	"syscall"
 
-	"git.gensokyo.uk/security/fortify/acl"
 	"git.gensokyo.uk/security/fortify/internal/fmsg"
 )
 
-// CopyFile registers an Op that copies path dst from src.
-func (sys *I) CopyFile(dst, src string) *I {
-	return sys.CopyFileType(Process, dst, src)
-}
+// CopyFile registers an Op that copies from src.
+// A buffer is initialised with size cap and the Op faults if bytes read exceed n.
+func (sys *I) CopyFile(payload *[]byte, src string, cap int, n int64) *I {
+	buf := new(bytes.Buffer)
+	buf.Grow(cap)
 
-// CopyFileType registers a file copying Op labelled with type et.
-func (sys *I) CopyFileType(et Enablement, dst, src string) *I {
 	sys.lock.Lock()
-	sys.ops = append(sys.ops, &Tmpfile{et, tmpfileCopy, dst, src})
+	sys.ops = append(sys.ops, &Tmpfile{payload, src, n, buf})
 	sys.lock.Unlock()
-
-	sys.UpdatePermType(et, dst, acl.Read)
 
 	return sys
 }
 
-const (
-	tmpfileCopy uint8 = iota
-)
-
 type Tmpfile struct {
-	et       Enablement
-	method   uint8
-	dst, src string
+	payload *[]byte
+	src     string
+
+	n   int64
+	buf *bytes.Buffer
 }
 
-func (t *Tmpfile) Type() Enablement {
-	return t.et
-}
-
+func (t *Tmpfile) Type() Enablement { return Process }
 func (t *Tmpfile) apply(_ *I) error {
-	switch t.method {
-	case tmpfileCopy:
-		fmsg.Verbose("publishing tmpfile", t)
-		return fmsg.WrapErrorSuffix(copyFile(t.dst, t.src),
-			fmt.Sprintf("cannot copy tmpfile %q:", t.dst))
-	default:
-		panic("invalid tmpfile method " + strconv.Itoa(int(t.method)))
-	}
-}
+	fmsg.Verbose("copying", t)
 
-func (t *Tmpfile) revert(_ *I, ec *Criteria) error {
-	if ec.hasType(t) {
-		fmsg.Verbosef("removing tmpfile %q", t.dst)
-		return fmsg.WrapErrorSuffix(os.Remove(t.dst),
-			fmt.Sprintf("cannot remove tmpfile %q:", t.dst))
+	if b, err := os.Stat(t.src); err != nil {
+		return fmsg.WrapErrorSuffix(err,
+			fmt.Sprintf("cannot stat %q:", t.src))
 	} else {
-		fmsg.Verbosef("skipping tmpfile %q", t.dst)
-		return nil
+		if b.IsDir() {
+			return fmsg.WrapErrorSuffix(syscall.EISDIR,
+				fmt.Sprintf("%q is a directory", t.src))
+		}
+		if s := b.Size(); s > t.n {
+			return fmsg.WrapErrorSuffix(syscall.ENOMEM,
+				fmt.Sprintf("file %q is too long: %d > %d",
+					t.src, s, t.n))
+		}
 	}
+
+	if f, err := os.Open(t.src); err != nil {
+		return fmsg.WrapErrorSuffix(err,
+			fmt.Sprintf("cannot open %q:", t.src))
+	} else if _, err = io.CopyN(t.buf, f, t.n); err != nil {
+		return fmsg.WrapErrorSuffix(err,
+			fmt.Sprintf("cannot read from %q:", t.src))
+	}
+
+	*t.payload = t.buf.Bytes()
+	return nil
 }
+func (t *Tmpfile) revert(*I, *Criteria) error { t.buf.Reset(); return nil }
 
 func (t *Tmpfile) Is(o Op) bool {
 	t0, ok := o.(*Tmpfile)
-	return ok && t0 != nil && *t == *t0
+	return ok && t0 != nil &&
+		t.src == t0.src && t.n == t0.n
 }
-
-func (t *Tmpfile) Path() string { return t.src }
-
-func (t *Tmpfile) String() string {
-	switch t.method {
-	case tmpfileCopy:
-		return fmt.Sprintf("%q from %q", t.dst, t.src)
-	default:
-		panic("invalid tmpfile method " + strconv.Itoa(int(t.method)))
-	}
-}
-
-func copyFile(dst, src string) error {
-	dstD, err := os.OpenFile(dst, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
-	if err != nil {
-		return err
-	}
-
-	srcD, err := os.Open(src)
-	if err != nil {
-		return errors.Join(err, dstD.Close())
-	}
-
-	_, err = io.Copy(dstD, srcD)
-	return errors.Join(err, dstD.Close(), srcD.Close())
-}
+func (t *Tmpfile) Path() string   { return t.src }
+func (t *Tmpfile) String() string { return fmt.Sprintf("up to %d bytes from %q", t.n, t.src) }

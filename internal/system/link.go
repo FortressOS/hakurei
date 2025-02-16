@@ -28,7 +28,7 @@ type Hardlink struct {
 func (l *Hardlink) Type() Enablement { return l.et }
 
 func (l *Hardlink) apply(_ *I) error {
-	fmsg.Verbose("linking ", l)
+	fmsg.Verbose("linking", l)
 	return fmsg.WrapErrorSuffix(os.Link(l.src, l.dst),
 		fmt.Sprintf("cannot link %q:", l.dst))
 }

@@ -219,7 +219,7 @@ var testCasesPd = []sealTestCase{
 			Ensure("/tmp/fortify.1971/wayland", 0711).
 			Wayland("/tmp/fortify.1971/wayland/ebf083d1b175911782d413369b64ce7c", "/run/user/1971/wayland-0", "org.chromium.Chromium", "ebf083d1b175911782d413369b64ce7c").
 			Link("/run/user/1971/pulse/native", "/run/user/1971/fortify/ebf083d1b175911782d413369b64ce7c/pulse").
-			CopyFile("/tmp/fortify.1971/ebf083d1b175911782d413369b64ce7c/pulse-cookie", "/home/ophestra/xdg/config/pulse/cookie").
+			CopyFile(new([]byte), "/home/ophestra/xdg/config/pulse/cookie", 256, 256).
 			MustProxyDBus("/tmp/fortify.1971/ebf083d1b175911782d413369b64ce7c/bus", &dbus.Config{
 				Talk: []string{
 					"org.freedesktop.Notifications",
@@ -382,7 +382,7 @@ var testCasesPd = []sealTestCase{
 			CopyBind("/etc/group", []byte("fortify:x:65534:\n")).
 			Bind("/tmp/fortify.1971/wayland/ebf083d1b175911782d413369b64ce7c", "/run/user/65534/wayland-0").
 			Bind("/run/user/1971/fortify/ebf083d1b175911782d413369b64ce7c/pulse", "/run/user/65534/pulse/native").
-			Bind("/tmp/fortify.1971/ebf083d1b175911782d413369b64ce7c/pulse-cookie", fst.Tmp+"/pulse-cookie").
+			CopyBind(fst.Tmp+"/pulse-cookie", nil).
 			Bind("/tmp/fortify.1971/ebf083d1b175911782d413369b64ce7c/bus", "/run/user/65534/bus").
 			Bind("/tmp/fortify.1971/ebf083d1b175911782d413369b64ce7c/system_bus_socket", "/run/dbus/system_bus_socket").
 			Tmpfs("/var/run/nscd", 8192).
