@@ -27,24 +27,8 @@ func (sys *I) CopyFileType(et Enablement, dst, src string) *I {
 	return sys
 }
 
-// Link registers an Op that links dst to src.
-func (sys *I) Link(oldname, newname string) *I {
-	return sys.LinkFileType(Process, oldname, newname)
-}
-
-// LinkFileType registers a file linking Op labelled with type et.
-func (sys *I) LinkFileType(et Enablement, oldname, newname string) *I {
-	sys.lock.Lock()
-	defer sys.lock.Unlock()
-
-	sys.ops = append(sys.ops, &Tmpfile{et, tmpfileLink, newname, oldname})
-
-	return sys
-}
-
 const (
 	tmpfileCopy uint8 = iota
-	tmpfileLink
 )
 
 type Tmpfile struct {
@@ -63,10 +47,6 @@ func (t *Tmpfile) apply(_ *I) error {
 		fmsg.VPrintln("publishing tmpfile", t)
 		return fmsg.WrapErrorSuffix(copyFile(t.dst, t.src),
 			fmt.Sprintf("cannot copy tmpfile %q:", t.dst))
-	case tmpfileLink:
-		fmsg.VPrintln("linking tmpfile", t)
-		return fmsg.WrapErrorSuffix(os.Link(t.src, t.dst),
-			fmt.Sprintf("cannot link tmpfile %q:", t.dst))
 	default:
 		panic("invalid tmpfile method " + strconv.Itoa(int(t.method)))
 	}
@@ -93,8 +73,6 @@ func (t *Tmpfile) Path() string { return t.src }
 func (t *Tmpfile) String() string {
 	switch t.method {
 	case tmpfileCopy:
-		return fmt.Sprintf("%q from %q", t.dst, t.src)
-	case tmpfileLink:
 		return fmt.Sprintf("%q from %q", t.dst, t.src)
 	default:
 		panic("invalid tmpfile method " + strconv.Itoa(int(t.method)))

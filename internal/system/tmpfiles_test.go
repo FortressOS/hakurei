@@ -57,7 +57,7 @@ func TestLink(t *testing.T) {
 			sys := New(150)
 			sys.Link(tc.src, tc.dst)
 			(&tcOp{Process, tc.src}).test(t, sys.ops, []Op{
-				&Tmpfile{Process, tmpfileLink, tc.dst, tc.src},
+				&Hardlink{Process, tc.dst, tc.src},
 			}, "Link")
 		})
 	}
@@ -76,7 +76,7 @@ func TestLinkFileType(t *testing.T) {
 			sys := New(150)
 			sys.LinkFileType(tc.et, tc.path, tc.dst)
 			tc.test(t, sys.ops, []Op{
-				&Tmpfile{tc.et, tmpfileLink, tc.dst, tc.path},
+				&Hardlink{tc.et, tc.dst, tc.path},
 			}, "LinkFileType")
 		})
 	}
@@ -101,10 +101,6 @@ func TestTmpfile_String(t *testing.T) {
 	}{
 		{tmpfileCopy, "/tmp/fortify.1971/4b6bdc9182fb2f1d3a965c5fa8b9b66e/pulse-cookie", "/home/ophestra/xdg/config/pulse/cookie",
 			`"/tmp/fortify.1971/4b6bdc9182fb2f1d3a965c5fa8b9b66e/pulse-cookie" from "/home/ophestra/xdg/config/pulse/cookie"`},
-		{tmpfileLink, "/run/user/1971/fortify/4b6bdc9182fb2f1d3a965c5fa8b9b66e/wayland", "/run/user/1971/wayland-0",
-			`"/run/user/1971/fortify/4b6bdc9182fb2f1d3a965c5fa8b9b66e/wayland" from "/run/user/1971/wayland-0"`},
-		{tmpfileLink, "/run/user/1971/fortify/4b6bdc9182fb2f1d3a965c5fa8b9b66e/pulse", "/run/user/1971/pulse/native",
-			`"/run/user/1971/fortify/4b6bdc9182fb2f1d3a965c5fa8b9b66e/pulse" from "/run/user/1971/pulse/native"`},
 	}
 
 	for _, tc := range testCases {
