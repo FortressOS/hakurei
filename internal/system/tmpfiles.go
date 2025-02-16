@@ -44,7 +44,7 @@ func (t *Tmpfile) Type() Enablement {
 func (t *Tmpfile) apply(_ *I) error {
 	switch t.method {
 	case tmpfileCopy:
-		fmsg.VPrintln("publishing tmpfile", t)
+		fmsg.Verbose("publishing tmpfile", t)
 		return fmsg.WrapErrorSuffix(copyFile(t.dst, t.src),
 			fmt.Sprintf("cannot copy tmpfile %q:", t.dst))
 	default:
@@ -54,11 +54,11 @@ func (t *Tmpfile) apply(_ *I) error {
 
 func (t *Tmpfile) revert(_ *I, ec *Criteria) error {
 	if ec.hasType(t) {
-		fmsg.VPrintf("removing tmpfile %q", t.dst)
+		fmsg.Verbosef("removing tmpfile %q", t.dst)
 		return fmsg.WrapErrorSuffix(os.Remove(t.dst),
 			fmt.Sprintf("cannot remove tmpfile %q:", t.dst))
 	} else {
-		fmsg.VPrintf("skipping tmpfile %q", t.dst)
+		fmsg.Verbosef("skipping tmpfile %q", t.dst)
 		return nil
 	}
 }

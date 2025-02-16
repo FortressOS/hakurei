@@ -3,6 +3,7 @@ package shim
 import (
 	"context"
 	"errors"
+	"log"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -25,12 +26,11 @@ import (
 func Main() {
 	// sharing stdout with fortify
 	// USE WITH CAUTION
-	fmsg.SetPrefix("shim")
+	fmsg.Prepare("shim")
 
 	// setting this prevents ptrace
 	if err := internal.PR_SET_DUMPABLE__SUID_DUMP_DISABLE(); err != nil {
-		fmsg.Fatalf("cannot set SUID_DUMP_DISABLE: %s", err)
-		panic("unreachable")
+		log.Fatalf("cannot set SUID_DUMP_DISABLE: %s", err)
 	}
 
 	// receive setup payload
@@ -40,21 +40,20 @@ func Main() {
 	)
 	if f, err := proc.Receive(Env, &payload); err != nil {
 		if errors.Is(err, proc.ErrInvalid) {
-			fmsg.Fatal("invalid config descriptor")
+			log.Fatal("invalid config descriptor")
 		}
 		if errors.Is(err, proc.ErrNotSet) {
-			fmsg.Fatal("FORTIFY_SHIM not set")
+			log.Fatal("FORTIFY_SHIM not set")
 		}
 
-		fmsg.Fatalf("cannot decode shim setup payload: %v", err)
-		panic("unreachable")
+		log.Fatalf("cannot decode shim setup payload: %v", err)
 	} else {
-		fmsg.SetVerbose(payload.Verbose)
+		fmsg.Store(payload.Verbose)
 		closeSetup = f
 	}
 
 	if payload.Bwrap == nil {
-		fmsg.Fatal("bwrap config not supplied")
+		log.Fatal("bwrap config not supplied")
 	}
 
 	// restore bwrap sync fd
@@ -65,7 +64,7 @@ func Main() {
 
 	// close setup socket
 	if err := closeSetup(); err != nil {
-		fmsg.Println("cannot close setup pipe:", err)
+		log.Println("cannot close setup pipe:", err)
 		// not fatal
 	}
 
@@ -73,15 +72,15 @@ func Main() {
 	if s, err := os.Stat(payload.Home); err != nil {
 		if os.IsNotExist(err) {
 			if err = os.Mkdir(payload.Home, 0700); err != nil {
-				fmsg.Fatalf("cannot create home directory: %v", err)
+				log.Fatalf("cannot create home directory: %v", err)
 			}
 		} else {
-			fmsg.Fatalf("cannot access home directory: %v", err)
+			log.Fatalf("cannot access home directory: %v", err)
 		}
 
 		// home directory is created, proceed
 	} else if !s.IsDir() {
-		fmsg.Fatalf("data path %q is not a directory", payload.Home)
+		log.Fatalf("data path %q is not a directory", payload.Home)
 	}
 
 	var ic init0.Payload
@@ -95,10 +94,10 @@ func Main() {
 		// no argv, look up shell instead
 		var ok bool
 		if payload.Bwrap.SetEnv == nil {
-			fmsg.Fatal("no command was specified and environment is unset")
+			log.Fatal("no command was specified and environment is unset")
 		}
 		if ic.Argv0, ok = payload.Bwrap.SetEnv["SHELL"]; !ok {
-			fmsg.Fatal("no command was specified and $SHELL was unset")
+			log.Fatal("no command was specified and $SHELL was unset")
 		}
 
 		ic.Argv = []string{ic.Argv0}
@@ -110,20 +109,20 @@ func Main() {
 
 	// serve setup payload
 	if fd, encoder, err := proc.Setup(&extraFiles); err != nil {
-		fmsg.Fatalf("cannot pipe: %v", err)
+		log.Fatalf("cannot pipe: %v", err)
 	} else {
 		conf.SetEnv[init0.Env] = strconv.Itoa(fd)
 		go func() {
-			fmsg.VPrintln("transmitting config to init")
+			fmsg.Verbose("transmitting config to init")
 			if err = encoder.Encode(&ic); err != nil {
-				fmsg.Fatalf("cannot transmit init config: %v", err)
+				log.Fatalf("cannot transmit init config: %v", err)
 			}
 		}()
 	}
 
 	helper.BubblewrapName = payload.Exec[0] // resolved bwrap path by parent
-	if fmsg.Verbose() {
-		seccomp.CPrintln = fmsg.Println
+	if fmsg.Load() {
+		seccomp.CPrintln = log.Println
 	}
 	if b, err := helper.NewBwrap(
 		conf, path.Join(fst.Tmp, "sbin/init"),
@@ -131,7 +130,7 @@ func Main() {
 		extraFiles,
 		syncFd,
 	); err != nil {
-		fmsg.Fatalf("malformed sandbox config: %v", err)
+		log.Fatalf("malformed sandbox config: %v", err)
 	} else {
 		b.Stdin(os.Stdin).Stdout(os.Stdout).Stderr(os.Stderr)
 		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -139,15 +138,15 @@ func Main() {
 
 		// run and pass through exit code
 		if err = b.Start(ctx, false); err != nil {
-			fmsg.Fatalf("cannot start target process: %v", err)
+			log.Fatalf("cannot start target process: %v", err)
 		} else if err = b.Wait(); err != nil {
 			var exitError *exec.ExitError
 			if !errors.As(err, &exitError) {
-				fmsg.Println("wait:", err)
-				fmsg.Exit(127)
+				log.Printf("wait: %v", err)
+				internal.Exit(127)
 				panic("unreachable")
 			}
-			fmsg.Exit(exitError.ExitCode())
+			internal.Exit(exitError.ExitCode())
 			panic("unreachable")
 		}
 	}

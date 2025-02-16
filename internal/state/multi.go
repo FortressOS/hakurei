@@ -85,17 +85,17 @@ func (s *multiStore) List() ([]int, error) {
 	for _, e := range entries {
 		// skip non-directories
 		if !e.IsDir() {
-			fmsg.VPrintf("skipped non-directory entry %q", e.Name())
+			fmsg.Verbosef("skipped non-directory entry %q", e.Name())
 			continue
 		}
 
 		// skip non-numerical names
 		if v, err := strconv.Atoi(e.Name()); err != nil {
-			fmsg.VPrintf("skipped non-aid entry %q", e.Name())
+			fmsg.Verbosef("skipped non-aid entry %q", e.Name())
 			continue
 		} else {
 			if v < 0 || v > 9999 {
-				fmsg.VPrintf("skipped out of bounds entry %q", e.Name())
+				fmsg.Verbosef("skipped out of bounds entry %q", e.Name())
 				continue
 			}
 

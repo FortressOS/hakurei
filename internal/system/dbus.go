@@ -3,6 +3,7 @@ package system
 import (
 	"bytes"
 	"errors"
+	"log"
 	"strings"
 	"sync"
 
@@ -47,12 +48,12 @@ func (sys *I) ProxyDBus(session, system *dbus.Config, sessionPath, systemPath st
 	d.proxy = dbus.New(sessionBus, systemBus)
 
 	defer func() {
-		if fmsg.Verbose() && d.proxy.Sealed() {
-			fmsg.VPrintln("sealed session proxy", session.Args(sessionBus))
+		if fmsg.Load() && d.proxy.Sealed() {
+			fmsg.Verbose("sealed session proxy", session.Args(sessionBus))
 			if system != nil {
-				fmsg.VPrintln("sealed system proxy", system.Args(systemBus))
+				fmsg.Verbose("sealed system proxy", system.Args(systemBus))
 			}
-			fmsg.VPrintln("message bus proxy final args:", d.proxy)
+			fmsg.Verbose("message bus proxy final args:", d.proxy)
 		}
 	}()
 
@@ -78,9 +79,9 @@ func (d *DBus) Type() Enablement {
 }
 
 func (d *DBus) apply(sys *I) error {
-	fmsg.VPrintf("session bus proxy on %q for upstream %q", d.proxy.Session()[1], d.proxy.Session()[0])
+	fmsg.Verbosef("session bus proxy on %q for upstream %q", d.proxy.Session()[1], d.proxy.Session()[0])
 	if d.system {
-		fmsg.VPrintf("system bus proxy on %q for upstream %q", d.proxy.System()[1], d.proxy.System()[0])
+		fmsg.Verbosef("system bus proxy on %q for upstream %q", d.proxy.System()[1], d.proxy.System()[0])
 	}
 
 	// this starts the process and blocks until ready
@@ -89,15 +90,15 @@ func (d *DBus) apply(sys *I) error {
 		return fmsg.WrapErrorSuffix(err,
 			"cannot start message bus proxy:")
 	}
-	fmsg.VPrintln("starting message bus proxy:", d.proxy)
+	fmsg.Verbose("starting message bus proxy:", d.proxy)
 	return nil
 }
 
 func (d *DBus) revert(_ *I, _ *Criteria) error {
 	// criteria ignored here since dbus is always process-scoped
-	fmsg.VPrintln("terminating message bus proxy")
+	fmsg.Verbose("terminating message bus proxy")
 	d.proxy.Close()
-	defer fmsg.VPrintln("message bus proxy exit")
+	defer fmsg.Verbose("message bus proxy exit")
 	return fmsg.WrapErrorSuffix(d.proxy.Wait(), "message bus proxy error:")
 }
 
@@ -144,7 +145,7 @@ func (s *scanToFmsg) write(p []byte, a int) (int, error) {
 func (s *scanToFmsg) Dump() {
 	s.mu.RLock()
 	for _, msg := range s.msgbuf {
-		fmsg.Println(msg)
+		log.Println(msg)
 	}
 	s.mu.RUnlock()
 }

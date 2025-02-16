@@ -3,6 +3,7 @@ package linux
 import (
 	"errors"
 	"io/fs"
+	"log"
 	"os"
 	"os/exec"
 	"os/user"
@@ -11,9 +12,7 @@ import (
 	"sync"
 	"syscall"
 
-	"git.gensokyo.uk/security/fortify/helper/proc"
 	"git.gensokyo.uk/security/fortify/internal"
-	"git.gensokyo.uk/security/fortify/internal/fmsg"
 )
 
 // Std implements System using the standard library.
@@ -33,13 +32,13 @@ func (s *Std) Geteuid() int                                 { return os.Geteuid(
 func (s *Std) LookupEnv(key string) (string, bool)          { return os.LookupEnv(key) }
 func (s *Std) TempDir() string                              { return os.TempDir() }
 func (s *Std) LookPath(file string) (string, error)         { return exec.LookPath(file) }
-func (s *Std) MustExecutable() string                       { return proc.MustExecutable() }
+func (s *Std) MustExecutable() string                       { return internal.MustExecutable() }
 func (s *Std) LookupGroup(name string) (*user.Group, error) { return user.LookupGroup(name) }
 func (s *Std) ReadDir(name string) ([]os.DirEntry, error)   { return os.ReadDir(name) }
 func (s *Std) Stat(name string) (fs.FileInfo, error)        { return os.Stat(name) }
 func (s *Std) Open(name string) (fs.File, error)            { return os.Open(name) }
 func (s *Std) EvalSymlinks(path string) (string, error)     { return filepath.EvalSymlinks(path) }
-func (s *Std) Exit(code int)                                { fmsg.Exit(code) }
+func (s *Std) Exit(code int)                                { internal.Exit(code) }
 
 const xdgRuntimeDir = "XDG_RUNTIME_DIR"
 
@@ -74,8 +73,9 @@ func (s *Std) Uid(aid int) (int, error) {
 
 	u.uid = -1
 	if fsu, ok := internal.Check(internal.Fsu); !ok {
-		fmsg.Fatal("invalid fsu path, this copy of fortify is not compiled correctly")
-		panic("unreachable")
+		log.Fatal("invalid fsu path, this copy of fortify is not compiled correctly")
+		// unreachable
+		return 0, syscall.EBADE
 	} else {
 		cmd := exec.Command(fsu)
 		cmd.Path = fsu

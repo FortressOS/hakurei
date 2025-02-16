@@ -6,7 +6,7 @@ import (
 
 	"git.gensokyo.uk/security/fortify/fst"
 	"git.gensokyo.uk/security/fortify/helper/bwrap"
-	"git.gensokyo.uk/security/fortify/internal/fmsg"
+	"git.gensokyo.uk/security/fortify/internal"
 )
 
 func withNixDaemon(
@@ -95,7 +95,7 @@ func fortifyAppDropShell(config *fst.Config, dropShell bool, beforeFail func()) 
 		config.Command = []string{shell, "-l"}
 		fortifyApp(config, beforeFail)
 		beforeFail()
-		fmsg.Exit(0)
+		internal.Exit(0)
 	}
 	fortifyApp(config, beforeFail)
 }

@@ -45,7 +45,7 @@ func (w Wayland) apply(sys *I) error {
 		return fmsg.WrapErrorSuffix(err,
 			fmt.Sprintf("cannot attach to wayland on %q:", w.pair[1]))
 	} else {
-		fmsg.VPrintf("wayland attached on %q", w.pair[1])
+		fmsg.Verbosef("wayland attached on %q", w.pair[1])
 	}
 
 	if sp, err := w.conn.Bind(w.pair[0], w.appID, w.instanceID); err != nil {
@@ -53,7 +53,7 @@ func (w Wayland) apply(sys *I) error {
 			fmt.Sprintf("cannot bind to socket on %q:", w.pair[0]))
 	} else {
 		sys.sp = sp
-		fmsg.VPrintf("wayland listening on %q", w.pair[0])
+		fmsg.Verbosef("wayland listening on %q", w.pair[0])
 		return fmsg.WrapErrorSuffix(errors.Join(os.Chmod(w.pair[0], 0), acl.UpdatePerm(w.pair[0], sys.uid, acl.Read, acl.Write, acl.Execute)),
 			fmt.Sprintf("cannot chmod socket on %q:", w.pair[0]))
 	}
@@ -61,16 +61,16 @@ func (w Wayland) apply(sys *I) error {
 
 func (w Wayland) revert(_ *I, ec *Criteria) error {
 	if ec.hasType(w) {
-		fmsg.VPrintf("removing wayland socket on %q", w.pair[0])
+		fmsg.Verbosef("removing wayland socket on %q", w.pair[0])
 		if err := os.Remove(w.pair[0]); err != nil && !errors.Is(err, os.ErrNotExist) {
 			return err
 		}
 
-		fmsg.VPrintf("detaching from wayland on %q", w.pair[1])
+		fmsg.Verbosef("detaching from wayland on %q", w.pair[1])
 		return fmsg.WrapErrorSuffix(w.conn.Close(),
 			fmt.Sprintf("cannot detach from wayland on %q:", w.pair[1]))
 	} else {
-		fmsg.VPrintf("skipping wayland cleanup on %q", w.pair[0])
+		fmsg.Verbosef("skipping wayland cleanup on %q", w.pair[0])
 		return nil
 	}
 }

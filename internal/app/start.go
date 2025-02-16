@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -81,7 +82,7 @@ func (a *app) Run(ctx context.Context, rs *RunState) error {
 			Bwrap: a.seal.sys.bwrap,
 			Home:  a.seal.sys.user.data,
 
-			Verbose: fmsg.Verbose(),
+			Verbose: fmsg.Load(),
 		}); err != nil {
 			return err
 		}
@@ -119,8 +120,8 @@ func (a *app) Run(ctx context.Context, rs *RunState) error {
 		} else {
 			rs.ExitCode = a.shim.Unwrap().ProcessState.ExitCode()
 		}
-		if fmsg.Verbose() {
-			fmsg.VPrintf("process %d exited with exit code %d", a.shim.Unwrap().Process.Pid, rs.ExitCode)
+		if fmsg.Load() {
+			fmsg.Verbosef("process %d exited with exit code %d", a.shim.Unwrap().Process.Pid, rs.ExitCode)
 		}
 
 	// this is reached when a fault makes an already running shim impossible to continue execution
@@ -128,11 +129,11 @@ func (a *app) Run(ctx context.Context, rs *RunState) error {
 	// the effects of this is similar to the alternative exit path and ensures shim death
 	case err := <-a.shim.WaitFallback():
 		rs.ExitCode = 255
-		fmsg.Printf("cannot terminate shim on faulted setup: %v", err)
+		log.Printf("cannot terminate shim on faulted setup: %v", err)
 
 	// alternative exit path relying on shim behaviour on monitor process exit
 	case <-ctx.Done():
-		fmsg.VPrintln("alternative exit path selected")
+		fmsg.Verbose("alternative exit path selected")
 	}
 
 	// child process exited, resume output
@@ -163,10 +164,10 @@ func (a *app) Run(ctx context.Context, rs *RunState) error {
 			} else {
 				if l := len(states); l == 0 {
 					// cleanup globals as the final launcher
-					fmsg.VPrintln("no other launchers active, will clean up globals")
+					fmsg.Verbose("no other launchers active, will clean up globals")
 					ec.Set(system.User)
 				} else {
-					fmsg.VPrintf("found %d active launchers, cleaning up without globals", l)
+					fmsg.Verbosef("found %d active launchers, cleaning up without globals", l)
 				}
 
 				// accumulate capabilities of other launchers
@@ -174,7 +175,7 @@ func (a *app) Run(ctx context.Context, rs *RunState) error {
 					if s.Config != nil {
 						*rt |= s.Config.Confinement.Enablements
 					} else {
-						fmsg.Printf("state entry %d does not contain config", i)
+						log.Printf("state entry %d does not contain config", i)
 					}
 				}
 			}
@@ -184,7 +185,7 @@ func (a *app) Run(ctx context.Context, rs *RunState) error {
 					ec.Set(i)
 				}
 			}
-			if fmsg.Verbose() {
+			if fmsg.Load() {
 				labels := make([]string, 0, system.ELen+1)
 				for i := system.Enablement(0); i < system.Enablement(system.ELen+2); i++ {
 					if ec.Has(i) {
@@ -192,7 +193,7 @@ func (a *app) Run(ctx context.Context, rs *RunState) error {
 					}
 				}
 				if len(labels) > 0 {
-					fmsg.VPrintln("reverting operations labelled", strings.Join(labels, ", "))
+					fmsg.Verbose("reverting operations labelled", strings.Join(labels, ", "))
 				}
 			}
 

@@ -36,18 +36,18 @@ func (a *ACL) Type() Enablement {
 }
 
 func (a *ACL) apply(sys *I) error {
-	fmsg.VPrintln("applying ACL", a)
+	fmsg.Verbose("applying ACL", a)
 	return fmsg.WrapErrorSuffix(acl.UpdatePerm(a.path, sys.uid, a.perms...),
 		fmt.Sprintf("cannot apply ACL entry to %q:", a.path))
 }
 
 func (a *ACL) revert(sys *I, ec *Criteria) error {
 	if ec.hasType(a) {
-		fmsg.VPrintln("stripping ACL", a)
+		fmsg.Verbose("stripping ACL", a)
 		return fmsg.WrapErrorSuffix(acl.UpdatePerm(a.path, sys.uid),
 			fmt.Sprintf("cannot strip ACL entry from %q:", a.path))
 	} else {
-		fmsg.VPrintln("skipping ACL", a)
+		fmsg.Verbose("skipping ACL", a)
 		return nil
 	}
 }

@@ -28,18 +28,18 @@ type Hardlink struct {
 func (l *Hardlink) Type() Enablement { return l.et }
 
 func (l *Hardlink) apply(_ *I) error {
-	fmsg.VPrintln("linking ", l)
+	fmsg.Verbose("linking ", l)
 	return fmsg.WrapErrorSuffix(os.Link(l.src, l.dst),
 		fmt.Sprintf("cannot link %q:", l.dst))
 }
 
 func (l *Hardlink) revert(_ *I, ec *Criteria) error {
 	if ec.hasType(l) {
-		fmsg.VPrintf("removing hard link %q", l.dst)
+		fmsg.Verbosef("removing hard link %q", l.dst)
 		return fmsg.WrapErrorSuffix(os.Remove(l.dst),
 			fmt.Sprintf("cannot remove hard link %q:", l.dst))
 	} else {
-		fmsg.VPrintf("skipping hard link %q", l.dst)
+		fmsg.Verbosef("skipping hard link %q", l.dst)
 		return nil
 	}
 }

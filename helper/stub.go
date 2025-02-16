@@ -14,7 +14,7 @@ import (
 
 	"git.gensokyo.uk/security/fortify/helper/bwrap"
 	"git.gensokyo.uk/security/fortify/helper/proc"
-	"git.gensokyo.uk/security/fortify/internal/fmsg"
+	"git.gensokyo.uk/security/fortify/internal"
 )
 
 // InternalChildStub is an internal function but exported because it is cross-package;
@@ -40,7 +40,7 @@ func InternalChildStub() {
 		genericStub(flagRestoreFiles(4, ap, sp))
 	}
 
-	fmsg.Exit(0)
+	internal.Exit(0)
 }
 
 // InternalReplaceExecCommand is an internal function but exported because it is cross-package;

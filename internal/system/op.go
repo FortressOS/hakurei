@@ -3,6 +3,7 @@ package system
 import (
 	"context"
 	"errors"
+	"log"
 	"os"
 	"sync"
 
@@ -105,9 +106,9 @@ func (sys *I) Commit(ctx context.Context) error {
 		// sp is set to nil when all ops are applied
 		if sp != nil {
 			// rollback partial commit
-			fmsg.VPrintf("commit faulted after %d ops, rolling back partial commit", len(sp.ops))
+			fmsg.Verbosef("commit faulted after %d ops, rolling back partial commit", len(sp.ops))
 			if err := sp.Revert(&Criteria{nil}); err != nil {
-				fmsg.Println("errors returned reverting partial commit:", err)
+				log.Println("errors returned reverting partial commit:", err)
 			}
 		}
 	}()

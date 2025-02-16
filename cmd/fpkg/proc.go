@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"log"
 	"os"
 	"os/exec"
 
@@ -25,14 +26,12 @@ func fortifyApp(config *fst.Config, beforeFail func()) {
 	)
 	if p, ok := internal.Path(Fmain); !ok {
 		beforeFail()
-		fmsg.Fatal("invalid fortify path, this copy of fpkg is not compiled correctly")
-		panic("unreachable")
+		log.Fatal("invalid fortify path, this copy of fpkg is not compiled correctly")
 	} else if r, w, err := os.Pipe(); err != nil {
 		beforeFail()
-		fmsg.Fatalf("cannot pipe: %v", err)
-		panic("unreachable")
+		log.Fatalf("cannot pipe: %v", err)
 	} else {
-		if fmsg.Verbose() {
+		if fmsg.Load() {
 			cmd = exec.Command(p, "-v", "app", "3")
 		} else {
 			cmd = exec.Command(p, "app", "3")
@@ -45,26 +44,22 @@ func fortifyApp(config *fst.Config, beforeFail func()) {
 	go func() {
 		if err := json.NewEncoder(st).Encode(config); err != nil {
 			beforeFail()
-			fmsg.Fatalf("cannot send configuration: %v", err)
-			panic("unreachable")
+			log.Fatalf("cannot send configuration: %v", err)
 		}
 	}()
 
 	if err := cmd.Start(); err != nil {
 		beforeFail()
-		fmsg.Fatalf("cannot start fortify: %v", err)
-		panic("unreachable")
+		log.Fatalf("cannot start fortify: %v", err)
 	}
 	if err := cmd.Wait(); err != nil {
 		var exitError *exec.ExitError
 		if errors.As(err, &exitError) {
 			beforeFail()
-			fmsg.Exit(exitError.ExitCode())
-			panic("unreachable")
+			internal.Exit(exitError.ExitCode())
 		} else {
 			beforeFail()
-			fmsg.Fatalf("cannot wait: %v", err)
-			panic("unreachable")
+			log.Fatalf("cannot wait: %v", err)
 		}
 	}
 }

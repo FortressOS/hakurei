@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/gob"
 	"errors"
+	"log"
 	"os"
 	"os/exec"
 	"strconv"
@@ -54,8 +55,7 @@ func (s *Shim) Start(
 	// prepare user switcher invocation
 	var fsu string
 	if p, ok := internal.Path(internal.Fsu); !ok {
-		fmsg.Fatal("invalid fsu path, this copy of fortify is not compiled correctly")
-		panic("unreachable")
+		log.Fatal("invalid fsu path, this copy of fortify is not compiled correctly")
 	} else {
 		fsu = p
 	}
@@ -75,7 +75,7 @@ func (s *Shim) Start(
 
 	// format fsu supplementary groups
 	if len(supp) > 0 {
-		fmsg.VPrintf("attaching supplementary group ids %s", supp)
+		fmsg.Verbosef("attaching supplementary group ids %s", supp)
 		s.cmd.Env = append(s.cmd.Env, "FORTIFY_GROUPS="+strings.Join(supp, " "))
 	}
 	s.cmd.Stdin, s.cmd.Stdout, s.cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
@@ -87,7 +87,7 @@ func (s *Shim) Start(
 		s.sync = &fd
 	}
 
-	fmsg.VPrintln("starting shim via fsu:", s.cmd)
+	fmsg.Verbose("starting shim via fsu:", s.cmd)
 	// withhold messages to stderr
 	fmsg.Suspend()
 	if err := s.cmd.Start(); err != nil {

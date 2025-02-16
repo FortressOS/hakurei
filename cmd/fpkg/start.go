@@ -2,11 +2,12 @@ package main
 
 import (
 	"flag"
+	"log"
 	"path"
 
 	"git.gensokyo.uk/security/fortify/fst"
 	"git.gensokyo.uk/security/fortify/helper/bwrap"
-	"git.gensokyo.uk/security/fortify/internal/fmsg"
+	"git.gensokyo.uk/security/fortify/internal"
 )
 
 func actionStart(args []string) {
@@ -26,7 +27,7 @@ func actionStart(args []string) {
 	args = set.Args()
 
 	if len(args) < 1 {
-		fmsg.Fatal("invalid argument")
+		log.Fatal("invalid argument")
 	}
 
 	/*
@@ -37,7 +38,7 @@ func actionStart(args []string) {
 	pathSet := pathSetByApp(id)
 	app := loadBundleInfo(pathSet.metaPath, func() {})
 	if app.ID != id {
-		fmsg.Fatalf("app %q claims to have identifier %q", id, app.ID)
+		log.Fatalf("app %q claims to have identifier %q", id, app.ID)
 	}
 
 	/*
@@ -144,7 +145,7 @@ func actionStart(args []string) {
 	*/
 
 	fortifyApp(config, func() {})
-	fmsg.Exit(0)
+	internal.Exit(0)
 }
 
 func appendGPUFilesystem(config *fst.Config) {

@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"log"
 
 	"git.gensokyo.uk/security/fortify/internal/app"
 	"git.gensokyo.uk/security/fortify/internal/fmsg"
@@ -10,13 +11,13 @@ import (
 func logWaitError(err error) {
 	var e *fmsg.BaseError
 	if !fmsg.AsBaseError(err, &e) {
-		fmsg.Println("wait failed:", err)
+		log.Println("wait failed:", err)
 	} else {
 		// Wait only returns either *app.ProcessError or *app.StateStoreError wrapped in a *app.BaseError
 		var se *app.StateStoreError
 		if !errors.As(err, &se) {
 			// does not need special handling
-			fmsg.Print(e.Message())
+			log.Print(e.Message())
 		} else {
 			// inner error are either unwrapped store errors
 			// or joined errors returned by *appSealTx revert
@@ -24,7 +25,7 @@ func logWaitError(err error) {
 			var ej app.RevertCompoundError
 			if !errors.As(se.InnerErr, &ej) {
 				// does not require special handling
-				fmsg.Print(e.Message())
+				log.Print(e.Message())
 			} else {
 				errs := ej.Unwrap()
 
@@ -33,10 +34,10 @@ func logWaitError(err error) {
 					var eb *fmsg.BaseError
 					if !errors.As(ei, &eb) {
 						// unreachable
-						fmsg.Println("invalid error type returned by revert:", ei)
+						log.Println("invalid error type returned by revert:", ei)
 					} else {
 						// print inner *app.BaseError message
-						fmsg.Print(eb.Message())
+						log.Print(eb.Message())
 					}
 				}
 			}
@@ -48,8 +49,8 @@ func logBaseError(err error, message string) {
 	var e *fmsg.BaseError
 
 	if fmsg.AsBaseError(err, &e) {
-		fmsg.Print(e.Message())
+		log.Print(e.Message())
 	} else {
-		fmsg.Println(message, err)
+		log.Println(message, err)
 	}
 }

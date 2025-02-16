@@ -191,7 +191,7 @@ func (a *app) Seal(config *fst.Config) error {
 
 	// map sandbox config to bwrap
 	if config.Confinement.Sandbox == nil {
-		fmsg.VPrintln("sandbox configuration not supplied, PROCEED WITH CAUTION")
+		fmsg.Verbose("sandbox configuration not supplied, PROCEED WITH CAUTION")
 
 		// permissive defaults
 		conf := &fst.SandboxConfig{
@@ -264,7 +264,7 @@ func (a *app) Seal(config *fst.Config) error {
 	}
 
 	// verbose log seal information
-	fmsg.VPrintf("created application seal for uid %s (%s) groups: %v, command: %s",
+	fmsg.Verbosef("created application seal for uid %s (%s) groups: %v, command: %s",
 		seal.sys.user.us, seal.sys.user.username, config.Confinement.Groups, config.Command)
 
 	// seal app and release lock

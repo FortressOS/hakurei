@@ -40,7 +40,7 @@ func (m *Mkdir) Type() Enablement {
 }
 
 func (m *Mkdir) apply(_ *I) error {
-	fmsg.VPrintln("ensuring directory", m)
+	fmsg.Verbose("ensuring directory", m)
 
 	// create directory
 	err := os.Mkdir(m.path, m.perm)
@@ -61,11 +61,11 @@ func (m *Mkdir) revert(_ *I, ec *Criteria) error {
 	}
 
 	if ec.hasType(m) {
-		fmsg.VPrintln("destroying ephemeral directory", m)
+		fmsg.Verbose("destroying ephemeral directory", m)
 		return fmsg.WrapErrorSuffix(os.Remove(m.path),
 			fmt.Sprintf("cannot remove ephemeral directory %q:", m.path))
 	} else {
-		fmsg.VPrintln("skipping ephemeral directory", m)
+		fmsg.Verbose("skipping ephemeral directory", m)
 		return nil
 	}
 }

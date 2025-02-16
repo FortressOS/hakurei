@@ -2,10 +2,10 @@ package main
 
 import (
 	"encoding/json"
+	"log"
 	"os"
 
 	"git.gensokyo.uk/security/fortify/dbus"
-	"git.gensokyo.uk/security/fortify/internal/fmsg"
 	"git.gensokyo.uk/security/fortify/internal/system"
 )
 
@@ -63,18 +63,18 @@ func loadBundleInfo(name string, beforeFail func()) *bundleInfo {
 	bundle := new(bundleInfo)
 	if f, err := os.Open(name); err != nil {
 		beforeFail()
-		fmsg.Fatalf("cannot open bundle: %v", err)
+		log.Fatalf("cannot open bundle: %v", err)
 	} else if err = json.NewDecoder(f).Decode(&bundle); err != nil {
 		beforeFail()
-		fmsg.Fatalf("cannot parse bundle metadata: %v", err)
+		log.Fatalf("cannot parse bundle metadata: %v", err)
 	} else if err = f.Close(); err != nil {
-		fmsg.Printf("cannot close bundle metadata: %v", err)
+		log.Printf("cannot close bundle metadata: %v", err)
 		// not fatal
 	}
 
 	if bundle.ID == "" {
 		beforeFail()
-		fmsg.Fatal("application identifier must not be empty")
+		log.Fatal("application identifier must not be empty")
 	}
 
 	return bundle
@@ -82,7 +82,7 @@ func loadBundleInfo(name string, beforeFail func()) *bundleInfo {
 
 func formatHostname(name string) string {
 	if h, err := os.Hostname(); err != nil {
-		fmsg.Printf("cannot get hostname: %v", err)
+		log.Printf("cannot get hostname: %v", err)
 		return "fortify-" + name
 	} else {
 		return h + "-" + name

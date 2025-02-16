@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"log"
 	"os"
 	"strconv"
 	"strings"
@@ -21,11 +22,10 @@ func tryPath(name string) (config *fst.Config) {
 	if name != "-" {
 		r = tryFd(name)
 		if r == nil {
-			fmsg.VPrintln("load configuration from file")
+			fmsg.Verbose("load configuration from file")
 
 			if f, err := os.Open(name); err != nil {
-				fmsg.Fatalf("cannot access configuration file %q: %s", name, err)
-				panic("unreachable")
+				log.Fatalf("cannot access configuration file %q: %s", name, err)
 			} else {
 				// finalizer closes f
 				r = f
@@ -33,7 +33,7 @@ func tryPath(name string) (config *fst.Config) {
 		} else {
 			defer func() {
 				if err := r.(io.ReadCloser).Close(); err != nil {
-					fmsg.Printf("cannot close config fd: %v", err)
+					log.Printf("cannot close config fd: %v", err)
 				}
 			}()
 		}
@@ -42,8 +42,7 @@ func tryPath(name string) (config *fst.Config) {
 	}
 
 	if err := json.NewDecoder(r).Decode(&config); err != nil {
-		fmsg.Fatalf("cannot load configuration: %v", err)
-		panic("unreachable")
+		log.Fatalf("cannot load configuration: %v", err)
 	}
 
 	return
@@ -51,7 +50,7 @@ func tryPath(name string) (config *fst.Config) {
 
 func tryFd(name string) io.ReadCloser {
 	if v, err := strconv.Atoi(name); err != nil {
-		fmsg.VPrintf("name cannot be interpreted as int64: %v", err)
+		fmsg.Verbosef("name cannot be interpreted as int64: %v", err)
 		return nil
 	} else {
 		fd := uintptr(v)
@@ -59,7 +58,7 @@ func tryFd(name string) io.ReadCloser {
 			if errors.Is(errno, syscall.EBADF) {
 				return nil
 			}
-			fmsg.Fatalf("cannot get fd %d: %v", fd, errno)
+			log.Fatalf("cannot get fd %d: %v", fd, errno)
 		}
 		return os.NewFile(fd, strconv.Itoa(v))
 	}
@@ -83,11 +82,11 @@ func tryShort(name string) (config *fst.Config, instance *state.State) {
 
 	// try to match from state store
 	if likePrefix && len(name) >= 8 {
-		fmsg.VPrintln("argument looks like prefix")
+		fmsg.Verbose("argument looks like prefix")
 
 		s := state.NewMulti(sys.Paths().RunDirPath)
 		if entries, err := state.Join(s); err != nil {
-			fmsg.Printf("cannot join store: %v", err)
+			log.Printf("cannot join store: %v", err)
 			// drop to fetch from file
 		} else {
 			for id := range entries {
@@ -99,7 +98,7 @@ func tryShort(name string) (config *fst.Config, instance *state.State) {
 					break
 				}
 
-				fmsg.VPrintf("instance %s skipped", v)
+				fmsg.Verbosef("instance %s skipped", v)
 			}
 		}
 	}

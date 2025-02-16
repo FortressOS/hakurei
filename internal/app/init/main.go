@@ -2,6 +2,7 @@ package init0
 
 import (
 	"errors"
+	"log"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -24,17 +25,15 @@ const (
 func Main() {
 	// sharing stdout with shim
 	// USE WITH CAUTION
-	fmsg.SetPrefix("init")
+	fmsg.Prepare("init")
 
 	// setting this prevents ptrace
 	if err := internal.PR_SET_DUMPABLE__SUID_DUMP_DISABLE(); err != nil {
-		fmsg.Fatalf("cannot set SUID_DUMP_DISABLE: %s", err)
-		panic("unreachable")
+		log.Fatalf("cannot set SUID_DUMP_DISABLE: %s", err)
 	}
 
 	if os.Getpid() != 1 {
-		fmsg.Fatal("this process must run as pid 1")
-		panic("unreachable")
+		log.Fatal("this process must run as pid 1")
 	}
 
 	// receive setup payload
@@ -44,30 +43,29 @@ func Main() {
 	)
 	if f, err := proc.Receive(Env, &payload); err != nil {
 		if errors.Is(err, proc.ErrInvalid) {
-			fmsg.Fatal("invalid config descriptor")
+			log.Fatal("invalid config descriptor")
 		}
 		if errors.Is(err, proc.ErrNotSet) {
-			fmsg.Fatal("FORTIFY_INIT not set")
+			log.Fatal("FORTIFY_INIT not set")
 		}
 
-		fmsg.Fatalf("cannot decode init setup payload: %v", err)
-		panic("unreachable")
+		log.Fatalf("cannot decode init setup payload: %v", err)
 	} else {
-		fmsg.SetVerbose(payload.Verbose)
+		fmsg.Store(payload.Verbose)
 		closeSetup = f
 
 		// child does not need to see this
 		if err = os.Unsetenv(Env); err != nil {
-			fmsg.Printf("cannot unset %s: %v", Env, err)
+			log.Printf("cannot unset %s: %v", Env, err)
 			// not fatal
 		} else {
-			fmsg.VPrintln("received configuration")
+			fmsg.Verbose("received configuration")
 		}
 	}
 
 	// die with parent
 	if err := internal.PR_SET_PDEATHSIG__SIGKILL(); err != nil {
-		fmsg.Fatalf("prctl(PR_SET_PDEATHSIG, SIGKILL): %v", err)
+		log.Fatalf("prctl(PR_SET_PDEATHSIG, SIGKILL): %v", err)
 	}
 
 	cmd := exec.Command(payload.Argv0)
@@ -76,13 +74,13 @@ func Main() {
 	cmd.Env = os.Environ()
 
 	if err := cmd.Start(); err != nil {
-		fmsg.Fatalf("cannot start %q: %v", payload.Argv0, err)
+		log.Fatalf("cannot start %q: %v", payload.Argv0, err)
 	}
 	fmsg.Suspend()
 
 	// close setup pipe as setup is now complete
 	if err := closeSetup(); err != nil {
-		fmsg.Println("cannot close setup pipe:", err)
+		log.Println("cannot close setup pipe:", err)
 		// not fatal
 	}
 
@@ -119,7 +117,7 @@ func Main() {
 			}
 		}
 		if !errors.Is(err, syscall.ECHILD) {
-			fmsg.Println("unexpected wait4 response:", err)
+			log.Println("unexpected wait4 response:", err)
 		}
 
 		close(done)
@@ -132,9 +130,12 @@ func Main() {
 	for {
 		select {
 		case s := <-sig:
-			fmsg.VPrintln("received", s.String())
-			fmsg.Resume() // output could still be withheld at this point, so resume is called
-			fmsg.Exit(0)
+			if fmsg.Resume() {
+				fmsg.Verbosef("terminating on %s after process start", s.String())
+			} else {
+				fmsg.Verbosef("terminating on %s", s.String())
+			}
+			internal.Exit(0)
 		case w := <-info:
 			if w.wpid == cmd.Process.Pid {
 				// initial process exited, output is most likely available again
@@ -155,10 +156,10 @@ func Main() {
 				}()
 			}
 		case <-done:
-			fmsg.Exit(r)
+			internal.Exit(r)
 		case <-timeout:
-			fmsg.Println("timeout exceeded waiting for lingering processes")
-			fmsg.Exit(r)
+			log.Println("timeout exceeded waiting for lingering processes")
+			internal.Exit(r)
 		}
 	}
 }

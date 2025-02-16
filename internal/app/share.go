@@ -143,7 +143,7 @@ func (seal *appSeal) setupShares(bus [2]*dbus.Config, os linux.System) error {
 	if seal.et.Has(system.EWayland) {
 		var socketPath string
 		if name, ok := os.LookupEnv(wl.WaylandDisplay); !ok {
-			fmsg.VPrintln(wl.WaylandDisplay + " is not set, assuming " + wl.FallbackName)
+			fmsg.Verbose(wl.WaylandDisplay + " is not set, assuming " + wl.FallbackName)
 			socketPath = path.Join(seal.RuntimePath, wl.FallbackName)
 		} else if !path.IsAbs(name) {
 			socketPath = path.Join(seal.RuntimePath, name)
@@ -166,7 +166,7 @@ func (seal *appSeal) setupShares(bus [2]*dbus.Config, os linux.System) error {
 			seal.sys.Wayland(outerPath, socketPath, appID, seal.id)
 			seal.sys.bwrap.Bind(outerPath, innerPath)
 		} else { // bind mount wayland socket (insecure)
-			fmsg.VPrintln("direct wayland access, PROCEED WITH CAUTION")
+			fmsg.Verbose("direct wayland access, PROCEED WITH CAUTION")
 			seal.sys.bwrap.Bind(socketPath, innerPath)
 
 			// ensure Wayland socket ACL (e.g. `/run/user/%d/wayland-%d`)
@@ -229,7 +229,7 @@ func (seal *appSeal) setupShares(bus [2]*dbus.Config, os linux.System) error {
 		// publish current user's pulse cookie for target user
 		if src, err := discoverPulseCookie(os); err != nil {
 			// not fatal
-			fmsg.VPrintln(strings.TrimSpace(err.(*fmsg.BaseError).Message()))
+			fmsg.Verbose(strings.TrimSpace(err.(*fmsg.BaseError).Message()))
 		} else {
 			dst := path.Join(seal.share, "pulse-cookie")
 			innerDst := fst.Tmp + "/pulse-cookie"

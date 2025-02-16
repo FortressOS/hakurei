@@ -1,6 +1,7 @@
 package bwrap_test
 
 import (
+	"log"
 	"os"
 	"slices"
 	"testing"
@@ -8,11 +9,10 @@ import (
 	"git.gensokyo.uk/security/fortify/helper/bwrap"
 	"git.gensokyo.uk/security/fortify/helper/proc"
 	"git.gensokyo.uk/security/fortify/helper/seccomp"
-	"git.gensokyo.uk/security/fortify/internal/fmsg"
 )
 
 func TestConfig_Args(t *testing.T) {
-	seccomp.CPrintln = fmsg.Println
+	seccomp.CPrintln = log.Println
 	t.Cleanup(func() { seccomp.CPrintln = nil })
 
 	testCases := []struct {

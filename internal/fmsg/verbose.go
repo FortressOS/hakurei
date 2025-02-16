@@ -1,25 +1,23 @@
 package fmsg
 
-import "sync/atomic"
+import (
+	"log"
+	"sync/atomic"
+)
 
 var verbose = new(atomic.Bool)
 
-func Verbose() bool {
-	return verbose.Load()
-}
+func Load() bool   { return verbose.Load() }
+func Store(v bool) { verbose.Store(v) }
 
-func SetVerbose(v bool) {
-	verbose.Store(v)
-}
-
-func VPrintf(format string, v ...any) {
+func Verbosef(format string, v ...any) {
 	if verbose.Load() {
-		Printf(format, v...)
+		log.Printf(format, v...)
 	}
 }
 
-func VPrintln(v ...any) {
+func Verbose(v ...any) {
 	if verbose.Load() {
-		Println(v...)
+		log.Println(v...)
 	}
 }

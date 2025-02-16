@@ -24,18 +24,18 @@ func (x XHost) Type() Enablement {
 }
 
 func (x XHost) apply(_ *I) error {
-	fmsg.VPrintf("inserting entry %s to X11", x)
+	fmsg.Verbosef("inserting entry %s to X11", x)
 	return fmsg.WrapErrorSuffix(xcb.ChangeHosts(xcb.HostModeInsert, xcb.FamilyServerInterpreted, "localuser\x00"+string(x)),
 		fmt.Sprintf("cannot insert entry %s to X11:", x))
 }
 
 func (x XHost) revert(_ *I, ec *Criteria) error {
 	if ec.hasType(x) {
-		fmsg.VPrintf("deleting entry %s from X11", x)
+		fmsg.Verbosef("deleting entry %s from X11", x)
 		return fmsg.WrapErrorSuffix(xcb.ChangeHosts(xcb.HostModeDelete, xcb.FamilyServerInterpreted, "localuser\x00"+string(x)),
 			fmt.Sprintf("cannot delete entry %s from X11:", x))
 	} else {
-		fmsg.VPrintf("skipping entry %s in X11", x)
+		fmsg.Verbosef("skipping entry %s in X11", x)
 		return nil
 	}
 }

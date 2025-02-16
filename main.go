@@ -5,6 +5,7 @@ import (
 	_ "embed"
 	"flag"
 	"fmt"
+	"log"
 	"os"
 	"os/signal"
 	"os/user"
@@ -37,6 +38,8 @@ var (
 )
 
 func init() {
+	fmsg.Prepare("fortify")
+
 	flag.BoolVar(&flagVerbose, "v", false, "Verbose output")
 	flag.BoolVar(&flagJSON, "json", false, "Format output in JSON when applicable")
 }
@@ -62,13 +65,12 @@ func main() {
 	init0.TryArgv0()
 
 	if err := internal.PR_SET_DUMPABLE__SUID_DUMP_DISABLE(); err != nil {
-		fmsg.Printf("cannot set SUID_DUMP_DISABLE: %s", err)
+		log.Printf("cannot set SUID_DUMP_DISABLE: %s", err)
 		// not fatal: this program runs as the privileged user
 	}
 
 	if os.Geteuid() == 0 {
-		fmsg.Fatal("this program must not run as root")
-		panic("unreachable")
+		log.Fatal("this program must not run as root")
 	}
 
 	flag.CommandLine.Usage = func() {
@@ -96,12 +98,12 @@ func main() {
 		fmt.Println()
 	}
 	flag.Parse()
-	fmsg.SetVerbose(flagVerbose)
+	fmsg.Store(flagVerbose)
 
 	args := flag.Args()
 	if len(args) == 0 {
 		flag.CommandLine.Usage()
-		fmsg.Exit(0)
+		internal.Exit(0)
 	}
 
 	switch args[0] {
@@ -111,16 +113,20 @@ func main() {
 		} else {
 			fmt.Println("impure")
 		}
-		fmsg.Exit(0)
+		internal.Exit(0)
+
 	case "license": // print embedded license
 		fmt.Println(license)
-		fmsg.Exit(0)
+		internal.Exit(0)
+
 	case "template": // print full template configuration
 		printJSON(os.Stdout, false, fst.Template())
-		fmsg.Exit(0)
+		internal.Exit(0)
+
 	case "help": // print help message
 		flag.CommandLine.Usage()
-		fmsg.Exit(0)
+		internal.Exit(0)
+
 	case "ps": // print all state info
 		set := flag.NewFlagSet("ps", flag.ExitOnError)
 		var short bool
@@ -130,7 +136,8 @@ func main() {
 		_ = set.Parse(args[1:])
 
 		printPs(os.Stdout, time.Now().UTC(), state.NewMulti(sys.Paths().RunDirPath), short)
-		fmsg.Exit(0)
+		internal.Exit(0)
+
 	case "show": // pretty-print app info
 		set := flag.NewFlagSet("show", flag.ExitOnError)
 		var short bool
@@ -142,6 +149,7 @@ func main() {
 		switch len(set.Args()) {
 		case 0: // system
 			printShowSystem(os.Stdout, short)
+
 		case 1: // instance
 			name := set.Args()[0]
 			config, instance := tryShort(name)
@@ -149,14 +157,15 @@ func main() {
 				config = tryPath(name)
 			}
 			printShowInstance(os.Stdout, time.Now().UTC(), instance, config, short)
-		default:
-			fmsg.Fatal("show requires 1 argument")
-		}
 
-		fmsg.Exit(0)
+		default:
+			log.Fatal("show requires 1 argument")
+		}
+		internal.Exit(0)
+
 	case "app": // launch app from configuration file
 		if len(args) < 2 {
-			fmsg.Fatal("app requires at least 1 argument")
+			log.Fatal("app requires at least 1 argument")
 		}
 
 		// config extraArgs...
@@ -166,6 +175,7 @@ func main() {
 		// invoke app
 		runApp(config)
 		panic("unreachable")
+
 	case "run": // run app in permissive defaults usage pattern
 		set := flag.NewFlagSet("run", flag.ExitOnError)
 
@@ -208,8 +218,7 @@ func main() {
 		}
 
 		if aid < 0 || aid > 9999 {
-			fmsg.Fatalf("aid %d out of range", aid)
-			panic("unreachable")
+			log.Fatalf("aid %d out of range", aid)
 		}
 
 		// resolve home/username from os when flag is unset
@@ -219,13 +228,13 @@ func main() {
 			passwdFunc = func() {
 				var us string
 				if uid, err := sys.Uid(aid); err != nil {
-					fmsg.Fatalf("cannot obtain uid from fsu: %v", err)
+					log.Fatalf("cannot obtain uid from fsu: %v", err)
 				} else {
 					us = strconv.Itoa(uid)
 				}
 
 				if u, err := user.LookupId(us); err != nil {
-					fmsg.VPrintf("cannot look up uid %s", us)
+					fmsg.Verbosef("cannot look up uid %s", us)
 					passwd = &user.User{
 						Uid:      us,
 						Gid:      us,
@@ -267,7 +276,7 @@ func main() {
 				config.Confinement.SessionBus = dbus.NewConfig(fid, true, mpris)
 			} else {
 				if c, err := dbus.NewConfigFromFile(dbusConfigSession); err != nil {
-					fmsg.Fatalf("cannot load session bus proxy config from %q: %s", dbusConfigSession, err)
+					log.Fatalf("cannot load session bus proxy config from %q: %s", dbusConfigSession, err)
 				} else {
 					config.Confinement.SessionBus = c
 				}
@@ -276,7 +285,7 @@ func main() {
 			// system bus proxy is optional
 			if dbusConfigSystem != "nil" {
 				if c, err := dbus.NewConfigFromFile(dbusConfigSystem); err != nil {
-					fmsg.Fatalf("cannot load system bus proxy config from %q: %s", dbusConfigSystem, err)
+					log.Fatalf("cannot load system bus proxy config from %q: %s", dbusConfigSystem, err)
 				} else {
 					config.Confinement.SystemBus = c
 				}
@@ -291,17 +300,18 @@ func main() {
 
 		// invoke app
 		runApp(config)
+		panic("unreachable")
 
 	// internal commands
 	case "shim":
 		shim.Main()
-		fmsg.Exit(0)
+		internal.Exit(0)
 	case "init":
 		init0.Main()
-		fmsg.Exit(0)
+		internal.Exit(0)
 
 	default:
-		fmsg.Fatalf("%q is not a valid command", args[0])
+		log.Fatalf("%q is not a valid command", args[0])
 	}
 
 	panic("unreachable")
@@ -313,15 +323,15 @@ func runApp(config *fst.Config) {
 		syscall.SIGINT, syscall.SIGTERM)
 	defer stop() // unreachable
 
-	if fmsg.Verbose() {
-		seccomp.CPrintln = fmsg.Println
+	if fmsg.Load() {
+		seccomp.CPrintln = log.Println
 	}
 
 	if a, err := app.New(sys); err != nil {
-		fmsg.Fatalf("cannot create app: %s\n", err)
+		log.Fatalf("cannot create app: %s", err)
 	} else if err = a.Seal(config); err != nil {
 		logBaseError(err, "cannot seal app:")
-		fmsg.Exit(1)
+		internal.Exit(1)
 	} else if err = a.Run(ctx, rs); err != nil {
 		if !rs.Start {
 			logBaseError(err, "cannot start app:")
@@ -334,8 +344,7 @@ func runApp(config *fst.Config) {
 		}
 	}
 	if rs.WaitErr != nil {
-		fmsg.Println("inner wait failed:", rs.WaitErr)
+		log.Println("inner wait failed:", rs.WaitErr)
 	}
-	fmsg.Exit(rs.ExitCode)
-	panic("unreachable")
+	internal.Exit(rs.ExitCode)
 }

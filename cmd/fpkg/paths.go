@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"os"
 	"os/exec"
 	"path"
@@ -25,8 +26,8 @@ func init() {
 
 func lookPath(file string) string {
 	if p, err := exec.LookPath(file); err != nil {
-		fmsg.Fatalf("%s: command not found", file)
-		panic("unreachable")
+		log.Fatalf("%s: command not found", file)
+		return ""
 	} else {
 		return p
 	}
@@ -35,15 +36,14 @@ func lookPath(file string) string {
 var beforeRunFail = new(atomic.Pointer[func()])
 
 func mustRun(name string, arg ...string) {
-	fmsg.VPrintf("spawning process: %q %q", name, arg)
+	fmsg.Verbosef("spawning process: %q %q", name, arg)
 	cmd := exec.Command(name, arg...)
 	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
 	if err := cmd.Run(); err != nil {
 		if f := beforeRunFail.Swap(nil); f != nil {
 			(*f)()
 		}
-		fmsg.Fatalf("%s: %v", name, err)
-		panic("unreachable")
+		log.Fatalf("%s: %v", name, err)
 	}
 }
 

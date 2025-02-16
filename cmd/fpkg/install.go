@@ -3,10 +3,12 @@ package main
 import (
 	"encoding/json"
 	"flag"
+	"log"
 	"os"
 	"path"
 
 	"git.gensokyo.uk/security/fortify/fst"
+	"git.gensokyo.uk/security/fortify/internal"
 	"git.gensokyo.uk/security/fortify/internal/fmsg"
 )
 
@@ -25,12 +27,12 @@ func actionInstall(args []string) {
 	args = set.Args()
 
 	if len(args) != 1 {
-		fmsg.Fatal("invalid argument")
+		log.Fatal("invalid argument")
 	}
 	pkgPath := args[0]
 	if !path.IsAbs(pkgPath) {
 		if dir, err := os.Getwd(); err != nil {
-			fmsg.Fatalf("cannot get current directory: %v", err)
+			log.Fatalf("cannot get current directory: %v", err)
 		} else {
 			pkgPath = path.Join(dir, pkgPath)
 		}
@@ -54,7 +56,7 @@ func actionInstall(args []string) {
 
 	var workDir string
 	if p, err := os.MkdirTemp("", "fpkg.*"); err != nil {
-		fmsg.Fatalf("cannot create temporary directory: %v", err)
+		log.Fatalf("cannot create temporary directory: %v", err)
 	} else {
 		workDir = p
 	}
@@ -78,19 +80,17 @@ func actionInstall(args []string) {
 	if s, err := os.Stat(pathSet.metaPath); err != nil {
 		if !os.IsNotExist(err) {
 			cleanup()
-			fmsg.Fatalf("cannot access %q: %v", pathSet.metaPath, err)
-			panic("unreachable")
+			log.Fatalf("cannot access %q: %v", pathSet.metaPath, err)
 		}
 		// did not modify app, clean installation condition met later
 	} else if s.IsDir() {
 		cleanup()
-		fmsg.Fatalf("metadata path %q is not a file", pathSet.metaPath)
-		panic("unreachable")
+		log.Fatalf("metadata path %q is not a file", pathSet.metaPath)
 	} else {
 		app = loadBundleInfo(pathSet.metaPath, cleanup)
 		if app.ID != bundle.ID {
 			cleanup()
-			fmsg.Fatalf("app %q claims to have identifier %q", bundle.ID, app.ID)
+			log.Fatalf("app %q claims to have identifier %q", bundle.ID, app.ID)
 		}
 		// sec: should verify credentials
 	}
@@ -102,21 +102,20 @@ func actionInstall(args []string) {
 			app.Launcher == bundle.Launcher &&
 			app.ActivationPackage == bundle.ActivationPackage {
 			cleanup()
-			fmsg.Printf("package %q is identical to local application %q", pkgPath, app.ID)
-			fmsg.Exit(0)
+			log.Printf("package %q is identical to local application %q", pkgPath, app.ID)
+			internal.Exit(0)
 		}
 
 		// AppID determines uid
 		if app.AppID != bundle.AppID {
 			cleanup()
-			fmsg.Fatalf("package %q app id %d differs from installed %d", pkgPath, bundle.AppID, app.AppID)
-			panic("unreachable")
+			log.Fatalf("package %q app id %d differs from installed %d", pkgPath, bundle.AppID, app.AppID)
 		}
 
 		// sec: should compare version string
-		fmsg.VPrintf("installing application %q version %q over local %q", bundle.ID, bundle.Version, app.Version)
+		fmsg.Verbosef("installing application %q version %q over local %q", bundle.ID, bundle.Version, app.Version)
 	} else {
-		fmsg.VPrintf("application %q clean installation", bundle.ID)
+		fmsg.Verbosef("application %q clean installation", bundle.ID)
 		// sec: should install credentials
 	}
 
@@ -174,21 +173,18 @@ func actionInstall(args []string) {
 	// serialise metadata to ensure consistency
 	if f, err := os.OpenFile(pathSet.metaPath+"~", os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644); err != nil {
 		cleanup()
-		fmsg.Fatalf("cannot create metadata file: %v", err)
-		panic("unreachable")
+		log.Fatalf("cannot create metadata file: %v", err)
 	} else if err = json.NewEncoder(f).Encode(bundle); err != nil {
 		cleanup()
-		fmsg.Fatalf("cannot write metadata: %v", err)
-		panic("unreachable")
+		log.Fatalf("cannot write metadata: %v", err)
 	} else if err = f.Close(); err != nil {
-		fmsg.Printf("cannot close metadata file: %v", err)
+		log.Printf("cannot close metadata file: %v", err)
 		// not fatal
 	}
 
 	if err := os.Rename(pathSet.metaPath+"~", pathSet.metaPath); err != nil {
 		cleanup()
-		fmsg.Fatalf("cannot rename metadata file: %v", err)
-		panic("unreachable")
+		log.Fatalf("cannot rename metadata file: %v", err)
 	}
 
 	cleanup()

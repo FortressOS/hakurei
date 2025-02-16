@@ -2,8 +2,10 @@ package main
 
 import (
 	"flag"
+	"log"
 	"os"
 
+	"git.gensokyo.uk/security/fortify/internal"
 	"git.gensokyo.uk/security/fortify/internal/fmsg"
 )
 
@@ -11,7 +13,7 @@ const shell = "/run/current-system/sw/bin/bash"
 
 func init() {
 	if err := os.Setenv("SHELL", shell); err != nil {
-		fmsg.Fatalf("cannot set $SHELL: %v", err)
+		log.Fatalf("cannot set $SHELL: %v", err)
 	}
 }
 
@@ -24,14 +26,14 @@ func init() {
 }
 
 func main() {
-	fmsg.SetPrefix("fpkg")
+	fmsg.Prepare("fpkg")
 
 	flag.Parse()
-	fmsg.SetVerbose(flagVerbose)
+	fmsg.Store(flagVerbose)
 
 	args := flag.Args()
 	if len(args) < 1 {
-		fmsg.Fatal("invalid argument")
+		log.Fatal("invalid argument")
 	}
 
 	switch args[0] {
@@ -41,8 +43,8 @@ func main() {
 		actionStart(args[1:])
 
 	default:
-		fmsg.Fatal("invalid argument")
+		log.Fatal("invalid argument")
 	}
 
-	fmsg.Exit(0)
+	internal.Exit(0)
 }

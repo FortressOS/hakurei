@@ -4,7 +4,7 @@ import (
 	"os"
 	"path"
 
-	"git.gensokyo.uk/security/fortify/internal/fmsg"
+	"git.gensokyo.uk/security/fortify/internal"
 )
 
 // used by the parent process
@@ -13,6 +13,6 @@ import (
 func TryArgv0() {
 	if len(os.Args) > 0 && path.Base(os.Args[0]) == "init" {
 		Main()
-		fmsg.Exit(0)
+		internal.Exit(0)
 	}
 }

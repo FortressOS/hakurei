@@ -54,7 +54,7 @@ type Paths struct {
 func CopyPaths(os System, v *Paths) {
 	v.SharePath = path.Join(os.TempDir(), "fortify."+strconv.Itoa(os.Geteuid()))
 
-	fmsg.VPrintf("process share directory at %q", v.SharePath)
+	fmsg.Verbosef("process share directory at %q", v.SharePath)
 
 	if r, ok := os.LookupEnv(xdgRuntimeDir); !ok || r == "" || !path.IsAbs(r) {
 		// fall back to path in share since fortify has no hard XDG dependency
@@ -65,5 +65,5 @@ func CopyPaths(os System, v *Paths) {
 		v.RunDirPath = path.Join(v.RuntimePath, "fortify")
 	}
 
-	fmsg.VPrintf("runtime directory at %q", v.RunDirPath)
+	fmsg.Verbosef("runtime directory at %q", v.RunDirPath)
 }

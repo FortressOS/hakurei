@@ -4,12 +4,12 @@ import (
 	"crypto/sha512"
 	"errors"
 	"io"
+	"log"
 	"slices"
 	"syscall"
 	"testing"
 
 	"git.gensokyo.uk/security/fortify/helper/seccomp"
-	"git.gensokyo.uk/security/fortify/internal/fmsg"
 )
 
 func TestExport(t *testing.T) {
@@ -79,7 +79,7 @@ func TestExport(t *testing.T) {
 	buf := make([]byte, 8)
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			seccomp.CPrintln = fmsg.Println
+			seccomp.CPrintln = log.Println
 			t.Cleanup(func() { seccomp.CPrintln = nil })
 
 			e := seccomp.New(tc.opts)

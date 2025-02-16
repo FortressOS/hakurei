@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"slices"
 	"strconv"
 	"strings"
@@ -12,7 +13,6 @@ import (
 
 	"git.gensokyo.uk/security/fortify/dbus"
 	"git.gensokyo.uk/security/fortify/fst"
-	"git.gensokyo.uk/security/fortify/internal/fmsg"
 	"git.gensokyo.uk/security/fortify/internal/state"
 )
 
@@ -24,7 +24,7 @@ func printShowSystem(output io.Writer, short bool) {
 
 	// get fid by querying uid of aid 0
 	if uid, err := sys.Uid(0); err != nil {
-		fmsg.Fatalf("cannot obtain uid from fsu: %v", err)
+		log.Fatalf("cannot obtain uid from fsu: %v", err)
 	} else {
 		info.User = (uid / 10000) - 100
 	}
@@ -190,12 +190,12 @@ func printShowInstance(
 func printPs(output io.Writer, now time.Time, s state.Store, short bool) {
 	var entries state.Entries
 	if e, err := state.Join(s); err != nil {
-		fmsg.Fatalf("cannot join store: %v", err)
+		log.Fatalf("cannot join store: %v", err)
 	} else {
 		entries = e
 	}
 	if err := s.Close(); err != nil {
-		fmsg.Printf("cannot close store: %v", err)
+		log.Printf("cannot close store: %v", err)
 	}
 
 	if !short && flagJSON {
@@ -212,13 +212,13 @@ func printPs(output io.Writer, now time.Time, s state.Store, short bool) {
 	for id, instance := range entries {
 		// gracefully skip nil states
 		if instance == nil {
-			fmsg.Printf("got invalid state entry %s", id.String())
+			log.Printf("got invalid state entry %s", id.String())
 			continue
 		}
 
 		// gracefully skip inconsistent states
 		if id != instance.ID {
-			fmsg.Printf("possible store corruption: entry %s has id %s",
+			log.Printf("possible store corruption: entry %s has id %s",
 				id.String(), instance.ID.String())
 			continue
 		}
@@ -273,8 +273,7 @@ func printJSON(output io.Writer, short bool, v any) {
 		encoder.SetIndent("", "  ")
 	}
 	if err := encoder.Encode(v); err != nil {
-		fmsg.Fatalf("cannot serialise: %v", err)
-		panic("unreachable")
+		log.Fatalf("cannot serialise: %v", err)
 	}
 }
 
@@ -284,31 +283,26 @@ type tp struct{ *tabwriter.Writer }
 
 func (p *tp) Printf(format string, a ...any) {
 	if _, err := fmt.Fprintf(p, format, a...); err != nil {
-		fmsg.Fatalf("cannot write to tabwriter: %v", err)
-		panic("unreachable")
+		log.Fatalf("cannot write to tabwriter: %v", err)
 	}
 }
 func (p *tp) Println(a ...any) {
 	if _, err := fmt.Fprintln(p, a...); err != nil {
-		fmsg.Fatalf("cannot write to tabwriter: %v", err)
-		panic("unreachable")
+		log.Fatalf("cannot write to tabwriter: %v", err)
 	}
 }
 func (p *tp) MustFlush() {
 	if err := p.Writer.Flush(); err != nil {
-		fmsg.Fatalf("cannot flush tabwriter: %v", err)
-		panic("unreachable")
+		log.Fatalf("cannot flush tabwriter: %v", err)
 	}
 }
 func mustPrint(output io.Writer, a ...any) {
 	if _, err := fmt.Fprint(output, a...); err != nil {
-		fmsg.Fatalf("cannot print: %v", err)
-		panic("unreachable")
+		log.Fatalf("cannot print: %v", err)
 	}
 }
 func mustPrintln(output io.Writer, a ...any) {
 	if _, err := fmt.Fprintln(output, a...); err != nil {
-		fmsg.Fatalf("cannot print: %v", err)
-		panic("unreachable")
+		log.Fatalf("cannot print: %v", err)
 	}
 }

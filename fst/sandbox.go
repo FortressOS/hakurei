@@ -53,7 +53,7 @@ func (s *SandboxConfig) Bwrap(os linux.System) (*bwrap.Config, error) {
 	}
 
 	if s.Syscall == nil {
-		fmsg.VPrintln("syscall filter not configured, PROCEED WITH CAUTION")
+		fmsg.Verbose("syscall filter not configured, PROCEED WITH CAUTION")
 	}
 
 	var uid int
@@ -121,11 +121,11 @@ func (s *SandboxConfig) Bwrap(os linux.System) (*bwrap.Config, error) {
 						// get parent dir of socket
 						dir := path.Dir(pair[1])
 						if dir == "." || dir == "/" {
-							fmsg.VPrintf("dbus socket %q is in an unusual location", pair[1])
+							fmsg.Verbosef("dbus socket %q is in an unusual location", pair[1])
 						}
 						hidePaths = append(hidePaths, dir)
 					} else {
-						fmsg.VPrintf("dbus socket %q is not absolute", pair[1])
+						fmsg.Verbosef("dbus socket %q is not absolute", pair[1])
 					}
 				}
 			}
@@ -169,7 +169,7 @@ func (s *SandboxConfig) Bwrap(os linux.System) (*bwrap.Config, error) {
 				return nil, err
 			} else if ok {
 				hidePathMatch[i] = true
-				fmsg.VPrintf("hiding paths from %q", c.Src)
+				fmsg.Verbosef("hiding paths from %q", c.Src)
 			}
 		}
 
@@ -221,7 +221,7 @@ func evalSymlinks(os linux.System, v *string) error {
 		if !errors.Is(err, fs.ErrNotExist) {
 			return err
 		}
-		fmsg.VPrintf("path %q does not yet exist", *v)
+		fmsg.Verbosef("path %q does not yet exist", *v)
 	} else {
 		*v = p
 	}
