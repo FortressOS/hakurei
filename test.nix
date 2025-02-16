@@ -3,6 +3,7 @@
   self,
   home-manager,
   nixosTest,
+  fortify,
 }:
 
 nixosTest {
@@ -110,6 +111,18 @@ nixosTest {
 
       environment.fortify = {
         enable = true;
+        package = fortify.overrideAttrs (previousAttrs: {
+          GOFLAGS = previousAttrs.GOFLAGS ++ [ "-race" ];
+
+          # fsu does not like cgo
+          disallowedReferences = previousAttrs.disallowedReferences ++ [ fortify ];
+          postInstall =
+            previousAttrs.postInstall
+            + ''
+              cp -a "${fortify}/libexec/fsu" "$out/libexec/fsu"
+              sed -i 's:${fortify}:${placeholder "out"}:' "$out/libexec/fsu"
+            '';
+        });
         stateDir = "/var/lib/fortify";
         users.alice = 0;
 

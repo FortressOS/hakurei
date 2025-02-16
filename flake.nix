@@ -88,7 +88,10 @@
                 touch $out
               '';
 
-          nixos-tests = callPackage ./test.nix { inherit system self home-manager; };
+          nixos-tests = callPackage ./test.nix {
+            inherit system self home-manager;
+            inherit (self.packages.${system}) fortify;
+          };
         }
       );
 
