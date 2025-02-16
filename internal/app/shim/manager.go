@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/gob"
 	"errors"
-	"log"
 	"os"
 	"os/exec"
 	"strconv"
@@ -55,7 +54,8 @@ func (s *Shim) Start(
 	// prepare user switcher invocation
 	var fsu string
 	if p, ok := internal.Path(internal.Fsu); !ok {
-		log.Fatal("invalid fsu path, this copy of fortify is not compiled correctly")
+		return nil, fmsg.WrapError(errors.New("bad fsu path"),
+			"invalid fsu path, this copy of fortify is not compiled correctly")
 	} else {
 		fsu = p
 	}
