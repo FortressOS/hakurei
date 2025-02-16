@@ -20,10 +20,10 @@ import (
 	"git.gensokyo.uk/security/fortify/helper/seccomp"
 	"git.gensokyo.uk/security/fortify/internal"
 	"git.gensokyo.uk/security/fortify/internal/app"
+	init0 "git.gensokyo.uk/security/fortify/internal/app/init"
+	"git.gensokyo.uk/security/fortify/internal/app/shim"
 	"git.gensokyo.uk/security/fortify/internal/fmsg"
 	"git.gensokyo.uk/security/fortify/internal/linux"
-	init0 "git.gensokyo.uk/security/fortify/internal/priv/init"
-	"git.gensokyo.uk/security/fortify/internal/priv/shim"
 	"git.gensokyo.uk/security/fortify/internal/state"
 	"git.gensokyo.uk/security/fortify/internal/system"
 )

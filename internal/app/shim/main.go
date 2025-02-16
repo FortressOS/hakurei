@@ -15,8 +15,8 @@ import (
 	"git.gensokyo.uk/security/fortify/helper/proc"
 	"git.gensokyo.uk/security/fortify/helper/seccomp"
 	"git.gensokyo.uk/security/fortify/internal"
+	init0 "git.gensokyo.uk/security/fortify/internal/app/init"
 	"git.gensokyo.uk/security/fortify/internal/fmsg"
-	init0 "git.gensokyo.uk/security/fortify/internal/priv/init"
 )
 
 // everything beyond this point runs as unconstrained target user
