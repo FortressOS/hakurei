@@ -12,7 +12,7 @@ import (
 	"git.gensokyo.uk/security/fortify/fst"
 	"git.gensokyo.uk/security/fortify/internal/fmsg"
 	"git.gensokyo.uk/security/fortify/internal/linux"
-	"git.gensokyo.uk/security/fortify/internal/system"
+	"git.gensokyo.uk/security/fortify/system"
 	"git.gensokyo.uk/security/fortify/wl"
 )
 

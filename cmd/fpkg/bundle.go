@@ -6,7 +6,7 @@ import (
 	"os"
 
 	"git.gensokyo.uk/security/fortify/dbus"
-	"git.gensokyo.uk/security/fortify/internal/system"
+	"git.gensokyo.uk/security/fortify/system"
 )
 
 type bundleInfo struct {

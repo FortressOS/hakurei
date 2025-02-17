@@ -3,7 +3,7 @@ package fst
 import (
 	"git.gensokyo.uk/security/fortify/dbus"
 	"git.gensokyo.uk/security/fortify/helper/bwrap"
-	"git.gensokyo.uk/security/fortify/internal/system"
+	"git.gensokyo.uk/security/fortify/system"
 )
 
 const Tmp = "/.fortify"

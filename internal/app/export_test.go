@@ -4,7 +4,7 @@ import (
 	"git.gensokyo.uk/security/fortify/fst"
 	"git.gensokyo.uk/security/fortify/helper/bwrap"
 	"git.gensokyo.uk/security/fortify/internal/linux"
-	"git.gensokyo.uk/security/fortify/internal/system"
+	"git.gensokyo.uk/security/fortify/system"
 )
 
 func NewWithID(id fst.ID, os linux.System) App {

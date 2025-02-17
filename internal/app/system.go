@@ -4,7 +4,7 @@ import (
 	"os"
 
 	"git.gensokyo.uk/security/fortify/helper/bwrap"
-	"git.gensokyo.uk/security/fortify/internal/system"
+	"git.gensokyo.uk/security/fortify/system"
 )
 
 // appSealSys encapsulates app seal behaviour with OS interactions
