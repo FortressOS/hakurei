@@ -7,8 +7,6 @@ import (
 	"io"
 	"os"
 	"syscall"
-
-	"git.gensokyo.uk/security/fortify/internal/fmsg"
 )
 
 // CopyFile registers an Op that copies from src.
@@ -33,8 +31,8 @@ type Tmpfile struct {
 }
 
 func (t *Tmpfile) Type() Enablement { return Process }
-func (t *Tmpfile) apply(_ *I) error {
-	fmsg.Verbose("copying", t)
+func (t *Tmpfile) apply(sys *I) error {
+	sys.println("copying", t)
 
 	if t.payload == nil {
 		// this is a misuse of the API; do not return an error message
@@ -42,25 +40,25 @@ func (t *Tmpfile) apply(_ *I) error {
 	}
 
 	if b, err := os.Stat(t.src); err != nil {
-		return fmsg.WrapErrorSuffix(err,
+		return sys.wrapErrSuffix(err,
 			fmt.Sprintf("cannot stat %q:", t.src))
 	} else {
 		if b.IsDir() {
-			return fmsg.WrapErrorSuffix(syscall.EISDIR,
+			return sys.wrapErrSuffix(syscall.EISDIR,
 				fmt.Sprintf("%q is a directory", t.src))
 		}
 		if s := b.Size(); s > t.n {
-			return fmsg.WrapErrorSuffix(syscall.ENOMEM,
+			return sys.wrapErrSuffix(syscall.ENOMEM,
 				fmt.Sprintf("file %q is too long: %d > %d",
 					t.src, s, t.n))
 		}
 	}
 
 	if f, err := os.Open(t.src); err != nil {
-		return fmsg.WrapErrorSuffix(err,
+		return sys.wrapErrSuffix(err,
 			fmt.Sprintf("cannot open %q:", t.src))
 	} else if _, err = io.CopyN(t.buf, f, t.n); err != nil {
-		return fmsg.WrapErrorSuffix(err,
+		return sys.wrapErrSuffix(err,
 			fmt.Sprintf("cannot read from %q:", t.src))
 	}
 

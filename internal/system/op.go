@@ -5,8 +5,6 @@ import (
 	"errors"
 	"log"
 	"sync"
-
-	"git.gensokyo.uk/security/fortify/internal/fmsg"
 )
 
 const (
@@ -55,10 +53,26 @@ func TypeString(e Enablement) string {
 	}
 }
 
+// New initialises sys with no-op verbose functions.
+func New(uid int) (sys *I) {
+	sys = new(I)
+	sys.uid = uid
+	sys.IsVerbose = func() bool { return false }
+	sys.Verbose = func(...any) {}
+	sys.Verbosef = func(string, ...any) {}
+	sys.WrapErr = func(err error, _ ...any) error { return err }
+	return
+}
+
 type I struct {
 	uid int
 	ops []Op
 	ctx context.Context
+
+	IsVerbose func() bool
+	Verbose   func(v ...any)
+	Verbosef  func(format string, v ...any)
+	WrapErr   func(err error, a ...any) error
 
 	// whether sys has been reverted
 	state bool
@@ -66,8 +80,15 @@ type I struct {
 	lock sync.Mutex
 }
 
-func (sys *I) UID() int {
-	return sys.uid
+func (sys *I) UID() int                          { return sys.uid }
+func (sys *I) println(v ...any)                  { sys.Verbose(v...) }
+func (sys *I) printf(format string, v ...any)    { sys.Verbosef(format, v...) }
+func (sys *I) wrapErr(err error, a ...any) error { return sys.WrapErr(err, a...) }
+func (sys *I) wrapErrSuffix(err error, a ...any) error {
+	if err == nil {
+		return nil
+	}
+	return sys.wrapErr(err, append(a, err)...)
 }
 
 func (sys *I) Equal(v *I) bool {
@@ -99,7 +120,7 @@ func (sys *I) Commit(ctx context.Context) error {
 		// sp is set to nil when all ops are applied
 		if sp != nil {
 			// rollback partial commit
-			fmsg.Verbosef("commit faulted after %d ops, rolling back partial commit", len(sp.ops))
+			sys.printf("commit faulted after %d ops, rolling back partial commit", len(sp.ops))
 			if err := sp.Revert(&Criteria{nil}); err != nil {
 				log.Println("errors returned reverting partial commit:", err)
 			}
@@ -138,8 +159,4 @@ func (sys *I) Revert(ec *Criteria) error {
 
 	// errors.Join filters nils
 	return errors.Join(errs...)
-}
-
-func New(uid int) *I {
-	return &I{uid: uid}
 }

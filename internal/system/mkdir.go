@@ -4,8 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-
-	"git.gensokyo.uk/security/fortify/internal/fmsg"
 )
 
 // Ensure the existence and mode of a directory.
@@ -39,33 +37,33 @@ func (m *Mkdir) Type() Enablement {
 	return m.et
 }
 
-func (m *Mkdir) apply(_ *I) error {
-	fmsg.Verbose("ensuring directory", m)
+func (m *Mkdir) apply(sys *I) error {
+	sys.println("ensuring directory", m)
 
 	// create directory
 	err := os.Mkdir(m.path, m.perm)
 	if !errors.Is(err, os.ErrExist) {
-		return fmsg.WrapErrorSuffix(err,
+		return sys.wrapErrSuffix(err,
 			fmt.Sprintf("cannot create directory %q:", m.path))
 	}
 
 	// directory exists, ensure mode
-	return fmsg.WrapErrorSuffix(os.Chmod(m.path, m.perm),
+	return sys.wrapErrSuffix(os.Chmod(m.path, m.perm),
 		fmt.Sprintf("cannot change mode of %q to %s:", m.path, m.perm))
 }
 
-func (m *Mkdir) revert(_ *I, ec *Criteria) error {
+func (m *Mkdir) revert(sys *I, ec *Criteria) error {
 	if !m.ephemeral {
 		// skip non-ephemeral dir and do not log anything
 		return nil
 	}
 
 	if ec.hasType(m) {
-		fmsg.Verbose("destroying ephemeral directory", m)
-		return fmsg.WrapErrorSuffix(os.Remove(m.path),
+		sys.println("destroying ephemeral directory", m)
+		return sys.wrapErrSuffix(os.Remove(m.path),
 			fmt.Sprintf("cannot remove ephemeral directory %q:", m.path))
 	} else {
-		fmsg.Verbose("skipping ephemeral directory", m)
+		sys.println("skipping ephemeral directory", m)
 		return nil
 	}
 }

@@ -252,8 +252,12 @@ func (a *app) Seal(config *fst.Config) error {
 	// store activity begins after Start is called and must end before Wait
 	seal.store = state.NewMulti(seal.RunDirPath)
 
-	// initialise system interface with full uid
+	// initialise system interface with os uid
 	seal.sys.I = system.New(seal.sys.user.uid)
+	seal.sys.I.IsVerbose = fmsg.Load
+	seal.sys.I.Verbose = fmsg.Verbose
+	seal.sys.I.Verbosef = fmsg.Verbosef
+	seal.sys.I.WrapErr = fmsg.WrapError
 
 	// pass through enablements
 	seal.et = config.Confinement.Enablements

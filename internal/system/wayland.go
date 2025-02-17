@@ -6,7 +6,6 @@ import (
 	"os"
 
 	"git.gensokyo.uk/security/fortify/acl"
-	"git.gensokyo.uk/security/fortify/internal/fmsg"
 	"git.gensokyo.uk/security/fortify/wl"
 )
 
@@ -47,35 +46,35 @@ func (w *Wayland) apply(sys *I) error {
 		if errors.Is(err, os.ErrNotExist) {
 			err = os.ErrNotExist
 		}
-		return fmsg.WrapErrorSuffix(err,
+		return sys.wrapErrSuffix(err,
 			fmt.Sprintf("cannot attach to wayland on %q:", w.src))
 	} else {
-		fmsg.Verbosef("wayland attached on %q", w.src)
+		sys.printf("wayland attached on %q", w.src)
 	}
 
 	if sp, err := w.conn.Bind(w.dst, w.appID, w.instanceID); err != nil {
-		return fmsg.WrapErrorSuffix(err,
+		return sys.wrapErrSuffix(err,
 			fmt.Sprintf("cannot bind to socket on %q:", w.dst))
 	} else {
 		*w.sync = sp
-		fmsg.Verbosef("wayland listening on %q", w.dst)
-		return fmsg.WrapErrorSuffix(errors.Join(os.Chmod(w.dst, 0), acl.UpdatePerm(w.dst, sys.uid, acl.Read, acl.Write, acl.Execute)),
+		sys.printf("wayland listening on %q", w.dst)
+		return sys.wrapErrSuffix(errors.Join(os.Chmod(w.dst, 0), acl.UpdatePerm(w.dst, sys.uid, acl.Read, acl.Write, acl.Execute)),
 			fmt.Sprintf("cannot chmod socket on %q:", w.dst))
 	}
 }
 
-func (w *Wayland) revert(_ *I, ec *Criteria) error {
+func (w *Wayland) revert(sys *I, ec *Criteria) error {
 	if ec.hasType(w) {
-		fmsg.Verbosef("removing wayland socket on %q", w.dst)
+		sys.printf("removing wayland socket on %q", w.dst)
 		if err := os.Remove(w.dst); err != nil && !errors.Is(err, os.ErrNotExist) {
 			return err
 		}
 
-		fmsg.Verbosef("detaching from wayland on %q", w.src)
-		return fmsg.WrapErrorSuffix(w.conn.Close(),
+		sys.printf("detaching from wayland on %q", w.src)
+		return sys.wrapErrSuffix(w.conn.Close(),
 			fmt.Sprintf("cannot detach from wayland on %q:", w.src))
 	} else {
-		fmsg.Verbosef("skipping wayland cleanup on %q", w.dst)
+		sys.printf("skipping wayland cleanup on %q", w.dst)
 		return nil
 	}
 }
