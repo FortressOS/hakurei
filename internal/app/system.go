@@ -1,6 +1,8 @@
 package app
 
 import (
+	"os"
+
 	"git.gensokyo.uk/security/fortify/helper/bwrap"
 	"git.gensokyo.uk/security/fortify/internal/system"
 )
@@ -8,6 +10,8 @@ import (
 // appSealSys encapsulates app seal behaviour with OS interactions
 type appSealSys struct {
 	bwrap *bwrap.Config
+	// bwrap sync fd
+	sp *os.File
 	// paths to override by mounting tmpfs over them
 	override []string
 

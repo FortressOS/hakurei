@@ -58,7 +58,7 @@ func (a *app) Run(ctx context.Context, rs *RunState) error {
 	if startTime, err := a.shim.Start(
 		a.seal.sys.user.as,
 		a.seal.sys.user.supp,
-		a.seal.sys.Sync(),
+		a.seal.sys.sp,
 	); err != nil {
 		return err
 	} else {

@@ -163,7 +163,7 @@ func (seal *appSeal) setupShares(bus [2]*dbus.Config, os linux.System) error {
 				// use instance ID in case app id is not set
 				appID = "uk.gensokyo.fortify." + seal.id
 			}
-			seal.sys.Wayland(outerPath, socketPath, appID, seal.id)
+			seal.sys.Wayland(&seal.sys.sp, outerPath, socketPath, appID, seal.id)
 			seal.sys.bwrap.Bind(outerPath, innerPath)
 		} else { // bind mount wayland socket (insecure)
 			fmsg.Verbose("direct wayland access, PROCEED WITH CAUTION")

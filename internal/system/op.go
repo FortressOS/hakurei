@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"log"
-	"os"
 	"sync"
 
 	"git.gensokyo.uk/security/fortify/internal/fmsg"
@@ -60,8 +59,6 @@ type I struct {
 	uid int
 	ops []Op
 	ctx context.Context
-	// sync fd passed to bwrap
-	sp *os.File
 
 	// whether sys has been reverted
 	state bool
@@ -71,10 +68,6 @@ type I struct {
 
 func (sys *I) UID() int {
 	return sys.uid
-}
-
-func (sys *I) Sync() *os.File {
-	return sys.sp
 }
 
 func (sys *I) Equal(v *I) bool {
