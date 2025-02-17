@@ -47,7 +47,7 @@ func TestUpdatePerm(t *testing.T) {
 	})
 
 	t.Run("default clear mask", func(t *testing.T) {
-		if err := acl.UpdatePerm(testFilePath, uid); err != nil {
+		if err := acl.Update(testFilePath, uid); err != nil {
 			t.Fatalf("UpdatePerm: error = %v", err)
 		}
 		if cur = getfacl(t, testFilePath); len(cur) != 4 {
@@ -56,7 +56,7 @@ func TestUpdatePerm(t *testing.T) {
 	})
 
 	t.Run("default clear consistency", func(t *testing.T) {
-		if err := acl.UpdatePerm(testFilePath, uid); err != nil {
+		if err := acl.Update(testFilePath, uid); err != nil {
 			t.Fatalf("UpdatePerm: error = %v", err)
 		}
 		if val := getfacl(t, testFilePath); !reflect.DeepEqual(val, cur) {
@@ -76,7 +76,7 @@ func TestUpdatePerm(t *testing.T) {
 func testUpdate(t *testing.T, testFilePath, name string, cur []*getFAclResp, val fAclPerm, perms ...acl.Perm) {
 	t.Run(name, func(t *testing.T) {
 		t.Cleanup(func() {
-			if err := acl.UpdatePerm(testFilePath, uid); err != nil {
+			if err := acl.Update(testFilePath, uid); err != nil {
 				t.Fatalf("UpdatePerm: error = %v", err)
 			}
 			if v := getfacl(t, testFilePath); !reflect.DeepEqual(v, cur) {
@@ -84,7 +84,7 @@ func testUpdate(t *testing.T, testFilePath, name string, cur []*getFAclResp, val
 			}
 		})
 
-		if err := acl.UpdatePerm(testFilePath, uid, perms...); err != nil {
+		if err := acl.Update(testFilePath, uid, perms...); err != nil {
 			t.Fatalf("UpdatePerm: error = %v", err)
 		}
 		r := respByCred(getfacl(t, testFilePath), fAclTypeUser, cred)

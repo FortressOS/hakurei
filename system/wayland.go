@@ -58,7 +58,7 @@ func (w *Wayland) apply(sys *I) error {
 	} else {
 		*w.sync = sp
 		sys.printf("wayland listening on %q", w.dst)
-		return sys.wrapErrSuffix(errors.Join(os.Chmod(w.dst, 0), acl.UpdatePerm(w.dst, sys.uid, acl.Read, acl.Write, acl.Execute)),
+		return sys.wrapErrSuffix(errors.Join(os.Chmod(w.dst, 0), acl.Update(w.dst, sys.uid, acl.Read, acl.Write, acl.Execute)),
 			fmt.Sprintf("cannot chmod socket on %q:", w.dst))
 	}
 }

@@ -34,14 +34,14 @@ func (a *ACL) Type() Enablement { return a.et }
 
 func (a *ACL) apply(sys *I) error {
 	sys.println("applying ACL", a)
-	return sys.wrapErrSuffix(acl.UpdatePerm(a.path, sys.uid, a.perms...),
+	return sys.wrapErrSuffix(acl.Update(a.path, sys.uid, a.perms...),
 		fmt.Sprintf("cannot apply ACL entry to %q:", a.path))
 }
 
 func (a *ACL) revert(sys *I, ec *Criteria) error {
 	if ec.hasType(a) {
 		sys.println("stripping ACL", a)
-		return sys.wrapErrSuffix(acl.UpdatePerm(a.path, sys.uid),
+		return sys.wrapErrSuffix(acl.Update(a.path, sys.uid),
 			fmt.Sprintf("cannot strip ACL entry from %q:", a.path))
 	} else {
 		sys.println("skipping ACL", a)
