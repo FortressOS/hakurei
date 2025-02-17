@@ -2,6 +2,7 @@ package system
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -34,6 +35,11 @@ type Tmpfile struct {
 func (t *Tmpfile) Type() Enablement { return Process }
 func (t *Tmpfile) apply(_ *I) error {
 	fmsg.Verbose("copying", t)
+
+	if t.payload == nil {
+		// this is a misuse of the API; do not return an error message
+		return errors.New("invalid payload")
+	}
 
 	if b, err := os.Stat(t.src); err != nil {
 		return fmsg.WrapErrorSuffix(err,
