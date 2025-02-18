@@ -29,30 +29,35 @@ var (
 
 var posixUsername = regexp.MustCompilePOSIX("^[a-z_]([A-Za-z0-9_-]{0,31}|[A-Za-z0-9_-]{0,30}\\$)$")
 
-// appSeal seals the application with child-related information
+// appSeal stores copies of various parts of [fst.Config]
 type appSeal struct {
-	// app unique ID string representation
+	// string representation of [fst.ID]
 	id string
 	// dump dbus proxy message buffer
 	dbusMsg func()
 
-	// freedesktop application ID
-	fid string
-	// argv to start process with in the final confined environment
+	// reverse-DNS style arbitrary identifier string from config;
+	// passed to wayland security-context-v1 as application ID
+	// and used as part of defaults in dbus session proxy
+	appID string
+	// final argv, passed to init
 	command []string
-	// persistent process state store
+	// state instance initialised during seal and used on process lifecycle events
 	store state.Store
 
-	// process-specific share directory path
+	// process-specific share directory path ([os.TempDir])
 	share string
-	// process-specific share directory path local to XDG_RUNTIME_DIR
+	// process-specific share directory path ([fst.Paths] XDG_RUNTIME_DIR)
 	shareLocal string
 
-	// initial config gob encoding buffer
+	// initial [fst.Config] gob stream for state data;
+	// this is prepared ahead of time as config is mutated during seal creation
 	ct io.WriterTo
-	// wayland socket direct access
+	// passed through from [fst.SandboxConfig];
+	// when this gets set no attempt is made to attach security-context-v1
+	// and the bare socket is mounted to the sandbox
 	directWayland bool
-	// extra UpdatePerm ops
+	// extra [acl.Update] ops, appended at the end of [system.I]
 	extraPerms []*sealedExtraPerm
 
 	// prevents sharing from happening twice
@@ -102,7 +107,7 @@ func (a *app) Seal(config *fst.Config) error {
 
 	// pass through config values
 	seal.id = a.id.String()
-	seal.fid = config.ID
+	seal.appID = config.ID
 	seal.command = config.Command
 
 	// create seal system component

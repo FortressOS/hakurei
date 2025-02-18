@@ -158,7 +158,7 @@ func (seal *appSeal) setupShares(bus [2]*dbus.Config, os sys.State) error {
 			socketDir := path.Join(seal.SharePath, "wayland")
 			outerPath := path.Join(socketDir, seal.id)
 			seal.sys.Ensure(socketDir, 0711)
-			appID := seal.fid
+			appID := seal.appID
 			if appID == "" {
 				// use instance ID in case app id is not set
 				appID = "uk.gensokyo.fortify." + seal.id
@@ -246,7 +246,7 @@ func (seal *appSeal) setupShares(bus [2]*dbus.Config, os sys.State) error {
 	if seal.Has(system.EDBus) {
 		// ensure dbus session bus defaults
 		if bus[0] == nil {
-			bus[0] = dbus.NewConfig(seal.fid, true, true)
+			bus[0] = dbus.NewConfig(seal.appID, true, true)
 		}
 
 		// downstream socket paths
