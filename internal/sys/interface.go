@@ -34,6 +34,9 @@ type State interface {
 	// Exit provides [os.Exit].
 	Exit(code int)
 
+	Println(v ...any)
+	Printf(format string, v ...any)
+
 	// Paths returns a populated [Paths] struct.
 	Paths() Paths
 	// Uid invokes fsu and returns target uid.

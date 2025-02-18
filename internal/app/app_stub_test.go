@@ -3,6 +3,7 @@ package app_test
 import (
 	"fmt"
 	"io/fs"
+	"log"
 	"os/user"
 	"strconv"
 
@@ -22,6 +23,9 @@ func (s *stubNixOS) MustExecutable() string                   { return "/run/wra
 func (s *stubNixOS) Exit(code int)                            { panic("called exit on stub with code " + strconv.Itoa(code)) }
 func (s *stubNixOS) EvalSymlinks(path string) (string, error) { return path, nil }
 func (s *stubNixOS) Uid(aid int) (int, error)                 { return 1000000 + 0*10000 + aid, nil }
+
+func (s *stubNixOS) Println(v ...any)               { log.Println(v...) }
+func (s *stubNixOS) Printf(format string, v ...any) { log.Printf(format, v...) }
 
 func (s *stubNixOS) LookupEnv(key string) (string, bool) {
 	switch key {

@@ -41,6 +41,8 @@ func (s *Std) Stat(name string) (fs.FileInfo, error)        { return os.Stat(nam
 func (s *Std) Open(name string) (fs.File, error)            { return os.Open(name) }
 func (s *Std) EvalSymlinks(path string) (string, error)     { return filepath.EvalSymlinks(path) }
 func (s *Std) Exit(code int)                                { internal.Exit(code) }
+func (s *Std) Println(v ...any)                             { fmsg.Verbose(v...) }
+func (s *Std) Printf(format string, v ...any)               { fmsg.Verbosef(format, v...) }
 
 const xdgRuntimeDir = "XDG_RUNTIME_DIR"
 
