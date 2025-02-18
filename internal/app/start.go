@@ -21,8 +21,8 @@ import (
 const shimSetupTimeout = 5 * time.Second
 
 func (a *app) Run(ctx context.Context, rs *fst.RunState) error {
-	a.lock.Lock()
-	defer a.lock.Unlock()
+	a.mu.Lock()
+	defer a.mu.Unlock()
 
 	if rs == nil {
 		panic("attempted to pass nil state to run")
@@ -30,8 +30,8 @@ func (a *app) Run(ctx context.Context, rs *fst.RunState) error {
 
 	// resolve exec paths
 	shimExec := [2]string{helper.BubblewrapName}
-	if len(a.seal.command) > 0 {
-		shimExec[1] = a.seal.command[0]
+	if len(a.appSeal.command) > 0 {
+		shimExec[1] = a.appSeal.command[0]
 	}
 	for i, n := range shimExec {
 		if len(n) == 0 {
@@ -48,18 +48,18 @@ func (a *app) Run(ctx context.Context, rs *fst.RunState) error {
 	}
 
 	// startup will go ahead, commit system setup
-	if err := a.seal.sys.Commit(ctx); err != nil {
+	if err := a.appSeal.sys.Commit(ctx); err != nil {
 		return err
 	}
-	a.seal.sys.needRevert = true
+	a.appSeal.sys.needRevert = true
 
 	// start shim via manager
 	a.shim = new(shim.Shim)
 	waitErr := make(chan error, 1)
 	if startTime, err := a.shim.Start(
-		a.seal.sys.user.aid.String(),
-		a.seal.sys.user.supp,
-		a.seal.sys.sp,
+		a.appSeal.sys.user.aid.String(),
+		a.appSeal.sys.user.supp,
+		a.appSeal.sys.sp,
 	); err != nil {
 		return err
 	} else {
@@ -78,10 +78,10 @@ func (a *app) Run(ctx context.Context, rs *fst.RunState) error {
 
 		// send payload
 		if err = a.shim.Serve(shimSetupCtx, &shim.Payload{
-			Argv:  a.seal.command,
+			Argv:  a.appSeal.command,
 			Exec:  shimExec,
-			Bwrap: a.seal.sys.bwrap,
-			Home:  a.seal.sys.user.data,
+			Bwrap: a.appSeal.sys.bwrap,
+			Home:  a.appSeal.sys.user.data,
 
 			Verbose: fmsg.Load(),
 		}); err != nil {
@@ -97,10 +97,10 @@ func (a *app) Run(ctx context.Context, rs *fst.RunState) error {
 
 		// register process state
 		var err0 = new(StateStoreError)
-		err0.Inner, err0.DoErr = a.seal.store.Do(a.seal.sys.user.aid.unwrap(), func(c state.Cursor) {
-			err0.InnerErr = c.Save(&sd, a.seal.ct)
+		err0.Inner, err0.DoErr = a.appSeal.store.Do(a.appSeal.sys.user.aid.unwrap(), func(c state.Cursor) {
+			err0.InnerErr = c.Save(&sd, a.appSeal.ct)
 		})
-		a.seal.sys.saveState = true
+		a.appSeal.sys.saveState = true
 		if err = err0.equiv("cannot save process state:"); err != nil {
 			return err
 		}
@@ -141,16 +141,16 @@ func (a *app) Run(ctx context.Context, rs *fst.RunState) error {
 	fmsg.Resume()
 
 	// print queued up dbus messages
-	if a.seal.dbusMsg != nil {
-		a.seal.dbusMsg()
+	if a.appSeal.dbusMsg != nil {
+		a.appSeal.dbusMsg()
 	}
 
 	// update store and revert app setup transaction
 	e := new(StateStoreError)
-	e.Inner, e.DoErr = a.seal.store.Do(a.seal.sys.user.aid.unwrap(), func(b state.Cursor) {
+	e.Inner, e.DoErr = a.appSeal.store.Do(a.appSeal.sys.user.aid.unwrap(), func(b state.Cursor) {
 		e.InnerErr = func() error {
 			// destroy defunct state entry
-			if cmd := a.shim.Unwrap(); cmd != nil && a.seal.sys.saveState {
+			if cmd := a.shim.Unwrap(); cmd != nil && a.appSeal.sys.saveState {
 				if err := b.Destroy(a.id.unwrap()); err != nil {
 					return err
 				}
@@ -198,8 +198,8 @@ func (a *app) Run(ctx context.Context, rs *fst.RunState) error {
 				}
 			}
 
-			if a.seal.sys.needRevert {
-				if err := a.seal.sys.Revert(ec); err != nil {
+			if a.appSeal.sys.needRevert {
+				if err := a.appSeal.sys.Revert(ec); err != nil {
 					return err.(RevertCompoundError)
 				}
 			}
@@ -208,7 +208,7 @@ func (a *app) Run(ctx context.Context, rs *fst.RunState) error {
 		}()
 	})
 
-	e.Err = a.seal.store.Close()
+	e.Err = a.appSeal.store.Close()
 	return e.equiv("error returned during cleanup:", e)
 }
 

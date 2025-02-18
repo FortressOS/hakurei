@@ -10,11 +10,11 @@ import (
 func NewWithID(id fst.ID, os sys.State) fst.App {
 	a := new(app)
 	a.id = newID(&id)
-	a.os = os
+	a.sys = os
 	return a
 }
 
 func AppSystemBwrap(a fst.App) (*system.I, *bwrap.Config) {
 	v := a.(*app)
-	return v.seal.sys.I, v.seal.sys.bwrap
+	return v.appSeal.sys.I, v.appSeal.sys.bwrap
 }

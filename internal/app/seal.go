@@ -79,10 +79,10 @@ type sealedExtraPerm struct {
 
 // Seal seals the app launch context
 func (a *app) Seal(config *fst.Config) error {
-	a.lock.Lock()
-	defer a.lock.Unlock()
+	a.mu.Lock()
+	defer a.mu.Unlock()
 
-	if a.seal != nil {
+	if a.appSeal != nil {
 		panic("app sealed twice")
 	}
 
@@ -103,7 +103,7 @@ func (a *app) Seal(config *fst.Config) error {
 	seal.ct = ct
 
 	// fetch system constants
-	seal.Paths = a.os.Paths()
+	seal.Paths = a.sys.Paths()
 
 	// pass through config values
 	seal.id = a.id.String()
@@ -119,7 +119,7 @@ func (a *app) Seal(config *fst.Config) error {
 		if config.Confinement.Sandbox != nil && config.Confinement.Sandbox.MapRealUID {
 			// some programs fail to connect to dbus session running as a different uid, so a
 			// separate workaround is introduced to map priv-side caller uid in namespace
-			mapuid = a.os.Geteuid()
+			mapuid = a.sys.Geteuid()
 		}
 		seal.sys.mapuid = newInt(mapuid)
 		seal.sys.runtime = path.Join("/run/user", seal.sys.mapuid.String())
@@ -152,7 +152,7 @@ func (a *app) Seal(config *fst.Config) error {
 	}
 
 	// invoke fsu for full uid
-	if u, err := a.os.Uid(seal.sys.user.aid.unwrap()); err != nil {
+	if u, err := a.sys.Uid(seal.sys.user.aid.unwrap()); err != nil {
 		return err
 	} else {
 		seal.sys.user.uid = newInt(u)
@@ -161,7 +161,7 @@ func (a *app) Seal(config *fst.Config) error {
 	// resolve supplementary group ids from names
 	seal.sys.user.supp = make([]string, len(config.Confinement.Groups))
 	for i, name := range config.Confinement.Groups {
-		if g, err := a.os.LookupGroup(name); err != nil {
+		if g, err := a.sys.LookupGroup(name); err != nil {
 			return fmsg.WrapError(err,
 				fmt.Sprintf("unknown group %q", name))
 		} else {
@@ -204,7 +204,7 @@ func (a *app) Seal(config *fst.Config) error {
 			AutoEtc:      true,
 		}
 		// bind entries in /
-		if d, err := a.os.ReadDir("/"); err != nil {
+		if d, err := a.sys.ReadDir("/"); err != nil {
 			return err
 		} else {
 			b := make([]*fst.FilesystemConfig, 0, len(d))
@@ -226,7 +226,7 @@ func (a *app) Seal(config *fst.Config) error {
 
 		// hide nscd from sandbox if present
 		nscd := "/var/run/nscd"
-		if _, err := a.os.Stat(nscd); !errors.Is(err, fs.ErrNotExist) {
+		if _, err := a.sys.Stat(nscd); !errors.Is(err, fs.ErrNotExist) {
 			conf.Override = append(conf.Override, nscd)
 		}
 		// bind GPU stuff
@@ -239,7 +239,7 @@ func (a *app) Seal(config *fst.Config) error {
 		config.Confinement.Sandbox = conf
 	}
 	seal.directWayland = config.Confinement.Sandbox.DirectWayland
-	if b, err := config.Confinement.Sandbox.Bwrap(a.os); err != nil {
+	if b, err := config.Confinement.Sandbox.Bwrap(a.sys); err != nil {
 		return err
 	} else {
 		seal.sys.bwrap = b
@@ -265,7 +265,7 @@ func (a *app) Seal(config *fst.Config) error {
 	seal.Enablements = config.Confinement.Enablements
 
 	// this method calls all share methods in sequence
-	if err := seal.setupShares([2]*dbus.Config{config.Confinement.SessionBus, config.Confinement.SystemBus}, a.os); err != nil {
+	if err := seal.setupShares([2]*dbus.Config{config.Confinement.SessionBus, config.Confinement.SystemBus}, a.sys); err != nil {
 		return err
 	}
 
@@ -274,6 +274,6 @@ func (a *app) Seal(config *fst.Config) error {
 		seal.sys.user.uid, seal.sys.user.username, config.Confinement.Groups, config.Command)
 
 	// seal app and release lock
-	a.seal = seal
+	a.appSeal = seal
 	return nil
 }
