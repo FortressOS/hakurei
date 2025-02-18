@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"reflect"
+	"strings"
 )
 
 // baseError implements a basic error container
@@ -76,8 +77,12 @@ func PrintBaseError(err error, fallback string) {
 	var e *BaseError
 
 	if AsBaseError(err, &e) {
-		log.Print(e.Message())
-	} else {
-		log.Println(fallback, err)
+		if msg := e.Message(); strings.TrimSpace(msg) != "" {
+			log.Print(msg)
+			return
+		}
+		Verbose("*"+fallback, err)
+		return
 	}
+	log.Println(fallback, err)
 }
