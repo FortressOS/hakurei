@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"git.gensokyo.uk/security/fortify/fst"
 	"git.gensokyo.uk/security/fortify/helper"
 	"git.gensokyo.uk/security/fortify/internal/app/shim"
 	"git.gensokyo.uk/security/fortify/internal/fmsg"
@@ -19,7 +20,7 @@ import (
 
 const shimSetupTimeout = 5 * time.Second
 
-func (a *app) Run(ctx context.Context, rs *RunState) error {
+func (a *app) Run(ctx context.Context, rs *fst.RunState) error {
 	a.lock.Lock()
 	defer a.lock.Unlock()
 

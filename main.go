@@ -319,7 +319,7 @@ func main() {
 }
 
 func runApp(config *fst.Config) {
-	rs := new(app.RunState)
+	rs := new(fst.RunState)
 	ctx, stop := signal.NotifyContext(context.Background(),
 		syscall.SIGINT, syscall.SIGTERM)
 	defer stop() // unreachable

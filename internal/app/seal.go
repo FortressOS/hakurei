@@ -18,7 +18,6 @@ import (
 	"git.gensokyo.uk/security/fortify/internal"
 	"git.gensokyo.uk/security/fortify/internal/fmsg"
 	"git.gensokyo.uk/security/fortify/internal/state"
-	"git.gensokyo.uk/security/fortify/internal/sys"
 	"git.gensokyo.uk/security/fortify/system"
 )
 
@@ -64,7 +63,7 @@ type appSeal struct {
 	// seal system-level component
 	sys *appSealSys
 
-	sys.Paths
+	fst.Paths
 
 	// protected by upstream mutex
 }

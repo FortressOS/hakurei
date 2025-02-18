@@ -8,7 +8,6 @@ import (
 
 	"git.gensokyo.uk/security/fortify/dbus"
 	"git.gensokyo.uk/security/fortify/helper/bwrap"
-	"git.gensokyo.uk/security/fortify/internal/sys"
 )
 
 // SandboxConfig describes resources made available to the sandbox.
@@ -47,7 +46,7 @@ type SandboxConfig struct {
 // SandboxSys encapsulates system functions used during the creation of [bwrap.Config].
 type SandboxSys interface {
 	Geteuid() int
-	Paths() sys.Paths
+	Paths() Paths
 	ReadDir(name string) ([]fs.DirEntry, error)
 	EvalSymlinks(path string) (string, error)
 

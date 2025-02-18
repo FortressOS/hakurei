@@ -6,6 +6,7 @@ import (
 	"path"
 	"strconv"
 
+	"git.gensokyo.uk/security/fortify/fst"
 	"git.gensokyo.uk/security/fortify/internal/fmsg"
 )
 
@@ -38,24 +39,14 @@ type State interface {
 	Printf(format string, v ...any)
 
 	// Paths returns a populated [Paths] struct.
-	Paths() Paths
+	Paths() fst.Paths
 	// Uid invokes fsu and returns target uid.
 	// Any errors returned by Uid is already wrapped [fmsg.BaseError].
 	Uid(aid int) (int, error)
 }
 
-// Paths contains environment dependent paths used by fortify.
-type Paths struct {
-	// path to shared directory e.g. /tmp/fortify.%d
-	SharePath string `json:"share_path"`
-	// XDG_RUNTIME_DIR value e.g. /run/user/%d
-	RuntimePath string `json:"runtime_path"`
-	// application runtime directory e.g. /run/user/%d/fortify
-	RunDirPath string `json:"run_dir_path"`
-}
-
 // CopyPaths is a generic implementation of [System.Paths].
-func CopyPaths(os State, v *Paths) {
+func CopyPaths(os State, v *fst.Paths) {
 	v.SharePath = path.Join(os.TempDir(), "fortify."+strconv.Itoa(os.Geteuid()))
 
 	fmsg.Verbosef("process share directory at %q", v.SharePath)

@@ -13,13 +13,14 @@ import (
 	"sync"
 	"syscall"
 
+	"git.gensokyo.uk/security/fortify/fst"
 	"git.gensokyo.uk/security/fortify/internal"
 	"git.gensokyo.uk/security/fortify/internal/fmsg"
 )
 
 // Std implements System using the standard library.
 type Std struct {
-	paths     Paths
+	paths     fst.Paths
 	pathsOnce sync.Once
 
 	uidOnce sync.Once
@@ -46,7 +47,7 @@ func (s *Std) Printf(format string, v ...any)               { fmsg.Verbosef(form
 
 const xdgRuntimeDir = "XDG_RUNTIME_DIR"
 
-func (s *Std) Paths() Paths {
+func (s *Std) Paths() fst.Paths {
 	s.pathsOnce.Do(func() { CopyPaths(s, &s.paths) })
 	return s.paths
 }
