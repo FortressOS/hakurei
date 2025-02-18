@@ -228,7 +228,8 @@ func main() {
 			passwdFunc = func() {
 				var us string
 				if uid, err := sys.Uid(aid); err != nil {
-					log.Fatalf("cannot obtain uid from fsu: %v", err)
+					fmsg.PrintBaseError(err, "cannot obtain uid from fsu:")
+					os.Exit(1)
 				} else {
 					us = strconv.Itoa(uid)
 				}

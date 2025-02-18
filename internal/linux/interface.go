@@ -37,6 +37,7 @@ type System interface {
 	// Paths returns a populated [Paths] struct.
 	Paths() Paths
 	// Uid invokes fsu and returns target uid.
+	// Any errors returned by Uid is already wrapped [fmsg.BaseError].
 	Uid(aid int) (int, error)
 }
 

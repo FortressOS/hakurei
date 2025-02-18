@@ -2,6 +2,7 @@ package linux
 
 import (
 	"errors"
+	"fmt"
 	"io/fs"
 	"log"
 	"os"
@@ -56,13 +57,15 @@ func (s *Std) Uid(aid int) (int, error) {
 		})
 	})
 
-	s.uidMu.RLock()
-	if u, ok := s.uidCopy[aid]; ok {
+	{
+		s.uidMu.RLock()
+		u, ok := s.uidCopy[aid]
 		s.uidMu.RUnlock()
-		return u.uid, u.err
+		if ok {
+			return u.uid, u.err
+		}
 	}
 
-	s.uidMu.RUnlock()
 	s.uidMu.Lock()
 	defer s.uidMu.Unlock()
 
@@ -91,8 +94,13 @@ func (s *Std) Uid(aid int) (int, error) {
 
 		if p, u.err = cmd.Output(); u.err == nil {
 			u.uid, u.err = strconv.Atoi(string(p))
+			if u.err != nil {
+				u.err = fmsg.WrapErrorSuffix(u.err, "cannot parse uid from fsu:")
+			}
 		} else if errors.As(u.err, &exitError) && exitError != nil && exitError.ExitCode() == 1 {
-			u.err = syscall.EACCES
+			u.err = fmsg.WrapError(syscall.EACCES, "") // fsu prints to stderr in this case
+		} else if os.IsNotExist(u.err) {
+			u.err = fmsg.WrapError(os.ErrNotExist, fmt.Sprintf("the setuid helper is missing: %s", fsu))
 		}
 		return u.uid, u.err
 	}

@@ -149,8 +149,7 @@ func (a *app) Seal(config *fst.Config) error {
 
 	// invoke fsu for full uid
 	if u, err := a.os.Uid(seal.sys.user.aid); err != nil {
-		return fmsg.WrapErrorSuffix(err,
-			"cannot obtain uid from fsu:")
+		return err
 	} else {
 		seal.sys.user.uid = u
 		seal.sys.user.us = strconv.Itoa(u)

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"os"
 	"slices"
 	"strconv"
 	"strings"
@@ -13,6 +14,7 @@ import (
 
 	"git.gensokyo.uk/security/fortify/dbus"
 	"git.gensokyo.uk/security/fortify/fst"
+	"git.gensokyo.uk/security/fortify/internal/fmsg"
 	"git.gensokyo.uk/security/fortify/internal/state"
 )
 
@@ -24,7 +26,8 @@ func printShowSystem(output io.Writer, short bool) {
 
 	// get fid by querying uid of aid 0
 	if uid, err := sys.Uid(0); err != nil {
-		log.Fatalf("cannot obtain uid from fsu: %v", err)
+		fmsg.PrintBaseError(err, "cannot obtain uid from fsu:")
+		os.Exit(1)
 	} else {
 		info.User = (uid / 10000) - 100
 	}

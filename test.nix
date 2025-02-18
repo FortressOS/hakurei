@@ -18,7 +18,12 @@ nixosTest {
   skipTypeCheck = true;
 
   nodes.machine =
-    { lib, pkgs, ... }:
+    {
+      lib,
+      pkgs,
+      config,
+      ...
+    }:
     {
       users.users = {
         alice = {
@@ -32,6 +37,9 @@ nixosTest {
           description = "Untrusted user";
           password = "foobar";
           uid = 1001;
+
+          # For deny unmapped uid test:
+          packages = [ config.environment.fortify.package ];
         };
       };
 
@@ -284,7 +292,16 @@ nixosTest {
     machine.wait_for_file("/tmp/sway-ipc.sock")
 
     # Deny unmapped uid:
-    print(machine.fail("sudo -u untrusted -i ${self.packages.${system}.fortify}/bin/fortify -v run"))
+    denyOutput = machine.fail("sudo -u untrusted -i fortify run &>/dev/stdout")
+    print(denyOutput)
+    denyOutputVerbose = machine.fail("sudo -u untrusted -i fortify -v run &>/dev/stdout")
+    print(denyOutputVerbose)
+
+    # Verify PrintBaseError behaviour:
+    if denyOutput != "fsu: uid 1001 is not in the fsurc file\n":
+        raise Exception(f"unexpected deny output:\n{denyOutput}")
+    if denyOutputVerbose != "fsu: uid 1001 is not in the fsurc file\nfortify: *cannot obtain uid from fsu: permission denied\n":
+        raise Exception(f"unexpected deny verbose output:\n{denyOutputVerbose}")
 
     # Start fortify permissive defaults outside Wayland session:
     print(machine.succeed("sudo -u alice -i fortify -v run -a 0 touch /tmp/success-bare"))
