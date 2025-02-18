@@ -47,10 +47,10 @@ func (a *app) String() string {
 	}
 
 	if a.appSeal != nil {
-		if a.appSeal.sys.user.uid == nil {
+		if a.appSeal.user.uid == nil {
 			return fmt.Sprintf("(sealed app %s with invalid uid)", a.id)
 		}
-		return fmt.Sprintf("(sealed app %s as uid %s)", a.id, a.appSeal.sys.user.uid)
+		return fmt.Sprintf("(sealed app %s as uid %s)", a.id, a.appSeal.user.uid)
 	}
 
 	return fmt.Sprintf("(unsealed app %s)", a.id)

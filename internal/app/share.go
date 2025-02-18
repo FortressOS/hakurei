@@ -68,23 +68,23 @@ func (seal *appSeal) setupShares(bus [2]*dbus.Config, os sys.State) error {
 	seal.sys.UpdatePermType(system.User, targetTmpdirParent, acl.Execute)
 
 	// ensure child tmpdir (e.g. `/tmp/fortify.%d/tmpdir/%d`)
-	targetTmpdir := path.Join(targetTmpdirParent, seal.sys.user.aid.String())
+	targetTmpdir := path.Join(targetTmpdirParent, seal.user.aid.String())
 	seal.sys.Ensure(targetTmpdir, 01700)
 	seal.sys.UpdatePermType(system.User, targetTmpdir, acl.Read, acl.Write, acl.Execute)
-	seal.sys.bwrap.Bind(targetTmpdir, "/tmp", false, true)
+	seal.container.Bind(targetTmpdir, "/tmp", false, true)
 
 	/*
 		XDG runtime directory
 	*/
 
 	// mount tmpfs on inner runtime (e.g. `/run/user/%d`)
-	seal.sys.bwrap.Tmpfs("/run/user", 1*1024*1024)
-	seal.sys.bwrap.Tmpfs(seal.sys.runtime, 8*1024*1024)
+	seal.container.Tmpfs("/run/user", 1*1024*1024)
+	seal.container.Tmpfs(seal.innerRuntimeDir, 8*1024*1024)
 
 	// point to inner runtime path `/run/user/%d`
-	seal.sys.bwrap.SetEnv[xdgRuntimeDir] = seal.sys.runtime
-	seal.sys.bwrap.SetEnv[xdgSessionClass] = "user"
-	seal.sys.bwrap.SetEnv[xdgSessionType] = "tty"
+	seal.container.SetEnv[xdgRuntimeDir] = seal.innerRuntimeDir
+	seal.container.SetEnv[xdgSessionClass] = "user"
+	seal.container.SetEnv[xdgSessionType] = "tty"
 
 	// ensure RunDir (e.g. `/run/user/%d/fortify`)
 	seal.sys.Ensure(seal.RunDirPath, 0700)
@@ -106,29 +106,29 @@ func (seal *appSeal) setupShares(bus [2]*dbus.Config, os sys.State) error {
 	// look up shell
 	sh := "/bin/sh"
 	if s, ok := os.LookupEnv(shell); ok {
-		seal.sys.bwrap.SetEnv[shell] = s
+		seal.container.SetEnv[shell] = s
 		sh = s
 	}
 
 	// bind home directory
 	homeDir := "/var/empty"
-	if seal.sys.user.home != "" {
-		homeDir = seal.sys.user.home
+	if seal.user.home != "" {
+		homeDir = seal.user.home
 	}
 	username := "chronos"
-	if seal.sys.user.username != "" {
-		username = seal.sys.user.username
+	if seal.user.username != "" {
+		username = seal.user.username
 	}
-	seal.sys.bwrap.Bind(seal.sys.user.data, homeDir, false, true)
-	seal.sys.bwrap.Chdir = homeDir
-	seal.sys.bwrap.SetEnv["HOME"] = homeDir
-	seal.sys.bwrap.SetEnv["USER"] = username
+	seal.container.Bind(seal.user.data, homeDir, false, true)
+	seal.container.Chdir = homeDir
+	seal.container.SetEnv["HOME"] = homeDir
+	seal.container.SetEnv["USER"] = username
 
 	// generate /etc/passwd and /etc/group
-	seal.sys.bwrap.CopyBind("/etc/passwd",
-		[]byte(username+":x:"+seal.sys.mapuid.String()+":"+seal.sys.mapuid.String()+":Fortify:"+homeDir+":"+sh+"\n"))
-	seal.sys.bwrap.CopyBind("/etc/group",
-		[]byte("fortify:x:"+seal.sys.mapuid.String()+":\n"))
+	seal.container.CopyBind("/etc/passwd",
+		[]byte(username+":x:"+seal.mapuid.String()+":"+seal.mapuid.String()+":Fortify:"+homeDir+":"+sh+"\n"))
+	seal.container.CopyBind("/etc/group",
+		[]byte("fortify:x:"+seal.mapuid.String()+":\n"))
 
 	/*
 		Display servers
@@ -136,7 +136,7 @@ func (seal *appSeal) setupShares(bus [2]*dbus.Config, os sys.State) error {
 
 	// pass $TERM to launcher
 	if t, ok := os.LookupEnv(term); ok {
-		seal.sys.bwrap.SetEnv[term] = t
+		seal.container.SetEnv[term] = t
 	}
 
 	// set up wayland
@@ -151,8 +151,8 @@ func (seal *appSeal) setupShares(bus [2]*dbus.Config, os sys.State) error {
 			socketPath = name
 		}
 
-		innerPath := path.Join(seal.sys.runtime, wl.FallbackName)
-		seal.sys.bwrap.SetEnv[wl.WaylandDisplay] = wl.FallbackName
+		innerPath := path.Join(seal.innerRuntimeDir, wl.FallbackName)
+		seal.container.SetEnv[wl.WaylandDisplay] = wl.FallbackName
 
 		if !seal.directWayland { // set up security-context-v1
 			socketDir := path.Join(seal.SharePath, "wayland")
@@ -163,11 +163,11 @@ func (seal *appSeal) setupShares(bus [2]*dbus.Config, os sys.State) error {
 				// use instance ID in case app id is not set
 				appID = "uk.gensokyo.fortify." + seal.id
 			}
-			seal.sys.Wayland(&seal.sys.sp, outerPath, socketPath, appID, seal.id)
-			seal.sys.bwrap.Bind(outerPath, innerPath)
+			seal.sys.Wayland(&seal.bwrapSync, outerPath, socketPath, appID, seal.id)
+			seal.container.Bind(outerPath, innerPath)
 		} else { // bind mount wayland socket (insecure)
 			fmsg.Verbose("direct wayland access, PROCEED WITH CAUTION")
-			seal.sys.bwrap.Bind(socketPath, innerPath)
+			seal.container.Bind(socketPath, innerPath)
 
 			// ensure Wayland socket ACL (e.g. `/run/user/%d/wayland-%d`)
 			seal.sys.UpdatePermType(system.EWayland, socketPath, acl.Read, acl.Write, acl.Execute)
@@ -181,9 +181,9 @@ func (seal *appSeal) setupShares(bus [2]*dbus.Config, os sys.State) error {
 			return fmsg.WrapError(ErrXDisplay,
 				"DISPLAY is not set")
 		} else {
-			seal.sys.ChangeHosts("#" + seal.sys.user.uid.String())
-			seal.sys.bwrap.SetEnv[display] = d
-			seal.sys.bwrap.Bind("/tmp/.X11-unix", "/tmp/.X11-unix")
+			seal.sys.ChangeHosts("#" + seal.user.uid.String())
+			seal.container.SetEnv[display] = d
+			seal.container.Bind("/tmp/.X11-unix", "/tmp/.X11-unix")
 		}
 	}
 
@@ -221,10 +221,10 @@ func (seal *appSeal) setupShares(bus [2]*dbus.Config, os sys.State) error {
 
 		// hard link pulse socket into target-executable share
 		psi := path.Join(seal.shareLocal, "pulse")
-		p := path.Join(seal.sys.runtime, "pulse", "native")
+		p := path.Join(seal.innerRuntimeDir, "pulse", "native")
 		seal.sys.Link(ps, psi)
-		seal.sys.bwrap.Bind(psi, p)
-		seal.sys.bwrap.SetEnv[pulseServer] = "unix:" + p
+		seal.container.Bind(psi, p)
+		seal.container.SetEnv[pulseServer] = "unix:" + p
 
 		// publish current user's pulse cookie for target user
 		if src, err := discoverPulseCookie(os); err != nil {
@@ -232,9 +232,9 @@ func (seal *appSeal) setupShares(bus [2]*dbus.Config, os sys.State) error {
 			fmsg.Verbose(strings.TrimSpace(err.(*fmsg.BaseError).Message()))
 		} else {
 			innerDst := fst.Tmp + "/pulse-cookie"
-			seal.sys.bwrap.SetEnv[pulseCookie] = innerDst
+			seal.container.SetEnv[pulseCookie] = innerDst
 			payload := new([]byte)
-			seal.sys.bwrap.CopyBindRef(innerDst, &payload)
+			seal.container.CopyBindRef(innerDst, &payload)
 			seal.sys.CopyFile(payload, src, 256, 256)
 		}
 	}
@@ -260,14 +260,14 @@ func (seal *appSeal) setupShares(bus [2]*dbus.Config, os sys.State) error {
 		}
 
 		// share proxy sockets
-		sessionInner := path.Join(seal.sys.runtime, "bus")
-		seal.sys.bwrap.SetEnv[dbusSessionBusAddress] = "unix:path=" + sessionInner
-		seal.sys.bwrap.Bind(sessionPath, sessionInner)
+		sessionInner := path.Join(seal.innerRuntimeDir, "bus")
+		seal.container.SetEnv[dbusSessionBusAddress] = "unix:path=" + sessionInner
+		seal.container.Bind(sessionPath, sessionInner)
 		seal.sys.UpdatePerm(sessionPath, acl.Read, acl.Write)
 		if bus[1] != nil {
 			systemInner := "/run/dbus/system_bus_socket"
-			seal.sys.bwrap.SetEnv[dbusSystemBusAddress] = "unix:path=" + systemInner
-			seal.sys.bwrap.Bind(systemPath, systemInner)
+			seal.container.SetEnv[dbusSystemBusAddress] = "unix:path=" + systemInner
+			seal.container.Bind(systemPath, systemInner)
 			seal.sys.UpdatePerm(systemPath, acl.Read, acl.Write)
 		}
 	}
@@ -276,14 +276,14 @@ func (seal *appSeal) setupShares(bus [2]*dbus.Config, os sys.State) error {
 		Miscellaneous
 	*/
 
-	// queue overriding tmpfs at the end of seal.sys.bwrap.Filesystem
-	for _, dest := range seal.sys.override {
-		seal.sys.bwrap.Tmpfs(dest, 8*1024)
+	// queue overriding tmpfs at the end of seal.container.Filesystem
+	for _, dest := range seal.override {
+		seal.container.Tmpfs(dest, 8*1024)
 	}
 
 	// mount fortify in sandbox for init
-	seal.sys.bwrap.Bind(os.MustExecutable(), path.Join(fst.Tmp, "sbin/fortify"))
-	seal.sys.bwrap.Symlink("fortify", path.Join(fst.Tmp, "sbin/init"))
+	seal.container.Bind(os.MustExecutable(), path.Join(fst.Tmp, "sbin/fortify"))
+	seal.container.Symlink("fortify", path.Join(fst.Tmp, "sbin/init"))
 
 	// append extra perms
 	for _, p := range seal.extraPerms {

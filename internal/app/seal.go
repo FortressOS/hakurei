@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"os"
 	"path"
 	"regexp"
 
@@ -42,8 +43,13 @@ type appSeal struct {
 	appID string
 	// final argv, passed to init
 	command []string
-	// state instance initialised during seal and used on process lifecycle events
+
+	// state instance initialised during seal; used during process lifecycle events
 	store state.Store
+	// whether [system.I] was committed; used during process lifecycle events
+	needRevert bool
+	// whether state was inserted into [state.Store]; used during process lifecycle events
+	stateInStore bool
 
 	// process-specific share directory path ([os.TempDir])
 	share string
@@ -57,18 +63,47 @@ type appSeal struct {
 	// when this gets set no attempt is made to attach security-context-v1
 	// and the bare socket is mounted to the sandbox
 	directWayland bool
+	// mount tmpfs over these paths, runs right before extraPerms
+	override []string
 	// extra [acl.Update] ops, appended at the end of [system.I]
 	extraPerms []*sealedExtraPerm
 
+	// post fsu state
+	user appUser
+	// inner XDG_RUNTIME_DIR, default formatting via user
+	innerRuntimeDir string
+	// mapped uid and gid in user namespace
+	mapuid *stringPair[int]
+
+	sys       *system.I
+	container *bwrap.Config
+	bwrapSync *os.File
+
 	// prevents sharing from happening twice
 	shared bool
-	// seal system-level component
-	sys *appSealSys
 
 	system.Enablements
 	fst.Paths
 
 	// protected by upstream mutex
+}
+
+// appUser stores post-fsu credentials and metadata
+type appUser struct {
+	// application id
+	aid *stringPair[int]
+	// target uid resolved by fid:aid
+	uid *stringPair[int]
+
+	// supplementary group ids
+	supp []string
+
+	// home directory host path
+	data string
+	// app user home directory
+	home string
+	// passwd database username
+	username string
 }
 
 type sealedExtraPerm struct {
@@ -110,9 +145,6 @@ func (a *app) Seal(config *fst.Config) error {
 	seal.appID = config.ID
 	seal.command = config.Command
 
-	// create seal system component
-	seal.sys = new(appSealSys)
-
 	{
 		// mapped uid defaults to 65534 to work around file ownership checks due to a bwrap limitation
 		mapuid := 65534
@@ -121,8 +153,8 @@ func (a *app) Seal(config *fst.Config) error {
 			// separate workaround is introduced to map priv-side caller uid in namespace
 			mapuid = a.sys.Geteuid()
 		}
-		seal.sys.mapuid = newInt(mapuid)
-		seal.sys.runtime = path.Join("/run/user", seal.sys.mapuid.String())
+		seal.mapuid = newInt(mapuid)
+		seal.innerRuntimeDir = path.Join("/run/user", seal.mapuid.String())
 	}
 
 	// validate uid and set user info
@@ -130,42 +162,42 @@ func (a *app) Seal(config *fst.Config) error {
 		return fmsg.WrapError(ErrUser,
 			fmt.Sprintf("aid %d out of range", config.Confinement.AppID))
 	}
-	seal.sys.user = appUser{
+	seal.user = appUser{
 		aid:      newInt(config.Confinement.AppID),
 		data:     config.Confinement.Outer,
 		home:     config.Confinement.Inner,
 		username: config.Confinement.Username,
 	}
-	if seal.sys.user.username == "" {
-		seal.sys.user.username = "chronos"
-	} else if !posixUsername.MatchString(seal.sys.user.username) ||
-		len(seal.sys.user.username) >= internal.Sysconf_SC_LOGIN_NAME_MAX() {
+	if seal.user.username == "" {
+		seal.user.username = "chronos"
+	} else if !posixUsername.MatchString(seal.user.username) ||
+		len(seal.user.username) >= internal.Sysconf_SC_LOGIN_NAME_MAX() {
 		return fmsg.WrapError(ErrName,
-			fmt.Sprintf("invalid user name %q", seal.sys.user.username))
+			fmt.Sprintf("invalid user name %q", seal.user.username))
 	}
-	if seal.sys.user.data == "" || !path.IsAbs(seal.sys.user.data) {
+	if seal.user.data == "" || !path.IsAbs(seal.user.data) {
 		return fmsg.WrapError(ErrHome,
-			fmt.Sprintf("invalid home directory %q", seal.sys.user.data))
+			fmt.Sprintf("invalid home directory %q", seal.user.data))
 	}
-	if seal.sys.user.home == "" {
-		seal.sys.user.home = seal.sys.user.data
+	if seal.user.home == "" {
+		seal.user.home = seal.user.data
 	}
 
 	// invoke fsu for full uid
-	if u, err := a.sys.Uid(seal.sys.user.aid.unwrap()); err != nil {
+	if u, err := a.sys.Uid(seal.user.aid.unwrap()); err != nil {
 		return err
 	} else {
-		seal.sys.user.uid = newInt(u)
+		seal.user.uid = newInt(u)
 	}
 
 	// resolve supplementary group ids from names
-	seal.sys.user.supp = make([]string, len(config.Confinement.Groups))
+	seal.user.supp = make([]string, len(config.Confinement.Groups))
 	for i, name := range config.Confinement.Groups {
 		if g, err := a.sys.LookupGroup(name); err != nil {
 			return fmsg.WrapError(err,
 				fmt.Sprintf("unknown group %q", name))
 		} else {
-			seal.sys.user.supp[i] = g.Gid
+			seal.user.supp[i] = g.Gid
 		}
 	}
 
@@ -242,11 +274,11 @@ func (a *app) Seal(config *fst.Config) error {
 	if b, err := config.Confinement.Sandbox.Bwrap(a.sys); err != nil {
 		return err
 	} else {
-		seal.sys.bwrap = b
+		seal.container = b
 	}
-	seal.sys.override = config.Confinement.Sandbox.Override
-	if seal.sys.bwrap.SetEnv == nil {
-		seal.sys.bwrap.SetEnv = make(map[string]string)
+	seal.override = config.Confinement.Sandbox.Override
+	if seal.container.SetEnv == nil {
+		seal.container.SetEnv = make(map[string]string)
 	}
 
 	// open process state store
@@ -255,11 +287,11 @@ func (a *app) Seal(config *fst.Config) error {
 	seal.store = state.NewMulti(seal.RunDirPath)
 
 	// initialise system interface with os uid
-	seal.sys.I = system.New(seal.sys.user.uid.unwrap())
-	seal.sys.I.IsVerbose = fmsg.Load
-	seal.sys.I.Verbose = fmsg.Verbose
-	seal.sys.I.Verbosef = fmsg.Verbosef
-	seal.sys.I.WrapErr = fmsg.WrapError
+	seal.sys = system.New(seal.user.uid.unwrap())
+	seal.sys.IsVerbose = fmsg.Load
+	seal.sys.Verbose = fmsg.Verbose
+	seal.sys.Verbosef = fmsg.Verbosef
+	seal.sys.WrapErr = fmsg.WrapError
 
 	// pass through enablements
 	seal.Enablements = config.Confinement.Enablements
@@ -271,7 +303,7 @@ func (a *app) Seal(config *fst.Config) error {
 
 	// verbose log seal information
 	fmsg.Verbosef("created application seal for uid %s (%s) groups: %v, command: %s",
-		seal.sys.user.uid, seal.sys.user.username, config.Confinement.Groups, config.Command)
+		seal.user.uid, seal.user.username, config.Confinement.Groups, config.Command)
 
 	// seal app and release lock
 	a.appSeal = seal

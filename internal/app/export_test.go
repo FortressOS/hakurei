@@ -16,5 +16,5 @@ func NewWithID(id fst.ID, os sys.State) fst.App {
 
 func AppSystemBwrap(a fst.App) (*system.I, *bwrap.Config) {
 	v := a.(*app)
-	return v.appSeal.sys.I, v.appSeal.sys.bwrap
+	return v.appSeal.sys, v.appSeal.container
 }

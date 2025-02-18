@@ -51,15 +51,15 @@ func (a *app) Run(ctx context.Context, rs *fst.RunState) error {
 	if err := a.appSeal.sys.Commit(ctx); err != nil {
 		return err
 	}
-	a.appSeal.sys.needRevert = true
+	a.appSeal.needRevert = true
 
 	// start shim via manager
 	a.shim = new(shim.Shim)
 	waitErr := make(chan error, 1)
 	if startTime, err := a.shim.Start(
-		a.appSeal.sys.user.aid.String(),
-		a.appSeal.sys.user.supp,
-		a.appSeal.sys.sp,
+		a.appSeal.user.aid.String(),
+		a.appSeal.user.supp,
+		a.appSeal.bwrapSync,
 	); err != nil {
 		return err
 	} else {
@@ -80,8 +80,8 @@ func (a *app) Run(ctx context.Context, rs *fst.RunState) error {
 		if err = a.shim.Serve(shimSetupCtx, &shim.Payload{
 			Argv:  a.appSeal.command,
 			Exec:  shimExec,
-			Bwrap: a.appSeal.sys.bwrap,
-			Home:  a.appSeal.sys.user.data,
+			Bwrap: a.appSeal.container,
+			Home:  a.appSeal.user.data,
 
 			Verbose: fmsg.Load(),
 		}); err != nil {
@@ -97,10 +97,10 @@ func (a *app) Run(ctx context.Context, rs *fst.RunState) error {
 
 		// register process state
 		var err0 = new(StateStoreError)
-		err0.Inner, err0.DoErr = a.appSeal.store.Do(a.appSeal.sys.user.aid.unwrap(), func(c state.Cursor) {
+		err0.Inner, err0.DoErr = a.appSeal.store.Do(a.appSeal.user.aid.unwrap(), func(c state.Cursor) {
 			err0.InnerErr = c.Save(&sd, a.appSeal.ct)
 		})
-		a.appSeal.sys.saveState = true
+		a.appSeal.stateInStore = true
 		if err = err0.equiv("cannot save process state:"); err != nil {
 			return err
 		}
@@ -147,10 +147,10 @@ func (a *app) Run(ctx context.Context, rs *fst.RunState) error {
 
 	// update store and revert app setup transaction
 	e := new(StateStoreError)
-	e.Inner, e.DoErr = a.appSeal.store.Do(a.appSeal.sys.user.aid.unwrap(), func(b state.Cursor) {
+	e.Inner, e.DoErr = a.appSeal.store.Do(a.appSeal.user.aid.unwrap(), func(b state.Cursor) {
 		e.InnerErr = func() error {
 			// destroy defunct state entry
-			if cmd := a.shim.Unwrap(); cmd != nil && a.appSeal.sys.saveState {
+			if cmd := a.shim.Unwrap(); cmd != nil && a.appSeal.stateInStore {
 				if err := b.Destroy(a.id.unwrap()); err != nil {
 					return err
 				}
@@ -198,7 +198,7 @@ func (a *app) Run(ctx context.Context, rs *fst.RunState) error {
 				}
 			}
 
-			if a.appSeal.sys.needRevert {
+			if a.appSeal.needRevert {
 				if err := a.appSeal.sys.Revert(ec); err != nil {
 					return err.(RevertCompoundError)
 				}
