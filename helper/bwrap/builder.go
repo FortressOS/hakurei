@@ -63,10 +63,10 @@ func (c *Config) Bind(src, dest string, opts ...bool) *Config {
 	}
 }
 
-// Write copy from FD to destination DEST
+// WriteFile copy from FD to destination DEST
 // (--file FD DEST)
-func (c *Config) Write(dest string, payload []byte) *Config {
-	c.Filesystem = append(c.Filesystem, &DataConfig{Dest: dest, Data: payload, Type: DataWrite})
+func (c *Config) WriteFile(name string, data []byte) *Config {
+	c.Filesystem = append(c.Filesystem, &DataConfig{Dest: name, Data: data, Type: DataWrite})
 	return c
 }
 

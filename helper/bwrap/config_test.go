@@ -113,7 +113,7 @@ func TestConfig_Args(t *testing.T) {
 		},
 		{
 			"copy", (new(bwrap.Config)).
-				Write("/.fortify/version", make([]byte, 8)).
+				WriteFile("/.fortify/version", make([]byte, 8)).
 				CopyBind("/etc/group", make([]byte, 8)).
 				CopyBind("/etc/passwd", make([]byte, 8), true),
 			[]string{
