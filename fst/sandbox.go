@@ -8,7 +8,6 @@ import (
 
 	"git.gensokyo.uk/security/fortify/dbus"
 	"git.gensokyo.uk/security/fortify/helper/bwrap"
-	"git.gensokyo.uk/security/fortify/internal/fmsg"
 	"git.gensokyo.uk/security/fortify/internal/sys"
 )
 
@@ -45,22 +44,33 @@ type SandboxConfig struct {
 	Override []string `json:"override"`
 }
 
+// SandboxSys encapsulates system functions used during the creation of [bwrap.Config].
+type SandboxSys interface {
+	Geteuid() int
+	Paths() sys.Paths
+	ReadDir(name string) ([]fs.DirEntry, error)
+	EvalSymlinks(path string) (string, error)
+
+	Println(v ...any)
+	Printf(format string, v ...any)
+}
+
 // Bwrap returns the address of the corresponding bwrap.Config to s.
 // Note that remaining tmpfs entries must be queued by the caller prior to launch.
-func (s *SandboxConfig) Bwrap(os sys.State) (*bwrap.Config, error) {
+func (s *SandboxConfig) Bwrap(sys SandboxSys) (*bwrap.Config, error) {
 	if s == nil {
 		return nil, errors.New("nil sandbox config")
 	}
 
 	if s.Syscall == nil {
-		fmsg.Verbose("syscall filter not configured, PROCEED WITH CAUTION")
+		sys.Println("syscall filter not configured, PROCEED WITH CAUTION")
 	}
 
 	var uid int
 	if !s.MapRealUID {
 		uid = 65534
 	} else {
-		uid = os.Geteuid()
+		uid = sys.Geteuid()
 	}
 
 	conf := (&bwrap.Config{
@@ -104,7 +114,7 @@ func (s *SandboxConfig) Bwrap(os sys.State) (*bwrap.Config, error) {
 
 	// retrieve paths and hide them if they're made available in the sandbox
 	var hidePaths []string
-	sc := os.Paths()
+	sc := sys.Paths()
 	hidePaths = append(hidePaths, sc.RuntimePath, sc.SharePath)
 	_, systemBusAddr := dbus.Address()
 	if entries, err := dbus.Parse([]byte(systemBusAddr)); err != nil {
@@ -121,11 +131,11 @@ func (s *SandboxConfig) Bwrap(os sys.State) (*bwrap.Config, error) {
 						// get parent dir of socket
 						dir := path.Dir(pair[1])
 						if dir == "." || dir == "/" {
-							fmsg.Verbosef("dbus socket %q is in an unusual location", pair[1])
+							sys.Printf("dbus socket %q is in an unusual location", pair[1])
 						}
 						hidePaths = append(hidePaths, dir)
 					} else {
-						fmsg.Verbosef("dbus socket %q is not absolute", pair[1])
+						sys.Printf("dbus socket %q is not absolute", pair[1])
 					}
 				}
 			}
@@ -133,7 +143,7 @@ func (s *SandboxConfig) Bwrap(os sys.State) (*bwrap.Config, error) {
 	}
 	hidePathMatch := make([]bool, len(hidePaths))
 	for i := range hidePaths {
-		if err := evalSymlinks(os, &hidePaths[i]); err != nil {
+		if err := evalSymlinks(sys, &hidePaths[i]); err != nil {
 			return nil, err
 		}
 	}
@@ -155,7 +165,7 @@ func (s *SandboxConfig) Bwrap(os sys.State) (*bwrap.Config, error) {
 		}
 
 		srcH := c.Src
-		if err := evalSymlinks(os, &srcH); err != nil {
+		if err := evalSymlinks(sys, &srcH); err != nil {
 			return nil, err
 		}
 
@@ -169,7 +179,7 @@ func (s *SandboxConfig) Bwrap(os sys.State) (*bwrap.Config, error) {
 				return nil, err
 			} else if ok {
 				hidePathMatch[i] = true
-				fmsg.Verbosef("hiding paths from %q", c.Src)
+				sys.Printf("hiding paths from %q", c.Src)
 			}
 		}
 
@@ -195,7 +205,7 @@ func (s *SandboxConfig) Bwrap(os sys.State) (*bwrap.Config, error) {
 		conf.Bind(etc, Tmp+"/etc")
 
 		// link host /etc contents to prevent passwd/group from being overwritten
-		if d, err := os.ReadDir(etc); err != nil {
+		if d, err := sys.ReadDir(etc); err != nil {
 			return nil, err
 		} else {
 			for _, ent := range d {
@@ -216,12 +226,12 @@ func (s *SandboxConfig) Bwrap(os sys.State) (*bwrap.Config, error) {
 	return conf, nil
 }
 
-func evalSymlinks(os sys.State, v *string) error {
-	if p, err := os.EvalSymlinks(*v); err != nil {
+func evalSymlinks(sys SandboxSys, v *string) error {
+	if p, err := sys.EvalSymlinks(*v); err != nil {
 		if !errors.Is(err, fs.ErrNotExist) {
 			return err
 		}
-		fmsg.Verbosef("path %q does not yet exist", *v)
+		sys.Printf("path %q does not yet exist", *v)
 	} else {
 		*v = p
 	}
