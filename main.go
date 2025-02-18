@@ -330,11 +330,11 @@ func runApp(config *fst.Config) {
 	if a, err := app.New(sys); err != nil {
 		log.Fatalf("cannot create app: %s", err)
 	} else if err = a.Seal(config); err != nil {
-		logBaseError(err, "cannot seal app:")
+		fmsg.PrintBaseError(err, "cannot seal app:")
 		internal.Exit(1)
 	} else if err = a.Run(ctx, rs); err != nil {
 		if !rs.Start {
-			logBaseError(err, "cannot start app:")
+			fmsg.PrintBaseError(err, "cannot start app:")
 		} else {
 			logWaitError(err)
 		}

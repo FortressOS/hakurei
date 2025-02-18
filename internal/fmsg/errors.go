@@ -2,6 +2,7 @@ package fmsg
 
 import (
 	"fmt"
+	"log"
 	"reflect"
 )
 
@@ -69,4 +70,14 @@ func AsBaseError(err error, target **BaseError) bool {
 
 	*target = v.Convert(baseErrorType).Interface().(*BaseError)
 	return true
+}
+
+func PrintBaseError(err error, fallback string) {
+	var e *BaseError
+
+	if AsBaseError(err, &e) {
+		log.Print(e.Message())
+	} else {
+		log.Println(fallback, err)
+	}
 }

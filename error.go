@@ -44,13 +44,3 @@ func logWaitError(err error) {
 		}
 	}
 }
-
-func logBaseError(err error, message string) {
-	var e *fmsg.BaseError
-
-	if fmsg.AsBaseError(err, &e) {
-		log.Print(e.Message())
-	} else {
-		log.Println(message, err)
-	}
-}
