@@ -68,7 +68,7 @@ func (seal *appSeal) setupShares(bus [2]*dbus.Config, os sys.State) error {
 	seal.sys.UpdatePermType(system.User, targetTmpdirParent, acl.Execute)
 
 	// ensure child tmpdir (e.g. `/tmp/fortify.%d/tmpdir/%d`)
-	targetTmpdir := path.Join(targetTmpdirParent, seal.sys.user.as)
+	targetTmpdir := path.Join(targetTmpdirParent, seal.sys.user.aid.String())
 	seal.sys.Ensure(targetTmpdir, 01700)
 	seal.sys.UpdatePermType(system.User, targetTmpdir, acl.Read, acl.Write, acl.Execute)
 	seal.sys.bwrap.Bind(targetTmpdir, "/tmp", false, true)
@@ -126,9 +126,9 @@ func (seal *appSeal) setupShares(bus [2]*dbus.Config, os sys.State) error {
 
 	// generate /etc/passwd and /etc/group
 	seal.sys.bwrap.CopyBind("/etc/passwd",
-		[]byte(username+":x:"+seal.sys.mappedIDString+":"+seal.sys.mappedIDString+":Fortify:"+homeDir+":"+sh+"\n"))
+		[]byte(username+":x:"+seal.sys.mapuid.String()+":"+seal.sys.mapuid.String()+":Fortify:"+homeDir+":"+sh+"\n"))
 	seal.sys.bwrap.CopyBind("/etc/group",
-		[]byte("fortify:x:"+seal.sys.mappedIDString+":\n"))
+		[]byte("fortify:x:"+seal.sys.mapuid.String()+":\n"))
 
 	/*
 		Display servers
@@ -181,7 +181,7 @@ func (seal *appSeal) setupShares(bus [2]*dbus.Config, os sys.State) error {
 			return fmsg.WrapError(ErrXDisplay,
 				"DISPLAY is not set")
 		} else {
-			seal.sys.ChangeHosts("#" + seal.sys.user.us)
+			seal.sys.ChangeHosts("#" + seal.sys.user.uid.String())
 			seal.sys.bwrap.SetEnv[display] = d
 			seal.sys.bwrap.Bind("/tmp/.X11-unix", "/tmp/.X11-unix")
 		}

@@ -1,6 +1,7 @@
 package app
 
 import (
+	"fmt"
 	"sync"
 
 	"git.gensokyo.uk/security/fortify/fst"
@@ -10,14 +11,18 @@ import (
 
 func New(os sys.State) (fst.App, error) {
 	a := new(app)
-	a.id = new(fst.ID)
 	a.os = os
-	return a, fst.NewAppID(a.id)
+
+	id := new(fst.ID)
+	err := fst.NewAppID(id)
+	a.id = newID(id)
+
+	return a, err
 }
 
 type app struct {
 	// application unique identifier
-	id *fst.ID
+	id *stringPair[fst.ID]
 	// operating system interface
 	os sys.State
 	// shim process manager
@@ -28,13 +33,11 @@ type app struct {
 	lock sync.RWMutex
 }
 
-func (a *app) ID() fst.ID {
-	return *a.id
-}
+func (a *app) ID() fst.ID { return a.id.unwrap() }
 
 func (a *app) String() string {
 	if a == nil {
-		return "(invalid fortified app)"
+		return "(invalid app)"
 	}
 
 	a.lock.RLock()
@@ -45,8 +48,11 @@ func (a *app) String() string {
 	}
 
 	if a.seal != nil {
-		return "(sealed fortified app as uid " + a.seal.sys.user.us + ")"
+		if a.seal.sys.user.uid == nil {
+			return fmt.Sprintf("(sealed app %s with invalid uid)", a.id)
+		}
+		return fmt.Sprintf("(sealed app %s as uid %s)", a.id, a.seal.sys.user.uid)
 	}
 
-	return "(unsealed fortified app)"
+	return fmt.Sprintf("(unsealed app %s)", a.id)
 }

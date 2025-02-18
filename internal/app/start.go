@@ -57,7 +57,7 @@ func (a *app) Run(ctx context.Context, rs *fst.RunState) error {
 	a.shim = new(shim.Shim)
 	waitErr := make(chan error, 1)
 	if startTime, err := a.shim.Start(
-		a.seal.sys.user.as,
+		a.seal.sys.user.aid.String(),
 		a.seal.sys.user.supp,
 		a.seal.sys.sp,
 	); err != nil {
@@ -90,14 +90,14 @@ func (a *app) Run(ctx context.Context, rs *fst.RunState) error {
 
 		// shim accepted setup payload, create process state
 		sd := state.State{
-			ID:   *a.id,
+			ID:   a.id.unwrap(),
 			PID:  a.shim.Unwrap().Process.Pid,
 			Time: *startTime,
 		}
 
 		// register process state
 		var err0 = new(StateStoreError)
-		err0.Inner, err0.DoErr = a.seal.store.Do(a.seal.sys.user.aid, func(c state.Cursor) {
+		err0.Inner, err0.DoErr = a.seal.store.Do(a.seal.sys.user.aid.unwrap(), func(c state.Cursor) {
 			err0.InnerErr = c.Save(&sd, a.seal.ct)
 		})
 		a.seal.sys.saveState = true
@@ -147,11 +147,11 @@ func (a *app) Run(ctx context.Context, rs *fst.RunState) error {
 
 	// update store and revert app setup transaction
 	e := new(StateStoreError)
-	e.Inner, e.DoErr = a.seal.store.Do(a.seal.sys.user.aid, func(b state.Cursor) {
+	e.Inner, e.DoErr = a.seal.store.Do(a.seal.sys.user.aid.unwrap(), func(b state.Cursor) {
 		e.InnerErr = func() error {
 			// destroy defunct state entry
 			if cmd := a.shim.Unwrap(); cmd != nil && a.seal.sys.saveState {
-				if err := b.Destroy(*a.id); err != nil {
+				if err := b.Destroy(a.id.unwrap()); err != nil {
 					return err
 				}
 			}

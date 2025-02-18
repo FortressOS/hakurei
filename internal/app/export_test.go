@@ -9,7 +9,7 @@ import (
 
 func NewWithID(id fst.ID, os sys.State) fst.App {
 	a := new(app)
-	a.id = &id
+	a.id = newID(&id)
 	a.os = os
 	return a
 }

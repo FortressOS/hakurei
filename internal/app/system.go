@@ -21,9 +21,7 @@ type appSealSys struct {
 	user appUser
 
 	// mapped uid and gid in user namespace
-	mappedID int
-	// string representation of mappedID
-	mappedIDString string
+	mapuid *stringPair[int]
 
 	needRevert bool
 	saveState  bool
@@ -33,18 +31,13 @@ type appSealSys struct {
 }
 
 type appUser struct {
-	// full uid resolved by fsu
-	uid int
-	// string representation of uid
-	us string
+	// application id
+	aid *stringPair[int]
+	// target uid resolved by fid:aid
+	uid *stringPair[int]
 
 	// supplementary group ids
 	supp []string
-
-	// application id
-	aid int
-	// string representation of aid
-	as string
 
 	// home directory host path
 	data string

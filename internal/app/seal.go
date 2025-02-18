@@ -9,7 +9,6 @@ import (
 	"io/fs"
 	"path"
 	"regexp"
-	"strconv"
 
 	"git.gensokyo.uk/security/fortify/acl"
 	"git.gensokyo.uk/security/fortify/dbus"
@@ -110,14 +109,17 @@ func (a *app) Seal(config *fst.Config) error {
 	// create seal system component
 	seal.sys = new(appSealSys)
 
-	// mapped uid
-	if config.Confinement.Sandbox != nil && config.Confinement.Sandbox.MapRealUID {
-		seal.sys.mappedID = a.os.Geteuid()
-	} else {
-		seal.sys.mappedID = 65534
+	{
+		// mapped uid defaults to 65534 to work around file ownership checks due to a bwrap limitation
+		mapuid := 65534
+		if config.Confinement.Sandbox != nil && config.Confinement.Sandbox.MapRealUID {
+			// some programs fail to connect to dbus session running as a different uid, so a
+			// separate workaround is introduced to map priv-side caller uid in namespace
+			mapuid = a.os.Geteuid()
+		}
+		seal.sys.mapuid = newInt(mapuid)
+		seal.sys.runtime = path.Join("/run/user", seal.sys.mapuid.String())
 	}
-	seal.sys.mappedIDString = strconv.Itoa(seal.sys.mappedID)
-	seal.sys.runtime = path.Join("/run/user", seal.sys.mappedIDString)
 
 	// validate uid and set user info
 	if config.Confinement.AppID < 0 || config.Confinement.AppID > 9999 {
@@ -125,8 +127,7 @@ func (a *app) Seal(config *fst.Config) error {
 			fmt.Sprintf("aid %d out of range", config.Confinement.AppID))
 	}
 	seal.sys.user = appUser{
-		aid:      config.Confinement.AppID,
-		as:       strconv.Itoa(config.Confinement.AppID),
+		aid:      newInt(config.Confinement.AppID),
 		data:     config.Confinement.Outer,
 		home:     config.Confinement.Inner,
 		username: config.Confinement.Username,
@@ -147,11 +148,10 @@ func (a *app) Seal(config *fst.Config) error {
 	}
 
 	// invoke fsu for full uid
-	if u, err := a.os.Uid(seal.sys.user.aid); err != nil {
+	if u, err := a.os.Uid(seal.sys.user.aid.unwrap()); err != nil {
 		return err
 	} else {
-		seal.sys.user.uid = u
-		seal.sys.user.us = strconv.Itoa(u)
+		seal.sys.user.uid = newInt(u)
 	}
 
 	// resolve supplementary group ids from names
@@ -251,7 +251,7 @@ func (a *app) Seal(config *fst.Config) error {
 	seal.store = state.NewMulti(seal.RunDirPath)
 
 	// initialise system interface with os uid
-	seal.sys.I = system.New(seal.sys.user.uid)
+	seal.sys.I = system.New(seal.sys.user.uid.unwrap())
 	seal.sys.I.IsVerbose = fmsg.Load
 	seal.sys.I.Verbose = fmsg.Verbose
 	seal.sys.I.Verbosef = fmsg.Verbosef
@@ -267,7 +267,7 @@ func (a *app) Seal(config *fst.Config) error {
 
 	// verbose log seal information
 	fmsg.Verbosef("created application seal for uid %s (%s) groups: %v, command: %s",
-		seal.sys.user.us, seal.sys.user.username, config.Confinement.Groups, config.Command)
+		seal.sys.user.uid, seal.sys.user.username, config.Confinement.Groups, config.Command)
 
 	// seal app and release lock
 	a.seal = seal
