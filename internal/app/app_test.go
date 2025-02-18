@@ -10,13 +10,13 @@ import (
 	"git.gensokyo.uk/security/fortify/fst"
 	"git.gensokyo.uk/security/fortify/helper/bwrap"
 	"git.gensokyo.uk/security/fortify/internal/app"
-	"git.gensokyo.uk/security/fortify/internal/linux"
+	"git.gensokyo.uk/security/fortify/internal/sys"
 	"git.gensokyo.uk/security/fortify/system"
 )
 
 type sealTestCase struct {
 	name      string
-	os        linux.System
+	os        sys.State
 	config    *fst.Config
 	id        fst.ID
 	wantSys   *system.I

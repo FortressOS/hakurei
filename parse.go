@@ -84,7 +84,7 @@ func tryShort(name string) (config *fst.Config, instance *state.State) {
 	if likePrefix && len(name) >= 8 {
 		fmsg.Verbose("argument looks like prefix")
 
-		s := state.NewMulti(sys.Paths().RunDirPath)
+		s := state.NewMulti(std.Paths().RunDirPath)
 		if entries, err := state.Join(s); err != nil {
 			log.Printf("cannot join store: %v", err)
 			// drop to fetch from file

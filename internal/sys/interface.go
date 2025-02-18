@@ -1,4 +1,4 @@
-package linux
+package sys
 
 import (
 	"io/fs"
@@ -9,8 +9,8 @@ import (
 	"git.gensokyo.uk/security/fortify/internal/fmsg"
 )
 
-// System provides safe access to operating system resources.
-type System interface {
+// State provides safe interaction with operating system state.
+type State interface {
 	// Geteuid provides [os.Geteuid].
 	Geteuid() int
 	// LookupEnv provides [os.LookupEnv].
@@ -52,7 +52,7 @@ type Paths struct {
 }
 
 // CopyPaths is a generic implementation of [System.Paths].
-func CopyPaths(os System, v *Paths) {
+func CopyPaths(os State, v *Paths) {
 	v.SharePath = path.Join(os.TempDir(), "fortify."+strconv.Itoa(os.Geteuid()))
 
 	fmsg.Verbosef("process share directory at %q", v.SharePath)

@@ -6,7 +6,7 @@ import (
 
 	"git.gensokyo.uk/security/fortify/fst"
 	"git.gensokyo.uk/security/fortify/internal/app/shim"
-	"git.gensokyo.uk/security/fortify/internal/linux"
+	"git.gensokyo.uk/security/fortify/internal/sys"
 )
 
 type App interface {
@@ -32,7 +32,7 @@ type app struct {
 	// application unique identifier
 	id *fst.ID
 	// operating system interface
-	os linux.System
+	os sys.State
 	// shim process manager
 	shim *shim.Shim
 	// child process related information
@@ -64,7 +64,7 @@ func (a *app) String() string {
 	return "(unsealed fortified app)"
 }
 
-func New(os linux.System) (App, error) {
+func New(os sys.State) (App, error) {
 	a := new(app)
 	a.id = new(fst.ID)
 	a.os = os

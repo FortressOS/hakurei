@@ -6,7 +6,7 @@ import (
 	"os/user"
 	"strconv"
 
-	"git.gensokyo.uk/security/fortify/internal/linux"
+	"git.gensokyo.uk/security/fortify/internal/sys"
 )
 
 // fs methods are not implemented using a real FS
@@ -122,8 +122,8 @@ func (s *stubNixOS) Open(name string) (fs.File, error) {
 	}
 }
 
-func (s *stubNixOS) Paths() linux.Paths {
-	return linux.Paths{
+func (s *stubNixOS) Paths() sys.Paths {
+	return sys.Paths{
 		SharePath:   "/tmp/fortify.1971",
 		RuntimePath: "/run/user/1971",
 		RunDirPath:  "/run/user/1971/fortify",

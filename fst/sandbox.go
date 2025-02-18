@@ -9,7 +9,7 @@ import (
 	"git.gensokyo.uk/security/fortify/dbus"
 	"git.gensokyo.uk/security/fortify/helper/bwrap"
 	"git.gensokyo.uk/security/fortify/internal/fmsg"
-	"git.gensokyo.uk/security/fortify/internal/linux"
+	"git.gensokyo.uk/security/fortify/internal/sys"
 )
 
 // SandboxConfig describes resources made available to the sandbox.
@@ -47,7 +47,7 @@ type SandboxConfig struct {
 
 // Bwrap returns the address of the corresponding bwrap.Config to s.
 // Note that remaining tmpfs entries must be queued by the caller prior to launch.
-func (s *SandboxConfig) Bwrap(os linux.System) (*bwrap.Config, error) {
+func (s *SandboxConfig) Bwrap(os sys.State) (*bwrap.Config, error) {
 	if s == nil {
 		return nil, errors.New("nil sandbox config")
 	}
@@ -216,7 +216,7 @@ func (s *SandboxConfig) Bwrap(os linux.System) (*bwrap.Config, error) {
 	return conf, nil
 }
 
-func evalSymlinks(os linux.System, v *string) error {
+func evalSymlinks(os sys.State, v *string) error {
 	if p, err := os.EvalSymlinks(*v); err != nil {
 		if !errors.Is(err, fs.ErrNotExist) {
 			return err

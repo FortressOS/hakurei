@@ -11,7 +11,7 @@ import (
 	"git.gensokyo.uk/security/fortify/dbus"
 	"git.gensokyo.uk/security/fortify/fst"
 	"git.gensokyo.uk/security/fortify/internal/fmsg"
-	"git.gensokyo.uk/security/fortify/internal/linux"
+	"git.gensokyo.uk/security/fortify/internal/sys"
 	"git.gensokyo.uk/security/fortify/system"
 	"git.gensokyo.uk/security/fortify/wl"
 )
@@ -43,7 +43,7 @@ var (
 	ErrPulseMode   = errors.New("unexpected pulse socket mode")
 )
 
-func (seal *appSeal) setupShares(bus [2]*dbus.Config, os linux.System) error {
+func (seal *appSeal) setupShares(bus [2]*dbus.Config, os sys.State) error {
 	if seal.shared {
 		panic("seal shared twice")
 	}
@@ -300,7 +300,7 @@ func (seal *appSeal) setupShares(bus [2]*dbus.Config, os linux.System) error {
 }
 
 // discoverPulseCookie attempts various standard methods to discover the current user's PulseAudio authentication cookie
-func discoverPulseCookie(os linux.System) (string, error) {
+func discoverPulseCookie(os sys.State) (string, error) {
 	if p, ok := os.LookupEnv(pulseCookie); ok {
 		return p, nil
 	}

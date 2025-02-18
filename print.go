@@ -25,7 +25,7 @@ func printShowSystem(output io.Writer, short bool) {
 	info := new(fst.Info)
 
 	// get fid by querying uid of aid 0
-	if uid, err := sys.Uid(0); err != nil {
+	if uid, err := std.Uid(0); err != nil {
 		fmsg.PrintBaseError(err, "cannot obtain uid from fsu:")
 		os.Exit(1)
 	} else {

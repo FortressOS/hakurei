@@ -24,8 +24,8 @@ import (
 	init0 "git.gensokyo.uk/security/fortify/internal/app/init"
 	"git.gensokyo.uk/security/fortify/internal/app/shim"
 	"git.gensokyo.uk/security/fortify/internal/fmsg"
-	"git.gensokyo.uk/security/fortify/internal/linux"
 	"git.gensokyo.uk/security/fortify/internal/state"
+	"git.gensokyo.uk/security/fortify/internal/sys"
 	"git.gensokyo.uk/security/fortify/system"
 )
 
@@ -44,7 +44,7 @@ func init() {
 	flag.BoolVar(&flagJSON, "json", false, "Format output in JSON when applicable")
 }
 
-var sys linux.System = new(linux.Std)
+var std sys.State = new(sys.Std)
 
 type gl []string
 
@@ -135,7 +135,7 @@ func main() {
 		// Ignore errors; set is set for ExitOnError.
 		_ = set.Parse(args[1:])
 
-		printPs(os.Stdout, time.Now().UTC(), state.NewMulti(sys.Paths().RunDirPath), short)
+		printPs(os.Stdout, time.Now().UTC(), state.NewMulti(std.Paths().RunDirPath), short)
 		internal.Exit(0)
 
 	case "show": // pretty-print app info
@@ -227,7 +227,7 @@ func main() {
 			passwdOnce sync.Once
 			passwdFunc = func() {
 				var us string
-				if uid, err := sys.Uid(aid); err != nil {
+				if uid, err := std.Uid(aid); err != nil {
 					fmsg.PrintBaseError(err, "cannot obtain uid from fsu:")
 					os.Exit(1)
 				} else {
@@ -328,7 +328,7 @@ func runApp(config *fst.Config) {
 		seccomp.CPrintln = log.Println
 	}
 
-	if a, err := app.New(sys); err != nil {
+	if a, err := app.New(std); err != nil {
 		log.Fatalf("cannot create app: %s", err)
 	} else if err = a.Seal(config); err != nil {
 		fmsg.PrintBaseError(err, "cannot seal app:")
