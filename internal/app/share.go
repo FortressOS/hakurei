@@ -140,7 +140,7 @@ func (seal *appSeal) setupShares(bus [2]*dbus.Config, os sys.State) error {
 	}
 
 	// set up wayland
-	if seal.et.Has(system.EWayland) {
+	if seal.Has(system.EWayland) {
 		var socketPath string
 		if name, ok := os.LookupEnv(wl.WaylandDisplay); !ok {
 			fmsg.Verbose(wl.WaylandDisplay + " is not set, assuming " + wl.FallbackName)
@@ -175,7 +175,7 @@ func (seal *appSeal) setupShares(bus [2]*dbus.Config, os sys.State) error {
 	}
 
 	// set up X11
-	if seal.et.Has(system.EX11) {
+	if seal.Has(system.EX11) {
 		// discover X11 and grant user permission via the `ChangeHosts` command
 		if d, ok := os.LookupEnv(display); !ok {
 			return fmsg.WrapError(ErrXDisplay,
@@ -191,7 +191,7 @@ func (seal *appSeal) setupShares(bus [2]*dbus.Config, os sys.State) error {
 		PulseAudio server and authentication
 	*/
 
-	if seal.et.Has(system.EPulse) {
+	if seal.Has(system.EPulse) {
 		// check PulseAudio directory presence (e.g. `/run/user/%d/pulse`)
 		pd := path.Join(seal.RuntimePath, "pulse")
 		ps := path.Join(pd, "native")
@@ -243,7 +243,7 @@ func (seal *appSeal) setupShares(bus [2]*dbus.Config, os sys.State) error {
 		D-Bus proxy
 	*/
 
-	if seal.et.Has(system.EDBus) {
+	if seal.Has(system.EDBus) {
 		// ensure dbus session bus defaults
 		if bus[0] == nil {
 			bus[0] = dbus.NewConfig(seal.fid, true, true)

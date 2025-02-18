@@ -48,8 +48,6 @@ type appSeal struct {
 	// process-specific share directory path local to XDG_RUNTIME_DIR
 	shareLocal string
 
-	// pass-through enablement tracking from config
-	et system.Enablements
 	// initial config gob encoding buffer
 	ct io.WriterTo
 	// wayland socket direct access
@@ -62,6 +60,7 @@ type appSeal struct {
 	// seal system-level component
 	sys *appSealSys
 
+	system.Enablements
 	fst.Paths
 
 	// protected by upstream mutex
@@ -258,7 +257,7 @@ func (a *app) Seal(config *fst.Config) error {
 	seal.sys.I.WrapErr = fmsg.WrapError
 
 	// pass through enablements
-	seal.et = config.Confinement.Enablements
+	seal.Enablements = config.Confinement.Enablements
 
 	// this method calls all share methods in sequence
 	if err := seal.setupShares([2]*dbus.Config{config.Confinement.SessionBus, config.Confinement.SystemBus}, a.os); err != nil {
