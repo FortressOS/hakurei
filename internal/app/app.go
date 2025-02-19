@@ -5,7 +5,6 @@ import (
 	"sync"
 
 	"git.gensokyo.uk/security/fortify/fst"
-	"git.gensokyo.uk/security/fortify/internal/app/shim"
 	"git.gensokyo.uk/security/fortify/internal/fmsg"
 	"git.gensokyo.uk/security/fortify/internal/sys"
 )
@@ -22,15 +21,11 @@ func New(os sys.State) (fst.App, error) {
 }
 
 type app struct {
-	// application unique identifier
-	id *stringPair[fst.ID]
-	// operating system interface
+	id  *stringPair[fst.ID]
 	sys sys.State
-	// shim process manager
-	shim *shim.Shim
 
-	mu sync.RWMutex
 	*appSeal
+	mu sync.RWMutex
 }
 
 func (a *app) ID() fst.ID { return a.id.unwrap() }
@@ -42,10 +37,6 @@ func (a *app) String() string {
 
 	a.mu.RLock()
 	defer a.mu.RUnlock()
-
-	if a.shim != nil {
-		return a.shim.String()
-	}
 
 	if a.appSeal != nil {
 		if a.appSeal.user.uid == nil {

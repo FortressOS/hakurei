@@ -18,7 +18,6 @@ import (
 	"git.gensokyo.uk/security/fortify/helper/bwrap"
 	"git.gensokyo.uk/security/fortify/internal"
 	"git.gensokyo.uk/security/fortify/internal/fmsg"
-	"git.gensokyo.uk/security/fortify/internal/state"
 	"git.gensokyo.uk/security/fortify/internal/sys"
 	"git.gensokyo.uk/security/fortify/system"
 	"git.gensokyo.uk/security/fortify/wl"
@@ -63,17 +62,11 @@ type appSeal struct {
 	// passed through from [fst.Config]
 	command []string
 
-	// state instance initialised during seal; used during process lifecycle events
-	store state.Store
 	// initial [fst.Config] gob stream for state data;
 	// this is prepared ahead of time as config is mutated during seal creation
 	ct io.WriterTo
 	// dump dbus proxy message buffer
 	dbusMsg func()
-	// whether [system.I] was committed; used during process lifecycle events
-	needRevert bool
-	// whether state was inserted into [state.Store]; used during process lifecycle events
-	stateInStore bool
 
 	user      appUser
 	sys       *system.I
@@ -230,7 +223,6 @@ func (seal *appSeal) finalise(sys sys.State, config *fst.Config, id string) erro
 	*/
 
 	sc := sys.Paths()
-	seal.store = state.NewMulti(sc.RunDirPath)
 	seal.sys = system.New(seal.user.uid.unwrap())
 	seal.sys.IsVerbose = fmsg.Load
 	seal.sys.Verbose = fmsg.Verbose

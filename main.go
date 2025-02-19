@@ -334,7 +334,7 @@ func runApp(config *fst.Config) {
 		fmsg.PrintBaseError(err, "cannot seal app:")
 		internal.Exit(1)
 	} else if err = a.Run(ctx, rs); err != nil {
-		if !rs.Start {
+		if rs.Time == nil {
 			fmsg.PrintBaseError(err, "cannot start app:")
 		} else {
 			logWaitError(err)
@@ -342,6 +342,12 @@ func runApp(config *fst.Config) {
 
 		if rs.ExitCode == 0 {
 			rs.ExitCode = 126
+		}
+	}
+	if rs.RevertErr != nil {
+		fmsg.PrintBaseError(rs.RevertErr, "generic error returned during cleanup:")
+		if rs.ExitCode == 0 {
+			rs.ExitCode = 128
 		}
 	}
 	if rs.WaitErr != nil {

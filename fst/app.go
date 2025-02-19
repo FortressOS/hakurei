@@ -1,6 +1,9 @@
 package fst
 
-import "context"
+import (
+	"context"
+	"time"
+)
 
 type App interface {
 	// ID returns a copy of App's unique ID.
@@ -14,10 +17,15 @@ type App interface {
 
 // RunState stores the outcome of a call to [App.Run].
 type RunState struct {
-	// Start is true if fsu is successfully started.
-	Start bool
+	// Time is the exact point in time where the process was created.
+	// Location must be set to UTC.
+	//
+	// Time is nil if no process was ever created.
+	Time *time.Time
 	// ExitCode is the value returned by shim.
 	ExitCode int
+	// RevertErr is stored by the deferred revert call.
+	RevertErr error
 	// WaitErr is error returned by the underlying wait syscall.
 	WaitErr error
 }

@@ -28,7 +28,10 @@ func (a *app) Run(ctx context.Context, rs *fst.RunState) error {
 		panic("attempted to pass nil state to run")
 	}
 
-	// resolve exec paths
+	/*
+		resolve exec paths
+	*/
+
 	shimExec := [2]string{helper.BubblewrapName}
 	if len(a.appSeal.command) > 0 {
 		shimExec[1] = a.appSeal.command[0]
@@ -47,68 +50,128 @@ func (a *app) Run(ctx context.Context, rs *fst.RunState) error {
 		}
 	}
 
-	// startup will go ahead, commit system setup
+	/*
+		prepare/revert os state
+	*/
+
 	if err := a.appSeal.sys.Commit(ctx); err != nil {
 		return err
 	}
-	a.appSeal.needRevert = true
+	store := state.NewMulti(a.sys.Paths().RunDirPath)
+	deferredStoreFunc := func(c state.Cursor) error { return nil }
+	defer func() {
+		var revertErr error
+		storeErr := new(StateStoreError)
+		storeErr.Inner, storeErr.DoErr = store.Do(a.appSeal.user.aid.unwrap(), func(c state.Cursor) {
+			revertErr = func() error {
+				storeErr.InnerErr = deferredStoreFunc(c)
 
-	// start shim via manager
-	a.shim = new(shim.Shim)
+				/*
+					revert app setup transaction
+				*/
+
+				rt, ec := new(system.Enablements), new(system.Criteria)
+				ec.Enablements = new(system.Enablements)
+				ec.Set(system.Process)
+				if states, err := c.Load(); err != nil {
+					// revert per-process state here to limit damage
+					return errors.Join(err, a.appSeal.sys.Revert(ec))
+				} else {
+					if l := len(states); l == 0 {
+						fmsg.Verbose("no other launchers active, will clean up globals")
+						ec.Set(system.User)
+					} else {
+						fmsg.Verbosef("found %d active launchers, cleaning up without globals", l)
+					}
+
+					// accumulate enablements of remaining launchers
+					for i, s := range states {
+						if s.Config != nil {
+							*rt |= s.Config.Confinement.Enablements
+						} else {
+							log.Printf("state entry %d does not contain config", i)
+						}
+					}
+				}
+				// invert accumulated enablements for cleanup
+				for i := system.Enablement(0); i < system.Enablement(system.ELen); i++ {
+					if !rt.Has(i) {
+						ec.Set(i)
+					}
+				}
+				if fmsg.Load() {
+					labels := make([]string, 0, system.ELen+1)
+					for i := system.Enablement(0); i < system.Enablement(system.ELen+2); i++ {
+						if ec.Has(i) {
+							labels = append(labels, system.TypeString(i))
+						}
+					}
+					if len(labels) > 0 {
+						fmsg.Verbose("reverting operations type", strings.Join(labels, ", "))
+					}
+				}
+
+				err := a.appSeal.sys.Revert(ec)
+				if err != nil {
+					err = err.(RevertCompoundError)
+				}
+				return err
+			}()
+		})
+		storeErr.Err = errors.Join(revertErr, store.Close())
+		rs.RevertErr = storeErr.equiv("error returned during cleanup:")
+	}()
+
+	/*
+		shim process lifecycle
+	*/
+
 	waitErr := make(chan error, 1)
-	if startTime, err := a.shim.Start(
+	cmd := new(shim.Shim)
+	if startTime, err := cmd.Start(
 		a.appSeal.user.aid.String(),
 		a.appSeal.user.supp,
 		a.appSeal.bwrapSync,
 	); err != nil {
 		return err
 	} else {
-		// shim process created
-		rs.Start = true
-
-		shimSetupCtx, shimSetupCancel := context.WithDeadline(ctx, time.Now().Add(shimSetupTimeout))
-		defer shimSetupCancel()
-
-		// start waiting for shim
-		go func() {
-			waitErr <- a.shim.Unwrap().Wait()
-			// cancel shim setup in case shim died before receiving payload
-			shimSetupCancel()
-		}()
-
-		// send payload
-		if err = a.shim.Serve(shimSetupCtx, &shim.Payload{
-			Argv:  a.appSeal.command,
-			Exec:  shimExec,
-			Bwrap: a.appSeal.container,
-			Home:  a.appSeal.user.data,
-
-			Verbose: fmsg.Load(),
-		}); err != nil {
-			return err
-		}
-
-		// shim accepted setup payload, create process state
-		sd := state.State{
-			ID:   a.id.unwrap(),
-			PID:  a.shim.Unwrap().Process.Pid,
-			Time: *startTime,
-		}
-
-		// register process state
-		var err0 = new(StateStoreError)
-		err0.Inner, err0.DoErr = a.appSeal.store.Do(a.appSeal.user.aid.unwrap(), func(c state.Cursor) {
-			err0.InnerErr = c.Save(&sd, a.appSeal.ct)
-		})
-		a.appSeal.stateInStore = true
-		if err = err0.equiv("cannot save process state:"); err != nil {
-			return err
-		}
+		// whether/when the fsu process was created
+		rs.Time = startTime
 	}
 
+	shimSetupCtx, shimSetupCancel := context.WithDeadline(ctx, time.Now().Add(shimSetupTimeout))
+	defer shimSetupCancel()
+
+	go func() {
+		waitErr <- cmd.Unwrap().Wait()
+		// cancel shim setup in case shim died before receiving payload
+		shimSetupCancel()
+	}()
+
+	if err := cmd.Serve(shimSetupCtx, &shim.Payload{
+		Argv:  a.appSeal.command,
+		Exec:  shimExec,
+		Bwrap: a.appSeal.container,
+		Home:  a.appSeal.user.data,
+
+		Verbose: fmsg.Load(),
+	}); err != nil {
+		return err
+	}
+
+	// shim accepted setup payload, create process state
+	sd := state.State{
+		ID:   a.id.unwrap(),
+		PID:  cmd.Unwrap().Process.Pid,
+		Time: *rs.Time,
+	}
+	var earlyStoreErr = new(StateStoreError) // returned after blocking on waitErr
+	earlyStoreErr.Inner, earlyStoreErr.DoErr = store.Do(a.appSeal.user.aid.unwrap(), func(c state.Cursor) { earlyStoreErr.InnerErr = c.Save(&sd, a.appSeal.ct) })
+	// destroy defunct state entry
+	deferredStoreFunc = func(c state.Cursor) error { return c.Destroy(a.id.unwrap()) }
+
 	select {
-	// wait for process and resolve exit code
-	case err := <-waitErr:
+	case err := <-waitErr: // block until fsu/shim returns
 		if err != nil {
 			var exitError *exec.ExitError
 			if !errors.As(err, &exitError) {
@@ -119,16 +182,16 @@ func (a *app) Run(ctx context.Context, rs *fst.RunState) error {
 			// store non-zero return code
 			rs.ExitCode = exitError.ExitCode()
 		} else {
-			rs.ExitCode = a.shim.Unwrap().ProcessState.ExitCode()
+			rs.ExitCode = cmd.Unwrap().ProcessState.ExitCode()
 		}
 		if fmsg.Load() {
-			fmsg.Verbosef("process %d exited with exit code %d", a.shim.Unwrap().Process.Pid, rs.ExitCode)
+			fmsg.Verbosef("process %d exited with exit code %d", cmd.Unwrap().Process.Pid, rs.ExitCode)
 		}
 
 	// this is reached when a fault makes an already running shim impossible to continue execution
 	// however a kill signal could not be delivered (should actually always happen like that since fsu)
 	// the effects of this is similar to the alternative exit path and ensures shim death
-	case err := <-a.shim.WaitFallback():
+	case err := <-cmd.WaitFallback():
 		rs.ExitCode = 255
 		log.Printf("cannot terminate shim on faulted setup: %v", err)
 
@@ -137,91 +200,33 @@ func (a *app) Run(ctx context.Context, rs *fst.RunState) error {
 		fmsg.Verbose("alternative exit path selected")
 	}
 
-	// child process exited, resume output
 	fmsg.Resume()
-
-	// print queued up dbus messages
 	if a.appSeal.dbusMsg != nil {
+		// dump dbus message buffer
 		a.appSeal.dbusMsg()
 	}
 
-	// update store and revert app setup transaction
-	e := new(StateStoreError)
-	e.Inner, e.DoErr = a.appSeal.store.Do(a.appSeal.user.aid.unwrap(), func(b state.Cursor) {
-		e.InnerErr = func() error {
-			// destroy defunct state entry
-			if cmd := a.shim.Unwrap(); cmd != nil && a.appSeal.stateInStore {
-				if err := b.Destroy(a.id.unwrap()); err != nil {
-					return err
-				}
-			}
-
-			// enablements of remaining launchers
-			rt, ec := new(system.Enablements), new(system.Criteria)
-			ec.Enablements = new(system.Enablements)
-			ec.Set(system.Process)
-			if states, err := b.Load(); err != nil {
-				return err
-			} else {
-				if l := len(states); l == 0 {
-					// cleanup globals as the final launcher
-					fmsg.Verbose("no other launchers active, will clean up globals")
-					ec.Set(system.User)
-				} else {
-					fmsg.Verbosef("found %d active launchers, cleaning up without globals", l)
-				}
-
-				// accumulate capabilities of other launchers
-				for i, s := range states {
-					if s.Config != nil {
-						*rt |= s.Config.Confinement.Enablements
-					} else {
-						log.Printf("state entry %d does not contain config", i)
-					}
-				}
-			}
-			// invert accumulated enablements for cleanup
-			for i := system.Enablement(0); i < system.Enablement(system.ELen); i++ {
-				if !rt.Has(i) {
-					ec.Set(i)
-				}
-			}
-			if fmsg.Load() {
-				labels := make([]string, 0, system.ELen+1)
-				for i := system.Enablement(0); i < system.Enablement(system.ELen+2); i++ {
-					if ec.Has(i) {
-						labels = append(labels, system.TypeString(i))
-					}
-				}
-				if len(labels) > 0 {
-					fmsg.Verbose("reverting operations labelled", strings.Join(labels, ", "))
-				}
-			}
-
-			if a.appSeal.needRevert {
-				if err := a.appSeal.sys.Revert(ec); err != nil {
-					return err.(RevertCompoundError)
-				}
-			}
-
-			return nil
-		}()
-	})
-
-	e.Err = a.appSeal.store.Close()
-	return e.equiv("error returned during cleanup:", e)
+	return earlyStoreErr.equiv("cannot save process state:")
 }
 
 // StateStoreError is returned for a failed state save
 type StateStoreError struct {
 	// whether inner function was called
 	Inner bool
-	// error returned by state.Store Do method
+	// returned by the Do method of [state.Store]
 	DoErr error
-	// error returned by state.Backend Save method
+	// returned by the Save/Destroy method of [state.Cursor]
 	InnerErr error
-	// any other errors needing to be tracked
+	// stores an arbitrary error
 	Err error
+}
+
+// save saves exactly one arbitrary error in [StateStoreError].
+func (e *StateStoreError) save(err error) {
+	if err == nil || e.Err != nil {
+		panic("invalid call to save")
+	}
+	e.Err = err
 }
 
 func (e *StateStoreError) equiv(a ...any) error {
@@ -245,7 +250,8 @@ func (e *StateStoreError) Error() string {
 		return e.Err.Error()
 	}
 
-	return "(nil)"
+	// equiv nullifies e for values where this is reached
+	panic("unreachable")
 }
 
 func (e *StateStoreError) Unwrap() (errs []error) {
@@ -262,6 +268,8 @@ func (e *StateStoreError) Unwrap() (errs []error) {
 	return
 }
 
+// A RevertCompoundError encapsulates errors returned by
+// the Revert method of [system.I].
 type RevertCompoundError interface {
 	Error() string
 	Unwrap() []error
