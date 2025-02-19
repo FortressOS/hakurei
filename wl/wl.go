@@ -10,7 +10,14 @@ package wl
 #include "wayland-bind.h"
 */
 import "C"
-import "errors"
+import (
+	"errors"
+	"strings"
+)
+
+var (
+	ErrContainsNull = errors.New("string contains null character")
+)
 
 var resErr = [...]error{
 	0: nil,
@@ -19,6 +26,11 @@ var resErr = [...]error{
 }
 
 func bindWaylandFd(socketPath string, fd uintptr, appID, instanceID string, syncFD uintptr) error {
+	if hasNull(appID) || hasNull(instanceID) {
+		return ErrContainsNull
+	}
 	res := C.bind_wayland_fd(C.CString(socketPath), C.int(fd), C.CString(appID), C.CString(instanceID), C.int(syncFD))
 	return resErr[int32(res)]
 }
+
+func hasNull(s string) bool { return strings.IndexByte(s, '\x00') > -1 }
