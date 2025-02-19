@@ -10,6 +10,7 @@ import (
 	"os"
 	"path"
 	"regexp"
+	"strings"
 
 	"git.gensokyo.uk/security/fortify/acl"
 	"git.gensokyo.uk/security/fortify/dbus"
@@ -20,6 +21,26 @@ import (
 	"git.gensokyo.uk/security/fortify/internal/state"
 	"git.gensokyo.uk/security/fortify/internal/sys"
 	"git.gensokyo.uk/security/fortify/system"
+	"git.gensokyo.uk/security/fortify/wl"
+)
+
+const (
+	home  = "HOME"
+	shell = "SHELL"
+
+	xdgConfigHome   = "XDG_CONFIG_HOME"
+	xdgRuntimeDir   = "XDG_RUNTIME_DIR"
+	xdgSessionClass = "XDG_SESSION_CLASS"
+	xdgSessionType  = "XDG_SESSION_TYPE"
+
+	term    = "TERM"
+	display = "DISPLAY"
+
+	pulseServer = "PULSE_SERVER"
+	pulseCookie = "PULSE_COOKIE"
+
+	dbusSessionBusAddress = "DBUS_SESSION_BUS_ADDRESS"
+	dbusSystemBusAddress  = "DBUS_SYSTEM_BUS_ADDRESS"
 )
 
 var (
@@ -27,64 +48,37 @@ var (
 	ErrUser   = errors.New("invalid aid")
 	ErrHome   = errors.New("invalid home directory")
 	ErrName   = errors.New("invalid username")
+
+	ErrXDisplay = errors.New(display + " unset")
+
+	ErrPulseCookie = errors.New("pulse cookie not present")
+	ErrPulseSocket = errors.New("pulse socket not present")
+	ErrPulseMode   = errors.New("unexpected pulse socket mode")
 )
 
 var posixUsername = regexp.MustCompilePOSIX("^[a-z_]([A-Za-z0-9_-]{0,31}|[A-Za-z0-9_-]{0,30}\\$)$")
 
 // appSeal stores copies of various parts of [fst.Config]
 type appSeal struct {
-	// string representation of [fst.ID]
-	id string
-	// dump dbus proxy message buffer
-	dbusMsg func()
-
-	// reverse-DNS style arbitrary identifier string from config;
-	// passed to wayland security-context-v1 as application ID
-	// and used as part of defaults in dbus session proxy
-	appID string
-	// final argv, passed to init
+	// passed through from [fst.Config]
 	command []string
 
 	// state instance initialised during seal; used during process lifecycle events
 	store state.Store
+	// initial [fst.Config] gob stream for state data;
+	// this is prepared ahead of time as config is mutated during seal creation
+	ct io.WriterTo
+	// dump dbus proxy message buffer
+	dbusMsg func()
 	// whether [system.I] was committed; used during process lifecycle events
 	needRevert bool
 	// whether state was inserted into [state.Store]; used during process lifecycle events
 	stateInStore bool
 
-	// process-specific share directory path ([os.TempDir])
-	share string
-	// process-specific share directory path ([fst.Paths] XDG_RUNTIME_DIR)
-	shareLocal string
-
-	// initial [fst.Config] gob stream for state data;
-	// this is prepared ahead of time as config is mutated during seal creation
-	ct io.WriterTo
-	// passed through from [fst.SandboxConfig];
-	// when this gets set no attempt is made to attach security-context-v1
-	// and the bare socket is mounted to the sandbox
-	directWayland bool
-	// mount tmpfs over these paths, runs right before extraPerms
-	override []string
-	// extra [acl.Update] ops, appended at the end of [system.I]
-	extraPerms []*sealedExtraPerm
-
-	// post fsu state
-	user appUser
-	// inner XDG_RUNTIME_DIR, default formatting via user
-	innerRuntimeDir string
-	// mapped uid and gid in user namespace
-	mapuid *stringPair[int]
-
+	user      appUser
 	sys       *system.I
 	container *bwrap.Config
 	bwrapSync *os.File
-
-	// prevents sharing from happening twice
-	shared bool
-
-	system.Enablements
-	fst.Paths
 
 	// protected by upstream mutex
 }
@@ -107,45 +101,30 @@ type appUser struct {
 	username string
 }
 
-type sealedExtraPerm struct {
-	name   string
-	perms  acl.Perms
-	ensure bool
-}
-
 func (seal *appSeal) finalise(sys sys.State, config *fst.Config, id string) error {
-	// encode initial configuration for state tracking
-	ct := new(bytes.Buffer)
-	if err := gob.NewEncoder(ct).Encode(config); err != nil {
-		return fmsg.WrapErrorSuffix(err,
-			"cannot encode initial config:")
+	{
+		// encode initial configuration for state tracking
+		ct := new(bytes.Buffer)
+		if err := gob.NewEncoder(ct).Encode(config); err != nil {
+			return fmsg.WrapErrorSuffix(err,
+				"cannot encode initial config:")
+		}
+		seal.ct = ct
 	}
-	seal.ct = ct
 
-	seal.Paths = sys.Paths()
-
-	// pass through config values
-	seal.id = id
-	seal.appID = config.ID
+	// pass through command slice; this value is never touched in the main process
 	seal.command = config.Command
 
-	{
-		// mapped uid defaults to 65534 to work around file ownership checks due to a bwrap limitation
-		mapuid := 65534
-		if config.Confinement.Sandbox != nil && config.Confinement.Sandbox.MapRealUID {
-			// some programs fail to connect to dbus session running as a different uid, so a
-			// separate workaround is introduced to map priv-side caller uid in namespace
-			mapuid = sys.Geteuid()
-		}
-		seal.mapuid = newInt(mapuid)
-		seal.innerRuntimeDir = path.Join("/run/user", seal.mapuid.String())
-	}
-
-	// validate uid and set user info
+	// allowed aid range 0 to 9999, this is checked again in fsu
 	if config.Confinement.AppID < 0 || config.Confinement.AppID > 9999 {
 		return fmsg.WrapError(ErrUser,
 			fmt.Sprintf("aid %d out of range", config.Confinement.AppID))
 	}
+
+	/*
+		Resolve post-fsu user state
+	*/
+
 	seal.user = appUser{
 		aid:      newInt(config.Confinement.AppID),
 		data:     config.Confinement.Outer,
@@ -166,15 +145,11 @@ func (seal *appSeal) finalise(sys sys.State, config *fst.Config, id string) erro
 	if seal.user.home == "" {
 		seal.user.home = seal.user.data
 	}
-
-	// invoke fsu for full uid
 	if u, err := sys.Uid(seal.user.aid.unwrap()); err != nil {
 		return err
 	} else {
 		seal.user.uid = newInt(u)
 	}
-
-	// resolve supplementary group ids from names
 	seal.user.supp = make([]string, len(config.Confinement.Groups))
 	for i, name := range config.Confinement.Groups {
 		if g, err := sys.LookupGroup(name); err != nil {
@@ -185,33 +160,14 @@ func (seal *appSeal) finalise(sys sys.State, config *fst.Config, id string) erro
 		}
 	}
 
-	// build extra perms
-	seal.extraPerms = make([]*sealedExtraPerm, len(config.Confinement.ExtraPerms))
-	for i, p := range config.Confinement.ExtraPerms {
-		if p == nil {
-			continue
-		}
+	/*
+		Resolve initial container state
+	*/
 
-		seal.extraPerms[i] = new(sealedExtraPerm)
-		seal.extraPerms[i].name = p.Path
-		seal.extraPerms[i].perms = make(acl.Perms, 0, 3)
-		if p.Read {
-			seal.extraPerms[i].perms = append(seal.extraPerms[i].perms, acl.Read)
-		}
-		if p.Write {
-			seal.extraPerms[i].perms = append(seal.extraPerms[i].perms, acl.Write)
-		}
-		if p.Execute {
-			seal.extraPerms[i].perms = append(seal.extraPerms[i].perms, acl.Execute)
-		}
-		seal.extraPerms[i].ensure = p.Ensure
-	}
-
-	// map sandbox config to bwrap
+	// permissive defaults
 	if config.Confinement.Sandbox == nil {
 		fmsg.Verbose("sandbox configuration not supplied, PROCEED WITH CAUTION")
 
-		// permissive defaults
 		conf := &fst.SandboxConfig{
 			UserNS:       true,
 			Net:          true,
@@ -254,40 +210,326 @@ func (seal *appSeal) finalise(sys sys.State, config *fst.Config, id string) erro
 
 		config.Confinement.Sandbox = conf
 	}
-	seal.directWayland = config.Confinement.Sandbox.DirectWayland
-	if b, err := config.Confinement.Sandbox.Bwrap(sys); err != nil {
-		return err
-	} else {
-		seal.container = b
-	}
-	seal.override = config.Confinement.Sandbox.Override
-	if seal.container.SetEnv == nil {
-		seal.container.SetEnv = make(map[string]string)
+
+	var mapuid *stringPair[int]
+	{
+		var uid int
+		var err error
+		seal.container, err = config.Confinement.Sandbox.Bwrap(sys, &uid)
+		if err != nil {
+			return err
+		}
+		mapuid = newInt(uid)
+		if seal.container.SetEnv == nil {
+			seal.container.SetEnv = make(map[string]string)
+		}
 	}
 
-	// open process state store
-	// the simple store only starts holding an open file after first action
-	// store activity begins after Start is called and must end before Wait
-	seal.store = state.NewMulti(seal.RunDirPath)
+	/*
+		Initialise externals
+	*/
 
-	// initialise system interface with os uid
+	sc := sys.Paths()
+	seal.store = state.NewMulti(sc.RunDirPath)
 	seal.sys = system.New(seal.user.uid.unwrap())
 	seal.sys.IsVerbose = fmsg.Load
 	seal.sys.Verbose = fmsg.Verbose
 	seal.sys.Verbosef = fmsg.Verbosef
 	seal.sys.WrapErr = fmsg.WrapError
 
-	// pass through enablements
-	seal.Enablements = config.Confinement.Enablements
+	/*
+		Work directories
+	*/
 
-	// this method calls all share methods in sequence
-	if err := seal.setupShares([2]*dbus.Config{config.Confinement.SessionBus, config.Confinement.SystemBus}, sys); err != nil {
-		return err
+	// base fortify share path
+	seal.sys.Ensure(sc.SharePath, 0711)
+
+	// outer paths used by the main process
+	seal.sys.Ensure(sc.RunDirPath, 0700)
+	seal.sys.UpdatePermType(system.User, sc.RunDirPath, acl.Execute)
+	seal.sys.Ensure(sc.RuntimePath, 0700) // ensure this dir in case XDG_RUNTIME_DIR is unset
+	seal.sys.UpdatePermType(system.User, sc.RuntimePath, acl.Execute)
+
+	// outer process-specific share directory
+	sharePath := path.Join(sc.SharePath, id)
+	seal.sys.Ephemeral(system.Process, sharePath, 0711)
+	// similar to share but within XDG_RUNTIME_DIR
+	sharePathLocal := path.Join(sc.RunDirPath, id)
+	seal.sys.Ephemeral(system.Process, sharePathLocal, 0700)
+	seal.sys.UpdatePerm(sharePathLocal, acl.Execute)
+
+	// inner XDG_RUNTIME_DIR default formatting of `/run/user/%d` as post-fsu user
+	innerRuntimeDir := path.Join("/run/user", mapuid.String())
+	seal.container.Tmpfs("/run/user", 1*1024*1024)
+	seal.container.Tmpfs(innerRuntimeDir, 8*1024*1024)
+	seal.container.SetEnv[xdgRuntimeDir] = innerRuntimeDir
+	seal.container.SetEnv[xdgSessionClass] = "user"
+	seal.container.SetEnv[xdgSessionType] = "tty"
+
+	// outer path for inner /tmp
+	{
+		tmpdir := path.Join(sc.SharePath, "tmpdir")
+		seal.sys.Ensure(tmpdir, 0700)
+		seal.sys.UpdatePermType(system.User, tmpdir, acl.Execute)
+		tmpdirProc := path.Join(tmpdir, seal.user.aid.String())
+		seal.sys.Ensure(tmpdirProc, 01700)
+		seal.sys.UpdatePermType(system.User, tmpdirProc, acl.Read, acl.Write, acl.Execute)
+		seal.container.Bind(tmpdirProc, "/tmp", false, true)
 	}
 
-	// verbose log seal information
+	/*
+		Passwd database
+	*/
+
+	// look up shell
+	sh := "/bin/sh"
+	if s, ok := sys.LookupEnv(shell); ok {
+		seal.container.SetEnv[shell] = s
+		sh = s
+	}
+
+	// bind home directory
+	homeDir := "/var/empty"
+	if seal.user.home != "" {
+		homeDir = seal.user.home
+	}
+	username := "chronos"
+	if seal.user.username != "" {
+		username = seal.user.username
+	}
+	seal.container.Bind(seal.user.data, homeDir, false, true)
+	seal.container.Chdir = homeDir
+	seal.container.SetEnv["HOME"] = homeDir
+	seal.container.SetEnv["USER"] = username
+
+	// generate /etc/passwd and /etc/group
+	seal.container.CopyBind("/etc/passwd",
+		[]byte(username+":x:"+mapuid.String()+":"+mapuid.String()+":Fortify:"+homeDir+":"+sh+"\n"))
+	seal.container.CopyBind("/etc/group",
+		[]byte("fortify:x:"+mapuid.String()+":\n"))
+
+	/*
+		Display servers
+	*/
+
+	// pass $TERM to launcher
+	if t, ok := sys.LookupEnv(term); ok {
+		seal.container.SetEnv[term] = t
+	}
+
+	// set up wayland
+	if config.Confinement.Enablements.Has(system.EWayland) {
+		// outer wayland socket (usually `/run/user/%d/wayland-%d`)
+		var socketPath string
+		if name, ok := sys.LookupEnv(wl.WaylandDisplay); !ok {
+			fmsg.Verbose(wl.WaylandDisplay + " is not set, assuming " + wl.FallbackName)
+			socketPath = path.Join(sc.RuntimePath, wl.FallbackName)
+		} else if !path.IsAbs(name) {
+			socketPath = path.Join(sc.RuntimePath, name)
+		} else {
+			socketPath = name
+		}
+
+		innerPath := path.Join(innerRuntimeDir, wl.FallbackName)
+		seal.container.SetEnv[wl.WaylandDisplay] = wl.FallbackName
+
+		if !config.Confinement.Sandbox.DirectWayland { // set up security-context-v1
+			socketDir := path.Join(sc.SharePath, "wayland")
+			outerPath := path.Join(socketDir, id)
+			seal.sys.Ensure(socketDir, 0711)
+			appID := config.ID
+			if appID == "" {
+				// use instance ID in case app id is not set
+				appID = "uk.gensokyo.fortify." + id
+			}
+			seal.sys.Wayland(&seal.bwrapSync, outerPath, socketPath, appID, id)
+			seal.container.Bind(outerPath, innerPath)
+		} else { // bind mount wayland socket (insecure)
+			fmsg.Verbose("direct wayland access, PROCEED WITH CAUTION")
+			seal.container.Bind(socketPath, innerPath)
+			seal.sys.UpdatePermType(system.EWayland, socketPath, acl.Read, acl.Write, acl.Execute)
+		}
+	}
+
+	// set up X11
+	if config.Confinement.Enablements.Has(system.EX11) {
+		// discover X11 and grant user permission via the `ChangeHosts` command
+		if d, ok := sys.LookupEnv(display); !ok {
+			return fmsg.WrapError(ErrXDisplay,
+				"DISPLAY is not set")
+		} else {
+			seal.sys.ChangeHosts("#" + seal.user.uid.String())
+			seal.container.SetEnv[display] = d
+			seal.container.Bind("/tmp/.X11-unix", "/tmp/.X11-unix")
+		}
+	}
+
+	/*
+		PulseAudio server and authentication
+	*/
+
+	if config.Confinement.Enablements.Has(system.EPulse) {
+		// PulseAudio runtime directory (usually `/run/user/%d/pulse`)
+		pulseRuntimeDir := path.Join(sc.RuntimePath, "pulse")
+		// PulseAudio socket (usually `/run/user/%d/pulse/native`)
+		pulseSocket := path.Join(pulseRuntimeDir, "native")
+
+		if _, err := sys.Stat(pulseRuntimeDir); err != nil {
+			if !errors.Is(err, fs.ErrNotExist) {
+				return fmsg.WrapErrorSuffix(err,
+					fmt.Sprintf("cannot access PulseAudio directory %q:", pulseRuntimeDir))
+			}
+			return fmsg.WrapError(ErrPulseSocket,
+				fmt.Sprintf("PulseAudio directory %q not found", pulseRuntimeDir))
+		}
+
+		if s, err := sys.Stat(pulseSocket); err != nil {
+			if !errors.Is(err, fs.ErrNotExist) {
+				return fmsg.WrapErrorSuffix(err,
+					fmt.Sprintf("cannot access PulseAudio socket %q:", pulseSocket))
+			}
+			return fmsg.WrapError(ErrPulseSocket,
+				fmt.Sprintf("PulseAudio directory %q found but socket does not exist", pulseRuntimeDir))
+		} else {
+			if m := s.Mode(); m&0o006 != 0o006 {
+				return fmsg.WrapError(ErrPulseMode,
+					fmt.Sprintf("unexpected permissions on %q:", pulseSocket), m)
+			}
+		}
+
+		// hard link pulse socket into target-executable share
+		innerPulseRuntimeDir := path.Join(sharePathLocal, "pulse")
+		innerPulseSocket := path.Join(innerRuntimeDir, "pulse", "native")
+		seal.sys.Link(pulseSocket, innerPulseRuntimeDir)
+		seal.container.Bind(innerPulseRuntimeDir, innerPulseSocket)
+		seal.container.SetEnv[pulseServer] = "unix:" + innerPulseSocket
+
+		// publish current user's pulse cookie for target user
+		if src, err := discoverPulseCookie(sys); err != nil {
+			// not fatal
+			fmsg.Verbose(strings.TrimSpace(err.(*fmsg.BaseError).Message()))
+		} else {
+			innerDst := fst.Tmp + "/pulse-cookie"
+			seal.container.SetEnv[pulseCookie] = innerDst
+			payload := new([]byte)
+			seal.container.CopyBindRef(innerDst, &payload)
+			seal.sys.CopyFile(payload, src, 256, 256)
+		}
+	}
+
+	/*
+		D-Bus proxy
+	*/
+
+	if config.Confinement.Enablements.Has(system.EDBus) {
+		// ensure dbus session bus defaults
+		if config.Confinement.SessionBus == nil {
+			config.Confinement.SessionBus = dbus.NewConfig(config.ID, true, true)
+		}
+
+		// downstream socket paths
+		sessionPath, systemPath := path.Join(sharePath, "bus"), path.Join(sharePath, "system_bus_socket")
+
+		// configure dbus proxy
+		if f, err := seal.sys.ProxyDBus(
+			config.Confinement.SessionBus, config.Confinement.SystemBus,
+			sessionPath, systemPath,
+		); err != nil {
+			return err
+		} else {
+			seal.dbusMsg = f
+		}
+
+		// share proxy sockets
+		sessionInner := path.Join(innerRuntimeDir, "bus")
+		seal.container.SetEnv[dbusSessionBusAddress] = "unix:path=" + sessionInner
+		seal.container.Bind(sessionPath, sessionInner)
+		seal.sys.UpdatePerm(sessionPath, acl.Read, acl.Write)
+		if config.Confinement.SystemBus != nil {
+			systemInner := "/run/dbus/system_bus_socket"
+			seal.container.SetEnv[dbusSystemBusAddress] = "unix:path=" + systemInner
+			seal.container.Bind(systemPath, systemInner)
+			seal.sys.UpdatePerm(systemPath, acl.Read, acl.Write)
+		}
+	}
+
+	/*
+		Miscellaneous
+	*/
+
+	// queue overriding tmpfs at the end of seal.container.Filesystem
+	for _, dest := range config.Confinement.Sandbox.Override {
+		seal.container.Tmpfs(dest, 8*1024)
+	}
+
+	// append ExtraPerms last
+	for _, p := range config.Confinement.ExtraPerms {
+		if p == nil {
+			continue
+		}
+
+		if p.Ensure {
+			seal.sys.Ensure(p.Path, 0700)
+		}
+
+		perms := make(acl.Perms, 0, 3)
+		if p.Read {
+			perms = append(perms, acl.Read)
+		}
+		if p.Write {
+			perms = append(perms, acl.Write)
+		}
+		if p.Execute {
+			perms = append(perms, acl.Execute)
+		}
+		seal.sys.UpdatePermType(system.User, p.Path, perms...)
+	}
+
+	// mount fortify in sandbox for init
+	seal.container.Bind(sys.MustExecutable(), path.Join(fst.Tmp, "sbin/fortify"))
+	seal.container.Symlink("fortify", path.Join(fst.Tmp, "sbin/init"))
+
 	fmsg.Verbosef("created application seal for uid %s (%s) groups: %v, command: %s",
 		seal.user.uid, seal.user.username, config.Confinement.Groups, config.Command)
 
 	return nil
+}
+
+// discoverPulseCookie attempts various standard methods to discover the current user's PulseAudio authentication cookie
+func discoverPulseCookie(sys sys.State) (string, error) {
+	if p, ok := sys.LookupEnv(pulseCookie); ok {
+		return p, nil
+	}
+
+	// dotfile $HOME/.pulse-cookie
+	if p, ok := sys.LookupEnv(home); ok {
+		p = path.Join(p, ".pulse-cookie")
+		if s, err := sys.Stat(p); err != nil {
+			if !errors.Is(err, fs.ErrNotExist) {
+				return p, fmsg.WrapErrorSuffix(err,
+					fmt.Sprintf("cannot access PulseAudio cookie %q:", p))
+			}
+			// not found, try next method
+		} else if !s.IsDir() {
+			return p, nil
+		}
+	}
+
+	// $XDG_CONFIG_HOME/pulse/cookie
+	if p, ok := sys.LookupEnv(xdgConfigHome); ok {
+		p = path.Join(p, "pulse", "cookie")
+		if s, err := sys.Stat(p); err != nil {
+			if !errors.Is(err, fs.ErrNotExist) {
+				return p, fmsg.WrapErrorSuffix(err,
+					fmt.Sprintf("cannot access PulseAudio cookie %q:", p))
+			}
+			// not found, try next method
+		} else if !s.IsDir() {
+			return p, nil
+		}
+	}
+
+	return "", fmsg.WrapError(ErrPulseCookie,
+		fmt.Sprintf("cannot locate PulseAudio cookie (tried $%s, $%s/pulse/cookie, $%s/.pulse-cookie)",
+			pulseCookie, xdgConfigHome, home))
 }

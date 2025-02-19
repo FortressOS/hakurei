@@ -10,9 +10,11 @@ const Tmp = "/.fortify"
 
 // Config is used to seal an app
 type Config struct {
-	// application ID
+	// reverse-DNS style arbitrary identifier string from config;
+	// passed to wayland security-context-v1 as application ID
+	// and used as part of defaults in dbus session proxy
 	ID string `json:"id"`
-	// value passed through to the child process as its argv
+	// final argv, passed to init
 	Command []string `json:"command"`
 
 	Confinement ConfinementConfig `json:"confinement"`
@@ -32,7 +34,7 @@ type ConfinementConfig struct {
 	Outer string `json:"home"`
 	// bwrap sandbox confinement configuration
 	Sandbox *SandboxConfig `json:"sandbox"`
-	// extra acl entries to append
+	// extra acl ops, runs after everything else
 	ExtraPerms []*ExtraPermConfig `json:"extra_perms,omitempty"`
 
 	// reference to a system D-Bus proxy configuration,

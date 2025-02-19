@@ -24,10 +24,10 @@ type RunState struct {
 
 // Paths contains environment-dependent paths used by fortify.
 type Paths struct {
-	// path to shared directory e.g. /tmp/fortify.%d
+	// path to shared directory (usually `/tmp/fortify.%d`)
 	SharePath string `json:"share_path"`
-	// XDG_RUNTIME_DIR value e.g. /run/user/%d
+	// XDG_RUNTIME_DIR value (usually `/run/user/%d`)
 	RuntimePath string `json:"runtime_path"`
-	// application runtime directory e.g. /run/user/%d/fortify
+	// application runtime directory (usually `/run/user/%d/fortify`)
 	RunDirPath string `json:"run_dir_path"`
 }

@@ -26,7 +26,8 @@ type SandboxConfig struct {
 	NoNewSession bool `json:"no_new_session,omitempty"`
 	// map target user uid to privileged user uid in the user namespace
 	MapRealUID bool `json:"map_real_uid"`
-	// direct access to wayland socket
+	// direct access to wayland socket; when this gets set no attempt is made to attach security-context-v1
+	// and the bare socket is mounted to the sandbox
 	DirectWayland bool `json:"direct_wayland,omitempty"`
 
 	// final environment variables
@@ -39,7 +40,8 @@ type SandboxConfig struct {
 	Etc string `json:"etc,omitempty"`
 	// automatically set up /etc symlinks
 	AutoEtc bool `json:"auto_etc"`
-	// paths to override by mounting tmpfs over them
+	// mount tmpfs over these paths,
+	// runs right before [ConfinementConfig.ExtraPerms]
 	Override []string `json:"override"`
 }
 
@@ -56,7 +58,7 @@ type SandboxSys interface {
 
 // Bwrap returns the address of the corresponding bwrap.Config to s.
 // Note that remaining tmpfs entries must be queued by the caller prior to launch.
-func (s *SandboxConfig) Bwrap(sys SandboxSys) (*bwrap.Config, error) {
+func (s *SandboxConfig) Bwrap(sys SandboxSys, uid *int) (*bwrap.Config, error) {
 	if s == nil {
 		return nil, errors.New("nil sandbox config")
 	}
@@ -65,16 +67,20 @@ func (s *SandboxConfig) Bwrap(sys SandboxSys) (*bwrap.Config, error) {
 		sys.Println("syscall filter not configured, PROCEED WITH CAUTION")
 	}
 
-	var uid int
 	if !s.MapRealUID {
-		uid = 65534
+		// mapped uid defaults to 65534 to work around file ownership checks due to a bwrap limitation
+		*uid = 65534
 	} else {
-		uid = sys.Geteuid()
+		// some programs fail to connect to dbus session running as a different uid, so a separate workaround
+		// is introduced to map priv-side caller uid in namespace
+		*uid = sys.Geteuid()
 	}
 
 	conf := (&bwrap.Config{
 		Net:      s.Net,
 		UserNS:   s.UserNS,
+		UID:      uid,
+		GID:      uid,
 		Hostname: s.Hostname,
 		Clearenv: true,
 		SetEnv:   s.Env,
@@ -93,7 +99,6 @@ func (s *SandboxConfig) Bwrap(sys SandboxSys) (*bwrap.Config, error) {
 		// for saving such a miniscule amount of memory
 		Chmod: make(bwrap.ChmodConfig),
 	}).
-		SetUID(uid).SetGID(uid).
 		Procfs("/proc").
 		Tmpfs(Tmp, 4*1024)
 
