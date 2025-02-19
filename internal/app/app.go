@@ -6,6 +6,7 @@ import (
 
 	"git.gensokyo.uk/security/fortify/fst"
 	"git.gensokyo.uk/security/fortify/internal/app/shim"
+	"git.gensokyo.uk/security/fortify/internal/fmsg"
 	"git.gensokyo.uk/security/fortify/internal/sys"
 )
 
@@ -54,4 +55,24 @@ func (a *app) String() string {
 	}
 
 	return fmt.Sprintf("(unsealed app %s)", a.id)
+}
+
+func (a *app) Seal(config *fst.Config) (err error) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+
+	if a.appSeal != nil {
+		panic("app sealed twice")
+	}
+	if config == nil {
+		return fmsg.WrapError(ErrConfig,
+			"attempted to seal app with nil config")
+	}
+
+	seal := new(appSeal)
+	err = seal.finalise(a.sys, config, a.id.String())
+	if err == nil {
+		a.appSeal = seal
+	}
+	return
 }

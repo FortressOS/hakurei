@@ -18,6 +18,7 @@ import (
 	"git.gensokyo.uk/security/fortify/internal"
 	"git.gensokyo.uk/security/fortify/internal/fmsg"
 	"git.gensokyo.uk/security/fortify/internal/state"
+	"git.gensokyo.uk/security/fortify/internal/sys"
 	"git.gensokyo.uk/security/fortify/system"
 )
 
@@ -112,23 +113,7 @@ type sealedExtraPerm struct {
 	ensure bool
 }
 
-// Seal seals the app launch context
-func (a *app) Seal(config *fst.Config) error {
-	a.mu.Lock()
-	defer a.mu.Unlock()
-
-	if a.appSeal != nil {
-		panic("app sealed twice")
-	}
-
-	if config == nil {
-		return fmsg.WrapError(ErrConfig,
-			"attempted to seal app with nil config")
-	}
-
-	// create seal
-	seal := new(appSeal)
-
+func (seal *appSeal) finalise(sys sys.State, config *fst.Config, id string) error {
 	// encode initial configuration for state tracking
 	ct := new(bytes.Buffer)
 	if err := gob.NewEncoder(ct).Encode(config); err != nil {
@@ -137,11 +122,10 @@ func (a *app) Seal(config *fst.Config) error {
 	}
 	seal.ct = ct
 
-	// fetch system constants
-	seal.Paths = a.sys.Paths()
+	seal.Paths = sys.Paths()
 
 	// pass through config values
-	seal.id = a.id.String()
+	seal.id = id
 	seal.appID = config.ID
 	seal.command = config.Command
 
@@ -151,7 +135,7 @@ func (a *app) Seal(config *fst.Config) error {
 		if config.Confinement.Sandbox != nil && config.Confinement.Sandbox.MapRealUID {
 			// some programs fail to connect to dbus session running as a different uid, so a
 			// separate workaround is introduced to map priv-side caller uid in namespace
-			mapuid = a.sys.Geteuid()
+			mapuid = sys.Geteuid()
 		}
 		seal.mapuid = newInt(mapuid)
 		seal.innerRuntimeDir = path.Join("/run/user", seal.mapuid.String())
@@ -184,7 +168,7 @@ func (a *app) Seal(config *fst.Config) error {
 	}
 
 	// invoke fsu for full uid
-	if u, err := a.sys.Uid(seal.user.aid.unwrap()); err != nil {
+	if u, err := sys.Uid(seal.user.aid.unwrap()); err != nil {
 		return err
 	} else {
 		seal.user.uid = newInt(u)
@@ -193,7 +177,7 @@ func (a *app) Seal(config *fst.Config) error {
 	// resolve supplementary group ids from names
 	seal.user.supp = make([]string, len(config.Confinement.Groups))
 	for i, name := range config.Confinement.Groups {
-		if g, err := a.sys.LookupGroup(name); err != nil {
+		if g, err := sys.LookupGroup(name); err != nil {
 			return fmsg.WrapError(err,
 				fmt.Sprintf("unknown group %q", name))
 		} else {
@@ -236,7 +220,7 @@ func (a *app) Seal(config *fst.Config) error {
 			AutoEtc:      true,
 		}
 		// bind entries in /
-		if d, err := a.sys.ReadDir("/"); err != nil {
+		if d, err := sys.ReadDir("/"); err != nil {
 			return err
 		} else {
 			b := make([]*fst.FilesystemConfig, 0, len(d))
@@ -258,7 +242,7 @@ func (a *app) Seal(config *fst.Config) error {
 
 		// hide nscd from sandbox if present
 		nscd := "/var/run/nscd"
-		if _, err := a.sys.Stat(nscd); !errors.Is(err, fs.ErrNotExist) {
+		if _, err := sys.Stat(nscd); !errors.Is(err, fs.ErrNotExist) {
 			conf.Override = append(conf.Override, nscd)
 		}
 		// bind GPU stuff
@@ -271,7 +255,7 @@ func (a *app) Seal(config *fst.Config) error {
 		config.Confinement.Sandbox = conf
 	}
 	seal.directWayland = config.Confinement.Sandbox.DirectWayland
-	if b, err := config.Confinement.Sandbox.Bwrap(a.sys); err != nil {
+	if b, err := config.Confinement.Sandbox.Bwrap(sys); err != nil {
 		return err
 	} else {
 		seal.container = b
@@ -297,7 +281,7 @@ func (a *app) Seal(config *fst.Config) error {
 	seal.Enablements = config.Confinement.Enablements
 
 	// this method calls all share methods in sequence
-	if err := seal.setupShares([2]*dbus.Config{config.Confinement.SessionBus, config.Confinement.SystemBus}, a.sys); err != nil {
+	if err := seal.setupShares([2]*dbus.Config{config.Confinement.SessionBus, config.Confinement.SystemBus}, sys); err != nil {
 		return err
 	}
 
@@ -305,7 +289,5 @@ func (a *app) Seal(config *fst.Config) error {
 	fmsg.Verbosef("created application seal for uid %s (%s) groups: %v, command: %s",
 		seal.user.uid, seal.user.username, config.Confinement.Groups, config.Command)
 
-	// seal app and release lock
-	a.appSeal = seal
 	return nil
 }
