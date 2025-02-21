@@ -12,16 +12,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Run tests
-        run: |
-          nix --print-build-logs --experimental-features 'nix-command flakes' flake check
-          nix build --out-link "result" --print-out-paths --print-build-logs .#checks.x86_64-linux.nixos-tests
+      - name: Run fortify tests
+        run: nix build --out-link "result-fortify" --print-out-paths --print-build-logs .#checks.x86_64-linux.fortify
+
+      - name: Run flake checks
+        run: nix --print-build-logs --experimental-features 'nix-command flakes' flake check
 
       - name: Upload test output
         uses: actions/upload-artifact@v3
         with:
-          name: "nixos-vm-output"
-          path: result/*
+          name: "fortify-vm-output"
+          path: result-fortify/*
           retention-days: 1
 
   dist:

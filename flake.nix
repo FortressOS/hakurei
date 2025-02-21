@@ -57,18 +57,16 @@
             ;
         in
         {
-          check-formatting =
-            runCommandLocal "check-formatting" { nativeBuildInputs = [ nixfmt-rfc-style ]; }
-              ''
-                cd ${./.}
+          formatting = runCommandLocal "check-formatting" { nativeBuildInputs = [ nixfmt-rfc-style ]; } ''
+            cd ${./.}
 
-                echo "running nixfmt..."
-                nixfmt --check .
+            echo "running nixfmt..."
+            nixfmt --check .
 
-                touch $out
-              '';
+            touch $out
+          '';
 
-          check-lint =
+          lint =
             runCommandLocal "check-lint"
               {
                 nativeBuildInputs = [
@@ -88,10 +86,7 @@
                 touch $out
               '';
 
-          nixos-tests = callPackage ./test.nix {
-            inherit system self home-manager;
-            inherit (self.packages.${system}) fortify;
-          };
+          fortify = callPackage ./tests/fortify { inherit system self; };
         }
       );
 
