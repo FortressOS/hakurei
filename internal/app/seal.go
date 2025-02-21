@@ -11,6 +11,7 @@ import (
 	"path"
 	"regexp"
 	"strings"
+	"sync/atomic"
 
 	"git.gensokyo.uk/security/fortify/acl"
 	"git.gensokyo.uk/security/fortify/dbus"
@@ -57,8 +58,13 @@ var (
 
 var posixUsername = regexp.MustCompilePOSIX("^[a-z_]([A-Za-z0-9_-]{0,31}|[A-Za-z0-9_-]{0,30}\\$)$")
 
-// appSeal stores copies of various parts of [fst.Config]
-type appSeal struct {
+// outcome stores copies of various parts of [fst.Config]
+type outcome struct {
+	// copied from initialising [app]
+	id *stringPair[fst.ID]
+	// copied from [sys.State] response
+	runDirPath string
+
 	// passed through from [fst.Config]
 	command []string
 
@@ -68,16 +74,16 @@ type appSeal struct {
 	// dump dbus proxy message buffer
 	dbusMsg func()
 
-	user      appUser
+	user      fsuUser
 	sys       *system.I
 	container *bwrap.Config
 	bwrapSync *os.File
 
-	// protected by upstream mutex
+	f atomic.Bool
 }
 
-// appUser stores post-fsu credentials and metadata
-type appUser struct {
+// fsuUser stores post-fsu credentials and metadata
+type fsuUser struct {
 	// application id
 	aid *stringPair[int]
 	// target uid resolved by fid:aid
@@ -94,7 +100,7 @@ type appUser struct {
 	username string
 }
 
-func (seal *appSeal) finalise(sys sys.State, config *fst.Config, id string) error {
+func (seal *outcome) finalise(sys sys.State, config *fst.Config) error {
 	{
 		// encode initial configuration for state tracking
 		ct := new(bytes.Buffer)
@@ -118,7 +124,7 @@ func (seal *appSeal) finalise(sys sys.State, config *fst.Config, id string) erro
 		Resolve post-fsu user state
 	*/
 
-	seal.user = appUser{
+	seal.user = fsuUser{
 		aid:      newInt(config.Confinement.AppID),
 		data:     config.Confinement.Outer,
 		home:     config.Confinement.Inner,
@@ -223,6 +229,7 @@ func (seal *appSeal) finalise(sys sys.State, config *fst.Config, id string) erro
 	*/
 
 	sc := sys.Paths()
+	seal.runDirPath = sc.RunDirPath
 	seal.sys = system.New(seal.user.uid.unwrap())
 	seal.sys.IsVerbose = fmsg.Load
 	seal.sys.Verbose = fmsg.Verbose
@@ -243,10 +250,10 @@ func (seal *appSeal) finalise(sys sys.State, config *fst.Config, id string) erro
 	seal.sys.UpdatePermType(system.User, sc.RuntimePath, acl.Execute)
 
 	// outer process-specific share directory
-	sharePath := path.Join(sc.SharePath, id)
+	sharePath := path.Join(sc.SharePath, seal.id.String())
 	seal.sys.Ephemeral(system.Process, sharePath, 0711)
 	// similar to share but within XDG_RUNTIME_DIR
-	sharePathLocal := path.Join(sc.RunDirPath, id)
+	sharePathLocal := path.Join(sc.RunDirPath, seal.id.String())
 	seal.sys.Ephemeral(system.Process, sharePathLocal, 0700)
 	seal.sys.UpdatePerm(sharePathLocal, acl.Execute)
 
@@ -327,14 +334,14 @@ func (seal *appSeal) finalise(sys sys.State, config *fst.Config, id string) erro
 
 		if !config.Confinement.Sandbox.DirectWayland { // set up security-context-v1
 			socketDir := path.Join(sc.SharePath, "wayland")
-			outerPath := path.Join(socketDir, id)
+			outerPath := path.Join(socketDir, seal.id.String())
 			seal.sys.Ensure(socketDir, 0711)
 			appID := config.ID
 			if appID == "" {
 				// use instance ID in case app id is not set
-				appID = "uk.gensokyo.fortify." + id
+				appID = "uk.gensokyo.fortify." + seal.id.String()
 			}
-			seal.sys.Wayland(&seal.bwrapSync, outerPath, socketPath, appID, id)
+			seal.sys.Wayland(&seal.bwrapSync, outerPath, socketPath, appID, seal.id.String())
 			seal.container.Bind(outerPath, innerPath)
 		} else { // bind mount wayland socket (insecure)
 			fmsg.Verbose("direct wayland access, PROCEED WITH CAUTION")

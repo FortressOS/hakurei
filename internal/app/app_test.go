@@ -29,16 +29,20 @@ func TestApp(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			a := app.NewWithID(tc.id, tc.os)
-
+			var (
+				gotSys   *system.I
+				gotBwrap *bwrap.Config
+			)
 			if !t.Run("seal", func(t *testing.T) {
-				if err := a.Seal(tc.config); err != nil {
+				if sa, err := a.Seal(tc.config); err != nil {
 					t.Errorf("Seal: error = %v", err)
+					return
+				} else {
+					gotSys, gotBwrap = app.AppSystemBwrap(a, sa)
 				}
 			}) {
 				return
 			}
-
-			gotSys, gotBwrap := app.AppSystemBwrap(a)
 
 			t.Run("compare sys", func(t *testing.T) {
 				if !gotSys.Equal(tc.wantSys) {

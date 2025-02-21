@@ -6,16 +6,22 @@ import (
 )
 
 type App interface {
-	// ID returns a copy of App's unique ID.
+	// ID returns a copy of [fst.ID] held by App.
 	ID() ID
-	// Run sets up the system and runs the App.
-	Run(ctx context.Context, rs *RunState) error
 
-	Seal(config *Config) error
+	// Seal determines the outcome of config as a [SealedApp].
+	// The value of config might be overwritten and must not be used again.
+	Seal(config *Config) (SealedApp, error)
+
 	String() string
 }
 
-// RunState stores the outcome of a call to [App.Run].
+type SealedApp interface {
+	// Run commits sealed system setup and starts the app process.
+	Run(ctx context.Context, rs *RunState) error
+}
+
+// RunState stores the outcome of a call to [SealedApp.Run].
 type RunState struct {
 	// Time is the exact point in time where the process was created.
 	// Location must be set to UTC.

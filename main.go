@@ -173,7 +173,7 @@ func main() {
 		config.Command = append(config.Command, args[2:]...)
 
 		// invoke app
-		runApp(config)
+		runApp(app.MustNew(std), config)
 		panic("unreachable")
 
 	case "run": // run app in permissive defaults usage pattern
@@ -300,7 +300,7 @@ func main() {
 		}
 
 		// invoke app
-		runApp(config)
+		runApp(app.MustNew(std), config)
 		panic("unreachable")
 
 	// internal commands
@@ -318,7 +318,7 @@ func main() {
 	panic("unreachable")
 }
 
-func runApp(config *fst.Config) {
+func runApp(a fst.App, config *fst.Config) {
 	rs := new(fst.RunState)
 	ctx, stop := signal.NotifyContext(context.Background(),
 		syscall.SIGINT, syscall.SIGTERM)
@@ -328,12 +328,10 @@ func runApp(config *fst.Config) {
 		seccomp.CPrintln = log.Println
 	}
 
-	if a, err := app.New(std); err != nil {
-		log.Fatalf("cannot create app: %s", err)
-	} else if err = a.Seal(config); err != nil {
+	if sa, err := a.Seal(config); err != nil {
 		fmsg.PrintBaseError(err, "cannot seal app:")
 		internal.Exit(1)
-	} else if err = a.Run(ctx, rs); err != nil {
+	} else if err = sa.Run(ctx, rs); err != nil {
 		if rs.Time == nil {
 			fmsg.PrintBaseError(err, "cannot start app:")
 		} else {

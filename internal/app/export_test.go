@@ -14,7 +14,11 @@ func NewWithID(id fst.ID, os sys.State) fst.App {
 	return a
 }
 
-func AppSystemBwrap(a fst.App) (*system.I, *bwrap.Config) {
+func AppSystemBwrap(a fst.App, sa fst.SealedApp) (*system.I, *bwrap.Config) {
 	v := a.(*app)
-	return v.appSeal.sys, v.appSeal.container
+	seal := sa.(*outcome)
+	if v.outcome != seal || v.id != seal.id {
+		panic("broken app/outcome link")
+	}
+	return seal.sys, seal.container
 }

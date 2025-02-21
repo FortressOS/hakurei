@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	"log"
 	"sync"
 
 	"git.gensokyo.uk/security/fortify/fst"
@@ -20,15 +21,23 @@ func New(os sys.State) (fst.App, error) {
 	return a, err
 }
 
+func MustNew(os sys.State) fst.App {
+	a, err := New(os)
+	if err != nil {
+		log.Fatalf("cannot create app: %v", err)
+	}
+	return a
+}
+
 type app struct {
 	id  *stringPair[fst.ID]
 	sys sys.State
 
-	*appSeal
+	*outcome
 	mu sync.RWMutex
 }
 
-func (a *app) ID() fst.ID { return a.id.unwrap() }
+func (a *app) ID() fst.ID { a.mu.RLock(); defer a.mu.RUnlock(); return a.id.unwrap() }
 
 func (a *app) String() string {
 	if a == nil {
@@ -38,32 +47,33 @@ func (a *app) String() string {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
 
-	if a.appSeal != nil {
-		if a.appSeal.user.uid == nil {
+	if a.outcome != nil {
+		if a.outcome.user.uid == nil {
 			return fmt.Sprintf("(sealed app %s with invalid uid)", a.id)
 		}
-		return fmt.Sprintf("(sealed app %s as uid %s)", a.id, a.appSeal.user.uid)
+		return fmt.Sprintf("(sealed app %s as uid %s)", a.id, a.outcome.user.uid)
 	}
 
 	return fmt.Sprintf("(unsealed app %s)", a.id)
 }
 
-func (a *app) Seal(config *fst.Config) (err error) {
+func (a *app) Seal(config *fst.Config) (fst.SealedApp, error) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
-	if a.appSeal != nil {
+	if a.outcome != nil {
 		panic("app sealed twice")
 	}
 	if config == nil {
-		return fmsg.WrapError(ErrConfig,
+		return nil, fmsg.WrapError(ErrConfig,
 			"attempted to seal app with nil config")
 	}
 
-	seal := new(appSeal)
-	err = seal.finalise(a.sys, config, a.id.String())
+	seal := new(outcome)
+	seal.id = a.id
+	err := seal.finalise(a.sys, config)
 	if err == nil {
-		a.appSeal = seal
+		a.outcome = seal
 	}
-	return
+	return seal, err
 }

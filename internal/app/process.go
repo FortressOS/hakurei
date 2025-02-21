@@ -20,12 +20,16 @@ import (
 
 const shimSetupTimeout = 5 * time.Second
 
-func (a *app) Run(ctx context.Context, rs *fst.RunState) error {
-	a.mu.Lock()
-	defer a.mu.Unlock()
+func (seal *outcome) Run(ctx context.Context, rs *fst.RunState) error {
+	if !seal.f.CompareAndSwap(false, true) {
+		// run does much more than just starting a process; calling it twice, even if the first call fails, will result
+		// in inconsistent state that is impossible to clean up; return here to limit damage and hopefully give the
+		// other Run a chance to return
+		panic("attempted to run twice")
+	}
 
 	if rs == nil {
-		panic("attempted to pass nil state to run")
+		panic("invalid state")
 	}
 
 	/*
@@ -33,8 +37,8 @@ func (a *app) Run(ctx context.Context, rs *fst.RunState) error {
 	*/
 
 	shimExec := [2]string{helper.BubblewrapName}
-	if len(a.appSeal.command) > 0 {
-		shimExec[1] = a.appSeal.command[0]
+	if len(seal.command) > 0 {
+		shimExec[1] = seal.command[0]
 	}
 	for i, n := range shimExec {
 		if len(n) == 0 {
@@ -54,15 +58,15 @@ func (a *app) Run(ctx context.Context, rs *fst.RunState) error {
 		prepare/revert os state
 	*/
 
-	if err := a.appSeal.sys.Commit(ctx); err != nil {
+	if err := seal.sys.Commit(ctx); err != nil {
 		return err
 	}
-	store := state.NewMulti(a.sys.Paths().RunDirPath)
+	store := state.NewMulti(seal.runDirPath)
 	deferredStoreFunc := func(c state.Cursor) error { return nil }
 	defer func() {
 		var revertErr error
 		storeErr := new(StateStoreError)
-		storeErr.Inner, storeErr.DoErr = store.Do(a.appSeal.user.aid.unwrap(), func(c state.Cursor) {
+		storeErr.Inner, storeErr.DoErr = store.Do(seal.user.aid.unwrap(), func(c state.Cursor) {
 			revertErr = func() error {
 				storeErr.InnerErr = deferredStoreFunc(c)
 
@@ -75,7 +79,7 @@ func (a *app) Run(ctx context.Context, rs *fst.RunState) error {
 				ec.Set(system.Process)
 				if states, err := c.Load(); err != nil {
 					// revert per-process state here to limit damage
-					return errors.Join(err, a.appSeal.sys.Revert(ec))
+					return errors.Join(err, seal.sys.Revert(ec))
 				} else {
 					if l := len(states); l == 0 {
 						fmsg.Verbose("no other launchers active, will clean up globals")
@@ -111,7 +115,7 @@ func (a *app) Run(ctx context.Context, rs *fst.RunState) error {
 					}
 				}
 
-				err := a.appSeal.sys.Revert(ec)
+				err := seal.sys.Revert(ec)
 				if err != nil {
 					err = err.(RevertCompoundError)
 				}
@@ -129,9 +133,9 @@ func (a *app) Run(ctx context.Context, rs *fst.RunState) error {
 	waitErr := make(chan error, 1)
 	cmd := new(shim.Shim)
 	if startTime, err := cmd.Start(
-		a.appSeal.user.aid.String(),
-		a.appSeal.user.supp,
-		a.appSeal.bwrapSync,
+		seal.user.aid.String(),
+		seal.user.supp,
+		seal.bwrapSync,
 	); err != nil {
 		return err
 	} else {
@@ -139,20 +143,20 @@ func (a *app) Run(ctx context.Context, rs *fst.RunState) error {
 		rs.Time = startTime
 	}
 
-	shimSetupCtx, shimSetupCancel := context.WithDeadline(ctx, time.Now().Add(shimSetupTimeout))
-	defer shimSetupCancel()
+	c, cancel := context.WithTimeout(ctx, shimSetupTimeout)
+	defer cancel()
 
 	go func() {
 		waitErr <- cmd.Unwrap().Wait()
 		// cancel shim setup in case shim died before receiving payload
-		shimSetupCancel()
+		cancel()
 	}()
 
-	if err := cmd.Serve(shimSetupCtx, &shim.Payload{
-		Argv:  a.appSeal.command,
+	if err := cmd.Serve(c, &shim.Payload{
+		Argv:  seal.command,
 		Exec:  shimExec,
-		Bwrap: a.appSeal.container,
-		Home:  a.appSeal.user.data,
+		Bwrap: seal.container,
+		Home:  seal.user.data,
 
 		Verbose: fmsg.Load(),
 	}); err != nil {
@@ -161,14 +165,14 @@ func (a *app) Run(ctx context.Context, rs *fst.RunState) error {
 
 	// shim accepted setup payload, create process state
 	sd := state.State{
-		ID:   a.id.unwrap(),
+		ID:   seal.id.unwrap(),
 		PID:  cmd.Unwrap().Process.Pid,
 		Time: *rs.Time,
 	}
 	var earlyStoreErr = new(StateStoreError) // returned after blocking on waitErr
-	earlyStoreErr.Inner, earlyStoreErr.DoErr = store.Do(a.appSeal.user.aid.unwrap(), func(c state.Cursor) { earlyStoreErr.InnerErr = c.Save(&sd, a.appSeal.ct) })
+	earlyStoreErr.Inner, earlyStoreErr.DoErr = store.Do(seal.user.aid.unwrap(), func(c state.Cursor) { earlyStoreErr.InnerErr = c.Save(&sd, seal.ct) })
 	// destroy defunct state entry
-	deferredStoreFunc = func(c state.Cursor) error { return c.Destroy(a.id.unwrap()) }
+	deferredStoreFunc = func(c state.Cursor) error { return c.Destroy(seal.id.unwrap()) }
 
 	select {
 	case err := <-waitErr: // block until fsu/shim returns
@@ -201,9 +205,9 @@ func (a *app) Run(ctx context.Context, rs *fst.RunState) error {
 	}
 
 	fmsg.Resume()
-	if a.appSeal.dbusMsg != nil {
+	if seal.dbusMsg != nil {
 		// dump dbus message buffer
-		a.appSeal.dbusMsg()
+		seal.dbusMsg()
 	}
 
 	return earlyStoreErr.equiv("cannot save process state:")
