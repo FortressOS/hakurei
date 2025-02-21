@@ -80,7 +80,7 @@ func actionStart(args []string) {
 	if !dropShell {
 		command[0] = app.Launcher
 	} else {
-		command[0] = shell
+		command[0] = shellPath
 	}
 	command = append(command, args[1:]...)
 

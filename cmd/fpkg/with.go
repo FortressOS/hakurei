@@ -15,7 +15,7 @@ func withNixDaemon(
 ) {
 	fortifyAppDropShell(updateConfig(&fst.Config{
 		ID: app.ID,
-		Command: []string{shell, "-lc", "rm -f /nix/var/nix/daemon-socket/socket && " +
+		Command: []string{shellPath, "-lc", "rm -f /nix/var/nix/daemon-socket/socket && " +
 			// start nix-daemon
 			"nix-daemon --store / & " +
 			// wait for socket to appear
@@ -59,7 +59,7 @@ func withNixDaemon(
 func withCacheDir(action string, command []string, workDir string, app *bundleInfo, pathSet *appPathSet, dropShell bool, beforeFail func()) {
 	fortifyAppDropShell(&fst.Config{
 		ID:      app.ID,
-		Command: []string{shell, "-lc", strings.Join(command, " && ")},
+		Command: []string{shellPath, "-lc", strings.Join(command, " && ")},
 		Confinement: fst.ConfinementConfig{
 			AppID:    app.AppID,
 			Username: "nixos",
@@ -92,7 +92,7 @@ func withCacheDir(action string, command []string, workDir string, app *bundleIn
 
 func fortifyAppDropShell(config *fst.Config, dropShell bool, beforeFail func()) {
 	if dropShell {
-		config.Command = []string{shell, "-l"}
+		config.Command = []string{shellPath, "-l"}
 		fortifyApp(config, beforeFail)
 		beforeFail()
 		internal.Exit(0)

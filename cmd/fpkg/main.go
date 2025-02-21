@@ -9,10 +9,10 @@ import (
 	"git.gensokyo.uk/security/fortify/internal/fmsg"
 )
 
-const shell = "/run/current-system/sw/bin/bash"
+const shellPath = "/run/current-system/sw/bin/bash"
 
 func init() {
-	if err := os.Setenv("SHELL", shell); err != nil {
+	if err := os.Setenv("SHELL", shellPath); err != nil {
 		log.Fatalf("cannot set $SHELL: %v", err)
 	}
 }
