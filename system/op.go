@@ -1,3 +1,4 @@
+// Package system provides tools for safely interacting with the operating system.
 package system
 
 import (
@@ -14,6 +15,7 @@ const (
 	Process = Enablement(ELen + 1)
 )
 
+// Criteria specifies types of Op to revert.
 type Criteria struct {
 	*Enablements
 }
@@ -42,6 +44,7 @@ type Op interface {
 	String() string
 }
 
+// TypeString returns the string representation of a type stored as an [Enablement].
 func TypeString(e Enablement) string {
 	switch e {
 	case User:
@@ -64,6 +67,7 @@ func New(uid int) (sys *I) {
 	return
 }
 
+// An I provides indirect bulk operating system interaction. I must not be copied.
 type I struct {
 	uid int
 	ops []Op
@@ -91,6 +95,7 @@ func (sys *I) wrapErrSuffix(err error, a ...any) error {
 	return sys.wrapErr(err, append(a, err)...)
 }
 
+// Equal returns whether all [Op] instances held by v is identical to that of sys.
 func (sys *I) Equal(v *I) bool {
 	if v == nil || sys.uid != v.uid || len(sys.ops) != len(v.ops) {
 		return false
@@ -105,6 +110,8 @@ func (sys *I) Equal(v *I) bool {
 	return true
 }
 
+// Commit applies all [Op] held by [I] and reverts successful [Op] on first error encountered.
+// Commit must not be called more than once.
 func (sys *I) Commit(ctx context.Context) error {
 	sys.lock.Lock()
 	defer sys.lock.Unlock()
@@ -141,6 +148,7 @@ func (sys *I) Commit(ctx context.Context) error {
 	return nil
 }
 
+// Revert reverts all [Op] meeting [Criteria] held by [I].
 func (sys *I) Revert(ec *Criteria) error {
 	sys.lock.Lock()
 	defer sys.lock.Unlock()
