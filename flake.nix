@@ -32,7 +32,7 @@
       buildPackage = forAllSystems (
         system:
         nixpkgsFor.${system}.callPackage (
-          import ./bundle.nix {
+          import ./cmd/fpkg/build.nix {
             inherit
               nixpkgsFor
               system

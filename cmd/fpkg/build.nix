@@ -8,6 +8,7 @@
 {
   lib,
   writeScript,
+  writeScriptBin,
   runtimeShell,
   writeText,
   symlinkJoin,
@@ -177,7 +178,7 @@ let
   };
 in
 
-writeScript "fortify-${pname}-bundle-prelude" ''
+writeScriptBin "build-fpkg-${pname}" ''
   #!${runtimeShell} -el
   OUT="$(mktemp -d)"
   TAR="$(mktemp -u)"
