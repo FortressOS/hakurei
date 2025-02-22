@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"os"
+	"runtime"
 )
 
 // NewWriterTo returns a [File] that receives content from wt on fulfillment.
@@ -25,13 +26,20 @@ func (f *writeToFile) Fulfill(ctx context.Context, dispatchErr func(error)) erro
 	f.Set(r)
 
 	done := make(chan struct{})
-	go func() { _, err = f.wt.WriteTo(w); dispatchErr(err); dispatchErr(w.Close()); close(done) }()
+	go func() {
+		_, err = f.wt.WriteTo(w)
+		dispatchErr(err)
+		dispatchErr(w.Close())
+		close(done)
+		runtime.KeepAlive(r)
+	}()
 	go func() {
 		select {
 		case <-done:
 			dispatchErr(nil)
 		case <-ctx.Done():
 			dispatchErr(w.Close()) // this aborts WriteTo with file already closed
+			runtime.KeepAlive(r)
 		}
 	}()
 
@@ -83,6 +91,7 @@ func (f *statFile) Fulfill(ctx context.Context, dispatchErr func(error)) error {
 		default:
 			panic("unreachable")
 		}
+		runtime.KeepAlive(w)
 	}()
 
 	go func() {
@@ -91,6 +100,7 @@ func (f *statFile) Fulfill(ctx context.Context, dispatchErr func(error)) error {
 			dispatchErr(nil)
 		case <-ctx.Done():
 			dispatchErr(r.Close()) // this aborts Read with file already closed
+			runtime.KeepAlive(w)
 		}
 	}()
 

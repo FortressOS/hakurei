@@ -27,7 +27,12 @@ func (e *exporter) prepare() error {
 		}
 
 		ec := make(chan error, 1)
-		go func(fd uintptr) { ec <- exportFilter(fd, e.opts); close(ec); _ = e.closeWrite() }(e.w.Fd())
+		go func(fd uintptr) {
+			ec <- exportFilter(fd, e.opts)
+			close(ec)
+			_ = e.closeWrite()
+			runtime.KeepAlive(e.w)
+		}(e.w.Fd())
 		e.exportErr = ec
 		runtime.SetFinalizer(e, (*exporter).closeWrite)
 	})

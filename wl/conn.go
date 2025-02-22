@@ -94,6 +94,7 @@ func bindRawConn(done chan struct{}, rc syscall.RawConn, p, appID, instanceID st
 
 			// keep socket alive until done is requested
 			<-done
+			runtime.KeepAlive(syncPipe[1].Fd())
 		}); err != nil {
 			setupDone <- err
 		}

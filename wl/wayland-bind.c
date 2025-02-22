@@ -23,7 +23,7 @@ static const struct wl_registry_listener registry_listener = {
   .global_remove = registry_handle_global_remove,
 };
 
-int32_t bind_wayland_fd(char *socket_path, int fd, const char *app_id, const char *instance_id, int sync_fd) {
+int32_t f_bind_wayland_fd(char *socket_path, int fd, const char *app_id, const char *instance_id, int sync_fd) {
   int32_t res = 0; // refer to resErr for meaning
 
   struct wl_display *display;
