@@ -84,6 +84,12 @@ func TestParse(t *testing.T) {
 			"2147483647", "", nil,
 		},
 		{
+			"d=0 repeat flag",
+			buildTestCommand,
+			[]string{"--repeat", "0", "--repeat", "1", "--repeat", "2", "--repeat", "3", "--repeat", "4", "repeat"},
+			"[0 1 2 3 4]", "", nil,
+		},
+		{
 			"d=0 bool flag",
 			buildTestCommand,
 			[]string{"-v", "succeed"},
@@ -144,13 +150,14 @@ func TestParse(t *testing.T) {
 			buildTestCommand,
 			[]string{},
 			`
-Usage:	test [-h | --help] [-v] [--fail] [--string <value>] [--int <int>] COMMAND [OPTIONS]
+Usage:	test [-h | --help] [-v] [--fail] [--string <value>] [--int <int>] [--repeat <value>] COMMAND [OPTIONS]
 
 Commands:
     error      return an error
     print      wraps Fprint
     string     print string passed by flag
     int        print int passed by flag
+    repeat     print repeated values passed by flag
     empty      empty subcommand
     join       wraps strings.Join
     succeed    this command succeeds
@@ -163,13 +170,14 @@ Commands:
 			buildTestCommand,
 			[]string{"-h"},
 			`
-Usage:	test [-h | --help] [-v] [--fail] [--string <value>] [--int <int>] COMMAND [OPTIONS]
+Usage:	test [-h | --help] [-v] [--fail] [--string <value>] [--int <int>] [--repeat <value>] COMMAND [OPTIONS]
 
 Commands:
     error      return an error
     print      wraps Fprint
     string     print string passed by flag
     int        print int passed by flag
+    repeat     print repeated values passed by flag
     empty      empty subcommand
     join       wraps strings.Join
     succeed    this command succeeds
@@ -180,6 +188,8 @@ Flags:
     	fail early
   -int int
     	store value for the "int" command (default -1)
+  -repeat value
+    	store value for the "repeat" command
   -string string
     	store value for the "string" command (default "default")
   -v	verbose output
@@ -269,6 +279,7 @@ func buildTestCommand(wout, wlog io.Writer) (c command.Command) {
 
 		flagString string
 		flagInt    int
+		flagRepeat command.RepeatableFlag
 	)
 
 	logf := newLogFunc(wlog)
@@ -297,7 +308,9 @@ func buildTestCommand(wout, wlog io.Writer) (c command.Command) {
 		Flag(&flagString, "string", command.StringFlag("default"), "store value for the \"string\" command").
 		Command("string", "print string passed by flag", func(args []string) error { _, err := fmt.Fprint(wout, flagString); return err }).
 		Flag(&flagInt, "int", command.IntFlag(-1), "store value for the \"int\" command").
-		Command("int", "print int passed by flag", func(args []string) error { _, err := fmt.Fprint(wout, flagInt); return err })
+		Command("int", "print int passed by flag", func(args []string) error { _, err := fmt.Fprint(wout, flagInt); return err }).
+		Flag(nil, "repeat", &flagRepeat, "store value for the \"repeat\" command").
+		Command("repeat", "print repeated values passed by flag", func(args []string) error { _, err := fmt.Fprint(wout, flagRepeat); return err })
 
 	c.New("empty", "empty subcommand")
 	c.New("hidden", command.UsageInternal)

@@ -44,6 +44,26 @@ func (v BoolFlag) Define(b *strings.Builder, set *flag.FlagSet, p any, name, usa
 	b.WriteString(" [" + prettyFlag(name) + "]")
 }
 
+// RepeatableFlag implements an ordered, repeatable string flag.
+type RepeatableFlag []string
+
+func (r *RepeatableFlag) String() string {
+	if r == nil {
+		return "<nil>"
+	}
+	return strings.Join(*r, " ")
+}
+
+func (r *RepeatableFlag) Set(v string) error {
+	*r = append(*r, v)
+	return nil
+}
+
+func (r *RepeatableFlag) Define(b *strings.Builder, set *flag.FlagSet, _ any, name, usage string) {
+	set.Var(r, name, usage)
+	b.WriteString(" [" + prettyFlag(name) + " <value>]")
+}
+
 // this has no effect on parse outcome
 func prettyFlag(name string) string {
 	switch len(name) {
