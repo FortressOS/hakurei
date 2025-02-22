@@ -44,8 +44,10 @@ func (n *node) writeCommands(w io.Writer) error {
 	if n == nil {
 		return nil
 	}
-	if _, err := fmt.Fprintf(w, "\t%s\t%s\n", n.name, n.usage); err != nil {
-		return err
+	if n.usage != UsageInternal {
+		if _, err := fmt.Fprintf(w, "\t%s\t%s\n", n.name, n.usage); err != nil {
+			return err
+		}
 	}
 	return n.next.writeCommands(w)
 }

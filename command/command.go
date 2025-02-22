@@ -6,6 +6,9 @@ import (
 	"strings"
 )
 
+// UsageInternal causes the command to be hidden from help text when set as the usage string.
+const UsageInternal = "internal"
+
 type (
 	// HandlerFunc is called when matching a directly handled subcommand tree.
 	HandlerFunc = func(args []string) error

@@ -289,6 +289,7 @@ func buildTestCommand(wout, wlog io.Writer) (c command.Command) {
 		})
 
 	c.New("empty", "empty subcommand")
+	c.New("hidden", command.UsageInternal)
 
 	c.New("join", "wraps strings.Join").
 		Command("out", "write result to wout", func(args []string) error {
