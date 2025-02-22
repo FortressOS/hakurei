@@ -7,8 +7,10 @@ import (
 )
 
 // New initialises a root Node.
-func New(output io.Writer, logf LogFunc, name string) Command {
-	return rootNode{newNode(output, logf, name, "")}
+func New(output io.Writer, logf LogFunc, name string, early HandlerFunc) Command {
+	c := rootNode{newNode(output, logf, name, "")}
+	c.f = early
+	return c
 }
 
 func newNode(output io.Writer, logf LogFunc, name, usage string) *node {

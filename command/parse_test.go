@@ -24,13 +24,13 @@ func TestParse(t *testing.T) {
 	}{
 		{
 			"d=0 empty sub",
-			func(wout, wlog io.Writer) command.Command { return command.New(wout, newLogFunc(wlog), "root") },
+			func(wout, wlog io.Writer) command.Command { return command.New(wout, newLogFunc(wlog), "root", nil) },
 			[]string{""},
 			"", "test: \"root\" has no subcommands\n", command.ErrEmptyTree,
 		},
 		{
 			"d=0 empty sub garbage",
-			func(wout, wlog io.Writer) command.Command { return command.New(wout, newLogFunc(wlog), "root") },
+			func(wout, wlog io.Writer) command.Command { return command.New(wout, newLogFunc(wlog), "root", nil) },
 			[]string{"a", "b", "c", "d"},
 			"", "test: \"root\" has no subcommands\n", command.ErrEmptyTree,
 		},
@@ -76,6 +76,18 @@ func TestParse(t *testing.T) {
 			[]string{"flag", "--val", "64d3b4b7b21788585845060e2199a78f"},
 			"flag provided but not defined: -val\n\nUsage:\ttest flag [-h | --help] COMMAND [OPTIONS]\n\n", "",
 			errors.New("flag provided but not defined: -val"),
+		},
+		{
+			"d=0 bool flag",
+			buildTestCommand,
+			[]string{"-v", "succeed"},
+			"", "test: verbose\n", nil,
+		},
+		{
+			"d=0 bool flag early error",
+			buildTestCommand,
+			[]string{"--fail", "succeed"},
+			"", "", errSuccess,
 		},
 
 		{
@@ -126,7 +138,7 @@ func TestParse(t *testing.T) {
 			buildTestCommand,
 			[]string{},
 			`
-Usage:	test [-h | --help] [-v] [--val <value>] COMMAND [OPTIONS]
+Usage:	test [-h | --help] [-v] [--fail] [--val <value>] COMMAND [OPTIONS]
 
 Commands:
     error      return an error
@@ -144,7 +156,7 @@ Commands:
 			buildTestCommand,
 			[]string{"-h"},
 			`
-Usage:	test [-h | --help] [-v] [--val <value>] COMMAND [OPTIONS]
+Usage:	test [-h | --help] [-v] [--fail] [--val <value>] COMMAND [OPTIONS]
 
 Commands:
     error      return an error
@@ -156,7 +168,9 @@ Commands:
     deep       top level of command tree with various levels
 
 Flags:
-  -v	verbosity
+  -fail
+    	fail early
+  -v	verbose output
   -val string
     	store val for the "flag" command (default "default")
 
@@ -239,11 +253,24 @@ var (
 )
 
 func buildTestCommand(wout, wlog io.Writer) (c command.Command) {
-	var val string
+	var (
+		flagVerbose bool
+		flagFail    bool
+		flagVal     string
+	)
 
 	logf := newLogFunc(wlog)
-	c = command.New(wout, logf, "test").
-		Flag(new(bool), "v", command.BoolFlag(false), "verbosity").
+	c = command.New(wout, logf, "test", func([]string) error {
+		if flagVerbose {
+			logf("verbose")
+		}
+		if flagFail {
+			return errSuccess
+		}
+		return nil
+	}).
+		Flag(&flagVerbose, "v", command.BoolFlag(false), "verbose output").
+		Flag(&flagFail, "fail", command.BoolFlag(false), "fail early").
 		Command("error", "return an error", func([]string) error {
 			return errSuccess
 		}).
@@ -255,9 +282,9 @@ func buildTestCommand(wout, wlog io.Writer) (c command.Command) {
 			_, err := fmt.Fprint(wout, a...)
 			return err
 		}).
-		Flag(&val, "val", command.StringFlag("default"), "store val for the \"flag\" command").
+		Flag(&flagVal, "val", command.StringFlag("default"), "store val for the \"flag\" command").
 		Command("flag", "print value passed by flag", func(args []string) error {
-			_, err := fmt.Fprint(wout, val)
+			_, err := fmt.Fprint(wout, flagVal)
 			return err
 		})
 

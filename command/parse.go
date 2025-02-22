@@ -34,9 +34,6 @@ func (n *node) Parse(arguments []string) error {
 
 match:
 	if n.child != nil {
-		if n.f != nil {
-			panic("invalid subcommand tree state")
-		}
 		// propagate help prefix early: flag set usage dereferences help
 		n.child.prefix = append(n.prefix, n.name)
 	}
@@ -50,6 +47,17 @@ match:
 	args := n.set.Args()
 
 	if n.child != nil {
+		if n.f != nil {
+			if n.usage != "" { // root node early special case
+				panic("invalid subcommand tree state")
+			}
+
+			// special case: root node calls HandlerFunc for initialisation
+			if err := n.f(nil); err != nil {
+				return err
+			}
+		}
+
 		if len(args) == 0 {
 			return n.writeHelp()
 		}

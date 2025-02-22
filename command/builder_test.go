@@ -7,7 +7,7 @@ import (
 )
 
 func TestBuild(t *testing.T) {
-	c := command.New(nil, nil, "test")
+	c := command.New(nil, nil, "test", nil)
 	stubHandler := func([]string) error { panic("unreachable") }
 
 	t.Run("nil direct handler", func(t *testing.T) {

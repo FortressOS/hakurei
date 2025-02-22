@@ -24,10 +24,10 @@ func TestParseUnreachable(t *testing.T) {
 	// a node with descendents must not have a direct handler
 	t.Run("sub handle conflict", func(t *testing.T) {
 		defer checkRecover(t, "Parse", "invalid subcommand tree state")
-		n := newNode(panicWriter{}, nil, " ", "")
+		n := newNode(panicWriter{}, nil, " ", " ")
 		n.adopt(newNode(panicWriter{}, nil, " ", " "))
 		n.f = func([]string) error { panic("unreachable") }
-		_ = n.Parse(nil)
+		_ = n.Parse([]string{" "})
 	})
 
 	// this would only happen if a node was matched twice
