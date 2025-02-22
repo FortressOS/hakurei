@@ -3,6 +3,7 @@ package command
 import (
 	"flag"
 	"io"
+	"strings"
 )
 
 type node struct {
@@ -11,6 +12,9 @@ type node struct {
 
 	out  io.Writer
 	logf LogFunc
+
+	prefix []string
+	suffix strings.Builder
 
 	f   HandlerFunc
 	set *flag.FlagSet

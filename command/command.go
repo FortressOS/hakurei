@@ -1,7 +1,10 @@
 // Package command implements generic nested command parsing.
 package command
 
-import "flag"
+import (
+	"flag"
+	"strings"
+)
 
 type (
 	// HandlerFunc is called when matching a directly handled subcommand tree.
@@ -13,7 +16,7 @@ type (
 	// FlagDefiner is a deferred flag definer value, usually encapsulating the default value.
 	FlagDefiner interface {
 		// Define defines the flag in set.
-		Define(set *flag.FlagSet, p any, name, usage string)
+		Define(b *strings.Builder, set *flag.FlagSet, p any, name, usage string)
 	}
 
 	Command interface {
