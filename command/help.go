@@ -10,6 +10,8 @@ import (
 
 var ErrHelp = errors.New("help requested")
 
+func (n *node) PrintHelp() { _ = n.writeHelp() }
+
 func (n *node) writeHelp() error {
 	if _, err := fmt.Fprintf(n.out,
 		"\nUsage:\t%s [-h | --help]%s COMMAND [OPTIONS]\n",

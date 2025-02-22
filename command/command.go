@@ -39,6 +39,9 @@ type (
 		// NewCommand returns a new subcommand with direct command handling.
 		NewCommand(name, usage string, f HandlerFunc) (sub Flag[Node])
 
+		// PrintHelp prints a help message to the configured writer.
+		PrintHelp()
+
 		Flag[T]
 	}
 )
