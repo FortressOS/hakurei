@@ -28,6 +28,14 @@ func (v StringFlag) Define(b *strings.Builder, set *flag.FlagSet, p any, name, u
 	b.WriteString(" [" + prettyFlag(name) + " <value>]")
 }
 
+// IntFlag is the default value of an int flag.
+type IntFlag int
+
+func (v IntFlag) Define(b *strings.Builder, set *flag.FlagSet, p any, name, usage string) {
+	set.IntVar(p.(*int), name, int(v), usage)
+	b.WriteString(" [" + prettyFlag(name) + " <int>]")
+}
+
 // BoolFlag is the default value of a bool flag.
 type BoolFlag bool
 

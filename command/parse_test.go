@@ -65,17 +65,23 @@ func TestParse(t *testing.T) {
 			"012", "", nil,
 		},
 		{
+			"d=0 out of order string flag",
+			buildTestCommand,
+			[]string{"string", "--string", "64d3b4b7b21788585845060e2199a78f"},
+			"flag provided but not defined: -string\n\nUsage:\ttest string [-h | --help] COMMAND [OPTIONS]\n\n", "",
+			errors.New("flag provided but not defined: -string"),
+		},
+		{
 			"d=0 string flag",
 			buildTestCommand,
-			[]string{"--val", "64d3b4b7b21788585845060e2199a78f", "flag"},
+			[]string{"--string", "64d3b4b7b21788585845060e2199a78f", "string"},
 			"64d3b4b7b21788585845060e2199a78f", "", nil,
 		},
 		{
-			"d=0 out of order string flag",
+			"d=0 int flag",
 			buildTestCommand,
-			[]string{"flag", "--val", "64d3b4b7b21788585845060e2199a78f"},
-			"flag provided but not defined: -val\n\nUsage:\ttest flag [-h | --help] COMMAND [OPTIONS]\n\n", "",
-			errors.New("flag provided but not defined: -val"),
+			[]string{"--int", "2147483647", "int"},
+			"2147483647", "", nil,
 		},
 		{
 			"d=0 bool flag",
@@ -138,12 +144,13 @@ func TestParse(t *testing.T) {
 			buildTestCommand,
 			[]string{},
 			`
-Usage:	test [-h | --help] [-v] [--fail] [--val <value>] COMMAND [OPTIONS]
+Usage:	test [-h | --help] [-v] [--fail] [--string <value>] [--int <int>] COMMAND [OPTIONS]
 
 Commands:
     error      return an error
     print      wraps Fprint
-    flag       print value passed by flag
+    string     print string passed by flag
+    int        print int passed by flag
     empty      empty subcommand
     join       wraps strings.Join
     succeed    this command succeeds
@@ -156,12 +163,13 @@ Commands:
 			buildTestCommand,
 			[]string{"-h"},
 			`
-Usage:	test [-h | --help] [-v] [--fail] [--val <value>] COMMAND [OPTIONS]
+Usage:	test [-h | --help] [-v] [--fail] [--string <value>] [--int <int>] COMMAND [OPTIONS]
 
 Commands:
     error      return an error
     print      wraps Fprint
-    flag       print value passed by flag
+    string     print string passed by flag
+    int        print int passed by flag
     empty      empty subcommand
     join       wraps strings.Join
     succeed    this command succeeds
@@ -170,9 +178,11 @@ Commands:
 Flags:
   -fail
     	fail early
+  -int int
+    	store value for the "int" command (default -1)
+  -string string
+    	store value for the "string" command (default "default")
   -v	verbose output
-  -val string
-    	store val for the "flag" command (default "default")
 
 `, "", flag.ErrHelp,
 		},
@@ -256,7 +266,9 @@ func buildTestCommand(wout, wlog io.Writer) (c command.Command) {
 	var (
 		flagVerbose bool
 		flagFail    bool
-		flagVal     string
+
+		flagString string
+		flagInt    int
 	)
 
 	logf := newLogFunc(wlog)
@@ -282,11 +294,10 @@ func buildTestCommand(wout, wlog io.Writer) (c command.Command) {
 			_, err := fmt.Fprint(wout, a...)
 			return err
 		}).
-		Flag(&flagVal, "val", command.StringFlag("default"), "store val for the \"flag\" command").
-		Command("flag", "print value passed by flag", func(args []string) error {
-			_, err := fmt.Fprint(wout, flagVal)
-			return err
-		})
+		Flag(&flagString, "string", command.StringFlag("default"), "store value for the \"string\" command").
+		Command("string", "print string passed by flag", func(args []string) error { _, err := fmt.Fprint(wout, flagString); return err }).
+		Flag(&flagInt, "int", command.IntFlag(-1), "store value for the \"int\" command").
+		Command("int", "print int passed by flag", func(args []string) error { _, err := fmt.Fprint(wout, flagInt); return err })
 
 	c.New("empty", "empty subcommand")
 	c.New("hidden", command.UsageInternal)
