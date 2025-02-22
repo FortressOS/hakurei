@@ -3,19 +3,18 @@ package main
 import (
 	"context"
 	_ "embed"
-	"flag"
+	"errors"
 	"fmt"
 	"log"
 	"os"
 	"os/signal"
 	"os/user"
 	"strconv"
-	"strings"
 	"sync"
 	"syscall"
-	"text/tabwriter"
 	"time"
 
+	"git.gensokyo.uk/security/fortify/command"
 	"git.gensokyo.uk/security/fortify/dbus"
 	"git.gensokyo.uk/security/fortify/fst"
 	"git.gensokyo.uk/security/fortify/helper/seccomp"
@@ -30,35 +29,15 @@ import (
 )
 
 var (
-	flagVerbose bool
-	flagJSON    bool
+	errSuccess = errors.New("success")
 
 	//go:embed LICENSE
 	license string
 )
 
-func init() {
-	fmsg.Prepare("fortify")
-
-	flag.BoolVar(&flagVerbose, "v", false, "Verbose output")
-	flag.BoolVar(&flagJSON, "json", false, "Format output in JSON when applicable")
-}
+func init() { fmsg.Prepare("fortify") }
 
 var std sys.State = new(sys.Std)
-
-type gl []string
-
-func (g *gl) String() string {
-	if g == nil {
-		return "<nil>"
-	}
-	return strings.Join(*g, " ")
-}
-
-func (g *gl) Set(v string) error {
-	*g = append(*g, v)
-	return nil
-}
 
 func main() {
 	// early init argv0 check, skips root check and duplicate PR_SET_DUMPABLE
@@ -73,112 +52,29 @@ func main() {
 		log.Fatal("this program must not run as root")
 	}
 
-	flag.CommandLine.Usage = func() {
-		fmt.Println()
-		fmt.Println("Usage:\tfortify [-v] [--json] COMMAND [OPTIONS]")
-		fmt.Println()
-		fmt.Println("Commands:")
-		w := tabwriter.NewWriter(os.Stdout, 0, 1, 4, ' ', 0)
-		commands := [][2]string{
-			{"app", "Launch app defined by the specified config file"},
-			{"run", "Configure and start a permissive default sandbox"},
-			{"show", "Show the contents of an app configuration"},
-			{"ps", "List active apps and their state"},
-			{"version", "Show fortify version"},
-			{"license", "Show full license text"},
-			{"template", "Produce a config template"},
-			{"help", "Show this help message"},
-		}
-		for _, c := range commands {
-			_, _ = fmt.Fprintf(w, "\t%s\t%s\n", c[0], c[1])
-		}
-		if err := w.Flush(); err != nil {
-			fmt.Printf("fortify: cannot write command list: %v\n", err)
-		}
-		fmt.Println()
-	}
-	flag.Parse()
-	fmsg.Store(flagVerbose)
+	var (
+		flagVerbose bool
+		flagJSON    bool
+	)
+	c := command.New(os.Stderr, log.Printf, "fortify", func([]string) error { fmsg.Store(flagVerbose); return nil }).
+		Flag(&flagVerbose, "v", command.BoolFlag(false), "Print debug messages to the console").
+		Flag(&flagJSON, "json", command.BoolFlag(false), "Serialise output as JSON when applicable")
 
-	args := flag.Args()
-	if len(args) == 0 {
-		flag.CommandLine.Usage()
-		internal.Exit(0)
-	}
-
-	switch args[0] {
-	case "version": // print version string
-		if v, ok := internal.Check(internal.Version); ok {
-			fmt.Println(v)
-		} else {
-			fmt.Println("impure")
-		}
-		internal.Exit(0)
-
-	case "license": // print embedded license
-		fmt.Println(license)
-		internal.Exit(0)
-
-	case "template": // print full template configuration
-		printJSON(os.Stdout, false, fst.Template())
-		internal.Exit(0)
-
-	case "help": // print help message
-		flag.CommandLine.Usage()
-		internal.Exit(0)
-
-	case "ps": // print all state info
-		set := flag.NewFlagSet("ps", flag.ExitOnError)
-		var short bool
-		set.BoolVar(&short, "short", false, "Print instance id")
-
-		// Ignore errors; set is set for ExitOnError.
-		_ = set.Parse(args[1:])
-
-		printPs(os.Stdout, time.Now().UTC(), state.NewMulti(std.Paths().RunDirPath), short)
-		internal.Exit(0)
-
-	case "show": // pretty-print app info
-		set := flag.NewFlagSet("show", flag.ExitOnError)
-		var short bool
-		set.BoolVar(&short, "short", false, "Omit filesystem information")
-
-		// Ignore errors; set is set for ExitOnError.
-		_ = set.Parse(args[1:])
-
-		switch len(set.Args()) {
-		case 0: // system
-			printShowSystem(os.Stdout, short)
-
-		case 1: // instance
-			name := set.Args()[0]
-			config, instance := tryShort(name)
-			if config == nil {
-				config = tryPath(name)
-			}
-			printShowInstance(os.Stdout, time.Now().UTC(), instance, config, short)
-
-		default:
-			log.Fatal("show requires 1 argument")
-		}
-		internal.Exit(0)
-
-	case "app": // launch app from configuration file
-		if len(args) < 2 {
+	c.Command("app", "Launch app defined by the specified config file", func(args []string) error {
+		if len(args) < 1 {
 			log.Fatal("app requires at least 1 argument")
 		}
 
 		// config extraArgs...
-		config := tryPath(args[1])
-		config.Command = append(config.Command, args[2:]...)
+		config := tryPath(args[0])
+		config.Command = append(config.Command, args[1:]...)
 
 		// invoke app
 		runApp(app.MustNew(std), config)
 		panic("unreachable")
+	})
 
-	case "run": // run app in permissive defaults usage pattern
-		set := flag.NewFlagSet("run", flag.ExitOnError)
-
+	{
 		var (
 			dbusConfigSession string
 			dbusConfigSystem  string
@@ -187,135 +83,211 @@ func main() {
 
 			fid         string
 			aid         int
-			groups      gl
+			groups      command.RepeatableFlag
 			homeDir     string
 			userName    string
 			enablements [system.ELen]bool
 		)
 
-		set.StringVar(&dbusConfigSession, "dbus-config", "builtin", "Path to D-Bus proxy config file, or \"builtin\" for defaults")
-		set.StringVar(&dbusConfigSystem, "dbus-system", "nil", "Path to system D-Bus proxy config file, or \"nil\" to disable")
-		set.BoolVar(&mpris, "mpris", false, "Allow owning MPRIS D-Bus path, has no effect if custom config is available")
-		set.BoolVar(&dbusVerbose, "dbus-log", false, "Force logging in the D-Bus proxy")
+		c.NewCommand("run", "Configure and start a permissive default sandbox", func(args []string) error {
+			// initialise config from flags
+			config := &fst.Config{
+				ID:      fid,
+				Command: args,
+			}
 
-		set.StringVar(&fid, "id", "", "App ID, leave empty to disable security context app_id")
-		set.IntVar(&aid, "a", 0, "Fortify application ID")
-		set.Var(&groups, "g", "Groups inherited by the app process")
-		set.StringVar(&homeDir, "d", "os", "Application home directory")
-		set.StringVar(&userName, "u", "chronos", "Passwd name within sandbox")
-		set.BoolVar(&enablements[system.EWayland], "wayland", false, "Allow Wayland connections")
-		set.BoolVar(&enablements[system.EX11], "X", false, "Share X11 socket and allow connection")
-		set.BoolVar(&enablements[system.EDBus], "dbus", false, "Proxy D-Bus connection")
-		set.BoolVar(&enablements[system.EPulse], "pulse", false, "Share PulseAudio socket and cookie")
+			if aid < 0 || aid > 9999 {
+				log.Fatalf("aid %d out of range", aid)
+			}
 
-		// Ignore errors; set is set for ExitOnError.
-		_ = set.Parse(args[1:])
-
-		// initialise config from flags
-		config := &fst.Config{
-			ID:      fid,
-			Command: set.Args(),
-		}
-
-		if aid < 0 || aid > 9999 {
-			log.Fatalf("aid %d out of range", aid)
-		}
-
-		// resolve home/username from os when flag is unset
-		var (
-			passwd     *user.User
-			passwdOnce sync.Once
-			passwdFunc = func() {
-				var us string
-				if uid, err := std.Uid(aid); err != nil {
-					fmsg.PrintBaseError(err, "cannot obtain uid from fsu:")
-					os.Exit(1)
-				} else {
-					us = strconv.Itoa(uid)
-				}
-
-				if u, err := user.LookupId(us); err != nil {
-					fmsg.Verbosef("cannot look up uid %s", us)
-					passwd = &user.User{
-						Uid:      us,
-						Gid:      us,
-						Username: "chronos",
-						Name:     "Fortify",
-						HomeDir:  "/var/empty",
+			// resolve home/username from os when flag is unset
+			var (
+				passwd     *user.User
+				passwdOnce sync.Once
+				passwdFunc = func() {
+					var us string
+					if uid, err := std.Uid(aid); err != nil {
+						fmsg.PrintBaseError(err, "cannot obtain uid from fsu:")
+						os.Exit(1)
+					} else {
+						us = strconv.Itoa(uid)
 					}
-				} else {
-					passwd = u
+
+					if u, err := user.LookupId(us); err != nil {
+						fmsg.Verbosef("cannot look up uid %s", us)
+						passwd = &user.User{
+							Uid:      us,
+							Gid:      us,
+							Username: "chronos",
+							Name:     "Fortify",
+							HomeDir:  "/var/empty",
+						}
+					} else {
+						passwd = u
+					}
 				}
-			}
-		)
+			)
 
-		if homeDir == "os" {
-			passwdOnce.Do(passwdFunc)
-			homeDir = passwd.HomeDir
-		}
-
-		if userName == "chronos" {
-			passwdOnce.Do(passwdFunc)
-			userName = passwd.Username
-		}
-
-		config.Confinement.AppID = aid
-		config.Confinement.Groups = groups
-		config.Confinement.Outer = homeDir
-		config.Confinement.Username = userName
-
-		// enablements from flags
-		for i := system.Enablement(0); i < system.Enablement(system.ELen); i++ {
-			if enablements[i] {
-				config.Confinement.Enablements.Set(i)
-			}
-		}
-
-		// parse D-Bus config file from flags if applicable
-		if enablements[system.EDBus] {
-			if dbusConfigSession == "builtin" {
-				config.Confinement.SessionBus = dbus.NewConfig(fid, true, mpris)
-			} else {
-				if c, err := dbus.NewConfigFromFile(dbusConfigSession); err != nil {
-					log.Fatalf("cannot load session bus proxy config from %q: %s", dbusConfigSession, err)
-				} else {
-					config.Confinement.SessionBus = c
-				}
+			if homeDir == "os" {
+				passwdOnce.Do(passwdFunc)
+				homeDir = passwd.HomeDir
 			}
 
-			// system bus proxy is optional
-			if dbusConfigSystem != "nil" {
-				if c, err := dbus.NewConfigFromFile(dbusConfigSystem); err != nil {
-					log.Fatalf("cannot load system bus proxy config from %q: %s", dbusConfigSystem, err)
-				} else {
-					config.Confinement.SystemBus = c
+			if userName == "chronos" {
+				passwdOnce.Do(passwdFunc)
+				userName = passwd.Username
+			}
+
+			config.Confinement.AppID = aid
+			config.Confinement.Groups = groups
+			config.Confinement.Outer = homeDir
+			config.Confinement.Username = userName
+
+			// enablements from flags
+			for i := system.Enablement(0); i < system.Enablement(system.ELen); i++ {
+				if enablements[i] {
+					config.Confinement.Enablements.Set(i)
 				}
 			}
 
-			// override log from configuration
-			if dbusVerbose {
-				config.Confinement.SessionBus.Log = true
-				config.Confinement.SystemBus.Log = true
+			// parse D-Bus config file from flags if applicable
+			if enablements[system.EDBus] {
+				if dbusConfigSession == "builtin" {
+					config.Confinement.SessionBus = dbus.NewConfig(fid, true, mpris)
+				} else {
+					if conf, err := dbus.NewConfigFromFile(dbusConfigSession); err != nil {
+						log.Fatalf("cannot load session bus proxy config from %q: %s", dbusConfigSession, err)
+					} else {
+						config.Confinement.SessionBus = conf
+					}
+				}
+
+				// system bus proxy is optional
+				if dbusConfigSystem != "nil" {
+					if conf, err := dbus.NewConfigFromFile(dbusConfigSystem); err != nil {
+						log.Fatalf("cannot load system bus proxy config from %q: %s", dbusConfigSystem, err)
+					} else {
+						config.Confinement.SystemBus = conf
+					}
+				}
+
+				// override log from configuration
+				if dbusVerbose {
+					config.Confinement.SessionBus.Log = true
+					config.Confinement.SystemBus.Log = true
+				}
 			}
-		}
 
-		// invoke app
-		runApp(app.MustNew(std), config)
-		panic("unreachable")
-
-	// internal commands
-	case "shim":
-		shim.Main()
-		internal.Exit(0)
-	case "init":
-		init0.Main()
-		internal.Exit(0)
-
-	default:
-		log.Fatalf("%q is not a valid command", args[0])
+			// invoke app
+			runApp(app.MustNew(std), config)
+			panic("unreachable")
+		}).
+			Flag(&dbusConfigSession, "dbus-config", command.StringFlag("builtin"),
+				"Path to D-Bus proxy config file, or \"builtin\" for defaults").
+			Flag(&dbusConfigSystem, "dbus-system", command.StringFlag("nil"),
+				"Path to system D-Bus proxy config file, or \"nil\" to disable").
+			Flag(&mpris, "mpris", command.BoolFlag(false),
+				"Allow owning MPRIS D-Bus path, has no effect if custom config is available").
+			Flag(&dbusVerbose, "dbus-log", command.BoolFlag(false),
+				"Force logging in the D-Bus proxy").
+			Flag(&fid, "id", command.StringFlag(""),
+				"App ID, leave empty to disable security context app_id").
+			Flag(&aid, "a", command.IntFlag(0),
+				"Fortify application ID").
+			Flag(nil, "g", &groups,
+				"Groups inherited by the app process").
+			Flag(&homeDir, "d", command.StringFlag("os"),
+				"Application home directory").
+			Flag(&userName, "u", command.StringFlag("chronos"),
+				"Passwd name within sandbox").
+			Flag(&enablements[system.EWayland], "wayland", command.BoolFlag(false),
+				"Allow Wayland connections").
+			Flag(&enablements[system.EX11], "X", command.BoolFlag(false),
+				"Share X11 socket and allow connection").
+			Flag(&enablements[system.EDBus], "dbus", command.BoolFlag(false),
+				"Proxy D-Bus connection").
+			Flag(&enablements[system.EPulse], "pulse", command.BoolFlag(false),
+				"Share PulseAudio socket and cookie")
 	}
 
-	panic("unreachable")
+	var showFlagShort bool
+	c.NewCommand("show", "Show the contents of an app configuration", func(args []string) error {
+		switch len(args) {
+		case 0: // system
+			printShowSystem(os.Stdout, showFlagShort, flagJSON)
+
+		case 1: // instance
+			name := args[0]
+			config, instance := tryShort(name)
+			if config == nil {
+				config = tryPath(name)
+			}
+			printShowInstance(os.Stdout, time.Now().UTC(), instance, config, showFlagShort, flagJSON)
+
+		default:
+			log.Fatal("show requires 1 argument")
+		}
+		return errSuccess
+	}).Flag(&showFlagShort, "short", command.BoolFlag(false), "Omit filesystem information")
+
+	var psFlagShort bool
+	c.NewCommand("ps", "List active apps and their state", func(args []string) error {
+		printPs(os.Stdout, time.Now().UTC(), state.NewMulti(std.Paths().RunDirPath), psFlagShort, flagJSON)
+		return errSuccess
+	}).Flag(&psFlagShort, "short", command.BoolFlag(false), "Print instance id")
+
+	c.Command("version", "Show fortify version", func(args []string) error {
+		if v, ok := internal.Check(internal.Version); ok {
+			fmt.Println(v)
+		} else {
+			fmt.Println("impure")
+		}
+		return errSuccess
+	})
+
+	c.Command("license", "Show full license text", func(args []string) error {
+		fmt.Println(license)
+		return errSuccess
+	})
+
+	c.Command("template", "Produce a config template", func(args []string) error {
+		printJSON(os.Stdout, false, fst.Template())
+		return errSuccess
+	})
+
+	c.Command("help", "Show this help message", func([]string) error {
+		c.PrintHelp()
+		return errSuccess
+	})
+
+	// internal commands
+	c.Command("shim", command.UsageInternal, func([]string) error { shim.Main(); return errSuccess })
+	c.Command("init", command.UsageInternal, func([]string) error { init0.Main(); return errSuccess })
+
+	err := c.Parse(os.Args[1:])
+	if errors.Is(err, errSuccess) || errors.Is(err, command.ErrHelp) {
+		internal.Exit(0)
+		panic("unreachable")
+	}
+	if errors.Is(err, command.ErrNoMatch) || errors.Is(err, command.ErrEmptyTree) {
+		internal.Exit(1)
+		panic("unreachable")
+	}
+	if err == nil {
+		log.Fatal("unreachable")
+	}
+
+	var flagError command.FlagError
+	if !errors.As(err, &flagError) {
+		log.Printf("command: %v", err)
+		internal.Exit(1)
+		panic("unreachable")
+	}
+	fmsg.Verbose(flagError.Error())
+	if flagError.Success() {
+		internal.Exit(0)
+	}
+	internal.Exit(1)
 }
 
 func runApp(a fst.App, config *fst.Config) {

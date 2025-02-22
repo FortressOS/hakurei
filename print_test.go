@@ -448,14 +448,8 @@ App
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			{
-				v := flagJSON
-				t.Cleanup(func() { flagJSON = v })
-				flagJSON = tc.json
-			}
-
 			output := new(strings.Builder)
-			printShowInstance(output, testTime, tc.instance, tc.config, tc.short)
+			printShowInstance(output, testTime, tc.instance, tc.config, tc.short, tc.json)
 			if got := output.String(); got != tc.want {
 				t.Errorf("printShowInstance: got\n%s\nwant\n%s",
 					got, tc.want)
@@ -645,14 +639,8 @@ func Test_printPs(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			{
-				v := flagJSON
-				t.Cleanup(func() { flagJSON = v })
-				flagJSON = tc.json
-			}
-
 			output := new(strings.Builder)
-			printPs(output, testTime, stubStore(tc.entries), tc.short)
+			printPs(output, testTime, stubStore(tc.entries), tc.short, tc.json)
 			if got := output.String(); got != tc.want {
 				t.Errorf("printPs: got\n%s\nwant\n%s",
 					got, tc.want)

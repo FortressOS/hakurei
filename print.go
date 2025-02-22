@@ -18,7 +18,7 @@ import (
 	"git.gensokyo.uk/security/fortify/internal/state"
 )
 
-func printShowSystem(output io.Writer, short bool) {
+func printShowSystem(output io.Writer, short, flagJSON bool) {
 	t := newPrinter(output)
 	defer t.MustFlush()
 
@@ -43,7 +43,7 @@ func printShowSystem(output io.Writer, short bool) {
 func printShowInstance(
 	output io.Writer, now time.Time,
 	instance *state.State, config *fst.Config,
-	short bool) {
+	short, flagJSON bool) {
 	if flagJSON {
 		if instance != nil {
 			printJSON(output, short, instance)
@@ -190,7 +190,7 @@ func printShowInstance(
 	}
 }
 
-func printPs(output io.Writer, now time.Time, s state.Store, short bool) {
+func printPs(output io.Writer, now time.Time, s state.Store, short, flagJSON bool) {
 	var entries state.Entries
 	if e, err := state.Join(s); err != nil {
 		log.Fatalf("cannot join store: %v", err)
