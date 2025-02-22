@@ -19,6 +19,11 @@ type (
 		Define(b *strings.Builder, set *flag.FlagSet, p any, name, usage string)
 	}
 
+	Flag[T any] interface {
+		// Flag defines a generic flag type in Node's flag set.
+		Flag(p any, name string, value FlagDefiner, usage string) T
+	}
+
 	Command interface {
 		Parse(arguments []string) error
 		baseNode[Command]
@@ -28,10 +33,12 @@ type (
 	baseNode[T any] interface {
 		// Command appends a subcommand with direct command handling.
 		Command(name, usage string, f HandlerFunc) T
-		// Flag defines a generic flag type in Node's flag set.
-		Flag(p any, name string, value FlagDefiner, usage string) T
 
 		// New returns a new subcommand tree.
 		New(name, usage string) (sub Node)
+		// NewCommand returns a new subcommand with direct command handling.
+		NewCommand(name, usage string, f HandlerFunc) (sub Flag[Node])
+
+		Flag[T]
 	}
 )

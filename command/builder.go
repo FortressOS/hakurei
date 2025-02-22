@@ -31,6 +31,11 @@ func newNode(output io.Writer, logf LogFunc, name, usage string) *node {
 }
 
 func (n *node) Command(name, usage string, f HandlerFunc) Node {
+	n.NewCommand(name, usage, f)
+	return n
+}
+
+func (n *node) NewCommand(name, usage string, f HandlerFunc) Flag[Node] {
 	if f == nil {
 		panic("invalid handler")
 	}
@@ -43,7 +48,7 @@ func (n *node) Command(name, usage string, f HandlerFunc) Node {
 	if !n.adopt(s) {
 		panic("attempted to initialise subcommand with non-unique name")
 	}
-	return n
+	return s
 }
 
 func (n *node) New(name, usage string) Node {
