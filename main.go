@@ -5,6 +5,7 @@ import (
 	_ "embed"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"os/signal"
@@ -52,11 +53,38 @@ func main() {
 		log.Fatal("this program must not run as root")
 	}
 
+	err := buildCommand(os.Stderr).Parse(os.Args[1:])
+	if errors.Is(err, errSuccess) || errors.Is(err, command.ErrHelp) {
+		internal.Exit(0)
+		panic("unreachable")
+	}
+	if errors.Is(err, command.ErrNoMatch) || errors.Is(err, command.ErrEmptyTree) {
+		internal.Exit(1)
+		panic("unreachable")
+	}
+	if err == nil {
+		log.Fatal("unreachable")
+	}
+
+	var flagError command.FlagError
+	if !errors.As(err, &flagError) {
+		log.Printf("command: %v", err)
+		internal.Exit(1)
+		panic("unreachable")
+	}
+	fmsg.Verbose(flagError.Error())
+	if flagError.Success() {
+		internal.Exit(0)
+	}
+	internal.Exit(1)
+}
+
+func buildCommand(out io.Writer) command.Command {
 	var (
 		flagVerbose bool
 		flagJSON    bool
 	)
-	c := command.New(os.Stderr, log.Printf, "fortify", func([]string) error { fmsg.Store(flagVerbose); return nil }).
+	c := command.New(out, log.Printf, "fortify", func([]string) error { fmsg.Store(flagVerbose); return nil }).
 		Flag(&flagVerbose, "v", command.BoolFlag(false), "Print debug messages to the console").
 		Flag(&flagJSON, "json", command.BoolFlag(false), "Serialise output as JSON when applicable")
 
@@ -264,30 +292,7 @@ func main() {
 	c.Command("shim", command.UsageInternal, func([]string) error { shim.Main(); return errSuccess })
 	c.Command("init", command.UsageInternal, func([]string) error { init0.Main(); return errSuccess })
 
-	err := c.Parse(os.Args[1:])
-	if errors.Is(err, errSuccess) || errors.Is(err, command.ErrHelp) {
-		internal.Exit(0)
-		panic("unreachable")
-	}
-	if errors.Is(err, command.ErrNoMatch) || errors.Is(err, command.ErrEmptyTree) {
-		internal.Exit(1)
-		panic("unreachable")
-	}
-	if err == nil {
-		log.Fatal("unreachable")
-	}
-
-	var flagError command.FlagError
-	if !errors.As(err, &flagError) {
-		log.Printf("command: %v", err)
-		internal.Exit(1)
-		panic("unreachable")
-	}
-	fmsg.Verbose(flagError.Error())
-	if flagError.Success() {
-		internal.Exit(0)
-	}
-	internal.Exit(1)
+	return c
 }
 
 func runApp(a fst.App, config *fst.Config) {
