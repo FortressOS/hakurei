@@ -5,25 +5,52 @@ on:
   - pull_request
 
 jobs:
-  test:
-    name: Run NixOS test
+  fortify:
+    name: Fortify
     runs-on: nix
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Run fortify tests
-        run: nix build --out-link "result-fortify" --print-out-paths --print-build-logs .#checks.x86_64-linux.fortify
-
-      - name: Run flake checks
-        run: nix --print-build-logs --experimental-features 'nix-command flakes' flake check
+      - name: Run NixOS test
+        run: nix build --out-link "result" --print-out-paths --print-build-logs .#checks.x86_64-linux.fortify
 
       - name: Upload test output
         uses: actions/upload-artifact@v3
         with:
           name: "fortify-vm-output"
-          path: result-fortify/*
+          path: result/*
           retention-days: 1
+
+  race:
+    name: Data race detector
+    runs-on: nix
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run NixOS test
+        run: nix build --out-link "result" --print-out-paths --print-build-logs .#checks.x86_64-linux.race
+
+      - name: Upload test output
+        uses: actions/upload-artifact@v3
+        with:
+          name: "fortify-race-vm-output"
+          path: result/*
+          retention-days: 1
+
+  check:
+    name: Flake checks
+    needs:
+      - fortify
+      - race
+    runs-on: nix
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run checks
+        run: nix --print-build-logs --experimental-features 'nix-command flakes' flake check
 
   dist:
     name: Create distribution
