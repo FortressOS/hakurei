@@ -57,6 +57,12 @@
             ;
         in
         {
+          fortify = callPackage ./test { inherit system self; };
+          race = callPackage ./test {
+            inherit system self;
+            withRace = true;
+          };
+
           formatting = runCommandLocal "check-formatting" { nativeBuildInputs = [ nixfmt-rfc-style ]; } ''
             cd ${./.}
 
@@ -85,12 +91,6 @@
 
                 touch $out
               '';
-
-          fortify = callPackage ./tests/fortify { inherit system self; };
-          race = callPackage ./tests/fortify {
-            inherit system self;
-            withRace = true;
-          };
         }
       );
 

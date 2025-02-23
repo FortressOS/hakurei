@@ -22,7 +22,7 @@ nixosTest {
       # Run with Go race detector:
       environment.fortify = lib.mkIf withRace rec {
         # race detector does not support static linking
-        package = (pkgs.callPackage ../../package.nix { }).overrideAttrs (previousAttrs: {
+        package = (pkgs.callPackage ../package.nix { }).overrideAttrs (previousAttrs: {
           GOFLAGS = previousAttrs.GOFLAGS ++ [ "-race" ];
         });
         fsuPackage = options.environment.fortify.fsuPackage.default.override { fortify = package; };
