@@ -180,14 +180,16 @@ in
 
 writeScriptBin "build-fpkg-${pname}" ''
   #!${runtimeShell} -el
+  NIX="nix --offline --extra-experimental-features nix-command"
+
   OUT="$(mktemp -d)"
   TAR="$(mktemp -u)"
   set -x
 
-  nix copy --no-check-sigs --to "$OUT" "${nix}" "${nixos.config.system.build.toplevel}"
-  nix store --store "$OUT" optimise
+  $NIX copy --no-check-sigs --to "$OUT" "${nix}" "${nixos.config.system.build.toplevel}"
+  $NIX store --store "$OUT" optimise
   chmod -R +r "$OUT/nix/var"
-  nix copy --no-check-sigs --to "file://$OUT/res?compression=zstd&compression-level=19&parallel-compression=true" \
+  $NIX copy --no-check-sigs --to "file://$OUT/res?compression=zstd&compression-level=19&parallel-compression=true" \
     "${homeManagerConfiguration.activationPackage}" \
     "${launcher}" ${if gpu then "${mesaWrappers} ${nixGL}" else ""}
   mkdir -p "$OUT/etc"
