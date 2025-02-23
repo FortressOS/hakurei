@@ -29,6 +29,11 @@ type (
 
 	Command interface {
 		Parse(arguments []string) error
+
+		// MustParse determines exit outcomes for Parse errors
+		// and calls handleError if [HandlerFunc] returns a non-nil error.
+		MustParse(arguments []string, handleError func(error))
+
 		baseNode[Command]
 	}
 	Node baseNode[Node]

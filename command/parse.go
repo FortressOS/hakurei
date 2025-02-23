@@ -3,6 +3,7 @@ package command
 import (
 	"errors"
 	"log"
+	"os"
 )
 
 var (
@@ -76,5 +77,29 @@ func (n *node) printf(format string, a ...any) {
 		log.Printf(format, a...)
 	} else {
 		n.logf(format, a...)
+	}
+}
+
+func (n *node) MustParse(arguments []string, handleError func(error)) {
+	switch err := n.Parse(arguments); err {
+	case nil:
+		return
+	case ErrHelp:
+		os.Exit(0)
+	case ErrNoMatch:
+		os.Exit(1)
+	case ErrEmptyTree:
+		os.Exit(1)
+	default:
+		var flagError FlagError
+		if !errors.As(err, &flagError) { // returned by HandlerFunc
+			handleError(err)
+			os.Exit(1)
+		}
+
+		if flagError.Success() {
+			os.Exit(0)
+		}
+		os.Exit(1)
 	}
 }
