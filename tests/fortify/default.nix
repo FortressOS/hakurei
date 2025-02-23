@@ -1,44 +1,40 @@
 {
-  system,
-  self,
+  lib,
   nixosTest,
   writeShellScriptBin,
+
+  system,
+  self,
+  withRace ? false,
 }:
 
 nixosTest {
-  name = "fortify";
-  nodes.machine = {
-    environment.systemPackages = [
-      # For go tests:
-      self.packages.${system}.fhs
-      (writeShellScriptBin "fortify-src" "echo -n ${self.packages.${system}.fortify.src}")
-    ];
+  name = "fortify" + (if withRace then "-race" else "");
+  nodes.machine =
+    { options, pkgs, ... }:
+    {
+      environment.systemPackages = [
+        # For go tests:
+        self.packages.${system}.fhs
+        (writeShellScriptBin "fortify-src" "echo -n ${self.packages.${system}.fortify.src}")
+      ];
 
-    # Run with Go race detector:
-    environment.fortify.package =
-      let
-        inherit (self.packages.${system}) fortify;
-      in
-      fortify.overrideAttrs (previousAttrs: {
-        GOFLAGS = previousAttrs.GOFLAGS ++ [ "-race" ];
+      # Run with Go race detector:
+      environment.fortify = lib.mkIf withRace rec {
+        # race detector does not support static linking
+        package = (pkgs.callPackage ../../package.nix { }).overrideAttrs (previousAttrs: {
+          GOFLAGS = previousAttrs.GOFLAGS ++ [ "-race" ];
+        });
+        fsuPackage = options.environment.fortify.fsuPackage.default.override { fortify = package; };
+      };
 
-        # fsu does not like cgo
-        disallowedReferences = previousAttrs.disallowedReferences ++ [ fortify ];
-        postInstall =
-          previousAttrs.postInstall
-          + ''
-            cp -a "${fortify}/libexec/fsu" "$out/libexec/fsu"
-            sed -i 's:${fortify}:${placeholder "out"}:' "$out/libexec/fsu"
-          '';
-      });
+      imports = [
+        ./configuration.nix
 
-    imports = [
-      ./configuration.nix
-
-      self.nixosModules.fortify
-      self.inputs.home-manager.nixosModules.home-manager
-    ];
-  };
+        self.nixosModules.fortify
+        self.inputs.home-manager.nixosModules.home-manager
+      ];
+    };
 
   # adapted from nixos sway integration tests
 

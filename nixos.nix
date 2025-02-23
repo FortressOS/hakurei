@@ -30,7 +30,7 @@ in
 
   config = mkIf cfg.enable {
     security.wrappers.fsu = {
-      source = "${cfg.package}/libexec/fsu";
+      source = "${cfg.fsuPackage}/bin/fsu";
       setuid = true;
       owner = "root";
       setgid = true;

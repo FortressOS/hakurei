@@ -2,6 +2,9 @@
 
 let
   inherit (lib) types mkOption mkEnableOption;
+  fortify = pkgs.pkgsStatic.callPackage ./package.nix {
+    inherit (pkgs) bubblewrap xdg-dbus-proxy glibc;
+  };
 in
 
 {
@@ -11,8 +14,14 @@ in
 
       package = mkOption {
         type = types.package;
-        default = pkgs.callPackage ./package.nix { };
+        default = fortify;
         description = "The fortify package to use.";
+      };
+
+      fsuPackage = mkOption {
+        type = types.package;
+        default = pkgs.callPackage ./cmd/fsu/package.nix { inherit fortify; };
+        description = "The fsu package to use.";
       };
 
       users = mkOption {

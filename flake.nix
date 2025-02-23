@@ -87,6 +87,10 @@
               '';
 
           fortify = callPackage ./tests/fortify { inherit system self; };
+          race = callPackage ./tests/fortify {
+            inherit system self;
+            withRace = true;
+          };
         }
       );
 
@@ -98,7 +102,10 @@
         in
         {
           default = self.packages.${system}.fortify;
-          fortify = pkgs.callPackage ./package.nix { };
+          fortify = pkgs.pkgsStatic.callPackage ./package.nix {
+            inherit (pkgs) bubblewrap xdg-dbus-proxy glibc;
+          };
+          fsu = pkgs.callPackage ./cmd/fsu/package.nix { inherit (self.packages.${system}) fortify; };
 
           dist =
             pkgs.runCommand "${fortify.name}-dist" { inherit (self.devShells.${system}.default) buildInputs; }

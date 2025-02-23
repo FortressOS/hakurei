@@ -1,5 +1,6 @@
 {
   lib,
+  stdenv,
   buildGoModule,
   makeBinaryWrapper,
   xdg-dbus-proxy,
@@ -12,6 +13,9 @@
   wayland-protocols,
   wayland-scanner,
   xorg,
+
+  glibc, # for ldd
+  withStatic ? stdenv.hostPlatform.isStatic,
 }:
 
 buildGoModule rec {
@@ -19,9 +23,12 @@ buildGoModule rec {
   version = "0.2.17";
 
   src = builtins.path {
-    name = "fortify-src";
+    name = "${pname}-src";
     path = lib.cleanSource ./.;
-    filter = path: type: !(type != "directory" && lib.hasSuffix ".nix" path);
+    filter =
+      path: type:
+      !(type == "regular" && lib.hasSuffix ".nix" path)
+      && !(type == "directory" && lib.hasSuffix "/cmd/fsu" path);
   };
   vendorHash = null;
 
@@ -31,17 +38,22 @@ buildGoModule rec {
         ldflags: name: value:
         ldflags ++ [ "-X git.gensokyo.uk/security/fortify/internal.${name}=${value}" ]
       )
-      [
-        "-s -w"
-        "-X main.Fmain=${placeholder "out"}/libexec/fortify"
-      ]
+      (
+        [
+          "-s -w"
+        ]
+        ++ lib.optionals withStatic [
+          "-linkmode external"
+          "-extldflags \"-static\""
+        ]
+      )
       {
         Version = "v${version}";
         Fsu = "/run/wrappers/bin/fsu";
       };
 
   # nix build environment does not allow acls
-  GO_TEST_SKIP_ACL = 1;
+  env.GO_TEST_SKIP_ACL = 1;
 
   buildInputs =
     [
@@ -64,7 +76,7 @@ buildGoModule rec {
   ];
 
   preBuild = ''
-    HOME=$(mktemp -d) go generate ./...
+    HOME="$(mktemp -d)" PATH="${pkg-config}/bin:$PATH" go generate ./...
   '';
 
   postInstall = ''
@@ -76,6 +88,7 @@ buildGoModule rec {
     makeBinaryWrapper "$out/libexec/fortify" "$out/bin/fortify" \
       --inherit-argv0 --prefix PATH : ${
         lib.makeBinPath [
+          glibc
           bubblewrap
           xdg-dbus-proxy
         ]
