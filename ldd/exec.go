@@ -1,10 +1,10 @@
 package ldd
 
 import (
+	"bytes"
 	"context"
 	"os"
 	"os/exec"
-	"strings"
 	"time"
 
 	"git.gensokyo.uk/security/fortify/helper"
@@ -12,6 +12,10 @@ import (
 )
 
 const lddTimeout = 2 * time.Second
+
+var (
+	msgStaticGlibc = []byte("not a dynamic executable")
+)
 
 func Exec(ctx context.Context, p string) ([]*Entry, error) {
 	var h helper.Helper
@@ -32,8 +36,8 @@ func Exec(ctx context.Context, p string) ([]*Entry, error) {
 		return nil, err
 	}
 
-	stdout := new(strings.Builder)
-	h.Stdout(stdout).Stderr(os.Stderr)
+	stdout, stderr := new(bytes.Buffer), new(bytes.Buffer)
+	h.Stdout(stdout).Stderr(stderr)
 
 	c, cancel := context.WithTimeout(ctx, lddTimeout)
 	defer cancel()
@@ -41,6 +45,12 @@ func Exec(ctx context.Context, p string) ([]*Entry, error) {
 		return nil, err
 	}
 	if err := h.Wait(); err != nil {
+		m := stderr.Bytes()
+		if bytes.Contains(m, msgStaticGlibc) {
+			return nil, nil
+		}
+
+		_, _ = os.Stderr.Write(m)
 		return nil, err
 	}
 
