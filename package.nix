@@ -20,7 +20,7 @@
 
 buildGoModule rec {
   pname = "fortify";
-  version = "0.2.17";
+  version = "0.2.18";
 
   src = builtins.path {
     name = "${pname}-src";

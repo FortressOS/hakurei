@@ -36,7 +36,7 @@ package
 
 
 *Default:*
-` <derivation fortify-0.2.17> `
+` <derivation fortify-static-x86_64-unknown-linux-musl-0.2.18> `
 
 
 
@@ -666,6 +666,25 @@ boolean
 
 *Example:*
 ` true `
+
+
+
+
+## environment\.fortify\.fsuPackage
+
+
+
+The fsu package to use\.
+
+
+
+*Type:*
+package
+
+
+
+*Default:*
+` <derivation fortify-fsu-0.2.18> `
 
 
 
