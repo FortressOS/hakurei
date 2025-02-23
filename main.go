@@ -53,30 +53,14 @@ func main() {
 		log.Fatal("this program must not run as root")
 	}
 
-	err := buildCommand(os.Stderr).Parse(os.Args[1:])
-	if errors.Is(err, errSuccess) || errors.Is(err, command.ErrHelp) {
-		internal.Exit(0)
-		panic("unreachable")
-	}
-	if errors.Is(err, command.ErrNoMatch) || errors.Is(err, command.ErrEmptyTree) {
-		internal.Exit(1)
-		panic("unreachable")
-	}
-	if err == nil {
-		log.Fatal("unreachable")
-	}
-
-	var flagError command.FlagError
-	if !errors.As(err, &flagError) {
-		log.Printf("command: %v", err)
-		internal.Exit(1)
-		panic("unreachable")
-	}
-	fmsg.Verbose(flagError.Error())
-	if flagError.Success() {
-		internal.Exit(0)
-	}
-	internal.Exit(1)
+	buildCommand(os.Stderr).MustParse(os.Args[1:], func(err error) {
+		fmsg.Verbosef("command returned %v", err)
+		if errors.Is(err, errSuccess) {
+			fmsg.BeforeExit()
+			os.Exit(0)
+		}
+	})
+	log.Fatal("unreachable")
 }
 
 func buildCommand(out io.Writer) command.Command {
