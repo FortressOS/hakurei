@@ -97,11 +97,11 @@
       packages = forAllSystems (
         system:
         let
-          inherit (self.packages.${system}) fortify;
+          inherit (self.packages.${system}) fortify fsu;
           pkgs = nixpkgsFor.${system};
         in
         {
-          default = self.packages.${system}.fortify;
+          default = fortify;
           fortify = pkgs.pkgsStatic.callPackage ./package.nix {
             inherit (pkgs) bubblewrap xdg-dbus-proxy glibc;
           };
@@ -114,7 +114,10 @@
                 export XDG_CACHE_HOME="$(mktemp -d)"
 
                 # get a different workdir as go does not like /build
-                cd $(mktemp -d) && cp -r ${fortify.src}/. . && chmod -R +w .
+                cd $(mktemp -d) \
+                    && cp -r ${fortify.src}/. . \
+                    && chmod +w cmd && cp -r ${fsu.src}/. cmd/fsu/ \
+                    && chmod -R +w .
 
                 export FORTIFY_VERSION="v${fortify.version}"
                 ./dist/release.sh && mkdir $out && cp -v "dist/fortify-$FORTIFY_VERSION.tar.gz"* $out
