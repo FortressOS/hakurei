@@ -27,7 +27,7 @@ buildGoModule rec {
     path = lib.cleanSource ./.;
     filter =
       path: type:
-      !(type == "regular" && lib.hasSuffix ".nix" path)
+      !(type == "regular" && (lib.hasSuffix ".nix" path || lib.hasSuffix ".py" path))
       && !(type == "directory" && lib.hasSuffix "/cmd/fsu" path);
   };
   vendorHash = null;
