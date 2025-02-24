@@ -304,7 +304,48 @@ func runApp(a fst.App, config *fst.Config) {
 		}
 	}
 	if rs.RevertErr != nil {
-		fmsg.PrintBaseError(rs.RevertErr, "generic error returned during cleanup:")
+		var stateStoreError *app.StateStoreError
+		if !errors.As(rs.RevertErr, &stateStoreError) || stateStoreError == nil {
+			fmsg.PrintBaseError(rs.RevertErr, "generic fault during cleanup:")
+			goto out
+		}
+
+		if stateStoreError.Err != nil {
+			if len(stateStoreError.Err) == 2 {
+				if stateStoreError.Err[0] != nil {
+					if joinedErrs, ok := stateStoreError.Err[0].(interface{ Unwrap() []error }); !ok {
+						fmsg.PrintBaseError(stateStoreError.Err[0], "generic fault during revert:")
+					} else {
+						for _, err := range joinedErrs.Unwrap() {
+							if err != nil {
+								fmsg.PrintBaseError(err, "fault during revert:")
+							}
+						}
+					}
+				}
+				if stateStoreError.Err[1] != nil {
+					log.Printf("cannot close store: %v", stateStoreError.Err[1])
+				}
+			} else {
+				log.Printf("fault during cleanup: %v",
+					errors.Join(stateStoreError.Err...))
+			}
+		}
+
+		if stateStoreError.OpErr != nil {
+			log.Printf("blind revert due to store fault: %v",
+				stateStoreError.OpErr)
+		}
+
+		if stateStoreError.DoErr != nil {
+			fmsg.PrintBaseError(stateStoreError.DoErr, "state store operation unsuccessful:")
+		}
+
+		if stateStoreError.Inner && stateStoreError.InnerErr != nil {
+			fmsg.PrintBaseError(stateStoreError.InnerErr, "cannot destroy state entry:")
+		}
+
+	out:
 		if rs.ExitCode == 0 {
 			rs.ExitCode = 128
 		}

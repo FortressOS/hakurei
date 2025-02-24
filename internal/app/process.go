@@ -79,7 +79,8 @@ func (seal *outcome) Run(ctx context.Context, rs *fst.RunState) error {
 				ec.Set(system.Process)
 				if states, err := c.Load(); err != nil {
 					// revert per-process state here to limit damage
-					return errors.Join(err, seal.sys.Revert(ec))
+					storeErr.OpErr = err
+					return seal.sys.Revert(ec)
 				} else {
 					if l := len(states); l == 0 {
 						fmsg.Verbose("no other launchers active, will clean up globals")
@@ -115,14 +116,10 @@ func (seal *outcome) Run(ctx context.Context, rs *fst.RunState) error {
 					}
 				}
 
-				err := seal.sys.Revert(ec)
-				if err != nil {
-					err = err.(RevertCompoundError)
-				}
-				return err
+				return seal.sys.Revert(ec)
 			}()
 		})
-		storeErr.Err = errors.Join(revertErr, store.Close())
+		storeErr.save([]error{revertErr, store.Close()})
 		rs.RevertErr = storeErr.equiv("error returned during cleanup:")
 	}()
 
@@ -170,7 +167,9 @@ func (seal *outcome) Run(ctx context.Context, rs *fst.RunState) error {
 		Time: *rs.Time,
 	}
 	var earlyStoreErr = new(StateStoreError) // returned after blocking on waitErr
-	earlyStoreErr.Inner, earlyStoreErr.DoErr = store.Do(seal.user.aid.unwrap(), func(c state.Cursor) { earlyStoreErr.InnerErr = c.Save(&sd, seal.ct) })
+	earlyStoreErr.Inner, earlyStoreErr.DoErr = store.Do(seal.user.aid.unwrap(), func(c state.Cursor) {
+		earlyStoreErr.InnerErr = c.Save(&sd, seal.ct)
+	})
 	// destroy defunct state entry
 	deferredStoreFunc = func(c state.Cursor) error { return c.Destroy(seal.id.unwrap()) }
 
@@ -217,24 +216,26 @@ func (seal *outcome) Run(ctx context.Context, rs *fst.RunState) error {
 type StateStoreError struct {
 	// whether inner function was called
 	Inner bool
-	// returned by the Do method of [state.Store]
-	DoErr error
 	// returned by the Save/Destroy method of [state.Cursor]
 	InnerErr error
-	// stores an arbitrary error
-	Err error
+	// returned by the Do method of [state.Store]
+	DoErr error
+	// stores an arbitrary store operation error
+	OpErr error
+	// stores arbitrary errors
+	Err []error
 }
 
-// save saves exactly one arbitrary error in [StateStoreError].
-func (e *StateStoreError) save(err error) {
-	if err == nil || e.Err != nil {
+// save saves arbitrary errors in [StateStoreError] once.
+func (e *StateStoreError) save(errs []error) {
+	if len(errs) == 0 || e.Err != nil {
 		panic("invalid call to save")
 	}
-	e.Err = err
+	e.Err = errs
 }
 
 func (e *StateStoreError) equiv(a ...any) error {
-	if e.Inner && e.DoErr == nil && e.InnerErr == nil && e.Err == nil {
+	if e.Inner && e.InnerErr == nil && e.DoErr == nil && e.OpErr == nil && errors.Join(e.Err...) == nil {
 		return nil
 	} else {
 		return fmsg.WrapErrorSuffix(e, a...)
@@ -245,13 +246,14 @@ func (e *StateStoreError) Error() string {
 	if e.Inner && e.InnerErr != nil {
 		return e.InnerErr.Error()
 	}
-
 	if e.DoErr != nil {
 		return e.DoErr.Error()
 	}
-
-	if e.Err != nil {
-		return e.Err.Error()
+	if e.OpErr != nil {
+		return e.OpErr.Error()
+	}
+	if err := errors.Join(e.Err...); err != nil {
+		return err.Error()
 	}
 
 	// equiv nullifies e for values where this is reached
@@ -260,14 +262,17 @@ func (e *StateStoreError) Error() string {
 
 func (e *StateStoreError) Unwrap() (errs []error) {
 	errs = make([]error, 0, 3)
-	if e.DoErr != nil {
-		errs = append(errs, e.DoErr)
-	}
 	if e.InnerErr != nil {
 		errs = append(errs, e.InnerErr)
 	}
-	if e.Err != nil {
-		errs = append(errs, e.Err)
+	if e.DoErr != nil {
+		errs = append(errs, e.DoErr)
+	}
+	if e.OpErr != nil {
+		errs = append(errs, e.OpErr)
+	}
+	if err := errors.Join(e.Err...); err != nil {
+		errs = append(errs, err)
 	}
 	return
 }
