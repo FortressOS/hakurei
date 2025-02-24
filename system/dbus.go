@@ -2,6 +2,7 @@ package system
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"log"
 	"strings"
@@ -96,7 +97,12 @@ func (d *DBus) revert(sys *I, _ *Criteria) error {
 	sys.println("terminating message bus proxy")
 	d.proxy.Close()
 	defer sys.println("message bus proxy exit")
-	return sys.wrapErrSuffix(d.proxy.Wait(), "message bus proxy error:")
+	err := d.proxy.Wait()
+	if errors.Is(err, context.Canceled) {
+		sys.println("message bus proxy canceled upstream")
+		err = nil
+	}
+	return sys.wrapErrSuffix(err, "message bus proxy error:")
 }
 
 func (d *DBus) Is(o Op) bool {
