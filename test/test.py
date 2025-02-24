@@ -110,12 +110,28 @@ output = machine.succeed("sudo -u alice -i fortify run -a 0 true &>/dev/stdout")
 if output != "":
     raise Exception(f"unexpected output\n{output}")
 
+# Verify silent output permissive defaults signal:
+def silent_output_interrupt(flags):
+    # aid 0 does not have home-manager
+    fortify(f"run {flags}-a 0 sh -c 'export PATH=/run/current-system/sw/bin:$PATH && touch /tmp/pd-silent-ready && sleep infinity' &>/tmp/pd-silent")
+    machine.wait_for_file("/tmp/fortify.1000/tmpdir/0/pd-silent-ready")
+    machine.succeed("rm /tmp/fortify.1000/tmpdir/0/pd-silent-ready")
+    machine.succeed(f"sudo -u alice pkill -u alice -f 'fortify run {flags}-a 0 '")
+    machine.wait_until_fails(f"sudo -u alice pgrep -u alice -f 'fortify run {flags}-a 0 '")
+    output = machine.succeed("cat /tmp/pd-silent && rm /tmp/pd-silent")
+    if output != "":
+        raise Exception(f"unexpected output\n{output}")
+
+
+silent_output_interrupt("")
+silent_output_interrupt("--dbus ") # this one is especially painful as it maintains a helper
+silent_output_interrupt("--wayland -X --dbus --pulse ")
+
 # Verify graceful failure on bad Wayland display name:
 print(machine.fail("sudo -u alice -i fortify -v run --wayland true"))
 
 # Start fortify permissive defaults within Wayland session:
-fortify(
-    '-v run --wayland --dbus notify-send -a "NixOS Tests" "Test notification" "Notification from within sandbox." && touch /tmp/dbus-done')
+fortify('-v run --wayland --dbus notify-send -a "NixOS Tests" "Test notification" "Notification from within sandbox." && touch /tmp/dbus-done')
 machine.wait_for_file("/tmp/dbus-done")
 collect_state_ui("dbus_notify_exited")
 machine.succeed("pkill -9 mako")
