@@ -1,7 +1,9 @@
 package system
 
 import (
+	"errors"
 	"fmt"
+	"os"
 	"slices"
 
 	"git.gensokyo.uk/security/fortify/acl"
@@ -41,7 +43,13 @@ func (a *ACL) apply(sys *I) error {
 func (a *ACL) revert(sys *I, ec *Criteria) error {
 	if ec.hasType(a) {
 		sys.println("stripping ACL", a)
-		return sys.wrapErrSuffix(acl.Update(a.path, sys.uid),
+		err := acl.Update(a.path, sys.uid)
+		if errors.Is(err, os.ErrNotExist) {
+			// the ACL is effectively stripped if the file no longer exists
+			sys.printf("target of ACL %s no longer exists", a)
+			err = nil
+		}
+		return sys.wrapErrSuffix(err,
 			fmt.Sprintf("cannot strip ACL entry from %q:", a.path))
 	} else {
 		sys.println("skipping ACL", a)
