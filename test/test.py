@@ -112,12 +112,15 @@ if output != "":
 
 # Verify silent output permissive defaults signal:
 def silent_output_interrupt(flags):
+    swaymsg("exec foot")
+    wait_for_window("alice@machine")
     # aid 0 does not have home-manager
-    fortify(f"run {flags}-a 0 sh -c 'export PATH=/run/current-system/sw/bin:$PATH && touch /tmp/pd-silent-ready && sleep infinity' &>/tmp/pd-silent")
+    machine.send_chars(f"exec fortify run {flags}-a 0 sh -c 'export PATH=/run/current-system/sw/bin:$PATH && touch /tmp/pd-silent-ready && sleep infinity' &>/tmp/pd-silent\n")
     machine.wait_for_file("/tmp/fortify.1000/tmpdir/0/pd-silent-ready")
     machine.succeed("rm /tmp/fortify.1000/tmpdir/0/pd-silent-ready")
-    machine.succeed(f"sudo -u alice pkill -u alice -f 'fortify run {flags}-a 0 '")
-    machine.wait_until_fails(f"sudo -u alice pgrep -u alice -f 'fortify run {flags}-a 0 '")
+    machine.send_key("ctrl-c")
+    machine.wait_until_fails("pgrep foot")
+    machine.wait_until_fails(f"pgrep -u alice -f 'fortify run {flags}-a 0 '")
     output = machine.succeed("cat /tmp/pd-silent && rm /tmp/pd-silent")
     if output != "":
         raise Exception(f"unexpected output\n{output}")
