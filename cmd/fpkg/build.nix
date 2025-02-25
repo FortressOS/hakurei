@@ -7,8 +7,9 @@
 
 {
   lib,
+  stdenv,
+  closureInfo,
   writeScript,
-  writeScriptBin,
   runtimeShell,
   writeText,
   symlinkJoin,
@@ -16,7 +17,9 @@
   runCommand,
   fetchFromGitHub,
 
+  zstd,
   nix,
+  sqlite,
 
   name ? throw "name is required",
   version ? throw "version is required",
@@ -178,28 +181,73 @@ let
   };
 in
 
-writeScriptBin "build-fpkg-${pname}" ''
-  #!${runtimeShell} -el
-  NIX="nix --offline --extra-experimental-features nix-command"
+stdenv.mkDerivation {
+  name = "${pname}.pkg";
+  inherit version;
+  __structuredAttrs = true;
 
-  OUT="$(mktemp -d)"
-  TAR="$(mktemp -u)"
-  set -x
+  nativeBuildInputs = [
+    zstd
+    nix
+    sqlite
+  ];
 
-  $NIX copy --no-check-sigs --to "$OUT" "${nix}" "${nixos.config.system.build.toplevel}"
-  $NIX store --store "$OUT" optimise
-  chmod -R +r "$OUT/nix/var"
-  $NIX copy --no-check-sigs --to "file://$OUT/res?compression=zstd&compression-level=19&parallel-compression=true" \
-    "${homeManagerConfiguration.activationPackage}" \
-    "${launcher}" ${if gpu then "${mesaWrappers} ${nixGL}" else ""}
-  mkdir -p "$OUT/etc"
-  tar -C "$OUT/etc" -xf "${etc}/etc.tar"
-  cp "${writeText "bundle.json" info}" "$OUT/bundle.json"
+  buildCommand = ''
+    NIX_ROOT="$(mktemp -d)"
+    export USER="nobody"
 
-  # creating an intermediate file improves zstd performance
-  tar -C "$OUT" -cf "$TAR" .
-  chmod +w -R "$OUT" && rm -rf "$OUT"
+    # create bootstrap store
+    bootstrapClosureInfo="${
+      closureInfo {
+        rootPaths = [
+          nix
+          nixos.config.system.build.toplevel
+        ];
+      }
+    }"
+    echo "copying bootstrap store paths..."
+    mkdir -p "$NIX_ROOT/nix/store"
+    xargs -n 1 -a "$bootstrapClosureInfo/store-paths" cp -at "$NIX_ROOT/nix/store/"
+    NIX_REMOTE="local?root=$NIX_ROOT" nix-store --load-db < "$bootstrapClosureInfo/registration"
+    NIX_REMOTE="local?root=$NIX_ROOT" nix-store --optimise
+    sqlite3 "$NIX_ROOT/nix/var/nix/db/db.sqlite" "UPDATE ValidPaths SET registrationTime = ''${SOURCE_DATE_EPOCH}"
+    chmod -R +r "$NIX_ROOT/nix/var"
 
-  zstd -T0 -19 -fo "${pname}.pkg" "$TAR"
-  rm "$TAR"
-''
+    # create binary cache
+    closureInfo="${
+      closureInfo {
+        rootPaths =
+          [
+            homeManagerConfiguration.activationPackage
+            launcher
+          ]
+          ++ optionals gpu [
+            mesaWrappers
+            nixGL
+          ];
+      }
+    }"
+    echo "copying application paths..."
+    TMP_STORE="$(mktemp -d)"
+    mkdir -p "$TMP_STORE/nix/store"
+    xargs -n 1 -a "$closureInfo/store-paths" cp -at "$TMP_STORE/nix/store/"
+    NIX_REMOTE="local?root=$TMP_STORE" nix-store --load-db < "$closureInfo/registration"
+    sqlite3 "$TMP_STORE/nix/var/nix/db/db.sqlite" "UPDATE ValidPaths SET registrationTime = ''${SOURCE_DATE_EPOCH}"
+    NIX_REMOTE="local?root=$TMP_STORE" nix --offline --extra-experimental-features nix-command \
+        --verbose --log-format raw-with-logs \
+        copy --all --no-check-sigs --to \
+        "file://$NIX_ROOT/res?compression=zstd&compression-level=19&parallel-compression=true"
+
+    # package /etc
+    mkdir -p "$NIX_ROOT/etc"
+    tar -C "$NIX_ROOT/etc" -xf "${etc}/etc.tar"
+
+    # write metadata
+    cp "${writeText "bundle.json" info}" "$NIX_ROOT/bundle.json"
+
+    # create an intermediate file to improve zstd performance
+    INTER="$(mktemp)"
+    tar -C "$NIX_ROOT" -cf "$INTER" .
+    zstd -T0 -19 -fo "$out" "$INTER"
+  '';
+}
