@@ -29,7 +29,7 @@ func Exec(ctx context.Context, p string) ([]*Entry, error) {
 			Syscall:       &bwrap.SyscallPolicy{DenyDevel: true, Multiarch: true},
 			NewSession:    true,
 			DieWithParent: true,
-		}).Bind("/", "/").DevTmpfs("/dev"), toolPath,
+		}).Bind("/", "/").DevTmpfs("/dev"), toolPath, false,
 		nil, func(_, _ int) []string { return []string{p} },
 		nil, nil,
 	); err != nil {

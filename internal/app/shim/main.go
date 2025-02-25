@@ -125,7 +125,7 @@ func Main() {
 		seccomp.CPrintln = log.Println
 	}
 	if b, err := helper.NewBwrap(
-		conf, path.Join(fst.Tmp, "sbin/init"),
+		conf, path.Join(fst.Tmp, "sbin/init"), false,
 		nil, func(int, int) []string { return make([]string, 0) },
 		extraFiles,
 		syncFd,

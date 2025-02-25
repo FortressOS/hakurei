@@ -8,6 +8,7 @@ import (
 	"slices"
 	"strconv"
 	"sync"
+	"syscall"
 
 	"git.gensokyo.uk/security/fortify/helper/bwrap"
 	"git.gensokyo.uk/security/fortify/helper/proc"
@@ -22,6 +23,9 @@ type bubblewrap struct {
 
 	// name of the command to run in bwrap
 	name string
+
+	// whether to set process group id
+	setpgid bool
 
 	lock sync.RWMutex
 	*helperCmd
@@ -38,6 +42,10 @@ func (b *bubblewrap) Start(ctx context.Context, stat bool) error {
 	}
 
 	args := b.finalise(ctx, stat)
+	if b.setpgid {
+		b.Cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+	}
+
 	b.Cmd.Args = slices.Grow(b.Cmd.Args, 4+len(args))
 	b.Cmd.Args = append(b.Cmd.Args, "--args", strconv.Itoa(int(b.argsFd)), "--", b.name)
 	b.Cmd.Args = append(b.Cmd.Args, args...)
@@ -48,12 +56,12 @@ func (b *bubblewrap) Start(ctx context.Context, stat bool) error {
 // If wt is nil, the child process spawned by bwrap will not get an argument pipe.
 // Function argF returns an array of arguments passed directly to the child process.
 func MustNewBwrap(
-	conf *bwrap.Config, name string,
+	conf *bwrap.Config, name string, setpgid bool,
 	wt io.WriterTo, argF func(argsFD, statFD int) []string,
 	extraFiles []*os.File,
 	syncFd *os.File,
 ) Helper {
-	b, err := NewBwrap(conf, name, wt, argF, extraFiles, syncFd)
+	b, err := NewBwrap(conf, name, setpgid, wt, argF, extraFiles, syncFd)
 	if err != nil {
 		panic(err.Error())
 	} else {
@@ -65,7 +73,7 @@ func MustNewBwrap(
 // If wt is nil, the child process spawned by bwrap will not get an argument pipe.
 // Function argF returns an array of arguments passed directly to the child process.
 func NewBwrap(
-	conf *bwrap.Config, name string,
+	conf *bwrap.Config, name string, setpgid bool,
 	wt io.WriterTo, argF func(argsFd, statFd int) []string,
 	extraFiles []*os.File,
 	syncFd *os.File,
@@ -73,6 +81,7 @@ func NewBwrap(
 	b := new(bubblewrap)
 
 	b.name = name
+	b.setpgid = setpgid
 	b.helperCmd = newHelperCmd(b, BubblewrapName, wt, argF, extraFiles)
 
 	if v, err := NewCheckedArgs(conf.Args(syncFd, b.extraFiles, &b.files)); err != nil {

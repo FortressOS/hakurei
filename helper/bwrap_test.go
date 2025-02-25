@@ -31,7 +31,7 @@ func TestBwrap(t *testing.T) {
 		})
 
 		h := helper.MustNewBwrap(
-			sc, "fortify",
+			sc, "fortify", false,
 			argsWt, argF,
 			nil, nil,
 		)
@@ -44,7 +44,7 @@ func TestBwrap(t *testing.T) {
 
 	t.Run("valid new helper nil check", func(t *testing.T) {
 		if got := helper.MustNewBwrap(
-			sc, "fortify",
+			sc, "fortify", false,
 			argsWt, argF,
 			nil, nil,
 		); got == nil {
@@ -64,7 +64,7 @@ func TestBwrap(t *testing.T) {
 		}()
 
 		helper.MustNewBwrap(
-			&bwrap.Config{Hostname: "\x00"}, "fortify",
+			&bwrap.Config{Hostname: "\x00"}, "fortify", false,
 			nil, argF,
 			nil, nil,
 		)
@@ -74,7 +74,7 @@ func TestBwrap(t *testing.T) {
 		helper.InternalReplaceExecCommand(t)
 
 		h := helper.MustNewBwrap(
-			sc, "crash-test-dummy",
+			sc, "crash-test-dummy", false,
 			nil, argFChecked,
 			nil, nil,
 		)
@@ -98,6 +98,11 @@ func TestBwrap(t *testing.T) {
 	})
 
 	t.Run("implementation compliance", func(t *testing.T) {
-		testHelper(t, func() helper.Helper { return helper.MustNewBwrap(sc, "crash-test-dummy", argsWt, argF, nil, nil) })
+		testHelper(t, func() helper.Helper {
+			return helper.MustNewBwrap(
+				sc, "crash-test-dummy", false,
+				argsWt, argF, nil, nil,
+			)
+		})
 	})
 }

@@ -110,7 +110,7 @@ func (p *Proxy) Start(ctx context.Context, output io.Writer, sandbox bool) error
 			bc.Bind(k, k)
 		}
 
-		h = helper.MustNewBwrap(bc, toolPath, p.seal, argF, nil, nil)
+		h = helper.MustNewBwrap(bc, toolPath, true, p.seal, argF, nil, nil)
 		p.bwrap = bc
 	}
 
