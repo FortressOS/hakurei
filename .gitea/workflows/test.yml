@@ -22,6 +22,23 @@ jobs:
           path: result/*
           retention-days: 1
 
+  fpkg:
+    name: Fpkg
+    runs-on: nix
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run NixOS test
+        run: nix build --out-link "result" --print-out-paths --print-build-logs .#checks.x86_64-linux.fpkg
+
+      - name: Upload test output
+        uses: actions/upload-artifact@v3
+        with:
+          name: "fpkg-vm-output"
+          path: result/*
+          retention-days: 1
+
   race:
     name: Data race detector
     runs-on: nix
@@ -43,6 +60,7 @@ jobs:
     name: Flake checks
     needs:
       - fortify
+      - fpkg
       - race
     runs-on: nix
     steps:

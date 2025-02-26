@@ -58,6 +58,7 @@
         in
         {
           fortify = callPackage ./test { inherit system self; };
+          fpkg = callPackage ./cmd/fpkg/test { inherit system self; };
           race = callPackage ./test {
             inherit system self;
             withRace = true;
