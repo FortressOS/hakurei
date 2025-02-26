@@ -68,7 +68,13 @@ func buildCommand(out io.Writer) command.Command {
 		flagVerbose bool
 		flagJSON    bool
 	)
-	c := command.New(out, log.Printf, "fortify", func([]string) error { fmsg.Store(flagVerbose); return nil }).
+	c := command.New(out, log.Printf, "fortify", func([]string) error {
+		fmsg.Store(flagVerbose)
+		if flagVerbose {
+			seccomp.CPrintln = log.Println
+		}
+		return nil
+	}).
 		Flag(&flagVerbose, "v", command.BoolFlag(false), "Print debug messages to the console").
 		Flag(&flagJSON, "json", command.BoolFlag(false), "Serialise output as JSON when applicable")
 
@@ -284,10 +290,6 @@ func runApp(a fst.App, config *fst.Config) {
 	ctx, stop := signal.NotifyContext(context.Background(),
 		syscall.SIGINT, syscall.SIGTERM)
 	defer stop() // unreachable
-
-	if fmsg.Load() {
-		seccomp.CPrintln = log.Println
-	}
 
 	if sa, err := a.Seal(config); err != nil {
 		fmsg.PrintBaseError(err, "cannot seal app:")
