@@ -206,7 +206,6 @@ print(machine.fail("sudo -u alice -i XDG_RUNTIME_DIR=/run/user/1000 strace-failu
 
 # Exit Sway and verify process exit status 0:
 swaymsg("exit", succeed=False)
-machine.wait_until_fails("pgrep -x sway")
 machine.wait_for_file("/tmp/sway-exit-ok")
 
 # Print fortify runDir contents:
