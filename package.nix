@@ -50,6 +50,7 @@ buildGoModule rec {
       {
         Version = "v${version}";
         Fsu = "/run/wrappers/bin/fsu";
+        Fortify = "${placeholder "out"}/libexec/fortify";
       };
 
   # nix build environment does not allow acls

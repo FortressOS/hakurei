@@ -12,6 +12,7 @@ go generate ./...
 go build -trimpath -v -o "${out}/bin/" -ldflags "-s -w -buildid= -extldflags '-static'
   -X git.gensokyo.uk/security/fortify/internal.Version=${VERSION}
   -X git.gensokyo.uk/security/fortify/internal.Fsu=/usr/bin/fsu
+  -X git.gensokyo.uk/security/fortify/internal.Fortify=/usr/bin/fortify
   -X main.Fmain=/usr/bin/fortify" ./...
 
 rm -f "./${out}.tar.gz" && tar -C dist -czf "${out}.tar.gz" "${pname}"

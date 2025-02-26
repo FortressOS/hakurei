@@ -3,7 +3,8 @@ package internal
 import "path"
 
 var (
-	Fsu = compPoison
+	Fsu     = compPoison
+	Fortify = compPoison
 )
 
 func Path(p string) (string, bool) {
