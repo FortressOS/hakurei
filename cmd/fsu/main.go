@@ -13,17 +13,12 @@ import (
 )
 
 const (
-	compPoison  = "INVALIDINVALIDINVALIDINVALIDINVALID"
 	fsuConfFile = "/etc/fsurc"
 	envShim     = "FORTIFY_SHIM"
 	envAID      = "FORTIFY_APP_ID"
 	envGroups   = "FORTIFY_GROUPS"
 
 	PR_SET_NO_NEW_PRIVS = 0x26
-)
-
-var (
-	Fmain = compPoison
 )
 
 func main() {
@@ -40,20 +35,16 @@ func main() {
 		log.Fatal("this program must not be started by root")
 	}
 
-	var fmain string
-	if p, ok := checkPath(Fmain); !ok {
-		log.Fatal("invalid fortify path, this copy of fsu is not compiled correctly")
-	} else {
-		fmain = p
-	}
-
+	var toolPath string
 	pexe := path.Join("/proc", strconv.Itoa(os.Getppid()), "exe")
 	if p, err := os.Readlink(pexe); err != nil {
 		log.Fatalf("cannot read parent executable path: %v", err)
 	} else if strings.HasSuffix(p, " (deleted)") {
 		log.Fatal("fortify executable has been deleted")
-	} else if p != fmain {
+	} else if p != mustCheckPath(fmain) && p != mustCheckPath(fpkg) {
 		log.Fatal("this program must be started by fortify")
+	} else {
+		toolPath = p
 	}
 
 	// uid = 1000000 +
@@ -147,13 +138,9 @@ func main() {
 	if _, _, errno := syscall.AllThreadsSyscall(syscall.SYS_PRCTL, PR_SET_NO_NEW_PRIVS, 1, 0); errno != 0 {
 		log.Fatalf("cannot set no_new_privs flag: %s", errno.Error())
 	}
-	if err := syscall.Exec(fmain, []string{"fortify", "shim"}, []string{envShim + "=" + shimSetupFd}); err != nil {
+	if err := syscall.Exec(toolPath, []string{"fortify", "shim"}, []string{envShim + "=" + shimSetupFd}); err != nil {
 		log.Fatalf("cannot start shim: %v", err)
 	}
 
 	panic("unreachable")
-}
-
-func checkPath(p string) (string, bool) {
-	return p, p != compPoison && p != "" && path.IsAbs(p)
 }

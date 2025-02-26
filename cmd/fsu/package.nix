@@ -1,4 +1,5 @@
 {
+  lib,
   buildGoModule,
   fortify ? abort "fortify package required",
 }:
@@ -15,5 +16,15 @@ buildGoModule {
     go mod init fsu >& /dev/null
   '';
 
-  ldflags = [ "-X main.Fmain=${fortify}/libexec/fortify" ];
+  ldflags =
+    lib.attrsets.foldlAttrs
+      (
+        ldflags: name: value:
+        ldflags ++ [ "-X main.${name}=${value}" ]
+      )
+      [ "-s -w" ]
+      {
+        fmain = "${fortify}/libexec/fortify";
+        fpkg = "${fortify}/libexec/fpkg";
+      };
 }
