@@ -12,6 +12,7 @@ import (
 
 	"git.gensokyo.uk/security/fortify/fst"
 	"git.gensokyo.uk/security/fortify/helper"
+	"git.gensokyo.uk/security/fortify/internal"
 	"git.gensokyo.uk/security/fortify/internal/app/shim"
 	"git.gensokyo.uk/security/fortify/internal/fmsg"
 	"git.gensokyo.uk/security/fortify/internal/state"
@@ -31,6 +32,10 @@ func (seal *outcome) Run(ctx context.Context, rs *fst.RunState) error {
 	if rs == nil {
 		panic("invalid state")
 	}
+
+	// read comp values early to allow for early failure
+	fmsg.Verbosef("version %s", internal.Version())
+	fmsg.Verbosef("setuid helper at %s", internal.MustFsuPath())
 
 	/*
 		resolve exec paths
