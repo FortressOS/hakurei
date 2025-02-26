@@ -44,18 +44,15 @@ buildGoModule rec {
         ldflags ++ [ "-X git.gensokyo.uk/security/fortify/internal.${name}=${value}" ]
       )
       (
-        [
-          "-s -w"
-        ]
+        [ "-s -w" ]
         ++ lib.optionals withStatic [
           "-linkmode external"
           "-extldflags \"-static\""
         ]
       )
       {
-        Version = "v${version}";
-        Fsu = "/run/wrappers/bin/fsu";
-        Fortify = "${placeholder "out"}/libexec/fortify";
+        version = "v${version}";
+        fsu = "/run/wrappers/bin/fsu";
       };
 
   # nix build environment does not allow acls

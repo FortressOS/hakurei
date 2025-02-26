@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"path"
 	"strings"
 
@@ -10,10 +11,11 @@ import (
 )
 
 func withNixDaemon(
+	ctx context.Context,
 	action string, command []string, net bool, updateConfig func(config *fst.Config) *fst.Config,
 	app *bundleInfo, pathSet *appPathSet, dropShell bool, beforeFail func(),
 ) {
-	fortifyAppDropShell(updateConfig(&fst.Config{
+	mustRunAppDropShell(ctx, updateConfig(&fst.Config{
 		ID: app.ID,
 		Command: []string{shellPath, "-lc", "rm -f /nix/var/nix/daemon-socket/socket && " +
 			// start nix-daemon
@@ -56,8 +58,11 @@ func withNixDaemon(
 	}), dropShell, beforeFail)
 }
 
-func withCacheDir(action string, command []string, workDir string, app *bundleInfo, pathSet *appPathSet, dropShell bool, beforeFail func()) {
-	fortifyAppDropShell(&fst.Config{
+func withCacheDir(
+	ctx context.Context,
+	action string, command []string, workDir string,
+	app *bundleInfo, pathSet *appPathSet, dropShell bool, beforeFail func()) {
+	mustRunAppDropShell(ctx, &fst.Config{
 		ID:      app.ID,
 		Command: []string{shellPath, "-lc", strings.Join(command, " && ")},
 		Confinement: fst.ConfinementConfig{
@@ -90,12 +95,12 @@ func withCacheDir(action string, command []string, workDir string, app *bundleIn
 	}, dropShell, beforeFail)
 }
 
-func fortifyAppDropShell(config *fst.Config, dropShell bool, beforeFail func()) {
+func mustRunAppDropShell(ctx context.Context, config *fst.Config, dropShell bool, beforeFail func()) {
 	if dropShell {
 		config.Command = []string{shellPath, "-l"}
-		fortifyApp(config, beforeFail)
+		mustRunApp(ctx, config, beforeFail)
 		beforeFail()
 		internal.Exit(0)
 	}
-	fortifyApp(config, beforeFail)
+	mustRunApp(ctx, config, beforeFail)
 }

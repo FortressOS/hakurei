@@ -1,23 +1,32 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"log"
 	"os"
+	"os/signal"
 	"path"
 	"syscall"
 
 	"git.gensokyo.uk/security/fortify/command"
 	"git.gensokyo.uk/security/fortify/fst"
 	"git.gensokyo.uk/security/fortify/helper/bwrap"
+	"git.gensokyo.uk/security/fortify/helper/seccomp"
+	"git.gensokyo.uk/security/fortify/internal"
+	init0 "git.gensokyo.uk/security/fortify/internal/app/init"
+	"git.gensokyo.uk/security/fortify/internal/app/shim"
 	"git.gensokyo.uk/security/fortify/internal/fmsg"
+	"git.gensokyo.uk/security/fortify/internal/sys"
 )
 
 const shellPath = "/run/current-system/sw/bin/bash"
 
 var (
 	errSuccess = errors.New("success")
+
+	std sys.State = new(sys.Std)
 )
 
 func init() {
@@ -28,13 +37,39 @@ func init() {
 }
 
 func main() {
+	// early init argv0 check, skips root check and duplicate PR_SET_DUMPABLE
+	init0.TryArgv0()
+
+	if err := internal.PR_SET_DUMPABLE__SUID_DUMP_DISABLE(); err != nil {
+		log.Printf("cannot set SUID_DUMP_DISABLE: %s", err)
+		// not fatal: this program runs as the privileged user
+	}
+
+	if os.Geteuid() == 0 {
+		log.Fatal("this program must not run as root")
+	}
+
+	ctx, stop := signal.NotifyContext(context.Background(),
+		syscall.SIGINT, syscall.SIGTERM)
+	defer stop() // unreachable
+
 	var (
 		flagVerbose   bool
 		flagDropShell bool
 	)
-	c := command.New(os.Stderr, log.Printf, "fpkg", func([]string) error { fmsg.Store(flagVerbose); return nil }).
+	c := command.New(os.Stderr, log.Printf, "fpkg", func([]string) error {
+		fmsg.Store(flagVerbose)
+		if flagVerbose {
+			seccomp.CPrintln = log.Println
+		}
+		return nil
+	}).
 		Flag(&flagVerbose, "v", command.BoolFlag(false), "Print debug messages to the console").
 		Flag(&flagDropShell, "s", command.BoolFlag(false), "Drop to a shell in place of next fortify action")
+
+	// internal commands
+	c.Command("shim", command.UsageInternal, func([]string) error { shim.Main(); return errSuccess })
+	c.Command("init", command.UsageInternal, func([]string) error { init0.Main(); return errSuccess })
 
 	{
 		var (
@@ -149,7 +184,7 @@ func main() {
 				Setup steps for files owned by the target user.
 			*/
 
-			withCacheDir("install", []string{
+			withCacheDir(ctx, "install", []string{
 				// export inner bundle path in the environment
 				"export BUNDLE=" + fst.Tmp + "/bundle",
 				// replace inner /etc
@@ -171,7 +206,7 @@ func main() {
 			}, workDir, bundle, pathSet, flagDropShell, cleanup)
 
 			if bundle.GPU {
-				withCacheDir("mesa-wrappers", []string{
+				withCacheDir(ctx, "mesa-wrappers", []string{
 					// link nixGL mesa wrappers
 					"mkdir -p nix/.nixGL",
 					"ln -s " + bundle.Mesa + "/bin/nixGLIntel nix/.nixGL/nixGL",
@@ -183,7 +218,7 @@ func main() {
 				Activate home-manager generation.
 			*/
 
-			withNixDaemon("activate", []string{
+			withNixDaemon(ctx, "activate", []string{
 				// clean up broken links
 				"mkdir -p .local/state/{nix,home-manager}",
 				"chmod -R +w .local/state/{nix,home-manager}",
@@ -251,7 +286,7 @@ func main() {
 			*/
 
 			if app.GPU && flagAutoDrivers {
-				withNixDaemon("nix-gl", []string{
+				withNixDaemon(ctx, "nix-gl", []string{
 					"mkdir -p /nix/.nixGL/auto",
 					"rm -rf /nix/.nixGL/auto",
 					"export NIXPKGS_ALLOW_UNFREE=1",
@@ -349,7 +384,7 @@ func main() {
 				Spawn app.
 			*/
 
-			fortifyApp(config, func() {})
+			mustRunApp(ctx, config, func() {})
 			return errSuccess
 		}).
 			Flag(&flagDropShellNixGL, "s", command.BoolFlag(false), "Drop to a shell on nixGL build").

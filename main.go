@@ -259,11 +259,7 @@ func buildCommand(out io.Writer) command.Command {
 	}).Flag(&psFlagShort, "short", command.BoolFlag(false), "Print instance id")
 
 	c.Command("version", "Show fortify version", func(args []string) error {
-		if v, ok := internal.Check(internal.Version); ok {
-			fmt.Println(v)
-		} else {
-			fmt.Println("impure")
-		}
+		fmt.Println(internal.Version())
 		return errSuccess
 	})
 

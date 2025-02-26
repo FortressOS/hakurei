@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
-	"log"
 	"os"
 	"os/exec"
 	"os/user"
@@ -79,32 +78,27 @@ func (s *Std) Uid(aid int) (int, error) {
 	defer func() { s.uidCopy[aid] = u }()
 
 	u.uid = -1
-	if fsu, ok := internal.Check(internal.Fsu); !ok {
-		fmsg.BeforeExit()
-		log.Fatal("invalid fsu path, this copy of fortify is not compiled correctly")
-		// unreachable
-		return 0, syscall.EBADE
-	} else {
-		cmd := exec.Command(fsu)
-		cmd.Path = fsu
-		cmd.Stderr = os.Stderr // pass through fatal messages
-		cmd.Env = []string{"FORTIFY_APP_ID=" + strconv.Itoa(aid)}
-		cmd.Dir = "/"
-		var (
-			p         []byte
-			exitError *exec.ExitError
-		)
+	fsuPath := internal.MustFsuPath()
 
-		if p, u.err = cmd.Output(); u.err == nil {
-			u.uid, u.err = strconv.Atoi(string(p))
-			if u.err != nil {
-				u.err = fmsg.WrapErrorSuffix(u.err, "cannot parse uid from fsu:")
-			}
-		} else if errors.As(u.err, &exitError) && exitError != nil && exitError.ExitCode() == 1 {
-			u.err = fmsg.WrapError(syscall.EACCES, "") // fsu prints to stderr in this case
-		} else if os.IsNotExist(u.err) {
-			u.err = fmsg.WrapError(os.ErrNotExist, fmt.Sprintf("the setuid helper is missing: %s", fsu))
+	cmd := exec.Command(fsuPath)
+	cmd.Path = fsuPath
+	cmd.Stderr = os.Stderr // pass through fatal messages
+	cmd.Env = []string{"FORTIFY_APP_ID=" + strconv.Itoa(aid)}
+	cmd.Dir = "/"
+	var (
+		p         []byte
+		exitError *exec.ExitError
+	)
+
+	if p, u.err = cmd.Output(); u.err == nil {
+		u.uid, u.err = strconv.Atoi(string(p))
+		if u.err != nil {
+			u.err = fmsg.WrapErrorSuffix(u.err, "cannot parse uid from fsu:")
 		}
-		return u.uid, u.err
+	} else if errors.As(u.err, &exitError) && exitError != nil && exitError.ExitCode() == 1 {
+		u.err = fmsg.WrapError(syscall.EACCES, "") // fsu prints to stderr in this case
+	} else if os.IsNotExist(u.err) {
+		u.err = fmsg.WrapError(os.ErrNotExist, fmt.Sprintf("the setuid helper is missing: %s", fsuPath))
 	}
+	return u.uid, u.err
 }

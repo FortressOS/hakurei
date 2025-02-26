@@ -52,14 +52,8 @@ func (s *Shim) Start(
 	syncFd *os.File,
 ) (*time.Time, error) {
 	// prepare user switcher invocation
-	var fsu string
-	if p, ok := internal.Path(internal.Fsu); !ok {
-		return nil, fmsg.WrapError(errors.New("bad fsu path"),
-			"invalid fsu path, this copy of fortify is not compiled correctly")
-	} else {
-		fsu = p
-	}
-	s.cmd = exec.Command(fsu)
+	fsuPath := internal.MustFsuPath()
+	s.cmd = exec.Command(fsuPath)
 
 	// pass shim setup pipe
 	if fd, e, err := proc.Setup(&s.cmd.ExtraFiles); err != nil {
