@@ -95,6 +95,9 @@ print(denyOutput)
 denyOutputVerbose = machine.fail("sudo -u untrusted -i fortify -v run &>/dev/stdout")
 print(denyOutputVerbose)
 
+# Fail direct fsu call:
+print(machine.fail("sudo -u alice -i fsu"))
+
 # Verify PrintBaseError behaviour:
 if denyOutput != "fsu: uid 1001 is not in the fsurc file\n":
     raise Exception(f"unexpected deny output:\n{denyOutput}")
