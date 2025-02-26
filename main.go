@@ -78,6 +78,10 @@ func buildCommand(out io.Writer) command.Command {
 		Flag(&flagVerbose, "v", command.BoolFlag(false), "Print debug messages to the console").
 		Flag(&flagJSON, "json", command.BoolFlag(false), "Serialise output as JSON when applicable")
 
+	// internal commands
+	c.Command("shim", command.UsageInternal, func([]string) error { shim.Main(); return errSuccess })
+	c.Command("init", command.UsageInternal, func([]string) error { init0.Main(); return errSuccess })
+
 	c.Command("app", "Launch app defined by the specified config file", func(args []string) error {
 		if len(args) < 1 {
 			log.Fatal("app requires at least 1 argument")
@@ -277,10 +281,6 @@ func buildCommand(out io.Writer) command.Command {
 		c.PrintHelp()
 		return errSuccess
 	})
-
-	// internal commands
-	c.Command("shim", command.UsageInternal, func([]string) error { shim.Main(); return errSuccess })
-	c.Command("init", command.UsageInternal, func([]string) error { init0.Main(); return errSuccess })
 
 	return c
 }
