@@ -13,18 +13,12 @@ import (
 	"git.gensokyo.uk/security/fortify/internal/fmsg"
 )
 
-const compPoison = "INVALIDINVALIDINVALIDINVALIDINVALID"
-
-var (
-	Fmain = compPoison
-)
-
 func fortifyApp(config *fst.Config, beforeFail func()) {
 	var (
 		cmd *exec.Cmd
 		st  io.WriteCloser
 	)
-	if p, ok := internal.Path(Fmain); !ok {
+	if p, ok := internal.Path(internal.Fortify); !ok {
 		beforeFail()
 		log.Fatal("invalid fortify path, this copy of fpkg is not compiled correctly")
 	} else if r, w, err := os.Pipe(); err != nil {
