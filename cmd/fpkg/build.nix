@@ -25,6 +25,7 @@
   version ? throw "version is required",
   pname ? "${name}-${version}",
   modules ? [ ],
+  nixosModules ? [ ],
   script ? ''
     exec "$SHELL" "$@"
   '',
@@ -76,6 +77,8 @@ let
         etc.nixpkgs.source = nixpkgs.outPath;
         systemPackages = [ pkgs.nix ];
       };
+
+      imports = nixosModules;
     };
   nixos = nixpkgs.lib.nixosSystem {
     inherit system;
