@@ -103,7 +103,14 @@
         {
           default = fortify;
           fortify = pkgs.pkgsStatic.callPackage ./package.nix {
-            inherit (pkgs) bubblewrap xdg-dbus-proxy glibc;
+            inherit (pkgs)
+              bubblewrap
+              xdg-dbus-proxy
+              glibc
+              zstd
+              gnutar
+              coreutils
+              ;
           };
           fsu = pkgs.callPackage ./cmd/fsu/package.nix { inherit (self.packages.${system}) fortify; };
 

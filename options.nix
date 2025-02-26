@@ -3,7 +3,14 @@
 let
   inherit (lib) types mkOption mkEnableOption;
   fortify = pkgs.pkgsStatic.callPackage ./package.nix {
-    inherit (pkgs) bubblewrap xdg-dbus-proxy glibc;
+    inherit (pkgs)
+      bubblewrap
+      xdg-dbus-proxy
+      glibc
+      zstd
+      gnutar
+      coreutils
+      ;
   };
 in
 

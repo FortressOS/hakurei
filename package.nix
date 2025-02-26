@@ -14,6 +14,11 @@
   wayland-scanner,
   xorg,
 
+  # for fpkg
+  zstd,
+  gnutar,
+  coreutils,
+
   glibc, # for ldd
   withStatic ? stdenv.hostPlatform.isStatic,
 }:
@@ -80,19 +85,33 @@ buildGoModule rec {
     HOME="$(mktemp -d)" PATH="${pkg-config}/bin:$PATH" go generate ./...
   '';
 
-  postInstall = ''
-    install -D --target-directory=$out/share/zsh/site-functions comp/*
+  postInstall =
+    let
+      appPackages = [
+        glibc
+        bubblewrap
+        xdg-dbus-proxy
+      ];
+    in
+    ''
+      install -D --target-directory=$out/share/zsh/site-functions comp/*
 
-    mkdir "$out/libexec"
-    mv "$out"/bin/* "$out/libexec/"
+      mkdir "$out/libexec"
+      mv "$out"/bin/* "$out/libexec/"
 
-    makeBinaryWrapper "$out/libexec/fortify" "$out/bin/fortify" \
-      --inherit-argv0 --prefix PATH : ${
-        lib.makeBinPath [
-          glibc
-          bubblewrap
-          xdg-dbus-proxy
-        ]
-      }
-  '';
+      makeBinaryWrapper "$out/libexec/fortify" "$out/bin/fortify" \
+        --inherit-argv0 --prefix PATH : ${lib.makeBinPath appPackages}
+
+      makeBinaryWrapper "$out/libexec/fpkg" "$out/bin/fpkg" \
+        --inherit-argv0 --prefix PATH : ${
+          lib.makeBinPath (
+            appPackages
+            ++ [
+              zstd
+              gnutar
+              coreutils
+            ]
+          )
+        }
+    '';
 }
