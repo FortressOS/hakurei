@@ -77,21 +77,12 @@ in
                       };
                     in
                     {
-                      session_bus =
-                        if app.dbus.session != null then
-                          (app.dbus.session (extendDBusDefault app.id))
-                        else
-                          (extendDBusDefault app.id default);
+                      session_bus = if app.dbus.session != null then (app.dbus.session (extendDBusDefault app.id)) else (extendDBusDefault app.id default);
                       system_bus = app.dbus.system;
                     };
                   command = if app.command == null then app.name else app.command;
                   script = if app.script == null then ("exec " + command + " $@") else app.script;
-                  enablements =
-                    with app.capability;
-                    (if wayland then 1 else 0)
-                    + (if x11 then 2 else 0)
-                    + (if dbus then 4 else 0)
-                    + (if pulse then 8 else 0);
+                  enablements = with app.capability; (if wayland then 1 else 0) + (if x11 then 2 else 0) + (if dbus then 4 else 0) + (if pulse then 8 else 0);
                   conf = {
                     inherit (app) id;
                     command = [
@@ -165,9 +156,7 @@ in
                   };
                 in
                 pkgs.writeShellScriptBin app.name ''
-                  exec fortify${
-                    if app.verbose then " -v" else ""
-                  } app ${pkgs.writeText "fortify-${app.name}.json" (builtins.toJSON conf)} $@
+                  exec fortify${if app.verbose then " -v" else ""} app ${pkgs.writeText "fortify-${app.name}.json" (builtins.toJSON conf)} $@
                 ''
               ) cfg.apps;
             in

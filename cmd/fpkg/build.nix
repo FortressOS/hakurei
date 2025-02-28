@@ -171,11 +171,7 @@ let
           broadcast = { };
         });
 
-    enablements =
-      (if allow_wayland then 1 else 0)
-      + (if allow_x11 then 2 else 0)
-      + (if allow_dbus then 4 else 0)
-      + (if allow_pulse then 8 else 0);
+    enablements = (if allow_wayland then 1 else 0) + (if allow_x11 then 2 else 0) + (if allow_dbus then 4 else 0) + (if allow_pulse then 8 else 0);
 
     mesa = if gpu then mesaWrappers else null;
     nix_gl = if gpu then nixGL else null;

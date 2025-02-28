@@ -68,7 +68,7 @@
             cd ${./.}
 
             echo "running nixfmt..."
-            nixfmt --check .
+            nixfmt --width=256 --check .
 
             touch $out
           '';
@@ -115,21 +115,19 @@
           };
           fsu = pkgs.callPackage ./cmd/fsu/package.nix { inherit (self.packages.${system}) fortify; };
 
-          dist =
-            pkgs.runCommand "${fortify.name}-dist" { inherit (self.devShells.${system}.default) buildInputs; }
-              ''
-                # go requires XDG_CACHE_HOME for the build cache
-                export XDG_CACHE_HOME="$(mktemp -d)"
+          dist = pkgs.runCommand "${fortify.name}-dist" { inherit (self.devShells.${system}.default) buildInputs; } ''
+            # go requires XDG_CACHE_HOME for the build cache
+            export XDG_CACHE_HOME="$(mktemp -d)"
 
-                # get a different workdir as go does not like /build
-                cd $(mktemp -d) \
-                    && cp -r ${fortify.src}/. . \
-                    && chmod +w cmd && cp -r ${fsu.src}/. cmd/fsu/ \
-                    && chmod -R +w .
+            # get a different workdir as go does not like /build
+            cd $(mktemp -d) \
+                && cp -r ${fortify.src}/. . \
+                && chmod +w cmd && cp -r ${fsu.src}/. cmd/fsu/ \
+                && chmod -R +w .
 
-                export FORTIFY_VERSION="v${fortify.version}"
-                ./dist/release.sh && mkdir $out && cp -v "dist/fortify-$FORTIFY_VERSION.tar.gz"* $out
-              '';
+            export FORTIFY_VERSION="v${fortify.version}"
+            ./dist/release.sh && mkdir $out && cp -v "dist/fortify-$FORTIFY_VERSION.tar.gz"* $out
+          '';
 
           fhs = pkgs.buildFHSEnv {
             pname = "fortify-fhs";
