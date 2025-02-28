@@ -103,6 +103,21 @@
 
     apps = [
       {
+        name = "check-sandbox";
+        verbose = true;
+        share = pkgs.foot;
+        packages = [ ];
+        command = "${pkgs.callPackage ./sandbox {
+          inherit (config.environment.fortify.package) version;
+        }}";
+        extraPaths = [
+          {
+            src = "/proc/mounts";
+            dst = "/.fortify/host-mounts";
+          }
+        ];
+      }
+      {
         name = "ne-foot";
         verbose = true;
         share = pkgs.foot;
