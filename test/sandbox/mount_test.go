@@ -1,6 +1,7 @@
 package sandbox_test
 
 import (
+	"encoding/json"
 	"os"
 	"path"
 	"testing"
@@ -86,12 +87,12 @@ overlay /.fortify/sbin/fortify overlay ro,nosuid,nodev,relatime,lowerdir=/mnt-ro
 	}
 
 	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			name := path.Join(t.TempDir(), "sample")
-			if err := os.WriteFile(name, []byte(tc.sample), 0400); err != nil {
-				t.Fatalf("cannot write sample: %v", err)
-			}
+		name := path.Join(t.TempDir(), "sample")
+		if err := os.WriteFile(name, []byte(tc.sample), 0400); err != nil {
+			t.Fatalf("cannot write sample: %v", err)
+		}
 
+		t.Run(tc.name, func(t *testing.T) {
 			i := 0
 			if err := sandbox.IterMounts(name, func(e *sandbox.Mntent) {
 				if i == len(tc.want) {
@@ -108,5 +109,28 @@ overlay /.fortify/sbin/fortify overlay ro,nosuid,nodev,relatime,lowerdir=/mnt-ro
 				t.Fatalf("IterMounts: error = %v", err)
 			}
 		})
+
+		t.Run(tc.name+" assert", func(t *testing.T) {
+			sandbox.ReplaceFatal(t.Fatalf)
+
+			wantFile := path.Join(t.TempDir(), "want.json")
+			if f, err := os.OpenFile(wantFile, os.O_CREATE|os.O_WRONLY, 0400); err != nil {
+				t.Fatalf("cannot create %q: %v", wantFile, err)
+			} else if err = json.NewEncoder(f).Encode(tc.want); err != nil {
+				t.Fatalf("cannot encode to %q: %v", wantFile, err)
+			} else if err = f.Close(); err != nil {
+				t.Fatalf("cannot close %q: %v", wantFile, err)
+			}
+
+			sandbox.MustAssertMounts(name, name, wantFile)
+
+			if err := os.Remove(wantFile); err != nil {
+				t.Fatalf("cannot remove %q: %v", wantFile, err)
+			}
+		})
+
+		if err := os.Remove(name); err != nil {
+			t.Fatalf("cannot remove %q: %v", name, err)
+		}
 	}
 }
