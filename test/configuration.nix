@@ -70,7 +70,7 @@
       echo 'output Virtual-1 res 1680x1050') > ~/.config/sway/config
 
       sway --validate
-      systemd-cat --identifier=sway sway && touch /tmp/sway-exit-ok
+      systemd-cat --identifier=session sway && touch /tmp/sway-exit-ok
     fi
   '';
 
