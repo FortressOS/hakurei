@@ -1,7 +1,6 @@
 package sandbox_test
 
 import (
-	"encoding/json"
 	"os"
 	"path"
 	"testing"
@@ -113,21 +112,7 @@ overlay /.fortify/sbin/fortify overlay ro,nosuid,nodev,relatime,lowerdir=/mnt-ro
 		t.Run(tc.name+" assert", func(t *testing.T) {
 			oldFatal := sandbox.SwapFatal(t.Fatalf)
 			t.Cleanup(func() { sandbox.SwapFatal(oldFatal) })
-
-			wantFile := path.Join(t.TempDir(), "want.json")
-			if f, err := os.OpenFile(wantFile, os.O_CREATE|os.O_WRONLY, 0400); err != nil {
-				t.Fatalf("cannot create %q: %v", wantFile, err)
-			} else if err = json.NewEncoder(f).Encode(tc.want); err != nil {
-				t.Fatalf("cannot encode to %q: %v", wantFile, err)
-			} else if err = f.Close(); err != nil {
-				t.Fatalf("cannot close %q: %v", wantFile, err)
-			}
-
-			sandbox.MustAssertMounts(name, name, wantFile)
-
-			if err := os.Remove(wantFile); err != nil {
-				t.Fatalf("cannot remove %q: %v", wantFile, err)
-			}
+			sandbox.MustAssertMounts(name, name, sandbox.MustWantFile(t, tc.want))
 		})
 
 		if err := os.Remove(name); err != nil {

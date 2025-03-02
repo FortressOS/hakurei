@@ -75,4 +75,10 @@ func TestCompare(t *testing.T) {
 			}
 		})
 	}
+
+	t.Run("assert", func(t *testing.T) {
+		oldFatal := sandbox.SwapFatal(t.Fatalf)
+		t.Cleanup(func() { sandbox.SwapFatal(oldFatal) })
+		sandbox.MustAssertFS(make(fstest.MapFS), sandbox.MustWantFile(t, &sandbox.FS{Mode: 0xDEADBEEF}))
+	})
 }
