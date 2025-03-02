@@ -111,7 +111,8 @@ overlay /.fortify/sbin/fortify overlay ro,nosuid,nodev,relatime,lowerdir=/mnt-ro
 		})
 
 		t.Run(tc.name+" assert", func(t *testing.T) {
-			sandbox.ReplaceFatal(t.Fatalf)
+			oldFatal := sandbox.SwapFatal(t.Fatalf)
+			t.Cleanup(func() { sandbox.SwapFatal(oldFatal) })
 
 			wantFile := path.Join(t.TempDir(), "want.json")
 			if f, err := os.OpenFile(wantFile, os.O_CREATE|os.O_WRONLY, 0400); err != nil {

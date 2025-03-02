@@ -8,9 +8,11 @@ import (
 
 var (
 	assert     = log.New(os.Stderr, "sandbox: ", 0)
+	printfFunc = assert.Printf
 	fatalfFunc = assert.Fatalf
 )
 
+func printf(format string, v ...any) { printfFunc(format, v...) }
 func fatalf(format string, v ...any) { fatalfFunc(format, v...) }
 
 func MustAssertMounts(name, hostMountsFile, wantFile string) {
@@ -53,7 +55,7 @@ func MustAssertMounts(name, hostMountsFile, wantFile string) {
 				e, &want[i])
 		}
 
-		assert.Printf("%s", e)
+		printf("%s", e)
 		i++
 	}); err != nil {
 		fatalf("cannot iterate mounts: %v", err)
