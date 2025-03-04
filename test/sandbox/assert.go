@@ -78,3 +78,9 @@ func MustAssertFS(e fs.FS, wantFile string) {
 		fatalf("%v", err)
 	}
 }
+
+func MustAssertSeccomp() {
+	if TrySyscalls() != nil {
+		os.Exit(1)
+	}
+}
