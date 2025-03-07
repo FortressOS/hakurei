@@ -28,7 +28,7 @@ func Main() {
 	fmsg.Prepare("init")
 
 	// setting this prevents ptrace
-	if err := internal.PR_SET_DUMPABLE__SUID_DUMP_DISABLE(); err != nil {
+	if err := internal.SetDumpable(internal.SUID_DUMP_DISABLE); err != nil {
 		log.Fatalf("cannot set SUID_DUMP_DISABLE: %s", err)
 	}
 
@@ -64,7 +64,7 @@ func Main() {
 	}
 
 	// die with parent
-	if err := internal.PR_SET_PDEATHSIG__SIGKILL(); err != nil {
+	if err := internal.SetPdeathsig(syscall.SIGKILL); err != nil {
 		log.Fatalf("prctl(PR_SET_PDEATHSIG, SIGKILL): %v", err)
 	}
 
