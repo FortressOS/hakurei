@@ -25,7 +25,7 @@ func Setup(extraFiles *[]*os.File) (int, *gob.Encoder, error) {
 
 // Receive retrieves payload pipe fd from the environment,
 // receives its payload and returns the Close method of the pipe.
-func Receive(key string, e any) (func() error, error) {
+func Receive(key string, e any, v **os.File) (func() error, error) {
 	var setup *os.File
 
 	if s, ok := os.LookupEnv(key); !ok {
@@ -38,8 +38,11 @@ func Receive(key string, e any) (func() error, error) {
 			if setup == nil {
 				return nil, ErrInvalid
 			}
+			if v != nil {
+				*v = setup
+			}
 		}
 	}
 
-	return func() error { return setup.Close() }, gob.NewDecoder(setup).Decode(e)
+	return setup.Close, gob.NewDecoder(setup).Decode(e)
 }

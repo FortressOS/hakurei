@@ -38,7 +38,7 @@ func Main() {
 		payload    Payload
 		closeSetup func() error
 	)
-	if f, err := proc.Receive(Env, &payload); err != nil {
+	if f, err := proc.Receive(Env, &payload, nil); err != nil {
 		if errors.Is(err, proc.ErrInvalid) {
 			log.Fatal("invalid config descriptor")
 		}
