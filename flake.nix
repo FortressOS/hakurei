@@ -2,7 +2,7 @@
   description = "fortify sandbox tool and nixos module";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.11-small";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.11";
 
     home-manager = {
       url = "github:nix-community/home-manager/release-24.11";
