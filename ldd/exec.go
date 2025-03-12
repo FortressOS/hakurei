@@ -14,6 +14,7 @@ import (
 const lddTimeout = 2 * time.Second
 
 var (
+	msgStatic      = []byte("Not a valid dynamic program")
 	msgStaticGlibc = []byte("not a dynamic executable")
 )
 
@@ -46,7 +47,8 @@ func Exec(ctx context.Context, p string) ([]*Entry, error) {
 	}
 	if err := h.Wait(); err != nil {
 		m := stderr.Bytes()
-		if bytes.Contains(m, msgStaticGlibc) {
+		if bytes.Contains(m, append([]byte(p+": "), msgStatic...)) ||
+			bytes.Contains(m, msgStaticGlibc) {
 			return nil, nil
 		}
 
