@@ -37,6 +37,18 @@ func (e *Mntent) String() string {
 		e.FSName, e.Dir, e.Type, e.Opts, e.Freq, e.Passno)
 }
 
+func (e *Mntent) Is(want *Mntent) bool {
+	if want == nil {
+		return e == nil
+	}
+	return (e.FSName == want.FSName || want.FSName == "\x00") &&
+		(e.Dir == want.Dir || want.Dir == "\x00") &&
+		(e.Type == want.Type || want.Type == "\x00") &&
+		(e.Opts == want.Opts || want.Opts == "\x00") &&
+		(e.Freq == want.Freq || want.Freq == -1) &&
+		(e.Passno == want.Passno || want.Passno == -1)
+}
+
 func IterMounts(name string, f func(e *Mntent)) error {
 	m := new(mounts)
 	m.p = name

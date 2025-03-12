@@ -60,7 +60,7 @@ func MustAssertMounts(name, hostMountsFile, wantFile string) {
 		if i == len(want) {
 			fatalf("got more than %d entries", i)
 		}
-		if *e != want[i] {
+		if !e.Is(&want[i]) {
 			fatalf("entry %d\n got: %s\nwant: %s", i,
 				e, &want[i])
 		}
