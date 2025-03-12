@@ -10,19 +10,51 @@ import (
 	"errors"
 	"fmt"
 	"runtime"
+	"syscall"
 )
 
 var CPrintln func(v ...any)
 
-var resErr = [...]error{
-	0: nil,
-	1: errors.New("seccomp_init failed"),
-	2: errors.New("seccomp_arch_add failed"),
-	3: errors.New("seccomp_arch_add failed (multiarch)"),
-	4: errors.New("internal libseccomp failure"),
-	5: errors.New("seccomp_rule_add failed"),
-	6: errors.New("seccomp_export_bpf failed"),
-	7: errors.New("seccomp_load failed"),
+// LibraryError represents a libseccomp error.
+type LibraryError struct {
+	Prefix  string
+	Seccomp syscall.Errno
+	Errno   error
+}
+
+func (e *LibraryError) Error() string {
+	if e.Seccomp == 0 {
+		if e.Errno == nil {
+			panic("invalid libseccomp error")
+		}
+		return fmt.Sprintf("%s: %s", e.Prefix, e.Errno)
+	}
+	if e.Errno == nil {
+		return fmt.Sprintf("%s: %s", e.Prefix, e.Seccomp)
+	}
+	return fmt.Sprintf("%s: %s (%s)", e.Prefix, e.Seccomp, e.Errno)
+}
+
+func (e *LibraryError) Is(err error) bool {
+	if e == nil {
+		return err == nil
+	}
+	if ef, ok := err.(*LibraryError); ok {
+		return *e == *ef
+	}
+	return (e.Seccomp != 0 && errors.Is(err, e.Seccomp)) ||
+		(e.Errno != nil && errors.Is(err, e.Errno))
+}
+
+var resPrefix = [...]string{
+	0: "",
+	1: "seccomp_init failed",
+	2: "seccomp_arch_add failed",
+	3: "seccomp_arch_add failed (multiarch)",
+	4: "internal libseccomp failure",
+	5: "seccomp_rule_add failed",
+	6: "seccomp_export_bpf failed",
+	7: "seccomp_load failed",
 }
 
 type SyscallOpts = C.f_syscall_opts
@@ -71,12 +103,14 @@ func buildFilter(fd int, opts SyscallOpts) error {
 		opts |= flagVerbose
 	}
 
-	res, err := C.f_build_filter(C.int(fd), arch, multiarch, opts)
-	if re := resErr[res]; re != nil {
-		if err == nil {
-			return re
+	var ret C.int
+	res, err := C.f_build_filter(&ret, C.int(fd), arch, multiarch, opts)
+	if prefix := resPrefix[res]; prefix != "" {
+		return &LibraryError{
+			prefix,
+			-syscall.Errno(ret),
+			err,
 		}
-		return fmt.Errorf("%s: %v", re.Error(), err)
 	}
 	return err
 }

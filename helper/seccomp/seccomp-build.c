@@ -27,28 +27,27 @@ struct f_syscall_act {
 
 #define LEN(arr) (sizeof(arr) / sizeof((arr)[0]))
 
-#define SECCOMP_RULESET_ADD(ruleset) do {                                                                      \
-  if (opts & F_VERBOSE) F_println("adding seccomp ruleset \"" #ruleset "\"");                                  \
-  for (int i = 0; i < LEN(ruleset); i++) {                                                                     \
-    assert(ruleset[i].m_errno == EPERM || ruleset[i].m_errno == ENOSYS);                                       \
-                                                                                                               \
-    if (ruleset[i].arg)                                                                                        \
-      ret = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(ruleset[i].m_errno), ruleset[i].syscall, 1, *ruleset[i].arg); \
-    else                                                                                                       \
-      ret = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(ruleset[i].m_errno), ruleset[i].syscall, 0);                  \
-                                                                                                               \
-    if (ret == -EFAULT) {                                                                                      \
-      res = 4;                                                                                                 \
-      goto out;                                                                                                \
-    } else if (ret < 0) {                                                                                      \
-      res = 5;                                                                                                 \
-      errno = -ret;                                                                                            \
-      goto out;                                                                                                \
-    }                                                                                                          \
-  }                                                                                                            \
+#define SECCOMP_RULESET_ADD(ruleset) do {                                                                         \
+  if (opts & F_VERBOSE) F_println("adding seccomp ruleset \"" #ruleset "\"");                                     \
+  for (int i = 0; i < LEN(ruleset); i++) {                                                                        \
+    assert(ruleset[i].m_errno == EPERM || ruleset[i].m_errno == ENOSYS);                                          \
+                                                                                                                  \
+    if (ruleset[i].arg)                                                                                           \
+      *ret_p = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(ruleset[i].m_errno), ruleset[i].syscall, 1, *ruleset[i].arg); \
+    else                                                                                                          \
+      *ret_p = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(ruleset[i].m_errno), ruleset[i].syscall, 0);                  \
+                                                                                                                  \
+    if (*ret_p == -EFAULT) {                                                                                      \
+      res = 4;                                                                                                    \
+      goto out;                                                                                                   \
+    } else if (*ret_p < 0) {                                                                                      \
+      res = 5;                                                                                                    \
+      goto out;                                                                                                   \
+    }                                                                                                             \
+  }                                                                                                               \
 } while (0)
 
-int32_t f_build_filter(int fd, uint32_t arch, uint32_t multiarch, f_syscall_opts opts) {
+int32_t f_build_filter(int *ret_p, int fd, uint32_t arch, uint32_t multiarch, f_syscall_opts opts) {
   int32_t res = 0; // refer to resErr for meaning
   int allow_multiarch = opts & F_MULTIARCH;
   int allowed_personality = PER_LINUX;
@@ -229,8 +228,6 @@ int32_t f_build_filter(int fd, uint32_t arch, uint32_t multiarch, f_syscall_opts
   } else
     errno = 0;
 
-  int ret;
-
   // We only really need to handle arches on multiarch systems.
   // If only one arch is supported the default is fine
   if (arch != 0) {
@@ -239,18 +236,16 @@ int32_t f_build_filter(int fd, uint32_t arch, uint32_t multiarch, f_syscall_opts
     // allow the target arch, but we can't really disallow the
     // native arch at this point, because then bubblewrap
     // couldn't continue running.
-    ret = seccomp_arch_add(ctx, arch);
-    if (ret < 0 && ret != -EEXIST) {
+    *ret_p = seccomp_arch_add(ctx, arch);
+    if (*ret_p < 0 && *ret_p != -EEXIST) {
       res = 2;
-      errno = -ret;
       goto out;
     }
 
     if (allow_multiarch && multiarch != 0) {
-      ret = seccomp_arch_add(ctx, multiarch);
-      if (ret < 0 && ret != -EEXIST) {
+      *ret_p = seccomp_arch_add(ctx, multiarch);
+      if (*ret_p < 0 && *ret_p != -EEXIST) {
         res = 3;
-        errno = -ret;
         goto out;
       }
     }
@@ -286,17 +281,15 @@ int32_t f_build_filter(int fd, uint32_t arch, uint32_t multiarch, f_syscall_opts
   seccomp_rule_add_exact(ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_A0(SCMP_CMP_GE, last_allowed_family + 1));
 
   if (fd < 0) {
-    ret = seccomp_load(ctx);
-    if (ret != 0) {
+    *ret_p = seccomp_load(ctx);
+    if (*ret_p != 0) {
       res = 7;
-      errno = -ret;
       goto out;
     }
   } else {
-    ret = seccomp_export_bpf(ctx, fd);
-    if (ret != 0) {
+    *ret_p = seccomp_export_bpf(ctx, fd);
+    if (*ret_p != 0) {
       res = 6;
-      errno = -ret;
       goto out;
     }
   }

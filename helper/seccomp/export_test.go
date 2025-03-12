@@ -115,7 +115,7 @@ func TestExport(t *testing.T) {
 			t.Errorf("Read: error = %v", err)
 			return
 		}
-		if err := e.Close(); err == nil || err.Error() != "seccomp_export_bpf failed: operation canceled" {
+		if err := e.Close(); err == nil || !errors.Is(err, syscall.ECANCELED) || !errors.Is(err, syscall.EBADF) {
 			t.Errorf("Close: error = %v", err)
 			return
 		}

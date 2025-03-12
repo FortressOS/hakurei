@@ -20,4 +20,4 @@ typedef enum {
 } f_syscall_opts;
 
 extern void F_println(char *v);
-int32_t f_build_filter(int fd, uint32_t arch, uint32_t multiarch, f_syscall_opts opts);
+int32_t f_build_filter(int *ret_p, int fd, uint32_t arch, uint32_t multiarch, f_syscall_opts opts);
