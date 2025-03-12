@@ -51,7 +51,7 @@ let
       (ent "tmpfs" "/etc/passwd" "tmpfs" "ro,nosuid,nodev,relatime,uid=1000001,gid=1000001" 0 0)
       (ent "tmpfs" "/etc/group" "tmpfs" "ro,nosuid,nodev,relatime,uid=1000001,gid=1000001" 0 0)
       (ent "/dev/disk/by-label/nixos" "/run/user/65534/wayland-0" "ext4" "ro,nosuid,nodev,relatime" 0 0)
-      (ent "tmpfs" "/run/user/65534/pulse/native" "tmpfs" "ro,nosuid,nodev,relatime,size=98784k,nr_inodes=24696,mode=700,uid=1000,gid=100" 0 0)
+      (ent "tmpfs" "/run/user/65534/pulse/native" "tmpfs" "host_passthrough" 0 0)
       (ent "/dev/disk/by-label/nixos" "/run/user/65534/bus" "ext4" "ro,nosuid,nodev,relatime" 0 0)
       (ent "tmpfs" "/var/run/nscd" "tmpfs" "rw,nosuid,nodev,relatime,size=8k,mode=755,uid=1000001,gid=1000001" 0 0)
       (ent "overlay" "/.fortify/sbin/fortify" "overlay" "ro,nosuid,nodev,relatime,lowerdir=/mnt-root/nix/.ro-store,upperdir=/mnt-root/nix/.rw-store/upper,workdir=/mnt-root/nix/.rw-store/work,uuid=on" 0 0)
