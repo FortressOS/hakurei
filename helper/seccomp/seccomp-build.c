@@ -2,7 +2,7 @@
 #define _GNU_SOURCE // CLONE_NEWUSER
 #endif
 
-#include "seccomp-export.h"
+#include "seccomp-build.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
@@ -48,7 +48,7 @@ struct f_syscall_act {
   }                                                                                                            \
 } while (0)
 
-int32_t f_export_bpf(int fd, uint32_t arch, uint32_t multiarch, f_syscall_opts opts) {
+int32_t f_build_filter(int fd, uint32_t arch, uint32_t multiarch, f_syscall_opts opts) {
   int32_t res = 0; // refer to resErr for meaning
   int allow_multiarch = opts & F_MULTIARCH;
   int allowed_personality = PER_LINUX;
@@ -285,11 +285,20 @@ int32_t f_export_bpf(int fd, uint32_t arch, uint32_t multiarch, f_syscall_opts o
   // Blocklist the rest
   seccomp_rule_add_exact(ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_A0(SCMP_CMP_GE, last_allowed_family + 1));
 
-  ret = seccomp_export_bpf(ctx, fd);
-  if (ret != 0) {
-    res = 6;
-    errno = -ret;
-    goto out;
+  if (fd < 0) {
+    ret = seccomp_load(ctx);
+    if (ret != 0) {
+      res = 7;
+      errno = -ret;
+      goto out;
+    }
+  } else {
+    ret = seccomp_export_bpf(ctx, fd);
+    if (ret != 0) {
+      res = 6;
+      errno = -ret;
+      goto out;
+    }
   }
 
 out:

@@ -28,7 +28,7 @@ func (e *exporter) prepare() error {
 
 		ec := make(chan error, 1)
 		go func(fd uintptr) {
-			ec <- exportFilter(fd, e.opts)
+			ec <- buildFilter(int(fd), e.opts)
 			close(ec)
 			_ = e.closeWrite()
 			runtime.KeepAlive(e.w)

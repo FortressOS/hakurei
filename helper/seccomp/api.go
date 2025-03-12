@@ -11,6 +11,9 @@ import (
 // New returns an inactive Encoder instance.
 func New(opts SyscallOpts) *Encoder { return &Encoder{newExporter(opts)} }
 
+// Load loads a filter into the kernel.
+func Load(opts SyscallOpts) error { return buildFilter(-1, opts) }
+
 /*
 An Encoder writes a BPF program to an output stream.
 

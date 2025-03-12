@@ -3,7 +3,7 @@ package seccomp
 /*
 #cgo linux pkg-config: --static libseccomp
 
-#include "seccomp-export.h"
+#include "seccomp-build.h"
 */
 import "C"
 import (
@@ -22,6 +22,7 @@ var resErr = [...]error{
 	4: errors.New("internal libseccomp failure"),
 	5: errors.New("seccomp_rule_add failed"),
 	6: errors.New("seccomp_export_bpf failed"),
+	7: errors.New("seccomp_load failed"),
 }
 
 type SyscallOpts = C.f_syscall_opts
@@ -46,7 +47,7 @@ const (
 	FlagBluetooth SyscallOpts = C.F_BLUETOOTH
 )
 
-func exportFilter(fd uintptr, opts SyscallOpts) error {
+func buildFilter(fd int, opts SyscallOpts) error {
 	var (
 		arch      C.uint32_t = 0
 		multiarch C.uint32_t = 0
@@ -70,7 +71,7 @@ func exportFilter(fd uintptr, opts SyscallOpts) error {
 		opts |= flagVerbose
 	}
 
-	res, err := C.f_export_bpf(C.int(fd), arch, multiarch, opts)
+	res, err := C.f_build_filter(C.int(fd), arch, multiarch, opts)
 	if re := resErr[res]; re != nil {
 		if err == nil {
 			return re
