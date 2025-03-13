@@ -20,12 +20,20 @@ import (
 type HardeningFlags uintptr
 
 const (
-	FAllowUserns HardeningFlags = 1 << iota
+	FSyscallCompat HardeningFlags = 1 << iota
+	FAllowDevel
+	FAllowUserns
 	FAllowTTY
 	FAllowNet
 )
 
 func (flags HardeningFlags) seccomp(opts seccomp.SyscallOpts) seccomp.SyscallOpts {
+	if flags&FSyscallCompat == 0 {
+		opts |= seccomp.FlagExt
+	}
+	if flags&FAllowDevel == 0 {
+		opts |= seccomp.FlagDenyDevel
+	}
 	if flags&FAllowUserns == 0 {
 		opts |= seccomp.FlagDenyNS
 	}

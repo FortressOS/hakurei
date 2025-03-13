@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"git.gensokyo.uk/security/fortify/fst"
-	"git.gensokyo.uk/security/fortify/helper/seccomp"
 	"git.gensokyo.uk/security/fortify/internal"
 	"git.gensokyo.uk/security/fortify/internal/fmsg"
 	"git.gensokyo.uk/security/fortify/internal/sandbox"
@@ -71,7 +70,6 @@ func TestContainer(t *testing.T) {
 				return exec.CommandContext(ctx, os.Args[0], "-test.v",
 					"-test.run=TestHelperInit", "--", "init")
 			}
-			container.Seccomp |= seccomp.FlagExt
 			container.Flags |= tc.flags
 			container.Stdout, container.Stderr = os.Stdout, os.Stderr
 			container.Ops = tc.ops
