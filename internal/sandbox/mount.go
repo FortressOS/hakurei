@@ -41,6 +41,8 @@ func bindMount(src, dest string, flags int) error {
 	} else if flags&BindOptional != 0 {
 		return fmsg.WrapError(syscall.EINVAL,
 			"flag source excludes optional")
+	} else {
+		source = toHost(src)
 	}
 
 	if fi, err := os.Stat(source); err != nil {
