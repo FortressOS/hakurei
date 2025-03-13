@@ -158,7 +158,7 @@ var testCasesPd = []sealTestCase{
 			CopyBind("/etc/group", []byte("fortify:x:65534:\n")).
 			Tmpfs("/var/run/nscd", 8192).
 			Bind("/run/wrappers/bin/fortify", "/.fortify/sbin/fortify").
-			Symlink("fortify", "/.fortify/sbin/init"),
+			Symlink("fortify", "/.fortify/sbin/init0"),
 	},
 	{
 		"nixos permissive defaults chromium", new(stubNixOS),
@@ -389,6 +389,6 @@ var testCasesPd = []sealTestCase{
 			Bind("/tmp/fortify.1971/ebf083d1b175911782d413369b64ce7c/system_bus_socket", "/run/dbus/system_bus_socket").
 			Tmpfs("/var/run/nscd", 8192).
 			Bind("/run/wrappers/bin/fortify", "/.fortify/sbin/fortify").
-			Symlink("fortify", "/.fortify/sbin/init"),
+			Symlink("fortify", "/.fortify/sbin/init0"),
 	},
 }

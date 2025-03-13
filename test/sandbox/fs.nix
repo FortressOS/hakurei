@@ -21,7 +21,7 @@ let
         etc = fs "800001ed" null null;
         sbin = fs "800001c0" {
           fortify = fs "16d" null null;
-          init = fs "80001ff" null null;
+          init0 = fs "80001ff" null null;
         } null;
         host-mounts = fs "124" null null;
       } null;

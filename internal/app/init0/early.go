@@ -9,9 +9,9 @@ import (
 
 // used by the parent process
 
-// TryArgv0 calls [Main] if argv0 indicates the process is started from a file named "init".
+// TryArgv0 calls [Main] if the last element of argv0 is "init0".
 func TryArgv0() {
-	if len(os.Args) > 0 && path.Base(os.Args[0]) == "init" {
+	if len(os.Args) > 0 && path.Base(os.Args[0]) == "init0" {
 		Main()
 		internal.Exit(0)
 	}

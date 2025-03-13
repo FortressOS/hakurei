@@ -25,7 +25,7 @@ const (
 func Main() {
 	// sharing stdout with shim
 	// USE WITH CAUTION
-	fmsg.Prepare("init")
+	fmsg.Prepare("init0")
 
 	// setting this prevents ptrace
 	if err := internal.SetDumpable(internal.SUID_DUMP_DISABLE); err != nil {

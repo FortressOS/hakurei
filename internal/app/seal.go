@@ -486,7 +486,7 @@ func (seal *outcome) finalise(sys sys.State, config *fst.Config) error {
 
 	// mount fortify in sandbox for init
 	seal.container.Bind(sys.MustExecutable(), path.Join(fst.Tmp, "sbin/fortify"))
-	seal.container.Symlink("fortify", path.Join(fst.Tmp, "sbin/init"))
+	seal.container.Symlink("fortify", path.Join(fst.Tmp, "sbin/init0"))
 
 	fmsg.Verbosef("created application seal for uid %s (%s) groups: %v, command: %s",
 		seal.user.uid, seal.user.username, config.Confinement.Groups, config.Command)

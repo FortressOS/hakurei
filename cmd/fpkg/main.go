@@ -15,9 +15,10 @@ import (
 	"git.gensokyo.uk/security/fortify/helper/bwrap"
 	"git.gensokyo.uk/security/fortify/helper/seccomp"
 	"git.gensokyo.uk/security/fortify/internal"
-	init0 "git.gensokyo.uk/security/fortify/internal/app/init"
+	"git.gensokyo.uk/security/fortify/internal/app/init0"
 	"git.gensokyo.uk/security/fortify/internal/app/shim"
 	"git.gensokyo.uk/security/fortify/internal/fmsg"
+	"git.gensokyo.uk/security/fortify/internal/sandbox"
 	"git.gensokyo.uk/security/fortify/internal/sys"
 )
 
@@ -37,7 +38,8 @@ func init() {
 }
 
 func main() {
-	// early init argv0 check, skips root check and duplicate PR_SET_DUMPABLE
+	// early init path, skips root check and duplicate PR_SET_DUMPABLE
+	sandbox.TryArgv0()
 	init0.TryArgv0()
 
 	if err := internal.SetDumpable(internal.SUID_DUMP_DISABLE); err != nil {

@@ -16,7 +16,7 @@ import (
 	"git.gensokyo.uk/security/fortify/helper/proc"
 	"git.gensokyo.uk/security/fortify/helper/seccomp"
 	"git.gensokyo.uk/security/fortify/internal"
-	init0 "git.gensokyo.uk/security/fortify/internal/app/init"
+	"git.gensokyo.uk/security/fortify/internal/app/init0"
 	"git.gensokyo.uk/security/fortify/internal/fmsg"
 )
 
@@ -125,7 +125,7 @@ func Main() {
 		seccomp.CPrintln = log.Println
 	}
 	if b, err := helper.NewBwrap(
-		conf, path.Join(fst.Tmp, "sbin/init"), false,
+		conf, path.Join(fst.Tmp, "sbin/init0"), false,
 		nil, func(int, int) []string { return make([]string, 0) },
 		extraFiles,
 		syncFd,
