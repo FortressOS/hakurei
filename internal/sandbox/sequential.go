@@ -2,25 +2,16 @@ package sandbox
 
 import (
 	"encoding/gob"
-	"errors"
 	"fmt"
 	"math"
 	"os"
 	"path"
-	"strings"
 	"syscall"
 
 	"git.gensokyo.uk/security/fortify/internal/fmsg"
 )
 
 func init() { gob.Register(new(BindMount)) }
-
-const (
-	BindOptional = 1 << iota
-	BindRecursive
-	BindWritable
-	BindDevices
-)
 
 // BindMount bind mounts host path Source on container path Target.
 type BindMount struct {
@@ -31,62 +22,10 @@ type BindMount struct {
 
 func (b *BindMount) apply() error {
 	if !path.IsAbs(b.Source) || !path.IsAbs(b.Target) {
-		return syscall.EBADE
+		return fmsg.WrapError(syscall.EBADE,
+			"path is not absolute")
 	}
-	target := toSysroot(b.Target)
-	var source string
-
-	// this is what bwrap does, so the behaviour is kept for now,
-	// however recursively resolving links might improve user experience
-	if rp, err := realpathHost(b.Source); err != nil {
-		if os.IsNotExist(err) {
-			if b.Flags&BindOptional != 0 {
-				return nil
-			} else {
-				return fmsg.WrapError(err,
-					fmt.Sprintf("path %q does not exist", b.Source))
-			}
-		}
-		return fmsg.WrapError(err, err.Error())
-	} else {
-		source = toHost(rp)
-	}
-
-	if fi, err := os.Stat(source); err != nil {
-		return fmsg.WrapError(err, err.Error())
-	} else if fi.IsDir() {
-		if err = os.MkdirAll(target, 0755); err != nil {
-			return fmsg.WrapErrorSuffix(err,
-				fmt.Sprintf("cannot create directory %q:", b.Target))
-		}
-	} else if err = ensureFile(target, 0444); err != nil {
-		if errors.Is(err, syscall.EISDIR) {
-			return fmsg.WrapError(err,
-				fmt.Sprintf("path %q is a directory", b.Target))
-		}
-		return fmsg.WrapErrorSuffix(err,
-			fmt.Sprintf("cannot create %q:", b.Target))
-	}
-
-	var flags uintptr = syscall.MS_SILENT | syscall.MS_BIND
-	if b.Flags&BindRecursive != 0 {
-		flags |= syscall.MS_REC
-	}
-	if b.Flags&BindWritable == 0 {
-		flags |= syscall.MS_RDONLY
-	}
-	if b.Flags&BindDevices == 0 {
-		flags |= syscall.MS_NODEV
-	}
-	if fmsg.Load() {
-		if strings.TrimPrefix(source, hostPath) == strings.TrimPrefix(target, sysrootPath) {
-			fmsg.Verbosef("resolved %q flags %#x", target, flags)
-		} else {
-			fmsg.Verbosef("resolved %q on %q flags %#x", source, target, flags)
-		}
-	}
-	return fmsg.WrapErrorSuffix(syscall.Mount(source, target, "", flags, ""),
-		fmt.Sprintf("cannot bind %q on %q:", b.Source, b.Target))
+	return bindMount(b.Source, b.Target, b.Flags)
 }
 
 func (b *BindMount) Is(op Op) bool { vb, ok := op.(*BindMount); return ok && *b == *vb }
