@@ -140,6 +140,7 @@
                 gcc
                 pkg-config
                 wayland-scanner
+                bubblewrap
               ]
               ++ (
                 with pkgs.pkgsStatic;

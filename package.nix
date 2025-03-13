@@ -73,6 +73,7 @@ buildGoModule rec {
     pkg-config
     wayland-scanner
     makeBinaryWrapper
+    bubblewrap
   ];
 
   preBuild = ''
