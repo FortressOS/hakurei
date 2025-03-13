@@ -7,6 +7,7 @@ import (
 	"os"
 	"path"
 	"syscall"
+	"unsafe"
 
 	"git.gensokyo.uk/security/fortify/internal/fmsg"
 )
@@ -60,6 +61,89 @@ func (p *MountProc) apply(*InitParams) error {
 	return fmsg.WrapErrorSuffix(syscall.Mount("proc", target, "proc",
 		syscall.MS_NOSUID|syscall.MS_NOEXEC|syscall.MS_NODEV, ""),
 		fmt.Sprintf("cannot mount proc on %q:", p.Path))
+}
+
+func init() { gob.Register(new(MountDev)) }
+
+// MountDev mounts dev on container Path.
+type MountDev struct {
+	Path string
+}
+
+func (d *MountDev) apply(params *InitParams) error {
+	if !path.IsAbs(d.Path) {
+		return fmsg.WrapError(syscall.EBADE,
+			fmt.Sprintf("path %q is not absolute", d.Path))
+	}
+	target := toSysroot(d.Path)
+
+	if err := mountTmpfs("devtmpfs", d.Path, 0, 0755); err != nil {
+		return err
+	}
+
+	for _, name := range []string{"null", "zero", "full", "random", "urandom", "tty"} {
+		if err := bindMount(
+			"/dev/"+name, path.Join(d.Path, name),
+			BindSource|BindDevices,
+		); err != nil {
+			return err
+		}
+	}
+	for i, name := range []string{"stdin", "stdout", "stderr"} {
+		if err := os.Symlink(
+			"/proc/self/fd/"+string(rune(i+'0')),
+			path.Join(target, name),
+		); err != nil {
+			return fmsg.WrapError(err, err.Error())
+		}
+	}
+	for _, pair := range [][2]string{
+		{"/proc/self/fd", "fd"},
+		{"/proc/kcore", "core"},
+		{"pts/ptmx", "ptmx"},
+	} {
+		if err := os.Symlink(pair[0], path.Join(target, pair[1])); err != nil {
+			return fmsg.WrapError(err, err.Error())
+		}
+	}
+
+	devPtsPath := path.Join(target, "pts")
+	for _, name := range []string{path.Join(target, "shm"), devPtsPath} {
+		if err := os.Mkdir(name, 0755); err != nil {
+			return fmsg.WrapError(err, err.Error())
+		}
+	}
+
+	if err := syscall.Mount("devpts", devPtsPath, "devpts",
+		syscall.MS_NOSUID|syscall.MS_NOEXEC,
+		"newinstance,ptmxmode=0666,mode=620"); err != nil {
+		return fmsg.WrapErrorSuffix(err,
+			fmt.Sprintf("cannot mount devpts on %q:", devPtsPath))
+	}
+
+	if params.Flags&FAllowTTY != 0 {
+		var buf [8]byte
+		if _, _, errno := syscall.Syscall(
+			syscall.SYS_IOCTL, 1, syscall.TIOCGWINSZ,
+			uintptr(unsafe.Pointer(&buf[0])),
+		); errno == 0 {
+			if err := bindMount(
+				"/proc/self/fd/1", path.Join(d.Path, "console"),
+				BindDevices,
+			); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func (d *MountDev) Is(op Op) bool  { vd, ok := op.(*MountDev); return ok && *d == *vd }
+func (d *MountDev) String() string { return fmt.Sprintf("dev on %q", d.Path) }
+func (f *Ops) Dev(dest string) *Ops {
+	*f = append(*f, &MountDev{dest})
+	return f
 }
 
 func (p *MountProc) Is(op Op) bool  { vp, ok := op.(*MountProc); return ok && *p == *vp }

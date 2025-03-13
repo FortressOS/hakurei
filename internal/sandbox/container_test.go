@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"git.gensokyo.uk/security/fortify/fst"
+	"git.gensokyo.uk/security/fortify/helper/seccomp"
 	"git.gensokyo.uk/security/fortify/internal"
 	"git.gensokyo.uk/security/fortify/internal/fmsg"
 	"git.gensokyo.uk/security/fortify/internal/sandbox"
@@ -28,18 +29,34 @@ func TestContainer(t *testing.T) {
 	}
 
 	testCases := []struct {
-		name string
-		ops  *sandbox.Ops
-		mnt  []*check.Mntent
-		host string
+		name  string
+		flags sandbox.HardeningFlags
+		ops   *sandbox.Ops
+		mnt   []*check.Mntent
+		host  string
 	}{
-		{"minimal", new(sandbox.Ops), nil, "test-minimal"},
-		{"tmpfs",
+		{"minimal", 0, new(sandbox.Ops), nil, "test-minimal"},
+		{"allow", sandbox.FAllowUserns | sandbox.FAllowNet | sandbox.FAllowTTY,
+			new(sandbox.Ops), nil, "test-minimal"},
+		{"tmpfs", 0,
 			new(sandbox.Ops).
 				Tmpfs(fst.Tmp, 0, 0755),
 			[]*check.Mntent{
 				{FSName: "tmpfs", Dir: fst.Tmp, Type: "tmpfs", Opts: "\x00"},
 			}, "test-tmpfs"},
+		{"dev", sandbox.FAllowTTY, // go test output is not a tty
+			new(sandbox.Ops).
+				Dev("/dev"),
+			[]*check.Mntent{
+				{FSName: "devtmpfs", Dir: "/dev", Type: "tmpfs", Opts: "\x00"},
+				{FSName: "devtmpfs", Dir: "/dev/null", Type: "devtmpfs", Opts: "\x00", Freq: -1, Passno: -1},
+				{FSName: "devtmpfs", Dir: "/dev/zero", Type: "devtmpfs", Opts: "\x00", Freq: -1, Passno: -1},
+				{FSName: "devtmpfs", Dir: "/dev/full", Type: "devtmpfs", Opts: "\x00", Freq: -1, Passno: -1},
+				{FSName: "devtmpfs", Dir: "/dev/random", Type: "devtmpfs", Opts: "\x00", Freq: -1, Passno: -1},
+				{FSName: "devtmpfs", Dir: "/dev/urandom", Type: "devtmpfs", Opts: "\x00", Freq: -1, Passno: -1},
+				{FSName: "devtmpfs", Dir: "/dev/tty", Type: "devtmpfs", Opts: "\x00", Freq: -1, Passno: -1},
+				{FSName: "devpts", Dir: "/dev/pts", Type: "devpts", Opts: "rw,nosuid,noexec,relatime,mode=620,ptmxmode=666", Freq: 0, Passno: 0},
+			}, ""},
 	}
 
 	for _, tc := range testCases {
@@ -54,6 +71,8 @@ func TestContainer(t *testing.T) {
 				return exec.CommandContext(ctx, os.Args[0], "-test.v",
 					"-test.run=TestHelperInit", "--", "init")
 			}
+			container.Seccomp |= seccomp.FlagExt
+			container.Flags |= tc.flags
 			container.Stdout, container.Stderr = os.Stdout, os.Stderr
 			container.Ops = tc.ops
 			if container.Args[5] == "" {
