@@ -126,7 +126,7 @@ func Init(exit func(code int)) {
 
 	for i, op := range *params.Ops {
 		fmsg.Verbosef("mounting %s", op)
-		if err := op.apply(); err != nil {
+		if err := op.apply(&params.InitParams); err != nil {
 			fmsg.PrintBaseError(err,
 				fmt.Sprintf("cannot apply op %d:", i))
 			exit(1)

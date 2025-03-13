@@ -20,7 +20,7 @@ type BindMount struct {
 	Flags int
 }
 
-func (b *BindMount) apply() error {
+func (b *BindMount) apply(*InitParams) error {
 	if !path.IsAbs(b.Source) || !path.IsAbs(b.Target) {
 		return fmsg.WrapError(syscall.EBADE,
 			"path is not absolute")
@@ -47,7 +47,7 @@ type MountProc struct {
 	Path string
 }
 
-func (p *MountProc) apply() error {
+func (p *MountProc) apply(*InitParams) error {
 	if !path.IsAbs(p.Path) {
 		return fmsg.WrapError(syscall.EBADE,
 			fmt.Sprintf("path %q is not absolute", p.Path))
@@ -78,7 +78,7 @@ type MountTmpfs struct {
 	Perm os.FileMode
 }
 
-func (t *MountTmpfs) apply() error {
+func (t *MountTmpfs) apply(*InitParams) error {
 	if !path.IsAbs(t.Path) {
 		return fmsg.WrapError(syscall.EBADE,
 			fmt.Sprintf("path %q is not absolute", t.Path))

@@ -90,7 +90,7 @@ type (
 
 	Ops []Op
 	Op  interface {
-		apply() error
+		apply(params *InitParams) error
 
 		Is(op Op) bool
 		fmt.Stringer
