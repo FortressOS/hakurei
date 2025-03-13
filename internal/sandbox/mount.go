@@ -79,3 +79,17 @@ func bindMount(src, dest string, flags int) error {
 	return fmsg.WrapErrorSuffix(syscall.Mount(source, target, "", mf, ""),
 		fmt.Sprintf("cannot bind %q on %q:", src, dest))
 }
+
+func mountTmpfs(name string, size int, perm os.FileMode) error {
+	target := toSysroot(name)
+	if err := os.MkdirAll(target, perm); err != nil {
+		return err
+	}
+	opt := fmt.Sprintf("mode=%#o", perm)
+	if size > 0 {
+		opt += fmt.Sprintf(",size=%d", size)
+	}
+	return fmsg.WrapErrorSuffix(syscall.Mount("tmpfs", target, "tmpfs",
+		syscall.MS_NOSUID|syscall.MS_NODEV, opt),
+		fmt.Sprintf("cannot mount tmpfs on %q:", name))
+}

@@ -75,7 +75,7 @@ func init() { gob.Register(new(MountTmpfs)) }
 type MountTmpfs struct {
 	Path string
 	Size int
-	Mode os.FileMode
+	Perm os.FileMode
 }
 
 func (t *MountTmpfs) apply() error {
@@ -87,22 +87,12 @@ func (t *MountTmpfs) apply() error {
 		return fmsg.WrapError(syscall.EBADE,
 			fmt.Sprintf("size %d out of bounds", t.Size))
 	}
-	target := toSysroot(t.Path)
-	if err := os.MkdirAll(target, 0755); err != nil {
-		return err
-	}
-	opt := fmt.Sprintf("mode=%#o", t.Mode)
-	if t.Size > 0 {
-		opt += fmt.Sprintf(",size=%d", t.Mode)
-	}
-	return fmsg.WrapErrorSuffix(syscall.Mount("tmpfs", target, "tmpfs",
-		syscall.MS_NOSUID|syscall.MS_NODEV, opt),
-		fmt.Sprintf("cannot mount tmpfs on %q:", t.Path))
+	return mountTmpfs(t.Path, t.Size, t.Perm)
 }
 
 func (t *MountTmpfs) Is(op Op) bool  { vt, ok := op.(*MountTmpfs); return ok && *t == *vt }
 func (t *MountTmpfs) String() string { return fmt.Sprintf("tmpfs on %q size %d", t.Path, t.Size) }
-func (f *Ops) Tmpfs(dest string, size int, mode os.FileMode) *Ops {
-	*f = append(*f, &MountTmpfs{dest, size, mode})
+func (f *Ops) Tmpfs(dest string, size int, perm os.FileMode) *Ops {
+	*f = append(*f, &MountTmpfs{dest, size, perm})
 	return f
 }
