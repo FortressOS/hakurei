@@ -78,8 +78,7 @@ start_all()
 machine.wait_for_unit("multi-user.target")
 
 # Run fortify Go tests outside of nix build in the background:
-machine.succeed("rm -rf /tmp/src && cp -a \"$(fortify-src)\" /tmp/src")
-machine.succeed("fortify-fhs -c '(cd /tmp/src && go generate ./... && go test ./... && touch /tmp/success-gotest)' &> /tmp/gotest &")
+machine.succeed("sudo -u untrusted -i fortify-go-test &> /tmp/go-test &")
 
 # To check fortify's version:
 print(machine.succeed("sudo -u alice -i fortify version"))
@@ -217,6 +216,6 @@ machine.wait_for_file("/tmp/sway-exit-ok")
 print(machine.succeed("find /run/user/1000/fortify"))
 
 # Verify go test status:
-machine.wait_for_file("/tmp/gotest", timeout=5)
-print(machine.succeed("cat /tmp/gotest"))
-machine.wait_for_file("/tmp/success-gotest", timeout=5)
+machine.wait_for_file("/tmp/go-test", timeout=5)
+print(machine.succeed("cat /tmp/go-test"))
+machine.wait_for_file("/tmp/go-test-ok", timeout=5)

@@ -15,8 +15,15 @@ nixosTest {
     {
       environment.systemPackages = [
         # For go tests:
-        self.packages.${system}.fhs
-        (writeShellScriptBin "fortify-src" "echo -n ${self.packages.${system}.fortify.src}")
+        (writeShellScriptBin "fortify-go-test" ''
+          set -e
+          WORK="$(mktemp -ud)"
+          cp -r "${self.packages.${system}.fortify.src}" "$WORK"
+          chmod -R +w "$WORK"
+          cd "$WORK"
+          ${self.packages.${system}.fhs}/bin/fortify-fhs -c \
+            'go generate ./... && go test ./... && touch /tmp/go-test-ok'
+        '')
       ];
 
       # Run with Go race detector:
