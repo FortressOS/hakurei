@@ -87,7 +87,7 @@ func (t *MountTmpfs) apply(*InitParams) error {
 		return fmsg.WrapError(syscall.EBADE,
 			fmt.Sprintf("size %d out of bounds", t.Size))
 	}
-	return mountTmpfs(t.Path, t.Size, t.Perm)
+	return mountTmpfs("tmpfs", t.Path, t.Size, t.Perm)
 }
 
 func (t *MountTmpfs) Is(op Op) bool  { vt, ok := op.(*MountTmpfs); return ok && *t == *vt }
