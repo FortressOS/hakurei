@@ -79,8 +79,7 @@ machine.wait_for_unit("multi-user.target")
 
 # Run fortify Go tests outside of nix build in the background:
 machine.succeed("rm -rf /tmp/src && cp -a \"$(fortify-src)\" /tmp/src")
-machine.succeed(
-    "fortify-fhs -c '(cd /tmp/src && go generate ./... && go test ./... && touch /tmp/success-gotest)' &> /tmp/gotest &")
+machine.succeed("fortify-fhs -c '(cd /tmp/src && go generate ./... && go test ./... && touch /tmp/success-gotest)' &> /tmp/gotest &")
 
 # To check fortify's version:
 print(machine.succeed("sudo -u alice -i fortify version"))
@@ -161,8 +160,7 @@ machine.wait_until_fails("pgrep foot", timeout=5)
 machine.wait_until_fails("getfacl --absolute-names --omit-header --numeric /run/user/1000 | grep 1000002", timeout=5)
 
 # Start app (foot) with Wayland enablement from a terminal:
-swaymsg(
-    "exec foot $SHELL -c '(ne-foot) & sleep 1 && fortify show $(fortify ps --short) && touch /tmp/ps-show-ok && cat'")
+swaymsg("exec foot $SHELL -c '(ne-foot) & sleep 1 && fortify show $(fortify ps --short) && touch /tmp/ps-show-ok && cat'")
 wait_for_window("u0_a2@machine")
 machine.send_chars("clear; wayland-info && touch /tmp/success-client-term\n")
 machine.wait_for_file("/tmp/fortify.1000/tmpdir/2/success-client-term", timeout=10)
@@ -219,5 +217,6 @@ machine.wait_for_file("/tmp/sway-exit-ok")
 print(machine.succeed("find /run/user/1000/fortify"))
 
 # Verify go test status:
-machine.wait_for_file("/tmp/success-gotest", timeout=5)
+machine.wait_for_file("/tmp/gotest", timeout=5)
 print(machine.succeed("cat /tmp/gotest"))
+machine.wait_for_file("/tmp/success-gotest", timeout=5)
