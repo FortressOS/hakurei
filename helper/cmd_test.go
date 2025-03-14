@@ -12,7 +12,7 @@ import (
 
 func TestDirect(t *testing.T) {
 	t.Run("start non-existent helper path", func(t *testing.T) {
-		h := helper.NewDirect(context.Background(), "/nonexistent", argsWt, false, argF, nil)
+		h := helper.NewDirect(context.Background(), "/nonexistent", argsWt, false, argF, nil, nil)
 
 		if err := h.Start(); !errors.Is(err, os.ErrNotExist) {
 			t.Errorf("Start: error = %v, wantErr %v",
@@ -21,7 +21,7 @@ func TestDirect(t *testing.T) {
 	})
 
 	t.Run("valid new helper nil check", func(t *testing.T) {
-		if got := helper.NewDirect(context.TODO(), "fortify", argsWt, false, argF, nil); got == nil {
+		if got := helper.NewDirect(context.TODO(), "fortify", argsWt, false, argF, nil, nil); got == nil {
 			t.Errorf("New(%q, %q) got nil",
 				argsWt, "fortify")
 			return
@@ -30,7 +30,7 @@ func TestDirect(t *testing.T) {
 
 	t.Run("implementation compliance", func(t *testing.T) {
 		testHelper(t, func(ctx context.Context, cmdF func(cmd *exec.Cmd), stat bool) helper.Helper {
-			return helper.NewDirect(ctx, "crash-test-dummy", argsWt, stat, argF, cmdF)
+			return helper.NewDirect(ctx, "crash-test-dummy", argsWt, stat, argF, cmdF, nil)
 		})
 	})
 }

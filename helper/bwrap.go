@@ -7,7 +7,6 @@ import (
 	"os/exec"
 	"slices"
 	"strconv"
-	"syscall"
 
 	"git.gensokyo.uk/security/fortify/helper/bwrap"
 	"git.gensokyo.uk/security/fortify/helper/proc"
@@ -26,12 +25,11 @@ func MustNewBwrap(
 	stat bool,
 	argF func(argsFd, statFd int) []string,
 	cmdF func(cmd *exec.Cmd),
-	conf *bwrap.Config,
-	setpgid bool,
 	extraFiles []*os.File,
+	conf *bwrap.Config,
 	syncFd *os.File,
 ) Helper {
-	b, err := NewBwrap(ctx, name, wt, stat, argF, cmdF, conf, setpgid, extraFiles, syncFd)
+	b, err := NewBwrap(ctx, name, wt, stat, argF, cmdF, extraFiles, conf, syncFd)
 	if err != nil {
 		panic(err.Error())
 	} else {
@@ -49,15 +47,11 @@ func NewBwrap(
 	stat bool,
 	argF func(argsFd, statFd int) []string,
 	cmdF func(cmd *exec.Cmd),
-	conf *bwrap.Config,
-	setpgid bool,
 	extraFiles []*os.File,
+	conf *bwrap.Config,
 	syncFd *os.File,
 ) (Helper, error) {
 	b, args := newHelperCmd(ctx, BubblewrapName, wt, stat, argF, extraFiles)
-	if setpgid {
-		b.Cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
-	}
 
 	var argsFd uintptr
 	if v, err := NewCheckedArgs(conf.Args(syncFd, b.extraFiles, &b.files)); err != nil {

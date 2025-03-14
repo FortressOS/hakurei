@@ -132,7 +132,8 @@ func Main() {
 		nil, false,
 		func(int, int) []string { return make([]string, 0) },
 		func(cmd *exec.Cmd) { cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr },
-		conf, false, extraFiles, syncFd,
+		extraFiles,
+		conf, syncFd,
 	); err != nil {
 		log.Fatalf("malformed sandbox config: %v", err)
 	} else {

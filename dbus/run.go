@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"syscall"
 
 	"git.gensokyo.uk/security/fortify/helper"
 	"git.gensokyo.uk/security/fortify/helper/bwrap"
@@ -40,13 +41,14 @@ func (p *Proxy) Start(ctx context.Context, output io.Writer, sandbox bool) error
 	c, cancel := context.WithCancelCause(ctx)
 	if !sandbox {
 		h = helper.NewDirect(c, p.name, p.seal, true, argF, func(cmd *exec.Cmd) {
+			cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 			if output != nil {
 				cmd.Stdout, cmd.Stderr = output, output
 			}
 
 			// xdg-dbus-proxy does not need to inherit the environment
 			cmd.Env = make([]string, 0)
-		})
+		}, nil)
 	} else {
 		// look up absolute path if name is just a file name
 		toolPath := p.name
@@ -117,10 +119,11 @@ func (p *Proxy) Start(ctx context.Context, output io.Writer, sandbox bool) error
 		}
 
 		h = helper.MustNewBwrap(c, toolPath, p.seal, true, argF, func(cmd *exec.Cmd) {
+			cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 			if output != nil {
 				cmd.Stdout, cmd.Stderr = output, output
 			}
-		}, bc, true, nil, nil)
+		}, nil, bc, nil)
 		p.bwrap = bc
 	}
 

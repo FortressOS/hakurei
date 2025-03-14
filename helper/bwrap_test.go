@@ -36,7 +36,8 @@ func TestBwrap(t *testing.T) {
 			"fortify",
 			argsWt, false,
 			argF, nil,
-			sc, false, nil, nil,
+			nil,
+			sc, nil,
 		)
 
 		if err := h.Start(); !errors.Is(err, os.ErrNotExist) {
@@ -51,7 +52,8 @@ func TestBwrap(t *testing.T) {
 			"fortify",
 			argsWt, false,
 			argF, nil,
-			sc, false, nil, nil,
+			nil,
+			sc, nil,
 		); got == nil {
 			t.Errorf("MustNewBwrap(%#v, %#v, %#v) got nil",
 				sc, argsWt, "fortify")
@@ -73,7 +75,8 @@ func TestBwrap(t *testing.T) {
 			"fortify",
 			argsWt, false,
 			argF, nil,
-			&bwrap.Config{Hostname: "\x00"}, false, nil, nil,
+			nil,
+			&bwrap.Config{Hostname: "\x00"}, nil,
 		)
 	})
 
@@ -87,7 +90,8 @@ func TestBwrap(t *testing.T) {
 			ctx, "crash-test-dummy",
 			nil, false,
 			argFChecked, func(cmd *exec.Cmd) { cmd.Stdout, cmd.Stderr = stdout, stderr },
-			sc, false, nil, nil,
+			nil,
+			sc, nil,
 		)
 
 		if err := h.Start(); err != nil {
@@ -108,7 +112,8 @@ func TestBwrap(t *testing.T) {
 				ctx, "crash-test-dummy",
 				argsWt, stat,
 				argF, cmdF,
-				sc, false, nil, nil,
+				nil,
+				sc, nil,
 			)
 		})
 	})

@@ -22,8 +22,9 @@ func NewDirect(
 	stat bool,
 	argF func(argsFd, statFd int) []string,
 	cmdF func(cmd *exec.Cmd),
+	extraFiles []*os.File,
 ) Helper {
-	d, args := newHelperCmd(ctx, name, wt, stat, argF, nil)
+	d, args := newHelperCmd(ctx, name, wt, stat, argF, extraFiles)
 	d.Args = append(d.Args, args...)
 	if cmdF != nil {
 		cmdF(d.Cmd)
@@ -54,24 +55,6 @@ type helperCmd struct {
 	*exec.Cmd
 }
 
-// finalise sets up the underlying [exec.Cmd] object.
-func (h *helperCmd) finalise() {
-	h.Env = slices.Grow(h.Env, 2)
-	if h.useArgsFd {
-		h.Cmd.Env = append(h.Env, FortifyHelper+"=1")
-	} else {
-		h.Cmd.Env = append(h.Env, FortifyHelper+"=0")
-	}
-	if h.useStatFd {
-		h.Cmd.Env = append(h.Cmd.Env, FortifyStatus+"=1")
-
-		// stat is populated on fulfill
-		h.Cmd.Cancel = func() error { return h.stat.Close() }
-	} else {
-		h.Cmd.Env = append(h.Cmd.Env, FortifyStatus+"=0")
-	}
-}
-
 func (h *helperCmd) Start() error {
 	h.mu.Lock()
 	defer h.mu.Unlock()
@@ -82,6 +65,20 @@ func (h *helperCmd) Start() error {
 		return errors.New("exec: already started")
 	}
 
-	h.finalise()
+	h.Env = slices.Grow(h.Env, 2)
+	if h.useArgsFd {
+		h.Env = append(h.Env, FortifyHelper+"=1")
+	} else {
+		h.Env = append(h.Env, FortifyHelper+"=0")
+	}
+	if h.useStatFd {
+		h.Env = append(h.Env, FortifyStatus+"=1")
+
+		// stat is populated on fulfill
+		h.Cancel = func() error { return h.stat.Close() }
+	} else {
+		h.Env = append(h.Env, FortifyStatus+"=0")
+	}
+
 	return proc.Fulfill(h.helperFiles.ctx, &h.ExtraFiles, h.Cmd.Start, h.files, h.extraFiles)
 }
