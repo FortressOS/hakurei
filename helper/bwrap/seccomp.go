@@ -5,7 +5,7 @@ import (
 	"strconv"
 
 	"git.gensokyo.uk/security/fortify/helper/proc"
-	"git.gensokyo.uk/security/fortify/helper/seccomp"
+	"git.gensokyo.uk/security/fortify/seccomp"
 )
 
 type SyscallPolicy struct {
