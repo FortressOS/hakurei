@@ -128,13 +128,11 @@ func Main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop() // unreachable
 	if b, err := helper.NewBwrap(
-		ctx,
-		conf, path.Join(fst.Tmp, "sbin/init0"), false,
-		nil, func(int, int) []string { return make([]string, 0) },
+		ctx, path.Join(fst.Tmp, "sbin/init0"),
+		nil, false,
+		func(int, int) []string { return make([]string, 0) },
 		func(cmd *exec.Cmd) { cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr },
-		extraFiles,
-		syncFd,
-		false,
+		conf, false, extraFiles, syncFd,
 	); err != nil {
 		log.Fatalf("malformed sandbox config: %v", err)
 	} else {

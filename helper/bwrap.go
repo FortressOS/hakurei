@@ -51,17 +51,17 @@ func (b *bubblewrap) Start() error {
 // Function argF returns an array of arguments passed directly to the child process.
 func MustNewBwrap(
 	ctx context.Context,
-	conf *bwrap.Config,
 	name string,
-	setpgid bool,
 	wt io.WriterTo,
-	argF func(argsFD, statFD int) []string,
+	stat bool,
+	argF func(argsFd, statFd int) []string,
 	cmdF func(cmd *exec.Cmd),
+	conf *bwrap.Config,
+	setpgid bool,
 	extraFiles []*os.File,
 	syncFd *os.File,
-	stat bool,
 ) Helper {
-	b, err := NewBwrap(ctx, conf, name, setpgid, wt, argF, cmdF, extraFiles, syncFd, stat)
+	b, err := NewBwrap(ctx, name, wt, stat, argF, cmdF, conf, setpgid, extraFiles, syncFd)
 	if err != nil {
 		panic(err.Error())
 	} else {
@@ -74,20 +74,20 @@ func MustNewBwrap(
 // Function argF returns an array of arguments passed directly to the child process.
 func NewBwrap(
 	ctx context.Context,
-	conf *bwrap.Config,
 	name string,
-	setpgid bool,
 	wt io.WriterTo,
+	stat bool,
 	argF func(argsFd, statFd int) []string,
 	cmdF func(cmd *exec.Cmd),
+	conf *bwrap.Config,
+	setpgid bool,
 	extraFiles []*os.File,
 	syncFd *os.File,
-	stat bool,
 ) (Helper, error) {
 	b := new(bubblewrap)
 
 	b.name = name
-	b.helperCmd = newHelperCmd(ctx, BubblewrapName, wt, argF, extraFiles, stat)
+	b.helperCmd = newHelperCmd(ctx, BubblewrapName, wt, argF, stat, extraFiles)
 	if setpgid {
 		b.Cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 	}

@@ -28,25 +28,25 @@ func (p *Proxy) Start(ctx context.Context, output io.Writer, sandbox bool) error
 	var (
 		h helper.Helper
 
-		argF = func(argsFD, statFD int) []string {
-			if statFD == -1 {
-				return []string{"--args=" + strconv.Itoa(argsFD)}
+		argF = func(argsFd, statFd int) []string {
+			if statFd == -1 {
+				return []string{"--args=" + strconv.Itoa(argsFd)}
 			} else {
-				return []string{"--args=" + strconv.Itoa(argsFD), "--fd=" + strconv.Itoa(statFD)}
+				return []string{"--args=" + strconv.Itoa(argsFd), "--fd=" + strconv.Itoa(statFd)}
 			}
 		}
 	)
 
 	c, cancel := context.WithCancelCause(ctx)
 	if !sandbox {
-		h = helper.NewDirect(c, p.seal, p.name, argF, func(cmd *exec.Cmd) {
+		h = helper.NewDirect(c, p.name, p.seal, true, argF, func(cmd *exec.Cmd) {
 			if output != nil {
 				cmd.Stdout, cmd.Stderr = output, output
 			}
 
 			// xdg-dbus-proxy does not need to inherit the environment
 			cmd.Env = make([]string, 0)
-		}, true)
+		})
 	} else {
 		// look up absolute path if name is just a file name
 		toolPath := p.name
@@ -116,11 +116,11 @@ func (p *Proxy) Start(ctx context.Context, output io.Writer, sandbox bool) error
 			bc.Bind(k, k)
 		}
 
-		h = helper.MustNewBwrap(c, bc, toolPath, true, p.seal, argF, func(cmd *exec.Cmd) {
+		h = helper.MustNewBwrap(c, toolPath, p.seal, true, argF, func(cmd *exec.Cmd) {
 			if output != nil {
 				cmd.Stdout, cmd.Stderr = output, output
 			}
-		}, nil, nil, true)
+		}, bc, true, nil, nil)
 		p.bwrap = bc
 	}
 

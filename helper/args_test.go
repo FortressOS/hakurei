@@ -9,7 +9,7 @@ import (
 	"git.gensokyo.uk/security/fortify/helper"
 )
 
-func Test_argsFD_String(t *testing.T) {
+func Test_argsFd_String(t *testing.T) {
 	wantString := strings.Join(wantArgs, " ")
 	if got := argsWt.(fmt.Stringer).String(); got != wantString {
 		t.Errorf("String(): got %v; want %v",

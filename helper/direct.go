@@ -17,14 +17,14 @@ import (
 // Function argF returns an array of arguments passed directly to the child process.
 func NewDirect(
 	ctx context.Context,
-	wt io.WriterTo,
 	name string,
+	wt io.WriterTo,
+	stat bool,
 	argF func(argsFd, statFd int) []string,
 	cmdF func(cmd *exec.Cmd),
-	stat bool,
 ) Helper {
 	d := new(direct)
-	d.helperCmd = newHelperCmd(ctx, name, wt, argF, nil, stat)
+	d.helperCmd = newHelperCmd(ctx, name, wt, argF, stat, nil)
 	if cmdF != nil {
 		cmdF(d.helperCmd.Cmd)
 	}
@@ -53,9 +53,12 @@ func (h *direct) Start() error {
 }
 
 func newHelperCmd(
-	ctx context.Context, name string,
-	wt io.WriterTo, argF func(argsFd, statFd int) []string,
-	extraFiles []*os.File, stat bool,
+	ctx context.Context,
+	name string,
+	wt io.WriterTo,
+	argF func(argsFd, statFd int) []string,
+	stat bool,
+	extraFiles []*os.File,
 ) (cmd *helperCmd) {
 	cmd = new(helperCmd)
 	cmd.ctx = ctx
