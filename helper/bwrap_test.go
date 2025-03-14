@@ -71,7 +71,7 @@ func TestBwrap(t *testing.T) {
 		helper.MustNewBwrap(
 			context.TODO(),
 			"fortify",
-			nil, false,
+			argsWt, false,
 			argF, nil,
 			&bwrap.Config{Hostname: "\x00"}, false, nil, nil,
 		)
