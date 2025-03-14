@@ -3,7 +3,6 @@ package ldd_test
 import (
 	"errors"
 	"reflect"
-	"strings"
 	"testing"
 
 	"git.gensokyo.uk/security/fortify/ldd"
@@ -34,10 +33,7 @@ libzstd.so.1 => /usr/lib/libzstd.so.1 7ff71bfd2000
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			stdout := new(strings.Builder)
-			stdout.WriteString(tc.out)
-
-			if _, err := ldd.Parse(stdout); !errors.Is(err, tc.wantErr) {
+			if _, err := ldd.Parse([]byte(tc.out)); !errors.Is(err, tc.wantErr) {
 				t.Errorf("Parse() error = %v, wantErr %v", err, tc.wantErr)
 			}
 		})
@@ -111,10 +107,7 @@ libc.musl-x86_64.so.1 => /lib/ld-musl-x86_64.so.1 (0x7ff71c0a4000)`,
 	}
 	for _, tc := range testCases {
 		t.Run(tc.file, func(t *testing.T) {
-			stdout := new(strings.Builder)
-			stdout.WriteString(tc.out)
-
-			if got, err := ldd.Parse(stdout); err != nil {
+			if got, err := ldd.Parse([]byte(tc.out)); err != nil {
 				t.Errorf("Parse() error = %v", err)
 			} else if !reflect.DeepEqual(got, tc.want) {
 				t.Errorf("Parse() got = %#v, want %#v", got, tc.want)

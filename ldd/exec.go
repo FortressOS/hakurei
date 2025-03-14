@@ -7,8 +7,7 @@ import (
 	"os/exec"
 	"time"
 
-	"git.gensokyo.uk/security/fortify/helper"
-	"git.gensokyo.uk/security/fortify/helper/bwrap"
+	"git.gensokyo.uk/security/fortify/internal/sandbox"
 )
 
 const lddTimeout = 2 * time.Second
@@ -18,34 +17,31 @@ var (
 	msgStaticGlibc = []byte("not a dynamic executable")
 )
 
-func Exec(ctx context.Context, p string) ([]*Entry, error) {
-	var h helper.Helper
+func Exec(ctx context.Context, p string) ([]*Entry, error) { return ExecFilter(ctx, nil, nil, p) }
 
-	if toolPath, err := exec.LookPath("ldd"); err != nil {
-		return nil, err
-	} else if h, err = helper.NewBwrap(
-		(&bwrap.Config{
-			Hostname:      "fortify-ldd",
-			Chdir:         "/",
-			Syscall:       &bwrap.SyscallPolicy{DenyDevel: true, Multiarch: true},
-			NewSession:    true,
-			DieWithParent: true,
-		}).Bind("/", "/").DevTmpfs("/dev"), toolPath, false,
-		nil, func(_, _ int) []string { return []string{p} },
-		nil, nil,
-	); err != nil {
-		return nil, err
-	}
-
-	stdout, stderr := new(bytes.Buffer), new(bytes.Buffer)
-	h.Stdout(stdout).Stderr(stderr)
-
+func ExecFilter(ctx context.Context,
+	commandContext func(context.Context) *exec.Cmd,
+	f func([]byte) []byte,
+	p string) ([]*Entry, error) {
 	c, cancel := context.WithTimeout(ctx, lddTimeout)
 	defer cancel()
-	if err := h.Start(c, false); err != nil {
+	container := sandbox.New(c, "ldd", p)
+	container.Hostname = "fortify-ldd"
+	stdout, stderr := new(bytes.Buffer), new(bytes.Buffer)
+	container.Stdout = stdout
+	container.Stderr = stderr
+	container.Bind("/", "/", 0).Dev("/dev")
+
+	if commandContext != nil {
+		container.CommandContext = commandContext
+	}
+
+	if err := container.Start(); err != nil {
+		return nil, err
+	} else if err = container.Serve(); err != nil {
 		return nil, err
 	}
-	if err := h.Wait(); err != nil {
+	if err := container.Wait(); err != nil {
 		m := stderr.Bytes()
 		if bytes.Contains(m, append([]byte(p+": "), msgStatic...)) ||
 			bytes.Contains(m, msgStaticGlibc) {
@@ -56,5 +52,9 @@ func Exec(ctx context.Context, p string) ([]*Entry, error) {
 		return nil, err
 	}
 
-	return Parse(stdout)
+	v := stdout.Bytes()
+	if f != nil {
+		v = f(v)
+	}
+	return Parse(v)
 }

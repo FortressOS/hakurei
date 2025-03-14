@@ -2,7 +2,6 @@
 package ldd
 
 import (
-	"fmt"
 	"math"
 	"path"
 	"strconv"
@@ -15,8 +14,8 @@ type Entry struct {
 	Location uint64 `json:"location"`
 }
 
-func Parse(stdout fmt.Stringer) ([]*Entry, error) {
-	payload := strings.Split(strings.TrimSpace(stdout.String()), "\n")
+func Parse(p []byte) ([]*Entry, error) {
+	payload := strings.Split(strings.TrimSpace(string(p)), "\n")
 	result := make([]*Entry, len(payload))
 
 	for i, ent := range payload {

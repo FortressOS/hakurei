@@ -69,10 +69,7 @@ func TestContainer(t *testing.T) {
 			container.Uid = 1000
 			container.Gid = 100
 			container.Hostname = tc.host
-			container.CommandContext = func(ctx context.Context) *exec.Cmd {
-				return exec.CommandContext(ctx, os.Args[0], "-test.v",
-					"-test.run=TestHelperInit", "--", "init")
-			}
+			container.CommandContext = commandContext
 			container.Flags |= tc.flags
 			container.Stdout, container.Stderr = os.Stdout, os.Stderr
 			container.Ops = tc.ops
@@ -89,7 +86,11 @@ func TestContainer(t *testing.T) {
 				Bind(os.Args[0], os.Args[0], 0)
 			// in case test has cgo enabled
 			var libPaths []string
-			if entries, err := ldd.Exec(ctx, os.Args[0]); err != nil {
+			if entries, err := ldd.ExecFilter(ctx,
+				commandContext,
+				func(v []byte) []byte {
+					return bytes.SplitN(v, []byte("TestHelperInit\n"), 2)[1]
+				}, os.Args[0]); err != nil {
 				log.Fatalf("ldd: %v", err)
 			} else {
 				libPathsM := make(map[string]struct{}, len(entries))
@@ -174,4 +175,9 @@ func TestHelperCheckContainer(t *testing.T) {
 	})
 	t.Run("seccomp", func(t *testing.T) { check.MustAssertSeccomp() })
 	t.Run("mntent", func(t *testing.T) { check.MustAssertMounts("", "/proc/mounts", "/proc/self/fd/0") })
+}
+
+func commandContext(ctx context.Context) *exec.Cmd {
+	return exec.CommandContext(ctx, os.Args[0], "-test.v",
+		"-test.run=TestHelperInit", "--", "init")
 }
