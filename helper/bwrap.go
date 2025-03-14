@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"os"
+	"os/exec"
 	"slices"
 	"strconv"
 	"sync"
@@ -24,14 +25,11 @@ type bubblewrap struct {
 	// name of the command to run in bwrap
 	name string
 
-	// whether to set process group id
-	setpgid bool
-
 	lock sync.RWMutex
 	*helperCmd
 }
 
-func (b *bubblewrap) Start(stat bool) error {
+func (b *bubblewrap) Start() error {
 	b.lock.Lock()
 	defer b.lock.Unlock()
 
@@ -41,7 +39,7 @@ func (b *bubblewrap) Start(stat bool) error {
 		return errors.New("exec: already started")
 	}
 
-	args := b.finalise(stat)
+	args := b.finalise()
 	b.Cmd.Args = slices.Grow(b.Cmd.Args, 4+len(args))
 	b.Cmd.Args = append(b.Cmd.Args, "--args", strconv.Itoa(int(b.argsFd)), "--", b.name)
 	b.Cmd.Args = append(b.Cmd.Args, args...)
@@ -53,12 +51,17 @@ func (b *bubblewrap) Start(stat bool) error {
 // Function argF returns an array of arguments passed directly to the child process.
 func MustNewBwrap(
 	ctx context.Context,
-	conf *bwrap.Config, name string, setpgid bool,
-	wt io.WriterTo, argF func(argsFD, statFD int) []string,
+	conf *bwrap.Config,
+	name string,
+	setpgid bool,
+	wt io.WriterTo,
+	argF func(argsFD, statFD int) []string,
+	cmdF func(cmd *exec.Cmd),
 	extraFiles []*os.File,
 	syncFd *os.File,
+	stat bool,
 ) Helper {
-	b, err := NewBwrap(ctx, conf, name, setpgid, wt, argF, extraFiles, syncFd)
+	b, err := NewBwrap(ctx, conf, name, setpgid, wt, argF, cmdF, extraFiles, syncFd, stat)
 	if err != nil {
 		panic(err.Error())
 	} else {
@@ -71,18 +74,25 @@ func MustNewBwrap(
 // Function argF returns an array of arguments passed directly to the child process.
 func NewBwrap(
 	ctx context.Context,
-	conf *bwrap.Config, name string, setpgid bool,
-	wt io.WriterTo, argF func(argsFd, statFd int) []string,
+	conf *bwrap.Config,
+	name string,
+	setpgid bool,
+	wt io.WriterTo,
+	argF func(argsFd, statFd int) []string,
+	cmdF func(cmd *exec.Cmd),
 	extraFiles []*os.File,
 	syncFd *os.File,
+	stat bool,
 ) (Helper, error) {
 	b := new(bubblewrap)
 
 	b.name = name
-	b.setpgid = setpgid
-	b.helperCmd = newHelperCmd(b, ctx, BubblewrapName, wt, argF, extraFiles)
-	if b.setpgid {
+	b.helperCmd = newHelperCmd(ctx, BubblewrapName, wt, argF, extraFiles, stat)
+	if setpgid {
 		b.Cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+	}
+	if cmdF != nil {
+		cmdF(b.helperCmd.Cmd)
 	}
 
 	if v, err := NewCheckedArgs(conf.Args(syncFd, b.extraFiles, &b.files)); err != nil {

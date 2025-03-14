@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"os/exec"
 	"sync"
 
 	"git.gensokyo.uk/security/fortify/helper/proc"
@@ -15,7 +16,7 @@ type direct struct {
 	*helperCmd
 }
 
-func (h *direct) Start(stat bool) error {
+func (h *direct) Start() error {
 	h.lock.Lock()
 	defer h.lock.Unlock()
 
@@ -25,15 +26,25 @@ func (h *direct) Start(stat bool) error {
 		return errors.New("exec: already started")
 	}
 
-	args := h.finalise(stat)
+	args := h.finalise()
 	h.Cmd.Args = append(h.Cmd.Args, args...)
 	return proc.Fulfill(h.ctx, &h.ExtraFiles, h.Cmd.Start, h.files, h.extraFiles)
 }
 
-// New initialises a new direct Helper instance with wt as the null-terminated argument writer.
+// NewDirect initialises a new direct Helper instance with wt as the null-terminated argument writer.
 // Function argF returns an array of arguments passed directly to the child process.
-func New(ctx context.Context, wt io.WriterTo, name string, argF func(argsFd, statFd int) []string) Helper {
+func NewDirect(
+	ctx context.Context,
+	wt io.WriterTo,
+	name string,
+	argF func(argsFd, statFd int) []string,
+	cmdF func(cmd *exec.Cmd),
+	stat bool,
+) Helper {
 	d := new(direct)
-	d.helperCmd = newHelperCmd(d, ctx, name, wt, argF, nil)
+	d.helperCmd = newHelperCmd(ctx, name, wt, argF, nil, stat)
+	if cmdF != nil {
+		cmdF(d.helperCmd.Cmd)
+	}
 	return d
 }

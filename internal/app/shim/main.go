@@ -131,15 +131,15 @@ func Main() {
 		ctx,
 		conf, path.Join(fst.Tmp, "sbin/init0"), false,
 		nil, func(int, int) []string { return make([]string, 0) },
+		func(cmd *exec.Cmd) { cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr },
 		extraFiles,
 		syncFd,
+		false,
 	); err != nil {
 		log.Fatalf("malformed sandbox config: %v", err)
 	} else {
-		b.SetStdin(os.Stdin).SetStdout(os.Stdout).SetStderr(os.Stderr)
-
 		// run and pass through exit code
-		if err = b.Start(false); err != nil {
+		if err = b.Start(); err != nil {
 			log.Fatalf("cannot start target process: %v", err)
 		} else if err = b.Wait(); err != nil {
 			var exitError *exec.ExitError

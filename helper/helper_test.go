@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os/exec"
 	"strconv"
 	"strings"
 	"testing"
@@ -46,15 +47,13 @@ func argFChecked(argsFd, statFd int) (args []string) {
 }
 
 // this function tests an implementation of the helper.Helper interface
-func testHelper(t *testing.T, createHelper func(ctx context.Context) helper.Helper) {
+func testHelper(t *testing.T, createHelper func(ctx context.Context, cmdF func(cmd *exec.Cmd), stat bool) helper.Helper) {
 	helper.InternalReplaceExecCommand(t)
 
 	t.Run("start helper with status channel and wait", func(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		h := createHelper(ctx)
-
 		stdout, stderr := new(strings.Builder), new(strings.Builder)
-		h.SetStdout(stdout).SetStderr(stderr)
+		h := createHelper(ctx, func(cmd *exec.Cmd) { cmd.Stdout, cmd.Stderr = stdout, stderr }, true)
 
 		t.Run("wait not yet started helper", func(t *testing.T) {
 			defer func() {
@@ -67,7 +66,7 @@ func testHelper(t *testing.T, createHelper func(ctx context.Context) helper.Help
 		})
 
 		t.Log("starting helper stub")
-		if err := h.Start(true); err != nil {
+		if err := h.Start(); err != nil {
 			t.Errorf("Start: error = %v", err)
 			cancel()
 			return
@@ -77,7 +76,7 @@ func testHelper(t *testing.T, createHelper func(ctx context.Context) helper.Help
 
 		t.Run("start already started helper", func(t *testing.T) {
 			wantErr := "exec: already started"
-			if err := h.Start(true); err != nil && err.Error() != wantErr {
+			if err := h.Start(); err != nil && err.Error() != wantErr {
 				t.Errorf("Start: error = %v, wantErr %v",
 					err, wantErr)
 				return
@@ -108,12 +107,10 @@ func testHelper(t *testing.T, createHelper func(ctx context.Context) helper.Help
 	t.Run("start helper and wait", func(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		h := createHelper(ctx)
-
 		stdout, stderr := new(strings.Builder), new(strings.Builder)
-		h.SetStdout(stdout).SetStderr(stderr)
+		h := createHelper(ctx, func(cmd *exec.Cmd) { cmd.Stdout, cmd.Stderr = stdout, stderr }, false)
 
-		if err := h.Start(false); err != nil {
+		if err := h.Start(); err != nil {
 			t.Errorf("Start() error = %v",
 				err)
 			return

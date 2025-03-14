@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"os"
+	"os/exec"
 	"strings"
 	"testing"
 	"time"
@@ -33,11 +34,11 @@ func TestBwrap(t *testing.T) {
 		h := helper.MustNewBwrap(
 			context.Background(),
 			sc, "fortify", false,
-			argsWt, argF,
-			nil, nil,
+			argsWt, argF, nil,
+			nil, nil, false,
 		)
 
-		if err := h.Start(false); !errors.Is(err, os.ErrNotExist) {
+		if err := h.Start(); !errors.Is(err, os.ErrNotExist) {
 			t.Errorf("Start: error = %v, wantErr %v",
 				err, os.ErrNotExist)
 		}
@@ -47,8 +48,8 @@ func TestBwrap(t *testing.T) {
 		if got := helper.MustNewBwrap(
 			context.TODO(),
 			sc, "fortify", false,
-			argsWt, argF,
-			nil, nil,
+			argsWt, argF, nil,
+			nil, nil, false,
 		); got == nil {
 			t.Errorf("MustNewBwrap(%#v, %#v, %#v) got nil",
 				sc, argsWt, "fortify")
@@ -68,8 +69,8 @@ func TestBwrap(t *testing.T) {
 		helper.MustNewBwrap(
 			context.TODO(),
 			&bwrap.Config{Hostname: "\x00"}, "fortify", false,
-			nil, argF,
-			nil, nil,
+			nil, argF, nil,
+			nil, nil, false,
 		)
 	})
 
@@ -78,17 +79,14 @@ func TestBwrap(t *testing.T) {
 
 		c, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
+		stdout, stderr := new(strings.Builder), new(strings.Builder)
 		h := helper.MustNewBwrap(
-			c,
-			sc, "crash-test-dummy", false,
-			nil, argFChecked,
-			nil, nil,
+			c, sc, "crash-test-dummy", false,
+			nil, argFChecked, func(cmd *exec.Cmd) { cmd.Stdout, cmd.Stderr = stdout, stderr },
+			nil, nil, false,
 		)
 
-		stdout, stderr := new(strings.Builder), new(strings.Builder)
-		h.SetStdout(stdout).SetStderr(stderr)
-
-		if err := h.Start(false); err != nil {
+		if err := h.Start(); err != nil {
 			t.Errorf("Start: error = %v",
 				err)
 			return
@@ -101,11 +99,10 @@ func TestBwrap(t *testing.T) {
 	})
 
 	t.Run("implementation compliance", func(t *testing.T) {
-		testHelper(t, func(ctx context.Context) helper.Helper {
+		testHelper(t, func(ctx context.Context, cmdF func(cmd *exec.Cmd), stat bool) helper.Helper {
 			return helper.MustNewBwrap(
-				ctx,
-				sc, "crash-test-dummy", false,
-				argsWt, argF, nil, nil,
+				ctx, sc, "crash-test-dummy", false,
+				argsWt, argF, cmdF, nil, nil, stat,
 			)
 		})
 	})

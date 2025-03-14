@@ -26,32 +26,22 @@ const (
 )
 
 type Helper interface {
-	// SetStdin sets the standard input of Helper.
-	SetStdin(r io.Reader) Helper
-	// SetStdout sets the standard output of Helper.
-	SetStdout(w io.Writer) Helper
-	// SetStderr sets the standard error of Helper.
-	SetStderr(w io.Writer) Helper
-	// SetEnv sets the environment of Helper.
-	SetEnv(env []string) Helper
-
 	// Start starts the helper process.
-	// A status pipe is passed to the helper if stat is true.
-	Start(stat bool) error
-	// Wait blocks until Helper exits and releases all its resources.
+	Start() error
+	// Wait blocks until Helper exits.
 	Wait() error
 
 	fmt.Stringer
 }
 
 func newHelperCmd(
-	h Helper, ctx context.Context, name string,
+	ctx context.Context, name string,
 	wt io.WriterTo, argF func(argsFd, statFd int) []string,
-	extraFiles []*os.File,
+	extraFiles []*os.File, stat bool,
 ) (cmd *helperCmd) {
 	cmd = new(helperCmd)
-	cmd.r = h
 	cmd.ctx = ctx
+	cmd.hasStatFd = stat
 
 	cmd.Cmd = commandContext(ctx, name)
 	cmd.Cmd.Cancel = func() error { return cmd.Process.Signal(syscall.SIGTERM) }
@@ -77,14 +67,13 @@ func newHelperCmd(
 
 // helperCmd wraps Cmd and implements methods shared across all Helper implementations.
 type helperCmd struct {
-	// ref to parent
-	r Helper
-
 	// returns an array of arguments passed directly
 	// to the helper process
 	argF func(statFd int) []string
 	// whether argsFd is present
 	hasArgsFd bool
+	// whether statFd is present
+	hasStatFd bool
 
 	// closes statFd
 	stat io.Closer
@@ -97,13 +86,8 @@ type helperCmd struct {
 	*exec.Cmd
 }
 
-func (h *helperCmd) SetStdin(r io.Reader) Helper  { h.Stdin = r; return h.r }
-func (h *helperCmd) SetStdout(w io.Writer) Helper { h.Stdout = w; return h.r }
-func (h *helperCmd) SetStderr(w io.Writer) Helper { h.Stderr = w; return h.r }
-func (h *helperCmd) SetEnv(env []string) Helper   { h.Env = env; return h.r }
-
 // finalise sets up the underlying [exec.Cmd] object.
-func (h *helperCmd) finalise(stat bool) (args []string) {
+func (h *helperCmd) finalise() (args []string) {
 	h.Env = slices.Grow(h.Env, 2)
 	if h.hasArgsFd {
 		h.Cmd.Env = append(h.Env, FortifyHelper+"=1")
@@ -112,7 +96,7 @@ func (h *helperCmd) finalise(stat bool) (args []string) {
 	}
 
 	statFd := -1
-	if stat {
+	if h.hasStatFd {
 		f := proc.NewStat(&h.stat)
 		statFd = int(proc.InitFile(f, h.extraFiles))
 		h.files = append(h.files, f)

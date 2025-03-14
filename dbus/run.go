@@ -39,9 +39,14 @@ func (p *Proxy) Start(ctx context.Context, output io.Writer, sandbox bool) error
 
 	c, cancel := context.WithCancelCause(ctx)
 	if !sandbox {
-		h = helper.New(c, p.seal, p.name, argF)
-		// xdg-dbus-proxy does not need to inherit the environment
-		h.SetEnv(make([]string, 0))
+		h = helper.NewDirect(c, p.seal, p.name, argF, func(cmd *exec.Cmd) {
+			if output != nil {
+				cmd.Stdout, cmd.Stderr = output, output
+			}
+
+			// xdg-dbus-proxy does not need to inherit the environment
+			cmd.Env = make([]string, 0)
+		}, true)
 	} else {
 		// look up absolute path if name is just a file name
 		toolPath := p.name
@@ -111,14 +116,15 @@ func (p *Proxy) Start(ctx context.Context, output io.Writer, sandbox bool) error
 			bc.Bind(k, k)
 		}
 
-		h = helper.MustNewBwrap(c, bc, toolPath, true, p.seal, argF, nil, nil)
+		h = helper.MustNewBwrap(c, bc, toolPath, true, p.seal, argF, func(cmd *exec.Cmd) {
+			if output != nil {
+				cmd.Stdout, cmd.Stderr = output, output
+			}
+		}, nil, nil, true)
 		p.bwrap = bc
 	}
 
-	if output != nil {
-		h.SetStdout(output).SetStderr(output)
-	}
-	if err := h.Start(true); err != nil {
+	if err := h.Start(); err != nil {
 		cancel(err)
 		return err
 	}
