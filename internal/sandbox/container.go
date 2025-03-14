@@ -3,6 +3,7 @@ package sandbox
 import (
 	"context"
 	"encoding/gob"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -111,7 +112,7 @@ type (
 
 func (p *Container) Start() error {
 	if p.cmd != nil {
-		panic("attempted to start twice")
+		return errors.New("sandbox: already started")
 	}
 
 	c, cancel := context.WithCancel(p.ctx)
