@@ -58,10 +58,6 @@ type (
 		InitParams
 		// Custom [exec.Cmd] initialisation function.
 		CommandContext func(ctx context.Context) (cmd *exec.Cmd)
-		// mapped uid in user namespace
-		Uid int
-		// mapped gid in user namespace
-		Gid int
 
 		// param encoder for shim and init
 		setup *gob.Encoder
@@ -86,6 +82,10 @@ type (
 		// Initial process argv.
 		Args []string
 
+		// Mapped Uid in user namespace.
+		Uid int
+		// Mapped Gid in user namespace.
+		Gid int
 		// Hostname value in UTS namespace.
 		Hostname string
 		// Sequential container setup ops.
@@ -140,8 +140,6 @@ func (p *Container) Start() error {
 			syscall.CLONE_NEWPID |
 			syscall.CLONE_NEWNS,
 
-		UidMappings: []syscall.SysProcIDMap{{p.Uid, syscall.Getuid(), 1}},
-		GidMappings: []syscall.SysProcIDMap{{p.Gid, syscall.Getgid(), 1}},
 		// remain privileged for setup
 		AmbientCaps: []uintptr{CAP_SYS_ADMIN},
 
@@ -200,6 +198,8 @@ func (p *Container) Serve() error {
 	return setup.Encode(
 		&initParams{
 			p.InitParams,
+			syscall.Getuid(),
+			syscall.Getgid(),
 			len(p.ExtraFiles),
 			fmsg.Load(),
 		},

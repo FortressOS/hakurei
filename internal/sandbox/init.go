@@ -33,6 +33,7 @@ const (
 type initParams struct {
 	InitParams
 
+	HostUid, HostGid int
 	// extra files count
 	Count int
 	// verbosity pass through
@@ -42,10 +43,6 @@ type initParams struct {
 func Init(exit func(code int)) {
 	runtime.LockOSThread()
 	fmsg.Prepare("init")
-
-	if err := internal.SetDumpable(internal.SUID_DUMP_DISABLE); err != nil {
-		log.Fatalf("cannot set SUID_DUMP_DISABLE: %s", err)
-	}
 
 	if os.Getpid() != 1 {
 		log.Fatal("this process must run as pid 1")
@@ -78,6 +75,29 @@ func Init(exit func(code int)) {
 		}
 		closeSetup = f
 		offsetSetup = int(setupFile.Fd() + 1)
+	}
+
+	// write uid/gid map here so parent does not need to set dumpable
+	if err := internal.SetDumpable(internal.SUID_DUMP_USER); err != nil {
+		log.Fatalf("cannot set SUID_DUMP_USER: %s", err)
+	}
+	if err := os.WriteFile("/proc/self/uid_map",
+		append([]byte{}, strconv.Itoa(params.Uid)+" "+strconv.Itoa(params.HostUid)+" 1\n"...),
+		0); err != nil {
+		log.Fatalf("%v", err)
+	}
+	if err := os.WriteFile("/proc/self/setgroups",
+		[]byte("deny\n"),
+		0); err != nil && !os.IsNotExist(err) {
+		log.Fatalf("%v", err)
+	}
+	if err := os.WriteFile("/proc/self/gid_map",
+		append([]byte{}, strconv.Itoa(params.Gid)+" "+strconv.Itoa(params.HostGid)+" 1\n"...),
+		0); err != nil {
+		log.Fatalf("%v", err)
+	}
+	if err := internal.SetDumpable(internal.SUID_DUMP_DISABLE); err != nil {
+		log.Fatalf("cannot set SUID_DUMP_DISABLE: %s", err)
 	}
 
 	if params.Hostname != "" {

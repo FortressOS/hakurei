@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path"
 	"slices"
+	"syscall"
 	"testing"
 	"time"
 
@@ -65,6 +66,8 @@ func TestContainer(t *testing.T) {
 
 			container := sandbox.New(ctx, os.Args[0], "-test.v",
 				"-test.run=TestHelperCheckContainer", "--", "check", tc.host)
+			container.Uid = 1000
+			container.Gid = 100
 			container.Hostname = tc.host
 			container.CommandContext = func(ctx context.Context) *exec.Cmd {
 				return exec.CommandContext(ctx, os.Args[0], "-test.v",
@@ -154,6 +157,14 @@ func TestHelperCheckContainer(t *testing.T) {
 		return
 	}
 
+	t.Run("user", func(t *testing.T) {
+		if uid := syscall.Getuid(); uid != 1000 {
+			t.Errorf("Getuid: %d, want 1000", uid)
+		}
+		if gid := syscall.Getgid(); gid != 100 {
+			t.Errorf("Getgid: %d, want 100", gid)
+		}
+	})
 	t.Run("hostname", func(t *testing.T) {
 		if name, err := os.Hostname(); err != nil {
 			t.Fatalf("cannot get hostname: %v", err)
