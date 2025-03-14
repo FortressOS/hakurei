@@ -9,8 +9,7 @@ import (
 	"git.gensokyo.uk/security/fortify/helper/proc"
 )
 
-// direct wraps *exec.Cmd and manages status and args fd.
-// Args is always 3 and status if set is always 4.
+// direct starts the helper directly and manages status and args fd.
 type direct struct {
 	lock sync.RWMutex
 	*helperCmd
@@ -28,7 +27,7 @@ func (h *direct) Start(stat bool) error {
 
 	args := h.finalise(stat)
 	h.Cmd.Args = append(h.Cmd.Args, args...)
-	return proc.Fulfill(h.ctx, h.Cmd, h.files, h.extraFiles)
+	return proc.Fulfill(h.ctx, &h.ExtraFiles, h.Cmd.Start, h.files, h.extraFiles)
 }
 
 // New initialises a new direct Helper instance with wt as the null-terminated argument writer.

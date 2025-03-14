@@ -45,7 +45,7 @@ func (b *bubblewrap) Start(stat bool) error {
 	b.Cmd.Args = slices.Grow(b.Cmd.Args, 4+len(args))
 	b.Cmd.Args = append(b.Cmd.Args, "--args", strconv.Itoa(int(b.argsFd)), "--", b.name)
 	b.Cmd.Args = append(b.Cmd.Args, args...)
-	return proc.Fulfill(b.ctx, b.Cmd, b.files, b.extraFiles)
+	return proc.Fulfill(b.ctx, &b.ExtraFiles, b.Cmd.Start, b.files, b.extraFiles)
 }
 
 // MustNewBwrap initialises a new Bwrap instance with wt as the null-terminated argument writer.

@@ -60,7 +60,10 @@ func (f *ExtraFilesPre) copy(e []*os.File) []*os.File {
 }
 
 // Fulfill calls the [File.Fulfill] method on all files, starts cmd and blocks until all fulfillment completes.
-func Fulfill(ctx context.Context, cmd *exec.Cmd, files []File, extraFiles *ExtraFilesPre) (err error) {
+func Fulfill(ctx context.Context,
+	v *[]*os.File, start func() error,
+	files []File, extraFiles *ExtraFilesPre,
+) (err error) {
 	var ecs int
 	for _, o := range files {
 		ecs += o.ErrCount()
@@ -77,8 +80,8 @@ func Fulfill(ctx context.Context, cmd *exec.Cmd, files []File, extraFiles *Extra
 		}
 	}
 
-	cmd.ExtraFiles = extraFiles.Files()
-	if err = cmd.Start(); err != nil {
+	*v = extraFiles.Files()
+	if err = start(); err != nil {
 		return
 	}
 
