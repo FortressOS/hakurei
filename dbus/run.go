@@ -37,8 +37,9 @@ func (p *Proxy) Start(ctx context.Context, output io.Writer, sandbox bool) error
 		}
 	)
 
+	c, cancel := context.WithCancelCause(ctx)
 	if !sandbox {
-		h = helper.New(p.seal, p.name, argF)
+		h = helper.New(c, p.seal, p.name, argF)
 		// xdg-dbus-proxy does not need to inherit the environment
 		h.SetEnv(make([]string, 0))
 	} else {
@@ -110,15 +111,14 @@ func (p *Proxy) Start(ctx context.Context, output io.Writer, sandbox bool) error
 			bc.Bind(k, k)
 		}
 
-		h = helper.MustNewBwrap(bc, toolPath, true, p.seal, argF, nil, nil)
+		h = helper.MustNewBwrap(c, bc, toolPath, true, p.seal, argF, nil, nil)
 		p.bwrap = bc
 	}
 
 	if output != nil {
-		h.Stdout(output).Stderr(output)
+		h.SetStdout(output).SetStderr(output)
 	}
-	c, cancel := context.WithCancelCause(ctx)
-	if err := h.Start(c, true); err != nil {
+	if err := h.Start(true); err != nil {
 		cancel(err)
 		return err
 	}

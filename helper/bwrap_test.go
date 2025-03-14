@@ -31,12 +31,13 @@ func TestBwrap(t *testing.T) {
 		})
 
 		h := helper.MustNewBwrap(
+			context.Background(),
 			sc, "fortify", false,
 			argsWt, argF,
 			nil, nil,
 		)
 
-		if err := h.Start(context.Background(), false); !errors.Is(err, os.ErrNotExist) {
+		if err := h.Start(false); !errors.Is(err, os.ErrNotExist) {
 			t.Errorf("Start: error = %v, wantErr %v",
 				err, os.ErrNotExist)
 		}
@@ -44,6 +45,7 @@ func TestBwrap(t *testing.T) {
 
 	t.Run("valid new helper nil check", func(t *testing.T) {
 		if got := helper.MustNewBwrap(
+			context.TODO(),
 			sc, "fortify", false,
 			argsWt, argF,
 			nil, nil,
@@ -64,6 +66,7 @@ func TestBwrap(t *testing.T) {
 		}()
 
 		helper.MustNewBwrap(
+			context.TODO(),
 			&bwrap.Config{Hostname: "\x00"}, "fortify", false,
 			nil, argF,
 			nil, nil,
@@ -73,19 +76,19 @@ func TestBwrap(t *testing.T) {
 	t.Run("start without pipes", func(t *testing.T) {
 		helper.InternalReplaceExecCommand(t)
 
+		c, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
 		h := helper.MustNewBwrap(
+			c,
 			sc, "crash-test-dummy", false,
 			nil, argFChecked,
 			nil, nil,
 		)
 
 		stdout, stderr := new(strings.Builder), new(strings.Builder)
-		h.Stdout(stdout).Stderr(stderr)
+		h.SetStdout(stdout).SetStderr(stderr)
 
-		c, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-
-		if err := h.Start(c, false); err != nil {
+		if err := h.Start(false); err != nil {
 			t.Errorf("Start: error = %v",
 				err)
 			return
@@ -98,8 +101,9 @@ func TestBwrap(t *testing.T) {
 	})
 
 	t.Run("implementation compliance", func(t *testing.T) {
-		testHelper(t, func() helper.Helper {
+		testHelper(t, func(ctx context.Context) helper.Helper {
 			return helper.MustNewBwrap(
+				ctx,
 				sc, "crash-test-dummy", false,
 				argsWt, argF, nil, nil,
 			)

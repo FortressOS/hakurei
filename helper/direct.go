@@ -16,7 +16,7 @@ type direct struct {
 	*helperCmd
 }
 
-func (h *direct) Start(ctx context.Context, stat bool) error {
+func (h *direct) Start(stat bool) error {
 	h.lock.Lock()
 	defer h.lock.Unlock()
 
@@ -26,15 +26,15 @@ func (h *direct) Start(ctx context.Context, stat bool) error {
 		return errors.New("exec: already started")
 	}
 
-	args := h.finalise(ctx, stat)
+	args := h.finalise(stat)
 	h.Cmd.Args = append(h.Cmd.Args, args...)
-	return proc.Fulfill(ctx, h.Cmd, h.files, h.extraFiles)
+	return proc.Fulfill(h.ctx, h.Cmd, h.files, h.extraFiles)
 }
 
 // New initialises a new direct Helper instance with wt as the null-terminated argument writer.
 // Function argF returns an array of arguments passed directly to the child process.
-func New(wt io.WriterTo, name string, argF func(argsFd, statFd int) []string) Helper {
+func New(ctx context.Context, wt io.WriterTo, name string, argF func(argsFd, statFd int) []string) Helper {
 	d := new(direct)
-	d.helperCmd = newHelperCmd(d, name, wt, argF, nil)
+	d.helperCmd = newHelperCmd(d, ctx, name, wt, argF, nil)
 	return d
 }

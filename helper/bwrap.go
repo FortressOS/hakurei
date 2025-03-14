@@ -31,7 +31,7 @@ type bubblewrap struct {
 	*helperCmd
 }
 
-func (b *bubblewrap) Start(ctx context.Context, stat bool) error {
+func (b *bubblewrap) Start(stat bool) error {
 	b.lock.Lock()
 	defer b.lock.Unlock()
 
@@ -41,27 +41,24 @@ func (b *bubblewrap) Start(ctx context.Context, stat bool) error {
 		return errors.New("exec: already started")
 	}
 
-	args := b.finalise(ctx, stat)
-	if b.setpgid {
-		b.Cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
-	}
-
+	args := b.finalise(stat)
 	b.Cmd.Args = slices.Grow(b.Cmd.Args, 4+len(args))
 	b.Cmd.Args = append(b.Cmd.Args, "--args", strconv.Itoa(int(b.argsFd)), "--", b.name)
 	b.Cmd.Args = append(b.Cmd.Args, args...)
-	return proc.Fulfill(ctx, b.Cmd, b.files, b.extraFiles)
+	return proc.Fulfill(b.ctx, b.Cmd, b.files, b.extraFiles)
 }
 
 // MustNewBwrap initialises a new Bwrap instance with wt as the null-terminated argument writer.
 // If wt is nil, the child process spawned by bwrap will not get an argument pipe.
 // Function argF returns an array of arguments passed directly to the child process.
 func MustNewBwrap(
+	ctx context.Context,
 	conf *bwrap.Config, name string, setpgid bool,
 	wt io.WriterTo, argF func(argsFD, statFD int) []string,
 	extraFiles []*os.File,
 	syncFd *os.File,
 ) Helper {
-	b, err := NewBwrap(conf, name, setpgid, wt, argF, extraFiles, syncFd)
+	b, err := NewBwrap(ctx, conf, name, setpgid, wt, argF, extraFiles, syncFd)
 	if err != nil {
 		panic(err.Error())
 	} else {
@@ -73,6 +70,7 @@ func MustNewBwrap(
 // If wt is nil, the child process spawned by bwrap will not get an argument pipe.
 // Function argF returns an array of arguments passed directly to the child process.
 func NewBwrap(
+	ctx context.Context,
 	conf *bwrap.Config, name string, setpgid bool,
 	wt io.WriterTo, argF func(argsFd, statFd int) []string,
 	extraFiles []*os.File,
@@ -82,7 +80,10 @@ func NewBwrap(
 
 	b.name = name
 	b.setpgid = setpgid
-	b.helperCmd = newHelperCmd(b, BubblewrapName, wt, argF, extraFiles)
+	b.helperCmd = newHelperCmd(b, ctx, BubblewrapName, wt, argF, extraFiles)
+	if b.setpgid {
+		b.Cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+	}
 
 	if v, err := NewCheckedArgs(conf.Args(syncFd, b.extraFiles, &b.files)); err != nil {
 		return nil, err

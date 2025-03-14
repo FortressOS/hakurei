@@ -124,7 +124,11 @@ func Main() {
 	if fmsg.Load() {
 		seccomp.CPrintln = log.Println
 	}
+
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop() // unreachable
 	if b, err := helper.NewBwrap(
+		ctx,
 		conf, path.Join(fst.Tmp, "sbin/init0"), false,
 		nil, func(int, int) []string { return make([]string, 0) },
 		extraFiles,
@@ -132,12 +136,10 @@ func Main() {
 	); err != nil {
 		log.Fatalf("malformed sandbox config: %v", err)
 	} else {
-		b.Stdin(os.Stdin).Stdout(os.Stdout).Stderr(os.Stderr)
-		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-		defer stop() // unreachable
+		b.SetStdin(os.Stdin).SetStdout(os.Stdout).SetStderr(os.Stderr)
 
 		// run and pass through exit code
-		if err = b.Start(ctx, false); err != nil {
+		if err = b.Start(false); err != nil {
 			log.Fatalf("cannot start target process: %v", err)
 		} else if err = b.Wait(); err != nil {
 			var exitError *exec.ExitError

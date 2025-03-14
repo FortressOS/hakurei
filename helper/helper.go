@@ -1,4 +1,4 @@
-// Package helper runs external helpers with optional sandboxing and manages their status/args pipes.
+// Package helper runs external helpers with optional sandboxing.
 package helper
 
 import (
@@ -26,18 +26,18 @@ const (
 )
 
 type Helper interface {
-	// Stdin sets the standard input of Helper.
-	Stdin(r io.Reader) Helper
-	// Stdout sets the standard output of Helper.
-	Stdout(w io.Writer) Helper
-	// Stderr sets the standard error of Helper.
-	Stderr(w io.Writer) Helper
+	// SetStdin sets the standard input of Helper.
+	SetStdin(r io.Reader) Helper
+	// SetStdout sets the standard output of Helper.
+	SetStdout(w io.Writer) Helper
+	// SetStderr sets the standard error of Helper.
+	SetStderr(w io.Writer) Helper
 	// SetEnv sets the environment of Helper.
 	SetEnv(env []string) Helper
 
 	// Start starts the helper process.
 	// A status pipe is passed to the helper if stat is true.
-	Start(ctx context.Context, stat bool) error
+	Start(stat bool) error
 	// Wait blocks until Helper exits and releases all its resources.
 	Wait() error
 
@@ -45,14 +45,17 @@ type Helper interface {
 }
 
 func newHelperCmd(
-	h Helper, name string,
+	h Helper, ctx context.Context, name string,
 	wt io.WriterTo, argF func(argsFd, statFd int) []string,
 	extraFiles []*os.File,
 ) (cmd *helperCmd) {
 	cmd = new(helperCmd)
-
 	cmd.r = h
-	cmd.name = name
+	cmd.ctx = ctx
+
+	cmd.Cmd = commandContext(ctx, name)
+	cmd.Cmd.Cancel = func() error { return cmd.Process.Signal(syscall.SIGTERM) }
+	cmd.WaitDelay = WaitDelay
 
 	cmd.extraFiles = new(proc.ExtraFilesPre)
 	for _, f := range extraFiles {
@@ -90,31 +93,23 @@ type helperCmd struct {
 	// passed through to [proc.Fulfill] and [proc.InitFile]
 	extraFiles *proc.ExtraFilesPre
 
-	name           string
-	stdin          io.Reader
-	stdout, stderr io.Writer
-	env            []string
+	ctx context.Context
 	*exec.Cmd
 }
 
-func (h *helperCmd) Stdin(r io.Reader) Helper   { h.stdin = r; return h.r }
-func (h *helperCmd) Stdout(w io.Writer) Helper  { h.stdout = w; return h.r }
-func (h *helperCmd) Stderr(w io.Writer) Helper  { h.stderr = w; return h.r }
-func (h *helperCmd) SetEnv(env []string) Helper { h.env = env; return h.r }
+func (h *helperCmd) SetStdin(r io.Reader) Helper  { h.Stdin = r; return h.r }
+func (h *helperCmd) SetStdout(w io.Writer) Helper { h.Stdout = w; return h.r }
+func (h *helperCmd) SetStderr(w io.Writer) Helper { h.Stderr = w; return h.r }
+func (h *helperCmd) SetEnv(env []string) Helper   { h.Env = env; return h.r }
 
-// finalise initialises the underlying [exec.Cmd] object.
-func (h *helperCmd) finalise(ctx context.Context, stat bool) (args []string) {
-	h.Cmd = commandContext(ctx, h.name)
-	h.Cmd.Stdin, h.Cmd.Stdout, h.Cmd.Stderr = h.stdin, h.stdout, h.stderr
-	h.Cmd.Env = slices.Grow(h.env, 2)
+// finalise sets up the underlying [exec.Cmd] object.
+func (h *helperCmd) finalise(stat bool) (args []string) {
+	h.Env = slices.Grow(h.Env, 2)
 	if h.hasArgsFd {
-		h.Cmd.Env = append(h.Cmd.Env, FortifyHelper+"=1")
+		h.Cmd.Env = append(h.Env, FortifyHelper+"=1")
 	} else {
-		h.Cmd.Env = append(h.Cmd.Env, FortifyHelper+"=0")
+		h.Cmd.Env = append(h.Env, FortifyHelper+"=0")
 	}
-
-	h.Cmd.Cancel = func() error { return h.Cmd.Process.Signal(syscall.SIGTERM) }
-	h.Cmd.WaitDelay = WaitDelay
 
 	statFd := -1
 	if stat {

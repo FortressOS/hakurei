@@ -46,14 +46,15 @@ func argFChecked(argsFd, statFd int) (args []string) {
 }
 
 // this function tests an implementation of the helper.Helper interface
-func testHelper(t *testing.T, createHelper func() helper.Helper) {
+func testHelper(t *testing.T, createHelper func(ctx context.Context) helper.Helper) {
 	helper.InternalReplaceExecCommand(t)
 
 	t.Run("start helper with status channel and wait", func(t *testing.T) {
-		h := createHelper()
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		h := createHelper(ctx)
 
 		stdout, stderr := new(strings.Builder), new(strings.Builder)
-		h.Stdout(stdout).Stderr(stderr)
+		h.SetStdout(stdout).SetStderr(stderr)
 
 		t.Run("wait not yet started helper", func(t *testing.T) {
 			defer func() {
@@ -65,10 +66,8 @@ func testHelper(t *testing.T, createHelper func() helper.Helper) {
 			panic(fmt.Sprintf("unreachable: %v", h.Wait()))
 		})
 
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-
 		t.Log("starting helper stub")
-		if err := h.Start(ctx, true); err != nil {
+		if err := h.Start(true); err != nil {
 			t.Errorf("Start: error = %v", err)
 			cancel()
 			return
@@ -78,7 +77,7 @@ func testHelper(t *testing.T, createHelper func() helper.Helper) {
 
 		t.Run("start already started helper", func(t *testing.T) {
 			wantErr := "exec: already started"
-			if err := h.Start(ctx, true); err != nil && err.Error() != wantErr {
+			if err := h.Start(true); err != nil && err.Error() != wantErr {
 				t.Errorf("Start: error = %v, wantErr %v",
 					err, wantErr)
 				return
@@ -107,14 +106,14 @@ func testHelper(t *testing.T, createHelper func() helper.Helper) {
 	})
 
 	t.Run("start helper and wait", func(t *testing.T) {
-		h := createHelper()
-
-		stdout, stderr := new(strings.Builder), new(strings.Builder)
-		h.Stdout(stdout).Stderr(stderr)
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
+		h := createHelper(ctx)
 
-		if err := h.Start(ctx, false); err != nil {
+		stdout, stderr := new(strings.Builder), new(strings.Builder)
+		h.SetStdout(stdout).SetStderr(stderr)
+
+		if err := h.Start(false); err != nil {
 			t.Errorf("Start() error = %v",
 				err)
 			return
