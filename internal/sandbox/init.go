@@ -68,6 +68,10 @@ func Init(exit func(code int)) {
 
 		log.Fatalf("cannot decode init setup payload: %v", err)
 	} else {
+		if params.Ops == nil {
+			log.Fatal("invalid setup parameters")
+		}
+
 		fmsg.Store(params.Verbose)
 		fmsg.Verbose("received setup parameters")
 		if params.Verbose {
