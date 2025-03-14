@@ -10,6 +10,7 @@ import (
 	"path"
 	"strconv"
 	"syscall"
+	"time"
 
 	"git.gensokyo.uk/security/fortify/helper/proc"
 	"git.gensokyo.uk/security/fortify/internal"
@@ -67,6 +68,9 @@ type (
 		Stdin  io.Reader
 		Stdout io.Writer
 		Stderr io.Writer
+
+		Cancel    func() error
+		WaitDelay time.Duration
 
 		cmd *exec.Cmd
 		ctx context.Context
@@ -130,6 +134,7 @@ func (p *Container) Start() error {
 
 	p.cmd = p.CommandContext(c)
 	p.cmd.Stdin, p.cmd.Stdout, p.cmd.Stderr = p.Stdin, p.Stdout, p.Stderr
+	p.cmd.Cancel, p.cmd.WaitDelay = p.Cancel, p.WaitDelay
 	p.cmd.Dir = "/"
 	p.cmd.SysProcAttr = &syscall.SysProcAttr{
 		Setsid:    p.Flags&FAllowTTY == 0,
@@ -207,6 +212,11 @@ func (p *Container) Serve() error {
 }
 
 func (p *Container) Wait() error { defer p.cancel(); return p.cmd.Wait() }
+
+func (p *Container) String() string {
+	return fmt.Sprintf("argv: %q, flags: %#x, seccomp: %#x",
+		p.Args, p.Flags, int(p.Flags.seccomp(p.Seccomp)))
+}
 
 func New(ctx context.Context, name string, args ...string) *Container {
 	return &Container{name: name, ctx: ctx,

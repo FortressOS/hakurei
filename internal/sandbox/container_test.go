@@ -18,6 +18,7 @@ import (
 	"git.gensokyo.uk/security/fortify/internal/fmsg"
 	"git.gensokyo.uk/security/fortify/internal/sandbox"
 	"git.gensokyo.uk/security/fortify/ldd"
+	"git.gensokyo.uk/security/fortify/seccomp"
 	check "git.gensokyo.uk/security/fortify/test/sandbox"
 )
 
@@ -143,6 +144,16 @@ func TestContainer(t *testing.T) {
 				t.Fatalf("wait: %v", err)
 			}
 		})
+	}
+}
+
+func TestContainerString(t *testing.T) {
+	container := sandbox.New(context.TODO(), "ldd", "/usr/bin/env")
+	container.Flags |= sandbox.FAllowDevel
+	container.Seccomp |= seccomp.FlagMultiarch
+	want := `argv: ["ldd" "/usr/bin/env"], flags: 0x2, seccomp: 0x2e`
+	if got := container.String(); got != want {
+		t.Errorf("String: %s, want %s", got, want)
 	}
 }
 
