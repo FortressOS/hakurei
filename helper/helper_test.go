@@ -100,8 +100,8 @@ func testHelper(t *testing.T,
 			}
 		})
 
-		if got := stdout.String(); !strings.HasPrefix(got, wantPayload) {
-			t.Errorf("Start: stdout = %v, want %v",
+		if got := stderr.String(); got != wantPayload {
+			t.Errorf("Start: stderr = %v, want %v",
 				got, wantPayload)
 		}
 	})
@@ -123,8 +123,8 @@ func testHelper(t *testing.T,
 				err, stdout, stderr)
 		}
 
-		if got := stdout.String(); !strings.HasPrefix(got, wantPayload) {
-			t.Errorf("Start() stdout = %v, want %v",
+		if got := stderr.String(); got != wantPayload {
+			t.Errorf("Start() stderr = %v, want %v",
 				got, wantPayload)
 		}
 	})
