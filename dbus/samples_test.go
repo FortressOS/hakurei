@@ -6,6 +6,12 @@ import (
 	"git.gensokyo.uk/security/fortify/dbus"
 )
 
+const (
+	sampleHostPath = "/run/user/1971/bus"
+	sampleHostAddr = "unix:path=" + sampleHostPath
+	sampleBindPath = "/tmp/fortify.1971/12622d846cc3fe7b4c10359d01f0eb47/bus"
+)
+
 var samples = []dbusTestCase{
 	{
 		"org.chromium.Chromium", &dbus.Config{
@@ -19,10 +25,10 @@ var samples = []dbusTestCase{
 			Log:       false,
 			Filter:    true,
 		}, false, false,
-		[2]string{"unix:path=/run/user/1971/bus", "/tmp/fortify.1971/12622d846cc3fe7b4c10359d01f0eb47/bus"},
+		[2]string{sampleHostAddr, sampleBindPath},
 		[]string{
-			"unix:path=/run/user/1971/bus",
-			"/tmp/fortify.1971/12622d846cc3fe7b4c10359d01f0eb47/bus",
+			sampleHostAddr,
+			sampleBindPath,
 			"--filter",
 			"--talk=org.freedesktop.Notifications",
 			"--talk=org.freedesktop.FileManager1",
@@ -48,9 +54,10 @@ var samples = []dbusTestCase{
 			Log:       false,
 			Filter:    true,
 		}, false, false,
-		[2]string{"unix:path=/run/dbus/system_bus_socket", "/tmp/fortify.1971/12622d846cc3fe7b4c10359d01f0eb47/system_bus_socket"},
-		[]string{"unix:path=/run/dbus/system_bus_socket",
-			"/tmp/fortify.1971/12622d846cc3fe7b4c10359d01f0eb47/system_bus_socket",
+		[2]string{sampleHostAddr, sampleBindPath},
+		[]string{
+			sampleHostAddr,
+			sampleBindPath,
 			"--filter",
 			"--talk=org.bluez",
 			"--talk=org.freedesktop.Avahi",
@@ -68,10 +75,10 @@ var samples = []dbusTestCase{
 			Log:       false,
 			Filter:    true,
 		}, false, false,
-		[2]string{"unix:path=/run/user/1971/bus", "/tmp/fortify.1971/34c24f16a0d791d28835ededaf446033/bus"},
+		[2]string{sampleHostAddr, sampleBindPath},
 		[]string{
-			"unix:path=/run/user/1971/bus",
-			"/tmp/fortify.1971/34c24f16a0d791d28835ededaf446033/bus",
+			sampleHostAddr,
+			sampleBindPath,
 			"--filter",
 			"--talk=org.freedesktop.Notifications",
 			"--talk=org.kde.StatusNotifierWatcher",
@@ -91,10 +98,10 @@ var samples = []dbusTestCase{
 			Log:       true,
 			Filter:    true,
 		}, false, false,
-		[2]string{"unix:path=/run/user/1971/bus", "/tmp/fortify.1971/5da7845287a936efbc2fa75d7d81e501/bus"},
+		[2]string{sampleHostAddr, sampleBindPath},
 		[]string{
-			"unix:path=/run/user/1971/bus",
-			"/tmp/fortify.1971/5da7845287a936efbc2fa75d7d81e501/bus",
+			sampleHostAddr,
+			sampleBindPath,
 			"--filter",
 			"--see=uk.gensokyo.CrashTestDummy1",
 			"--talk=org.freedesktop.Notifications",
@@ -114,10 +121,10 @@ var samples = []dbusTestCase{
 			Log:       true,
 			Filter:    true,
 		}, false, true,
-		[2]string{"unix:path=/run/user/1971/bus", "/tmp/fortify.1971/5da7845287a936efbc2fa75d7d81e501/bus"},
+		[2]string{sampleHostAddr, sampleBindPath},
 		[]string{
-			"unix:path=/run/user/1971/bus",
-			"/tmp/fortify.1971/5da7845287a936efbc2fa75d7d81e501/bus",
+			sampleHostAddr,
+			sampleBindPath,
 			"--filter",
 			"--see=uk.gensokyo.CrashTestDummy",
 			"--talk=org.freedesktop.Notifications",

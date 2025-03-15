@@ -3,6 +3,9 @@ package dbus_test
 import (
 	"context"
 	"errors"
+	"fmt"
+	"os"
+	"os/exec"
 	"strings"
 	"testing"
 	"time"
@@ -100,12 +103,13 @@ func TestProxy_Seal(t *testing.T) {
 }
 
 func TestProxy_Start_Wait_Close_String(t *testing.T) {
-	t.Run("sandboxed", func(t *testing.T) {
+	t.Run("sandbox", func(t *testing.T) {
+		proxyName := dbus.ProxyName
+		dbus.ProxyName = os.Args[0]
+		t.Cleanup(func() { dbus.ProxyName = proxyName })
 		testProxyStartWaitCloseString(t, true)
 	})
-	t.Run("direct", func(t *testing.T) {
-		testProxyStartWaitCloseString(t, false)
-	})
+	t.Run("direct", func(t *testing.T) { testProxyStartWaitCloseString(t, false) })
 }
 
 func testProxyStartWaitCloseString(t *testing.T, sandbox bool) {
@@ -125,14 +129,30 @@ func testProxyStartWaitCloseString(t *testing.T, sandbox bool) {
 		})
 
 		t.Run("proxy for "+id, func(t *testing.T) {
-			helper.InternalReplaceExecCommand(t)
-			overridePath(t)
-
 			p := dbus.New(tc[0].bus, tc[1].bus)
+			p.CmdF = func(cmd *exec.Cmd) {
+				wantArgv0 := dbus.ProxyName
+				if sandbox {
+					wantArgv0 = "bwrap"
+				}
+				if cmd.Args[0] != wantArgv0 {
+					panic(fmt.Sprintf("unexpected argv0 %q", os.Args[0]))
+				}
+				cmd.Err = nil
+				cmd.Path = os.Args[0]
+
+				if sandbox {
+					cmd.Args = append([]string{os.Args[0], "-test.run=TestHelperStub", "--"},
+						append(cmd.Args[:5], append([]string{"-test.run=TestHelperStub", "--"}, cmd.Args[5:]...)...)...)
+					cmd.Env = append(cmd.Env, "GO_TEST_FORTIFY_BWRAP_STUB_TYPE=dbus")
+				} else {
+					cmd.Args = append([]string{os.Args[0], "-test.run=TestHelperStub", "--"}, cmd.Args[1:]...)
+				}
+			}
 			output := new(strings.Builder)
 
-			t.Run("unsealed behaviour of "+id, func(t *testing.T) {
-				t.Run("unsealed string of "+id, func(t *testing.T) {
+			t.Run("unsealed", func(t *testing.T) {
+				t.Run("string", func(t *testing.T) {
 					want := "(unsealed dbus proxy)"
 					if got := p.String(); got != want {
 						t.Errorf("String() = %v, want %v",
@@ -141,7 +161,7 @@ func testProxyStartWaitCloseString(t *testing.T, sandbox bool) {
 					}
 				})
 
-				t.Run("unsealed start of "+id, func(t *testing.T) {
+				t.Run("start", func(t *testing.T) {
 					want := "proxy not sealed"
 					if err := p.Start(context.Background(), nil, sandbox); err == nil || err.Error() != want {
 						t.Errorf("Start() error = %v, wantErr %q",
@@ -150,7 +170,7 @@ func testProxyStartWaitCloseString(t *testing.T, sandbox bool) {
 					}
 				})
 
-				t.Run("unsealed wait of "+id, func(t *testing.T) {
+				t.Run("wait", func(t *testing.T) {
 					wantErr := "dbus: not started"
 					if err := p.Wait(); err == nil || err.Error() != wantErr {
 						t.Errorf("Wait() error = %v, wantErr %v",
@@ -168,7 +188,7 @@ func testProxyStartWaitCloseString(t *testing.T, sandbox bool) {
 				}
 			})
 
-			t.Run("sealed behaviour of "+id, func(t *testing.T) {
+			t.Run("sealed", func(t *testing.T) {
 				want := strings.Join(append(tc[0].want, tc[1].want...), " ")
 				if got := p.String(); got != want {
 					t.Errorf("String() = %v, want %v",
@@ -176,7 +196,7 @@ func testProxyStartWaitCloseString(t *testing.T, sandbox bool) {
 					return
 				}
 
-				t.Run("sealed start of "+id, func(t *testing.T) {
+				t.Run("start", func(t *testing.T) {
 					ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 					defer cancel()
 
@@ -185,8 +205,14 @@ func testProxyStartWaitCloseString(t *testing.T, sandbox bool) {
 							err)
 					}
 
-					t.Run("started string of "+id, func(t *testing.T) {
-						wantSubstr := dbus.ProxyName + " --args="
+					t.Run("string", func(t *testing.T) {
+						wantSubstr := fmt.Sprintf("%s -test.run=TestHelperStub -- --args=3 --fd=4", os.Args[0])
+						if sandbox {
+							wantSubstr = fmt.Sprintf(
+								"%s -test.run=TestHelperStub -- bwrap --args 6 -- %s -test.run=TestHelperStub -- --args=3 --fd=4",
+								os.Args[0], os.Args[0],
+							)
+						}
 						if got := p.String(); !strings.Contains(got, wantSubstr) {
 							t.Errorf("String() = %v, want %v",
 								p.String(), wantSubstr)
@@ -194,7 +220,7 @@ func testProxyStartWaitCloseString(t *testing.T, sandbox bool) {
 						}
 					})
 
-					t.Run("started wait of "+id, func(t *testing.T) {
+					t.Run("wait", func(t *testing.T) {
 						p.Close()
 						if err := p.Wait(); err != nil {
 							t.Errorf("Wait() error = %v\noutput: %s",
@@ -205,12 +231,4 @@ func testProxyStartWaitCloseString(t *testing.T, sandbox bool) {
 			})
 		})
 	}
-}
-
-func overridePath(t *testing.T) {
-	proxyName := dbus.ProxyName
-	dbus.ProxyName = "/nonexistent-xdg-dbus-proxy"
-	t.Cleanup(func() {
-		dbus.ProxyName = proxyName
-	})
 }

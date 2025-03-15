@@ -6,6 +6,4 @@ import (
 	"git.gensokyo.uk/security/fortify/helper"
 )
 
-func TestHelperChildStub(t *testing.T) {
-	helper.InternalChildStub()
-}
+func TestHelperStub(t *testing.T) { helper.InternalHelperStub() }

@@ -42,7 +42,7 @@ func newHelperCmd(
 ) (cmd *helperCmd, args []string) {
 	cmd = new(helperCmd)
 	cmd.helperFiles, args = newHelperFiles(ctx, wt, stat, argF, extraFiles)
-	cmd.Cmd = commandContext(ctx, name)
+	cmd.Cmd = exec.CommandContext(ctx, name)
 	cmd.Cmd.Cancel = func() error { return cmd.Process.Signal(syscall.SIGTERM) }
 	cmd.WaitDelay = WaitDelay
 	return

@@ -3,6 +3,8 @@ package helper_test
 import (
 	"context"
 	"errors"
+	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"strings"
@@ -17,7 +19,7 @@ func TestBwrap(t *testing.T) {
 	sc := &bwrap.Config{
 		Net:           true,
 		Hostname:      "localhost",
-		Chdir:         "/nonexistent",
+		Chdir:         "/proc/nonexistent",
 		Clearenv:      true,
 		NewSession:    true,
 		DieWithParent: true,
@@ -26,14 +28,12 @@ func TestBwrap(t *testing.T) {
 
 	t.Run("nonexistent bwrap name", func(t *testing.T) {
 		bubblewrapName := helper.BubblewrapName
-		helper.BubblewrapName = "/nonexistent"
-		t.Cleanup(func() {
-			helper.BubblewrapName = bubblewrapName
-		})
+		helper.BubblewrapName = "/proc/nonexistent"
+		t.Cleanup(func() { helper.BubblewrapName = bubblewrapName })
 
 		h := helper.MustNewBwrap(
 			context.Background(),
-			"fortify",
+			"false",
 			argsWt, false,
 			argF, nil,
 			nil,
@@ -49,14 +49,14 @@ func TestBwrap(t *testing.T) {
 	t.Run("valid new helper nil check", func(t *testing.T) {
 		if got := helper.MustNewBwrap(
 			context.TODO(),
-			"fortify",
+			"false",
 			argsWt, false,
 			argF, nil,
 			nil,
 			sc, nil,
 		); got == nil {
 			t.Errorf("MustNewBwrap(%#v, %#v, %#v) got nil",
-				sc, argsWt, "fortify")
+				sc, argsWt, "false")
 			return
 		}
 	})
@@ -72,7 +72,7 @@ func TestBwrap(t *testing.T) {
 
 		helper.MustNewBwrap(
 			context.TODO(),
-			"fortify",
+			"false",
 			argsWt, false,
 			argF, nil,
 			nil,
@@ -81,15 +81,13 @@ func TestBwrap(t *testing.T) {
 	})
 
 	t.Run("start without pipes", func(t *testing.T) {
-		helper.InternalReplaceExecCommand(t)
-
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		stdout, stderr := new(strings.Builder), new(strings.Builder)
 		h := helper.MustNewBwrap(
-			ctx, "crash-test-dummy",
+			ctx, os.Args[0],
 			nil, false,
-			argFChecked, func(cmd *exec.Cmd) { cmd.Stdout, cmd.Stderr = stdout, stderr },
+			argFChecked, func(cmd *exec.Cmd) { cmd.Stdout, cmd.Stderr = stdout, stderr; hijackBwrap(cmd) },
 			nil,
 			sc, nil,
 		)
@@ -107,14 +105,23 @@ func TestBwrap(t *testing.T) {
 	})
 
 	t.Run("implementation compliance", func(t *testing.T) {
-		testHelper(t, func(ctx context.Context, cmdF func(cmd *exec.Cmd), stat bool) helper.Helper {
+		testHelper(t, func(ctx context.Context, setOutput func(stdoutP, stderrP *io.Writer), stat bool) helper.Helper {
 			return helper.MustNewBwrap(
-				ctx, "crash-test-dummy",
+				ctx, os.Args[0],
 				argsWt, stat,
-				argF, cmdF,
+				argF, func(cmd *exec.Cmd) { setOutput(&cmd.Stdout, &cmd.Stderr); hijackBwrap(cmd) },
 				nil,
 				sc, nil,
 			)
-		})
+		}, "exec")
 	})
+}
+
+func hijackBwrap(cmd *exec.Cmd) {
+	if cmd.Args[0] != "bwrap" {
+		panic(fmt.Sprintf("unexpected argv0 %q", cmd.Args[0]))
+	}
+	cmd.Err = nil
+	cmd.Path = os.Args[0]
+	cmd.Args = append([]string{os.Args[0], "-test.run=TestHelperStub", "--"}, cmd.Args...)
 }

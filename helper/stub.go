@@ -1,25 +1,24 @@
 package helper
 
 import (
-	"context"
 	"flag"
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
+	"path"
+	"slices"
 	"strconv"
 	"strings"
 	"syscall"
-	"testing"
 
 	"git.gensokyo.uk/security/fortify/helper/bwrap"
 	"git.gensokyo.uk/security/fortify/helper/proc"
 	"git.gensokyo.uk/security/fortify/internal"
 )
 
-// InternalChildStub is an internal function but exported because it is cross-package;
+// InternalHelperStub is an internal function but exported because it is cross-package;
 // it is part of the implementation of the helper stub.
-func InternalChildStub() {
+func InternalHelperStub() {
 	// this test mocks the helper process
 	var ap, sp string
 	if v, ok := os.LookupEnv(FortifyHelper); !ok {
@@ -33,30 +32,13 @@ func InternalChildStub() {
 		sp = v
 	}
 
-	switch os.Args[3] {
-	case "bwrap":
+	if len(os.Args) > 3 && os.Args[3] == "bwrap" {
 		bwrapStub()
-	default:
-		genericStub(flagRestoreFiles(4, ap, sp))
+	} else {
+		genericStub(flagRestoreFiles(3, ap, sp))
 	}
 
 	internal.Exit(0)
-}
-
-// InternalReplaceExecCommand is an internal function but exported because it is cross-package;
-// it is part of the implementation of the helper stub.
-func InternalReplaceExecCommand(t *testing.T) {
-	t.Cleanup(func() { commandContext = exec.CommandContext })
-
-	// replace execCommand to have the resulting *exec.Cmd launch TestHelperChildStub
-	commandContext = func(ctx context.Context, name string, arg ...string) *exec.Cmd {
-		// pass through nonexistent path
-		if name == "/nonexistent" && len(arg) == 0 {
-			return exec.CommandContext(ctx, name)
-		}
-
-		return exec.CommandContext(ctx, os.Args[0], append([]string{"-test.run=TestHelperChildStub", "--", name}, arg...)...)
-	}
 }
 
 func newFile(fd int, name, p string) *os.File {
@@ -149,26 +131,54 @@ func bwrapStub() {
 		sc := &bwrap.Config{
 			Net:           true,
 			Hostname:      "localhost",
-			Chdir:         "/nonexistent",
+			Chdir:         "/proc/nonexistent",
 			Clearenv:      true,
 			NewSession:    true,
 			DieWithParent: true,
 			AsInit:        true,
 		}
-		if _, err := MustNewCheckedArgs(sc.Args(nil, new(proc.ExtraFilesPre), new([]proc.File))).
+
+		efp := new(proc.ExtraFilesPre)
+		if t, ok := os.LookupEnv("GO_TEST_FORTIFY_BWRAP_STUB_TYPE"); ok {
+			switch t {
+			case "dbus":
+				sc.Net = false
+				sc.Hostname = "fortify-dbus"
+				sc.Chdir = "/"
+				sc.Syscall = &bwrap.SyscallPolicy{DenyDevel: true, Multiarch: true}
+				sc.AsInit = false
+
+				bindTarget := []string{"/tmp/fortify.1971/12622d846cc3fe7b4c10359d01f0eb47"}
+				slices.Sort(bindTarget)
+				for _, name := range bindTarget {
+					sc.Bind(name, name, false, true)
+				}
+				roBindTarget := []string{"/run/user/1971", path.Dir(os.Args[0])}
+				slices.Sort(roBindTarget)
+				for _, name := range roBindTarget {
+					sc.Bind(name, name)
+				}
+
+				// manipulate extra files list so fd ends up as 5
+				efp.Append()
+				efp.Append()
+			}
+		}
+
+		if _, err := MustNewCheckedArgs(sc.Args(nil, efp, new([]proc.File))).
 			WriteTo(want); err != nil {
 			panic("cannot read want: " + err.Error())
 		}
 
-		if len(flag.CommandLine.Args()) > 0 && flag.CommandLine.Args()[0] == "crash-test-dummy" && got.String() != want.String() {
+		if got.String() != want.String() {
 			panic("bad bwrap args\ngot: " + got.String() + "\nwant: " + want.String())
 		}
 	}()
 
 	if err := syscall.Exec(
-		os.Args[0],
-		append([]string{os.Args[0], "-test.run=TestHelperChildStub", "--"}, flag.CommandLine.Args()...),
+		flag.CommandLine.Args()[0],
+		flag.CommandLine.Args(),
 		os.Environ()); err != nil {
-		panic("cannot start general stub: " + err.Error())
+		panic("cannot start helper stub: " + err.Error())
 	}
 }

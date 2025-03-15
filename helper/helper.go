@@ -6,17 +6,12 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	"time"
 
 	"git.gensokyo.uk/security/fortify/helper/proc"
 )
 
-var (
-	WaitDelay = 2 * time.Second
-
-	commandContext = exec.CommandContext
-)
+var WaitDelay = 2 * time.Second
 
 const (
 	// FortifyHelper is set to 1 when args fd is enabled and 0 otherwise.

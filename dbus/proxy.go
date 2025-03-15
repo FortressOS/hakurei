@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os/exec"
 	"sync"
 
 	"git.gensokyo.uk/security/fortify/helper"
@@ -26,6 +27,7 @@ type Proxy struct {
 	name    string
 	session [2]string
 	system  [2]string
+	CmdF    func(cmd *exec.Cmd)
 	sysP    bool
 
 	seal io.WriterTo
