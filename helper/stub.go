@@ -6,7 +6,6 @@ import (
 	"io"
 	"os"
 	"path"
-	"slices"
 	"strconv"
 	"strings"
 	"syscall"
@@ -147,17 +146,10 @@ func bwrapStub() {
 				sc.Chdir = "/"
 				sc.Syscall = &bwrap.SyscallPolicy{DenyDevel: true, Multiarch: true}
 				sc.AsInit = false
-
-				bindTarget := []string{"/tmp/fortify.1971/12622d846cc3fe7b4c10359d01f0eb47"}
-				slices.Sort(bindTarget)
-				for _, name := range bindTarget {
-					sc.Bind(name, name, false, true)
-				}
-				roBindTarget := []string{"/run/user/1971", path.Dir(os.Args[0])}
-				slices.Sort(roBindTarget)
-				for _, name := range roBindTarget {
-					sc.Bind(name, name)
-				}
+				sc.
+					Bind("/run/user/1971", "/run/user/1971").
+					Bind("/tmp/fortify.1971/12622d846cc3fe7b4c10359d01f0eb47", "/tmp/fortify.1971/12622d846cc3fe7b4c10359d01f0eb47", false, true).
+					Bind(path.Dir(os.Args[0]), path.Dir(os.Args[0]))
 
 				// manipulate extra files list so fd ends up as 5
 				efp.Append()

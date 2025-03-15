@@ -7,8 +7,6 @@ import (
 	"log"
 	"os"
 	"os/exec"
-	"path"
-	"slices"
 	"syscall"
 	"testing"
 	"time"
@@ -94,23 +92,10 @@ func TestContainer(t *testing.T) {
 				}, os.Args[0]); err != nil {
 				log.Fatalf("ldd: %v", err)
 			} else {
-				libPathsM := make(map[string]struct{}, len(entries))
-				for _, ent := range entries {
-					if path.IsAbs(ent.Path) {
-						libPathsM[path.Dir(ent.Path)] = struct{}{}
-					}
-					if path.IsAbs(ent.Name) {
-						libPathsM[path.Dir(ent.Name)] = struct{}{}
-					}
-				}
-				libPaths = make([]string, 0, len(libPathsM))
-				for name := range libPathsM {
-					libPaths = append(libPaths, name)
-				}
-				slices.Sort(libPaths)
-				for _, name := range libPaths {
-					container.Bind(name, name, 0)
-				}
+				libPaths = ldd.Path(entries)
+			}
+			for _, name := range libPaths {
+				container.Bind(name, name, 0)
 			}
 
 			mnt := make([]*check.Mntent, 0, 3+len(libPaths))

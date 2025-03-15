@@ -38,23 +38,12 @@ func (p *Proxy) Start(ctx context.Context, output io.Writer, sandbox bool) error
 			cmd.Env = make([]string, 0)
 		}, nil)
 	} else {
-		// look up absolute path if name is just a file name
 		toolPath := p.name
 		if filepath.Base(p.name) == p.name {
 			if s, err := exec.LookPath(p.name); err != nil {
 				return err
 			} else {
 				toolPath = s
-			}
-		}
-
-		// resolve libraries by parsing ldd output
-		var proxyDeps []*ldd.Entry
-		if toolPath != os.Args[0] {
-			if l, err := ldd.Exec(ctx, toolPath); err != nil {
-				return err
-			} else {
-				proxyDeps = l
 			}
 		}
 
@@ -67,56 +56,48 @@ func (p *Proxy) Start(ctx context.Context, output io.Writer, sandbox bool) error
 			DieWithParent: true,
 		}
 
-		// resolve proxy socket directories
-		bindTargetM := make(map[string]struct{}, 2)
-
-		for _, ps := range []string{p.session[1], p.system[1]} {
-			if pd := path.Dir(ps); len(pd) > 0 {
-				if pd[0] == '/' {
-					bindTargetM[pd] = struct{}{}
+		// these lib paths are unpredictable, so mount them first so they cannot cover anything
+		if toolPath != os.Args[0] {
+			if entries, err := ldd.Exec(ctx, toolPath); err != nil {
+				return err
+			} else {
+				for _, name := range ldd.Path(entries) {
+					bc.Bind(name, name)
 				}
 			}
 		}
 
-		bindTarget := make([]string, 0, len(bindTargetM))
-		for k := range bindTargetM {
-			bindTarget = append(bindTarget, k)
-		}
-		slices.Sort(bindTarget)
-		for _, name := range bindTarget {
-			bc.Bind(name, name, false, true)
-		}
-
-		roBindTargetM := make(map[string]struct{}, 2+1+len(proxyDeps))
-
-		// xdb-dbus-proxy bin and dependencies
-		roBindTargetM[path.Dir(toolPath)] = struct{}{}
-		for _, ent := range proxyDeps {
-			if path.IsAbs(ent.Path) {
-				roBindTargetM[path.Dir(ent.Path)] = struct{}{}
-			}
-			if path.IsAbs(ent.Name) {
-				roBindTargetM[path.Dir(ent.Name)] = struct{}{}
-			}
-		}
-
-		// resolve upstream bus directories
+		// upstream bus directories
+		upstreamPaths := make([]string, 0, 2)
 		for _, as := range []string{p.session[0], p.system[0]} {
 			if len(as) > 0 && strings.HasPrefix(as, "unix:path=/") {
 				// leave / intact
-				roBindTargetM[path.Dir(as[10:])] = struct{}{}
+				upstreamPaths = append(upstreamPaths, path.Dir(as[10:]))
 			}
 		}
-
-		roBindTarget := make([]string, 0, len(roBindTargetM))
-		for k := range roBindTargetM {
-			roBindTarget = append(roBindTarget, k)
-		}
-		slices.Sort(roBindTarget)
-		for _, name := range roBindTarget {
+		slices.Sort(upstreamPaths)
+		upstreamPaths = slices.Compact(upstreamPaths)
+		for _, name := range upstreamPaths {
 			bc.Bind(name, name)
 		}
 
+		// parent directories of bind paths
+		sockDirPaths := make([]string, 0, 2)
+		if d := path.Dir(p.session[1]); path.IsAbs(d) {
+			sockDirPaths = append(sockDirPaths, d)
+		}
+		if d := path.Dir(p.system[1]); path.IsAbs(d) {
+			sockDirPaths = append(sockDirPaths, d)
+		}
+		slices.Sort(sockDirPaths)
+		sockDirPaths = slices.Compact(sockDirPaths)
+		for _, name := range sockDirPaths {
+			bc.Bind(name, name, false, true)
+		}
+
+		// xdg-dbus-proxy bin path
+		binPath := path.Dir(toolPath)
+		bc.Bind(binPath, binPath)
 		h = helper.MustNewBwrap(c, toolPath,
 			p.seal, true,
 			argF, func(cmd *exec.Cmd) { cmdF(cmd, output, p.CmdF) },
