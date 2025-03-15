@@ -22,7 +22,7 @@ nixosTest {
           chmod -R +w "$WORK"
           cd "$WORK"
           ${self.packages.${system}.fhs}/bin/fortify-fhs -c \
-            'go generate ./... && go test ./... && touch /tmp/go-test-ok'
+            'go generate ./... && go test ${if withRace then "-race" else "-count 16"} ./... && touch /tmp/go-test-ok'
         '')
       ];
 
