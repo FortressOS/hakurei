@@ -62,7 +62,7 @@ func (h *helperCmd) Start() error {
 	// Check for doubled Start calls before we defer failure cleanup. If the prior
 	// call to Start succeeded, we don't want to spuriously close its pipes.
 	if h.Cmd != nil && h.Cmd.Process != nil {
-		return errors.New("exec: already started")
+		return errors.New("helper: already started")
 	}
 
 	h.Env = slices.Grow(h.Env, 2)

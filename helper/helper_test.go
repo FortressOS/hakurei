@@ -48,10 +48,11 @@ func argFChecked(argsFd, statFd int) (args []string) {
 }
 
 // this function tests an implementation of the helper.Helper interface
-func testHelper(t *testing.T,
-	createHelper func(ctx context.Context, setOutput func(stdoutP, stderrP *io.Writer), stat bool) helper.Helper,
-	prefix string,
-) {
+func testHelper(t *testing.T, createHelper func(ctx context.Context, setOutput func(stdoutP, stderrP *io.Writer), stat bool) helper.Helper) {
+	oldWaitDelay := helper.WaitDelay
+	helper.WaitDelay = 16 * time.Second
+	t.Cleanup(func() { helper.WaitDelay = oldWaitDelay })
+
 	t.Run("start helper with status channel and wait", func(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		stdout, stderr := new(strings.Builder), new(strings.Builder)
@@ -77,7 +78,7 @@ func testHelper(t *testing.T,
 		cancel()
 
 		t.Run("start already started helper", func(t *testing.T) {
-			wantErr := prefix + ": already started"
+			wantErr := "helper: already started"
 			if err := h.Start(); err != nil && err.Error() != wantErr {
 				t.Errorf("Start: error = %v, wantErr %v",
 					err, wantErr)

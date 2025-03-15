@@ -34,6 +34,6 @@ func TestCmd(t *testing.T) {
 			return helper.NewDirect(ctx, os.Args[0], argsWt, stat, argF, func(cmd *exec.Cmd) {
 				setOutput(&cmd.Stdout, &cmd.Stderr)
 			}, nil)
-		}, "exec")
+		})
 	})
 }

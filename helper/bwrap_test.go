@@ -113,7 +113,7 @@ func TestBwrap(t *testing.T) {
 				nil,
 				sc, nil,
 			)
-		}, "exec")
+		})
 	})
 }
 
