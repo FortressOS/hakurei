@@ -114,6 +114,9 @@ func (p *Container) Start() error {
 	if p.cmd != nil {
 		return errors.New("sandbox: already started")
 	}
+	if p.Ops == nil || len(*p.Ops) == 0 {
+		return errors.New("sandbox: starting an empty container")
+	}
 
 	c, cancel := context.WithCancel(p.ctx)
 	p.cancel = cancel
