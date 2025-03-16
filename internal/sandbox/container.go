@@ -118,7 +118,7 @@ func (p *Container) Start() error {
 		return errors.New("sandbox: starting an empty container")
 	}
 
-	c, cancel := context.WithCancel(p.ctx)
+	ctx, cancel := context.WithCancel(p.ctx)
 	p.cancel = cancel
 
 	var cloneFlags uintptr = syscall.CLONE_NEWIPC |
@@ -136,7 +136,13 @@ func (p *Container) Start() error {
 		p.Gid = OverflowGid()
 	}
 
-	p.cmd = p.CommandContext(c)
+	if p.CommandContext != nil {
+		p.cmd = p.CommandContext(ctx)
+	} else {
+		p.cmd = exec.CommandContext(ctx, internal.MustExecutable())
+		p.cmd.Args = []string{"init"}
+	}
+
 	p.cmd.Stdin, p.cmd.Stdout, p.cmd.Stderr = p.Stdin, p.Stdout, p.Stderr
 	p.cmd.Cancel, p.cmd.WaitDelay = p.Cancel, p.WaitDelay
 	p.cmd.Dir = "/"
@@ -225,10 +231,5 @@ func (p *Container) String() string {
 func New(ctx context.Context, name string, args ...string) *Container {
 	return &Container{name: name, ctx: ctx,
 		InitParams: InitParams{Args: append([]string{name}, args...), Dir: "/", Ops: new(Ops)},
-		CommandContext: func(ctx context.Context) (cmd *exec.Cmd) {
-			cmd = exec.CommandContext(ctx, internal.MustExecutable())
-			cmd.Args = []string{"init"}
-			return
-		},
 	}
 }

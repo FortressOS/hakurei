@@ -26,15 +26,12 @@ func ExecFilter(ctx context.Context,
 	c, cancel := context.WithTimeout(ctx, lddTimeout)
 	defer cancel()
 	container := sandbox.New(c, "ldd", p)
+	container.CommandContext = commandContext
 	container.Hostname = "fortify-ldd"
 	stdout, stderr := new(bytes.Buffer), new(bytes.Buffer)
 	container.Stdout = stdout
 	container.Stderr = stderr
 	container.Bind("/", "/", 0).Dev("/dev")
-
-	if commandContext != nil {
-		container.CommandContext = commandContext
-	}
 
 	if err := container.Start(); err != nil {
 		return nil, err
