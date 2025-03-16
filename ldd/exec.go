@@ -3,6 +3,7 @@ package ldd
 import (
 	"bytes"
 	"context"
+	"io"
 	"os"
 	"os/exec"
 	"time"
@@ -35,7 +36,9 @@ func ExecFilter(ctx context.Context,
 
 	if err := container.Start(); err != nil {
 		return nil, err
-	} else if err = container.Serve(); err != nil {
+	}
+	defer func() { _, _ = io.Copy(os.Stderr, stderr) }()
+	if err := container.Serve(); err != nil {
 		return nil, err
 	}
 	if err := container.Wait(); err != nil {
@@ -44,8 +47,6 @@ func ExecFilter(ctx context.Context,
 			bytes.Contains(m, msgStaticGlibc) {
 			return nil, nil
 		}
-
-		_, _ = os.Stderr.Write(m)
 		return nil, err
 	}
 
