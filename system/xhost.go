@@ -22,19 +22,19 @@ func (x XHost) Type() Enablement {
 	return EX11
 }
 
-func (x XHost) apply(sys *I) error {
-	sys.printf("inserting entry %s to X11", x)
-	return sys.wrapErrSuffix(xcb.ChangeHosts(xcb.HostModeInsert, xcb.FamilyServerInterpreted, "localuser\x00"+string(x)),
+func (x XHost) apply(*I) error {
+	msg.Verbosef("inserting entry %s to X11", x)
+	return wrapErrSuffix(xcb.ChangeHosts(xcb.HostModeInsert, xcb.FamilyServerInterpreted, "localuser\x00"+string(x)),
 		fmt.Sprintf("cannot insert entry %s to X11:", x))
 }
 
-func (x XHost) revert(sys *I, ec *Criteria) error {
+func (x XHost) revert(_ *I, ec *Criteria) error {
 	if ec.hasType(x) {
-		sys.printf("deleting entry %s from X11", x)
-		return sys.wrapErrSuffix(xcb.ChangeHosts(xcb.HostModeDelete, xcb.FamilyServerInterpreted, "localuser\x00"+string(x)),
+		msg.Verbosef("deleting entry %s from X11", x)
+		return wrapErrSuffix(xcb.ChangeHosts(xcb.HostModeDelete, xcb.FamilyServerInterpreted, "localuser\x00"+string(x)),
 			fmt.Sprintf("cannot delete entry %s from X11:", x))
 	} else {
-		sys.printf("skipping entry %s in X11", x)
+		msg.Verbosef("skipping entry %s in X11", x)
 		return nil
 	}
 }

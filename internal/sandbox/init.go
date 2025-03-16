@@ -14,8 +14,6 @@ import (
 	"time"
 
 	"git.gensokyo.uk/security/fortify/helper/proc"
-	"git.gensokyo.uk/security/fortify/internal"
-	"git.gensokyo.uk/security/fortify/internal/fmsg"
 	"git.gensokyo.uk/security/fortify/seccomp"
 )
 
@@ -40,9 +38,9 @@ type initParams struct {
 	Verbose bool
 }
 
-func Init(exit func(code int)) {
+func Init(prepare func(prefix string), setVerbose func(verbose bool)) {
 	runtime.LockOSThread()
-	fmsg.Prepare("init")
+	prepare("init")
 
 	if os.Getpid() != 1 {
 		log.Fatal("this process must run as pid 1")
@@ -72,14 +70,14 @@ func Init(exit func(code int)) {
 			log.Fatal("invalid setup parameters")
 		}
 
-		internal.InstallFmsg(params.Verbose)
-		fmsg.Verbose("received setup parameters")
+		setVerbose(params.Verbose)
+		msg.Verbose("received setup parameters")
 		closeSetup = f
 		offsetSetup = int(setupFile.Fd() + 1)
 	}
 
 	// write uid/gid map here so parent does not need to set dumpable
-	if err := internal.SetDumpable(internal.SUID_DUMP_USER); err != nil {
+	if err := SetDumpable(SUID_DUMP_USER); err != nil {
 		log.Fatalf("cannot set SUID_DUMP_USER: %s", err)
 	}
 	if err := os.WriteFile("/proc/self/uid_map",
@@ -97,7 +95,7 @@ func Init(exit func(code int)) {
 		0); err != nil {
 		log.Fatalf("%v", err)
 	}
-	if err := internal.SetDumpable(internal.SUID_DUMP_DISABLE); err != nil {
+	if err := SetDumpable(SUID_DUMP_DISABLE); err != nil {
 		log.Fatalf("cannot set SUID_DUMP_DISABLE: %s", err)
 	}
 
@@ -146,11 +144,12 @@ func Init(exit func(code int)) {
 	}
 
 	for i, op := range *params.Ops {
-		fmsg.Verbosef("mounting %s", op)
+		msg.Verbosef("mounting %s", op)
 		if err := op.apply(&params.InitParams); err != nil {
-			fmsg.PrintBaseError(err,
+			msg.PrintBaseErr(err,
 				fmt.Sprintf("cannot apply op %d:", i))
-			exit(1)
+			msg.BeforeExit()
+			os.Exit(1)
 		}
 	}
 
@@ -169,7 +168,7 @@ func Init(exit func(code int)) {
 
 	{
 		var fd int
-		if err := internal.IgnoringEINTR(func() (err error) {
+		if err := IgnoringEINTR(func() (err error) {
 			fd, err = syscall.Open("/", syscall.O_DIRECTORY|syscall.O_RDONLY, 0)
 			return
 		}); err != nil {
@@ -234,7 +233,7 @@ func Init(exit func(code int)) {
 	if err := cmd.Start(); err != nil {
 		log.Fatalf("%v", err)
 	}
-	fmsg.Suspend()
+	msg.Suspend()
 
 	/*
 		close setup pipe
@@ -295,16 +294,17 @@ func Init(exit func(code int)) {
 	for {
 		select {
 		case s := <-sig:
-			if fmsg.Resume() {
-				fmsg.Verbosef("terminating on %s after process start", s.String())
+			if msg.Resume() {
+				msg.Verbosef("terminating on %s after process start", s.String())
 			} else {
-				fmsg.Verbosef("terminating on %s", s.String())
+				msg.Verbosef("terminating on %s", s.String())
 			}
-			exit(0)
+			msg.BeforeExit()
+			os.Exit(0)
 		case w := <-info:
 			if w.wpid == cmd.Process.Pid {
 				// initial process exited, output is most likely available again
-				fmsg.Resume()
+				msg.Resume()
 
 				switch {
 				case w.wstatus.Exited():
@@ -321,18 +321,22 @@ func Init(exit func(code int)) {
 				}()
 			}
 		case <-done:
-			exit(r)
+			msg.BeforeExit()
+			os.Exit(r)
 		case <-timeout:
 			log.Println("timeout exceeded waiting for lingering processes")
-			exit(r)
+			msg.BeforeExit()
+			os.Exit(r)
 		}
 	}
 }
 
 // TryArgv0 calls [Init] if the last element of argv0 is "init".
-func TryArgv0() {
+func TryArgv0(v Msg, prepare func(prefix string), setVerbose func(verbose bool)) {
 	if len(os.Args) > 0 && path.Base(os.Args[0]) == "init" {
-		Init(internal.Exit)
-		internal.Exit(0)
+		msg = v
+		Init(prepare, setVerbose)
+		msg.BeforeExit()
+		os.Exit(0)
 	}
 }

@@ -7,8 +7,6 @@ import (
 	"path"
 	"strings"
 	"syscall"
-
-	"git.gensokyo.uk/security/fortify/internal/fmsg"
 )
 
 const (
@@ -43,7 +41,7 @@ func realpathHost(name string) (string, error) {
 	if !path.IsAbs(rp) {
 		return name, nil
 	}
-	fmsg.Verbosef("path %q resolves to %q", name, rp)
+	msg.Verbosef("path %q resolves to %q", name, rp)
 	return rp, nil
 }
 

@@ -31,8 +31,8 @@ type Tmpfile struct {
 }
 
 func (t *Tmpfile) Type() Enablement { return Process }
-func (t *Tmpfile) apply(sys *I) error {
-	sys.println("copying", t)
+func (t *Tmpfile) apply(*I) error {
+	msg.Verbose("copying", t)
 
 	if t.payload == nil {
 		// this is a misuse of the API; do not return an error message
@@ -40,25 +40,25 @@ func (t *Tmpfile) apply(sys *I) error {
 	}
 
 	if b, err := os.Stat(t.src); err != nil {
-		return sys.wrapErrSuffix(err,
+		return wrapErrSuffix(err,
 			fmt.Sprintf("cannot stat %q:", t.src))
 	} else {
 		if b.IsDir() {
-			return sys.wrapErrSuffix(syscall.EISDIR,
+			return wrapErrSuffix(syscall.EISDIR,
 				fmt.Sprintf("%q is a directory", t.src))
 		}
 		if s := b.Size(); s > t.n {
-			return sys.wrapErrSuffix(syscall.ENOMEM,
+			return wrapErrSuffix(syscall.ENOMEM,
 				fmt.Sprintf("file %q is too long: %d > %d",
 					t.src, s, t.n))
 		}
 	}
 
 	if f, err := os.Open(t.src); err != nil {
-		return sys.wrapErrSuffix(err,
+		return wrapErrSuffix(err,
 			fmt.Sprintf("cannot open %q:", t.src))
 	} else if _, err = io.CopyN(t.buf, f, t.n); err != nil {
-		return sys.wrapErrSuffix(err,
+		return wrapErrSuffix(err,
 			fmt.Sprintf("cannot read from %q:", t.src))
 	}
 

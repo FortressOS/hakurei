@@ -231,10 +231,6 @@ func (seal *outcome) finalise(sys sys.State, config *fst.Config) error {
 	sc := sys.Paths()
 	seal.runDirPath = sc.RunDirPath
 	seal.sys = system.New(seal.user.uid.unwrap())
-	seal.sys.IsVerbose = fmsg.Load
-	seal.sys.Verbose = fmsg.Verbose
-	seal.sys.Verbosef = fmsg.Verbosef
-	seal.sys.WrapErr = fmsg.WrapError
 
 	/*
 		Work directories

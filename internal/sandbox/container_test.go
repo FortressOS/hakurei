@@ -23,8 +23,10 @@ import (
 func TestContainer(t *testing.T) {
 	{
 		oldVerbose := fmsg.Load()
-		fmsg.Store(true)
+		oldOutput := sandbox.GetOutput()
+		internal.InstallFmsg(true)
 		t.Cleanup(func() { fmsg.Store(oldVerbose) })
+		t.Cleanup(func() { sandbox.SetOutput(oldOutput) })
 	}
 
 	testCases := []struct {
@@ -146,7 +148,8 @@ func TestHelperInit(t *testing.T) {
 	if len(os.Args) != 5 || os.Args[4] != "init" {
 		return
 	}
-	sandbox.Init(internal.Exit)
+	sandbox.SetOutput(fmsg.Output{})
+	sandbox.Init(fmsg.Prepare, internal.InstallFmsg)
 }
 
 func TestHelperCheckContainer(t *testing.T) {

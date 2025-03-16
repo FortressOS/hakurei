@@ -35,24 +35,24 @@ type ACL struct {
 func (a *ACL) Type() Enablement { return a.et }
 
 func (a *ACL) apply(sys *I) error {
-	sys.println("applying ACL", a)
-	return sys.wrapErrSuffix(acl.Update(a.path, sys.uid, a.perms...),
+	msg.Verbose("applying ACL", a)
+	return wrapErrSuffix(acl.Update(a.path, sys.uid, a.perms...),
 		fmt.Sprintf("cannot apply ACL entry to %q:", a.path))
 }
 
 func (a *ACL) revert(sys *I, ec *Criteria) error {
 	if ec.hasType(a) {
-		sys.println("stripping ACL", a)
+		msg.Verbose("stripping ACL", a)
 		err := acl.Update(a.path, sys.uid)
 		if errors.Is(err, os.ErrNotExist) {
 			// the ACL is effectively stripped if the file no longer exists
-			sys.printf("target of ACL %s no longer exists", a)
+			msg.Verbosef("target of ACL %s no longer exists", a)
 			err = nil
 		}
-		return sys.wrapErrSuffix(err,
+		return wrapErrSuffix(err,
 			fmt.Sprintf("cannot strip ACL entry from %q:", a.path))
 	} else {
-		sys.println("skipping ACL", a)
+		msg.Verbose("skipping ACL", a)
 		return nil
 	}
 }

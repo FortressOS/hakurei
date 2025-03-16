@@ -28,7 +28,7 @@ func (sys *I) ProxyDBus(session, system *dbus.Config, sessionPath, systemPath st
 
 	// session bus is mandatory
 	if session == nil {
-		return nil, sys.wrapErr(ErrDBusConfig,
+		return nil, msg.WrapErr(ErrDBusConfig,
 			"attempted to seal message bus proxy without session bus config")
 	}
 
@@ -48,12 +48,12 @@ func (sys *I) ProxyDBus(session, system *dbus.Config, sessionPath, systemPath st
 	d.proxy = dbus.New(sessionBus, systemBus)
 
 	defer func() {
-		if sys.IsVerbose() && d.proxy.Sealed() {
-			sys.println("sealed session proxy", session.Args(sessionBus))
+		if msg.IsVerbose() && d.proxy.Sealed() {
+			msg.Verbose("sealed session proxy", session.Args(sessionBus))
 			if system != nil {
-				sys.println("sealed system proxy", system.Args(systemBus))
+				msg.Verbose("sealed system proxy", system.Args(systemBus))
 			}
-			sys.println("message bus proxy final args:", d.proxy)
+			msg.Verbose("message bus proxy final args:", d.proxy)
 		}
 	}()
 
@@ -62,7 +62,7 @@ func (sys *I) ProxyDBus(session, system *dbus.Config, sessionPath, systemPath st
 
 	// seal dbus proxy
 	d.out = &scanToFmsg{msg: new(strings.Builder)}
-	return d.out.Dump, sys.wrapErrSuffix(d.proxy.Seal(session, system),
+	return d.out.Dump, wrapErrSuffix(d.proxy.Seal(session, system),
 		"cannot seal message bus proxy:")
 }
 
@@ -77,32 +77,32 @@ type DBus struct {
 func (d *DBus) Type() Enablement { return Process }
 
 func (d *DBus) apply(sys *I) error {
-	sys.printf("session bus proxy on %q for upstream %q", d.proxy.Session()[1], d.proxy.Session()[0])
+	msg.Verbosef("session bus proxy on %q for upstream %q", d.proxy.Session()[1], d.proxy.Session()[0])
 	if d.system {
-		sys.printf("system bus proxy on %q for upstream %q", d.proxy.System()[1], d.proxy.System()[0])
+		msg.Verbosef("system bus proxy on %q for upstream %q", d.proxy.System()[1], d.proxy.System()[0])
 	}
 
 	// this starts the process and blocks until ready
 	if err := d.proxy.Start(sys.ctx, d.out, true); err != nil {
 		d.out.Dump()
-		return sys.wrapErrSuffix(err,
+		return wrapErrSuffix(err,
 			"cannot start message bus proxy:")
 	}
-	sys.println("starting message bus proxy", d.proxy)
+	msg.Verbose("starting message bus proxy", d.proxy)
 	return nil
 }
 
-func (d *DBus) revert(sys *I, _ *Criteria) error {
+func (d *DBus) revert(*I, *Criteria) error {
 	// criteria ignored here since dbus is always process-scoped
-	sys.println("terminating message bus proxy")
+	msg.Verbose("terminating message bus proxy")
 	d.proxy.Close()
-	defer sys.println("message bus proxy exit")
+	defer msg.Verbose("message bus proxy exit")
 	err := d.proxy.Wait()
 	if errors.Is(err, context.Canceled) {
-		sys.println("message bus proxy canceled upstream")
+		msg.Verbose("message bus proxy canceled upstream")
 		err = nil
 	}
-	return sys.wrapErrSuffix(err, "message bus proxy error:")
+	return wrapErrSuffix(err, "message bus proxy error:")
 }
 
 func (d *DBus) Is(o Op) bool {

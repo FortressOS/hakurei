@@ -14,8 +14,6 @@ import (
 	"time"
 
 	"git.gensokyo.uk/security/fortify/helper/proc"
-	"git.gensokyo.uk/security/fortify/internal"
-	"git.gensokyo.uk/security/fortify/internal/fmsg"
 	"git.gensokyo.uk/security/fortify/seccomp"
 )
 
@@ -139,7 +137,7 @@ func (p *Container) Start() error {
 	if p.CommandContext != nil {
 		p.cmd = p.CommandContext(ctx)
 	} else {
-		p.cmd = exec.CommandContext(ctx, internal.MustExecutable())
+		p.cmd = exec.CommandContext(ctx, MustExecutable())
 		p.cmd.Args = []string{"init"}
 	}
 
@@ -166,7 +164,7 @@ func (p *Container) Start() error {
 
 	// place setup pipe before user supplied extra files, this is later restored by init
 	if fd, e, err := proc.Setup(&p.cmd.ExtraFiles); err != nil {
-		return fmsg.WrapErrorSuffix(err,
+		return wrapErrSuffix(err,
 			"cannot create shim setup pipe:")
 	} else {
 		p.setup = e
@@ -174,9 +172,9 @@ func (p *Container) Start() error {
 	}
 	p.cmd.ExtraFiles = append(p.cmd.ExtraFiles, p.ExtraFiles...)
 
-	fmsg.Verbose("starting container init")
+	msg.Verbose("starting container init")
 	if err := p.cmd.Start(); err != nil {
-		return fmsg.WrapError(err, err.Error())
+		return msg.WrapErr(err, err.Error())
 	}
 	return nil
 }
@@ -187,7 +185,7 @@ func (p *Container) Serve() error {
 	}
 
 	if p.Path != "" && !path.IsAbs(p.Path) {
-		return fmsg.WrapError(syscall.EINVAL,
+		return msg.WrapErr(syscall.EINVAL,
 			fmt.Sprintf("invalid executable path %q", p.Path))
 	}
 
@@ -195,14 +193,14 @@ func (p *Container) Serve() error {
 		if p.name == "" {
 			p.Path = os.Getenv("SHELL")
 			if !path.IsAbs(p.Path) {
-				return fmsg.WrapError(syscall.EBADE,
+				return msg.WrapErr(syscall.EBADE,
 					"no command specified and $SHELL is invalid")
 			}
 			p.name = path.Base(p.Path)
 		} else if path.IsAbs(p.name) {
 			p.Path = p.name
 		} else if v, err := exec.LookPath(p.name); err != nil {
-			return fmsg.WrapError(err, err.Error())
+			return msg.WrapErr(err, err.Error())
 		} else {
 			p.Path = v
 		}
@@ -216,7 +214,7 @@ func (p *Container) Serve() error {
 			syscall.Getuid(),
 			syscall.Getgid(),
 			len(p.ExtraFiles),
-			fmsg.Load(),
+			msg.IsVerbose(),
 		},
 	)
 }

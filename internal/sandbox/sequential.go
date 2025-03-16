@@ -8,8 +8,6 @@ import (
 	"path"
 	"syscall"
 	"unsafe"
-
-	"git.gensokyo.uk/security/fortify/internal/fmsg"
 )
 
 func init() { gob.Register(new(BindMount)) }
@@ -23,7 +21,7 @@ type BindMount struct {
 
 func (b *BindMount) apply(*InitParams) error {
 	if !path.IsAbs(b.Source) || !path.IsAbs(b.Target) {
-		return fmsg.WrapError(syscall.EBADE,
+		return msg.WrapErr(syscall.EBADE,
 			"path is not absolute")
 	}
 	return bindMount(b.Source, b.Target, b.Flags)
@@ -50,15 +48,15 @@ type MountProc struct {
 
 func (p *MountProc) apply(*InitParams) error {
 	if !path.IsAbs(p.Path) {
-		return fmsg.WrapError(syscall.EBADE,
+		return msg.WrapErr(syscall.EBADE,
 			fmt.Sprintf("path %q is not absolute", p.Path))
 	}
 
 	target := toSysroot(p.Path)
 	if err := os.MkdirAll(target, 0755); err != nil {
-		return fmsg.WrapError(err, err.Error())
+		return msg.WrapErr(err, err.Error())
 	}
-	return fmsg.WrapErrorSuffix(syscall.Mount("proc", target, "proc",
+	return wrapErrSuffix(syscall.Mount("proc", target, "proc",
 		syscall.MS_NOSUID|syscall.MS_NOEXEC|syscall.MS_NODEV, ""),
 		fmt.Sprintf("cannot mount proc on %q:", p.Path))
 }
@@ -72,7 +70,7 @@ type MountDev struct {
 
 func (d *MountDev) apply(params *InitParams) error {
 	if !path.IsAbs(d.Path) {
-		return fmsg.WrapError(syscall.EBADE,
+		return msg.WrapErr(syscall.EBADE,
 			fmt.Sprintf("path %q is not absolute", d.Path))
 	}
 	target := toSysroot(d.Path)
@@ -94,7 +92,7 @@ func (d *MountDev) apply(params *InitParams) error {
 			"/proc/self/fd/"+string(rune(i+'0')),
 			path.Join(target, name),
 		); err != nil {
-			return fmsg.WrapError(err, err.Error())
+			return msg.WrapErr(err, err.Error())
 		}
 	}
 	for _, pair := range [][2]string{
@@ -103,21 +101,21 @@ func (d *MountDev) apply(params *InitParams) error {
 		{"pts/ptmx", "ptmx"},
 	} {
 		if err := os.Symlink(pair[0], path.Join(target, pair[1])); err != nil {
-			return fmsg.WrapError(err, err.Error())
+			return msg.WrapErr(err, err.Error())
 		}
 	}
 
 	devPtsPath := path.Join(target, "pts")
 	for _, name := range []string{path.Join(target, "shm"), devPtsPath} {
 		if err := os.Mkdir(name, 0755); err != nil {
-			return fmsg.WrapError(err, err.Error())
+			return msg.WrapErr(err, err.Error())
 		}
 	}
 
 	if err := syscall.Mount("devpts", devPtsPath, "devpts",
 		syscall.MS_NOSUID|syscall.MS_NOEXEC,
 		"newinstance,ptmxmode=0666,mode=620"); err != nil {
-		return fmsg.WrapErrorSuffix(err,
+		return wrapErrSuffix(err,
 			fmt.Sprintf("cannot mount devpts on %q:", devPtsPath))
 	}
 
@@ -164,11 +162,11 @@ type MountTmpfs struct {
 
 func (t *MountTmpfs) apply(*InitParams) error {
 	if !path.IsAbs(t.Path) {
-		return fmsg.WrapError(syscall.EBADE,
+		return msg.WrapErr(syscall.EBADE,
 			fmt.Sprintf("path %q is not absolute", t.Path))
 	}
 	if t.Size < 0 || t.Size > math.MaxUint>>1 {
-		return fmsg.WrapError(syscall.EBADE,
+		return msg.WrapErr(syscall.EBADE,
 			fmt.Sprintf("size %d out of bounds", t.Size))
 	}
 	return mountTmpfs("tmpfs", t.Path, t.Size, t.Perm)

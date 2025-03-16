@@ -6,8 +6,6 @@ import (
 	"os"
 	"strings"
 	"syscall"
-
-	"git.gensokyo.uk/security/fortify/internal/fmsg"
 )
 
 const (
@@ -30,34 +28,34 @@ func bindMount(src, dest string, flags int) error {
 				if flags&BindOptional != 0 {
 					return nil
 				} else {
-					return fmsg.WrapError(err,
+					return msg.WrapErr(err,
 						fmt.Sprintf("path %q does not exist", src))
 				}
 			}
-			return fmsg.WrapError(err, err.Error())
+			return msg.WrapErr(err, err.Error())
 		} else {
 			source = toHost(rp)
 		}
 	} else if flags&BindOptional != 0 {
-		return fmsg.WrapError(syscall.EINVAL,
+		return msg.WrapErr(syscall.EINVAL,
 			"flag source excludes optional")
 	} else {
 		source = toHost(src)
 	}
 
 	if fi, err := os.Stat(source); err != nil {
-		return fmsg.WrapError(err, err.Error())
+		return msg.WrapErr(err, err.Error())
 	} else if fi.IsDir() {
 		if err = os.MkdirAll(target, 0755); err != nil {
-			return fmsg.WrapErrorSuffix(err,
+			return wrapErrSuffix(err,
 				fmt.Sprintf("cannot create directory %q:", dest))
 		}
 	} else if err = ensureFile(target, 0444); err != nil {
 		if errors.Is(err, syscall.EISDIR) {
-			return fmsg.WrapError(err,
+			return msg.WrapErr(err,
 				fmt.Sprintf("path %q is a directory", dest))
 		}
-		return fmsg.WrapErrorSuffix(err,
+		return wrapErrSuffix(err,
 			fmt.Sprintf("cannot create %q:", dest))
 	}
 
@@ -71,14 +69,14 @@ func bindMount(src, dest string, flags int) error {
 	if flags&BindDevices == 0 {
 		mf |= syscall.MS_NODEV
 	}
-	if fmsg.Load() {
+	if msg.IsVerbose() {
 		if strings.TrimPrefix(source, hostPath) == strings.TrimPrefix(target, sysrootPath) {
-			fmsg.Verbosef("resolved %q flags %#x", target, mf)
+			msg.Verbosef("resolved %q flags %#x", target, mf)
 		} else {
-			fmsg.Verbosef("resolved %q on %q flags %#x", source, target, mf)
+			msg.Verbosef("resolved %q on %q flags %#x", source, target, mf)
 		}
 	}
-	return fmsg.WrapErrorSuffix(syscall.Mount(source, target, "", mf, ""),
+	return wrapErrSuffix(syscall.Mount(source, target, "", mf, ""),
 		fmt.Sprintf("cannot bind %q on %q:", src, dest))
 }
 
@@ -91,7 +89,7 @@ func mountTmpfs(fsname, name string, size int, perm os.FileMode) error {
 	if size > 0 {
 		opt += fmt.Sprintf(",size=%d", size)
 	}
-	return fmsg.WrapErrorSuffix(syscall.Mount(fsname, target, "tmpfs",
+	return wrapErrSuffix(syscall.Mount(fsname, target, "tmpfs",
 		syscall.MS_NOSUID|syscall.MS_NODEV, opt),
 		fmt.Sprintf("cannot mount tmpfs on %q:", name))
 }

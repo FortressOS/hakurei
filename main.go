@@ -42,10 +42,10 @@ var std sys.State = new(sys.Std)
 
 func main() {
 	// early init path, skips root check and duplicate PR_SET_DUMPABLE
-	sandbox.TryArgv0()
+	sandbox.TryArgv0(fmsg.Output{}, fmsg.Prepare, internal.InstallFmsg)
 	init0.TryArgv0()
 
-	if err := internal.SetDumpable(internal.SUID_DUMP_DISABLE); err != nil {
+	if err := sandbox.SetDumpable(sandbox.SUID_DUMP_DISABLE); err != nil {
 		log.Printf("cannot set SUID_DUMP_DISABLE: %s", err)
 		// not fatal: this program runs as the privileged user
 	}

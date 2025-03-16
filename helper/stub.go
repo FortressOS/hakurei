@@ -11,7 +11,6 @@ import (
 
 	"git.gensokyo.uk/security/fortify/helper/bwrap"
 	"git.gensokyo.uk/security/fortify/helper/proc"
-	"git.gensokyo.uk/security/fortify/internal"
 )
 
 // InternalHelperStub is an internal function but exported because it is cross-package;
@@ -36,7 +35,7 @@ func InternalHelperStub() {
 		genericStub(flagRestoreFiles(3, ap, sp))
 	}
 
-	internal.Exit(0)
+	os.Exit(0)
 }
 
 func newFile(fd int, name, p string) *os.File {

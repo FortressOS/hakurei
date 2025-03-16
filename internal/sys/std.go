@@ -15,6 +15,7 @@ import (
 	"git.gensokyo.uk/security/fortify/fst"
 	"git.gensokyo.uk/security/fortify/internal"
 	"git.gensokyo.uk/security/fortify/internal/fmsg"
+	"git.gensokyo.uk/security/fortify/internal/sandbox"
 )
 
 // Std implements System using the standard library.
@@ -34,7 +35,7 @@ func (s *Std) Geteuid() int                                 { return os.Geteuid(
 func (s *Std) LookupEnv(key string) (string, bool)          { return os.LookupEnv(key) }
 func (s *Std) TempDir() string                              { return os.TempDir() }
 func (s *Std) LookPath(file string) (string, error)         { return exec.LookPath(file) }
-func (s *Std) MustExecutable() string                       { return internal.MustExecutable() }
+func (s *Std) MustExecutable() string                       { return sandbox.MustExecutable() }
 func (s *Std) LookupGroup(name string) (*user.Group, error) { return user.LookupGroup(name) }
 func (s *Std) ReadDir(name string) ([]os.DirEntry, error)   { return os.ReadDir(name) }
 func (s *Std) Stat(name string) (fs.FileInfo, error)        { return os.Stat(name) }

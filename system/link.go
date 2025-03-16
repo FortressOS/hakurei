@@ -25,19 +25,19 @@ type Hardlink struct {
 
 func (l *Hardlink) Type() Enablement { return l.et }
 
-func (l *Hardlink) apply(sys *I) error {
-	sys.println("linking", l)
-	return sys.wrapErrSuffix(os.Link(l.src, l.dst),
+func (l *Hardlink) apply(*I) error {
+	msg.Verbose("linking", l)
+	return wrapErrSuffix(os.Link(l.src, l.dst),
 		fmt.Sprintf("cannot link %q:", l.dst))
 }
 
-func (l *Hardlink) revert(sys *I, ec *Criteria) error {
+func (l *Hardlink) revert(_ *I, ec *Criteria) error {
 	if ec.hasType(l) {
-		sys.printf("removing hard link %q", l.dst)
-		return sys.wrapErrSuffix(os.Remove(l.dst),
+		msg.Verbosef("removing hard link %q", l.dst)
+		return wrapErrSuffix(os.Remove(l.dst),
 			fmt.Sprintf("cannot remove hard link %q:", l.dst))
 	} else {
-		sys.printf("skipping hard link %q", l.dst)
+		msg.Verbosef("skipping hard link %q", l.dst)
 		return nil
 	}
 }

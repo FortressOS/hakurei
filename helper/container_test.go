@@ -9,6 +9,7 @@ import (
 
 	"git.gensokyo.uk/security/fortify/helper"
 	"git.gensokyo.uk/security/fortify/internal"
+	"git.gensokyo.uk/security/fortify/internal/fmsg"
 	"git.gensokyo.uk/security/fortify/internal/sandbox"
 )
 
@@ -51,5 +52,6 @@ func TestHelperInit(t *testing.T) {
 	if len(os.Args) != 5 || os.Args[4] != "init" {
 		return
 	}
-	sandbox.Init(internal.Exit)
+	sandbox.SetOutput(fmsg.Output{})
+	sandbox.Init(fmsg.Prepare, func(bool) { internal.InstallFmsg(false) })
 }

@@ -17,6 +17,7 @@ import (
 	"git.gensokyo.uk/security/fortify/internal"
 	"git.gensokyo.uk/security/fortify/internal/app/init0"
 	"git.gensokyo.uk/security/fortify/internal/fmsg"
+	"git.gensokyo.uk/security/fortify/internal/sandbox"
 )
 
 // everything beyond this point runs as unconstrained target user
@@ -28,7 +29,7 @@ func Main() {
 	fmsg.Prepare("shim")
 
 	// setting this prevents ptrace
-	if err := internal.SetDumpable(internal.SUID_DUMP_DISABLE); err != nil {
+	if err := sandbox.SetDumpable(sandbox.SUID_DUMP_DISABLE); err != nil {
 		log.Fatalf("cannot set SUID_DUMP_DISABLE: %s", err)
 	}
 

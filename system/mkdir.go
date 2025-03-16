@@ -37,33 +37,33 @@ func (m *Mkdir) Type() Enablement {
 	return m.et
 }
 
-func (m *Mkdir) apply(sys *I) error {
-	sys.println("ensuring directory", m)
+func (m *Mkdir) apply(*I) error {
+	msg.Verbose("ensuring directory", m)
 
 	// create directory
 	err := os.Mkdir(m.path, m.perm)
 	if !errors.Is(err, os.ErrExist) {
-		return sys.wrapErrSuffix(err,
+		return wrapErrSuffix(err,
 			fmt.Sprintf("cannot create directory %q:", m.path))
 	}
 
 	// directory exists, ensure mode
-	return sys.wrapErrSuffix(os.Chmod(m.path, m.perm),
+	return wrapErrSuffix(os.Chmod(m.path, m.perm),
 		fmt.Sprintf("cannot change mode of %q to %s:", m.path, m.perm))
 }
 
-func (m *Mkdir) revert(sys *I, ec *Criteria) error {
+func (m *Mkdir) revert(_ *I, ec *Criteria) error {
 	if !m.ephemeral {
 		// skip non-ephemeral dir and do not log anything
 		return nil
 	}
 
 	if ec.hasType(m) {
-		sys.println("destroying ephemeral directory", m)
-		return sys.wrapErrSuffix(os.Remove(m.path),
+		msg.Verbose("destroying ephemeral directory", m)
+		return wrapErrSuffix(os.Remove(m.path),
 			fmt.Sprintf("cannot remove ephemeral directory %q:", m.path))
 	} else {
-		sys.println("skipping ephemeral directory", m)
+		msg.Verbose("skipping ephemeral directory", m)
 		return nil
 	}
 }

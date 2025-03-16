@@ -46,35 +46,35 @@ func (w *Wayland) apply(sys *I) error {
 		if errors.Is(err, os.ErrNotExist) {
 			err = os.ErrNotExist
 		}
-		return sys.wrapErrSuffix(err,
+		return wrapErrSuffix(err,
 			fmt.Sprintf("cannot attach to wayland on %q:", w.src))
 	} else {
-		sys.printf("wayland attached on %q", w.src)
+		msg.Verbosef("wayland attached on %q", w.src)
 	}
 
 	if sp, err := w.conn.Bind(w.dst, w.appID, w.instanceID); err != nil {
-		return sys.wrapErrSuffix(err,
+		return wrapErrSuffix(err,
 			fmt.Sprintf("cannot bind to socket on %q:", w.dst))
 	} else {
 		*w.sync = sp
-		sys.printf("wayland listening on %q", w.dst)
-		return sys.wrapErrSuffix(errors.Join(os.Chmod(w.dst, 0), acl.Update(w.dst, sys.uid, acl.Read, acl.Write, acl.Execute)),
+		msg.Verbosef("wayland listening on %q", w.dst)
+		return wrapErrSuffix(errors.Join(os.Chmod(w.dst, 0), acl.Update(w.dst, sys.uid, acl.Read, acl.Write, acl.Execute)),
 			fmt.Sprintf("cannot chmod socket on %q:", w.dst))
 	}
 }
 
-func (w *Wayland) revert(sys *I, ec *Criteria) error {
+func (w *Wayland) revert(_ *I, ec *Criteria) error {
 	if ec.hasType(w) {
-		sys.printf("removing wayland socket on %q", w.dst)
+		msg.Verbosef("removing wayland socket on %q", w.dst)
 		if err := os.Remove(w.dst); err != nil && !errors.Is(err, os.ErrNotExist) {
 			return err
 		}
 
-		sys.printf("detaching from wayland on %q", w.src)
-		return sys.wrapErrSuffix(w.conn.Close(),
+		msg.Verbosef("detaching from wayland on %q", w.src)
+		return wrapErrSuffix(w.conn.Close(),
 			fmt.Sprintf("cannot detach from wayland on %q:", w.src))
 	} else {
-		sys.printf("skipping wayland cleanup on %q", w.dst)
+		msg.Verbosef("skipping wayland cleanup on %q", w.dst)
 		return nil
 	}
 }

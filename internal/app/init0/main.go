@@ -12,6 +12,7 @@ import (
 	"git.gensokyo.uk/security/fortify/helper/proc"
 	"git.gensokyo.uk/security/fortify/internal"
 	"git.gensokyo.uk/security/fortify/internal/fmsg"
+	"git.gensokyo.uk/security/fortify/internal/sandbox"
 )
 
 const (
@@ -28,7 +29,7 @@ func Main() {
 	fmsg.Prepare("init0")
 
 	// setting this prevents ptrace
-	if err := internal.SetDumpable(internal.SUID_DUMP_DISABLE); err != nil {
+	if err := sandbox.SetDumpable(sandbox.SUID_DUMP_DISABLE); err != nil {
 		log.Fatalf("cannot set SUID_DUMP_DISABLE: %s", err)
 	}
 
@@ -64,7 +65,7 @@ func Main() {
 	}
 
 	// die with parent
-	if err := internal.SetPdeathsig(syscall.SIGKILL); err != nil {
+	if err := sandbox.SetPdeathsig(syscall.SIGKILL); err != nil {
 		log.Fatalf("prctl(PR_SET_PDEATHSIG, SIGKILL): %v", err)
 	}
 
