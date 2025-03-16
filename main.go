@@ -26,7 +26,6 @@ import (
 	"git.gensokyo.uk/security/fortify/internal/sandbox"
 	"git.gensokyo.uk/security/fortify/internal/state"
 	"git.gensokyo.uk/security/fortify/internal/sys"
-	"git.gensokyo.uk/security/fortify/seccomp"
 	"git.gensokyo.uk/security/fortify/system"
 )
 
@@ -71,10 +70,7 @@ func buildCommand(out io.Writer) command.Command {
 		flagJSON    bool
 	)
 	c := command.New(out, log.Printf, "fortify", func([]string) error {
-		fmsg.Store(flagVerbose)
-		if flagVerbose {
-			seccomp.CPrintln = log.Println
-		}
+		internal.InstallFmsg(flagVerbose)
 		return nil
 	}).
 		Flag(&flagVerbose, "v", command.BoolFlag(false), "Print debug messages to the console").

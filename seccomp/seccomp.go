@@ -13,8 +13,6 @@ import (
 	"syscall"
 )
 
-var CPrintln func(v ...any)
-
 // LibraryError represents a libseccomp error.
 type LibraryError struct {
 	Prefix  string
@@ -99,7 +97,7 @@ func buildFilter(fd int, opts SyscallOpts) error {
 
 	// this removes repeated transitions between C and Go execution
 	// when producing log output via F_println and CPrintln is nil
-	if CPrintln != nil {
+	if fp := printlnP.Load(); fp != nil {
 		opts |= flagVerbose
 	}
 
@@ -113,11 +111,4 @@ func buildFilter(fd int, opts SyscallOpts) error {
 		}
 	}
 	return err
-}
-
-//export F_println
-func F_println(v *C.char) {
-	if CPrintln != nil {
-		CPrintln(C.GoString(v))
-	}
 }

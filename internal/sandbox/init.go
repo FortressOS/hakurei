@@ -72,11 +72,8 @@ func Init(exit func(code int)) {
 			log.Fatal("invalid setup parameters")
 		}
 
-		fmsg.Store(params.Verbose)
+		internal.InstallFmsg(params.Verbose)
 		fmsg.Verbose("received setup parameters")
-		if params.Verbose {
-			seccomp.CPrintln = fmsg.Verbose
-		}
 		closeSetup = f
 		offsetSetup = int(setupFile.Fd() + 1)
 	}

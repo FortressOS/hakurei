@@ -1,7 +1,6 @@
 package bwrap_test
 
 import (
-	"log"
 	"os"
 	"slices"
 	"testing"
@@ -12,8 +11,9 @@ import (
 )
 
 func TestConfig_Args(t *testing.T) {
-	seccomp.CPrintln = log.Println
-	t.Cleanup(func() { seccomp.CPrintln = nil })
+	oldF := seccomp.GetOutput()
+	seccomp.SetOutput(t.Log)
+	t.Cleanup(func() { seccomp.SetOutput(oldF) })
 
 	testCases := []struct {
 		name string

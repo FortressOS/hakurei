@@ -4,7 +4,6 @@ import (
 	"crypto/sha512"
 	"errors"
 	"io"
-	"log"
 	"slices"
 	"syscall"
 	"testing"
@@ -79,8 +78,9 @@ func TestExport(t *testing.T) {
 	buf := make([]byte, 8)
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			seccomp.CPrintln = log.Println
-			t.Cleanup(func() { seccomp.CPrintln = nil })
+			oldF := seccomp.GetOutput()
+			seccomp.SetOutput(t.Log)
+			t.Cleanup(func() { seccomp.SetOutput(oldF) })
 
 			e := seccomp.New(tc.opts)
 			digest := sha512.New()

@@ -17,7 +17,6 @@ import (
 	"git.gensokyo.uk/security/fortify/internal"
 	"git.gensokyo.uk/security/fortify/internal/app/init0"
 	"git.gensokyo.uk/security/fortify/internal/fmsg"
-	"git.gensokyo.uk/security/fortify/seccomp"
 )
 
 // everything beyond this point runs as unconstrained target user
@@ -48,7 +47,7 @@ func Main() {
 
 		log.Fatalf("cannot decode shim setup payload: %v", err)
 	} else {
-		fmsg.Store(payload.Verbose)
+		internal.InstallFmsg(payload.Verbose)
 		closeSetup = f
 	}
 
@@ -121,9 +120,6 @@ func Main() {
 	}
 
 	helper.BubblewrapName = payload.Exec[0] // resolved bwrap path by parent
-	if fmsg.Load() {
-		seccomp.CPrintln = log.Println
-	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop() // unreachable

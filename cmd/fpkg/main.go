@@ -19,7 +19,6 @@ import (
 	"git.gensokyo.uk/security/fortify/internal/fmsg"
 	"git.gensokyo.uk/security/fortify/internal/sandbox"
 	"git.gensokyo.uk/security/fortify/internal/sys"
-	"git.gensokyo.uk/security/fortify/seccomp"
 )
 
 const shellPath = "/run/current-system/sw/bin/bash"
@@ -60,10 +59,7 @@ func main() {
 		flagDropShell bool
 	)
 	c := command.New(os.Stderr, log.Printf, "fpkg", func([]string) error {
-		fmsg.Store(flagVerbose)
-		if flagVerbose {
-			seccomp.CPrintln = log.Println
-		}
+		internal.InstallFmsg(flagVerbose)
 		return nil
 	}).
 		Flag(&flagVerbose, "v", command.BoolFlag(false), "Print debug messages to the console").

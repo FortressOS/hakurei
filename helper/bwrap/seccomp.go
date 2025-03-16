@@ -48,20 +48,21 @@ func (c *Config) seccompArgs() FDBuilder {
 			{c.Syscall.Bluetooth, seccomp.FlagBluetooth, "bluetooth"},
 		}
 	)
-	if seccomp.CPrintln != nil {
+	scmpPrintln := seccomp.GetOutput()
+	if scmpPrintln != nil {
 		optd = make([]string, 1, len(optCond)+1)
 		optd[0] = "common"
 	}
 	for _, opt := range optCond {
 		if opt.v {
 			opts |= opt.o
-			if seccomp.CPrintln != nil {
+			if scmpPrintln != nil {
 				optd = append(optd, opt.d)
 			}
 		}
 	}
-	if seccomp.CPrintln != nil {
-		seccomp.CPrintln(fmt.Sprintf("seccomp flags: %s", optd))
+	if scmpPrintln != nil {
+		scmpPrintln(fmt.Sprintf("seccomp flags: %s", optd))
 	}
 
 	return &seccompBuilder{seccomp.NewFile(opts)}
