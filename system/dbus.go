@@ -88,7 +88,7 @@ func (d *DBus) apply(sys *I) error {
 		return sys.wrapErrSuffix(err,
 			"cannot start message bus proxy:")
 	}
-	sys.println("starting message bus proxy:", d.proxy)
+	sys.println("starting message bus proxy", d.proxy)
 	return nil
 }
 
@@ -139,7 +139,15 @@ func (s *scanToFmsg) write(p []byte, a int) (int, error) {
 		return a + n, nil
 	} else {
 		n, _ := s.msg.Write(p[:i])
-		s.msgbuf = append(s.msgbuf, s.msg.String())
+
+		// allow container init messages through
+		v := s.msg.String()
+		if strings.HasPrefix(v, "init: ") {
+			log.Println("(dbus) " + v)
+		} else {
+			s.msgbuf = append(s.msgbuf, v)
+		}
+
 		s.msg.Reset()
 		return s.write(p[i+1:], a+n+1)
 	}
@@ -148,7 +156,7 @@ func (s *scanToFmsg) write(p []byte, a int) (int, error) {
 func (s *scanToFmsg) Dump() {
 	s.mu.RLock()
 	for _, msg := range s.msgbuf {
-		log.Println(msg)
+		log.Println("(dbus) " + msg)
 	}
 	s.mu.RUnlock()
 }

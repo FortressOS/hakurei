@@ -9,7 +9,6 @@ import (
 	"sync"
 
 	"git.gensokyo.uk/security/fortify/helper"
-	"git.gensokyo.uk/security/fortify/helper/bwrap"
 )
 
 // ProxyName is the file name or path to the proxy program.
@@ -20,15 +19,17 @@ var ProxyName = "xdg-dbus-proxy"
 // Once sealed, configuration changes will no longer be possible and attempting to do so will result in a panic.
 type Proxy struct {
 	helper helper.Helper
-	bwrap  *bwrap.Config
 	ctx    context.Context
 	cancel context.CancelCauseFunc
 
 	name    string
 	session [2]string
 	system  [2]string
-	CmdF    func(cmd *exec.Cmd)
+	CmdF    func(any)
 	sysP    bool
+
+	CommandContext func(ctx context.Context) (cmd *exec.Cmd)
+	FilterF        func([]byte) []byte
 
 	seal io.WriterTo
 	lock sync.RWMutex

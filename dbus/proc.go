@@ -14,12 +14,13 @@ import (
 	"syscall"
 
 	"git.gensokyo.uk/security/fortify/helper"
-	"git.gensokyo.uk/security/fortify/helper/bwrap"
+	"git.gensokyo.uk/security/fortify/internal/sandbox"
 	"git.gensokyo.uk/security/fortify/ldd"
+	"git.gensokyo.uk/security/fortify/seccomp"
 )
 
 // Start launches the D-Bus proxy.
-func (p *Proxy) Start(ctx context.Context, output io.Writer, sandbox bool) error {
+func (p *Proxy) Start(ctx context.Context, output io.Writer, useSandbox bool) error {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 
@@ -30,11 +31,15 @@ func (p *Proxy) Start(ctx context.Context, output io.Writer, sandbox bool) error
 	var h helper.Helper
 
 	c, cancel := context.WithCancelCause(ctx)
-	if !sandbox {
+	if !useSandbox {
 		h = helper.NewDirect(c, p.name, p.seal, true, argF, func(cmd *exec.Cmd) {
-			cmdF(cmd, output, p.CmdF)
-
-			// xdg-dbus-proxy does not need to inherit the environment
+			if p.CmdF != nil {
+				p.CmdF(cmd)
+			}
+			if output != nil {
+				cmd.Stdout, cmd.Stderr = output, output
+			}
+			cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 			cmd.Env = make([]string, 0)
 		}, nil)
 	} else {
@@ -47,64 +52,65 @@ func (p *Proxy) Start(ctx context.Context, output io.Writer, sandbox bool) error
 			}
 		}
 
-		bc := &bwrap.Config{
-			Hostname:      "fortify-dbus",
-			Chdir:         "/",
-			Syscall:       &bwrap.SyscallPolicy{DenyDevel: true, Multiarch: true},
-			Clearenv:      true,
-			NewSession:    true,
-			DieWithParent: true,
+		var libPaths []string
+		if entries, err := ldd.ExecFilter(ctx, p.CommandContext, p.FilterF, toolPath); err != nil {
+			return err
+		} else {
+			libPaths = ldd.Path(entries)
 		}
 
-		// these lib paths are unpredictable, so mount them first so they cannot cover anything
-		if toolPath != os.Args[0] {
-			if entries, err := ldd.Exec(ctx, toolPath); err != nil {
-				return err
-			} else {
-				for _, name := range ldd.Path(entries) {
-					bc.Bind(name, name)
-				}
-			}
-		}
-
-		// upstream bus directories
-		upstreamPaths := make([]string, 0, 2)
-		for _, as := range []string{p.session[0], p.system[0]} {
-			if len(as) > 0 && strings.HasPrefix(as, "unix:path=/") {
-				// leave / intact
-				upstreamPaths = append(upstreamPaths, path.Dir(as[10:]))
-			}
-		}
-		slices.Sort(upstreamPaths)
-		upstreamPaths = slices.Compact(upstreamPaths)
-		for _, name := range upstreamPaths {
-			bc.Bind(name, name)
-		}
-
-		// parent directories of bind paths
-		sockDirPaths := make([]string, 0, 2)
-		if d := path.Dir(p.session[1]); path.IsAbs(d) {
-			sockDirPaths = append(sockDirPaths, d)
-		}
-		if d := path.Dir(p.system[1]); path.IsAbs(d) {
-			sockDirPaths = append(sockDirPaths, d)
-		}
-		slices.Sort(sockDirPaths)
-		sockDirPaths = slices.Compact(sockDirPaths)
-		for _, name := range sockDirPaths {
-			bc.Bind(name, name, false, true)
-		}
-
-		// xdg-dbus-proxy bin path
-		binPath := path.Dir(toolPath)
-		bc.Bind(binPath, binPath)
-		h = helper.MustNewBwrap(c, toolPath,
+		h = helper.New(
+			c, toolPath,
 			p.seal, true,
-			argF, func(cmd *exec.Cmd) { cmdF(cmd, output, p.CmdF) },
-			nil,
-			bc, nil,
-		)
-		p.bwrap = bc
+			argF, func(container *sandbox.Container) {
+				container.Seccomp |= seccomp.FlagMultiarch
+				container.Hostname = "fortify-dbus"
+				container.CommandContext = p.CommandContext
+				if output != nil {
+					container.Stdout, container.Stderr = output, output
+				}
+
+				if p.CmdF != nil {
+					p.CmdF(container)
+				}
+
+				// these lib paths are unpredictable, so mount them first so they cannot cover anything
+				for _, name := range libPaths {
+					container.Bind(name, name, 0)
+				}
+
+				// upstream bus directories
+				upstreamPaths := make([]string, 0, 2)
+				for _, as := range []string{p.session[0], p.system[0]} {
+					if len(as) > 0 && strings.HasPrefix(as, "unix:path=/") {
+						// leave / intact
+						upstreamPaths = append(upstreamPaths, path.Dir(as[10:]))
+					}
+				}
+				slices.Sort(upstreamPaths)
+				upstreamPaths = slices.Compact(upstreamPaths)
+				for _, name := range upstreamPaths {
+					container.Bind(name, name, 0)
+				}
+
+				// parent directories of bind paths
+				sockDirPaths := make([]string, 0, 2)
+				if d := path.Dir(p.session[1]); path.IsAbs(d) {
+					sockDirPaths = append(sockDirPaths, d)
+				}
+				if d := path.Dir(p.system[1]); path.IsAbs(d) {
+					sockDirPaths = append(sockDirPaths, d)
+				}
+				slices.Sort(sockDirPaths)
+				sockDirPaths = slices.Compact(sockDirPaths)
+				for _, name := range sockDirPaths {
+					container.Bind(name, name, sandbox.BindWritable)
+				}
+
+				// xdg-dbus-proxy bin path
+				binPath := path.Dir(toolPath)
+				container.Bind(binPath, binPath, 0)
+			}, nil)
 	}
 
 	if err := h.Start(); err != nil {
@@ -168,15 +174,5 @@ func argF(argsFd, statFd int) []string {
 		return []string{"--args=" + strconv.Itoa(argsFd)}
 	} else {
 		return []string{"--args=" + strconv.Itoa(argsFd), "--fd=" + strconv.Itoa(statFd)}
-	}
-}
-
-func cmdF(cmd *exec.Cmd, output io.Writer, cmdF func(cmd *exec.Cmd)) {
-	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
-	if output != nil {
-		cmd.Stdout, cmd.Stderr = output, output
-	}
-	if cmdF != nil {
-		cmdF(cmd)
 	}
 }

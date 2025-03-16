@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path"
 	"strconv"
 	"strings"
 	"syscall"
@@ -137,27 +136,7 @@ func bwrapStub() {
 			AsInit:        true,
 		}
 
-		efp := new(proc.ExtraFilesPre)
-		if t, ok := os.LookupEnv("GO_TEST_FORTIFY_BWRAP_STUB_TYPE"); ok {
-			switch t {
-			case "dbus":
-				sc.Net = false
-				sc.Hostname = "fortify-dbus"
-				sc.Chdir = "/"
-				sc.Syscall = &bwrap.SyscallPolicy{DenyDevel: true, Multiarch: true}
-				sc.AsInit = false
-				sc.
-					Bind("/run/user/1971", "/run/user/1971").
-					Bind("/tmp/fortify.1971/12622d846cc3fe7b4c10359d01f0eb47", "/tmp/fortify.1971/12622d846cc3fe7b4c10359d01f0eb47", false, true).
-					Bind(path.Dir(os.Args[0]), path.Dir(os.Args[0]))
-
-				// manipulate extra files list so fd ends up as 5
-				efp.Append()
-				efp.Append()
-			}
-		}
-
-		if _, err := MustNewCheckedArgs(sc.Args(nil, efp, new([]proc.File))).
+		if _, err := MustNewCheckedArgs(sc.Args(nil, new(proc.ExtraFilesPre), new([]proc.File))).
 			WriteTo(want); err != nil {
 			panic("cannot read want: " + err.Error())
 		}

@@ -1,6 +1,7 @@
 package dbus_test
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -12,6 +13,8 @@ import (
 
 	"git.gensokyo.uk/security/fortify/dbus"
 	"git.gensokyo.uk/security/fortify/helper"
+	"git.gensokyo.uk/security/fortify/internal"
+	"git.gensokyo.uk/security/fortify/internal/sandbox"
 )
 
 func TestNew(t *testing.T) {
@@ -103,6 +106,10 @@ func TestProxy_Seal(t *testing.T) {
 }
 
 func TestProxy_Start_Wait_Close_String(t *testing.T) {
+	oldWaitDelay := helper.WaitDelay
+	helper.WaitDelay = 16 * time.Second
+	t.Cleanup(func() { helper.WaitDelay = oldWaitDelay })
+
 	t.Run("sandbox", func(t *testing.T) {
 		proxyName := dbus.ProxyName
 		dbus.ProxyName = os.Args[0]
@@ -112,7 +119,7 @@ func TestProxy_Start_Wait_Close_String(t *testing.T) {
 	t.Run("direct", func(t *testing.T) { testProxyStartWaitCloseString(t, false) })
 }
 
-func testProxyStartWaitCloseString(t *testing.T, sandbox bool) {
+func testProxyStartWaitCloseString(t *testing.T, useSandbox bool) {
 	for id, tc := range testCasePairs() {
 		// this test does not test errors
 		if tc[0].wantErr {
@@ -130,25 +137,28 @@ func testProxyStartWaitCloseString(t *testing.T, sandbox bool) {
 
 		t.Run("proxy for "+id, func(t *testing.T) {
 			p := dbus.New(tc[0].bus, tc[1].bus)
-			p.CmdF = func(cmd *exec.Cmd) {
-				wantArgv0 := dbus.ProxyName
-				if sandbox {
-					wantArgv0 = "bwrap"
-				}
-				if cmd.Args[0] != wantArgv0 {
-					panic(fmt.Sprintf("unexpected argv0 %q", os.Args[0]))
-				}
-				cmd.Err = nil
-				cmd.Path = os.Args[0]
-
-				if sandbox {
-					cmd.Args = append([]string{os.Args[0], "-test.run=TestHelperStub", "--"},
-						append(cmd.Args[:5], append([]string{"-test.run=TestHelperStub", "--"}, cmd.Args[5:]...)...)...)
-					cmd.Env = append(cmd.Env, "GO_TEST_FORTIFY_BWRAP_STUB_TYPE=dbus")
+			p.CommandContext = func(ctx context.Context) (cmd *exec.Cmd) {
+				return exec.CommandContext(ctx, os.Args[0], "-test.v",
+					"-test.run=TestHelperInit", "--", "init")
+			}
+			p.CmdF = func(v any) {
+				if useSandbox {
+					container := v.(*sandbox.Container)
+					if container.Args[0] != dbus.ProxyName {
+						panic(fmt.Sprintf("unexpected argv0 %q", os.Args[0]))
+					}
+					container.Args = append([]string{os.Args[0], "-test.run=TestHelperStub", "--"}, container.Args[1:]...)
 				} else {
+					cmd := v.(*exec.Cmd)
+					if cmd.Args[0] != dbus.ProxyName {
+						panic(fmt.Sprintf("unexpected argv0 %q", os.Args[0]))
+					}
+					cmd.Err = nil
+					cmd.Path = os.Args[0]
 					cmd.Args = append([]string{os.Args[0], "-test.run=TestHelperStub", "--"}, cmd.Args[1:]...)
 				}
 			}
+			p.FilterF = func(v []byte) []byte { return bytes.SplitN(v, []byte("TestHelperInit\n"), 2)[1] }
 			output := new(strings.Builder)
 
 			t.Run("unsealed", func(t *testing.T) {
@@ -163,7 +173,7 @@ func testProxyStartWaitCloseString(t *testing.T, sandbox bool) {
 
 				t.Run("start", func(t *testing.T) {
 					want := "proxy not sealed"
-					if err := p.Start(context.Background(), nil, sandbox); err == nil || err.Error() != want {
+					if err := p.Start(context.Background(), nil, useSandbox); err == nil || err.Error() != want {
 						t.Errorf("Start() error = %v, wantErr %q",
 							err, errors.New(want))
 						return
@@ -200,18 +210,15 @@ func testProxyStartWaitCloseString(t *testing.T, sandbox bool) {
 					ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 					defer cancel()
 
-					if err := p.Start(ctx, output, sandbox); err != nil {
+					if err := p.Start(ctx, output, useSandbox); err != nil {
 						t.Fatalf("Start(nil, nil) error = %v",
 							err)
 					}
 
 					t.Run("string", func(t *testing.T) {
 						wantSubstr := fmt.Sprintf("%s -test.run=TestHelperStub -- --args=3 --fd=4", os.Args[0])
-						if sandbox {
-							wantSubstr = fmt.Sprintf(
-								"%s -test.run=TestHelperStub -- bwrap --args 6 -- %s -test.run=TestHelperStub -- --args=3 --fd=4",
-								os.Args[0], os.Args[0],
-							)
+						if useSandbox {
+							wantSubstr = fmt.Sprintf(`argv: ["%s" "-test.run=TestHelperStub" "--" "--args=3" "--fd=4"], flags: 0x0, seccomp: 0x3e`, os.Args[0])
 						}
 						if got := p.String(); !strings.Contains(got, wantSubstr) {
 							t.Errorf("String() = %v, want %v",
@@ -231,4 +238,11 @@ func testProxyStartWaitCloseString(t *testing.T, sandbox bool) {
 			})
 		})
 	}
+}
+
+func TestHelperInit(t *testing.T) {
+	if len(os.Args) != 5 || os.Args[4] != "init" {
+		return
+	}
+	sandbox.Init(internal.Exit)
 }

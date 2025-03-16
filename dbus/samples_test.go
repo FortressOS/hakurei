@@ -7,9 +7,9 @@ import (
 )
 
 const (
-	sampleHostPath = "/run/user/1971/bus"
+	sampleHostPath = "/tmp/bus"
 	sampleHostAddr = "unix:path=" + sampleHostPath
-	sampleBindPath = "/tmp/fortify.1971/12622d846cc3fe7b4c10359d01f0eb47/bus"
+	sampleBindPath = "/tmp/proxied_bus"
 )
 
 var samples = []dbusTestCase{
