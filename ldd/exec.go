@@ -31,7 +31,7 @@ func ExecFilter(ctx context.Context,
 	stdout, stderr := new(bytes.Buffer), new(bytes.Buffer)
 	container.Stdout = stdout
 	container.Stderr = stderr
-	container.Bind("/", "/", 0).Dev("/dev")
+	container.Bind("/", "/", 0).Proc("/proc").Dev("/dev")
 
 	if err := container.Start(); err != nil {
 		return nil, err
