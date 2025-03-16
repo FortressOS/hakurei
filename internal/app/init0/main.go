@@ -9,7 +9,6 @@ import (
 	"syscall"
 	"time"
 
-	"git.gensokyo.uk/security/fortify/helper/proc"
 	"git.gensokyo.uk/security/fortify/internal"
 	"git.gensokyo.uk/security/fortify/internal/fmsg"
 	"git.gensokyo.uk/security/fortify/internal/sandbox"
@@ -42,11 +41,11 @@ func Main() {
 		payload    Payload
 		closeSetup func() error
 	)
-	if f, err := proc.Receive(Env, &payload, nil); err != nil {
-		if errors.Is(err, proc.ErrInvalid) {
+	if f, err := sandbox.Receive(Env, &payload, nil); err != nil {
+		if errors.Is(err, sandbox.ErrInvalid) {
 			log.Fatal("invalid config descriptor")
 		}
-		if errors.Is(err, proc.ErrNotSet) {
+		if errors.Is(err, sandbox.ErrNotSet) {
 			log.Fatal("FORTIFY_INIT not set")
 		}
 

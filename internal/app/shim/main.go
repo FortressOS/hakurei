@@ -13,7 +13,6 @@ import (
 
 	"git.gensokyo.uk/security/fortify/fst"
 	"git.gensokyo.uk/security/fortify/helper"
-	"git.gensokyo.uk/security/fortify/helper/proc"
 	"git.gensokyo.uk/security/fortify/internal"
 	"git.gensokyo.uk/security/fortify/internal/app/init0"
 	"git.gensokyo.uk/security/fortify/internal/fmsg"
@@ -38,11 +37,11 @@ func Main() {
 		payload    Payload
 		closeSetup func() error
 	)
-	if f, err := proc.Receive(Env, &payload, nil); err != nil {
-		if errors.Is(err, proc.ErrInvalid) {
+	if f, err := sandbox.Receive(Env, &payload, nil); err != nil {
+		if errors.Is(err, sandbox.ErrInvalid) {
 			log.Fatal("invalid config descriptor")
 		}
-		if errors.Is(err, proc.ErrNotSet) {
+		if errors.Is(err, sandbox.ErrNotSet) {
 			log.Fatal("FORTIFY_SHIM not set")
 		}
 
@@ -108,7 +107,7 @@ func Main() {
 	var extraFiles []*os.File
 
 	// serve setup payload
-	if fd, encoder, err := proc.Setup(&extraFiles); err != nil {
+	if fd, encoder, err := sandbox.Setup(&extraFiles); err != nil {
 		log.Fatalf("cannot pipe: %v", err)
 	} else {
 		conf.SetEnv[init0.Env] = strconv.Itoa(fd)

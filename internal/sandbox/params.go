@@ -1,4 +1,4 @@
-package proc
+package sandbox
 
 import (
 	"encoding/gob"
@@ -12,7 +12,7 @@ var (
 	ErrInvalid = errors.New("bad file descriptor")
 )
 
-// Setup appends the read end of a pipe for payload transmission and returns its fd.
+// Setup appends the read end of a pipe for setup params transmission and returns its fd.
 func Setup(extraFiles *[]*os.File) (int, *gob.Encoder, error) {
 	if r, w, err := os.Pipe(); err != nil {
 		return -1, nil, err
@@ -23,8 +23,7 @@ func Setup(extraFiles *[]*os.File) (int, *gob.Encoder, error) {
 	}
 }
 
-// Receive retrieves payload pipe fd from the environment,
-// receives its payload and returns the Close method of the pipe.
+// Receive retrieves setup fd from the environment and receives params.
 func Receive(key string, e any, v **os.File) (func() error, error) {
 	var setup *os.File
 

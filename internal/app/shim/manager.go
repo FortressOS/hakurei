@@ -13,6 +13,7 @@ import (
 	"git.gensokyo.uk/security/fortify/helper/proc"
 	"git.gensokyo.uk/security/fortify/internal"
 	"git.gensokyo.uk/security/fortify/internal/fmsg"
+	"git.gensokyo.uk/security/fortify/internal/sandbox"
 )
 
 // used by the parent process
@@ -56,7 +57,7 @@ func (s *Shim) Start(
 	s.cmd = exec.Command(fsuPath)
 
 	// pass shim setup pipe
-	if fd, e, err := proc.Setup(&s.cmd.ExtraFiles); err != nil {
+	if fd, e, err := sandbox.Setup(&s.cmd.ExtraFiles); err != nil {
 		return nil, fmsg.WrapErrorSuffix(err,
 			"cannot create shim setup pipe:")
 	} else {

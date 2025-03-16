@@ -13,7 +13,6 @@ import (
 	"syscall"
 	"time"
 
-	"git.gensokyo.uk/security/fortify/helper/proc"
 	"git.gensokyo.uk/security/fortify/seccomp"
 )
 
@@ -56,11 +55,11 @@ func Init(prepare func(prefix string), setVerbose func(verbose bool)) {
 		setupFile   *os.File
 		offsetSetup int
 	)
-	if f, err := proc.Receive(setupEnv, &params, &setupFile); err != nil {
-		if errors.Is(err, proc.ErrInvalid) {
+	if f, err := Receive(setupEnv, &params, &setupFile); err != nil {
+		if errors.Is(err, ErrInvalid) {
 			log.Fatal("invalid setup descriptor")
 		}
-		if errors.Is(err, proc.ErrNotSet) {
+		if errors.Is(err, ErrNotSet) {
 			log.Fatal("FORTIFY_SETUP not set")
 		}
 

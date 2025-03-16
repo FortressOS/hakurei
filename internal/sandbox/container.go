@@ -13,7 +13,6 @@ import (
 	"syscall"
 	"time"
 
-	"git.gensokyo.uk/security/fortify/helper/proc"
 	"git.gensokyo.uk/security/fortify/seccomp"
 )
 
@@ -163,7 +162,7 @@ func (p *Container) Start() error {
 	}
 
 	// place setup pipe before user supplied extra files, this is later restored by init
-	if fd, e, err := proc.Setup(&p.cmd.ExtraFiles); err != nil {
+	if fd, e, err := Setup(&p.cmd.ExtraFiles); err != nil {
 		return wrapErrSuffix(err,
 			"cannot create shim setup pipe:")
 	} else {
