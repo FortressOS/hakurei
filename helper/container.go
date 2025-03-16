@@ -9,7 +9,7 @@ import (
 	"sync"
 
 	"git.gensokyo.uk/security/fortify/helper/proc"
-	"git.gensokyo.uk/security/fortify/internal/sandbox"
+	"git.gensokyo.uk/security/fortify/sandbox"
 )
 
 // New initialises a Helper instance with wt as the null-terminated argument writer.

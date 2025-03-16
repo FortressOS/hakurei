@@ -14,9 +14,9 @@ import (
 	"syscall"
 
 	"git.gensokyo.uk/security/fortify/helper"
-	"git.gensokyo.uk/security/fortify/internal/sandbox"
 	"git.gensokyo.uk/security/fortify/ldd"
-	"git.gensokyo.uk/security/fortify/seccomp"
+	"git.gensokyo.uk/security/fortify/sandbox"
+	"git.gensokyo.uk/security/fortify/sandbox/seccomp"
 )
 
 // Start launches the D-Bus proxy.

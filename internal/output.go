@@ -2,8 +2,8 @@ package internal
 
 import (
 	"git.gensokyo.uk/security/fortify/internal/fmsg"
-	"git.gensokyo.uk/security/fortify/internal/sandbox"
-	"git.gensokyo.uk/security/fortify/seccomp"
+	"git.gensokyo.uk/security/fortify/sandbox"
+	"git.gensokyo.uk/security/fortify/sandbox/seccomp"
 	"git.gensokyo.uk/security/fortify/system"
 )
 

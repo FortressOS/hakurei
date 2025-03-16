@@ -8,7 +8,7 @@ import (
 	"os/exec"
 	"time"
 
-	"git.gensokyo.uk/security/fortify/internal/sandbox"
+	"git.gensokyo.uk/security/fortify/sandbox"
 )
 
 const lddTimeout = 2 * time.Second

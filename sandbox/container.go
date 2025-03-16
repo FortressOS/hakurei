@@ -13,7 +13,7 @@ import (
 	"syscall"
 	"time"
 
-	"git.gensokyo.uk/security/fortify/seccomp"
+	"git.gensokyo.uk/security/fortify/sandbox/seccomp"
 )
 
 type HardeningFlags uintptr

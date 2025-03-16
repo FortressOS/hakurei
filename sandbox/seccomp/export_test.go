@@ -8,7 +8,7 @@ import (
 	"syscall"
 	"testing"
 
-	"git.gensokyo.uk/security/fortify/seccomp"
+	"git.gensokyo.uk/security/fortify/sandbox/seccomp"
 )
 
 func TestExport(t *testing.T) {

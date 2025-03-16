@@ -15,7 +15,7 @@ import (
 	"git.gensokyo.uk/security/fortify/fst"
 	"git.gensokyo.uk/security/fortify/internal"
 	"git.gensokyo.uk/security/fortify/internal/fmsg"
-	"git.gensokyo.uk/security/fortify/internal/sandbox"
+	"git.gensokyo.uk/security/fortify/sandbox"
 )
 
 // Std implements System using the standard library.

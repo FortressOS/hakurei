@@ -13,7 +13,7 @@ import (
 	"git.gensokyo.uk/security/fortify/helper/proc"
 	"git.gensokyo.uk/security/fortify/internal"
 	"git.gensokyo.uk/security/fortify/internal/fmsg"
-	"git.gensokyo.uk/security/fortify/internal/sandbox"
+	"git.gensokyo.uk/security/fortify/sandbox"
 )
 
 // used by the parent process

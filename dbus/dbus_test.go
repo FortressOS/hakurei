@@ -15,7 +15,7 @@ import (
 	"git.gensokyo.uk/security/fortify/helper"
 	"git.gensokyo.uk/security/fortify/internal"
 	"git.gensokyo.uk/security/fortify/internal/fmsg"
-	"git.gensokyo.uk/security/fortify/internal/sandbox"
+	"git.gensokyo.uk/security/fortify/sandbox"
 )
 
 func TestNew(t *testing.T) {

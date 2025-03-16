@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"git.gensokyo.uk/security/fortify/internal/sandbox"
+	"git.gensokyo.uk/security/fortify/sandbox"
 )
 
 func TestExecutable(t *testing.T) {

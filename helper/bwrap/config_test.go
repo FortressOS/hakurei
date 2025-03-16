@@ -7,7 +7,7 @@ import (
 
 	"git.gensokyo.uk/security/fortify/helper/bwrap"
 	"git.gensokyo.uk/security/fortify/helper/proc"
-	"git.gensokyo.uk/security/fortify/seccomp"
+	"git.gensokyo.uk/security/fortify/sandbox/seccomp"
 )
 
 func TestConfig_Args(t *testing.T) {
