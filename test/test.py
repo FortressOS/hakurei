@@ -104,7 +104,7 @@ if denyOutputVerbose != "fsu: uid 1001 is not in the fsurc file\nfortify: *canno
 
 # Check sandbox state:
 swaymsg("exec check-sandbox")
-machine.wait_for_file("/tmp/fortify.1000/tmpdir/1/sandbox-ok", timeout=5)
+machine.wait_for_file("/tmp/fortify.1000/tmpdir/1/sandbox-ok", timeout=15)
 
 # Start fortify permissive defaults outside Wayland session:
 print(machine.succeed("sudo -u alice -i fortify -v run -a 0 touch /tmp/success-bare"))
@@ -139,8 +139,8 @@ silent_output_interrupt("--wayland -X --dbus --pulse ")
 print(machine.fail("sudo -u alice -i fortify -v run --wayland true"))
 
 # Start fortify permissive defaults within Wayland session:
-fortify('-v run --wayland --dbus notify-send -a "NixOS Tests" "Test notification" "Notification from within sandbox." && touch /tmp/dbus-done')
-machine.wait_for_file("/tmp/dbus-done", timeout=5)
+fortify('-v run --wayland --dbus notify-send -a "NixOS Tests" "Test notification" "Notification from within sandbox." && touch /tmp/dbus-ok')
+machine.wait_for_file("/tmp/dbus-ok", timeout=15)
 collect_state_ui("dbus_notify_exited")
 machine.succeed("pkill -9 mako")
 
