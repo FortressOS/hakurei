@@ -47,7 +47,8 @@ func TestContainer(t *testing.T) {
 			}, "test-tmpfs"},
 		{"dev", sandbox.FAllowTTY, // go test output is not a tty
 			new(sandbox.Ops).
-				Dev("/dev"),
+				Dev("/dev").
+				Mqueue("/dev/mqueue"),
 			[]*check.Mntent{
 				{FSName: "devtmpfs", Dir: "/dev", Type: "tmpfs", Opts: "\x00"},
 				{FSName: "devtmpfs", Dir: "/dev/null", Type: "devtmpfs", Opts: "\x00", Freq: -1, Passno: -1},
@@ -57,6 +58,7 @@ func TestContainer(t *testing.T) {
 				{FSName: "devtmpfs", Dir: "/dev/urandom", Type: "devtmpfs", Opts: "\x00", Freq: -1, Passno: -1},
 				{FSName: "devtmpfs", Dir: "/dev/tty", Type: "devtmpfs", Opts: "\x00", Freq: -1, Passno: -1},
 				{FSName: "devpts", Dir: "/dev/pts", Type: "devpts", Opts: "rw,nosuid,noexec,relatime,mode=620,ptmxmode=666", Freq: 0, Passno: 0},
+				{FSName: "mqueue", Dir: "/dev/mqueue", Type: "mqueue", Opts: "rw,nosuid,nodev,noexec,relatime", Freq: 0, Passno: 0},
 			}, ""},
 	}
 

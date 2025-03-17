@@ -151,6 +151,35 @@ func (f *Ops) Dev(dest string) *Ops {
 	return f
 }
 
+func init() { gob.Register(new(MountMqueue)) }
+
+// MountMqueue mounts a private mqueue instance on container Path.
+type MountMqueue string
+
+func (m MountMqueue) apply(*InitParams) error {
+	v := string(m)
+
+	if !path.IsAbs(v) {
+		return msg.WrapErr(syscall.EBADE,
+			fmt.Sprintf("path %q is not absolute", v))
+	}
+
+	target := toSysroot(v)
+	if err := os.MkdirAll(target, 0755); err != nil {
+		return msg.WrapErr(err, err.Error())
+	}
+	return wrapErrSuffix(syscall.Mount("mqueue", target, "mqueue",
+		syscall.MS_NOSUID|syscall.MS_NOEXEC|syscall.MS_NODEV, ""),
+		fmt.Sprintf("cannot mount mqueue on %q:", v))
+}
+
+func (m MountMqueue) Is(op Op) bool  { vm, ok := op.(MountMqueue); return ok && m == vm }
+func (m MountMqueue) String() string { return fmt.Sprintf("mqueue on %q", string(m)) }
+func (f *Ops) Mqueue(dest string) *Ops {
+	*f = append(*f, MountMqueue(dest))
+	return f
+}
+
 func init() { gob.Register(new(MountTmpfs)) }
 
 // MountTmpfs mounts tmpfs on container Path.
