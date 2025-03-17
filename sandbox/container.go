@@ -54,7 +54,6 @@ type (
 		// with behaviour identical to its [exec.Cmd] counterpart.
 		ExtraFiles []*os.File
 
-		InitParams
 		// Custom [exec.Cmd] initialisation function.
 		CommandContext func(ctx context.Context) (cmd *exec.Cmd)
 
@@ -72,9 +71,11 @@ type (
 
 		cmd *exec.Cmd
 		ctx context.Context
+		Params
 	}
 
-	InitParams struct {
+	// Params holds container configuration and is safe to serialise.
+	Params struct {
 		// Working directory in the container.
 		Dir string
 		// Initial process environment.
@@ -100,7 +101,7 @@ type (
 
 	Ops []Op
 	Op  interface {
-		apply(params *InitParams) error
+		apply(params *Params) error
 		prefix() string
 
 		Is(op Op) bool
@@ -210,7 +211,7 @@ func (p *Container) Serve() error {
 	p.setup = nil
 	return setup.Encode(
 		&initParams{
-			p.InitParams,
+			p.Params,
 			syscall.Getuid(),
 			syscall.Getgid(),
 			len(p.ExtraFiles),
@@ -228,6 +229,6 @@ func (p *Container) String() string {
 
 func New(ctx context.Context, name string, args ...string) *Container {
 	return &Container{name: name, ctx: ctx,
-		InitParams: InitParams{Args: append([]string{name}, args...), Dir: "/", Ops: new(Ops)},
+		Params: Params{Args: append([]string{name}, args...), Dir: "/", Ops: new(Ops)},
 	}
 }

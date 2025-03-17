@@ -28,7 +28,7 @@ const (
 )
 
 type initParams struct {
-	InitParams
+	Params
 
 	HostUid, HostGid int
 	// extra files count
@@ -148,7 +148,7 @@ func Init(prepare func(prefix string), setVerbose func(verbose bool)) {
 		}
 
 		msg.Verbosef("%s %s", op.prefix(), op)
-		if err := op.apply(&params.InitParams); err != nil {
+		if err := op.apply(&params.Params); err != nil {
 			msg.PrintBaseErr(err,
 				fmt.Sprintf("cannot apply op %d:", i))
 			msg.BeforeExit()

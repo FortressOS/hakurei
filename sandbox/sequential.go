@@ -19,7 +19,7 @@ type BindMount struct {
 	Flags int
 }
 
-func (b *BindMount) apply(*InitParams) error {
+func (b *BindMount) apply(*Params) error {
 	if !path.IsAbs(b.Source) || !path.IsAbs(b.Target) {
 		return msg.WrapErr(syscall.EBADE,
 			"path is not absolute")
@@ -45,7 +45,7 @@ func init() { gob.Register(new(MountProc)) }
 // MountProc mounts a private instance of proc.
 type MountProc string
 
-func (p MountProc) apply(*InitParams) error {
+func (p MountProc) apply(*Params) error {
 	v := string(p)
 
 	if !path.IsAbs(v) {
@@ -75,7 +75,7 @@ func init() { gob.Register(new(MountDev)) }
 // MountDev mounts part of host dev.
 type MountDev string
 
-func (d MountDev) apply(params *InitParams) error {
+func (d MountDev) apply(params *Params) error {
 	v := string(d)
 
 	if !path.IsAbs(v) {
@@ -156,7 +156,7 @@ func init() { gob.Register(new(MountMqueue)) }
 // MountMqueue mounts a private mqueue instance on container Path.
 type MountMqueue string
 
-func (m MountMqueue) apply(*InitParams) error {
+func (m MountMqueue) apply(*Params) error {
 	v := string(m)
 
 	if !path.IsAbs(v) {
@@ -190,7 +190,7 @@ type MountTmpfs struct {
 	Perm os.FileMode
 }
 
-func (t *MountTmpfs) apply(*InitParams) error {
+func (t *MountTmpfs) apply(*Params) error {
 	if !path.IsAbs(t.Path) {
 		return msg.WrapErr(syscall.EBADE,
 			fmt.Sprintf("path %q is not absolute", t.Path))
@@ -215,7 +215,7 @@ func init() { gob.Register(new(Symlink)) }
 // Symlink creates a symlink in the container filesystem.
 type Symlink [2]string
 
-func (l *Symlink) apply(*InitParams) error {
+func (l *Symlink) apply(*Params) error {
 	// symlink target is an arbitrary path value, so only validate link name here
 	if !path.IsAbs(l[1]) {
 		return msg.WrapErr(syscall.EBADE,
