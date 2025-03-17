@@ -234,3 +234,31 @@ func (f *Ops) Link(target, linkName string) *Ops {
 	*f = append(*f, &Symlink{target, linkName})
 	return f
 }
+
+func init() { gob.Register(new(Mkdir)) }
+
+// Mkdir creates a directory in the container filesystem.
+type Mkdir string
+
+func (m Mkdir) apply(*Params) error {
+	v := string(m)
+
+	if !path.IsAbs(v) {
+		return msg.WrapErr(syscall.EBADE,
+			fmt.Sprintf("path %q is not absolute", v))
+	}
+
+	target := toSysroot(v)
+	if err := os.MkdirAll(target, 0755); err != nil {
+		return msg.WrapErr(err, err.Error())
+	}
+	return nil
+}
+
+func (m Mkdir) Is(op Op) bool  { vm, ok := op.(Mkdir); return ok && m == vm }
+func (Mkdir) prefix() string   { return "creating" }
+func (m Mkdir) String() string { return fmt.Sprintf("directory %q", string(m)) }
+func (f *Ops) Mkdir(dest string) *Ops {
+	*f = append(*f, Mkdir(dest))
+	return f
+}

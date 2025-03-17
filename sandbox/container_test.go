@@ -67,7 +67,7 @@ func TestContainer(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()
 
-			container := sandbox.New(ctx, "/tmp/sandbox.test", "-test.v",
+			container := sandbox.New(ctx, "/usr/bin/sandbox.test", "-test.v",
 				"-test.run=TestHelperCheckContainer", "--", "check", tc.host)
 			container.Uid = 1000
 			container.Gid = 100
@@ -87,7 +87,8 @@ func TestContainer(t *testing.T) {
 			container.
 				Tmpfs("/tmp", 0, 0755).
 				Bind(os.Args[0], os.Args[0], 0).
-				Link(os.Args[0], "/tmp/sandbox.test")
+				Mkdir("/usr/bin").
+				Link(os.Args[0], "/usr/bin/sandbox.test")
 			// in case test has cgo enabled
 			var libPaths []string
 			if entries, err := ldd.ExecFilter(ctx,
