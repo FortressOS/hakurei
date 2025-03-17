@@ -147,7 +147,7 @@ func Init(prepare func(prefix string), setVerbose func(verbose bool)) {
 			log.Fatalf("invalid op %d", i)
 		}
 
-		msg.Verbosef("mounting %s", op)
+		msg.Verbosef("%s %s", op.prefix(), op)
 		if err := op.apply(&params.InitParams); err != nil {
 			msg.PrintBaseErr(err,
 				fmt.Sprintf("cannot apply op %d:", i))

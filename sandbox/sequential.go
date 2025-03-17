@@ -28,6 +28,7 @@ func (b *BindMount) apply(*InitParams) error {
 }
 
 func (b *BindMount) Is(op Op) bool { vb, ok := op.(*BindMount); return ok && *b == *vb }
+func (*BindMount) prefix() string  { return "mounting" }
 func (b *BindMount) String() string {
 	if b.Source == b.Target {
 		return fmt.Sprintf("%q flags %#x", b.Source, b.Flags)
@@ -62,6 +63,7 @@ func (p MountProc) apply(*InitParams) error {
 }
 
 func (p MountProc) Is(op Op) bool  { vp, ok := op.(MountProc); return ok && p == vp }
+func (MountProc) prefix() string   { return "mounting" }
 func (p MountProc) String() string { return fmt.Sprintf("proc on %q", string(p)) }
 func (f *Ops) Proc(dest string) *Ops {
 	*f = append(*f, MountProc(dest))
@@ -142,6 +144,7 @@ func (d MountDev) apply(params *InitParams) error {
 }
 
 func (d MountDev) Is(op Op) bool  { vd, ok := op.(MountDev); return ok && d == vd }
+func (MountDev) prefix() string   { return "mounting" }
 func (d MountDev) String() string { return fmt.Sprintf("dev on %q", string(d)) }
 func (f *Ops) Dev(dest string) *Ops {
 	*f = append(*f, MountDev(dest))
@@ -171,6 +174,7 @@ func (m MountMqueue) apply(*InitParams) error {
 }
 
 func (m MountMqueue) Is(op Op) bool  { vm, ok := op.(MountMqueue); return ok && m == vm }
+func (MountMqueue) prefix() string   { return "mounting" }
 func (m MountMqueue) String() string { return fmt.Sprintf("mqueue on %q", string(m)) }
 func (f *Ops) Mqueue(dest string) *Ops {
 	*f = append(*f, MountMqueue(dest))
@@ -199,8 +203,34 @@ func (t *MountTmpfs) apply(*InitParams) error {
 }
 
 func (t *MountTmpfs) Is(op Op) bool  { vt, ok := op.(*MountTmpfs); return ok && *t == *vt }
+func (*MountTmpfs) prefix() string   { return "mounting" }
 func (t *MountTmpfs) String() string { return fmt.Sprintf("tmpfs on %q size %d", t.Path, t.Size) }
 func (f *Ops) Tmpfs(dest string, size int, perm os.FileMode) *Ops {
 	*f = append(*f, &MountTmpfs{dest, size, perm})
+	return f
+}
+
+func init() { gob.Register(new(Symlink)) }
+
+// Symlink creates a symlink in the container filesystem.
+type Symlink [2]string
+
+func (l *Symlink) apply(*InitParams) error {
+	// symlink target is an arbitrary path value, so only validate link name here
+	if !path.IsAbs(l[1]) {
+		return msg.WrapErr(syscall.EBADE,
+			fmt.Sprintf("path %q is not absolute", l[1]))
+	}
+	if err := os.Symlink(l[0], toSysroot(l[1])); err != nil {
+		return msg.WrapErr(err, err.Error())
+	}
+	return nil
+}
+
+func (l *Symlink) Is(op Op) bool  { vl, ok := op.(*Symlink); return ok && *l == *vl }
+func (*Symlink) prefix() string   { return "creating" }
+func (l *Symlink) String() string { return fmt.Sprintf("symlink on %q target %q", l[1], l[0]) }
+func (f *Ops) Link(target, linkName string) *Ops {
+	*f = append(*f, &Symlink{target, linkName})
 	return f
 }

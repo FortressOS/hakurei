@@ -101,6 +101,7 @@ type (
 	Ops []Op
 	Op  interface {
 		apply(params *InitParams) error
+		prefix() string
 
 		Is(op Op) bool
 		fmt.Stringer
