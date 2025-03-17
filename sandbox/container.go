@@ -185,7 +185,11 @@ func (p *Container) Serve() error {
 		panic("invalid serve")
 	}
 
+	setup := p.setup
+	p.setup = nil
+
 	if p.Path != "" && !path.IsAbs(p.Path) {
+		p.cancel()
 		return msg.WrapErr(syscall.EINVAL,
 			fmt.Sprintf("invalid executable path %q", p.Path))
 	}
@@ -194,6 +198,7 @@ func (p *Container) Serve() error {
 		if p.name == "" {
 			p.Path = os.Getenv("SHELL")
 			if !path.IsAbs(p.Path) {
+				p.cancel()
 				return msg.WrapErr(syscall.EBADE,
 					"no command specified and $SHELL is invalid")
 			}
@@ -201,15 +206,14 @@ func (p *Container) Serve() error {
 		} else if path.IsAbs(p.name) {
 			p.Path = p.name
 		} else if v, err := exec.LookPath(p.name); err != nil {
+			p.cancel()
 			return msg.WrapErr(err, err.Error())
 		} else {
 			p.Path = v
 		}
 	}
 
-	setup := p.setup
-	p.setup = nil
-	return setup.Encode(
+	err := setup.Encode(
 		&initParams{
 			p.Params,
 			syscall.Getuid(),
@@ -218,6 +222,10 @@ func (p *Container) Serve() error {
 			msg.IsVerbose(),
 		},
 	)
+	if err != nil {
+		p.cancel()
+	}
+	return err
 }
 
 func (p *Container) Wait() error { defer p.cancel(); return p.cmd.Wait() }
