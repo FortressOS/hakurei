@@ -88,7 +88,8 @@ func TestContainer(t *testing.T) {
 				Tmpfs("/tmp", 0, 0755).
 				Bind(os.Args[0], os.Args[0], 0).
 				Mkdir("/usr/bin").
-				Link(os.Args[0], "/usr/bin/sandbox.test")
+				Link(os.Args[0], "/usr/bin/sandbox.test").
+				Place("/etc/hostname", []byte(container.Args[5]))
 			// in case test has cgo enabled
 			var libPaths []string
 			if entries, err := ldd.ExecFilter(ctx,
@@ -109,7 +110,9 @@ func TestContainer(t *testing.T) {
 			mnt = append(mnt, tc.mnt...)
 			mnt = append(mnt,
 				&check.Mntent{FSName: "tmpfs", Dir: "/tmp", Type: "tmpfs", Opts: "host_passthrough"},
-				&check.Mntent{FSName: "\x00", Dir: os.Args[0], Type: "\x00", Opts: "\x00"})
+				&check.Mntent{FSName: "\x00", Dir: os.Args[0], Type: "\x00", Opts: "\x00"},
+				&check.Mntent{FSName: "rootfs", Dir: "/etc/hostname", Type: "tmpfs", Opts: "host_passthrough"},
+			)
 			for _, name := range libPaths {
 				mnt = append(mnt, &check.Mntent{FSName: "\x00", Dir: name, Type: "\x00", Opts: "\x00", Freq: -1, Passno: -1})
 			}
@@ -174,6 +177,12 @@ func TestHelperCheckContainer(t *testing.T) {
 			t.Fatalf("cannot get hostname: %v", err)
 		} else if name != os.Args[5] {
 			t.Errorf("Hostname: %q, want %q", name, os.Args[5])
+		}
+
+		if p, err := os.ReadFile("/etc/hostname"); err != nil {
+			t.Fatalf("%v", err)
+		} else if string(p) != os.Args[5] {
+			t.Errorf("/etc/hostname: %q, want %q", string(p), os.Args[5])
 		}
 	})
 	t.Run("seccomp", func(t *testing.T) { check.MustAssertSeccomp() })

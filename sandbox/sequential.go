@@ -6,6 +6,7 @@ import (
 	"math"
 	"os"
 	"path"
+	"slices"
 	"syscall"
 	"unsafe"
 )
@@ -260,5 +261,57 @@ func (Mkdir) prefix() string   { return "creating" }
 func (m Mkdir) String() string { return fmt.Sprintf("directory %q", string(m)) }
 func (f *Ops) Mkdir(dest string) *Ops {
 	*f = append(*f, Mkdir(dest))
+	return f
+}
+
+func init() { gob.Register(new(Tmpfile)) }
+
+// Tmpfile places a file in container Path containing Data.
+type Tmpfile struct {
+	Path string
+	Data []byte
+}
+
+func (t *Tmpfile) apply(*Params) error {
+	if !path.IsAbs(t.Path) {
+		return msg.WrapErr(syscall.EBADE,
+			fmt.Sprintf("path %q is not absolute", t.Path))
+	}
+
+	var tmpPath string
+	if f, err := os.CreateTemp("/", "tmp.*"); err != nil {
+		return msg.WrapErr(err, err.Error())
+	} else if _, err = f.Write(t.Data); err != nil {
+		return wrapErrSuffix(err,
+			"cannot write to intermediate file:")
+	} else if err = f.Close(); err != nil {
+		return wrapErrSuffix(err,
+			"cannot close intermediate file:")
+	} else {
+		tmpPath = f.Name()
+	}
+
+	if err := bindMount(tmpPath, t.Path, BindSource|bindAbsolute); err != nil {
+		return err
+	} else if err = os.Remove(tmpPath); err != nil {
+		return msg.WrapErr(err, err.Error())
+	}
+	return nil
+}
+
+func (t *Tmpfile) Is(op Op) bool {
+	vt, ok := op.(*Tmpfile)
+	return ok && t.Path == vt.Path && slices.Equal(t.Data, vt.Data)
+}
+func (*Tmpfile) prefix() string { return "placing" }
+func (t *Tmpfile) String() string {
+	return fmt.Sprintf("tmpfile %q (%d bytes)", t.Path, len(t.Data))
+}
+func (f *Ops) Place(name string, data []byte) *Ops { *f = append(*f, &Tmpfile{name, data}); return f }
+func (f *Ops) PlaceP(name string, dataP **[]byte) *Ops {
+	t := &Tmpfile{Path: name}
+	*dataP = &t.Data
+
+	*f = append(*f, t)
 	return f
 }
