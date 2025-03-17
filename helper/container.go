@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"os"
+	"os/exec"
 	"slices"
 	"sync"
 
@@ -61,7 +62,7 @@ func (h *helperContainer) Start() error {
 		h.Env = append(h.Env, FortifyStatus+"=1")
 
 		// stat is populated on fulfill
-		h.Cancel = func() error { return h.stat.Close() }
+		h.Cancel = func(*exec.Cmd) error { return h.stat.Close() }
 	} else {
 		h.Env = append(h.Env, FortifyStatus+"=0")
 	}

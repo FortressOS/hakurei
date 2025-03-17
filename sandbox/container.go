@@ -66,7 +66,7 @@ type (
 		Stdout io.Writer
 		Stderr io.Writer
 
-		Cancel    func() error
+		Cancel    func(cmd *exec.Cmd) error
 		WaitDelay time.Duration
 
 		cmd *exec.Cmd
@@ -143,7 +143,12 @@ func (p *Container) Start() error {
 	}
 
 	p.cmd.Stdin, p.cmd.Stdout, p.cmd.Stderr = p.Stdin, p.Stdout, p.Stderr
-	p.cmd.Cancel, p.cmd.WaitDelay = p.Cancel, p.WaitDelay
+	p.cmd.WaitDelay = p.WaitDelay
+	if p.Cancel != nil {
+		p.cmd.Cancel = func() error { return p.Cancel(p.cmd) }
+	} else {
+		p.cmd.Cancel = func() error { return p.cmd.Process.Signal(syscall.SIGTERM) }
+	}
 	p.cmd.Dir = "/"
 	p.cmd.SysProcAttr = &syscall.SysProcAttr{
 		Setsid:    p.Flags&FAllowTTY == 0,

@@ -312,10 +312,13 @@ func Init(prepare func(prefix string), setVerbose func(verbose bool)) {
 				switch {
 				case w.wstatus.Exited():
 					r = w.wstatus.ExitStatus()
+					msg.Verbosef("initial process exited with code %d", w.wstatus.ExitStatus())
 				case w.wstatus.Signaled():
 					r = 128 + int(w.wstatus.Signal())
+					msg.Verbosef("initial process exited with signal %s", w.wstatus.Signal())
 				default:
 					r = 255
+					msg.Verbosef("initial process exited with status %#x", w.wstatus)
 				}
 
 				go func() {
