@@ -31,7 +31,8 @@ type Std struct {
 	uidMu sync.RWMutex
 }
 
-func (s *Std) Geteuid() int                                 { return os.Geteuid() }
+func (s *Std) Getuid() int                                  { return os.Getuid() }
+func (s *Std) Getgid() int                                  { return os.Getgid() }
 func (s *Std) LookupEnv(key string) (string, bool)          { return os.LookupEnv(key) }
 func (s *Std) TempDir() string                              { return os.TempDir() }
 func (s *Std) LookPath(file string) (string, error)         { return exec.LookPath(file) }

@@ -12,8 +12,10 @@ import (
 
 // State provides safe interaction with operating system state.
 type State interface {
-	// Geteuid provides [os.Geteuid].
-	Geteuid() int
+	// Getuid provides [os.Getuid].
+	Getuid() int
+	// Getgid provides [os.Getgid].
+	Getgid() int
 	// LookupEnv provides [os.LookupEnv].
 	LookupEnv(key string) (string, bool)
 	// TempDir provides [os.TempDir].
@@ -47,7 +49,7 @@ type State interface {
 
 // CopyPaths is a generic implementation of [System.Paths].
 func CopyPaths(os State, v *fst.Paths) {
-	v.SharePath = path.Join(os.TempDir(), "fortify."+strconv.Itoa(os.Geteuid()))
+	v.SharePath = path.Join(os.TempDir(), "fortify."+strconv.Itoa(os.Getuid()))
 
 	fmsg.Verbosef("process share directory at %q", v.SharePath)
 

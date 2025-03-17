@@ -17,7 +17,8 @@ type stubNixOS struct {
 	usernameErr map[string]error
 }
 
-func (s *stubNixOS) Geteuid() int                             { return 1971 }
+func (s *stubNixOS) Getuid() int                              { return 1971 }
+func (s *stubNixOS) Getgid() int                              { return 100 }
 func (s *stubNixOS) TempDir() string                          { return "/tmp" }
 func (s *stubNixOS) MustExecutable() string                   { return "/run/wrappers/bin/fortify" }
 func (s *stubNixOS) Exit(code int)                            { panic("called exit on stub with code " + strconv.Itoa(code)) }

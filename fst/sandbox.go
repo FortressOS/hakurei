@@ -47,7 +47,7 @@ type SandboxConfig struct {
 
 // SandboxSys encapsulates system functions used during the creation of [bwrap.Config].
 type SandboxSys interface {
-	Geteuid() int
+	Getuid() int
 	Paths() Paths
 	ReadDir(name string) ([]fs.DirEntry, error)
 	EvalSymlinks(path string) (string, error)
@@ -73,7 +73,7 @@ func (s *SandboxConfig) Bwrap(sys SandboxSys, uid *int) (*bwrap.Config, error) {
 	} else {
 		// some programs fail to connect to dbus session running as a different uid, so a separate workaround
 		// is introduced to map priv-side caller uid in namespace
-		*uid = sys.Geteuid()
+		*uid = sys.Getuid()
 	}
 
 	conf := (&bwrap.Config{
