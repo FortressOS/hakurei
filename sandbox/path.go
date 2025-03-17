@@ -26,25 +26,6 @@ func toHost(name string) string {
 	return path.Join(hostPath, name)
 }
 
-func realpathHost(name string) (string, error) {
-	source := toHost(name)
-	rp, err := os.Readlink(source)
-
-	if err != nil {
-		if errors.Is(err, syscall.EINVAL) {
-			// not a symlink
-			return name, nil
-		}
-		return "", err
-	}
-
-	if !path.IsAbs(rp) {
-		return name, nil
-	}
-	msg.Verbosef("path %q resolves to %q", name, rp)
-	return rp, nil
-}
-
 func createFile(name string, perm os.FileMode, content []byte) error {
 	if err := os.MkdirAll(path.Dir(name), 0755); err != nil {
 		return err

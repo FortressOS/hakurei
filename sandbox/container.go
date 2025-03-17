@@ -101,6 +101,7 @@ type (
 
 	Ops []Op
 	Op  interface {
+		early(params *Params) error
 		apply(params *Params) error
 		prefix() string
 

@@ -98,6 +98,7 @@ func Init(prepare func(prefix string), setVerbose func(verbose bool)) {
 		log.Fatalf("cannot set SUID_DUMP_DISABLE: %s", err)
 	}
 
+	oldmask := syscall.Umask(0)
 	if params.Hostname != "" {
 		if err := syscall.Sethostname([]byte(params.Hostname)); err != nil {
 			log.Fatalf("cannot set hostname: %v", err)
@@ -112,6 +113,19 @@ func Init(prepare func(prefix string), setVerbose func(verbose bool)) {
 		syscall.MS_SILENT|syscall.MS_SLAVE|syscall.MS_REC,
 		""); err != nil {
 		log.Fatalf("cannot make / rslave: %v", err)
+	}
+
+	for i, op := range *params.Ops {
+		if op == nil {
+			log.Fatalf("invalid op %d", i)
+		}
+
+		if err := op.early(&params.Params); err != nil {
+			msg.PrintBaseErr(err,
+				fmt.Sprintf("cannot prepare op %d:", i))
+			msg.BeforeExit()
+			os.Exit(1)
+		}
 	}
 
 	if err := syscall.Mount("rootfs", basePath, "tmpfs",
@@ -143,10 +157,7 @@ func Init(prepare func(prefix string), setVerbose func(verbose bool)) {
 	}
 
 	for i, op := range *params.Ops {
-		if op == nil {
-			log.Fatalf("invalid op %d", i)
-		}
-
+		// ops already checked during early setup
 		msg.Verbosef("%s %s", op.prefix(), op)
 		if err := op.apply(&params.Params); err != nil {
 			msg.PrintBaseErr(err,
@@ -220,6 +231,7 @@ func Init(prepare func(prefix string), setVerbose func(verbose bool)) {
 	for i := range extraFiles {
 		extraFiles[i] = os.NewFile(uintptr(offsetSetup+i), "extra file "+strconv.Itoa(i))
 	}
+	syscall.Umask(oldmask)
 
 	/*
 		prepare initial process

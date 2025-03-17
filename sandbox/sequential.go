@@ -6,6 +6,7 @@ import (
 	"math"
 	"os"
 	"path"
+	"path/filepath"
 	"slices"
 	"syscall"
 	"unsafe"
@@ -15,17 +16,48 @@ func init() { gob.Register(new(BindMount)) }
 
 // BindMount bind mounts host path Source on container path Target.
 type BindMount struct {
-	Source, Target string
+	Source, SourceFinal, Target string
 
 	Flags int
 }
 
+func (b *BindMount) early(*Params) error {
+	if !path.IsAbs(b.Source) {
+		return msg.WrapErr(syscall.EBADE,
+			fmt.Sprintf("path %q is not absolute", b.Source))
+	}
+
+	if b.Flags&BindSource != 0 {
+		b.SourceFinal = b.Source
+		return nil
+	}
+	if v, err := filepath.EvalSymlinks(b.Source); err != nil {
+		if os.IsNotExist(err) && b.Flags&BindOptional != 0 {
+			b.SourceFinal = "\x00"
+			return nil
+		}
+		return msg.WrapErr(err, err.Error())
+	} else {
+		b.SourceFinal = v
+		b.Flags |= bindResolved
+		return nil
+	}
+}
+
 func (b *BindMount) apply(*Params) error {
-	if !path.IsAbs(b.Source) || !path.IsAbs(b.Target) {
+	if b.SourceFinal == "\x00" {
+		if b.Flags&BindOptional == 0 {
+			// unreachable
+			return syscall.EBADE
+		}
+		return nil
+	}
+
+	if !path.IsAbs(b.SourceFinal) || !path.IsAbs(b.Target) {
 		return msg.WrapErr(syscall.EBADE,
 			"path is not absolute")
 	}
-	return bindMount(b.Source, b.Target, b.Flags)
+	return bindMount(b.SourceFinal, b.Target, b.Flags)
 }
 
 func (b *BindMount) Is(op Op) bool { vb, ok := op.(*BindMount); return ok && *b == *vb }
@@ -37,7 +69,7 @@ func (b *BindMount) String() string {
 	return fmt.Sprintf("%q on %q flags %#x", b.Source, b.Target, b.Flags&BindWritable)
 }
 func (f *Ops) Bind(source, target string, flags int) *Ops {
-	*f = append(*f, &BindMount{source, target, flags | bindRecursive})
+	*f = append(*f, &BindMount{source, "", target, flags | bindRecursive})
 	return f
 }
 
@@ -46,6 +78,7 @@ func init() { gob.Register(new(MountProc)) }
 // MountProc mounts a private instance of proc.
 type MountProc string
 
+func (p MountProc) early(*Params) error { return nil }
 func (p MountProc) apply(*Params) error {
 	v := string(p)
 
@@ -76,6 +109,7 @@ func init() { gob.Register(new(MountDev)) }
 // MountDev mounts part of host dev.
 type MountDev string
 
+func (d MountDev) early(*Params) error { return nil }
 func (d MountDev) apply(params *Params) error {
 	v := string(d)
 
@@ -135,7 +169,7 @@ func (d MountDev) apply(params *Params) error {
 			syscall.SYS_IOCTL, 1, syscall.TIOCGWINSZ,
 			uintptr(unsafe.Pointer(&buf[0])),
 		); errno == 0 {
-			if err := bindMount("/proc/self/fd/1", path.Join(v, "console"), BindDevice); err != nil {
+			if err := bindMount("/proc/self/fd/1", path.Join(v, "console"), BindSource|BindDevice); err != nil {
 				return err
 			}
 		}
@@ -157,6 +191,7 @@ func init() { gob.Register(new(MountMqueue)) }
 // MountMqueue mounts a private mqueue instance on container Path.
 type MountMqueue string
 
+func (m MountMqueue) early(*Params) error { return nil }
 func (m MountMqueue) apply(*Params) error {
 	v := string(m)
 
@@ -191,6 +226,7 @@ type MountTmpfs struct {
 	Perm os.FileMode
 }
 
+func (t *MountTmpfs) early(*Params) error { return nil }
 func (t *MountTmpfs) apply(*Params) error {
 	if !path.IsAbs(t.Path) {
 		return msg.WrapErr(syscall.EBADE,
@@ -216,6 +252,7 @@ func init() { gob.Register(new(Symlink)) }
 // Symlink creates a symlink in the container filesystem.
 type Symlink [2]string
 
+func (l *Symlink) early(*Params) error { return nil }
 func (l *Symlink) apply(*Params) error {
 	// symlink target is an arbitrary path value, so only validate link name here
 	if !path.IsAbs(l[1]) {
@@ -241,6 +278,7 @@ func init() { gob.Register(new(Mkdir)) }
 // Mkdir creates a directory in the container filesystem.
 type Mkdir string
 
+func (m Mkdir) early(*Params) error { return nil }
 func (m Mkdir) apply(*Params) error {
 	v := string(m)
 
@@ -272,6 +310,7 @@ type Tmpfile struct {
 	Data []byte
 }
 
+func (t *Tmpfile) early(*Params) error { return nil }
 func (t *Tmpfile) apply(*Params) error {
 	if !path.IsAbs(t.Path) {
 		return msg.WrapErr(syscall.EBADE,
