@@ -41,47 +41,54 @@ func (f *Ops) Bind(source, target string, flags int) *Ops {
 
 func init() { gob.Register(new(MountProc)) }
 
-// MountProc mounts a private proc instance on container Path.
-type MountProc struct {
-	Path string
-}
+// MountProc mounts a private instance of proc.
+type MountProc string
 
-func (p *MountProc) apply(*InitParams) error {
-	if !path.IsAbs(p.Path) {
+func (p MountProc) apply(*InitParams) error {
+	v := string(p)
+
+	if !path.IsAbs(v) {
 		return msg.WrapErr(syscall.EBADE,
-			fmt.Sprintf("path %q is not absolute", p.Path))
+			fmt.Sprintf("path %q is not absolute", v))
 	}
 
-	target := toSysroot(p.Path)
+	target := toSysroot(v)
 	if err := os.MkdirAll(target, 0755); err != nil {
 		return msg.WrapErr(err, err.Error())
 	}
 	return wrapErrSuffix(syscall.Mount("proc", target, "proc",
 		syscall.MS_NOSUID|syscall.MS_NOEXEC|syscall.MS_NODEV, ""),
-		fmt.Sprintf("cannot mount proc on %q:", p.Path))
+		fmt.Sprintf("cannot mount proc on %q:", v))
+}
+
+func (p MountProc) Is(op Op) bool  { vp, ok := op.(MountProc); return ok && p == vp }
+func (p MountProc) String() string { return fmt.Sprintf("proc on %q", string(p)) }
+func (f *Ops) Proc(dest string) *Ops {
+	*f = append(*f, MountProc(dest))
+	return f
 }
 
 func init() { gob.Register(new(MountDev)) }
 
-// MountDev mounts dev on container Path.
-type MountDev struct {
-	Path string
-}
+// MountDev mounts part of host dev.
+type MountDev string
 
-func (d *MountDev) apply(params *InitParams) error {
-	if !path.IsAbs(d.Path) {
+func (d MountDev) apply(params *InitParams) error {
+	v := string(d)
+
+	if !path.IsAbs(v) {
 		return msg.WrapErr(syscall.EBADE,
-			fmt.Sprintf("path %q is not absolute", d.Path))
+			fmt.Sprintf("path %q is not absolute", v))
 	}
-	target := toSysroot(d.Path)
+	target := toSysroot(v)
 
-	if err := mountTmpfs("devtmpfs", d.Path, 0, 0755); err != nil {
+	if err := mountTmpfs("devtmpfs", v, 0, 0755); err != nil {
 		return err
 	}
 
 	for _, name := range []string{"null", "zero", "full", "random", "urandom", "tty"} {
 		if err := bindMount(
-			"/dev/"+name, path.Join(d.Path, name),
+			"/dev/"+name, path.Join(v, name),
 			BindSource|BindDevices,
 		); err != nil {
 			return err
@@ -126,7 +133,7 @@ func (d *MountDev) apply(params *InitParams) error {
 			uintptr(unsafe.Pointer(&buf[0])),
 		); errno == 0 {
 			if err := bindMount(
-				"/proc/self/fd/1", path.Join(d.Path, "console"),
+				"/proc/self/fd/1", path.Join(v, "console"),
 				BindDevices,
 			); err != nil {
 				return err
@@ -137,17 +144,10 @@ func (d *MountDev) apply(params *InitParams) error {
 	return nil
 }
 
-func (d *MountDev) Is(op Op) bool  { vd, ok := op.(*MountDev); return ok && *d == *vd }
-func (d *MountDev) String() string { return fmt.Sprintf("dev on %q", d.Path) }
+func (d MountDev) Is(op Op) bool  { vd, ok := op.(MountDev); return ok && d == vd }
+func (d MountDev) String() string { return fmt.Sprintf("dev on %q", string(d)) }
 func (f *Ops) Dev(dest string) *Ops {
-	*f = append(*f, &MountDev{dest})
-	return f
-}
-
-func (p *MountProc) Is(op Op) bool  { vp, ok := op.(*MountProc); return ok && *p == *vp }
-func (p *MountProc) String() string { return fmt.Sprintf("proc on %q", p.Path) }
-func (f *Ops) Proc(dest string) *Ops {
-	*f = append(*f, &MountProc{dest})
+	*f = append(*f, MountDev(dest))
 	return f
 }
 
