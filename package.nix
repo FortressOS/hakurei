@@ -19,6 +19,10 @@
   gnutar,
   coreutils,
 
+  # for passthru.buildInputs
+  go,
+  gcc,
+
   glibc, # for ldd
   withStatic ? stdenv.hostPlatform.isStatic,
 }:
@@ -108,4 +112,13 @@ buildGoModule rec {
           )
         }
     '';
+
+  passthru.targetPkgs =
+    [
+      go
+      gcc
+      xorg.xorgproto
+    ]
+    ++ buildInputs
+    ++ nativeBuildInputs;
 }

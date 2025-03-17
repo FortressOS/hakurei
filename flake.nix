@@ -27,7 +27,7 @@
       nixpkgsFor = forAllSystems (system: import nixpkgs { inherit system; });
     in
     {
-      nixosModules.fortify = import ./nixos.nix;
+      nixosModules.fortify = import ./nixos.nix self.packages;
 
       buildPackage = forAllSystems (
         system:
@@ -105,9 +105,21 @@
           default = fortify;
           fortify = pkgs.pkgsStatic.callPackage ./package.nix {
             inherit (pkgs)
+              # passthru.buildInputs
+              go
+              gcc
+
+              # nativeBuildInputs
+              pkg-config
+              wayland-scanner
+              makeBinaryWrapper
+
+              # appPackages
+              glibc
               bubblewrap
               xdg-dbus-proxy
-              glibc
+
+              # fpkg
               zstd
               gnutar
               coreutils
@@ -115,7 +127,7 @@
           };
           fsu = pkgs.callPackage ./cmd/fsu/package.nix { inherit (self.packages.${system}) fortify; };
 
-          dist = pkgs.runCommand "${fortify.name}-dist" { inherit (self.devShells.${system}.default) buildInputs; } ''
+          dist = pkgs.runCommand "${fortify.name}-dist" { buildInputs = fortify.targetPkgs ++ [ pkgs.pkgsStatic.musl ]; } ''
             # go requires XDG_CACHE_HOME for the build cache
             export XDG_CACHE_HOME="$(mktemp -d)"
 
@@ -128,93 +140,21 @@
             export FORTIFY_VERSION="v${fortify.version}"
             ./dist/release.sh && mkdir $out && cp -v "dist/fortify-$FORTIFY_VERSION.tar.gz"* $out
           '';
-
-          fhs = pkgs.buildFHSEnv {
-            pname = "fortify-fhs";
-            inherit (fortify) version;
-            targetPkgs =
-              pkgs:
-              with pkgs;
-              [
-                go
-                gcc
-                pkg-config
-                wayland-scanner
-              ]
-              ++ (
-                with pkgs.pkgsStatic;
-                [
-                  musl
-                  libffi
-                  libseccomp
-                  acl
-                  wayland
-                  wayland-protocols
-                ]
-                ++ (with xorg; [
-                  libxcb
-                  libXau
-                  libXdmcp
-
-                  xorgproto
-                ])
-              );
-            extraOutputsToInstall = [ "dev" ];
-            profile = ''
-              export PKG_CONFIG_PATH="/usr/share/pkgconfig:$PKG_CONFIG_PATH"
-            '';
-          };
         }
       );
 
       devShells = forAllSystems (
         system:
         let
-          inherit (self.packages.${system}) fortify fhs;
+          inherit (self.packages.${system}) fortify;
           pkgs = nixpkgsFor.${system};
         in
         {
-          default = pkgs.mkShell {
-            buildInputs =
-              with pkgs;
-              [
-                go
-                gcc
-              ]
-              # buildInputs
-              ++ (
-                with pkgsStatic;
-                [
-                  musl
-                  libffi
-                  libseccomp
-                  acl
-                  wayland
-                  wayland-protocols
-                ]
-                ++ (with xorg; [
-                  libxcb
-                  libXau
-                  libXdmcp
-                ])
-              )
-              # nativeBuildInputs
-              ++ [
-                pkg-config
-                wayland-scanner
-                makeBinaryWrapper
-              ];
-          };
-
-          fhs = fhs.env;
-
-          withPackage = nixpkgsFor.${system}.mkShell {
-            buildInputs = [ self.packages.${system}.fortify ] ++ self.devShells.${system}.default.buildInputs;
-          };
+          default = pkgs.mkShell { buildInputs = fortify.targetPkgs; };
+          withPackage = pkgs.mkShell { buildInputs = [ fortify ] ++ fortify.targetPkgs; };
 
           generateDoc =
             let
-              pkgs = nixpkgsFor.${system};
               inherit (pkgs) lib;
 
               doc =
@@ -223,7 +163,7 @@
                     specialArgs = {
                       inherit pkgs;
                     };
-                    modules = [ ./options.nix ];
+                    modules = [ (import ./options.nix self.packages) ];
                   };
                   cleanEval = lib.filterAttrsRecursive (n: _: n != "_module") eval;
                 in
@@ -233,7 +173,7 @@
                 sed -i '/*Declared by:*/,+1 d' $out
               '';
             in
-            nixpkgsFor.${system}.mkShell {
+            pkgs.mkShell {
               shellHook = ''
                 exec cat ${docText} > options.md
               '';

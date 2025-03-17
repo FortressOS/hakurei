@@ -1,17 +1,8 @@
+packages:
 { lib, pkgs, ... }:
 
 let
   inherit (lib) types mkOption mkEnableOption;
-  fortify = pkgs.pkgsStatic.callPackage ./package.nix {
-    inherit (pkgs)
-      bubblewrap
-      xdg-dbus-proxy
-      glibc
-      zstd
-      gnutar
-      coreutils
-      ;
-  };
 in
 
 {
@@ -21,13 +12,13 @@ in
 
       package = mkOption {
         type = types.package;
-        default = fortify;
+        default = packages.${pkgs.system}.fortify;
         description = "The fortify package to use.";
       };
 
       fsuPackage = mkOption {
         type = types.package;
-        default = pkgs.callPackage ./cmd/fsu/package.nix { inherit fortify; };
+        default = packages.${pkgs.system}.fsu;
         description = "The fsu package to use.";
       };
 

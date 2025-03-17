@@ -1,6 +1,7 @@
 {
   lib,
   nixosTest,
+  buildFHSEnv,
   writeShellScriptBin,
 
   system,
@@ -12,6 +13,21 @@ nixosTest {
   name = "fortify" + (if withRace then "-race" else "");
   nodes.machine =
     { options, pkgs, ... }:
+    let
+      fhs =
+        let
+          fortify = options.environment.fortify.package.default;
+        in
+        buildFHSEnv {
+          pname = "fortify-fhs";
+          inherit (fortify) version;
+          targetPkgs = _: fortify.targetPkgs;
+          extraOutputsToInstall = [ "dev" ];
+          profile = ''
+            export PKG_CONFIG_PATH="/usr/share/pkgconfig:$PKG_CONFIG_PATH"
+          '';
+        };
+    in
     {
       environment.systemPackages = [
         # For go tests:
@@ -21,7 +37,7 @@ nixosTest {
           cp -r "${self.packages.${system}.fortify.src}" "$WORK"
           chmod -R +w "$WORK"
           cd "$WORK"
-          ${self.packages.${system}.fhs}/bin/fortify-fhs -c \
+          ${fhs}/bin/fortify-fhs -c \
             'go generate ./... && go test ${if withRace then "-race" else "-count 16"} ./... && touch /tmp/go-test-ok'
         '')
       ];

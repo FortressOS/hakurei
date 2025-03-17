@@ -1,3 +1,4 @@
+packages:
 {
   lib,
   pkgs,
@@ -26,7 +27,7 @@ let
 in
 
 {
-  imports = [ ./options.nix ];
+  imports = [ (import ./options.nix packages) ];
 
   config = mkIf cfg.enable {
     security.wrappers.fsu = {
