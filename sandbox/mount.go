@@ -11,9 +11,11 @@ import (
 const (
 	BindOptional = 1 << iota
 	BindSource
-	BindRecursive
 	BindWritable
 	BindDevice
+
+	bindAbsolute
+	bindRecursive
 )
 
 func bindMount(src, dest string, flags int) error {
@@ -39,6 +41,8 @@ func bindMount(src, dest string, flags int) error {
 	} else if flags&BindOptional != 0 {
 		return msg.WrapErr(syscall.EINVAL,
 			"flag source excludes optional")
+	} else if flags&bindAbsolute != 0 {
+		source = src
 	} else {
 		source = toHost(src)
 	}
@@ -60,7 +64,7 @@ func bindMount(src, dest string, flags int) error {
 	}
 
 	var mf uintptr = syscall.MS_SILENT | syscall.MS_BIND
-	if flags&BindRecursive != 0 {
+	if flags&bindRecursive != 0 {
 		mf |= syscall.MS_REC
 	}
 	if flags&BindWritable == 0 {

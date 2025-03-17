@@ -36,7 +36,7 @@ func (b *BindMount) String() string {
 	return fmt.Sprintf("%q on %q flags %#x", b.Source, b.Target, b.Flags&BindWritable)
 }
 func (f *Ops) Bind(source, target string, flags int) *Ops {
-	*f = append(*f, &BindMount{source, target, flags | BindRecursive})
+	*f = append(*f, &BindMount{source, target, flags | bindRecursive})
 	return f
 }
 
