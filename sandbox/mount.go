@@ -13,7 +13,7 @@ const (
 	BindSource
 	BindRecursive
 	BindWritable
-	BindDevices
+	BindDevice
 )
 
 func bindMount(src, dest string, flags int) error {
@@ -66,7 +66,7 @@ func bindMount(src, dest string, flags int) error {
 	if flags&BindWritable == 0 {
 		mf |= syscall.MS_RDONLY
 	}
-	if flags&BindDevices == 0 {
+	if flags&BindDevice == 0 {
 		mf |= syscall.MS_NODEV
 	}
 	if msg.IsVerbose() {

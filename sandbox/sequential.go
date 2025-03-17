@@ -89,7 +89,7 @@ func (d MountDev) apply(params *InitParams) error {
 	for _, name := range []string{"null", "zero", "full", "random", "urandom", "tty"} {
 		if err := bindMount(
 			"/dev/"+name, path.Join(v, name),
-			BindSource|BindDevices,
+			BindSource|BindDevice,
 		); err != nil {
 			return err
 		}
@@ -132,10 +132,7 @@ func (d MountDev) apply(params *InitParams) error {
 			syscall.SYS_IOCTL, 1, syscall.TIOCGWINSZ,
 			uintptr(unsafe.Pointer(&buf[0])),
 		); errno == 0 {
-			if err := bindMount(
-				"/proc/self/fd/1", path.Join(v, "console"),
-				BindDevices,
-			); err != nil {
+			if err := bindMount("/proc/self/fd/1", path.Join(v, "console"), BindDevice); err != nil {
 				return err
 			}
 		}
