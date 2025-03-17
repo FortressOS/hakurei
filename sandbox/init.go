@@ -143,6 +143,10 @@ func Init(prepare func(prefix string), setVerbose func(verbose bool)) {
 	}
 
 	for i, op := range *params.Ops {
+		if op == nil {
+			log.Fatalf("invalid op %d", i)
+		}
+
 		msg.Verbosef("mounting %s", op)
 		if err := op.apply(&params.InitParams); err != nil {
 			msg.PrintBaseErr(err,
