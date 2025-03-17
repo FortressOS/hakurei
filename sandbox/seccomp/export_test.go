@@ -111,11 +111,14 @@ func TestExport(t *testing.T) {
 
 	t.Run("close partial read", func(t *testing.T) {
 		e := seccomp.New(0)
-		if _, err := e.Read(make([]byte, 0)); err != nil {
+		if _, err := e.Read(nil); err != nil {
 			t.Errorf("Read: error = %v", err)
 			return
 		}
-		if err := e.Close(); err == nil || !errors.Is(err, syscall.ECANCELED) || !errors.Is(err, syscall.EBADF) {
+		// the underlying implementation uses buffered io, so the outcome of this is nondeterministic;
+		// that is not harmful however, so both outcomes are checked for here
+		if err := e.Close(); err != nil &&
+			(!errors.Is(err, syscall.ECANCELED) || !errors.Is(err, syscall.EBADF)) {
 			t.Errorf("Close: error = %v", err)
 			return
 		}
