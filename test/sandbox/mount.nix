@@ -42,7 +42,7 @@ let
       (ent "sysfs" "/sys/devices" "sysfs" "ro,nosuid,nodev,noexec,relatime" 0 0)
       (ent "overlay" "/run/opengl-driver" "overlay" "ro,nosuid,nodev,relatime,lowerdir=/mnt-root/nix/.ro-store,upperdir=/mnt-root/nix/.rw-store/upper,workdir=/mnt-root/nix/.rw-store/work,uuid=on" 0 0)
       (ent "devtmpfs" "/dev/dri" "devtmpfs" "host_passthrough" 0 0)
-      (ent "proc" "/.fortify/host-mounts" "proc" "ro,nosuid,nodev,noexec,relatime" 0 0)
+      (ent "proc" "/.fortify/mounts" "proc" "ro,nosuid,nodev,noexec,relatime" 0 0)
       (ent "/dev/disk/by-label/nixos" "/.fortify/etc" "ext4" "ro,nosuid,nodev,relatime" 0 0)
       (ent "tmpfs" "/run/user" "tmpfs" "rw,nosuid,nodev,relatime,size=1024k,mode=755,uid=1000001,gid=1000001" 0 0)
       (ent "tmpfs" "/run/user/65534" "tmpfs" "rw,nosuid,nodev,relatime,size=8192k,mode=755,uid=1000001,gid=1000001" 0 0)
@@ -62,7 +62,7 @@ let
 
     import "git.gensokyo.uk/security/fortify/test/sandbox"
 
-    func main() { sandbox.MustAssertMounts("", "/.fortify/host-mounts", "${writeText "want-mounts.json" (builtins.toJSON wantMounts)}") }
+    func main() { sandbox.MustAssertMounts("", "/.fortify/mounts", "${writeText "want-mounts.json" (builtins.toJSON wantMounts)}") }
   '';
 in
 buildGoModule {

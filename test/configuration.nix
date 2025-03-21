@@ -113,7 +113,7 @@
         extraPaths = [
           {
             src = "/proc/mounts";
-            dst = "/.fortify/host-mounts";
+            dst = "/.fortify/mounts";
           }
         ];
       }

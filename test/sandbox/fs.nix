@@ -23,7 +23,7 @@ let
           fortify = fs "16d" null null;
           init0 = fs "80001ff" null null;
         } null;
-        host-mounts = fs "124" null null;
+        mounts = fs "124" null null;
       } null;
       bin = fs "800001ed" { sh = fs "80001ff" null null; } null;
       dev = fs "800001ed" {
