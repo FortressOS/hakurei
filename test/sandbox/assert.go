@@ -40,7 +40,7 @@ func MustAssertMounts(name, hostMountsFile, wantFile string) {
 	for i := range want {
 		if want[i].Opts == "host_passthrough" {
 			for _, ent := range hostMounts {
-				if want[i].FSName == ent.FSName {
+				if want[i].FSName == ent.FSName && want[i].Type == ent.Type {
 					// special case for tmpfs bind mounts
 					if want[i].FSName == "tmpfs" && want[i].Dir != ent.Dir {
 						continue
