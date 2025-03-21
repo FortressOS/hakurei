@@ -7,6 +7,7 @@ import (
 	"io"
 	"strconv"
 	"strings"
+	"syscall"
 )
 
 var (
@@ -50,6 +51,31 @@ type (
 
 	DevT [2]int
 )
+
+func (e *MountInfoEntry) Flags() (flags uintptr, unmatched []string) {
+	for _, s := range strings.Split(e.VfsOptstr, ",") {
+		switch s {
+		case "rw":
+		case "ro":
+			flags |= syscall.MS_RDONLY
+		case "nosuid":
+			flags |= syscall.MS_NOSUID
+		case "nodev":
+			flags |= syscall.MS_NODEV
+		case "noexec":
+			flags |= syscall.MS_NOEXEC
+		case "noatime":
+			flags |= syscall.MS_NOATIME
+		case "nodiratime":
+			flags |= syscall.MS_NODIRATIME
+		case "relatime":
+			flags |= syscall.MS_RELATIME
+		default:
+			unmatched = append(unmatched, s)
+		}
+	}
+	return
+}
 
 // ParseMountInfo parses a mountinfo file according to proc_pid_mountinfo(5).
 func ParseMountInfo(r io.Reader) (*MountInfo, int, error) {
