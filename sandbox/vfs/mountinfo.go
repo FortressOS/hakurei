@@ -52,10 +52,14 @@ type (
 )
 
 // ParseMountInfo parses a mountinfo file according to proc_pid_mountinfo(5).
-func ParseMountInfo(r io.Reader) (*MountInfo, error) {
+func ParseMountInfo(r io.Reader) (*MountInfo, int, error) {
 	var m, cur *MountInfo
 	s := bufio.NewScanner(r)
+
+	var n int
 	for s.Scan() {
+		n++
+
 		if cur == nil {
 			m = new(MountInfo)
 			cur = m
@@ -67,7 +71,7 @@ func ParseMountInfo(r io.Reader) (*MountInfo, error) {
 		// prevent proceeding with misaligned fields due to optional fields
 		f := strings.Split(s.Text(), " ")
 		if len(f) < 10 {
-			return nil, ErrMountInfoFields
+			return nil, -1, ErrMountInfoFields
 		}
 
 		// 36 35 98:0 /mnt1 /mnt2 rw,noatime master:1 - ext3 /dev/root rw,errors=continue
@@ -75,42 +79,42 @@ func ParseMountInfo(r io.Reader) (*MountInfo, error) {
 
 		// (1) id
 		if id, err := strconv.Atoi(f[0]); err != nil { // 0
-			return nil, err
+			return nil, -1, err
 		} else {
 			cur.ID = id
 		}
 
 		// (2) parent
 		if parent, err := strconv.Atoi(f[1]); err != nil { // 1
-			return nil, err
+			return nil, -1, err
 		} else {
 			cur.Parent = parent
 		}
 
 		// (3) maj:min
 		if n, err := fmt.Sscanf(f[2], "%d:%d", &cur.Devno[0], &cur.Devno[1]); err != nil {
-			return nil, err
+			return nil, -1, err
 		} else if n != 2 {
 			// unreachable
-			return nil, ErrMountInfoDevno
+			return nil, -1, ErrMountInfoDevno
 		}
 
 		// (4) mountroot
 		cur.Root = Unmangle(f[3])
 		if cur.Root == "" {
-			return nil, ErrMountInfoEmpty
+			return nil, -1, ErrMountInfoEmpty
 		}
 
 		// (5) target
 		cur.Target = Unmangle(f[4])
 		if cur.Target == "" {
-			return nil, ErrMountInfoEmpty
+			return nil, -1, ErrMountInfoEmpty
 		}
 
 		// (6) vfs options (fs-independent)
 		cur.VfsOptstr = Unmangle(f[5])
 		if cur.VfsOptstr == "" {
-			return nil, ErrMountInfoEmpty
+			return nil, -1, ErrMountInfoEmpty
 		}
 
 		// (7) optional fields, terminated by " - "
@@ -119,14 +123,14 @@ func ParseMountInfo(r io.Reader) (*MountInfo, error) {
 
 		// (8) optional fields end marker
 		if f[i] != "-" {
-			return nil, ErrMountInfoSep
+			return nil, -1, ErrMountInfoSep
 		}
 		i++
 
 		// (9) FS type
 		cur.FsType = Unmangle(f[i])
 		if cur.FsType == "" {
-			return nil, ErrMountInfoEmpty
+			return nil, -1, ErrMountInfoEmpty
 		}
 		i++
 
@@ -137,5 +141,5 @@ func ParseMountInfo(r io.Reader) (*MountInfo, error) {
 		// (11) fs options (fs specific)
 		cur.FsOptstr = Unmangle(f[i])
 	}
-	return m, s.Err()
+	return m, n, s.Err()
 }

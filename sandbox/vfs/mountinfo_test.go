@@ -120,7 +120,7 @@ id 20 0:53 / /mnt/test rw,relatime shared:212 - tmpfs  rw
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			got, err := vfs.ParseMountInfo(strings.NewReader(tc.sample))
+			got, n, err := vfs.ParseMountInfo(strings.NewReader(tc.sample))
 			if !errors.Is(err, tc.wantErr) {
 				if tc.wantError == "" {
 					t.Errorf("ParseMountInfo: error = %v, wantErr %v",
@@ -129,6 +129,14 @@ id 20 0:53 / /mnt/test rw,relatime shared:212 - tmpfs  rw
 					t.Errorf("ParseMountInfo: error = %q, wantError %q",
 						err, tc.wantError)
 				}
+			}
+
+			wantCount := len(tc.want)
+			if tc.wantErr != nil || tc.wantError != "" {
+				wantCount = -1
+			}
+			if n != wantCount {
+				t.Errorf("ParseMountInfo: got %d entries, want %d", n, wantCount)
 			}
 
 			i := 0
