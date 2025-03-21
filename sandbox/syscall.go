@@ -3,6 +3,12 @@ package sandbox
 import "syscall"
 
 const (
+	O_PATH              = 0x200000
+	PR_SET_NO_NEW_PRIVS = 0x26
+	CAP_SYS_ADMIN       = 0x15
+)
+
+const (
 	SUID_DUMP_DISABLE = iota
 	SUID_DUMP_USER
 )

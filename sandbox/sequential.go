@@ -21,16 +21,18 @@ type BindMount struct {
 	Flags int
 }
 
+const (
+	BindOptional = 1 << iota
+	BindWritable
+	BindDevice
+)
+
 func (b *BindMount) early(*Params) error {
 	if !path.IsAbs(b.Source) {
 		return msg.WrapErr(syscall.EBADE,
 			fmt.Sprintf("path %q is not absolute", b.Source))
 	}
 
-	if b.Flags&BindSource != 0 {
-		b.SourceFinal = b.Source
-		return nil
-	}
 	if v, err := filepath.EvalSymlinks(b.Source); err != nil {
 		if os.IsNotExist(err) && b.Flags&BindOptional != 0 {
 			b.SourceFinal = "\x00"
@@ -39,7 +41,6 @@ func (b *BindMount) early(*Params) error {
 		return msg.WrapErr(err, err.Error())
 	} else {
 		b.SourceFinal = v
-		b.Flags |= bindResolved
 		return nil
 	}
 }
@@ -57,7 +58,28 @@ func (b *BindMount) apply(*Params) error {
 		return msg.WrapErr(syscall.EBADE,
 			"path is not absolute")
 	}
-	return bindMount(b.SourceFinal, b.Target, b.Flags)
+
+	source := toHost(b.SourceFinal)
+	target := toSysroot(b.Target)
+	if fi, err := os.Stat(source); err != nil {
+		return msg.WrapErr(err, err.Error())
+	} else if fi.IsDir() {
+		if err = os.MkdirAll(target, 0755); err != nil {
+			return msg.WrapErr(err, err.Error())
+		}
+	} else if err = ensureFile(target, 0444); err != nil {
+		return err
+	}
+
+	var flags uintptr = syscall.MS_REC
+	if b.Flags&BindWritable == 0 {
+		flags |= syscall.MS_RDONLY
+	}
+	if b.Flags&BindDevice == 0 {
+		flags |= syscall.MS_NODEV
+	}
+
+	return hostProc.bindMount(source, target, flags, b.SourceFinal == b.Target)
 }
 
 func (b *BindMount) Is(op Op) bool { vb, ok := op.(*BindMount); return ok && *b == *vb }
@@ -69,7 +91,7 @@ func (b *BindMount) String() string {
 	return fmt.Sprintf("%q on %q flags %#x", b.Source, b.Target, b.Flags&BindWritable)
 }
 func (f *Ops) Bind(source, target string, flags int) *Ops {
-	*f = append(*f, &BindMount{source, "", target, flags | bindRecursive})
+	*f = append(*f, &BindMount{source, "", target, flags})
 	return f
 }
 
@@ -124,9 +146,15 @@ func (d MountDev) apply(params *Params) error {
 	}
 
 	for _, name := range []string{"null", "zero", "full", "random", "urandom", "tty"} {
-		if err := bindMount(
-			"/dev/"+name, path.Join(v, name),
-			BindSource|BindDevice,
+		targetPath := toSysroot(path.Join(v, name))
+		if err := ensureFile(targetPath, 0444); err != nil {
+			return err
+		}
+		if err := hostProc.bindMount(
+			toHost("/dev/"+name),
+			targetPath,
+			syscall.MS_RDONLY,
+			true,
 		); err != nil {
 			return err
 		}
@@ -169,7 +197,16 @@ func (d MountDev) apply(params *Params) error {
 			syscall.SYS_IOCTL, 1, syscall.TIOCGWINSZ,
 			uintptr(unsafe.Pointer(&buf[0])),
 		); errno == 0 {
-			if err := bindMount("/proc/self/fd/1", path.Join(v, "console"), BindSource|BindDevice); err != nil {
+			consolePath := toSysroot(path.Join(v, "console"))
+			if err := ensureFile(consolePath, 0444); err != nil {
+				return err
+			}
+			if err := hostProc.bindMount(
+				hostProc.stdout(),
+				consolePath,
+				syscall.MS_RDONLY,
+				false,
+			); err != nil {
 				return err
 			}
 		}
@@ -330,7 +367,15 @@ func (t *Tmpfile) apply(*Params) error {
 		tmpPath = f.Name()
 	}
 
-	if err := bindMount(tmpPath, t.Path, BindSource|bindAbsolute); err != nil {
+	target := toSysroot(t.Path)
+	if err := ensureFile(target, 0444); err != nil {
+		return err
+	} else if err = hostProc.bindMount(
+		tmpPath,
+		target,
+		syscall.MS_RDONLY|syscall.MS_NODEV,
+		false,
+	); err != nil {
 		return err
 	} else if err = os.Remove(tmpPath); err != nil {
 		return msg.WrapErr(err, err.Error())
