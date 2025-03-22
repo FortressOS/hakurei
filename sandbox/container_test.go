@@ -111,7 +111,7 @@ func TestContainer(t *testing.T) {
 			mnt = append(mnt,
 				&check.Mntent{FSName: "tmpfs", Dir: "/tmp", Type: "tmpfs", Opts: "host_passthrough"},
 				&check.Mntent{FSName: "\x00", Dir: os.Args[0], Type: "\x00", Opts: "\x00"},
-				&check.Mntent{FSName: "rootfs", Dir: "/etc/hostname", Type: "tmpfs", Opts: "host_passthrough"},
+				&check.Mntent{FSName: "rootfs", Dir: "/etc/hostname", Type: "tmpfs", Opts: "\x00"},
 			)
 			for _, name := range libPaths {
 				mnt = append(mnt, &check.Mntent{FSName: "\x00", Dir: name, Type: "\x00", Opts: "\x00", Freq: -1, Passno: -1})

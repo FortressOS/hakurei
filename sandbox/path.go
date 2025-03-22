@@ -9,6 +9,8 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+
+	"git.gensokyo.uk/security/fortify/sandbox/vfs"
 )
 
 const (
@@ -64,14 +66,29 @@ func ensureFile(name string, perm os.FileMode) error {
 var hostProc = newProcPats(hostPath)
 
 func newProcPats(prefix string) *procPaths {
-	return &procPaths{prefix, prefix + "/self", prefix + "/self/mountinfo"}
+	return &procPaths{prefix + "/proc", prefix + "/proc/self"}
 }
 
 type procPaths struct {
-	prefix    string
-	self      string
-	mountinfo string
+	prefix string
+	self   string
 }
 
 func (p *procPaths) stdout() string   { return p.self + "/fd/1" }
 func (p *procPaths) fd(fd int) string { return p.self + "/fd/" + strconv.Itoa(fd) }
+func (p *procPaths) mountinfo(f func(d *vfs.MountInfoDecoder) error) error {
+	if r, err := os.Open(p.self + "/mountinfo"); err != nil {
+		return msg.WrapErr(err, err.Error())
+	} else {
+		d := vfs.NewMountInfoDecoder(r)
+		err0 := f(d)
+		if err = r.Close(); err != nil {
+			return wrapErrSuffix(err,
+				"cannot close mountinfo:")
+		} else if err = d.Err(); err != nil {
+			return wrapErrSuffix(err,
+				"cannot parse mountinfo:")
+		}
+		return err0
+	}
+}
