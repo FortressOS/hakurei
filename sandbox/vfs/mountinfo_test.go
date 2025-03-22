@@ -1,8 +1,10 @@
 package vfs_test
 
 import (
+	"encoding/json"
 	"errors"
 	"iter"
+	"path"
 	"reflect"
 	"slices"
 	"strconv"
@@ -15,69 +17,85 @@ import (
 
 func TestMountInfo(t *testing.T) {
 	testCases := []mountInfoTest{
-		{"count", sampleMountinfoShort + `
+		{"count", sampleMountinfoBase + `
 21 20 0:53/ /mnt/test rw,relatime - tmpfs  rw
 21 16 0:17 / /sys/fs/cgroup rw,nosuid,nodev,noexec,relatime - tmpfs tmpfs rw,mode=755`,
-			vfs.ErrMountInfoFields, "", nil},
+			vfs.ErrMountInfoFields, "", nil, nil, nil},
 
-		{"sep", sampleMountinfoShort + `
+		{"sep", sampleMountinfoBase + `
 21 20 0:53 / /mnt/test rw,relatime shared:212 _ tmpfs  rw
 21 16 0:17 / /sys/fs/cgroup rw,nosuid,nodev,noexec,relatime - tmpfs tmpfs rw,mode=755`,
-			vfs.ErrMountInfoSep, "", nil},
+			vfs.ErrMountInfoSep, "", nil, nil, nil},
 
-		{"id", sampleMountinfoShort + `
+		{"id", sampleMountinfoBase + `
 id 20 0:53 / /mnt/test rw,relatime shared:212 - tmpfs  rw
 21 16 0:17 / /sys/fs/cgroup rw,nosuid,nodev,noexec,relatime - tmpfs tmpfs rw,mode=755`,
-			strconv.ErrSyntax, "", nil},
+			strconv.ErrSyntax, "", nil, nil, nil},
 
-		{"parent", sampleMountinfoShort + `
+		{"parent", sampleMountinfoBase + `
 21 parent 0:53 / /mnt/test rw,relatime shared:212 - tmpfs  rw
 21 16 0:17 / /sys/fs/cgroup rw,nosuid,nodev,noexec,relatime - tmpfs tmpfs rw,mode=755`,
-			strconv.ErrSyntax, "", nil},
+			strconv.ErrSyntax, "", nil, nil, nil},
 
-		{"devno", sampleMountinfoShort + `
+		{"devno", sampleMountinfoBase + `
 21 20 053 / /mnt/test rw,relatime shared:212 - tmpfs  rw
 21 16 0:17 / /sys/fs/cgroup rw,nosuid,nodev,noexec,relatime - tmpfs tmpfs rw,mode=755`,
-			nil, "unexpected EOF", nil},
+			nil, "unexpected EOF", nil, nil, nil},
 
-		{"maj", sampleMountinfoShort + `
+		{"maj", sampleMountinfoBase + `
 21 20 maj:53 / /mnt/test rw,relatime shared:212 - tmpfs  rw
 21 16 0:17 / /sys/fs/cgroup rw,nosuid,nodev,noexec,relatime - tmpfs tmpfs rw,mode=755`,
-			nil, "expected integer", nil},
+			nil, "expected integer", nil, nil, nil},
 
-		{"min", sampleMountinfoShort + `
+		{"min", sampleMountinfoBase + `
 21 20 0:min / /mnt/test rw,relatime shared:212 - tmpfs  rw
 21 16 0:17 / /sys/fs/cgroup rw,nosuid,nodev,noexec,relatime - tmpfs tmpfs rw,mode=755`,
-			nil, "expected integer", nil},
+			nil, "expected integer", nil, nil, nil},
 
-		{"mountroot", sampleMountinfoShort + `
+		{"mountroot", sampleMountinfoBase + `
 21 20 0:53  /mnt/test rw,relatime - tmpfs  rw
 21 16 0:17 / /sys/fs/cgroup rw,nosuid,nodev,noexec,relatime - tmpfs tmpfs rw,mode=755`,
-			vfs.ErrMountInfoEmpty, "", nil},
+			vfs.ErrMountInfoEmpty, "", nil, nil, nil},
 
-		{"target", sampleMountinfoShort + `
+		{"target", sampleMountinfoBase + `
 21 20 0:53 /  rw,relatime - tmpfs  rw
 21 16 0:17 / /sys/fs/cgroup rw,nosuid,nodev,noexec,relatime - tmpfs tmpfs rw,mode=755`,
-			vfs.ErrMountInfoEmpty, "", nil},
+			vfs.ErrMountInfoEmpty, "", nil, nil, nil},
 
-		{"vfs options", sampleMountinfoShort + `
+		{"vfs options", sampleMountinfoBase + `
 21 20 0:53 / /mnt/test  - tmpfs  rw
 21 16 0:17 / /sys/fs/cgroup rw,nosuid,nodev,noexec,relatime - tmpfs tmpfs rw,mode=755`,
-			vfs.ErrMountInfoEmpty, "", nil},
+			vfs.ErrMountInfoEmpty, "", nil, nil, nil},
 
-		{"FS type", sampleMountinfoShort + `
+		{"FS type", sampleMountinfoBase + `
 21 20 0:53 / /mnt/test rw,relatime -   rw
 21 16 0:17 / /sys/fs/cgroup rw,nosuid,nodev,noexec,relatime - tmpfs tmpfs rw,mode=755`,
-			vfs.ErrMountInfoEmpty, "", nil},
+			vfs.ErrMountInfoEmpty, "", nil, nil, nil},
 
-		{"base", sampleMountinfoShort, nil, "", []*wantMountInfo{
+		{"base", sampleMountinfoBase, nil, "", []*wantMountInfo{
 			m(15, 20, 0, 3, "/", "/proc", "rw,relatime", o(), "proc", "/proc", "rw", syscall.MS_RELATIME, nil),
 			m(16, 20, 0, 15, "/", "/sys", "rw,relatime", o(), "sysfs", "/sys", "rw", syscall.MS_RELATIME, nil),
 			m(17, 20, 0, 5, "/", "/dev", "rw,relatime", o(), "devtmpfs", "udev", "rw,size=1983516k,nr_inodes=495879,mode=755", syscall.MS_RELATIME, nil),
 			m(18, 17, 0, 10, "/", "/dev/pts", "rw,relatime", o(), "devpts", "devpts", "rw,gid=5,mode=620,ptmxmode=000", syscall.MS_RELATIME, nil),
 			m(19, 17, 0, 16, "/", "/dev/shm", "rw,relatime", o(), "tmpfs", "tmpfs", "rw", syscall.MS_RELATIME, nil),
 			m(20, 1, 8, 4, "/", "/", "ro,noatime,nodiratime,meow", o(), "ext3", "/dev/sda4", "rw,errors=continue,user_xattr,acl,barrier=0,data=ordered", syscall.MS_RDONLY|syscall.MS_NOATIME|syscall.MS_NODIRATIME, []string{"meow"}),
-		}},
+		},
+			mn(20, 1, 8, 4, "/", "/", "ro,noatime,nodiratime,meow", o(), "ext3", "/dev/sda4", "rw,errors=continue,user_xattr,acl,barrier=0,data=ordered", false,
+				mn(15, 20, 0, 3, "/", "/proc", "rw,relatime", o(), "proc", "/proc", "rw", false, nil,
+					mn(16, 20, 0, 15, "/", "/sys", "rw,relatime", o(), "sysfs", "/sys", "rw", false, nil,
+						mn(17, 20, 0, 5, "/", "/dev", "rw,relatime", o(), "devtmpfs", "udev", "rw,size=1983516k,nr_inodes=495879,mode=755", false,
+							mn(18, 17, 0, 10, "/", "/dev/pts", "rw,relatime", o(), "devpts", "devpts", "rw,gid=5,mode=620,ptmxmode=000", false, nil,
+								mn(19, 17, 0, 16, "/", "/dev/shm", "rw,relatime", o(), "tmpfs", "tmpfs", "rw", false, nil, nil)),
+							nil))), nil), func(n *vfs.MountInfoNode) []*vfs.MountInfoNode {
+				return []*vfs.MountInfoNode{
+					n,
+					n.FirstChild,
+					n.FirstChild.NextSibling,
+					n.FirstChild.NextSibling.NextSibling,
+					n.FirstChild.NextSibling.NextSibling.FirstChild,
+					n.FirstChild.NextSibling.NextSibling.FirstChild.NextSibling,
+				}
+			}},
 
 		{"sample", sampleMountinfo, nil, "", []*wantMountInfo{
 			m(15, 20, 0, 3, "/", "/proc", "rw,relatime", o(), "proc", "/proc", "rw", syscall.MS_RELATIME, nil),
@@ -113,7 +131,7 @@ id 20 0:53 / /mnt/test rw,relatime shared:212 - tmpfs  rw
 			m(45, 20, 0, 37, "/", "/var/lib/nfs/rpc_pipefs", "rw,relatime", o(), "rpc_pipefs", "sunrpc", "rw", syscall.MS_RELATIME, nil),
 			m(47, 20, 0, 38, "/", "/mnt/sounds", "rw,relatime", o(), "cifs", "//foo.home/bar/", "rw,unc=\\\\foo.home\\bar,username=kzak,domain=SRGROUP,uid=0,noforceuid,gid=0,noforcegid,addr=192.168.111.1,posixpaths,serverino,acl,rsize=16384,wsize=57344", syscall.MS_RELATIME, nil),
 			m(49, 20, 0, 56, "/", "/mnt/test/foobar", "rw,relatime", o("shared:323"), "tmpfs", "tmpfs", "rw", syscall.MS_RELATIME, nil),
-		}},
+		}, nil, nil},
 
 		{"sample nosrc", sampleMountinfoNoSrc, nil, "", []*wantMountInfo{
 			m(15, 20, 0, 3, "/", "/proc", "rw,relatime", o(), "proc", "/proc", "rw", syscall.MS_RELATIME, nil),
@@ -123,7 +141,7 @@ id 20 0:53 / /mnt/test rw,relatime shared:212 - tmpfs  rw
 			m(19, 17, 0, 16, "/", "/dev/shm", "rw,relatime", o(), "tmpfs", "tmpfs", "rw", syscall.MS_RELATIME, nil),
 			m(20, 1, 8, 4, "/", "/", "rw,noatime", o(), "ext3", "/dev/sda4", "rw,errors=continue,user_xattr,acl,barrier=0,data=ordered", syscall.MS_NOATIME, nil),
 			m(21, 20, 0, 53, "/", "/mnt/test", "rw,relatime", o("shared:212"), "tmpfs", "", "rw", syscall.MS_RELATIME, nil),
-		}},
+		}, nil, nil},
 	}
 
 	for _, tc := range testCases {
@@ -132,7 +150,7 @@ id 20 0:53 / /mnt/test rw,relatime shared:212 - tmpfs  rw
 				var got *vfs.MountInfo
 				d := vfs.NewMountInfoDecoder(strings.NewReader(tc.sample))
 				err := d.Decode(&got)
-				tc.check(t, true,
+				tc.check(t, d, "Decode",
 					func(yield func(*vfs.MountInfoEntry) bool) {
 						for cur := got; cur != nil; cur = cur.Next {
 							if !yield(&cur.MountInfoEntry) {
@@ -141,18 +159,18 @@ id 20 0:53 / /mnt/test rw,relatime shared:212 - tmpfs  rw
 						}
 					}, func() error { return err })
 				t.Run("reuse", func(t *testing.T) {
-					tc.check(t, false,
+					tc.check(t, d, "Entries",
 						d.Entries(), d.Err)
 				})
 			})
 
 			t.Run("iter", func(t *testing.T) {
 				d := vfs.NewMountInfoDecoder(strings.NewReader(tc.sample))
-				tc.check(t, false,
+				tc.check(t, d, "Entries",
 					d.Entries(), d.Err)
 
 				t.Run("reuse", func(t *testing.T) {
-					tc.check(t, false,
+					tc.check(t, d, "Entries",
 						d.Entries(), d.Err)
 				})
 			})
@@ -163,11 +181,11 @@ id 20 0:53 / /mnt/test rw,relatime shared:212 - tmpfs  rw
 				d.Entries()(func(entry *vfs.MountInfoEntry) bool { v = !v; return v })
 				d.Entries()(func(entry *vfs.MountInfoEntry) bool { return false })
 
-				tc.check(t, false,
+				tc.check(t, d, "Entries",
 					d.Entries(), d.Err)
 
 				t.Run("reuse", func(t *testing.T) {
-					tc.check(t, false,
+					tc.check(t, d, "Entries",
 						d.Entries(), d.Err)
 				})
 			})
@@ -181,24 +199,27 @@ type mountInfoTest struct {
 	wantErr   error
 	wantError string
 	want      []*wantMountInfo
+
+	wantNode     *vfs.MountInfoNode
+	wantCollectF func(n *vfs.MountInfoNode) []*vfs.MountInfoNode
 }
 
-func (tc *mountInfoTest) check(t *testing.T, checkDecode bool,
+func (tc *mountInfoTest) check(t *testing.T, d *vfs.MountInfoDecoder, funcName string,
 	got iter.Seq[*vfs.MountInfoEntry], gotErr func() error) {
 	i := 0
 	for cur := range got {
 		if i == len(tc.want) {
-			if !checkDecode && (tc.wantErr != nil || tc.wantError != "") {
+			if funcName != "Decode" && (tc.wantErr != nil || tc.wantError != "") {
 				continue
 			}
 
-			t.Errorf("ParseMountInfo: got more than %d entries", len(tc.want))
+			t.Errorf("%s: got more than %d entries", funcName, len(tc.want))
 			break
 		}
 
 		if !reflect.DeepEqual(cur, &tc.want[i].MountInfoEntry) {
-			t.Errorf("ParseMountInfo: entry %d\ngot:  %#v\nwant: %#v",
-				i, cur, tc.want[i])
+			t.Errorf("%s: entry %d\ngot:  %#v\nwant: %#v",
+				funcName, i, cur, tc.want[i])
 		}
 
 		flags, unmatched := cur.Flags()
@@ -215,18 +236,63 @@ func (tc *mountInfoTest) check(t *testing.T, checkDecode bool,
 	}
 
 	if i != len(tc.want) {
-		t.Errorf("ParseMountInfo: got %d entries, want %d", i, len(tc.want))
+		t.Errorf("%s: got %d entries, want %d", funcName, i, len(tc.want))
+	}
+
+	if tc.wantErr == nil && tc.wantError == "" && tc.wantCollectF != nil {
+		t.Run("unfold", func(t *testing.T) {
+			n, err := d.Unfold("/")
+			if err != nil {
+				t.Errorf("Unfold: error = %v", err)
+			} else {
+				t.Run("stop", func(t *testing.T) {
+					v := false
+					n.Collective()(func(node *vfs.MountInfoNode) bool { v = !v; return v })
+				})
+
+				if !reflect.DeepEqual(n, tc.wantNode) {
+					t.Errorf("Unfold: %s, want %s",
+						mustMarshal(n), mustMarshal(tc.wantNode))
+				}
+
+				t.Run("collective", func(t *testing.T) {
+					wantCollect := tc.wantCollectF(n)
+					if gotCollect := slices.Collect(n.Collective()); !reflect.DeepEqual(gotCollect, wantCollect) {
+						t.Errorf("Collective: \ngot  %#v\nwant %#v",
+							gotCollect, wantCollect)
+					}
+				})
+			}
+		})
+	} else if tc.wantNode != nil || tc.wantCollectF != nil {
+		panic("invalid test case")
+	} else if _, err := d.Unfold("/"); !errors.Is(err, tc.wantErr) {
+		if tc.wantError == "" {
+			t.Errorf("Unfold: error = %v, wantErr %v",
+				err, tc.wantErr)
+		} else if err != nil && err.Error() != tc.wantError {
+			t.Errorf("Unfold: error = %q, wantError %q",
+				err, tc.wantError)
+		}
 	}
 
 	if err := gotErr(); !errors.Is(err, tc.wantErr) {
 		if tc.wantError == "" {
-			t.Errorf("ParseMountInfo: error = %v, wantErr %v",
-				err, tc.wantErr)
+			t.Errorf("%s: error = %v, wantErr %v",
+				funcName, err, tc.wantErr)
 		} else if err != nil && err.Error() != tc.wantError {
-			t.Errorf("ParseMountInfo: error = %q, wantError %q",
-				err, tc.wantError)
+			t.Errorf("%s: error = %q, wantError %q",
+				funcName, err, tc.wantError)
 		}
 	}
+}
+
+func mustMarshal(v any) string {
+	p, err := json.Marshal(v)
+	if err != nil {
+		panic(err.Error())
+	}
+	return string(p)
 }
 
 type wantMountInfo struct {
@@ -255,6 +321,30 @@ func m(
 	}
 }
 
+func mn(
+	id, parent, maj, min int, root, target, vfsOptstr string, optFields []string, fsType, source, fsOptstr string,
+	covered bool, firstChild, nextSibling *vfs.MountInfoNode,
+) *vfs.MountInfoNode {
+	return &vfs.MountInfoNode{
+		MountInfoEntry: &vfs.MountInfoEntry{
+			ID:        id,
+			Parent:    parent,
+			Devno:     vfs.DevT{maj, min},
+			Root:      root,
+			Target:    target,
+			VfsOptstr: vfsOptstr,
+			OptFields: optFields,
+			FsType:    fsType,
+			Source:    source,
+			FsOptstr:  fsOptstr,
+		},
+		FirstChild:  firstChild,
+		NextSibling: nextSibling,
+		Clean:       path.Clean(target),
+		Covered:     covered,
+	}
+}
+
 func o(field ...string) []string {
 	if field == nil {
 		return []string{}
@@ -263,7 +353,7 @@ func o(field ...string) []string {
 }
 
 const (
-	sampleMountinfoShort = `15 20 0:3 / /proc rw,relatime - proc /proc rw
+	sampleMountinfoBase = `15 20 0:3 / /proc rw,relatime - proc /proc rw
 16 20 0:15 / /sys rw,relatime - sysfs /sys rw
 17 20 0:5 / /dev rw,relatime - devtmpfs udev rw,size=1983516k,nr_inodes=495879,mode=755
 18 17 0:10 / /dev/pts rw,relatime - devpts devpts rw,gid=5,mode=620,ptmxmode=000
