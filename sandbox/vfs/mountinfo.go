@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"iter"
 	"strconv"
 	"strings"
 	"syscall"
@@ -18,13 +19,23 @@ var (
 )
 
 type (
-	// MountInfo represents a /proc/pid/mountinfo document.
+	// A MountInfoDecoder reads and decodes proc_pid_mountinfo(5) entries from an input stream.
+	MountInfoDecoder struct {
+		s *bufio.Scanner
+		m *MountInfo
+
+		current  *MountInfo
+		parseErr error
+		complete bool
+	}
+
+	// MountInfo represents the contents of a proc_pid_mountinfo(5) document.
 	MountInfo struct {
 		Next *MountInfo
 		MountInfoEntry
 	}
 
-	// MountInfoEntry represents a line in /proc/pid/mountinfo.
+	// MountInfoEntry represents a proc_pid_mountinfo(5) entry.
 	MountInfoEntry struct {
 		// mount ID: a unique ID for the mount (may be reused after umount(2)).
 		ID int `json:"id"`
@@ -77,95 +88,145 @@ func (e *MountInfoEntry) Flags() (flags uintptr, unmatched []string) {
 	return
 }
 
-// ParseMountInfo parses a mountinfo file according to proc_pid_mountinfo(5).
-func ParseMountInfo(r io.Reader) (*MountInfo, int, error) {
-	var m, cur *MountInfo
-	s := bufio.NewScanner(r)
+// NewMountInfoDecoder returns a new decoder that reads from r.
+//
+// The decoder introduces its own buffering and may read data from r beyond the mountinfo entries requested.
+func NewMountInfoDecoder(r io.Reader) *MountInfoDecoder {
+	return &MountInfoDecoder{s: bufio.NewScanner(r)}
+}
 
-	var n int
-	for s.Scan() {
-		n++
-
-		if cur == nil {
-			m = new(MountInfo)
-			cur = m
-		} else {
-			cur.Next = new(MountInfo)
-			cur = cur.Next
-		}
-
-		// prevent proceeding with misaligned fields due to optional fields
-		f := strings.Split(s.Text(), " ")
-		if len(f) < 10 {
-			return nil, -1, ErrMountInfoFields
-		}
-
-		// 36 35 98:0 /mnt1 /mnt2 rw,noatime master:1 - ext3 /dev/root rw,errors=continue
-		// (1)(2)(3)   (4)   (5)      (6)      (7)   (8) (9)   (10)         (11)
-
-		// (1) id
-		if id, err := strconv.Atoi(f[0]); err != nil { // 0
-			return nil, -1, err
-		} else {
-			cur.ID = id
-		}
-
-		// (2) parent
-		if parent, err := strconv.Atoi(f[1]); err != nil { // 1
-			return nil, -1, err
-		} else {
-			cur.Parent = parent
-		}
-
-		// (3) maj:min
-		if n, err := fmt.Sscanf(f[2], "%d:%d", &cur.Devno[0], &cur.Devno[1]); err != nil {
-			return nil, -1, err
-		} else if n != 2 {
-			// unreachable
-			return nil, -1, ErrMountInfoDevno
-		}
-
-		// (4) mountroot
-		cur.Root = Unmangle(f[3])
-		if cur.Root == "" {
-			return nil, -1, ErrMountInfoEmpty
-		}
-
-		// (5) target
-		cur.Target = Unmangle(f[4])
-		if cur.Target == "" {
-			return nil, -1, ErrMountInfoEmpty
-		}
-
-		// (6) vfs options (fs-independent)
-		cur.VfsOptstr = Unmangle(f[5])
-		if cur.VfsOptstr == "" {
-			return nil, -1, ErrMountInfoEmpty
-		}
-
-		// (7) optional fields, terminated by " - "
-		i := len(f) - 4
-		cur.OptFields = f[6:i]
-
-		// (8) optional fields end marker
-		if f[i] != "-" {
-			return nil, -1, ErrMountInfoSep
-		}
-		i++
-
-		// (9) FS type
-		cur.FsType = Unmangle(f[i])
-		if cur.FsType == "" {
-			return nil, -1, ErrMountInfoEmpty
-		}
-		i++
-
-		// (10) source -- maybe empty string
-		cur.Source = Unmangle(f[i])
-		i++
-
-		// (11) fs options (fs specific)
-		cur.FsOptstr = Unmangle(f[i])
+func (d *MountInfoDecoder) Decode(v **MountInfo) (err error) {
+	for d.scan() {
 	}
-	return m, n, s.Err()
+	err = d.Err()
+	if err == nil {
+		*v = d.m
+	}
+	return
+}
+
+// Entries returns an iterator over mountinfo entries.
+func (d *MountInfoDecoder) Entries() iter.Seq[*MountInfoEntry] {
+	return func(yield func(*MountInfoEntry) bool) {
+		for cur := d.m; cur != nil; cur = cur.Next {
+			if !yield(&cur.MountInfoEntry) {
+				return
+			}
+		}
+		for d.scan() {
+			if !yield(&d.current.MountInfoEntry) {
+				return
+			}
+		}
+	}
+}
+
+func (d *MountInfoDecoder) Err() error {
+	if err := d.s.Err(); err != nil {
+		return err
+	}
+	return d.parseErr
+}
+
+func (d *MountInfoDecoder) scan() bool {
+	if d.complete {
+		return false
+	}
+	if !d.s.Scan() {
+		d.complete = true
+		return false
+	}
+
+	m := new(MountInfo)
+	if err := parseMountInfoLine(d.s.Text(), &m.MountInfoEntry); err != nil {
+		d.parseErr = err
+		d.complete = true
+		return false
+	}
+
+	if d.current == nil {
+		d.m = m
+		d.current = d.m
+	} else {
+		d.current.Next = m
+		d.current = d.current.Next
+	}
+	return true
+}
+
+func parseMountInfoLine(s string, ent *MountInfoEntry) error {
+	// prevent proceeding with misaligned fields due to optional fields
+	f := strings.Split(s, " ")
+	if len(f) < 10 {
+		return ErrMountInfoFields
+	}
+
+	// 36 35 98:0 /mnt1 /mnt2 rw,noatime master:1 - ext3 /dev/root rw,errors=continue
+	// (1)(2)(3)   (4)   (5)      (6)      (7)   (8) (9)   (10)         (11)
+
+	// (1) id
+	if id, err := strconv.Atoi(f[0]); err != nil { // 0
+		return err
+	} else {
+		ent.ID = id
+	}
+
+	// (2) parent
+	if parent, err := strconv.Atoi(f[1]); err != nil { // 1
+		return err
+	} else {
+		ent.Parent = parent
+	}
+
+	// (3) maj:min
+	if n, err := fmt.Sscanf(f[2], "%d:%d", &ent.Devno[0], &ent.Devno[1]); err != nil {
+		return err
+	} else if n != 2 {
+		// unreachable
+		return ErrMountInfoDevno
+	}
+
+	// (4) mountroot
+	ent.Root = Unmangle(f[3])
+	if ent.Root == "" {
+		return ErrMountInfoEmpty
+	}
+
+	// (5) target
+	ent.Target = Unmangle(f[4])
+	if ent.Target == "" {
+		return ErrMountInfoEmpty
+	}
+
+	// (6) vfs options (fs-independent)
+	ent.VfsOptstr = Unmangle(f[5])
+	if ent.VfsOptstr == "" {
+		return ErrMountInfoEmpty
+	}
+
+	// (7) optional fields, terminated by " - "
+	i := len(f) - 4
+	ent.OptFields = f[6:i]
+
+	// (8) optional fields end marker
+	if f[i] != "-" {
+		return ErrMountInfoSep
+	}
+	i++
+
+	// (9) FS type
+	ent.FsType = Unmangle(f[i])
+	if ent.FsType == "" {
+		return ErrMountInfoEmpty
+	}
+	i++
+
+	// (10) source -- maybe empty string
+	ent.Source = Unmangle(f[i])
+	i++
+
+	// (11) fs options (fs specific)
+	ent.FsOptstr = Unmangle(f[i])
+
+	return nil
 }
