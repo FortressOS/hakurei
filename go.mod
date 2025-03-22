@@ -1,3 +1,3 @@
 module git.gensokyo.uk/security/fortify
 
-go 1.22
+go 1.23
