@@ -1,3 +1,9 @@
+/*
+Package sandbox provides utilities for checking sandbox outcome.
+
+This package must never be used outside integration tests, there is a much better native implementation of mountinfo
+in the public sandbox/vfs package. Files in this package are excluded by the build system to prevent accidental misuse.
+*/
 package sandbox
 
 import (
