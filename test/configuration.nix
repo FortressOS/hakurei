@@ -108,7 +108,7 @@ in
     home-manager = _: _: { home.stateVersion = "23.05"; };
 
     apps = [
-      testCases.moduleDefault
+      testCases.preset
 
       {
         name = "ne-foot";

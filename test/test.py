@@ -103,8 +103,23 @@ if denyOutputVerbose != "fsu: uid 1001 is not in the fsurc file\nfortify: *canno
     raise Exception(f"unexpected deny verbose output:\n{denyOutputVerbose}")
 
 # Check sandbox outcome:
-swaymsg("exec check-sandbox-module-default")
-machine.wait_for_file("/tmp/fortify.1000/tmpdir/1/sandbox-ok", timeout=15)
+check_offset = 0
+def check_sandbox(name):
+    global check_offset
+    check_offset += 1
+    swaymsg(f"exec check-sandbox-{name}")
+    machine.wait_for_file(f"/tmp/fortify.1000/tmpdir/{check_offset}/sandbox-ok", timeout=15)
+
+
+check_sandbox("preset")
+
+def aid(offset):
+    return 1+check_offset+offset
+
+
+def tmpdir_path(offset, name):
+    return f"/tmp/fortify.1000/tmpdir/{aid(offset)}/{name}"
+
 
 # Start fortify permissive defaults outside Wayland session:
 print(machine.succeed("sudo -u alice -i fortify -v run -a 0 touch /tmp/success-bare"))
@@ -146,23 +161,23 @@ machine.succeed("pkill -9 mako")
 
 # Start app (foot) with Wayland enablement:
 swaymsg("exec ne-foot")
-wait_for_window("u0_a2@machine")
-machine.send_chars("clear; wayland-info && touch /tmp/success-client\n")
-machine.wait_for_file("/tmp/fortify.1000/tmpdir/2/success-client", timeout=10)
+wait_for_window(f"u0_a{aid(0)}@machine")
+machine.send_chars("clear; wayland-info && touch /tmp/client-ok\n")
+machine.wait_for_file(tmpdir_path(0, "client-ok"), timeout=10)
 collect_state_ui("foot_wayland")
 check_state("ne-foot", 1)
 # Verify acl on XDG_RUNTIME_DIR:
-print(machine.succeed("getfacl --absolute-names --omit-header --numeric /run/user/1000 | grep 1000002"))
+print(machine.succeed(f"getfacl --absolute-names --omit-header --numeric /run/user/1000 | grep {aid(0) + 1000000}"))
 machine.send_chars("exit\n")
 machine.wait_until_fails("pgrep foot", timeout=5)
 # Verify acl cleanup on XDG_RUNTIME_DIR:
-machine.wait_until_fails("getfacl --absolute-names --omit-header --numeric /run/user/1000 | grep 1000002", timeout=5)
+machine.wait_until_fails(f"getfacl --absolute-names --omit-header --numeric /run/user/1000 | grep {aid(0) + 1000000}", timeout=5)
 
 # Start app (foot) with Wayland enablement from a terminal:
 swaymsg("exec foot $SHELL -c '(ne-foot) & sleep 1 && fortify show $(fortify ps --short) && touch /tmp/ps-show-ok && cat'")
-wait_for_window("u0_a2@machine")
-machine.send_chars("clear; wayland-info && touch /tmp/success-client-term\n")
-machine.wait_for_file("/tmp/fortify.1000/tmpdir/2/success-client-term", timeout=10)
+wait_for_window(f"u0_a{aid(0)}@machine")
+machine.send_chars("clear; wayland-info && touch /tmp/term-ok\n")
+machine.wait_for_file(tmpdir_path(0, "term-ok"), timeout=10)
 machine.wait_for_file("/tmp/ps-show-ok", timeout=5)
 collect_state_ui("foot_wayland_term")
 check_state("ne-foot", 1)
@@ -173,9 +188,9 @@ machine.wait_until_fails("pgrep foot", timeout=5)
 
 # Test PulseAudio (fortify does not support PipeWire yet):
 swaymsg("exec pa-foot")
-wait_for_window("u0_a3@machine")
-machine.send_chars("clear; pactl info && touch /tmp/success-pulse\n")
-machine.wait_for_file("/tmp/fortify.1000/tmpdir/3/success-pulse", timeout=10)
+wait_for_window(f"u0_a{aid(1)}@machine")
+machine.send_chars("clear; pactl info && touch /tmp/pulse-ok\n")
+machine.wait_for_file(tmpdir_path(1, "pulse-ok"), timeout=10)
 collect_state_ui("pulse_wayland")
 check_state("pa-foot", 9)
 machine.send_chars("exit\n")
@@ -183,9 +198,9 @@ machine.wait_until_fails("pgrep foot", timeout=5)
 
 # Test XWayland (foot does not support X):
 swaymsg("exec x11-alacritty")
-wait_for_window("u0_a4@machine")
-machine.send_chars("clear; glinfo && touch /tmp/success-client-x11\n")
-machine.wait_for_file("/tmp/fortify.1000/tmpdir/4/success-client-x11", timeout=10)
+wait_for_window(f"u0_a{aid(2)}@machine")
+machine.send_chars("clear; glinfo && touch /tmp/x11-ok\n")
+machine.wait_for_file(tmpdir_path(2, "x11-ok"), timeout=10)
 collect_state_ui("alacritty_x11")
 check_state("x11-alacritty", 2)
 machine.send_chars("exit\n")
@@ -193,17 +208,17 @@ machine.wait_until_fails("pgrep alacritty", timeout=5)
 
 # Start app (foot) with direct Wayland access:
 swaymsg("exec da-foot")
-wait_for_window("u0_a5@machine")
-machine.send_chars("clear; wayland-info && touch /tmp/success-direct\n")
-machine.wait_for_file("/tmp/fortify.1000/tmpdir/5/success-direct", timeout=10)
+wait_for_window(f"u0_a{aid(3)}@machine")
+machine.send_chars("clear; wayland-info && touch /tmp/direct-ok\n")
 collect_state_ui("foot_direct")
+machine.wait_for_file(tmpdir_path(3, "direct-ok"), timeout=10)
 check_state("da-foot", 1)
 # Verify acl on XDG_RUNTIME_DIR:
-print(machine.succeed("getfacl --absolute-names --omit-header --numeric /run/user/1000 | grep 1000005"))
+print(machine.succeed(f"getfacl --absolute-names --omit-header --numeric /run/user/1000 | grep {aid(3) + 1000000}"))
 machine.send_chars("exit\n")
 machine.wait_until_fails("pgrep foot", timeout=5)
 # Verify acl cleanup on XDG_RUNTIME_DIR:
-machine.wait_until_fails("getfacl --absolute-names --omit-header --numeric /run/user/1000 | grep 1000005", timeout=5)
+machine.wait_until_fails(f"getfacl --absolute-names --omit-header --numeric /run/user/1000 | grep {aid(3) + 1000000}", timeout=5)
 
 # Test syscall filter:
 print(machine.fail("sudo -u alice -i XDG_RUNTIME_DIR=/run/user/1000 strace-failure"))

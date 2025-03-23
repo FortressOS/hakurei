@@ -52,5 +52,5 @@ let
     };
 in
 {
-  moduleDefault = callTestCase ./module-default.nix;
+  preset = callTestCase ./preset.nix;
 }

@@ -1,6 +1,6 @@
 { fs, ent }:
 {
-  name = "module-default";
+  name = "preset";
 
   want = {
     fs = fs "dead" {
