@@ -84,6 +84,8 @@ func (s *FS) Compare(prefix string, e fs.FS) error {
 					return err
 				} else if string(v) != *want.Data {
 					printf("[FAIL] f %s", name)
+					printf("got:  %s", v)
+					printf("want: %s", *want.Data)
 					return ErrFSBadData
 				}
 				printf("[ OK ] f %s", name)

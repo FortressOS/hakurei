@@ -54,7 +54,7 @@ func TestCompare(t *testing.T) {
 		}, &sandbox.FS{Dir: map[string]*sandbox.FS{"etc": {Mode: 0x800001c0, Dir: map[string]*sandbox.FS{
 			"passwd": {Mode: 0x1a4, Data: &fsGroupSample},
 			"group":  {Mode: 0x1a4, Data: &fsGroupSample},
-		}}}}, "[ OK ] f etc/group\x00[FAIL] f etc/passwd\x00", sandbox.ErrFSBadData},
+		}}}}, "[ OK ] f etc/group\x00[FAIL] f etc/passwd\x00got:  u0_a20:x:65534:65534:Fortify:/var/lib/persist/module/fortify/u0/a20:/run/current-system/sw/bin/zsh\x00want: fortify:x:65534:\x00", sandbox.ErrFSBadData},
 	}
 
 	for _, tc := range testCases {
