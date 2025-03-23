@@ -23,6 +23,9 @@
   go,
   gcc,
 
+  # for check
+  util-linux,
+
   glibc, # for ldd
   withStatic ? stdenv.hostPlatform.isStatic,
 }:
@@ -118,6 +121,7 @@ buildGoModule rec {
       go
       gcc
       xorg.xorgproto
+      util-linux
     ]
     ++ buildInputs
     ++ nativeBuildInputs;

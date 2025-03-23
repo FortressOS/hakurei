@@ -14,14 +14,18 @@ let
       ;
   };
 
-  ent = fsname: dir: type: opts: freq: passno: {
+  ignore = "//ignore";
+
+  ent = root: target: vfs_optstr: fstype: source: fs_optstr: {
+    id = -1;
+    parent = -1;
     inherit
-      fsname
-      dir
-      type
-      opts
-      freq
-      passno
+      root
+      target
+      vfs_optstr
+      fstype
+      source
+      fs_optstr
       ;
   };
 
@@ -34,6 +38,7 @@ let
         inherit
           fs
           ent
+          ignore
           ;
       };
     in
@@ -44,12 +49,6 @@ let
       share = foot;
       packages = [ ];
       command = "${checkSandbox tc.name tc.want} > /dev/console";
-      extraPaths = [
-        {
-          src = "/proc/mounts";
-          dst = "/.fortify/mounts";
-        }
-      ];
     };
 in
 {

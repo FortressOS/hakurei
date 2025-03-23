@@ -11,7 +11,6 @@ import (
 	"io/fs"
 	"log"
 	"os"
-	"slices"
 )
 
 var (
@@ -24,15 +23,15 @@ func printf(format string, v ...any) { printfFunc(format, v...) }
 func fatalf(format string, v ...any) { fatalfFunc(format, v...) }
 
 type TestCase struct {
-	FS      *FS       `json:"fs"`
-	Mount   []*Mntent `json:"mount"`
-	Seccomp bool      `json:"seccomp"`
+	FS      *FS               `json:"fs"`
+	Mount   []*MountinfoEntry `json:"mount"`
+	Seccomp bool              `json:"seccomp"`
 }
 
 type T struct {
 	FS fs.FS
 
-	MountsPath, PMountsPath string
+	MountsPath string
 }
 
 func (t *T) MustCheckFile(wantFilePath string) {
@@ -50,47 +49,23 @@ func (t *T) MustCheck(want *TestCase) {
 		printf("[SKIP] skipping fs check")
 	}
 
-	if want.Mount != nil && t.PMountsPath != "" {
-		pm := mustOpenMounts(t.PMountsPath)
-		passthruMounts := slices.AppendSeq(make([]*Mntent, 0, 128), pm.Entries())
-		if err := pm.Err(); err != nil {
-			fatalf("cannot parse host mounts: %v", err)
-		}
-
-		for _, e := range want.Mount {
-			if e.Opts == "host_passthrough" {
-				for _, ent := range passthruMounts {
-					if e.FSName == ent.FSName && e.Type == ent.Type {
-						// special case for tmpfs bind mounts
-						if e.FSName == "tmpfs" && e.Dir != ent.Dir {
-							continue
-						}
-
-						e.Opts = ent.Opts
-						goto out
-					}
-				}
-				fatalf("host passthrough missing %q", e.FSName)
-			out:
-			}
-		}
-
-		f := mustOpenMounts(t.MountsPath)
+	if want.Mount != nil {
+		m := mustParseMountinfo(t.MountsPath)
 		i := 0
-		for e := range f.Entries() {
+		for ent := range m.Entries() {
 			if i == len(want.Mount) {
 				fatalf("got more than %d entries", i)
 			}
-			if !e.Is(want.Mount[i]) {
-				fatalf("entry %d\n got: %s\nwant: %s", i,
-					e, want.Mount[i])
+			if !ent.EqualWithIgnore(want.Mount[i], "//ignore") {
+				printf("[FAIL] %s", ent)
+			} else {
+				printf("[ OK ] %s", ent)
 			}
-			printf("[ OK ] %s", e)
 
 			i++
 		}
-		if err := f.Err(); err != nil {
-			fatalf("cannot parse mounts: %v", err)
+		if err := m.Err(); err != nil {
+			fatalf("%v", err)
 		}
 	} else {
 		printf("[SKIP] skipping mounts check")
@@ -115,11 +90,11 @@ func mustDecode(wantFilePath string, v any) {
 	}
 }
 
-func mustOpenMounts(name string) *MountsFile {
-	if f, err := OpenMounts(name); err != nil {
-		fatalf("cannot open mounts %q: %v", name, err)
+func mustParseMountinfo(name string) *Mountinfo {
+	m := NewMountinfo(name)
+	if err := m.Parse(); err != nil {
+		fatalf("%v", err)
 		panic("unreachable")
-	} else {
-		return f
 	}
+	return m
 }

@@ -1,6 +1,8 @@
 {
   writeText,
   buildGoModule,
+  pkg-config,
+  util-linux,
 
   version,
 }:
@@ -11,6 +13,9 @@ buildGoModule {
   src = ../.;
   vendorHash = null;
 
+  buildInputs = [ util-linux ];
+  nativeBuildInputs = [ pkg-config ];
+
   preBuild = ''
     go mod init git.gensokyo.uk/security/fortify/test >& /dev/null
     cp ${writeText "main.go" ''
@@ -19,7 +24,7 @@ buildGoModule {
       import "os"
       import "git.gensokyo.uk/security/fortify/test/sandbox"
 
-      func main() { (&sandbox.T{FS: os.DirFS("/"), PMountsPath: "/.fortify/mounts"}).MustCheckFile(os.Args[1]) }
+      func main() { (&sandbox.T{FS: os.DirFS("/")}).MustCheckFile(os.Args[1]) }
     ''} main.go
   '';
 }
