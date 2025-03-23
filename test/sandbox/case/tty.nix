@@ -1,7 +1,7 @@
 { fs, ent }:
 {
-  name = "preset";
-  tty = false;
+  name = "tty";
+  tty = true;
 
   want = {
     fs = fs "dead" {
@@ -80,7 +80,7 @@
         "os-release" = fs "80001ff" null null;
         "pam" = fs "80001ff" null null;
         "pam.d" = fs "80001ff" null null;
-        "passwd" = fs "180" null "u0_a1:x:65534:65534:Fortify:/var/lib/fortify/u0/a1:/run/current-system/sw/bin/bash\n";
+        "passwd" = fs "180" null "u0_a2:x:65534:65534:Fortify:/var/lib/fortify/u0/a2:/run/current-system/sw/bin/bash\n";
         "pipewire" = fs "80001ff" null null;
         "pki" = fs "80001ff" null null;
         "polkit-1" = fs "80001ff" null null;
@@ -151,7 +151,7 @@
         lib = fs "800001c0" {
           fortify = fs "800001c0" {
             u0 = fs "800001c0" {
-              a1 = fs "800001c0" {
+              a2 = fs "800001c0" {
                 ".cache" = fs "800001ed" { ".keep" = fs "80001ff" null ""; } null;
                 ".config" = fs "800001ed" { "environment.d" = fs "800001ed" { "10-home-manager.conf" = fs "80001ff" null null; } null; } null;
                 ".local" = fs "800001ed" {
@@ -181,10 +181,10 @@
     } null;
 
     mount = [
-      (ent "tmpfs" "/" "tmpfs" "rw,nosuid,nodev,relatime,uid=1000001,gid=1000001" 0 0)
+      (ent "tmpfs" "/" "tmpfs" "rw,nosuid,nodev,relatime,uid=1000002,gid=1000002" 0 0)
       (ent "proc" "/proc" "proc" "rw,nosuid,nodev,noexec,relatime" 0 0)
-      (ent "tmpfs" "/.fortify" "tmpfs" "rw,nosuid,nodev,relatime,size=4k,mode=755,uid=1000001,gid=1000001" 0 0)
-      (ent "tmpfs" "/dev" "tmpfs" "rw,nosuid,nodev,relatime,mode=755,uid=1000001,gid=1000001" 0 0)
+      (ent "tmpfs" "/.fortify" "tmpfs" "rw,nosuid,nodev,relatime,size=4k,mode=755,uid=1000002,gid=1000002" 0 0)
+      (ent "tmpfs" "/dev" "tmpfs" "rw,nosuid,nodev,relatime,mode=755,uid=1000002,gid=1000002" 0 0)
       (ent "devtmpfs" "/dev/null" "devtmpfs" "host_passthrough" 0 0)
       (ent "devtmpfs" "/dev/zero" "devtmpfs" "host_passthrough" 0 0)
       (ent "devtmpfs" "/dev/full" "devtmpfs" "host_passthrough" 0 0)
@@ -206,16 +206,16 @@
       (ent "devtmpfs" "/dev/dri" "devtmpfs" "host_passthrough" 0 0)
       (ent "proc" "/.fortify/mounts" "proc" "ro,nosuid,nodev,noexec,relatime" 0 0)
       (ent "/dev/disk/by-label/nixos" "/.fortify/etc" "ext4" "ro,nosuid,nodev,relatime" 0 0)
-      (ent "tmpfs" "/run/user" "tmpfs" "rw,nosuid,nodev,relatime,size=1024k,mode=755,uid=1000001,gid=1000001" 0 0)
-      (ent "tmpfs" "/run/user/65534" "tmpfs" "rw,nosuid,nodev,relatime,size=8192k,mode=755,uid=1000001,gid=1000001" 0 0)
+      (ent "tmpfs" "/run/user" "tmpfs" "rw,nosuid,nodev,relatime,size=1024k,mode=755,uid=1000002,gid=1000002" 0 0)
+      (ent "tmpfs" "/run/user/65534" "tmpfs" "rw,nosuid,nodev,relatime,size=8192k,mode=755,uid=1000002,gid=1000002" 0 0)
       (ent "/dev/disk/by-label/nixos" "/tmp" "ext4" "rw,nosuid,nodev,relatime" 0 0)
-      (ent "/dev/disk/by-label/nixos" "/var/lib/fortify/u0/a1" "ext4" "rw,nosuid,nodev,relatime" 0 0)
-      (ent "tmpfs" "/etc/passwd" "tmpfs" "ro,nosuid,nodev,relatime,uid=1000001,gid=1000001" 0 0)
-      (ent "tmpfs" "/etc/group" "tmpfs" "ro,nosuid,nodev,relatime,uid=1000001,gid=1000001" 0 0)
+      (ent "/dev/disk/by-label/nixos" "/var/lib/fortify/u0/a2" "ext4" "rw,nosuid,nodev,relatime" 0 0)
+      (ent "tmpfs" "/etc/passwd" "tmpfs" "ro,nosuid,nodev,relatime,uid=1000002,gid=1000002" 0 0)
+      (ent "tmpfs" "/etc/group" "tmpfs" "ro,nosuid,nodev,relatime,uid=1000002,gid=1000002" 0 0)
       (ent "/dev/disk/by-label/nixos" "/run/user/65534/wayland-0" "ext4" "ro,nosuid,nodev,relatime" 0 0)
       (ent "tmpfs" "/run/user/65534/pulse/native" "tmpfs" "host_passthrough" 0 0)
       (ent "/dev/disk/by-label/nixos" "/run/user/65534/bus" "ext4" "ro,nosuid,nodev,relatime" 0 0)
-      (ent "tmpfs" "/var/run/nscd" "tmpfs" "rw,nosuid,nodev,relatime,size=8k,mode=755,uid=1000001,gid=1000001" 0 0)
+      (ent "tmpfs" "/var/run/nscd" "tmpfs" "rw,nosuid,nodev,relatime,size=8k,mode=755,uid=1000002,gid=1000002" 0 0)
       (ent "overlay" "/.fortify/sbin/fortify" "overlay" "ro,nosuid,nodev,relatime,lowerdir=/mnt-root/nix/.ro-store,upperdir=/mnt-root/nix/.rw-store/upper,workdir=/mnt-root/nix/.rw-store/work,uuid=on" 0 0)
     ];
 

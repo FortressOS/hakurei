@@ -109,6 +109,7 @@ in
 
     apps = [
       testCases.preset
+      testCases.tty
 
       {
         name = "ne-foot";

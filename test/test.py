@@ -112,6 +112,7 @@ def check_sandbox(name):
 
 
 check_sandbox("preset")
+check_sandbox("tty")
 
 def aid(offset):
     return 1+check_offset+offset

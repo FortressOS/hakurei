@@ -40,9 +40,10 @@ let
     {
       name = "check-sandbox-${tc.name}";
       verbose = true;
+      inherit (tc) tty;
       share = foot;
       packages = [ ];
-      command = builtins.toString (checkSandbox tc.name tc.want);
+      command = "${checkSandbox tc.name tc.want} > /dev/console";
       extraPaths = [
         {
           src = "/proc/mounts";
@@ -53,4 +54,5 @@ let
 in
 {
   preset = callTestCase ./preset.nix;
+  tty = callTestCase ./tty.nix;
 }
