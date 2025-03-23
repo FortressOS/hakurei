@@ -110,6 +110,7 @@ in
     apps = [
       testCases.preset
       testCases.tty
+      testCases.mapuid
 
       {
         name = "ne-foot";

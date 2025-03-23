@@ -40,7 +40,7 @@ let
     {
       name = "check-sandbox-${tc.name}";
       verbose = true;
-      inherit (tc) tty;
+      inherit (tc) tty mapRealUid;
       share = foot;
       packages = [ ];
       command = "${checkSandbox tc.name tc.want} > /dev/console";
@@ -55,4 +55,5 @@ in
 {
   preset = callTestCase ./preset.nix;
   tty = callTestCase ./tty.nix;
+  mapuid = callTestCase ./mapuid.nix;
 }

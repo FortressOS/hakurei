@@ -2,6 +2,7 @@
 {
   name = "preset";
   tty = false;
+  mapRealUid = false;
 
   want = {
     fs = fs "dead" {

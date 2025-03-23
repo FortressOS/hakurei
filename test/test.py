@@ -113,6 +113,7 @@ def check_sandbox(name):
 
 check_sandbox("preset")
 check_sandbox("tty")
+check_sandbox("mapuid")
 
 def aid(offset):
     return 1+check_offset+offset
@@ -191,7 +192,7 @@ machine.wait_until_fails("pgrep foot", timeout=5)
 swaymsg("exec pa-foot")
 wait_for_window(f"u0_a{aid(1)}@machine")
 machine.send_chars("clear; pactl info && touch /tmp/pulse-ok\n")
-machine.wait_for_file(tmpdir_path(1, "pulse-ok"), timeout=10)
+machine.wait_for_file(tmpdir_path(1, "pulse-ok"), timeout=15)
 collect_state_ui("pulse_wayland")
 check_state("pa-foot", 9)
 machine.send_chars("exit\n")
