@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"iter"
+	"slices"
 	"strconv"
 	"strings"
 	"syscall"
@@ -235,4 +236,23 @@ func parseMountInfoLine(s string, ent *MountInfoEntry) error {
 	ent.FsOptstr = Unmangle(f[i])
 
 	return nil
+}
+
+func (e *MountInfoEntry) EqualWithIgnore(want *MountInfoEntry) bool {
+	return (e.ID == want.ID || want.ID == -1) &&
+		(e.Parent == want.Parent || want.Parent == -1) &&
+		(e.Devno == want.Devno || (want.Devno[0] == -1 && want.Devno[1] == -1)) &&
+		(e.Root == want.Root || want.Root == "\x00") &&
+		(e.Target == want.Target || want.Target == "\x00") &&
+		(e.VfsOptstr == want.VfsOptstr || want.VfsOptstr == "\x00") &&
+		(slices.Equal(e.OptFields, want.OptFields) || (len(want.OptFields) == 1 && want.OptFields[0] == "\x00")) &&
+		(e.FsType == want.FsType || want.FsType == "\x00") &&
+		(e.Source == want.Source || want.Source == "\x00") &&
+		(e.FsOptstr == want.FsOptstr || want.FsOptstr == "\x00")
+}
+
+func (e *MountInfoEntry) String() string {
+	return fmt.Sprintf("%d %d %d:%d %s %s %s %s %s %s %s",
+		e.ID, e.Parent, e.Devno[0], e.Devno[1], e.Root, e.Target, e.VfsOptstr,
+		strings.Join(append(e.OptFields, "-"), " "), e.FsType, e.Source, e.FsOptstr)
 }

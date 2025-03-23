@@ -3,10 +3,11 @@ package sandbox_test
 import (
 	"bytes"
 	"context"
-	"encoding/json"
+	"encoding/gob"
 	"log"
 	"os"
 	"os/exec"
+	"strings"
 	"syscall"
 	"testing"
 	"time"
@@ -17,7 +18,12 @@ import (
 	"git.gensokyo.uk/security/fortify/ldd"
 	"git.gensokyo.uk/security/fortify/sandbox"
 	"git.gensokyo.uk/security/fortify/sandbox/seccomp"
-	check "git.gensokyo.uk/security/fortify/test/sandbox"
+	"git.gensokyo.uk/security/fortify/sandbox/vfs"
+)
+
+const (
+	ignore  = "\x00"
+	ignoreV = -1
 )
 
 func TestContainer(t *testing.T) {
@@ -33,7 +39,7 @@ func TestContainer(t *testing.T) {
 		name  string
 		flags sandbox.HardeningFlags
 		ops   *sandbox.Ops
-		mnt   []*check.Mntent
+		mnt   []*vfs.MountInfoEntry
 		host  string
 	}{
 		{"minimal", 0, new(sandbox.Ops), nil, "test-minimal"},
@@ -42,23 +48,23 @@ func TestContainer(t *testing.T) {
 		{"tmpfs", 0,
 			new(sandbox.Ops).
 				Tmpfs(fst.Tmp, 0, 0755),
-			[]*check.Mntent{
-				{FSName: "tmpfs", Dir: fst.Tmp, Type: "tmpfs", Opts: "\x00"},
+			[]*vfs.MountInfoEntry{
+				e("/", fst.Tmp, "rw,nosuid,nodev,relatime", "tmpfs", "tmpfs", ignore),
 			}, "test-tmpfs"},
 		{"dev", sandbox.FAllowTTY, // go test output is not a tty
 			new(sandbox.Ops).
 				Dev("/dev").
 				Mqueue("/dev/mqueue"),
-			[]*check.Mntent{
-				{FSName: "devtmpfs", Dir: "/dev", Type: "tmpfs", Opts: "\x00"},
-				{FSName: "devtmpfs", Dir: "/dev/null", Type: "devtmpfs", Opts: "\x00", Freq: -1, Passno: -1},
-				{FSName: "devtmpfs", Dir: "/dev/zero", Type: "devtmpfs", Opts: "\x00", Freq: -1, Passno: -1},
-				{FSName: "devtmpfs", Dir: "/dev/full", Type: "devtmpfs", Opts: "\x00", Freq: -1, Passno: -1},
-				{FSName: "devtmpfs", Dir: "/dev/random", Type: "devtmpfs", Opts: "\x00", Freq: -1, Passno: -1},
-				{FSName: "devtmpfs", Dir: "/dev/urandom", Type: "devtmpfs", Opts: "\x00", Freq: -1, Passno: -1},
-				{FSName: "devtmpfs", Dir: "/dev/tty", Type: "devtmpfs", Opts: "\x00", Freq: -1, Passno: -1},
-				{FSName: "devpts", Dir: "/dev/pts", Type: "devpts", Opts: "rw,nosuid,noexec,relatime,mode=620,ptmxmode=666", Freq: 0, Passno: 0},
-				{FSName: "mqueue", Dir: "/dev/mqueue", Type: "mqueue", Opts: "rw,nosuid,nodev,noexec,relatime", Freq: 0, Passno: 0},
+			[]*vfs.MountInfoEntry{
+				e("/", "/dev", "rw,nosuid,nodev,relatime", "tmpfs", "devtmpfs", ignore),
+				e("/null", "/dev/null", "ro,nosuid", "devtmpfs", "devtmpfs", ignore),
+				e("/zero", "/dev/zero", "ro,nosuid", "devtmpfs", "devtmpfs", ignore),
+				e("/full", "/dev/full", "ro,nosuid", "devtmpfs", "devtmpfs", ignore),
+				e("/random", "/dev/random", "ro,nosuid", "devtmpfs", "devtmpfs", ignore),
+				e("/urandom", "/dev/urandom", "ro,nosuid", "devtmpfs", "devtmpfs", ignore),
+				e("/tty", "/dev/tty", "ro,nosuid", "devtmpfs", "devtmpfs", ignore),
+				e("/", "/dev/pts", "rw,nosuid,noexec,relatime", "devpts", "devpts", "rw,mode=620,ptmxmode=666"),
+				e("/", "/dev/mqueue", "rw,nosuid,nodev,noexec,relatime", "mqueue", "mqueue", "rw"),
 			}, ""},
 	}
 
@@ -104,30 +110,26 @@ func TestContainer(t *testing.T) {
 			for _, name := range libPaths {
 				container.Bind(name, name, 0)
 			}
+			// needs /proc to check mountinfo
+			container.Proc("/proc")
 
-			mnt := make([]*check.Mntent, 0, 3+len(libPaths))
-			mnt = append(mnt, &check.Mntent{FSName: "rootfs", Dir: "/", Type: "tmpfs", Opts: "host_passthrough"})
+			mnt := make([]*vfs.MountInfoEntry, 0, 3+len(libPaths))
+			mnt = append(mnt, e("/sysroot", "/", "rw,nosuid,nodev,relatime", "tmpfs", "rootfs", ignore))
 			mnt = append(mnt, tc.mnt...)
 			mnt = append(mnt,
-				&check.Mntent{FSName: "tmpfs", Dir: "/tmp", Type: "tmpfs", Opts: "host_passthrough"},
-				&check.Mntent{FSName: "\x00", Dir: os.Args[0], Type: "\x00", Opts: "\x00"},
-				&check.Mntent{FSName: "rootfs", Dir: "/etc/hostname", Type: "tmpfs", Opts: "\x00"},
+				e("/", "/tmp", "rw,nosuid,nodev,relatime", "tmpfs", "tmpfs", ignore),
+				e(ignore, os.Args[0], "ro,nosuid,nodev,relatime", ignore, ignore, ignore),
+				e(ignore, "/etc/hostname", "ro,nosuid,nodev,relatime", "tmpfs", "rootfs", ignore),
 			)
 			for _, name := range libPaths {
-				mnt = append(mnt, &check.Mntent{FSName: "\x00", Dir: name, Type: "\x00", Opts: "\x00", Freq: -1, Passno: -1})
+				mnt = append(mnt, e(ignore, name, "ro,nosuid,nodev,relatime", ignore, ignore, ignore))
 			}
-			mnt = append(mnt, &check.Mntent{FSName: "proc", Dir: "/proc", Type: "proc", Opts: "rw,nosuid,nodev,noexec,relatime"})
+			mnt = append(mnt, e("/", "/proc", "rw,nosuid,nodev,noexec,relatime", "proc", "proc", "rw"))
 			want := new(bytes.Buffer)
-			if err := json.NewEncoder(want).Encode(&check.TestCase{
-				Mount:   mnt,
-				Seccomp: true,
-			}); err != nil {
-				t.Fatalf("cannot serialise want: %v", err)
+			if err := gob.NewEncoder(want).Encode(mnt); err != nil {
+				t.Fatalf("cannot serialise expected mount points: %v", err)
 			}
 			container.Stdin = want
-
-			// needs /proc to check mntent
-			container.Proc("/proc")
 
 			if err := container.Start(); err != nil {
 				fmsg.PrintBaseError(err, "start:")
@@ -141,6 +143,21 @@ func TestContainer(t *testing.T) {
 				t.Fatalf("wait: %v", err)
 			}
 		})
+	}
+}
+
+func e(root, target, vfsOptstr, fsType, source, fsOptstr string) *vfs.MountInfoEntry {
+	return &vfs.MountInfoEntry{
+		ID:        ignoreV,
+		Parent:    ignoreV,
+		Devno:     vfs.DevT{ignoreV, ignoreV},
+		Root:      root,
+		Target:    target,
+		VfsOptstr: vfsOptstr,
+		OptFields: []string{ignore},
+		FsType:    fsType,
+		Source:    source,
+		FsOptstr:  fsOptstr,
 	}
 }
 
@@ -188,7 +205,48 @@ func TestHelperCheckContainer(t *testing.T) {
 			t.Errorf("/etc/hostname: %q, want %q", string(p), os.Args[5])
 		}
 	})
-	t.Run("sandbox", func(t *testing.T) { (&check.T{PMountsPath: "/proc/mounts"}).MustCheckFile("/proc/self/fd/0") })
+	t.Run("mount", func(t *testing.T) {
+		var mnt []*vfs.MountInfoEntry
+		if err := gob.NewDecoder(os.Stdin).Decode(&mnt); err != nil {
+			t.Fatalf("cannot receive expected mount points: %v", err)
+		}
+
+		var d *vfs.MountInfoDecoder
+		if f, err := os.Open("/proc/self/mountinfo"); err != nil {
+			t.Fatalf("cannot open mountinfo: %v", err)
+		} else {
+			d = vfs.NewMountInfoDecoder(f)
+		}
+
+		i := 0
+		for cur := range d.Entries() {
+			if i == len(mnt) {
+				t.Errorf("got more than %d entries", len(mnt))
+				break
+			}
+
+			// ugly hack but should be reliable and is less likely to false negative than comparing by parsed flags
+			cur.VfsOptstr = strings.TrimSuffix(cur.VfsOptstr, ",relatime")
+			cur.VfsOptstr = strings.TrimSuffix(cur.VfsOptstr, ",noatime")
+			mnt[i].VfsOptstr = strings.TrimSuffix(mnt[i].VfsOptstr, ",relatime")
+			mnt[i].VfsOptstr = strings.TrimSuffix(mnt[i].VfsOptstr, ",noatime")
+
+			if !cur.EqualWithIgnore(mnt[i]) {
+				t.Errorf("[FAIL] %s", cur)
+			} else {
+				t.Logf("[ OK ] %s", cur)
+			}
+
+			i++
+		}
+		if err := d.Err(); err != nil {
+			t.Errorf("cannot parse mountinfo: %v", err)
+		}
+
+		if i != len(mnt) {
+			t.Errorf("got %d entries, want %d", i, len(mnt))
+		}
+	})
 }
 
 func commandContext(ctx context.Context) *exec.Cmd {
