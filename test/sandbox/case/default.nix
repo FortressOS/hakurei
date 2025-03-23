@@ -25,6 +25,8 @@ let
       ;
   };
 
+  checkSandbox = callPackage ../. { inherit version; };
+
   callTestCase =
     path:
     let
@@ -40,10 +42,7 @@ let
       verbose = true;
       share = foot;
       packages = [ ];
-      command = "${callPackage ../. {
-        inherit (tc) name want;
-        inherit version;
-      }}";
+      command = builtins.toString (checkSandbox tc.name tc.want);
       extraPaths = [
         {
           src = "/proc/mounts";

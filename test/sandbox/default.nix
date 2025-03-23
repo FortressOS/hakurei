@@ -1,13 +1,14 @@
 {
   writeShellScript,
+  writeText,
   callPackage,
 
-  name,
   version,
-  want,
 }:
+name: want:
 writeShellScript "fortify-${name}-check-sandbox-script" ''
   set -e
-  ${callPackage ./assert.nix { inherit name version want; }}/bin/test
+  ${callPackage ./assert.nix { inherit version; }}/bin/test \
+    ${writeText "fortify-${name}-want.json" (builtins.toJSON want)}
   touch /tmp/sandbox-ok
 ''
