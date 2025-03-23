@@ -34,7 +34,7 @@ buildGoModule rec {
   src = builtins.path {
     name = "${pname}-src";
     path = lib.cleanSource ./.;
-    filter = path: type: !(type == "regular" && (lib.hasSuffix ".nix" path || lib.hasSuffix ".py" path)) && !(type == "directory" && lib.hasSuffix "/cmd/fsu" path);
+    filter = path: type: !(type == "regular" && (lib.hasSuffix ".nix" path || lib.hasSuffix ".py" path)) && !(type == "directory" && lib.hasSuffix "/test" path) && !(type == "directory" && lib.hasSuffix "/cmd/fsu" path);
   };
   vendorHash = null;
 
