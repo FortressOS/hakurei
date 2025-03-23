@@ -11,6 +11,10 @@ import (
 	"syscall"
 )
 
+const (
+	MS_NOSYMFOLLOW = 0x100
+)
+
 var (
 	ErrMountInfoFields = errors.New("unexpected field count")
 	ErrMountInfoEmpty  = errors.New("unexpected empty field")
@@ -75,6 +79,8 @@ func (e *MountInfoEntry) Flags() (flags uintptr, unmatched []string) {
 			flags |= syscall.MS_NODEV
 		case "noexec":
 			flags |= syscall.MS_NOEXEC
+		case "nosymfollow":
+			flags |= MS_NOSYMFOLLOW
 		case "noatime":
 			flags |= syscall.MS_NOATIME
 		case "nodiratime":

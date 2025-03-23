@@ -130,7 +130,7 @@ id 20 0:53 / /mnt/test rw,relatime shared:212 - tmpfs  rw
 			m(44, 41, 0, 36, "/", "/home/kzak/.gvfs", "rw,nosuid,nodev,relatime", o(), "fuse.gvfs-fuse-daemon", "gvfs-fuse-daemon", "rw,user_id=500,group_id=500", syscall.MS_NOSUID|syscall.MS_NODEV|syscall.MS_RELATIME, nil),
 			m(45, 20, 0, 37, "/", "/var/lib/nfs/rpc_pipefs", "rw,relatime", o(), "rpc_pipefs", "sunrpc", "rw", syscall.MS_RELATIME, nil),
 			m(47, 20, 0, 38, "/", "/mnt/sounds", "rw,relatime", o(), "cifs", "//foo.home/bar/", "rw,unc=\\\\foo.home\\bar,username=kzak,domain=SRGROUP,uid=0,noforceuid,gid=0,noforcegid,addr=192.168.111.1,posixpaths,serverino,acl,rsize=16384,wsize=57344", syscall.MS_RELATIME, nil),
-			m(49, 20, 0, 56, "/", "/mnt/test/foobar", "rw,relatime", o("shared:323"), "tmpfs", "tmpfs", "rw", syscall.MS_RELATIME, nil),
+			m(49, 20, 0, 56, "/", "/mnt/test/foobar", "rw,relatime,nosymfollow", o("shared:323"), "tmpfs", "tmpfs", "rw", syscall.MS_RELATIME|vfs.MS_NOSYMFOLLOW, nil),
 		}, nil, nil},
 
 		{"sample nosrc", sampleMountinfoNoSrc, nil, "", []*wantMountInfo{
@@ -392,7 +392,7 @@ const (
 44 41 0:36 / /home/kzak/.gvfs rw,nosuid,nodev,relatime - fuse.gvfs-fuse-daemon gvfs-fuse-daemon rw,user_id=500,group_id=500
 45 20 0:37 / /var/lib/nfs/rpc_pipefs rw,relatime - rpc_pipefs sunrpc rw
 47 20 0:38 / /mnt/sounds rw,relatime - cifs //foo.home/bar/ rw,unc=\\foo.home\bar,username=kzak,domain=SRGROUP,uid=0,noforceuid,gid=0,noforcegid,addr=192.168.111.1,posixpaths,serverino,acl,rsize=16384,wsize=57344
-49 20 0:56 / /mnt/test/foobar rw,relatime shared:323 - tmpfs tmpfs rw`
+49 20 0:56 / /mnt/test/foobar rw,relatime,nosymfollow shared:323 - tmpfs tmpfs rw`
 
 	sampleMountinfoNoSrc = `15 20 0:3 / /proc rw,relatime - proc /proc rw
 16 20 0:15 / /sys rw,relatime - sysfs /sys rw
