@@ -117,11 +117,14 @@ func TestContainer(t *testing.T) {
 				mnt = append(mnt, &check.Mntent{FSName: "\x00", Dir: name, Type: "\x00", Opts: "\x00", Freq: -1, Passno: -1})
 			}
 			mnt = append(mnt, &check.Mntent{FSName: "proc", Dir: "/proc", Type: "proc", Opts: "rw,nosuid,nodev,noexec,relatime"})
-			mntentWant := new(bytes.Buffer)
-			if err := json.NewEncoder(mntentWant).Encode(mnt); err != nil {
-				t.Fatalf("cannot serialise mntent: %v", err)
+			want := new(bytes.Buffer)
+			if err := json.NewEncoder(want).Encode(&check.TestCase{
+				Mount:   mnt,
+				Seccomp: true,
+			}); err != nil {
+				t.Fatalf("cannot serialise want: %v", err)
 			}
-			container.Stdin = mntentWant
+			container.Stdin = want
 
 			// needs /proc to check mntent
 			container.Proc("/proc")
@@ -185,8 +188,7 @@ func TestHelperCheckContainer(t *testing.T) {
 			t.Errorf("/etc/hostname: %q, want %q", string(p), os.Args[5])
 		}
 	})
-	t.Run("seccomp", func(t *testing.T) { check.MustAssertSeccomp() })
-	t.Run("mntent", func(t *testing.T) { check.MustAssertMounts("", "/proc/mounts", "/proc/self/fd/0") })
+	t.Run("sandbox", func(t *testing.T) { (&check.T{PMountsPath: "/proc/mounts"}).MustCheckFile("/proc/self/fd/0") })
 }
 
 func commandContext(ctx context.Context) *exec.Cmd {

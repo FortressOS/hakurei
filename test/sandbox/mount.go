@@ -12,6 +12,7 @@ import "C"
 
 import (
 	"fmt"
+	"iter"
 	"runtime"
 	"sync"
 	"unsafe"
@@ -49,21 +50,38 @@ func (e *Mntent) Is(want *Mntent) bool {
 		(e.Passno == want.Passno || want.Passno == -1)
 }
 
-func IterMounts(name string, f func(e *Mntent)) error {
-	m := new(mounts)
-	m.p = name
-	if err := m.open(); err != nil {
-		return err
-	}
+type MountsFile struct {
+	m    *mounts
+	mu   sync.Mutex
+	done bool
+}
 
-	for m.scan() {
-		e := new(Mntent)
-		m.copy(e)
-		f(e)
-	}
+func OpenMounts(name string) (*MountsFile, error) {
+	f := new(MountsFile)
+	f.m = new(mounts)
+	f.m.p = name
+	return f, f.m.open()
+}
 
-	m.close()
-	return m.Err()
+func (f *MountsFile) Err() error { return f.m.Err() }
+func (f *MountsFile) Entries() iter.Seq[*Mntent] {
+	return func(yield func(*Mntent) bool) {
+		f.mu.Lock()
+		defer f.mu.Unlock()
+		if f.done {
+			return
+		}
+
+		for f.m.scan() {
+			e := new(Mntent)
+			f.m.copy(e)
+			if !yield(e) {
+				return
+			}
+		}
+		f.done = true
+		f.m.close()
+	}
 }
 
 type mounts struct {

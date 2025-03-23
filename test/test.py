@@ -102,8 +102,8 @@ if denyOutput != "fsu: uid 1001 is not in the fsurc file\n":
 if denyOutputVerbose != "fsu: uid 1001 is not in the fsurc file\nfortify: *cannot obtain uid from fsu: permission denied\n":
     raise Exception(f"unexpected deny verbose output:\n{denyOutputVerbose}")
 
-# Check sandbox state:
-swaymsg("exec check-sandbox")
+# Check sandbox outcome:
+swaymsg("exec check-sandbox-module-default")
 machine.wait_for_file("/tmp/fortify.1000/tmpdir/1/sandbox-ok", timeout=15)
 
 # Start fortify permissive defaults outside Wayland session:

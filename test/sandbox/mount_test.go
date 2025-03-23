@@ -92,27 +92,29 @@ overlay /.fortify/sbin/fortify overlay ro,nosuid,nodev,relatime,lowerdir=/mnt-ro
 		}
 
 		t.Run(tc.name, func(t *testing.T) {
+			f, err := sandbox.OpenMounts(name)
+			if err != nil {
+				t.Fatalf("OpenMounts: error = %v", err)
+			}
+
 			i := 0
-			if err := sandbox.IterMounts(name, func(e *sandbox.Mntent) {
+			for e := range f.Entries() {
 				if i == len(tc.want) {
-					t.Errorf("IterMounts: got more than %d entries", i)
+					t.Errorf("Entries: got more than %d entries", i)
 					t.FailNow()
 				}
 				if *e != tc.want[i] {
-					t.Errorf("IterMounts: entry %d\n got: %s\nwant: %s", i,
+					t.Errorf("Entries: entry %d\n got: %s\nwant: %s", i,
 						e, &tc.want[i])
 					t.FailNow()
 				}
-				i++
-			}); err != nil {
-				t.Fatalf("IterMounts: error = %v", err)
-			}
-		})
 
-		t.Run(tc.name+" assert", func(t *testing.T) {
-			oldFatal := sandbox.SwapFatal(t.Fatalf)
-			t.Cleanup(func() { sandbox.SwapFatal(oldFatal) })
-			sandbox.MustAssertMounts(name, name, sandbox.MustWantFile(t, tc.want))
+				i++
+			}
+
+			if err = f.Err(); err != nil {
+				t.Fatalf("MountsFile: error = %v", err)
+			}
 		})
 
 		if err := os.Remove(name); err != nil {

@@ -2,13 +2,12 @@
   writeShellScript,
   callPackage,
 
+  name,
   version,
+  want,
 }:
-writeShellScript "check-sandbox" ''
+writeShellScript "fortify-${name}-check-sandbox-script" ''
   set -e
-  ${callPackage ./mount.nix { inherit version; }}/bin/test
-  ${callPackage ./fs.nix { inherit version; }}/bin/test
-  ${callPackage ./seccomp.nix { inherit version; }}/bin/test
-
+  ${callPackage ./assert.nix { inherit name version want; }}/bin/test
   touch /tmp/sandbox-ok
 ''

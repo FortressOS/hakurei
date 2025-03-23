@@ -4,6 +4,12 @@
   config,
   ...
 }:
+let
+  testCases = import ./sandbox/case {
+    inherit (pkgs) lib callPackage foot;
+    inherit (config.environment.fortify.package) version;
+  };
+in
 {
   users.users = {
     alice = {
@@ -102,21 +108,8 @@
     home-manager = _: _: { home.stateVersion = "23.05"; };
 
     apps = [
-      {
-        name = "check-sandbox";
-        verbose = true;
-        share = pkgs.foot;
-        packages = [ ];
-        command = "${pkgs.callPackage ./sandbox {
-          inherit (config.environment.fortify.package) version;
-        }}";
-        extraPaths = [
-          {
-            src = "/proc/mounts";
-            dst = "/.fortify/mounts";
-          }
-        ];
-      }
+      testCases.moduleDefault
+
       {
         name = "ne-foot";
         verbose = true;
