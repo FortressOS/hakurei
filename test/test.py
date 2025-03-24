@@ -127,8 +127,8 @@ def tmpdir_path(offset, name):
 
 
 # Start fortify permissive defaults outside Wayland session:
-print(machine.succeed("sudo -u alice -i fortify -v run -a 0 touch /tmp/success-bare"))
-machine.wait_for_file("/tmp/fortify.1000/tmpdir/0/success-bare", timeout=5)
+print(machine.succeed("sudo -u alice -i fortify -v run -a 0 touch /tmp/pd-bare-ok"))
+machine.wait_for_file("/tmp/fortify.1000/tmpdir/0/pd-bare-ok", timeout=5)
 
 # Verify silent output permissive defaults:
 output = machine.succeed("sudo -u alice -i fortify run -a 0 true &>/dev/stdout")
@@ -163,6 +163,21 @@ fortify('-v run --wayland --dbus notify-send -a "NixOS Tests" "Test notification
 machine.wait_for_file("/tmp/dbus-ok", timeout=15)
 collect_state_ui("dbus_notify_exited")
 machine.succeed("pkill -9 mako")
+
+# Check revert type selection:
+fortify("-v run --wayland -X --dbus --pulse -u p0 foot && touch /tmp/p0-exit-ok")
+wait_for_window("p0@machine")
+print(machine.succeed("getfacl --absolute-names --omit-header --numeric /run/user/1000 | grep 1000000"))
+fortify("-v run --wayland -X --dbus --pulse -u p1 foot && touch /tmp/p1-exit-ok")
+wait_for_window("p1@machine")
+print(machine.succeed("getfacl --absolute-names --omit-header --numeric /run/user/1000 | grep 1000000"))
+machine.send_chars("exit\n")
+machine.wait_for_file("/tmp/p1-exit-ok", timeout=10)
+# Verify acl is kept alive:
+print(machine.succeed("getfacl --absolute-names --omit-header --numeric /run/user/1000 | grep 1000000"))
+machine.send_chars("exit\n")
+machine.wait_for_file("/tmp/p0-exit-ok", timeout=10)
+machine.fail("getfacl --absolute-names --omit-header --numeric /run/user/1000 | grep 1000000")
 
 # Start app (foot) with Wayland enablement:
 swaymsg("exec ne-foot")
