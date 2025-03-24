@@ -6,11 +6,7 @@ import (
 	"io"
 	"os"
 	"strconv"
-	"strings"
 	"syscall"
-
-	"git.gensokyo.uk/security/fortify/helper/bwrap"
-	"git.gensokyo.uk/security/fortify/helper/proc"
 )
 
 // InternalHelperStub is an internal function but exported because it is cross-package;
@@ -29,11 +25,7 @@ func InternalHelperStub() {
 		sp = v
 	}
 
-	if len(os.Args) > 3 && os.Args[3] == "bwrap" {
-		bwrapStub()
-	} else {
-		genericStub(flagRestoreFiles(3, ap, sp))
-	}
+	genericStub(flagRestoreFiles(3, ap, sp))
 
 	os.Exit(0)
 }
@@ -110,45 +102,5 @@ func genericStub(argsFile, statFile *os.File) {
 			close(done)
 		}()
 		<-done
-	}
-}
-
-func bwrapStub() {
-	// the bwrap launcher does not launch with a typical sync fd
-	argsFile, _ := flagRestoreFiles(4, "1", "0")
-
-	// test args pipe behaviour
-	func() {
-		got, want := new(strings.Builder), new(strings.Builder)
-		if _, err := io.Copy(got, argsFile); err != nil {
-			panic("cannot read bwrap args: " + err.Error())
-		}
-
-		// hardcoded bwrap configuration used by test
-		sc := &bwrap.Config{
-			Net:           true,
-			Hostname:      "localhost",
-			Chdir:         "/proc/nonexistent",
-			Clearenv:      true,
-			NewSession:    true,
-			DieWithParent: true,
-			AsInit:        true,
-		}
-
-		if _, err := MustNewCheckedArgs(sc.Args(nil, new(proc.ExtraFilesPre), new([]proc.File))).
-			WriteTo(want); err != nil {
-			panic("cannot read want: " + err.Error())
-		}
-
-		if got.String() != want.String() {
-			panic("bad bwrap args\ngot: " + got.String() + "\nwant: " + want.String())
-		}
-	}()
-
-	if err := syscall.Exec(
-		flag.CommandLine.Args()[0],
-		flag.CommandLine.Args(),
-		os.Environ()); err != nil {
-		panic("cannot start helper stub: " + err.Error())
 	}
 }

@@ -4,7 +4,6 @@
   buildGoModule,
   makeBinaryWrapper,
   xdg-dbus-proxy,
-  bubblewrap,
   pkg-config,
   libffi,
   libseccomp,
@@ -90,7 +89,6 @@ buildGoModule rec {
     let
       appPackages = [
         glibc
-        bubblewrap
         xdg-dbus-proxy
       ];
     in

@@ -116,7 +116,6 @@
 
               # appPackages
               glibc
-              bubblewrap
               xdg-dbus-proxy
 
               # fpkg
