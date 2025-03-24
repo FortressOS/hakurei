@@ -94,7 +94,7 @@ func bindRawConn(done chan struct{}, rc syscall.RawConn, p, appID, instanceID st
 
 			// keep socket alive until done is requested
 			<-done
-			runtime.KeepAlive(syncPipe[1].Fd())
+			runtime.KeepAlive(syncPipe[1])
 		}); err != nil {
 			setupDone <- err
 		}
@@ -107,7 +107,7 @@ func bindRawConn(done chan struct{}, rc syscall.RawConn, p, appID, instanceID st
 	return syncPipe[1], <-setupDone
 }
 
-func bind(fd uintptr, p, appID, instanceID string, syncFD uintptr) error {
+func bind(fd uintptr, p, appID, instanceID string, syncFd uintptr) error {
 	// ensure p is available
 	if f, err := os.Create(p); err != nil {
 		return err
@@ -117,5 +117,5 @@ func bind(fd uintptr, p, appID, instanceID string, syncFD uintptr) error {
 		return err
 	}
 
-	return bindWaylandFd(p, fd, appID, instanceID, syncFD)
+	return bindWaylandFd(p, fd, appID, instanceID, syncFd)
 }

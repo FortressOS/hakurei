@@ -25,11 +25,11 @@ var resErr = [...]error{
 	2: errors.New("wp_security_context_v1 not available"),
 }
 
-func bindWaylandFd(socketPath string, fd uintptr, appID, instanceID string, syncFD uintptr) error {
+func bindWaylandFd(socketPath string, fd uintptr, appID, instanceID string, syncFd uintptr) error {
 	if hasNull(appID) || hasNull(instanceID) {
 		return ErrContainsNull
 	}
-	res := C.f_bind_wayland_fd(C.CString(socketPath), C.int(fd), C.CString(appID), C.CString(instanceID), C.int(syncFD))
+	res := C.f_bind_wayland_fd(C.CString(socketPath), C.int(fd), C.CString(appID), C.CString(instanceID), C.int(syncFd))
 	return resErr[int32(res)]
 }
 
