@@ -30,7 +30,7 @@ func printDir(prefix string, dir []fs.DirEntry) {
 		}
 		names[i] = fmt.Sprintf("%q", name)
 	}
-	printf("[FAIL] d %q: %s", prefix, strings.Join(names, " "))
+	printf("[FAIL] d %s: %s", prefix, strings.Join(names, " "))
 }
 
 func (s *FS) Compare(prefix string, e fs.FS) error {
@@ -71,7 +71,7 @@ func (s *FS) Compare(prefix string, e fs.FS) error {
 			if fi, err := got.Info(); err != nil {
 				return err
 			} else if fi.Mode() != want.Mode {
-				printf("[FAIL] m %q: %x, want %x",
+				printf("[FAIL] m %s: %x, want %x",
 					name, uint32(fi.Mode()), uint32(want.Mode))
 				return ErrFSBadMode
 			}
