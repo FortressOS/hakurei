@@ -107,7 +107,7 @@ check_offset = 0
 def check_sandbox(name):
     global check_offset
     check_offset += 1
-    swaymsg(f"exec check-sandbox-{name}")
+    swaymsg(f"exec script /dev/null -E always -qec check-sandbox-{name}")
     machine.wait_for_file(f"/tmp/fortify.1000/tmpdir/{check_offset}/sandbox-ok", timeout=15)
 
 

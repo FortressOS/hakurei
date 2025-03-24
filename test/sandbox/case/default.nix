@@ -48,7 +48,7 @@ let
       inherit (tc) tty mapRealUid;
       share = foot;
       packages = [ ];
-      command = "${checkSandbox tc.name tc.want} > /dev/console";
+      command = builtins.toString (checkSandbox tc.name tc.want);
     };
 in
 {
