@@ -20,7 +20,6 @@ import (
 	"git.gensokyo.uk/security/fortify/fst"
 	"git.gensokyo.uk/security/fortify/internal"
 	"git.gensokyo.uk/security/fortify/internal/app"
-	"git.gensokyo.uk/security/fortify/internal/app/shim"
 	"git.gensokyo.uk/security/fortify/internal/fmsg"
 	"git.gensokyo.uk/security/fortify/internal/state"
 	"git.gensokyo.uk/security/fortify/internal/sys"
@@ -74,7 +73,7 @@ func buildCommand(out io.Writer) command.Command {
 		Flag(&flagVerbose, "v", command.BoolFlag(false), "Print debug messages to the console").
 		Flag(&flagJSON, "json", command.BoolFlag(false), "Serialise output as JSON when applicable")
 
-	c.Command("shim", command.UsageInternal, func([]string) error { shim.Main(); return errSuccess })
+	c.Command("shim", command.UsageInternal, func([]string) error { app.ShimMain(); return errSuccess })
 
 	c.Command("app", "Launch app defined by the specified config file", func(args []string) error {
 		if len(args) < 1 {

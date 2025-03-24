@@ -9,7 +9,6 @@ import (
 
 	"git.gensokyo.uk/security/fortify/fst"
 	"git.gensokyo.uk/security/fortify/internal"
-	"git.gensokyo.uk/security/fortify/internal/app/shim"
 	"git.gensokyo.uk/security/fortify/internal/fmsg"
 	"git.gensokyo.uk/security/fortify/internal/state"
 	"git.gensokyo.uk/security/fortify/system"
@@ -95,7 +94,7 @@ func (seal *outcome) Run(rs *fst.RunState) error {
 	*/
 
 	waitErr := make(chan error, 1)
-	cmd := new(shim.Shim)
+	cmd := new(shimProcess)
 	if startTime, err := cmd.Start(
 		seal.user.aid.String(),
 		seal.user.supp,
@@ -115,7 +114,7 @@ func (seal *outcome) Run(rs *fst.RunState) error {
 		cancel()
 	}()
 
-	if err := cmd.Serve(ctx, &shim.Params{
+	if err := cmd.Serve(ctx, &shimParams{
 		Container: seal.container,
 		Home:      seal.user.data,
 

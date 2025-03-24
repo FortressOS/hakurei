@@ -13,7 +13,7 @@ import (
 	"git.gensokyo.uk/security/fortify/command"
 	"git.gensokyo.uk/security/fortify/fst"
 	"git.gensokyo.uk/security/fortify/internal"
-	"git.gensokyo.uk/security/fortify/internal/app/shim"
+	"git.gensokyo.uk/security/fortify/internal/app"
 	"git.gensokyo.uk/security/fortify/internal/fmsg"
 	"git.gensokyo.uk/security/fortify/internal/sys"
 	"git.gensokyo.uk/security/fortify/sandbox"
@@ -62,7 +62,7 @@ func main() {
 		Flag(&flagVerbose, "v", command.BoolFlag(false), "Print debug messages to the console").
 		Flag(&flagDropShell, "s", command.BoolFlag(false), "Drop to a shell in place of next fortify action")
 
-	c.Command("shim", command.UsageInternal, func([]string) error { shim.Main(); return errSuccess })
+	c.Command("shim", command.UsageInternal, func([]string) error { app.ShimMain(); return errSuccess })
 
 	{
 		var (
@@ -122,7 +122,7 @@ func main() {
 			bundle := loadAppInfo(path.Join(workDir, "bundle.json"), cleanup)
 			pathSet := pathSetByApp(bundle.ID)
 
-			app := bundle
+			a := bundle
 			if s, err := os.Stat(pathSet.metaPath); err != nil {
 				if !os.IsNotExist(err) {
 					cleanup()
@@ -135,39 +135,39 @@ func main() {
 				log.Printf("metadata path %q is not a file", pathSet.metaPath)
 				return syscall.EBADMSG
 			} else {
-				app = loadAppInfo(pathSet.metaPath, cleanup)
-				if app.ID != bundle.ID {
+				a = loadAppInfo(pathSet.metaPath, cleanup)
+				if a.ID != bundle.ID {
 					cleanup()
 					log.Printf("app %q claims to have identifier %q",
-						bundle.ID, app.ID)
+						bundle.ID, a.ID)
 					return syscall.EBADE
 				}
 				// sec: should verify credentials
 			}
 
-			if app != bundle {
+			if a != bundle {
 				// do not try to re-install
-				if app.NixGL == bundle.NixGL &&
-					app.CurrentSystem == bundle.CurrentSystem &&
-					app.Launcher == bundle.Launcher &&
-					app.ActivationPackage == bundle.ActivationPackage {
+				if a.NixGL == bundle.NixGL &&
+					a.CurrentSystem == bundle.CurrentSystem &&
+					a.Launcher == bundle.Launcher &&
+					a.ActivationPackage == bundle.ActivationPackage {
 					cleanup()
 					log.Printf("package %q is identical to local application %q",
-						pkgPath, app.ID)
+						pkgPath, a.ID)
 					return errSuccess
 				}
 
 				// AppID determines uid
-				if app.AppID != bundle.AppID {
+				if a.AppID != bundle.AppID {
 					cleanup()
 					log.Printf("package %q app id %d differs from installed %d",
-						pkgPath, bundle.AppID, app.AppID)
+						pkgPath, bundle.AppID, a.AppID)
 					return syscall.EBADE
 				}
 
 				// sec: should compare version string
 				fmsg.Verbosef("installing application %q version %q over local %q",
-					bundle.ID, bundle.Version, app.Version)
+					bundle.ID, bundle.Version, a.Version)
 			} else {
 				fmsg.Verbosef("application %q clean installation", bundle.ID)
 				// sec: should install credentials
@@ -268,9 +268,9 @@ func main() {
 
 			id := args[0]
 			pathSet := pathSetByApp(id)
-			app := loadAppInfo(pathSet.metaPath, func() {})
-			if app.ID != id {
-				log.Printf("app %q claims to have identifier %q", id, app.ID)
+			a := loadAppInfo(pathSet.metaPath, func() {})
+			if a.ID != id {
+				log.Printf("app %q claims to have identifier %q", id, a.ID)
 				return syscall.EBADE
 			}
 
@@ -278,7 +278,7 @@ func main() {
 				Prepare nixGL.
 			*/
 
-			if app.GPU && flagAutoDrivers {
+			if a.GPU && flagAutoDrivers {
 				withNixDaemon(ctx, "nix-gl", []string{
 					"mkdir -p /nix/.nixGL/auto",
 					"rm -rf /nix/.nixGL/auto",
@@ -286,11 +286,11 @@ func main() {
 					"nix build --impure " +
 						"--out-link /nix/.nixGL/auto/opengl " +
 						"--override-input nixpkgs path:/etc/nixpkgs " +
-						"path:" + app.NixGL,
+						"path:" + a.NixGL,
 					"nix build --impure " +
 						"--out-link /nix/.nixGL/auto/vulkan " +
 						"--override-input nixpkgs path:/etc/nixpkgs " +
-						"path:" + app.NixGL + "#nixVulkanNvidia",
+						"path:" + a.NixGL + "#nixVulkanNvidia",
 				}, true, func(config *fst.Config) *fst.Config {
 					config.Confinement.Sandbox.Filesystem = append(config.Confinement.Sandbox.Filesystem, []*fst.FilesystemConfig{
 						{Src: "/etc/resolv.conf"},
@@ -302,7 +302,7 @@ func main() {
 					}...)
 					appendGPUFilesystem(config)
 					return config
-				}, app, pathSet, flagDropShellNixGL, func() {})
+				}, a, pathSet, flagDropShellNixGL, func() {})
 			}
 
 			/*
@@ -311,19 +311,19 @@ func main() {
 
 			argv := make([]string, 1, len(args))
 			if !flagDropShell {
-				argv[0] = app.Launcher
+				argv[0] = a.Launcher
 			} else {
 				argv[0] = shellPath
 			}
 			argv = append(argv, args[1:]...)
 
-			config := app.toFst(pathSet, argv, flagDropShell)
+			config := a.toFst(pathSet, argv, flagDropShell)
 
 			/*
 				Expose GPU devices.
 			*/
 
-			if app.GPU {
+			if a.GPU {
 				config.Confinement.Sandbox.Filesystem = append(config.Confinement.Sandbox.Filesystem,
 					&fst.FilesystemConfig{Src: path.Join(pathSet.nixPath, ".nixGL"), Dst: path.Join(fst.Tmp, "nixGL")})
 				appendGPUFilesystem(config)
