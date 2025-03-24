@@ -50,6 +50,7 @@ func (t *T) MustCheck(want *TestCase) {
 	}
 
 	if want.Mount != nil {
+		var fail bool
 		m := mustParseMountinfo(t.MountsPath)
 		i := 0
 		for ent := range m.Entries() {
@@ -57,6 +58,7 @@ func (t *T) MustCheck(want *TestCase) {
 				fatalf("got more than %d entries", i)
 			}
 			if !ent.EqualWithIgnore(want.Mount[i], "//ignore") {
+				fail = true
 				printf("[FAIL] %s", ent)
 			} else {
 				printf("[ OK ] %s", ent)
@@ -66,6 +68,10 @@ func (t *T) MustCheck(want *TestCase) {
 		}
 		if err := m.Err(); err != nil {
 			fatalf("%v", err)
+		}
+
+		if fail {
+			fatalf("[FAIL] some mount points did not match")
 		}
 	} else {
 		printf("[SKIP] skipping mounts check")
