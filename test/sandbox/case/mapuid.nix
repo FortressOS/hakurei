@@ -12,14 +12,9 @@
     fs = fs "dead" {
       ".fortify" = fs "800001ed" {
         etc = fs "800001ed" null null;
-        sbin = fs "800001c0" {
-          fortify = fs "16d" null null;
-          init0 = fs "80001ff" null null;
-        } null;
       } null;
       bin = fs "800001ed" { sh = fs "80001ff" null null; } null;
       dev = fs "800001ed" {
-        console = fs "4200190" null null;
         core = fs "80001ff" null null;
         dri = fs "800001ed" {
           by-path = fs "800001ed" {
@@ -59,7 +54,7 @@
         "fstab" = fs "80001ff" null null;
         "fsurc" = fs "80001ff" null null;
         "fuse.conf" = fs "80001ff" null null;
-        "group" = fs "180" null "fortify:x:1000:\n";
+        "group" = fs "180" null "fortify:x:100:\n";
         "host.conf" = fs "80001ff" null null;
         "hostname" = fs "80001ff" null null;
         "hosts" = fs "80001ff" null null;
@@ -84,7 +79,7 @@
         "os-release" = fs "80001ff" null null;
         "pam" = fs "80001ff" null null;
         "pam.d" = fs "80001ff" null null;
-        "passwd" = fs "180" null "u0_a3:x:1000:1000:Fortify:/var/lib/fortify/u0/a3:/run/current-system/sw/bin/bash\n";
+        "passwd" = fs "180" null "u0_a3:x:1000:100:Fortify:/var/lib/fortify/u0/a3:/run/current-system/sw/bin/bash\n";
         "pipewire" = fs "80001ff" null null;
         "pki" = fs "80001ff" null null;
         "polkit-1" = fs "80001ff" null null;
@@ -185,10 +180,10 @@
     } null;
 
     mount = [
-      (ent "/newroot" "/" "rw,nosuid,nodev,relatime" "tmpfs" "tmpfs" "rw,uid=1000003,gid=1000003")
+      (ent "/sysroot" "/" "rw,nosuid,nodev,relatime" "tmpfs" "rootfs" "rw,uid=1000003,gid=1000003")
       (ent "/" "/proc" "rw,nosuid,nodev,noexec,relatime" "proc" "proc" "rw")
       (ent "/" "/.fortify" "rw,nosuid,nodev,relatime" "tmpfs" "tmpfs" "rw,size=4k,mode=755,uid=1000003,gid=1000003")
-      (ent "/" "/dev" "rw,nosuid,nodev,relatime" "tmpfs" "tmpfs" "rw,mode=755,uid=1000003,gid=1000003")
+      (ent "/" "/dev" "rw,nosuid,nodev,relatime" "tmpfs" "devtmpfs" "rw,mode=755,uid=1000003,gid=1000003")
       (ent "/null" "/dev/null" "rw,nosuid" "devtmpfs" "devtmpfs" ignore)
       (ent "/zero" "/dev/zero" "rw,nosuid" "devtmpfs" "devtmpfs" ignore)
       (ent "/full" "/dev/full" "rw,nosuid" "devtmpfs" "devtmpfs" ignore)
@@ -196,8 +191,7 @@
       (ent "/urandom" "/dev/urandom" "rw,nosuid" "devtmpfs" "devtmpfs" ignore)
       (ent "/tty" "/dev/tty" "rw,nosuid" "devtmpfs" "devtmpfs" ignore)
       (ent "/" "/dev/pts" "rw,nosuid,noexec,relatime" "devpts" "devpts" "rw,mode=620,ptmxmode=666")
-      (ent ignore "/dev/console" "rw,nosuid,noexec,relatime" "devpts" "devpts" "rw,gid=3,mode=620,ptmxmode=666")
-      (ent "/" "/dev/mqueue" "rw,relatime" "mqueue" "mqueue" "rw")
+      (ent "/" "/dev/mqueue" "rw,nosuid,nodev,noexec,relatime" "mqueue" "mqueue" "rw")
       (ent "/bin" "/bin" "ro,nosuid,nodev,relatime" "ext4" "/dev/disk/by-label/nixos" "rw")
       (ent "/usr/bin" "/usr/bin" "ro,nosuid,nodev,relatime" "ext4" "/dev/disk/by-label/nixos" "rw")
       (ent "/" "/nix/store" "ro,nosuid,nodev,relatime" "overlay" "overlay" "rw,lowerdir=/mnt-root/nix/.ro-store,upperdir=/mnt-root/nix/.rw-store/upper,workdir=/mnt-root/nix/.rw-store/work,uuid=on")
@@ -210,17 +204,16 @@
       (ent ignore "/run/opengl-driver" "ro,nosuid,nodev,relatime" "overlay" "overlay" "rw,lowerdir=/mnt-root/nix/.ro-store,upperdir=/mnt-root/nix/.rw-store/upper,workdir=/mnt-root/nix/.rw-store/work,uuid=on")
       (ent "/dri" "/dev/dri" "rw,nosuid" "devtmpfs" "devtmpfs" ignore)
       (ent "/etc" "/.fortify/etc" "ro,nosuid,nodev,relatime" "ext4" "/dev/disk/by-label/nixos" "rw")
-      (ent "/" "/run/user" "rw,nosuid,nodev,relatime" "tmpfs" "tmpfs" "rw,size=1024k,mode=755,uid=1000003,gid=1000003")
+      (ent "/" "/run/user" "rw,nosuid,nodev,relatime" "tmpfs" "tmpfs" "rw,size=4k,mode=755,uid=1000003,gid=1000003")
       (ent "/" "/run/user/1000" "rw,nosuid,nodev,relatime" "tmpfs" "tmpfs" "rw,size=8192k,mode=755,uid=1000003,gid=1000003")
       (ent "/tmp/fortify.1000/tmpdir/3" "/tmp" "rw,nosuid,nodev,relatime" "ext4" "/dev/disk/by-label/nixos" "rw")
       (ent "/var/lib/fortify/u0/a3" "/var/lib/fortify/u0/a3" "rw,nosuid,nodev,relatime" "ext4" "/dev/disk/by-label/nixos" "rw")
-      (ent ignore "/etc/passwd" "ro,nosuid,nodev,relatime" "tmpfs" "tmpfs" "rw,uid=1000003,gid=1000003")
-      (ent ignore "/etc/group" "ro,nosuid,nodev,relatime" "tmpfs" "tmpfs" "rw,uid=1000003,gid=1000003")
+      (ent ignore "/etc/passwd" "ro,nosuid,nodev,relatime" "tmpfs" "rootfs" "rw,uid=1000003,gid=1000003")
+      (ent ignore "/etc/group" "ro,nosuid,nodev,relatime" "tmpfs" "rootfs" "rw,uid=1000003,gid=1000003")
       (ent ignore "/run/user/1000/wayland-0" "ro,nosuid,nodev,relatime" "ext4" "/dev/disk/by-label/nixos" "rw")
       (ent ignore "/run/user/1000/pulse/native" "ro,nosuid,nodev,relatime" "tmpfs" "tmpfs" ignore)
       (ent ignore "/run/user/1000/bus" "ro,nosuid,nodev,relatime" "ext4" "/dev/disk/by-label/nixos" "rw")
       (ent "/" "/var/run/nscd" "rw,nosuid,nodev,relatime" "tmpfs" "tmpfs" "rw,size=8k,mode=755,uid=1000003,gid=1000003")
-      (ent ignore "/.fortify/sbin/fortify" "ro,nosuid,nodev,relatime" "overlay" "overlay" "rw,lowerdir=/mnt-root/nix/.ro-store,upperdir=/mnt-root/nix/.rw-store/upper,workdir=/mnt-root/nix/.rw-store/work,uuid=on")
     ];
 
     seccomp = true;

@@ -8,19 +8,19 @@ import (
 	"time"
 
 	"git.gensokyo.uk/security/fortify/fst"
-	"git.gensokyo.uk/security/fortify/helper/bwrap"
 	"git.gensokyo.uk/security/fortify/internal/app"
 	"git.gensokyo.uk/security/fortify/internal/sys"
+	"git.gensokyo.uk/security/fortify/sandbox"
 	"git.gensokyo.uk/security/fortify/system"
 )
 
 type sealTestCase struct {
-	name      string
-	os        sys.State
-	config    *fst.Config
-	id        fst.ID
-	wantSys   *system.I
-	wantBwrap *bwrap.Config
+	name          string
+	os            sys.State
+	config        *fst.Config
+	id            fst.ID
+	wantSys       *system.I
+	wantContainer *sandbox.Params
 }
 
 func TestApp(t *testing.T) {
@@ -30,15 +30,15 @@ func TestApp(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			a := app.NewWithID(tc.id, tc.os)
 			var (
-				gotSys   *system.I
-				gotBwrap *bwrap.Config
+				gotSys       *system.I
+				gotContainer *sandbox.Params
 			)
 			if !t.Run("seal", func(t *testing.T) {
 				if sa, err := a.Seal(tc.config); err != nil {
 					t.Errorf("Seal: error = %v", err)
 					return
 				} else {
-					gotSys, gotBwrap = app.AppSystemBwrap(a, sa)
+					gotSys, gotContainer = app.AppIParams(a, sa)
 				}
 			}) {
 				return
@@ -51,10 +51,10 @@ func TestApp(t *testing.T) {
 				}
 			})
 
-			t.Run("compare bwrap", func(t *testing.T) {
-				if !reflect.DeepEqual(gotBwrap, tc.wantBwrap) {
-					t.Errorf("seal: bwrap =\n%s\n, want\n%s",
-						mustMarshal(gotBwrap), mustMarshal(tc.wantBwrap))
+			t.Run("compare params", func(t *testing.T) {
+				if !reflect.DeepEqual(gotContainer, tc.wantContainer) {
+					t.Errorf("seal: params =\n%s\n, want\n%s",
+						mustMarshal(gotContainer), mustMarshal(tc.wantContainer))
 				}
 			})
 		})

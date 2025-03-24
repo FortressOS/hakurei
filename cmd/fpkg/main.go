@@ -12,9 +12,7 @@ import (
 
 	"git.gensokyo.uk/security/fortify/command"
 	"git.gensokyo.uk/security/fortify/fst"
-	"git.gensokyo.uk/security/fortify/helper/bwrap"
 	"git.gensokyo.uk/security/fortify/internal"
-	"git.gensokyo.uk/security/fortify/internal/app/init0"
 	"git.gensokyo.uk/security/fortify/internal/app/shim"
 	"git.gensokyo.uk/security/fortify/internal/fmsg"
 	"git.gensokyo.uk/security/fortify/internal/sys"
@@ -39,7 +37,6 @@ func init() {
 func main() {
 	// early init path, skips root check and duplicate PR_SET_DUMPABLE
 	sandbox.TryArgv0(fmsg.Output{}, fmsg.Prepare, internal.InstallFmsg)
-	init0.TryArgv0()
 
 	if err := sandbox.SetDumpable(sandbox.SUID_DUMP_DISABLE); err != nil {
 		log.Printf("cannot set SUID_DUMP_DISABLE: %s", err)
@@ -65,9 +62,7 @@ func main() {
 		Flag(&flagVerbose, "v", command.BoolFlag(false), "Print debug messages to the console").
 		Flag(&flagDropShell, "s", command.BoolFlag(false), "Drop to a shell in place of next fortify action")
 
-	// internal commands
 	c.Command("shim", command.UsageInternal, func([]string) error { shim.Main(); return errSuccess })
-	c.Command("init", command.UsageInternal, func([]string) error { init0.Main(); return errSuccess })
 
 	{
 		var (
@@ -124,7 +119,7 @@ func main() {
 				Parse bundle and app metadata, do pre-install checks.
 			*/
 
-			bundle := loadBundleInfo(path.Join(workDir, "bundle.json"), cleanup)
+			bundle := loadAppInfo(path.Join(workDir, "bundle.json"), cleanup)
 			pathSet := pathSetByApp(bundle.ID)
 
 			app := bundle
@@ -140,7 +135,7 @@ func main() {
 				log.Printf("metadata path %q is not a file", pathSet.metaPath)
 				return syscall.EBADMSG
 			} else {
-				app = loadBundleInfo(pathSet.metaPath, cleanup)
+				app = loadAppInfo(pathSet.metaPath, cleanup)
 				if app.ID != bundle.ID {
 					cleanup()
 					log.Printf("app %q claims to have identifier %q",
@@ -273,7 +268,7 @@ func main() {
 
 			id := args[0]
 			pathSet := pathSetByApp(id)
-			app := loadBundleInfo(pathSet.metaPath, func() {})
+			app := loadAppInfo(pathSet.metaPath, func() {})
 			if app.ID != id {
 				log.Printf("app %q claims to have identifier %q", id, app.ID)
 				return syscall.EBADE
@@ -322,51 +317,7 @@ func main() {
 			}
 			argv = append(argv, args[1:]...)
 
-			config := &fst.Config{
-				ID:      app.ID,
-				Command: argv,
-				Confinement: fst.ConfinementConfig{
-					AppID:    app.AppID,
-					Groups:   app.Groups,
-					Username: "fortify",
-					Inner:    path.Join("/data/data", app.ID),
-					Outer:    pathSet.homeDir,
-					Sandbox: &fst.SandboxConfig{
-						Hostname:      formatHostname(app.Name),
-						UserNS:        app.UserNS,
-						Net:           app.Net,
-						Dev:           app.Dev,
-						Syscall:       &bwrap.SyscallPolicy{DenyDevel: !app.Devel, Multiarch: app.Multiarch, Bluetooth: app.Bluetooth},
-						NoNewSession:  app.NoNewSession || flagDropShell,
-						MapRealUID:    app.MapRealUID,
-						DirectWayland: app.DirectWayland,
-						Filesystem: []*fst.FilesystemConfig{
-							{Src: path.Join(pathSet.nixPath, "store"), Dst: "/nix/store", Must: true},
-							{Src: pathSet.metaPath, Dst: path.Join(fst.Tmp, "app"), Must: true},
-							{Src: "/etc/resolv.conf"},
-							{Src: "/sys/block"},
-							{Src: "/sys/bus"},
-							{Src: "/sys/class"},
-							{Src: "/sys/dev"},
-							{Src: "/sys/devices"},
-						},
-						Link: [][2]string{
-							{app.CurrentSystem, "/run/current-system"},
-							{"/run/current-system/sw/bin", "/bin"},
-							{"/run/current-system/sw/bin", "/usr/bin"},
-						},
-						Etc:     path.Join(pathSet.cacheDir, "etc"),
-						AutoEtc: true,
-					},
-					ExtraPerms: []*fst.ExtraPermConfig{
-						{Path: dataHome, Execute: true},
-						{Ensure: true, Path: pathSet.baseDir, Read: true, Write: true, Execute: true},
-					},
-					SystemBus:   app.SystemBus,
-					SessionBus:  app.SessionBus,
-					Enablements: app.Enablements,
-				},
-			}
+			config := app.toFst(pathSet, argv, flagDropShell)
 
 			/*
 				Expose GPU devices.

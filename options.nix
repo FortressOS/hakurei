@@ -148,21 +148,19 @@ in
                 '';
               };
 
-              nix = mkEnableOption "nix daemon";
-              userns = mkEnableOption "user namespace";
-              mapRealUid = mkEnableOption "mapping to priv-user uid";
-              dev = mkEnableOption "access to all devices";
+              devel = mkEnableOption "debugging-related kernel interfaces";
+              userns = mkEnableOption "user namespace creation";
               tty = mkEnableOption "access to the controlling terminal";
-              insecureWayland = mkEnableOption "direct access to the Wayland socket";
+              multiarch = mkEnableOption "multiarch kernel-level support";
 
               net = mkEnableOption "network access" // {
                 default = true;
               };
 
-              compat = mkEnableOption "disable syscall filter extensions";
-              devel = mkEnableOption "development kernel APIs";
-              multiarch = mkEnableOption "multiarch kernel support";
-              bluetooth = mkEnableOption "AF_BLUETOOTH socket operations";
+              nix = mkEnableOption "nix daemon access";
+              mapRealUid = mkEnableOption "mapping to priv-user uid";
+              dev = mkEnableOption "access to all devices";
+              insecureWayland = mkEnableOption "direct access to the Wayland socket";
 
               gpu = mkOption {
                 type = nullOr bool;

@@ -8,9 +8,9 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
-	"git.gensokyo.uk/security/fortify/helper/proc"
 	"git.gensokyo.uk/security/fortify/internal"
 	"git.gensokyo.uk/security/fortify/internal/fmsg"
 	"git.gensokyo.uk/security/fortify/sandbox"
@@ -25,9 +25,10 @@ type Shim struct {
 	killFallback chan error
 	// monitor to shim encoder
 	encoder *gob.Encoder
-	// bwrap --sync-fd value
-	sync *uintptr
 }
+
+func (s *Shim) Unwrap() *exec.Cmd    { return s.cmd }
+func (s *Shim) Fallback() chan error { return s.killFallback }
 
 func (s *Shim) String() string {
 	if s.cmd == nil {
@@ -36,21 +37,9 @@ func (s *Shim) String() string {
 	return s.cmd.String()
 }
 
-func (s *Shim) Unwrap() *exec.Cmd {
-	return s.cmd
-}
-
-func (s *Shim) WaitFallback() chan error {
-	return s.killFallback
-}
-
 func (s *Shim) Start(
-	// string representation of application id
 	aid string,
-	// string representation of supplementary group ids
 	supp []string,
-	// bwrap --sync-fd
-	syncFd *os.File,
 ) (*time.Time, error) {
 	// prepare user switcher invocation
 	fsuPath := internal.MustFsuPath()
@@ -76,12 +65,6 @@ func (s *Shim) Start(
 	s.cmd.Stdin, s.cmd.Stdout, s.cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
 	s.cmd.Dir = "/"
 
-	// pass sync fd if set
-	if syncFd != nil {
-		fd := proc.ExtraFile(s.cmd, syncFd)
-		s.sync = &fd
-	}
-
 	fmsg.Verbose("starting shim via fsu:", s.cmd)
 	// withhold messages to stderr
 	fmsg.Suspend()
@@ -90,10 +73,11 @@ func (s *Shim) Start(
 			"cannot start fsu:")
 	}
 	startTime := time.Now().UTC()
+
 	return &startTime, nil
 }
 
-func (s *Shim) Serve(ctx context.Context, payload *Payload) error {
+func (s *Shim) Serve(ctx context.Context, params *Params) error {
 	// kill shim if something goes wrong and an error is returned
 	s.killFallback = make(chan error, 1)
 	killShim := func() {
@@ -103,9 +87,8 @@ func (s *Shim) Serve(ctx context.Context, payload *Payload) error {
 	}
 	defer func() { killShim() }()
 
-	payload.Sync = s.sync
 	encodeErr := make(chan error)
-	go func() { encodeErr <- s.encoder.Encode(payload) }()
+	go func() { encodeErr <- s.encoder.Encode(params) }()
 
 	select {
 	// encode return indicates setup completion
@@ -121,11 +104,11 @@ func (s *Shim) Serve(ctx context.Context, payload *Payload) error {
 	case <-ctx.Done():
 		err := ctx.Err()
 		if errors.Is(err, context.Canceled) {
-			return fmsg.WrapError(errors.New("shim setup canceled"),
+			return fmsg.WrapError(syscall.ECANCELED,
 				"shim setup canceled")
 		}
 		if errors.Is(err, context.DeadlineExceeded) {
-			return fmsg.WrapError(errors.New("deadline exceeded waiting for shim"),
+			return fmsg.WrapError(syscall.ETIMEDOUT,
 				"deadline exceeded waiting for shim")
 		}
 		// unreachable

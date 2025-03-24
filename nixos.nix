@@ -86,12 +86,11 @@ in
                   enablements = with app.capability; (if wayland then 1 else 0) + (if x11 then 2 else 0) + (if dbus then 4 else 0) + (if pulse then 8 else 0);
                   conf = {
                     inherit (app) id;
-                    command = [
-                      (pkgs.writeScript "${app.name}-start" ''
-                        #!${pkgs.zsh}${pkgs.zsh.shellPath}
-                        ${script}
-                      '')
-                    ];
+                    path = pkgs.writeScript "${app.name}-start" ''
+                      #!${pkgs.zsh}${pkgs.zsh.shellPath}
+                      ${script}
+                    '';
+                    args = [ "${app.name}-start" ];
                     confinement = {
                       app_id = aid;
                       inherit (app) groups;
@@ -99,17 +98,15 @@ in
                       home = getsubhome fid aid;
                       sandbox = {
                         inherit (app)
+                          devel
                           userns
                           net
                           dev
+                          tty
+                          multiarch
                           env
                           ;
-                        syscall = {
-                          inherit (app) compat multiarch bluetooth;
-                          deny_devel = !app.devel;
-                        };
                         map_real_uid = app.mapRealUid;
-                        no_new_session = app.tty;
                         direct_wayland = app.insecureWayland;
                         filesystem =
                           let
@@ -149,7 +146,7 @@ in
                           ]
                           ++ app.extraPaths;
                         auto_etc = true;
-                        override = [ "/var/run/nscd" ];
+                        cover = [ "/var/run/nscd" ];
                       };
                       inherit enablements;
                       inherit (dbusConfig) session_bus system_bus;

@@ -3,15 +3,12 @@ package app
 import (
 	"context"
 	"errors"
-	"fmt"
 	"log"
 	"os/exec"
-	"path/filepath"
 	"strings"
 	"time"
 
 	"git.gensokyo.uk/security/fortify/fst"
-	"git.gensokyo.uk/security/fortify/helper"
 	"git.gensokyo.uk/security/fortify/internal"
 	"git.gensokyo.uk/security/fortify/internal/app/shim"
 	"git.gensokyo.uk/security/fortify/internal/fmsg"
@@ -21,7 +18,7 @@ import (
 
 const shimSetupTimeout = 5 * time.Second
 
-func (seal *outcome) Run(ctx context.Context, rs *fst.RunState) error {
+func (seal *outcome) Run(rs *fst.RunState) error {
 	if !seal.f.CompareAndSwap(false, true) {
 		// run does much more than just starting a process; calling it twice, even if the first call fails, will result
 		// in inconsistent state that is impossible to clean up; return here to limit damage and hopefully give the
@@ -38,32 +35,10 @@ func (seal *outcome) Run(ctx context.Context, rs *fst.RunState) error {
 	fmsg.Verbosef("setuid helper at %s", internal.MustFsuPath())
 
 	/*
-		resolve exec paths
-	*/
-
-	shimExec := [2]string{helper.BubblewrapName}
-	if len(seal.command) > 0 {
-		shimExec[1] = seal.command[0]
-	}
-	for i, n := range shimExec {
-		if len(n) == 0 {
-			continue
-		}
-		if filepath.Base(n) == n {
-			if s, err := exec.LookPath(n); err == nil {
-				shimExec[i] = s
-			} else {
-				return fmsg.WrapError(err,
-					fmt.Sprintf("executable file %q not found in $PATH", n))
-			}
-		}
-	}
-
-	/*
 		prepare/revert os state
 	*/
 
-	if err := seal.sys.Commit(ctx); err != nil {
+	if err := seal.sys.Commit(seal.ctx); err != nil {
 		return err
 	}
 	store := state.NewMulti(seal.runDirPath)
@@ -137,7 +112,6 @@ func (seal *outcome) Run(ctx context.Context, rs *fst.RunState) error {
 	if startTime, err := cmd.Start(
 		seal.user.aid.String(),
 		seal.user.supp,
-		seal.bwrapSync,
 	); err != nil {
 		return err
 	} else {
@@ -145,7 +119,7 @@ func (seal *outcome) Run(ctx context.Context, rs *fst.RunState) error {
 		rs.Time = startTime
 	}
 
-	c, cancel := context.WithTimeout(ctx, shimSetupTimeout)
+	ctx, cancel := context.WithTimeout(seal.ctx, shimSetupTimeout)
 	defer cancel()
 
 	go func() {
@@ -154,11 +128,9 @@ func (seal *outcome) Run(ctx context.Context, rs *fst.RunState) error {
 		cancel()
 	}()
 
-	if err := cmd.Serve(c, &shim.Payload{
-		Argv:  seal.command,
-		Exec:  shimExec,
-		Bwrap: seal.container,
-		Home:  seal.user.data,
+	if err := cmd.Serve(ctx, &shim.Params{
+		Container: seal.container,
+		Home:      seal.user.data,
 
 		Verbose: fmsg.Load(),
 	}); err != nil {
@@ -199,18 +171,22 @@ func (seal *outcome) Run(ctx context.Context, rs *fst.RunState) error {
 	// this is reached when a fault makes an already running shim impossible to continue execution
 	// however a kill signal could not be delivered (should actually always happen like that since fsu)
 	// the effects of this is similar to the alternative exit path and ensures shim death
-	case err := <-cmd.WaitFallback():
+	case err := <-cmd.Fallback():
 		rs.ExitCode = 255
 		log.Printf("cannot terminate shim on faulted setup: %v", err)
 
 	// alternative exit path relying on shim behaviour on monitor process exit
-	case <-ctx.Done():
+	case <-seal.ctx.Done():
 		fmsg.Verbose("alternative exit path selected")
 	}
 
 	fmsg.Resume()
+	if seal.sync != nil {
+		if err := seal.sync.Close(); err != nil {
+			log.Printf("cannot close wayland security context: %v", err)
+		}
+	}
 	if seal.dbusMsg != nil {
-		// dump dbus message buffer
 		seal.dbusMsg()
 	}
 

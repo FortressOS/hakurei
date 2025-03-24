@@ -89,10 +89,10 @@ func printShowInstance(
 				flags = append(flags, name)
 			}
 		}
-		writeFlag("userns", sandbox.UserNS)
+		writeFlag("userns", sandbox.Userns)
 		writeFlag("net", sandbox.Net)
 		writeFlag("dev", sandbox.Dev)
-		writeFlag("tty", sandbox.NoNewSession)
+		writeFlag("tty", sandbox.Tty)
 		writeFlag("mapuid", sandbox.MapRealUID)
 		writeFlag("directwl", sandbox.DirectWayland)
 		writeFlag("autoetc", sandbox.AutoEtc)
@@ -107,14 +107,14 @@ func printShowInstance(
 		}
 		t.Printf(" Etc:\t%s\n", etc)
 
-		if len(sandbox.Override) > 0 {
-			t.Printf(" Overrides:\t%s\n", strings.Join(sandbox.Override, " "))
+		if len(sandbox.Cover) > 0 {
+			t.Printf(" Cover:\t%s\n", strings.Join(sandbox.Cover, " "))
 		}
 
 		// Env           map[string]string   `json:"env"`
 		// Link          [][2]string         `json:"symlink"`
 	}
-	t.Printf(" Command:\t%s\n", strings.Join(config.Command, " "))
+	t.Printf(" Command:\t%s\n", strings.Join(config.Args, " "))
 	t.Printf("\n")
 
 	if !short {
@@ -256,7 +256,7 @@ func printPs(output io.Writer, now time.Time, s state.Store, short, flagJSON boo
 		)
 		if e.Config != nil {
 			es = e.Config.Confinement.Enablements.String()
-			cs = fmt.Sprintf("%q", e.Config.Command)
+			cs = fmt.Sprintf("%q", e.Config.Args)
 			as = strconv.Itoa(e.Config.Confinement.AppID)
 		}
 		t.Printf("\t%s\t%d\t%s\t%s\t%s\t%s\n",

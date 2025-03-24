@@ -22,14 +22,6 @@ func SetDumpable(dumpable uintptr) error {
 	return nil
 }
 
-func SetPdeathsig(sig syscall.Signal) error {
-	if _, _, errno := syscall.RawSyscall(syscall.SYS_PRCTL, syscall.PR_SET_PDEATHSIG, uintptr(sig), 0); errno != 0 {
-		return errno
-	}
-
-	return nil
-}
-
 // IgnoringEINTR makes a function call and repeats it if it returns an
 // EINTR error. This appears to be required even though we install all
 // signal handlers with SA_RESTART: see #22838, #38033, #38836, #40846.

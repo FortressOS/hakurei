@@ -2,7 +2,6 @@
 package fst
 
 import (
-	"context"
 	"time"
 )
 
@@ -19,7 +18,7 @@ type App interface {
 
 type SealedApp interface {
 	// Run commits sealed system setup and starts the app process.
-	Run(ctx context.Context, rs *RunState) error
+	Run(rs *RunState) error
 }
 
 // RunState stores the outcome of a call to [SealedApp.Run].

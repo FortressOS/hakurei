@@ -301,7 +301,15 @@ func (l *Symlink) apply(*Params) error {
 		return msg.WrapErr(syscall.EBADE,
 			fmt.Sprintf("path %q is not absolute", l[1]))
 	}
-	if err := os.Symlink(l[0], toSysroot(l[1])); err != nil {
+
+	target := toSysroot(l[1])
+	if err := ensureFile(target, 0444, 0755); err != nil {
+		return err
+	}
+	if err := os.Remove(target); err != nil {
+		return msg.WrapErr(err, err.Error())
+	}
+	if err := os.Symlink(l[0], target); err != nil {
 		return msg.WrapErr(err, err.Error())
 	}
 	return nil

@@ -20,7 +20,6 @@ import (
 	"git.gensokyo.uk/security/fortify/fst"
 	"git.gensokyo.uk/security/fortify/internal"
 	"git.gensokyo.uk/security/fortify/internal/app"
-	"git.gensokyo.uk/security/fortify/internal/app/init0"
 	"git.gensokyo.uk/security/fortify/internal/app/shim"
 	"git.gensokyo.uk/security/fortify/internal/fmsg"
 	"git.gensokyo.uk/security/fortify/internal/state"
@@ -43,7 +42,6 @@ var std sys.State = new(sys.Std)
 func main() {
 	// early init path, skips root check and duplicate PR_SET_DUMPABLE
 	sandbox.TryArgv0(fmsg.Output{}, fmsg.Prepare, internal.InstallFmsg)
-	init0.TryArgv0()
 
 	if err := sandbox.SetDumpable(sandbox.SUID_DUMP_DISABLE); err != nil {
 		log.Printf("cannot set SUID_DUMP_DISABLE: %s", err)
@@ -76,9 +74,7 @@ func buildCommand(out io.Writer) command.Command {
 		Flag(&flagVerbose, "v", command.BoolFlag(false), "Print debug messages to the console").
 		Flag(&flagJSON, "json", command.BoolFlag(false), "Serialise output as JSON when applicable")
 
-	// internal commands
 	c.Command("shim", command.UsageInternal, func([]string) error { shim.Main(); return errSuccess })
-	c.Command("init", command.UsageInternal, func([]string) error { init0.Main(); return errSuccess })
 
 	c.Command("app", "Launch app defined by the specified config file", func(args []string) error {
 		if len(args) < 1 {
@@ -87,10 +83,9 @@ func buildCommand(out io.Writer) command.Command {
 
 		// config extraArgs...
 		config := tryPath(args[0])
-		config.Command = append(config.Command, args[1:]...)
+		config.Args = append(config.Args, args[1:]...)
 
-		// invoke app
-		runApp(app.MustNew(std), config)
+		runApp(config)
 		panic("unreachable")
 	})
 
@@ -112,8 +107,8 @@ func buildCommand(out io.Writer) command.Command {
 		c.NewCommand("run", "Configure and start a permissive default sandbox", func(args []string) error {
 			// initialise config from flags
 			config := &fst.Config{
-				ID:      fid,
-				Command: args,
+				ID:   fid,
+				Args: args,
 			}
 
 			if aid < 0 || aid > 9999 {
@@ -199,7 +194,7 @@ func buildCommand(out io.Writer) command.Command {
 			}
 
 			// invoke app
-			runApp(app.MustNew(std), config)
+			runApp(config)
 			panic("unreachable")
 		}).
 			Flag(&dbusConfigSession, "dbus-config", command.StringFlag("builtin"),
@@ -279,10 +274,11 @@ func buildCommand(out io.Writer) command.Command {
 	return c
 }
 
-func runApp(a fst.App, config *fst.Config) {
+func runApp(config *fst.Config) {
 	ctx, stop := signal.NotifyContext(context.Background(),
 		syscall.SIGINT, syscall.SIGTERM)
 	defer stop() // unreachable
+	a := app.MustNew(ctx, std)
 
 	rs := new(fst.RunState)
 	if sa, err := a.Seal(config); err != nil {
@@ -290,7 +286,7 @@ func runApp(a fst.App, config *fst.Config) {
 		rs.ExitCode = 1
 	} else {
 		// this updates ExitCode
-		app.PrintRunStateErr(rs, sa.Run(ctx, rs))
+		app.PrintRunStateErr(rs, sa.Run(rs))
 	}
 	internal.Exit(rs.ExitCode)
 }

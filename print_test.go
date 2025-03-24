@@ -43,7 +43,7 @@ func Test_printShowInstance(t *testing.T) {
  Hostname:       "localhost"
  Flags:          userns net dev tty mapuid autoetc
  Etc:            /etc
- Overrides:      /var/run/nscd
+ Cover:          /var/run/nscd
  Command:        chromium --ignore-gpu-blocklist --disable-smooth-scrolling --enable-features=UseOzonePlatform --ozone-platform=wayland
 
 Filesystem
@@ -127,7 +127,7 @@ App
  Hostname:       "localhost"
  Flags:          userns net dev tty mapuid autoetc
  Etc:            /etc
- Overrides:      /var/run/nscd
+ Cover:          /var/run/nscd
  Command:        chromium --ignore-gpu-blocklist --disable-smooth-scrolling --enable-features=UseOzonePlatform --ozone-platform=wayland
 
 Filesystem
@@ -192,7 +192,8 @@ App
   "pid": 3735928559,
   "config": {
     "id": "org.chromium.Chromium",
-    "command": [
+    "path": "/run/current-system/sw/bin/chromium",
+    "args": [
       "chromium",
       "--ignore-gpu-blocklist",
       "--disable-smooth-scrolling",
@@ -209,24 +210,19 @@ App
       "home": "/var/lib/persist/home/org.chromium.Chromium",
       "sandbox": {
         "hostname": "localhost",
+        "seccomp": 32,
+        "devel": true,
         "userns": true,
         "net": true,
-        "dev": true,
-        "syscall": {
-          "compat": false,
-          "deny_devel": true,
-          "multiarch": true,
-          "linux32": false,
-          "can": false,
-          "bluetooth": false
-        },
-        "no_new_session": true,
-        "map_real_uid": true,
+        "tty": true,
+        "multiarch": true,
         "env": {
           "GOOGLE_API_KEY": "AIzaSyBHDrl33hwRp4rMQY0ziRbj8K9LPA6vUCY",
           "GOOGLE_DEFAULT_CLIENT_ID": "77185425430.apps.googleusercontent.com",
           "GOOGLE_DEFAULT_CLIENT_SECRET": "OTJgUOQcT7lO7GsGZq2G4IlT"
         },
+        "map_real_uid": true,
+        "dev": true,
         "filesystem": [
           {
             "src": "/nix/store"
@@ -259,7 +255,7 @@ App
         ],
         "etc": "/etc",
         "auto_etc": true,
-        "override": [
+        "cover": [
           "/var/run/nscd"
         ]
       },
@@ -320,7 +316,8 @@ App
 `},
 		{"json config", nil, fst.Template(), false, true, `{
   "id": "org.chromium.Chromium",
-  "command": [
+  "path": "/run/current-system/sw/bin/chromium",
+  "args": [
     "chromium",
     "--ignore-gpu-blocklist",
     "--disable-smooth-scrolling",
@@ -337,24 +334,19 @@ App
     "home": "/var/lib/persist/home/org.chromium.Chromium",
     "sandbox": {
       "hostname": "localhost",
+      "seccomp": 32,
+      "devel": true,
       "userns": true,
       "net": true,
-      "dev": true,
-      "syscall": {
-        "compat": false,
-        "deny_devel": true,
-        "multiarch": true,
-        "linux32": false,
-        "can": false,
-        "bluetooth": false
-      },
-      "no_new_session": true,
-      "map_real_uid": true,
+      "tty": true,
+      "multiarch": true,
       "env": {
         "GOOGLE_API_KEY": "AIzaSyBHDrl33hwRp4rMQY0ziRbj8K9LPA6vUCY",
         "GOOGLE_DEFAULT_CLIENT_ID": "77185425430.apps.googleusercontent.com",
         "GOOGLE_DEFAULT_CLIENT_SECRET": "OTJgUOQcT7lO7GsGZq2G4IlT"
       },
+      "map_real_uid": true,
+      "dev": true,
       "filesystem": [
         {
           "src": "/nix/store"
@@ -387,7 +379,7 @@ App
       ],
       "etc": "/etc",
       "auto_etc": true,
-      "override": [
+      "cover": [
         "/var/run/nscd"
       ]
     },
@@ -506,7 +498,8 @@ func Test_printPs(t *testing.T) {
     "pid": 3735928559,
     "config": {
       "id": "org.chromium.Chromium",
-      "command": [
+      "path": "/run/current-system/sw/bin/chromium",
+      "args": [
         "chromium",
         "--ignore-gpu-blocklist",
         "--disable-smooth-scrolling",
@@ -523,24 +516,19 @@ func Test_printPs(t *testing.T) {
         "home": "/var/lib/persist/home/org.chromium.Chromium",
         "sandbox": {
           "hostname": "localhost",
+          "seccomp": 32,
+          "devel": true,
           "userns": true,
           "net": true,
-          "dev": true,
-          "syscall": {
-            "compat": false,
-            "deny_devel": true,
-            "multiarch": true,
-            "linux32": false,
-            "can": false,
-            "bluetooth": false
-          },
-          "no_new_session": true,
-          "map_real_uid": true,
+          "tty": true,
+          "multiarch": true,
           "env": {
             "GOOGLE_API_KEY": "AIzaSyBHDrl33hwRp4rMQY0ziRbj8K9LPA6vUCY",
             "GOOGLE_DEFAULT_CLIENT_ID": "77185425430.apps.googleusercontent.com",
             "GOOGLE_DEFAULT_CLIENT_SECRET": "OTJgUOQcT7lO7GsGZq2G4IlT"
           },
+          "map_real_uid": true,
+          "dev": true,
           "filesystem": [
             {
               "src": "/nix/store"
@@ -573,7 +561,7 @@ func Test_printPs(t *testing.T) {
           ],
           "etc": "/etc",
           "auto_etc": true,
-          "override": [
+          "cover": [
             "/var/run/nscd"
           ]
         },

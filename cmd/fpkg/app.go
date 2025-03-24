@@ -4,12 +4,15 @@ import (
 	"encoding/json"
 	"log"
 	"os"
+	"path"
 
 	"git.gensokyo.uk/security/fortify/dbus"
+	"git.gensokyo.uk/security/fortify/fst"
+	"git.gensokyo.uk/security/fortify/sandbox/seccomp"
 	"git.gensokyo.uk/security/fortify/system"
 )
 
-type bundleInfo struct {
+type appInfo struct {
 	Name    string `json:"name"`
 	Version string `json:"version"`
 
@@ -20,13 +23,15 @@ type bundleInfo struct {
 	// passed through to [fst.Config]
 	Groups []string `json:"groups,omitempty"`
 	// passed through to [fst.Config]
-	UserNS bool `json:"userns,omitempty"`
+	Devel bool `json:"devel,omitempty"`
+	// passed through to [fst.Config]
+	Userns bool `json:"userns,omitempty"`
 	// passed through to [fst.Config]
 	Net bool `json:"net,omitempty"`
 	// passed through to [fst.Config]
 	Dev bool `json:"dev,omitempty"`
 	// passed through to [fst.Config]
-	NoNewSession bool `json:"no_new_session,omitempty"`
+	Tty bool `json:"tty,omitempty"`
 	// passed through to [fst.Config]
 	MapRealUID bool `json:"map_real_uid,omitempty"`
 	// passed through to [fst.Config]
@@ -38,11 +43,9 @@ type bundleInfo struct {
 	// passed through to [fst.Config]
 	Enablements system.Enablements `json:"enablements"`
 
-	// passed through inverted to [bwrap.SyscallPolicy]
-	Devel bool `json:"devel,omitempty"`
-	// passed through to [bwrap.SyscallPolicy]
+	// passed through to [fst.Config]
 	Multiarch bool `json:"multiarch,omitempty"`
-	// passed through to [bwrap.SyscallPolicy]
+	// passed through to [fst.Config]
 	Bluetooth bool `json:"bluetooth,omitempty"`
 
 	// allow gpu access within sandbox
@@ -59,8 +62,64 @@ type bundleInfo struct {
 	ActivationPackage string `json:"activation_package"`
 }
 
-func loadBundleInfo(name string, beforeFail func()) *bundleInfo {
-	bundle := new(bundleInfo)
+func (app *appInfo) toFst(pathSet *appPathSet, argv []string, flagDropShell bool) *fst.Config {
+	config := &fst.Config{
+		ID:   app.ID,
+		Path: argv[0],
+		Args: argv,
+		Confinement: fst.ConfinementConfig{
+			AppID:    app.AppID,
+			Groups:   app.Groups,
+			Username: "fortify",
+			Inner:    path.Join("/data/data", app.ID),
+			Outer:    pathSet.homeDir,
+			Sandbox: &fst.SandboxConfig{
+				Hostname:      formatHostname(app.Name),
+				Devel:         app.Devel,
+				Userns:        app.Userns,
+				Net:           app.Net,
+				Dev:           app.Dev,
+				Tty:           app.Tty || flagDropShell,
+				MapRealUID:    app.MapRealUID,
+				DirectWayland: app.DirectWayland,
+				Filesystem: []*fst.FilesystemConfig{
+					{Src: path.Join(pathSet.nixPath, "store"), Dst: "/nix/store", Must: true},
+					{Src: pathSet.metaPath, Dst: path.Join(fst.Tmp, "app"), Must: true},
+					{Src: "/etc/resolv.conf"},
+					{Src: "/sys/block"},
+					{Src: "/sys/bus"},
+					{Src: "/sys/class"},
+					{Src: "/sys/dev"},
+					{Src: "/sys/devices"},
+				},
+				Link: [][2]string{
+					{app.CurrentSystem, "/run/current-system"},
+					{"/run/current-system/sw/bin", "/bin"},
+					{"/run/current-system/sw/bin", "/usr/bin"},
+				},
+				Etc:     path.Join(pathSet.cacheDir, "etc"),
+				AutoEtc: true,
+			},
+			ExtraPerms: []*fst.ExtraPermConfig{
+				{Path: dataHome, Execute: true},
+				{Ensure: true, Path: pathSet.baseDir, Read: true, Write: true, Execute: true},
+			},
+			SystemBus:   app.SystemBus,
+			SessionBus:  app.SessionBus,
+			Enablements: app.Enablements,
+		},
+	}
+	if app.Multiarch {
+		config.Confinement.Sandbox.Seccomp |= seccomp.FlagMultiarch
+	}
+	if app.Bluetooth {
+		config.Confinement.Sandbox.Seccomp |= seccomp.FlagBluetooth
+	}
+	return config
+}
+
+func loadAppInfo(name string, beforeFail func()) *appInfo {
+	bundle := new(appInfo)
 	if f, err := os.Open(name); err != nil {
 		beforeFail()
 		log.Fatalf("cannot open bundle: %v", err)

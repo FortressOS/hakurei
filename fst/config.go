@@ -2,7 +2,7 @@ package fst
 
 import (
 	"git.gensokyo.uk/security/fortify/dbus"
-	"git.gensokyo.uk/security/fortify/helper/bwrap"
+	"git.gensokyo.uk/security/fortify/sandbox/seccomp"
 	"git.gensokyo.uk/security/fortify/system"
 )
 
@@ -14,8 +14,11 @@ type Config struct {
 	// passed to wayland security-context-v1 as application ID
 	// and used as part of defaults in dbus session proxy
 	ID string `json:"id"`
-	// final argv, passed to init
-	Command []string `json:"command"`
+
+	// absolute path to executable file
+	Path string `json:"path,omitempty"`
+	// final args passed to container init
+	Args []string `json:"args"`
 
 	Confinement ConfinementConfig `json:"confinement"`
 }
@@ -26,13 +29,13 @@ type ConfinementConfig struct {
 	AppID int `json:"app_id"`
 	// list of supplementary groups to inherit
 	Groups []string `json:"groups"`
-	// passwd username in the sandbox, defaults to passwd name of target uid or chronos
+	// passwd username in container, defaults to passwd name of target uid or chronos
 	Username string `json:"username,omitempty"`
-	// home directory in sandbox, empty for outer
+	// home directory in container, empty for outer
 	Inner string `json:"home_inner"`
 	// home directory in init namespace
 	Outer string `json:"home"`
-	// bwrap sandbox confinement configuration
+	// abstract sandbox configuration
 	Sandbox *SandboxConfig `json:"sandbox"`
 	// extra acl ops, runs after everything else
 	ExtraPerms []*ExtraPermConfig `json:"extra_perms,omitempty"`
@@ -44,7 +47,7 @@ type ConfinementConfig struct {
 	// nil value makes session bus proxy assume built-in defaults
 	SessionBus *dbus.Config `json:"session_bus,omitempty"`
 
-	// system resources to expose to the sandbox
+	// system resources to expose to the container
 	Enablements system.Enablements `json:"enablements"`
 }
 
@@ -76,24 +79,12 @@ func (e *ExtraPermConfig) String() string {
 	return string(buf)
 }
 
-type FilesystemConfig struct {
-	// mount point in sandbox, same as src if empty
-	Dst string `json:"dst,omitempty"`
-	// host filesystem path to make available to sandbox
-	Src string `json:"src"`
-	// write access
-	Write bool `json:"write,omitempty"`
-	// device access
-	Device bool `json:"dev,omitempty"`
-	// fail if mount fails
-	Must bool `json:"require,omitempty"`
-}
-
 // Template returns a fully populated instance of Config.
 func Template() *Config {
 	return &Config{
-		ID: "org.chromium.Chromium",
-		Command: []string{
+		ID:   "org.chromium.Chromium",
+		Path: "/run/current-system/sw/bin/chromium",
+		Args: []string{
 			"chromium",
 			"--ignore-gpu-blocklist",
 			"--disable-smooth-scrolling",
@@ -108,11 +99,13 @@ func Template() *Config {
 			Inner:    "/var/lib/fortify",
 			Sandbox: &SandboxConfig{
 				Hostname:      "localhost",
-				UserNS:        true,
+				Devel:         true,
+				Userns:        true,
 				Net:           true,
 				Dev:           true,
-				Syscall:       &bwrap.SyscallPolicy{DenyDevel: true, Multiarch: true},
-				NoNewSession:  true,
+				Seccomp:       seccomp.FlagMultiarch,
+				Tty:           true,
+				Multiarch:     true,
 				MapRealUID:    true,
 				DirectWayland: false,
 				// example API credentials pulled from Google Chrome
@@ -131,10 +124,10 @@ func Template() *Config {
 						Dst: "/data/data/org.chromium.Chromium", Write: true, Must: true},
 					{Src: "/dev/dri", Device: true},
 				},
-				Link:     [][2]string{{"/run/user/65534", "/run/user/150"}},
-				Etc:      "/etc",
-				AutoEtc:  true,
-				Override: []string{"/var/run/nscd"},
+				Link:    [][2]string{{"/run/user/65534", "/run/user/150"}},
+				Etc:     "/etc",
+				AutoEtc: true,
+				Cover:   []string{"/var/run/nscd"},
 			},
 			ExtraPerms: []*ExtraPermConfig{
 				{Path: "/var/lib/fortify/u0", Ensure: true, Execute: true},

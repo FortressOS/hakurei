@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"sync"
@@ -10,9 +11,10 @@ import (
 	"git.gensokyo.uk/security/fortify/internal/sys"
 )
 
-func New(os sys.State) (fst.App, error) {
+func New(ctx context.Context, os sys.State) (fst.App, error) {
 	a := new(app)
 	a.sys = os
+	a.ctx = ctx
 
 	id := new(fst.ID)
 	err := fst.NewAppID(id)
@@ -21,8 +23,8 @@ func New(os sys.State) (fst.App, error) {
 	return a, err
 }
 
-func MustNew(os sys.State) fst.App {
-	a, err := New(os)
+func MustNew(ctx context.Context, os sys.State) fst.App {
+	a, err := New(ctx, os)
 	if err != nil {
 		log.Fatalf("cannot create app: %v", err)
 	}
@@ -32,6 +34,7 @@ func MustNew(os sys.State) fst.App {
 type app struct {
 	id  *stringPair[fst.ID]
 	sys sys.State
+	ctx context.Context
 
 	*outcome
 	mu sync.RWMutex
@@ -71,7 +74,7 @@ func (a *app) Seal(config *fst.Config) (fst.SealedApp, error) {
 
 	seal := new(outcome)
 	seal.id = a.id
-	err := seal.finalise(a.sys, config)
+	err := seal.finalise(a.ctx, a.sys, config)
 	if err == nil {
 		a.outcome = seal
 	}

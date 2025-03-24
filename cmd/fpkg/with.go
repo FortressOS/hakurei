@@ -6,18 +6,19 @@ import (
 	"strings"
 
 	"git.gensokyo.uk/security/fortify/fst"
-	"git.gensokyo.uk/security/fortify/helper/bwrap"
 	"git.gensokyo.uk/security/fortify/internal"
+	"git.gensokyo.uk/security/fortify/sandbox/seccomp"
 )
 
 func withNixDaemon(
 	ctx context.Context,
 	action string, command []string, net bool, updateConfig func(config *fst.Config) *fst.Config,
-	app *bundleInfo, pathSet *appPathSet, dropShell bool, beforeFail func(),
+	app *appInfo, pathSet *appPathSet, dropShell bool, beforeFail func(),
 ) {
 	mustRunAppDropShell(ctx, updateConfig(&fst.Config{
-		ID: app.ID,
-		Command: []string{shellPath, "-lc", "rm -f /nix/var/nix/daemon-socket/socket && " +
+		ID:   app.ID,
+		Path: shellPath,
+		Args: []string{shellPath, "-lc", "rm -f /nix/var/nix/daemon-socket/socket && " +
 			// start nix-daemon
 			"nix-daemon --store / & " +
 			// wait for socket to appear
@@ -34,11 +35,11 @@ func withNixDaemon(
 			Inner:    path.Join("/data/data", app.ID),
 			Outer:    pathSet.homeDir,
 			Sandbox: &fst.SandboxConfig{
-				Hostname:     formatHostname(app.Name) + "-" + action,
-				UserNS:       true, // nix sandbox requires userns
-				Net:          net,
-				Syscall:      &bwrap.SyscallPolicy{Multiarch: true},
-				NoNewSession: dropShell,
+				Hostname: formatHostname(app.Name) + "-" + action,
+				Userns:   true, // nix sandbox requires userns
+				Net:      net,
+				Seccomp:  seccomp.FlagMultiarch,
+				Tty:      dropShell,
 				Filesystem: []*fst.FilesystemConfig{
 					{Src: pathSet.nixPath, Dst: "/nix", Write: true, Must: true},
 				},
@@ -61,19 +62,20 @@ func withNixDaemon(
 func withCacheDir(
 	ctx context.Context,
 	action string, command []string, workDir string,
-	app *bundleInfo, pathSet *appPathSet, dropShell bool, beforeFail func()) {
+	app *appInfo, pathSet *appPathSet, dropShell bool, beforeFail func()) {
 	mustRunAppDropShell(ctx, &fst.Config{
-		ID:      app.ID,
-		Command: []string{shellPath, "-lc", strings.Join(command, " && ")},
+		ID:   app.ID,
+		Path: shellPath,
+		Args: []string{shellPath, "-lc", strings.Join(command, " && ")},
 		Confinement: fst.ConfinementConfig{
 			AppID:    app.AppID,
 			Username: "nixos",
 			Inner:    path.Join("/data/data", app.ID, "cache"),
 			Outer:    pathSet.cacheDir, // this also ensures cacheDir via shim
 			Sandbox: &fst.SandboxConfig{
-				Hostname:     formatHostname(app.Name) + "-" + action,
-				Syscall:      &bwrap.SyscallPolicy{Multiarch: true},
-				NoNewSession: dropShell,
+				Hostname: formatHostname(app.Name) + "-" + action,
+				Seccomp:  seccomp.FlagMultiarch,
+				Tty:      dropShell,
 				Filesystem: []*fst.FilesystemConfig{
 					{Src: path.Join(workDir, "nix"), Dst: "/nix", Must: true},
 					{Src: workDir, Dst: path.Join(fst.Tmp, "bundle"), Must: true},
@@ -97,7 +99,7 @@ func withCacheDir(
 
 func mustRunAppDropShell(ctx context.Context, config *fst.Config, dropShell bool, beforeFail func()) {
 	if dropShell {
-		config.Command = []string{shellPath, "-l"}
+		config.Args = []string{shellPath, "-l"}
 		mustRunApp(ctx, config, beforeFail)
 		beforeFail()
 		internal.Exit(0)

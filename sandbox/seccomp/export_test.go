@@ -93,7 +93,7 @@ func TestExport(t *testing.T) {
 				t.Errorf("Close: error = %v", err)
 				return
 			}
-			if got := digest.Sum(nil); slices.Compare(got, tc.want) != 0 {
+			if got := digest.Sum(nil); !slices.Equal(got, tc.want) {
 				t.Fatalf("Export() hash = %x, want %x",
 					got, tc.want)
 				return

@@ -96,7 +96,7 @@ func testStore(t *testing.T, s state.Store) {
 		} else {
 			slices.Sort(aids)
 			want := []int{0, 1}
-			if slices.Compare(aids, want) != 0 {
+			if !slices.Equal(aids, want) {
 				t.Fatalf("List() = %#v, want %#v", aids, want)
 			}
 		}

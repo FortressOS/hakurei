@@ -55,10 +55,8 @@ func (s *stubNixOS) LookPath(file string) (string, error) {
 	}
 
 	switch file {
-	case "sudo":
-		return "/run/wrappers/bin/sudo", nil
-	case "machinectl":
-		return "/home/ophestra/.nix-profile/bin/machinectl", nil
+	case "zsh":
+		return "/run/current-system/sw/bin/zsh", nil
 	default:
 		panic(fmt.Sprintf("attempted to look up unexpected executable %q", file))
 	}

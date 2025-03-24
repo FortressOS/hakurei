@@ -2,24 +2,28 @@ package app
 
 import (
 	"bytes"
+	"context"
 	"encoding/gob"
 	"errors"
 	"fmt"
 	"io"
 	"io/fs"
+	"maps"
 	"os"
 	"path"
 	"regexp"
+	"slices"
 	"strings"
 	"sync/atomic"
+	"syscall"
 
 	"git.gensokyo.uk/security/fortify/acl"
 	"git.gensokyo.uk/security/fortify/dbus"
 	"git.gensokyo.uk/security/fortify/fst"
-	"git.gensokyo.uk/security/fortify/helper/bwrap"
 	"git.gensokyo.uk/security/fortify/internal"
 	"git.gensokyo.uk/security/fortify/internal/fmsg"
 	"git.gensokyo.uk/security/fortify/internal/sys"
+	"git.gensokyo.uk/security/fortify/sandbox"
 	"git.gensokyo.uk/security/fortify/system"
 	"git.gensokyo.uk/security/fortify/wl"
 )
@@ -65,19 +69,19 @@ type outcome struct {
 	// copied from [sys.State] response
 	runDirPath string
 
-	// passed through from [fst.Config]
-	command []string
-
 	// initial [fst.Config] gob stream for state data;
-	// this is prepared ahead of time as config is mutated during seal creation
+	// this is prepared ahead of time as config is clobbered during seal creation
 	ct io.WriterTo
 	// dump dbus proxy message buffer
 	dbusMsg func()
 
-	user      fsuUser
-	sys       *system.I
-	container *bwrap.Config
-	bwrapSync *os.File
+	user fsuUser
+	sys  *system.I
+	ctx  context.Context
+
+	container *sandbox.Params
+	env       map[string]string
+	sync      *os.File
 
 	f atomic.Bool
 }
@@ -100,7 +104,17 @@ type fsuUser struct {
 	username string
 }
 
-func (seal *outcome) finalise(sys sys.State, config *fst.Config) error {
+func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *fst.Config) error {
+	if seal.ctx != nil {
+		panic("finalise called twice")
+	}
+	seal.ctx = ctx
+
+	shellPath := "/bin/sh"
+	if s, ok := sys.LookupEnv(shell); ok && path.IsAbs(s) {
+		shellPath = s
+	}
+
 	{
 		// encode initial configuration for state tracking
 		ct := new(bytes.Buffer)
@@ -110,9 +124,6 @@ func (seal *outcome) finalise(sys sys.State, config *fst.Config) error {
 		}
 		seal.ct = ct
 	}
-
-	// pass through command slice; this value is never touched in the main process
-	seal.command = config.Command
 
 	// allowed aid range 0 to 9999, this is checked again in fsu
 	if config.Confinement.AppID < 0 || config.Confinement.AppID > 9999 {
@@ -167,12 +178,24 @@ func (seal *outcome) finalise(sys sys.State, config *fst.Config) error {
 	if config.Confinement.Sandbox == nil {
 		fmsg.Verbose("sandbox configuration not supplied, PROCEED WITH CAUTION")
 
+		// fsu clears the environment so resolve paths early
+		if !path.IsAbs(config.Path) {
+			if len(config.Args) > 0 {
+				if p, err := sys.LookPath(config.Args[0]); err != nil {
+					return fmsg.WrapError(err, err.Error())
+				} else {
+					config.Path = p
+				}
+			} else {
+				config.Path = shellPath
+			}
+		}
+
 		conf := &fst.SandboxConfig{
-			UserNS:       true,
-			Net:          true,
-			Syscall:      new(bwrap.SyscallPolicy),
-			NoNewSession: true,
-			AutoEtc:      true,
+			Userns:  true,
+			Net:     true,
+			Tty:     true,
+			AutoEtc: true,
 		}
 		// bind entries in /
 		if d, err := sys.ReadDir("/"); err != nil {
@@ -198,7 +221,7 @@ func (seal *outcome) finalise(sys sys.State, config *fst.Config) error {
 		// hide nscd from sandbox if present
 		nscd := "/var/run/nscd"
 		if _, err := sys.Stat(nscd); !errors.Is(err, fs.ErrNotExist) {
-			conf.Override = append(conf.Override, nscd)
+			conf.Cover = append(conf.Cover, nscd)
 		}
 		// bind GPU stuff
 		if config.Confinement.Enablements.Has(system.EX11) || config.Confinement.Enablements.Has(system.EWayland) {
@@ -210,17 +233,29 @@ func (seal *outcome) finalise(sys sys.State, config *fst.Config) error {
 		config.Confinement.Sandbox = conf
 	}
 
-	var mapuid *stringPair[int]
+	var mapuid, mapgid *stringPair[int]
 	{
-		var uid int
+		var uid, gid int
 		var err error
-		seal.container, err = config.Confinement.Sandbox.Bwrap(sys, &uid)
+		seal.container, seal.env, err = config.Confinement.Sandbox.ToContainer(sys, &uid, &gid)
 		if err != nil {
-			return err
+			return fmsg.WrapErrorSuffix(err,
+				"cannot initialise container configuration:")
 		}
+		if !path.IsAbs(config.Path) {
+			return fmsg.WrapError(syscall.EINVAL,
+				"invalid program path")
+		}
+		if len(config.Args) == 0 {
+			config.Args = []string{config.Path}
+		}
+		seal.container.Path = config.Path
+		seal.container.Args = config.Args
+
 		mapuid = newInt(uid)
-		if seal.container.SetEnv == nil {
-			seal.container.SetEnv = make(map[string]string)
+		mapgid = newInt(gid)
+		if seal.env == nil {
+			seal.env = make(map[string]string)
 		}
 	}
 
@@ -255,35 +290,27 @@ func (seal *outcome) finalise(sys sys.State, config *fst.Config) error {
 
 	// inner XDG_RUNTIME_DIR default formatting of `/run/user/%d` as post-fsu user
 	innerRuntimeDir := path.Join("/run/user", mapuid.String())
-	seal.container.Tmpfs("/run/user", 1*1024*1024)
-	seal.container.Tmpfs(innerRuntimeDir, 8*1024*1024)
-	seal.container.SetEnv[xdgRuntimeDir] = innerRuntimeDir
-	seal.container.SetEnv[xdgSessionClass] = "user"
-	seal.container.SetEnv[xdgSessionType] = "tty"
+	seal.container.Tmpfs("/run/user", 1<<12, 0755)
+	seal.container.Tmpfs(innerRuntimeDir, 1<<23, 0755)
+	seal.env[xdgRuntimeDir] = innerRuntimeDir
+	seal.env[xdgSessionClass] = "user"
+	seal.env[xdgSessionType] = "tty"
 
 	// outer path for inner /tmp
 	{
 		tmpdir := path.Join(sc.SharePath, "tmpdir")
 		seal.sys.Ensure(tmpdir, 0700)
 		seal.sys.UpdatePermType(system.User, tmpdir, acl.Execute)
-		tmpdirProc := path.Join(tmpdir, seal.user.aid.String())
-		seal.sys.Ensure(tmpdirProc, 01700)
-		seal.sys.UpdatePermType(system.User, tmpdirProc, acl.Read, acl.Write, acl.Execute)
-		seal.container.Bind(tmpdirProc, "/tmp", false, true)
+		tmpdirInst := path.Join(tmpdir, seal.user.aid.String())
+		seal.sys.Ensure(tmpdirInst, 01700)
+		seal.sys.UpdatePermType(system.User, tmpdirInst, acl.Read, acl.Write, acl.Execute)
+		seal.container.Bind(tmpdirInst, "/tmp", sandbox.BindWritable)
 	}
 
 	/*
 		Passwd database
 	*/
 
-	// look up shell
-	sh := "/bin/sh"
-	if s, ok := sys.LookupEnv(shell); ok {
-		seal.container.SetEnv[shell] = s
-		sh = s
-	}
-
-	// bind home directory
 	homeDir := "/var/empty"
 	if seal.user.home != "" {
 		homeDir = seal.user.home
@@ -292,27 +319,25 @@ func (seal *outcome) finalise(sys sys.State, config *fst.Config) error {
 	if seal.user.username != "" {
 		username = seal.user.username
 	}
-	seal.container.Bind(seal.user.data, homeDir, false, true)
-	seal.container.Chdir = homeDir
-	seal.container.SetEnv["HOME"] = homeDir
-	seal.container.SetEnv["USER"] = username
+	seal.container.Bind(seal.user.data, homeDir, sandbox.BindWritable)
+	seal.container.Dir = homeDir
+	seal.env["HOME"] = homeDir
+	seal.env["USER"] = username
 
-	// generate /etc/passwd and /etc/group
-	seal.container.CopyBind("/etc/passwd",
-		[]byte(username+":x:"+mapuid.String()+":"+mapuid.String()+":Fortify:"+homeDir+":"+sh+"\n"))
-	seal.container.CopyBind("/etc/group",
-		[]byte("fortify:x:"+mapuid.String()+":\n"))
+	seal.container.Place("/etc/passwd",
+		[]byte(username+":x:"+mapuid.String()+":"+mapgid.String()+":Fortify:"+homeDir+":"+shellPath+"\n"))
+	seal.container.Place("/etc/group",
+		[]byte("fortify:x:"+mapgid.String()+":\n"))
 
 	/*
 		Display servers
 	*/
 
-	// pass $TERM to launcher
+	// pass $TERM for proper terminal I/O in shell
 	if t, ok := sys.LookupEnv(term); ok {
-		seal.container.SetEnv[term] = t
+		seal.env[term] = t
 	}
 
-	// set up wayland
 	if config.Confinement.Enablements.Has(system.EWayland) {
 		// outer wayland socket (usually `/run/user/%d/wayland-%d`)
 		var socketPath string
@@ -326,7 +351,7 @@ func (seal *outcome) finalise(sys sys.State, config *fst.Config) error {
 		}
 
 		innerPath := path.Join(innerRuntimeDir, wl.FallbackName)
-		seal.container.SetEnv[wl.WaylandDisplay] = wl.FallbackName
+		seal.env[wl.WaylandDisplay] = wl.FallbackName
 
 		if !config.Confinement.Sandbox.DirectWayland { // set up security-context-v1
 			socketDir := path.Join(sc.SharePath, "wayland")
@@ -337,25 +362,23 @@ func (seal *outcome) finalise(sys sys.State, config *fst.Config) error {
 				// use instance ID in case app id is not set
 				appID = "uk.gensokyo.fortify." + seal.id.String()
 			}
-			seal.sys.Wayland(&seal.bwrapSync, outerPath, socketPath, appID, seal.id.String())
-			seal.container.Bind(outerPath, innerPath)
+			seal.sys.Wayland(&seal.sync, outerPath, socketPath, appID, seal.id.String())
+			seal.container.Bind(outerPath, innerPath, 0)
 		} else { // bind mount wayland socket (insecure)
 			fmsg.Verbose("direct wayland access, PROCEED WITH CAUTION")
-			seal.container.Bind(socketPath, innerPath)
+			seal.container.Bind(socketPath, innerPath, 0)
 			seal.sys.UpdatePermType(system.EWayland, socketPath, acl.Read, acl.Write, acl.Execute)
 		}
 	}
 
-	// set up X11
 	if config.Confinement.Enablements.Has(system.EX11) {
-		// discover X11 and grant user permission via the `ChangeHosts` command
 		if d, ok := sys.LookupEnv(display); !ok {
 			return fmsg.WrapError(ErrXDisplay,
 				"DISPLAY is not set")
 		} else {
 			seal.sys.ChangeHosts("#" + seal.user.uid.String())
-			seal.container.SetEnv[display] = d
-			seal.container.Bind("/tmp/.X11-unix", "/tmp/.X11-unix")
+			seal.env[display] = d
+			seal.container.Bind("/tmp/.X11-unix", "/tmp/.X11-unix", 0)
 		}
 	}
 
@@ -396,8 +419,8 @@ func (seal *outcome) finalise(sys sys.State, config *fst.Config) error {
 		innerPulseRuntimeDir := path.Join(sharePathLocal, "pulse")
 		innerPulseSocket := path.Join(innerRuntimeDir, "pulse", "native")
 		seal.sys.Link(pulseSocket, innerPulseRuntimeDir)
-		seal.container.Bind(innerPulseRuntimeDir, innerPulseSocket)
-		seal.container.SetEnv[pulseServer] = "unix:" + innerPulseSocket
+		seal.container.Bind(innerPulseRuntimeDir, innerPulseSocket, 0)
+		seal.env[pulseServer] = "unix:" + innerPulseSocket
 
 		// publish current user's pulse cookie for target user
 		if src, err := discoverPulseCookie(sys); err != nil {
@@ -405,9 +428,9 @@ func (seal *outcome) finalise(sys sys.State, config *fst.Config) error {
 			fmsg.Verbose(strings.TrimSpace(err.(*fmsg.BaseError).Message()))
 		} else {
 			innerDst := fst.Tmp + "/pulse-cookie"
-			seal.container.SetEnv[pulseCookie] = innerDst
-			payload := new([]byte)
-			seal.container.CopyBindRef(innerDst, &payload)
+			seal.env[pulseCookie] = innerDst
+			var payload *[]byte
+			seal.container.PlaceP(innerDst, &payload)
 			seal.sys.CopyFile(payload, src, 256, 256)
 		}
 	}
@@ -437,13 +460,13 @@ func (seal *outcome) finalise(sys sys.State, config *fst.Config) error {
 
 		// share proxy sockets
 		sessionInner := path.Join(innerRuntimeDir, "bus")
-		seal.container.SetEnv[dbusSessionBusAddress] = "unix:path=" + sessionInner
-		seal.container.Bind(sessionPath, sessionInner)
+		seal.env[dbusSessionBusAddress] = "unix:path=" + sessionInner
+		seal.container.Bind(sessionPath, sessionInner, 0)
 		seal.sys.UpdatePerm(sessionPath, acl.Read, acl.Write)
 		if config.Confinement.SystemBus != nil {
 			systemInner := "/run/dbus/system_bus_socket"
-			seal.container.SetEnv[dbusSystemBusAddress] = "unix:path=" + systemInner
-			seal.container.Bind(systemPath, systemInner)
+			seal.env[dbusSystemBusAddress] = "unix:path=" + systemInner
+			seal.container.Bind(systemPath, systemInner, 0)
 			seal.sys.UpdatePerm(systemPath, acl.Read, acl.Write)
 		}
 	}
@@ -452,9 +475,8 @@ func (seal *outcome) finalise(sys sys.State, config *fst.Config) error {
 		Miscellaneous
 	*/
 
-	// queue overriding tmpfs at the end of seal.container.Filesystem
-	for _, dest := range config.Confinement.Sandbox.Override {
-		seal.container.Tmpfs(dest, 8*1024)
+	for _, dest := range config.Confinement.Sandbox.Cover {
+		seal.container.Tmpfs(dest, 1<<13, 0755)
 	}
 
 	// append ExtraPerms last
@@ -480,12 +502,13 @@ func (seal *outcome) finalise(sys sys.State, config *fst.Config) error {
 		seal.sys.UpdatePermType(system.User, p.Path, perms...)
 	}
 
-	// mount fortify in sandbox for init
-	seal.container.Bind(sys.MustExecutable(), path.Join(fst.Tmp, "sbin/fortify"))
-	seal.container.Symlink("fortify", path.Join(fst.Tmp, "sbin/init0"))
+	// flatten and sort env for deterministic behaviour
+	seal.container.Env = make([]string, 0, len(seal.env))
+	maps.All(seal.env)(func(k string, v string) bool { seal.container.Env = append(seal.container.Env, k+"="+v); return true })
+	slices.Sort(seal.container.Env)
 
-	fmsg.Verbosef("created application seal for uid %s (%s) groups: %v, command: %s",
-		seal.user.uid, seal.user.username, config.Confinement.Groups, config.Command)
+	fmsg.Verbosef("created application seal for uid %s (%s) groups: %v, argv: %s",
+		seal.user.uid, seal.user.username, config.Confinement.Groups, seal.container.Args)
 
 	return nil
 }

@@ -62,9 +62,12 @@ def check_state(name, enablements):
 
     config = instance['config']
 
-    if len(config['command']) != 1 or not (config['command'][0].startswith("/nix/store/")) or not (
-            config['command'][0].endswith(f"{name}-start")):
-        raise Exception(f"unexpected command {instance['config']['command']}")
+    command = f"{name}-start"
+    if not (config['path'].startswith("/nix/store/")) or not (config['path'].endswith(command)):
+        raise Exception(f"unexpected path {config['path']}")
+
+    if len(config['args']) != 1 or config['args'][0] != command:
+        raise Exception(f"unexpected args {config['args']}")
 
     if config['confinement']['enablements'] != enablements:
         raise Exception(f"unexpected enablements {instance['config']['confinement']['enablements']}")
