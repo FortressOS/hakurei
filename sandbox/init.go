@@ -239,7 +239,6 @@ func Init(prepare func(prefix string), setVerbose func(verbose bool)) {
 
 	cmd := exec.Command(params.Path)
 	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
-	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 	cmd.Args = params.Args
 	cmd.Env = params.Env
 	cmd.ExtraFiles = extraFiles

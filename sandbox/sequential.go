@@ -156,7 +156,7 @@ func (d MountDev) apply(params *Params) error {
 		if err := hostProc.bindMount(
 			toHost("/dev/"+name),
 			targetPath,
-			syscall.MS_RDONLY,
+			0,
 			true,
 		); err != nil {
 			return err
@@ -204,10 +204,12 @@ func (d MountDev) apply(params *Params) error {
 			if err := ensureFile(consolePath, 0444, 0755); err != nil {
 				return err
 			}
-			if err := hostProc.bindMount(
-				hostProc.stdout(),
+			if name, err := os.Readlink(hostProc.stdout()); err != nil {
+				return msg.WrapErr(err, err.Error())
+			} else if err = hostProc.bindMount(
+				toHost(name),
 				consolePath,
-				syscall.MS_RDONLY,
+				0,
 				false,
 			); err != nil {
 				return err
