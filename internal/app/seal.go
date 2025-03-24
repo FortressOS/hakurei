@@ -24,8 +24,8 @@ import (
 	"git.gensokyo.uk/security/fortify/internal/fmsg"
 	"git.gensokyo.uk/security/fortify/internal/sys"
 	"git.gensokyo.uk/security/fortify/sandbox"
+	"git.gensokyo.uk/security/fortify/sandbox/wl"
 	"git.gensokyo.uk/security/fortify/system"
-	"git.gensokyo.uk/security/fortify/wl"
 )
 
 const (

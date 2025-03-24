@@ -1,3 +1,4 @@
+// Package sandbox implements unprivileged Linux container with hardening options useful for creating application sandboxes.
 package sandbox
 
 import (

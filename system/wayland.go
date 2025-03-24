@@ -6,7 +6,7 @@ import (
 	"os"
 
 	"git.gensokyo.uk/security/fortify/acl"
-	"git.gensokyo.uk/security/fortify/wl"
+	"git.gensokyo.uk/security/fortify/sandbox/wl"
 )
 
 // Wayland sets up a wayland socket with a security context attached.
