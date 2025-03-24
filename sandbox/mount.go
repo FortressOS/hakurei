@@ -101,7 +101,7 @@ func remountWithFlags(n *vfs.MountInfoNode, mf uintptr) error {
 
 func mountTmpfs(fsname, name string, size int, perm os.FileMode) error {
 	target := toSysroot(name)
-	if err := os.MkdirAll(target, perm); err != nil {
+	if err := os.MkdirAll(target, parentPerm(perm)); err != nil {
 		return msg.WrapErr(err, err.Error())
 	}
 	opt := fmt.Sprintf("mode=%#o", perm)
@@ -111,4 +111,15 @@ func mountTmpfs(fsname, name string, size int, perm os.FileMode) error {
 	return wrapErrSuffix(syscall.Mount(fsname, target, "tmpfs",
 		syscall.MS_NOSUID|syscall.MS_NODEV, opt),
 		fmt.Sprintf("cannot mount tmpfs on %q:", name))
+}
+
+func parentPerm(perm os.FileMode) os.FileMode {
+	pperm := 0755
+	if perm&0070 == 0 {
+		pperm &= ^0050
+	}
+	if perm&0007 == 0 {
+		pperm &= ^0005
+	}
+	return os.FileMode(pperm)
 }

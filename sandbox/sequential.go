@@ -61,13 +61,16 @@ func (b *BindMount) apply(*Params) error {
 
 	source := toHost(b.SourceFinal)
 	target := toSysroot(b.Target)
+
+	// this perm value emulates bwrap behaviour as it clears bits from 0755 based on
+	// op->perms which is never set for any bind setup op so always results in 0700
 	if fi, err := os.Stat(source); err != nil {
 		return msg.WrapErr(err, err.Error())
 	} else if fi.IsDir() {
-		if err = os.MkdirAll(target, 0755); err != nil {
+		if err = os.MkdirAll(target, 0700); err != nil {
 			return msg.WrapErr(err, err.Error())
 		}
-	} else if err = ensureFile(target, 0444); err != nil {
+	} else if err = ensureFile(target, 0444, 0700); err != nil {
 		return err
 	}
 
@@ -147,7 +150,7 @@ func (d MountDev) apply(params *Params) error {
 
 	for _, name := range []string{"null", "zero", "full", "random", "urandom", "tty"} {
 		targetPath := toSysroot(path.Join(v, name))
-		if err := ensureFile(targetPath, 0444); err != nil {
+		if err := ensureFile(targetPath, 0444, 0755); err != nil {
 			return err
 		}
 		if err := hostProc.bindMount(
@@ -198,7 +201,7 @@ func (d MountDev) apply(params *Params) error {
 			uintptr(unsafe.Pointer(&buf[0])),
 		); errno == 0 {
 			consolePath := toSysroot(path.Join(v, "console"))
-			if err := ensureFile(consolePath, 0444); err != nil {
+			if err := ensureFile(consolePath, 0444, 0755); err != nil {
 				return err
 			}
 			if err := hostProc.bindMount(
@@ -313,29 +316,29 @@ func (f *Ops) Link(target, linkName string) *Ops {
 func init() { gob.Register(new(Mkdir)) }
 
 // Mkdir creates a directory in the container filesystem.
-type Mkdir string
+type Mkdir struct {
+	Path string
+	Perm os.FileMode
+}
 
-func (m Mkdir) early(*Params) error { return nil }
-func (m Mkdir) apply(*Params) error {
-	v := string(m)
-
-	if !path.IsAbs(v) {
+func (m *Mkdir) early(*Params) error { return nil }
+func (m *Mkdir) apply(*Params) error {
+	if !path.IsAbs(m.Path) {
 		return msg.WrapErr(syscall.EBADE,
-			fmt.Sprintf("path %q is not absolute", v))
+			fmt.Sprintf("path %q is not absolute", m.Path))
 	}
 
-	target := toSysroot(v)
-	if err := os.MkdirAll(target, 0755); err != nil {
+	if err := os.MkdirAll(toSysroot(m.Path), m.Perm); err != nil {
 		return msg.WrapErr(err, err.Error())
 	}
 	return nil
 }
 
-func (m Mkdir) Is(op Op) bool  { vm, ok := op.(Mkdir); return ok && m == vm }
-func (Mkdir) prefix() string   { return "creating" }
-func (m Mkdir) String() string { return fmt.Sprintf("directory %q", string(m)) }
-func (f *Ops) Mkdir(dest string) *Ops {
-	*f = append(*f, Mkdir(dest))
+func (m *Mkdir) Is(op Op) bool  { vm, ok := op.(*Mkdir); return ok && m == vm }
+func (*Mkdir) prefix() string   { return "creating" }
+func (m *Mkdir) String() string { return fmt.Sprintf("directory %q perm %s", m.Path, m.Perm) }
+func (f *Ops) Mkdir(dest string, perm os.FileMode) *Ops {
+	*f = append(*f, &Mkdir{dest, perm})
 	return f
 }
 
@@ -368,7 +371,7 @@ func (t *Tmpfile) apply(*Params) error {
 	}
 
 	target := toSysroot(t.Path)
-	if err := ensureFile(target, 0444); err != nil {
+	if err := ensureFile(target, 0444, 0755); err != nil {
 		return err
 	} else if err = hostProc.bindMount(
 		tmpPath,

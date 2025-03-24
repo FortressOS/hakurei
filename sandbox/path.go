@@ -30,8 +30,8 @@ func toHost(name string) string {
 	return path.Join(hostPath, name)
 }
 
-func createFile(name string, perm os.FileMode, content []byte) error {
-	if err := os.MkdirAll(path.Dir(name), 0755); err != nil {
+func createFile(name string, perm, pperm os.FileMode, content []byte) error {
+	if err := os.MkdirAll(path.Dir(name), pperm); err != nil {
 		return msg.WrapErr(err, err.Error())
 	}
 	f, err := os.OpenFile(name, syscall.O_CREAT|syscall.O_EXCL|syscall.O_WRONLY, perm)
@@ -47,13 +47,13 @@ func createFile(name string, perm os.FileMode, content []byte) error {
 	return errors.Join(f.Close(), err)
 }
 
-func ensureFile(name string, perm os.FileMode) error {
+func ensureFile(name string, perm, pperm os.FileMode) error {
 	fi, err := os.Stat(name)
 	if err != nil {
 		if !os.IsNotExist(err) {
 			return err
 		}
-		return createFile(name, perm, nil)
+		return createFile(name, perm, pperm, nil)
 	}
 
 	if mode := fi.Mode(); mode&fs.ModeDir != 0 || mode&fs.ModeSymlink != 0 {

@@ -93,7 +93,7 @@ func TestContainer(t *testing.T) {
 			container.
 				Tmpfs("/tmp", 0, 0755).
 				Bind(os.Args[0], os.Args[0], 0).
-				Mkdir("/usr/bin").
+				Mkdir("/usr/bin", 0755).
 				Link(os.Args[0], "/usr/bin/sandbox.test").
 				Place("/etc/hostname", []byte(container.Args[5]))
 			// in case test has cgo enabled
