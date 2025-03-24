@@ -50,9 +50,12 @@ func tryPath(name string) (config *fst.Config) {
 
 func tryFd(name string) io.ReadCloser {
 	if v, err := strconv.Atoi(name); err != nil {
-		fmsg.Verbosef("name cannot be interpreted as int64: %v", err)
+		if !errors.Is(err, strconv.ErrSyntax) {
+			fmsg.Verbosef("name cannot be interpreted as int64: %v", err)
+		}
 		return nil
 	} else {
+		fmsg.Verbosef("trying config stream from %d", v)
 		fd := uintptr(v)
 		if _, _, errno := syscall.Syscall(syscall.SYS_FCNTL, fd, syscall.F_GETFD, 0); errno != 0 {
 			if errors.Is(errno, syscall.EBADF) {
