@@ -1,3 +1,4 @@
+// Package vfs provides bindings and iterators over proc_pid_mountinfo(5).
 package vfs
 
 import (
@@ -68,6 +69,7 @@ type (
 	DevT [2]int
 )
 
+// Flags interprets VfsOptstr and returns the resulting flags and unmatched options.
 func (e *MountInfoEntry) Flags() (flags uintptr, unmatched []string) {
 	for _, s := range strings.Split(e.VfsOptstr, ",") {
 		switch s {
@@ -238,17 +240,17 @@ func parseMountInfoLine(s string, ent *MountInfoEntry) error {
 	return nil
 }
 
-func (e *MountInfoEntry) EqualWithIgnore(want *MountInfoEntry) bool {
+func (e *MountInfoEntry) EqualWithIgnore(want *MountInfoEntry, ignore string) bool {
 	return (e.ID == want.ID || want.ID == -1) &&
 		(e.Parent == want.Parent || want.Parent == -1) &&
 		(e.Devno == want.Devno || (want.Devno[0] == -1 && want.Devno[1] == -1)) &&
-		(e.Root == want.Root || want.Root == "\x00") &&
-		(e.Target == want.Target || want.Target == "\x00") &&
-		(e.VfsOptstr == want.VfsOptstr || want.VfsOptstr == "\x00") &&
-		(slices.Equal(e.OptFields, want.OptFields) || (len(want.OptFields) == 1 && want.OptFields[0] == "\x00")) &&
-		(e.FsType == want.FsType || want.FsType == "\x00") &&
-		(e.Source == want.Source || want.Source == "\x00") &&
-		(e.FsOptstr == want.FsOptstr || want.FsOptstr == "\x00")
+		(e.Root == want.Root || want.Root == ignore) &&
+		(e.Target == want.Target || want.Target == ignore) &&
+		(e.VfsOptstr == want.VfsOptstr || want.VfsOptstr == ignore) &&
+		(slices.Equal(e.OptFields, want.OptFields) || (len(want.OptFields) == 1 && want.OptFields[0] == ignore)) &&
+		(e.FsType == want.FsType || want.FsType == ignore) &&
+		(e.Source == want.Source || want.Source == ignore) &&
+		(e.FsOptstr == want.FsOptstr || want.FsOptstr == ignore)
 }
 
 func (e *MountInfoEntry) String() string {

@@ -231,7 +231,7 @@ func TestHelperCheckContainer(t *testing.T) {
 			mnt[i].VfsOptstr = strings.TrimSuffix(mnt[i].VfsOptstr, ",relatime")
 			mnt[i].VfsOptstr = strings.TrimSuffix(mnt[i].VfsOptstr, ",noatime")
 
-			if !cur.EqualWithIgnore(mnt[i]) {
+			if !cur.EqualWithIgnore(mnt[i], "\x00") {
 				t.Errorf("[FAIL] %s", cur)
 			} else {
 				t.Logf("[ OK ] %s", cur)
