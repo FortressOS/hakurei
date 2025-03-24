@@ -96,12 +96,13 @@ func buildCommand(out io.Writer) command.Command {
 			mpris             bool
 			dbusVerbose       bool
 
-			fid         string
-			aid         int
-			groups      command.RepeatableFlag
-			homeDir     string
-			userName    string
-			enablements [system.ELen]bool
+			fid      string
+			aid      int
+			groups   command.RepeatableFlag
+			homeDir  string
+			userName string
+
+			wayland, x11, dBus, pulse bool
 		)
 
 		c.NewCommand("run", "Configure and start a permissive default sandbox", func(args []string) error {
@@ -158,15 +159,21 @@ func buildCommand(out io.Writer) command.Command {
 			config.Confinement.Outer = homeDir
 			config.Confinement.Username = userName
 
-			// enablements from flags
-			for i := system.Enablement(0); i < system.Enablement(system.ELen); i++ {
-				if enablements[i] {
-					config.Confinement.Enablements.Set(i)
-				}
+			if wayland {
+				config.Confinement.Enablements |= system.EWayland
+			}
+			if x11 {
+				config.Confinement.Enablements |= system.EX11
+			}
+			if dBus {
+				config.Confinement.Enablements |= system.EDBus
+			}
+			if pulse {
+				config.Confinement.Enablements |= system.EPulse
 			}
 
 			// parse D-Bus config file from flags if applicable
-			if enablements[system.EDBus] {
+			if dBus {
 				if dbusConfigSession == "builtin" {
 					config.Confinement.SessionBus = dbus.NewConfig(fid, true, mpris)
 				} else {
@@ -215,13 +222,13 @@ func buildCommand(out io.Writer) command.Command {
 				"Application home directory").
 			Flag(&userName, "u", command.StringFlag("chronos"),
 				"Passwd name within sandbox").
-			Flag(&enablements[system.EWayland], "wayland", command.BoolFlag(false),
+			Flag(&wayland, "wayland", command.BoolFlag(false),
 				"Allow Wayland connections").
-			Flag(&enablements[system.EX11], "X", command.BoolFlag(false),
+			Flag(&x11, "X", command.BoolFlag(false),
 				"Share X11 socket and allow connection").
-			Flag(&enablements[system.EDBus], "dbus", command.BoolFlag(false),
+			Flag(&dBus, "dbus", command.BoolFlag(false),
 				"Proxy D-Bus connection").
-			Flag(&enablements[system.EPulse], "pulse", command.BoolFlag(false),
+			Flag(&pulse, "pulse", command.BoolFlag(false),
 				"Share PulseAudio socket and cookie")
 	}
 

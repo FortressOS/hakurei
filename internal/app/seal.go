@@ -224,7 +224,7 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *fst.Co
 			conf.Cover = append(conf.Cover, nscd)
 		}
 		// bind GPU stuff
-		if config.Confinement.Enablements.Has(system.EX11) || config.Confinement.Enablements.Has(system.EWayland) {
+		if config.Confinement.Enablements&(system.EX11|system.EWayland) != 0 {
 			conf.Filesystem = append(conf.Filesystem, &fst.FilesystemConfig{Src: "/dev/dri", Device: true})
 		}
 		// opportunistically bind kvm
@@ -338,7 +338,7 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *fst.Co
 		seal.env[term] = t
 	}
 
-	if config.Confinement.Enablements.Has(system.EWayland) {
+	if config.Confinement.Enablements&system.EWayland != 0 {
 		// outer wayland socket (usually `/run/user/%d/wayland-%d`)
 		var socketPath string
 		if name, ok := sys.LookupEnv(wl.WaylandDisplay); !ok {
@@ -371,7 +371,7 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *fst.Co
 		}
 	}
 
-	if config.Confinement.Enablements.Has(system.EX11) {
+	if config.Confinement.Enablements&system.EX11 != 0 {
 		if d, ok := sys.LookupEnv(display); !ok {
 			return fmsg.WrapError(ErrXDisplay,
 				"DISPLAY is not set")
@@ -386,7 +386,7 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *fst.Co
 		PulseAudio server and authentication
 	*/
 
-	if config.Confinement.Enablements.Has(system.EPulse) {
+	if config.Confinement.Enablements&system.EPulse != 0 {
 		// PulseAudio runtime directory (usually `/run/user/%d/pulse`)
 		pulseRuntimeDir := path.Join(sc.RuntimePath, "pulse")
 		// PulseAudio socket (usually `/run/user/%d/pulse/native`)
@@ -439,7 +439,7 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *fst.Co
 		D-Bus proxy
 	*/
 
-	if config.Confinement.Enablements.Has(system.EDBus) {
+	if config.Confinement.Enablements&system.EDBus != 0 {
 		// ensure dbus session bus defaults
 		if config.Confinement.SessionBus == nil {
 			config.Confinement.SessionBus = dbus.NewConfig(config.ID, true, true)

@@ -41,20 +41,20 @@ func TestEphemeral(t *testing.T) {
 	}
 }
 
-func TestMkdir_String(t *testing.T) {
+func TestMkdirString(t *testing.T) {
 	testCases := []struct {
 		want      string
 		ephemeral bool
 		et        Enablement
 	}{
-		{"Ensure", false, User},
-		{"Ensure", false, Process},
-		{"Ensure", false, EWayland},
+		{"ensure", false, User},
+		{"ensure", false, Process},
+		{"ensure", false, EWayland},
 
-		{"Wayland", true, EWayland},
-		{"X11", true, EX11},
-		{"D-Bus", true, EDBus},
-		{"PulseAudio", true, EPulse},
+		{"wayland", true, EWayland},
+		{"x11", true, EX11},
+		{"dbus", true, EDBus},
+		{"pulseaudio", true, EPulse},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.want, func(t *testing.T) {

@@ -46,20 +46,20 @@ func TestUpdatePermType(t *testing.T) {
 	}
 }
 
-func TestACL_String(t *testing.T) {
+func TestACLString(t *testing.T) {
 	testCases := []struct {
 		want  string
 		et    Enablement
 		perms []acl.Perm
 	}{
-		{`--- type: Process path: "/nonexistent"`, Process, []acl.Perm{}},
-		{`r-- type: User path: "/nonexistent"`, User, []acl.Perm{acl.Read}},
-		{`-w- type: Wayland path: "/nonexistent"`, EWayland, []acl.Perm{acl.Write}},
-		{`--x type: X11 path: "/nonexistent"`, EX11, []acl.Perm{acl.Execute}},
-		{`rw- type: D-Bus path: "/nonexistent"`, EDBus, []acl.Perm{acl.Read, acl.Write}},
-		{`r-x type: PulseAudio path: "/nonexistent"`, EPulse, []acl.Perm{acl.Read, acl.Execute}},
-		{`rwx type: User path: "/nonexistent"`, User, []acl.Perm{acl.Read, acl.Write, acl.Execute}},
-		{`rwx type: Process path: "/nonexistent"`, Process, []acl.Perm{acl.Read, acl.Write, acl.Write, acl.Execute}},
+		{`--- type: process path: "/nonexistent"`, Process, []acl.Perm{}},
+		{`r-- type: user path: "/nonexistent"`, User, []acl.Perm{acl.Read}},
+		{`-w- type: wayland path: "/nonexistent"`, EWayland, []acl.Perm{acl.Write}},
+		{`--x type: x11 path: "/nonexistent"`, EX11, []acl.Perm{acl.Execute}},
+		{`rw- type: dbus path: "/nonexistent"`, EDBus, []acl.Perm{acl.Read, acl.Write}},
+		{`r-x type: pulseaudio path: "/nonexistent"`, EPulse, []acl.Perm{acl.Read, acl.Execute}},
+		{`rwx type: user path: "/nonexistent"`, User, []acl.Perm{acl.Read, acl.Write, acl.Execute}},
+		{`rwx type: process path: "/nonexistent"`, Process, []acl.Perm{acl.Read, acl.Write, acl.Write, acl.Execute}},
 	}
 
 	for _, tc := range testCases {

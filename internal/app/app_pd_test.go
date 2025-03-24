@@ -196,7 +196,7 @@ var testCasesPd = []sealTestCase{
 					},
 					Filter: true,
 				},
-				Enablements: system.EWayland.Mask() | system.EDBus.Mask() | system.EPulse.Mask(),
+				Enablements: system.EWayland | system.EDBus | system.EPulse,
 			},
 		},
 		fst.ID{

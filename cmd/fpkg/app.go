@@ -41,7 +41,7 @@ type appInfo struct {
 	// passed through to [fst.Config]
 	SessionBus *dbus.Config `json:"session_bus,omitempty"`
 	// passed through to [fst.Config]
-	Enablements system.Enablements `json:"enablements"`
+	Enablements system.Enablement `json:"enablements"`
 
 	// passed through to [fst.Config]
 	Multiarch bool `json:"multiarch,omitempty"`

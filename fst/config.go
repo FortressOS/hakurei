@@ -48,7 +48,7 @@ type ConfinementConfig struct {
 	SessionBus *dbus.Config `json:"session_bus,omitempty"`
 
 	// system resources to expose to the container
-	Enablements system.Enablements `json:"enablements"`
+	Enablements system.Enablement `json:"enablements"`
 }
 
 type ExtraPermConfig struct {
@@ -153,7 +153,7 @@ func Template() *Config {
 				Log:       false,
 				Filter:    true,
 			},
-			Enablements: system.EWayland.Mask() | system.EDBus.Mask() | system.EPulse.Mask(),
+			Enablements: system.EWayland | system.EDBus | system.EPulse,
 		},
 	}
 }

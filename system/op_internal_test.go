@@ -47,10 +47,10 @@ func (ptc tcOp) test(t *testing.T, gotOps []Op, wantOps []Op, fn string) {
 				ec   *Criteria
 				want bool
 			}{
-				{"nil", newCriteria(), ptc.et != User},
+				{"nil", nil, ptc.et != User},
 				{"self", newCriteria(ptc.et), true},
-				{"all", newCriteria(EWayland, EX11, EDBus, EPulse, User, Process), true},
-				{"enablements", newCriteria(EWayland, EX11, EDBus, EPulse), ptc.et != User && ptc.et != Process},
+				{"all", newCriteria(EWayland | EX11 | EDBus | EPulse | User | Process), true},
+				{"enablements", newCriteria(EWayland | EX11 | EDBus | EPulse), ptc.et != User && ptc.et != Process},
 			}
 
 			for _, tc := range testCases {
@@ -65,15 +65,4 @@ func (ptc tcOp) test(t *testing.T, gotOps []Op, wantOps []Op, fn string) {
 	}
 }
 
-func newCriteria(labels ...Enablement) *Criteria {
-	ec := new(Criteria)
-	if len(labels) == 0 {
-		return ec
-	}
-
-	ec.Enablements = new(Enablements)
-	for _, e := range labels {
-		ec.Set(e)
-	}
-	return ec
-}
+func newCriteria(e Enablement) *Criteria { return (*Criteria)(&e) }

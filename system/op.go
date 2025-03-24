@@ -5,28 +5,29 @@ import (
 	"context"
 	"errors"
 	"log"
+	"strings"
 	"sync"
 )
 
 const (
 	// User type is reverted at final launcher exit.
-	User = Enablement(ELen)
+	User = EM << iota
 	// Process type is unconditionally reverted on exit.
-	Process = Enablement(ELen + 1)
+	Process
+
+	CM
 )
 
 // Criteria specifies types of Op to revert.
-type Criteria struct {
-	*Enablements
-}
+type Criteria Enablement
 
 func (ec *Criteria) hasType(o Op) bool {
 	// nil criteria: revert everything except User
-	if ec.Enablements == nil {
+	if ec == nil {
 		return o.Type() != User
 	}
 
-	return ec.Has(o.Type())
+	return Enablement(*ec)&o.Type() != 0
 }
 
 // Op is a reversible system operation.
@@ -48,11 +49,22 @@ type Op interface {
 func TypeString(e Enablement) string {
 	switch e {
 	case User:
-		return "User"
+		return "user"
 	case Process:
-		return "Process"
+		return "process"
 	default:
-		return e.String()
+		buf := new(strings.Builder)
+		buf.Grow(48)
+		if v := e &^ User &^ Process; v != 0 {
+			buf.WriteString(v.String())
+		}
+
+		for i := User; i < CM; i <<= 1 {
+			if e&i != 0 {
+				buf.WriteString(", " + TypeString(i))
+			}
+		}
+		return strings.TrimPrefix(buf.String(), ", ")
 	}
 }
 
@@ -110,7 +122,7 @@ func (sys *I) Commit(ctx context.Context) error {
 		if sp != nil {
 			// rollback partial commit
 			msg.Verbosef("commit faulted after %d ops, rolling back partial commit", len(sp.ops))
-			if err := sp.Revert(&Criteria{nil}); err != nil {
+			if err := sp.Revert(nil); err != nil {
 				log.Println("errors returned reverting partial commit:", err)
 			}
 		}

@@ -37,7 +37,7 @@ func Test_printShowInstance(t *testing.T) {
 	}{
 		{"config", nil, fst.Template(), false, false, `App
  ID:             9 (org.chromium.Chromium)
- Enablements:    Wayland, D-Bus, PulseAudio
+ Enablements:    wayland, dbus, pulseaudio
  Groups:         ["video"]
  Directory:      /var/lib/persist/home/org.chromium.Chromium
  Hostname:       "localhost"
@@ -74,14 +74,14 @@ System bus
 
 App
  ID:             0
- Enablements:    (No enablements)
+ Enablements:    (no enablements)
  Directory:      
  Command:        
 
 `},
 		{"config flag none", nil, &fst.Config{Confinement: fst.ConfinementConfig{Sandbox: new(fst.SandboxConfig)}}, false, false, `App
  ID:             0
- Enablements:    (No enablements)
+ Enablements:    (no enablements)
  Directory:      
  Flags:          none
  Etc:            /etc
@@ -90,7 +90,7 @@ App
 `},
 		{"config nil entries", nil, &fst.Config{Confinement: fst.ConfinementConfig{Sandbox: &fst.SandboxConfig{Filesystem: make([]*fst.FilesystemConfig, 1)}, ExtraPerms: make([]*fst.ExtraPermConfig, 1)}}, false, false, `App
  ID:             0
- Enablements:    (No enablements)
+ Enablements:    (no enablements)
  Directory:      
  Flags:          none
  Etc:            /etc
@@ -105,7 +105,7 @@ Extra ACL
 
 App
  ID:             0
- Enablements:    (No enablements)
+ Enablements:    (no enablements)
  Directory:      
  Command:        
 
@@ -121,7 +121,7 @@ Session bus
 
 App
  ID:             9 (org.chromium.Chromium)
- Enablements:    Wayland, D-Bus, PulseAudio
+ Enablements:    wayland, dbus, pulseaudio
  Groups:         ["video"]
  Directory:      /var/lib/persist/home/org.chromium.Chromium
  Hostname:       "localhost"
@@ -162,7 +162,7 @@ State
 
 App
  ID:             0
- Enablements:    (No enablements)
+ Enablements:    (no enablements)
  Directory:      
  Command:        
 
@@ -469,8 +469,8 @@ func Test_printPs(t *testing.T) {
 
 `},
 
-		{"valid", state.Entries{testID: testState}, false, false, `    Instance    PID           App    Uptime     Enablements                   Command
-    8e2c76b0    3735928559    9      1h2m32s    Wayland, D-Bus, PulseAudio    ["chromium" "--ignore-gpu-blocklist" "--disable-smooth-scrolling" "--enable-features=UseOzonePlatform" "--ozone-platform=wayland"]
+		{"valid", state.Entries{testID: testState}, false, false, `    Instance    PID           App    Uptime     Enablements                  Command
+    8e2c76b0    3735928559    9      1h2m32s    wayland, dbus, pulseaudio    ["chromium" "--ignore-gpu-blocklist" "--disable-smooth-scrolling" "--enable-features=UseOzonePlatform" "--ozone-platform=wayland"]
 
 `},
 		{"valid short", state.Entries{testID: testState}, true, false, `8e2c76b0

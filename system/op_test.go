@@ -37,15 +37,17 @@ func TestTypeString(t *testing.T) {
 		{system.EX11, system.EX11.String()},
 		{system.EDBus, system.EDBus.String()},
 		{system.EPulse, system.EPulse.String()},
-		{system.User, "User"},
-		{system.Process, "Process"},
+		{system.User, "user"},
+		{system.Process, "process"},
+		{system.User | system.Process, "user, process"},
+		{system.EWayland | system.User | system.Process, "wayland, user, process"},
+		{system.EX11 | system.Process, "x11, process"},
 	}
 
 	for _, tc := range testCases {
 		t.Run("label type string "+tc.want, func(t *testing.T) {
 			if got := system.TypeString(tc.e); got != tc.want {
-				t.Errorf("TypeString(%d) = %v, want %v",
-					tc.e,
+				t.Errorf("TypeString: %q, want %q",
 					got, tc.want)
 			}
 		})

@@ -5,7 +5,6 @@ import (
 	"errors"
 	"log"
 	"os/exec"
-	"strings"
 	"time"
 
 	"git.gensokyo.uk/security/fortify/fst"
@@ -54,17 +53,16 @@ func (seal *outcome) Run(rs *fst.RunState) error {
 					revert app setup transaction
 				*/
 
-				rt, ec := new(system.Enablements), new(system.Criteria)
-				ec.Enablements = new(system.Enablements)
-				ec.Set(system.Process)
+				var rt system.Enablement
+				ec := system.Process
 				if states, err := c.Load(); err != nil {
 					// revert per-process state here to limit damage
 					storeErr.OpErr = err
-					return seal.sys.Revert(ec)
+					return seal.sys.Revert((*system.Criteria)(&ec))
 				} else {
 					if l := len(states); l == 0 {
 						fmsg.Verbose("no other launchers active, will clean up globals")
-						ec.Set(system.User)
+						ec |= system.User
 					} else {
 						fmsg.Verbosef("found %d active launchers, cleaning up without globals", l)
 					}
@@ -72,31 +70,20 @@ func (seal *outcome) Run(rs *fst.RunState) error {
 					// accumulate enablements of remaining launchers
 					for i, s := range states {
 						if s.Config != nil {
-							*rt |= s.Config.Confinement.Enablements
+							rt |= s.Config.Confinement.Enablements
 						} else {
 							log.Printf("state entry %d does not contain config", i)
 						}
 					}
 				}
-				// invert accumulated enablements for cleanup
-				for i := system.Enablement(0); i < system.Enablement(system.ELen); i++ {
-					if !rt.Has(i) {
-						ec.Set(i)
-					}
-				}
+				ec |= rt ^ (system.EWayland | system.EX11 | system.EDBus | system.EPulse)
 				if fmsg.Load() {
-					labels := make([]string, 0, system.ELen+1)
-					for i := system.Enablement(0); i < system.Enablement(system.ELen+2); i++ {
-						if ec.Has(i) {
-							labels = append(labels, system.TypeString(i))
-						}
-					}
-					if len(labels) > 0 {
-						fmsg.Verbose("reverting operations type", strings.Join(labels, ", "))
+					if ec > 0 {
+						fmsg.Verbose("reverting operations type", system.TypeString(ec))
 					}
 				}
 
-				return seal.sys.Revert(ec)
+				return seal.sys.Revert((*system.Criteria)(&ec))
 			}()
 		})
 		storeErr.save([]error{revertErr, store.Close()})

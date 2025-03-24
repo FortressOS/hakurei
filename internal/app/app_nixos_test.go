@@ -45,7 +45,7 @@ var testCasesNixos = []sealTestCase{
 					Call: map[string]string{}, Broadcast: map[string]string{},
 					Filter: true,
 				},
-				Enablements: system.EWayland.Mask() | system.EDBus.Mask() | system.EPulse.Mask(),
+				Enablements: system.EWayland | system.EDBus | system.EPulse,
 			},
 		},
 		fst.ID{

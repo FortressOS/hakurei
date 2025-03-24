@@ -78,7 +78,7 @@ func (m *Mkdir) Path() string {
 }
 
 func (m *Mkdir) String() string {
-	t := "Ensure"
+	t := "ensure"
 	if m.ephemeral {
 		t = TypeString(m.Type())
 	}
