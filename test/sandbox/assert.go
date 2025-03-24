@@ -70,6 +70,10 @@ func (t *T) MustCheck(want *TestCase) {
 			fatalf("%v", err)
 		}
 
+		if i != len(want.Mount) {
+			fatalf("got %d entries, want %d", i, len(want.Mount))
+		}
+
 		if fail {
 			fatalf("[FAIL] some mount points did not match")
 		}
