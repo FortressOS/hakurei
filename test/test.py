@@ -99,6 +99,13 @@ print(denyOutputVerbose)
 # Fail direct fsu call:
 print(machine.fail("sudo -u alice -i fsu"))
 
+# Verify capabilities/securebits in user namespace:
+print(machine.succeed("sudo -u alice -i fortify run capsh --has-no-new-privs"))
+print(machine.fail("sudo -u alice -i fortify run capsh --has-a=CAP_SYS_ADMIN"))
+print(machine.fail("sudo -u alice -i fortify run capsh --has-b=CAP_SYS_ADMIN"))
+print(machine.fail("sudo -u alice -i fortify run capsh --has-p=CAP_SYS_ADMIN"))
+print(machine.fail("sudo -u alice -i fortify run umount -R /dev"))
+
 # Verify PrintBaseError behaviour:
 if denyOutput != "fsu: uid 1001 is not in the fsurc file\n":
     raise Exception(f"unexpected deny output:\n{denyOutput}")

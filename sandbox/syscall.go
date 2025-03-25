@@ -3,9 +3,15 @@ package sandbox
 import "syscall"
 
 const (
-	O_PATH              = 0x200000
+	O_PATH = 0x200000
+
 	PR_SET_NO_NEW_PRIVS = 0x26
-	CAP_SYS_ADMIN       = 0x15
+
+	PR_CAP_AMBIENT           = 47
+	PR_CAP_AMBIENT_CLEAR_ALL = 4
+
+	CAP_SYS_ADMIN = 0x15
+	CAP_SETPCAP   = 8
 )
 
 const (
@@ -15,7 +21,7 @@ const (
 
 func SetDumpable(dumpable uintptr) error {
 	// linux/sched/coredump.h
-	if _, _, errno := syscall.RawSyscall(syscall.SYS_PRCTL, syscall.PR_SET_DUMPABLE, dumpable, 0); errno != 0 {
+	if _, _, errno := syscall.Syscall(syscall.SYS_PRCTL, syscall.PR_SET_DUMPABLE, dumpable, 0); errno != 0 {
 		return errno
 	}
 

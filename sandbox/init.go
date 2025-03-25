@@ -108,6 +108,9 @@ func Init(prepare func(prefix string), setVerbose func(verbose bool)) {
 		}
 	}
 
+	// cache sysctl before pivot_root
+	LastCap()
+
 	/*
 		set up mount points from intermediate root
 	*/
@@ -217,14 +220,20 @@ func Init(prepare func(prefix string), setVerbose func(verbose bool)) {
 		load seccomp filter
 	*/
 
-	if _, _, err := syscall.Syscall(PR_SET_NO_NEW_PRIVS, 1, 0, 0); err != 0 {
-		log.Fatalf("prctl(PR_SET_NO_NEW_PRIVS): %v", err)
+	if _, _, errno := syscall.Syscall(PR_SET_NO_NEW_PRIVS, 1, 0, 0); errno != 0 {
+		log.Fatalf("prctl(PR_SET_NO_NEW_PRIVS): %v", errno)
+	}
+	if _, _, errno := syscall.Syscall(syscall.SYS_PRCTL, PR_CAP_AMBIENT, PR_CAP_AMBIENT_CLEAR_ALL, 0); errno != 0 {
+		log.Fatalf("cannot clear the ambient capability set: %v", errno)
+	}
+	for i := uintptr(0); i <= LastCap(); i++ {
+		if _, _, errno := syscall.Syscall(syscall.SYS_PRCTL, syscall.PR_CAPBSET_DROP, i, 0); errno != 0 {
+			log.Fatalf("cannot drop capability: %v", errno)
+		}
 	}
 	if err := seccomp.Load(params.Flags.seccomp(params.Seccomp)); err != nil {
 		log.Fatalf("cannot load syscall filter: %v", err)
 	}
-
-	/* at this point CAP_SYS_ADMIN can be dropped, however it is kept for now as it does not increase attack surface */
 
 	/*
 		pass through extra files

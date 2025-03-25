@@ -165,7 +165,7 @@ func (p *Container) Start() error {
 			syscall.CLONE_NEWNS,
 
 		// remain privileged for setup
-		AmbientCaps: []uintptr{CAP_SYS_ADMIN},
+		AmbientCaps: []uintptr{CAP_SYS_ADMIN, CAP_SETPCAP},
 
 		UseCgroupFD: p.Cgroup != nil,
 	}
