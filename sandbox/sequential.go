@@ -303,10 +303,7 @@ func (l *Symlink) apply(*Params) error {
 	}
 
 	target := toSysroot(l[1])
-	if err := ensureFile(target, 0444, 0755); err != nil {
-		return err
-	}
-	if err := os.Remove(target); err != nil {
+	if err := os.MkdirAll(path.Dir(target), 0755); err != nil {
 		return msg.WrapErr(err, err.Error())
 	}
 	if err := os.Symlink(l[0], target); err != nil {
