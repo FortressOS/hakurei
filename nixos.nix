@@ -128,7 +128,6 @@ in
                             (mustBind "/bin")
                             (mustBind "/usr/bin")
                             (mustBind "/nix/store")
-                            (mustBind "/run/current-system")
                             (bind "/sys/block")
                             (bind "/sys/bus")
                             (bind "/sys/class")
@@ -151,20 +150,27 @@ in
                         auto_etc = true;
                         cover = [ "/var/run/nscd" ];
 
-                        symlink = optionals (isGraphical && config.hardware.graphics.enable) (
+                        symlink =
                           [
                             [
-                              config.systemd.tmpfiles.settings.graphics-driver."/run/opengl-driver"."L+".argument
-                              "/run/opengl-driver"
+                              "*/run/current-system"
+                              "/run/current-system"
                             ]
                           ]
-                          ++ optionals (app.multiarch && config.hardware.graphics.enable32Bit) [
+                          ++ optionals (isGraphical && config.hardware.graphics.enable) (
                             [
-                              config.systemd.tmpfiles.settings.graphics-driver."/run/opengl-driver-32"."L+".argument
-                              /run/opengl-driver-32
+                              [
+                                config.systemd.tmpfiles.settings.graphics-driver."/run/opengl-driver"."L+".argument
+                                "/run/opengl-driver"
+                              ]
                             ]
-                          ]
-                        );
+                            ++ optionals (app.multiarch && config.hardware.graphics.enable32Bit) [
+                              [
+                                config.systemd.tmpfiles.settings.graphics-driver."/run/opengl-driver-32"."L+".argument
+                                /run/opengl-driver-32
+                              ]
+                            ]
+                          );
                       };
 
                       inherit enablements;
