@@ -100,9 +100,11 @@ print(denyOutputVerbose)
 print(machine.fail("sudo -u alice -i fsu"))
 
 # Verify capabilities/securebits in user namespace:
+print(machine.succeed("sudo -u alice -i fortify run capsh --print"))
 print(machine.succeed("sudo -u alice -i fortify run capsh --has-no-new-privs"))
 print(machine.fail("sudo -u alice -i fortify run capsh --has-a=CAP_SYS_ADMIN"))
 print(machine.fail("sudo -u alice -i fortify run capsh --has-b=CAP_SYS_ADMIN"))
+print(machine.fail("sudo -u alice -i fortify run capsh --has-i=CAP_SYS_ADMIN"))
 print(machine.fail("sudo -u alice -i fortify run capsh --has-p=CAP_SYS_ADMIN"))
 print(machine.fail("sudo -u alice -i fortify run umount -R /dev"))
 

@@ -217,7 +217,7 @@ func Init(prepare func(prefix string), setVerbose func(verbose bool)) {
 	}
 
 	/*
-		load seccomp filter
+		caps/securebits and seccomp filter
 	*/
 
 	if _, _, errno := syscall.Syscall(PR_SET_NO_NEW_PRIVS, 1, 0, 0); errno != 0 {
@@ -228,9 +228,16 @@ func Init(prepare func(prefix string), setVerbose func(verbose bool)) {
 	}
 	for i := uintptr(0); i <= LastCap(); i++ {
 		if _, _, errno := syscall.Syscall(syscall.SYS_PRCTL, syscall.PR_CAPBSET_DROP, i, 0); errno != 0 {
-			log.Fatalf("cannot drop capability: %v", errno)
+			log.Fatalf("cannot drop capability from bonding set: %v", errno)
 		}
 	}
+	if err := capset(
+		&capHeader{_LINUX_CAPABILITY_VERSION_3, 0},
+		&[2]capData{{0, 0, 0}, {0, 0, 0}},
+	); err != nil {
+		log.Fatalf("cannot capset: %v", err)
+	}
+
 	if err := seccomp.Load(params.Flags.seccomp(params.Seccomp)); err != nil {
 		log.Fatalf("cannot load syscall filter: %v", err)
 	}
