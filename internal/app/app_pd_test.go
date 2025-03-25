@@ -67,7 +67,6 @@ var testCasesPd = []sealTestCase{
 				Tmpfs("/run/user/1971", 8192, 0755).
 				Tmpfs("/run/dbus", 8192, 0755).
 				Bind("/etc", fst.Tmp+"/etc", 0).
-				Mkdir("/etc", 0700).
 				Link(fst.Tmp+"/etc/alsa", "/etc/alsa").
 				Link(fst.Tmp+"/etc/bashrc", "/etc/bashrc").
 				Link(fst.Tmp+"/etc/binfmt.d", "/etc/binfmt.d").
@@ -288,7 +287,6 @@ var testCasesPd = []sealTestCase{
 				Tmpfs("/run/user/1971", 8192, 0755).
 				Tmpfs("/run/dbus", 8192, 0755).
 				Bind("/etc", fst.Tmp+"/etc", 0).
-				Mkdir("/etc", 0700).
 				Link(fst.Tmp+"/etc/alsa", "/etc/alsa").
 				Link(fst.Tmp+"/etc/bashrc", "/etc/bashrc").
 				Link(fst.Tmp+"/etc/binfmt.d", "/etc/binfmt.d").

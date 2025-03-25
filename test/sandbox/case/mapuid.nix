@@ -39,7 +39,7 @@
         urandom = fs "42001b6" null null;
         zero = fs "42001b6" null null;
       } null;
-      etc = fs "800001c0" {
+      etc = fs "800001ed" {
         ".clean" = fs "80001ff" null null;
         ".updated" = fs "80001ff" null null;
         "NIXOS" = fs "80001ff" null null;

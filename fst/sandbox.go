@@ -245,9 +245,7 @@ func (s *SandboxConfig) ToContainer(sys SandboxSys, uid, gid *int) (*sandbox.Par
 		if etcPath == "" {
 			etcPath = "/etc"
 		}
-		container.
-			Bind(etcPath, Tmp+"/etc", 0).
-			Mkdir("/etc", 0700)
+		container.Bind(etcPath, Tmp+"/etc", 0)
 
 		// link host /etc contents to prevent dropping passwd/group bind mounts
 		if d, err := sys.ReadDir(etcPath); err != nil {

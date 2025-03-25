@@ -124,7 +124,6 @@ var testCasesNixos = []sealTestCase{
 				Bind("/run/opengl-driver", "/run/opengl-driver", 0).
 				Bind("/dev/dri", "/dev/dri", sandbox.BindDevice|sandbox.BindWritable|sandbox.BindOptional).
 				Bind("/etc", fst.Tmp+"/etc", 0).
-				Mkdir("/etc", 0700).
 				Link(fst.Tmp+"/etc/alsa", "/etc/alsa").
 				Link(fst.Tmp+"/etc/bashrc", "/etc/bashrc").
 				Link(fst.Tmp+"/etc/binfmt.d", "/etc/binfmt.d").
