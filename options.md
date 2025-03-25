@@ -21,7 +21,6 @@ boolean
 
 
 
-
 ## environment\.fortify\.package
 
 
@@ -36,8 +35,7 @@ package
 
 
 *Default:*
-` <derivation fortify-static-x86_64-unknown-linux-musl-0.2.18> `
-
+` <derivation fortify-static-x86_64-unknown-linux-musl-0.3.0> `
 
 
 
@@ -54,7 +52,6 @@ list of (submodule)
 
 *Default:*
 ` [ ] `
-
 
 
 
@@ -76,31 +73,6 @@ list of package
 
 
 
-
-## environment\.fortify\.apps\.\*\.bluetooth
-
-
-
-Whether to enable AF_BLUETOOTH socket operations\.
-
-
-
-*Type:*
-boolean
-
-
-
-*Default:*
-` false `
-
-
-
-*Example:*
-` true `
-
-
-
-
 ## environment\.fortify\.apps\.\*\.capability\.dbus
 
 
@@ -116,7 +88,6 @@ boolean
 
 *Default:*
 ` true `
-
 
 
 
@@ -138,7 +109,6 @@ boolean
 
 
 
-
 ## environment\.fortify\.apps\.\*\.capability\.wayland
 
 
@@ -157,7 +127,6 @@ boolean
 
 
 
-
 ## environment\.fortify\.apps\.\*\.capability\.x11
 
 
@@ -173,7 +142,6 @@ boolean
 
 *Default:*
 ` false `
-
 
 
 
@@ -197,31 +165,6 @@ null or string
 
 
 
-
-## environment\.fortify\.apps\.\*\.compat
-
-
-
-Whether to enable disable syscall filter extensions\.
-
-
-
-*Type:*
-boolean
-
-
-
-*Default:*
-` false `
-
-
-
-*Example:*
-` true `
-
-
-
-
 ## environment\.fortify\.apps\.\*\.dbus\.session
 
 
@@ -241,7 +184,6 @@ null or (function that evaluates to a(n) anything)
 
 
 
-
 ## environment\.fortify\.apps\.\*\.dbus\.system
 
 
@@ -258,7 +200,6 @@ null or anything
 
 *Default:*
 ` null `
-
 
 
 
@@ -285,12 +226,11 @@ boolean
 
 
 
-
 ## environment\.fortify\.apps\.\*\.devel
 
 
 
-Whether to enable development kernel APIs\.
+Whether to enable debugging-related kernel interfaces\.
 
 
 
@@ -306,7 +246,6 @@ boolean
 
 *Example:*
 ` true `
-
 
 
 
@@ -328,7 +267,6 @@ null or (attribute set of string)
 
 
 
-
 ## environment\.fortify\.apps\.\*\.extraConfig
 
 
@@ -347,7 +285,6 @@ anything
 
 
 
-
 ## environment\.fortify\.apps\.\*\.extraPaths
 
 
@@ -363,7 +300,6 @@ list of anything
 
 *Default:*
 ` [ ] `
-
 
 
 
@@ -386,7 +322,6 @@ null or boolean
 
 
 
-
 ## environment\.fortify\.apps\.\*\.groups
 
 
@@ -405,7 +340,6 @@ list of string
 
 
 
-
 ## environment\.fortify\.apps\.\*\.id
 
 
@@ -421,7 +355,6 @@ null or string
 
 *Default:*
 ` null `
-
 
 
 
@@ -448,7 +381,6 @@ boolean
 
 
 
-
 ## environment\.fortify\.apps\.\*\.mapRealUid
 
 
@@ -472,12 +404,11 @@ boolean
 
 
 
-
 ## environment\.fortify\.apps\.\*\.multiarch
 
 
 
-Whether to enable multiarch kernel support\.
+Whether to enable multiarch kernel-level support\.
 
 
 
@@ -496,7 +427,6 @@ boolean
 
 
 
-
 ## environment\.fortify\.apps\.\*\.name
 
 
@@ -507,7 +437,6 @@ Name of the app’s launcher script\.
 
 *Type:*
 string
-
 
 
 
@@ -534,12 +463,11 @@ boolean
 
 
 
-
 ## environment\.fortify\.apps\.\*\.nix
 
 
 
-Whether to enable nix daemon\.
+Whether to enable nix daemon access\.
 
 
 
@@ -555,7 +483,6 @@ boolean
 
 *Example:*
 ` true `
-
 
 
 
@@ -577,7 +504,6 @@ null or string
 
 
 
-
 ## environment\.fortify\.apps\.\*\.share
 
 
@@ -594,7 +520,6 @@ null or package
 
 *Default:*
 ` null `
-
 
 
 
@@ -621,12 +546,11 @@ boolean
 
 
 
-
 ## environment\.fortify\.apps\.\*\.userns
 
 
 
-Whether to enable user namespace\.
+Whether to enable user namespace creation\.
 
 
 
@@ -642,7 +566,6 @@ boolean
 
 *Example:*
 ` true `
-
 
 
 
@@ -669,7 +592,6 @@ boolean
 
 
 
-
 ## environment\.fortify\.fsuPackage
 
 
@@ -684,8 +606,7 @@ package
 
 
 *Default:*
-` <derivation fortify-fsu-0.2.18> `
-
+` <derivation fortify-fsu-0.3.0> `
 
 
 
@@ -702,7 +623,6 @@ function that evaluates to a(n) function that evaluates to a(n) attribute set of
 
 
 
-
 ## environment\.fortify\.stateDir
 
 
@@ -716,7 +636,6 @@ string
 
 
 
-
 ## environment\.fortify\.users
 
 
@@ -727,6 +646,5 @@ Users allowed to spawn fortify apps and their corresponding fortify fid\.
 
 *Type:*
 attribute set of integer between 0 and 99 (both inclusive)
-
 
 
