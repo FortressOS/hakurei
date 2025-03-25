@@ -35,7 +35,7 @@ package
 
 
 *Default:*
-` <derivation fortify-static-x86_64-unknown-linux-musl-0.3.0> `
+` <derivation fortify-static-x86_64-unknown-linux-musl-0.3.1> `
 
 
 
@@ -606,7 +606,7 @@ package
 
 
 *Default:*
-` <derivation fortify-fsu-0.3.0> `
+` <derivation fortify-fsu-0.3.1> `
 
 
 
