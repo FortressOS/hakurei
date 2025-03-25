@@ -113,7 +113,7 @@
       proc = fs "8000016d" null null;
       run = fs "800001c0" {
         current-system = fs "8000016d" null null;
-        opengl-driver = fs "8000016d" null null;
+        opengl-driver = fs "80001ff" null null;
         user = fs "800001ed" {
           "1000" = fs "800001ed" {
             bus = fs "10001fd" null null;
@@ -201,7 +201,6 @@
       (ent "/class" "/sys/class" "ro,nosuid,nodev,noexec,relatime" "sysfs" "sysfs" "rw")
       (ent "/dev" "/sys/dev" "ro,nosuid,nodev,noexec,relatime" "sysfs" "sysfs" "rw")
       (ent "/devices" "/sys/devices" "ro,nosuid,nodev,noexec,relatime" "sysfs" "sysfs" "rw")
-      (ent ignore "/run/opengl-driver" "ro,nosuid,nodev,relatime" "overlay" "overlay" "rw,lowerdir=/mnt-root/nix/.ro-store,upperdir=/mnt-root/nix/.rw-store/upper,workdir=/mnt-root/nix/.rw-store/work,uuid=on")
       (ent "/dri" "/dev/dri" "rw,nosuid" "devtmpfs" "devtmpfs" ignore)
       (ent "/etc" "/.fortify/etc" "ro,nosuid,nodev,relatime" "ext4" "/dev/disk/by-label/nixos" "rw")
       (ent "/" "/run/user" "rw,nosuid,nodev,relatime" "tmpfs" "tmpfs" "rw,size=4k,mode=755,uid=1000003,gid=1000003")

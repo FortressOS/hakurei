@@ -84,6 +84,8 @@ in
                   command = if app.command == null then app.name else app.command;
                   script = if app.script == null then ("exec " + command + " $@") else app.script;
                   enablements = with app.capability; (if wayland then 1 else 0) + (if x11 then 2 else 0) + (if dbus then 4 else 0) + (if pulse then 8 else 0);
+                  isGraphical = if app.gpu != null then app.gpu else app.capability.wayland || app.capability.x11;
+
                   conf = {
                     inherit (app) id;
                     path = pkgs.writeScript "${app.name}-start" ''
@@ -91,6 +93,7 @@ in
                       ${script}
                     '';
                     args = [ "${app.name}-start" ];
+
                     confinement = {
                       app_id = aid;
                       inherit (app) groups;
@@ -108,6 +111,7 @@ in
                           ;
                         map_real_uid = app.mapRealUid;
                         direct_wayland = app.insecureWayland;
+
                         filesystem =
                           let
                             bind = src: { inherit src; };
@@ -135,8 +139,7 @@ in
                             (mustBind "/nix/var")
                             (bind "/var/db/nix-channels")
                           ]
-                          ++ optionals (if app.gpu != null then app.gpu else app.capability.wayland || app.capability.x11) [
-                            (bind "/run/opengl-driver")
+                          ++ optionals isGraphical [
                             (devBind "/dev/dri")
                             (devBind "/dev/nvidiactl")
                             (devBind "/dev/nvidia-modeset")
@@ -147,7 +150,23 @@ in
                           ++ app.extraPaths;
                         auto_etc = true;
                         cover = [ "/var/run/nscd" ];
+
+                        symlink = optionals (isGraphical && config.hardware.graphics.enable) (
+                          [
+                            [
+                              config.systemd.tmpfiles.settings.graphics-driver."/run/opengl-driver"."L+".argument
+                              "/run/opengl-driver"
+                            ]
+                          ]
+                          ++ optionals (app.multiarch && config.hardware.graphics.enable32Bit) [
+                            [
+                              config.systemd.tmpfiles.settings.graphics-driver."/run/opengl-driver-32"."L+".argument
+                              /run/opengl-driver-32
+                            ]
+                          ]
+                        );
                       };
+
                       inherit enablements;
                       inherit (dbusConfig) session_bus system_bus;
                     };
