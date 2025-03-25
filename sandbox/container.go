@@ -96,6 +96,9 @@ type (
 		*Ops
 		// Extra seccomp options.
 		Seccomp seccomp.SyscallOpts
+		// Permission bits of newly created parent directories.
+		// The zero value is interpreted as 0755.
+		ParentPerm os.FileMode
 
 		Flags HardeningFlags
 	}

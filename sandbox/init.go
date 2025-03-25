@@ -68,6 +68,9 @@ func Init(prepare func(prefix string), setVerbose func(verbose bool)) {
 		if params.Ops == nil {
 			log.Fatal("invalid setup parameters")
 		}
+		if params.ParentPerm == 0 {
+			params.ParentPerm = 0755
+		}
 
 		setVerbose(params.Verbose)
 		msg.Verbose("received setup parameters")

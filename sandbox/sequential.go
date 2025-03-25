@@ -104,7 +104,7 @@ func init() { gob.Register(new(MountProc)) }
 type MountProc string
 
 func (p MountProc) early(*Params) error { return nil }
-func (p MountProc) apply(*Params) error {
+func (p MountProc) apply(params *Params) error {
 	v := string(p)
 
 	if !path.IsAbs(v) {
@@ -113,7 +113,7 @@ func (p MountProc) apply(*Params) error {
 	}
 
 	target := toSysroot(v)
-	if err := os.MkdirAll(target, 0755); err != nil {
+	if err := os.MkdirAll(target, params.ParentPerm); err != nil {
 		return wrapErrSelf(err)
 	}
 	return wrapErrSuffix(syscall.Mount("proc", target, "proc",
@@ -144,13 +144,13 @@ func (d MountDev) apply(params *Params) error {
 	}
 	target := toSysroot(v)
 
-	if err := mountTmpfs("devtmpfs", v, 0, 0755); err != nil {
+	if err := mountTmpfs("devtmpfs", v, 0, params.ParentPerm); err != nil {
 		return err
 	}
 
 	for _, name := range []string{"null", "zero", "full", "random", "urandom", "tty"} {
 		targetPath := toSysroot(path.Join(v, name))
-		if err := ensureFile(targetPath, 0444, 0755); err != nil {
+		if err := ensureFile(targetPath, 0444, params.ParentPerm); err != nil {
 			return err
 		}
 		if err := hostProc.bindMount(
@@ -182,7 +182,7 @@ func (d MountDev) apply(params *Params) error {
 
 	devPtsPath := path.Join(target, "pts")
 	for _, name := range []string{path.Join(target, "shm"), devPtsPath} {
-		if err := os.Mkdir(name, 0755); err != nil {
+		if err := os.Mkdir(name, params.ParentPerm); err != nil {
 			return wrapErrSelf(err)
 		}
 	}
@@ -201,7 +201,7 @@ func (d MountDev) apply(params *Params) error {
 			uintptr(unsafe.Pointer(&buf[0])),
 		); errno == 0 {
 			consolePath := toSysroot(path.Join(v, "console"))
-			if err := ensureFile(consolePath, 0444, 0755); err != nil {
+			if err := ensureFile(consolePath, 0444, params.ParentPerm); err != nil {
 				return err
 			}
 			if name, err := os.Readlink(hostProc.stdout()); err != nil {
@@ -234,7 +234,7 @@ func init() { gob.Register(new(MountMqueue)) }
 type MountMqueue string
 
 func (m MountMqueue) early(*Params) error { return nil }
-func (m MountMqueue) apply(*Params) error {
+func (m MountMqueue) apply(params *Params) error {
 	v := string(m)
 
 	if !path.IsAbs(v) {
@@ -243,7 +243,7 @@ func (m MountMqueue) apply(*Params) error {
 	}
 
 	target := toSysroot(v)
-	if err := os.MkdirAll(target, 0755); err != nil {
+	if err := os.MkdirAll(target, params.ParentPerm); err != nil {
 		return wrapErrSelf(err)
 	}
 	return wrapErrSuffix(syscall.Mount("mqueue", target, "mqueue",
@@ -295,7 +295,7 @@ func init() { gob.Register(new(Symlink)) }
 type Symlink [2]string
 
 func (l *Symlink) early(*Params) error { return nil }
-func (l *Symlink) apply(*Params) error {
+func (l *Symlink) apply(params *Params) error {
 	// symlink target is an arbitrary path value, so only validate link name here
 	if !path.IsAbs(l[1]) {
 		return msg.WrapErr(syscall.EBADE,
@@ -303,7 +303,7 @@ func (l *Symlink) apply(*Params) error {
 	}
 
 	target := toSysroot(l[1])
-	if err := os.MkdirAll(path.Dir(target), 0755); err != nil {
+	if err := os.MkdirAll(path.Dir(target), params.ParentPerm); err != nil {
 		return wrapErrSelf(err)
 	}
 	if err := os.Symlink(l[0], target); err != nil {
@@ -358,7 +358,7 @@ type Tmpfile struct {
 }
 
 func (t *Tmpfile) early(*Params) error { return nil }
-func (t *Tmpfile) apply(*Params) error {
+func (t *Tmpfile) apply(params *Params) error {
 	if !path.IsAbs(t.Path) {
 		return msg.WrapErr(syscall.EBADE,
 			fmt.Sprintf("path %q is not absolute", t.Path))
@@ -378,7 +378,7 @@ func (t *Tmpfile) apply(*Params) error {
 	}
 
 	target := toSysroot(t.Path)
-	if err := ensureFile(target, 0444, 0755); err != nil {
+	if err := ensureFile(target, 0444, params.ParentPerm); err != nil {
 		return err
 	} else if err = hostProc.bindMount(
 		tmpPath,
