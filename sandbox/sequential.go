@@ -38,7 +38,7 @@ func (b *BindMount) early(*Params) error {
 			b.SourceFinal = "\x00"
 			return nil
 		}
-		return msg.WrapErr(err, err.Error())
+		return wrapErrSelf(err)
 	} else {
 		b.SourceFinal = v
 		return nil
@@ -65,10 +65,10 @@ func (b *BindMount) apply(*Params) error {
 	// this perm value emulates bwrap behaviour as it clears bits from 0755 based on
 	// op->perms which is never set for any bind setup op so always results in 0700
 	if fi, err := os.Stat(source); err != nil {
-		return msg.WrapErr(err, err.Error())
+		return wrapErrSelf(err)
 	} else if fi.IsDir() {
 		if err = os.MkdirAll(target, 0700); err != nil {
-			return msg.WrapErr(err, err.Error())
+			return wrapErrSelf(err)
 		}
 	} else if err = ensureFile(target, 0444, 0700); err != nil {
 		return err
@@ -114,7 +114,7 @@ func (p MountProc) apply(*Params) error {
 
 	target := toSysroot(v)
 	if err := os.MkdirAll(target, 0755); err != nil {
-		return msg.WrapErr(err, err.Error())
+		return wrapErrSelf(err)
 	}
 	return wrapErrSuffix(syscall.Mount("proc", target, "proc",
 		syscall.MS_NOSUID|syscall.MS_NOEXEC|syscall.MS_NODEV, ""),
@@ -167,7 +167,7 @@ func (d MountDev) apply(params *Params) error {
 			"/proc/self/fd/"+string(rune(i+'0')),
 			path.Join(target, name),
 		); err != nil {
-			return msg.WrapErr(err, err.Error())
+			return wrapErrSelf(err)
 		}
 	}
 	for _, pair := range [][2]string{
@@ -176,14 +176,14 @@ func (d MountDev) apply(params *Params) error {
 		{"pts/ptmx", "ptmx"},
 	} {
 		if err := os.Symlink(pair[0], path.Join(target, pair[1])); err != nil {
-			return msg.WrapErr(err, err.Error())
+			return wrapErrSelf(err)
 		}
 	}
 
 	devPtsPath := path.Join(target, "pts")
 	for _, name := range []string{path.Join(target, "shm"), devPtsPath} {
 		if err := os.Mkdir(name, 0755); err != nil {
-			return msg.WrapErr(err, err.Error())
+			return wrapErrSelf(err)
 		}
 	}
 
@@ -205,7 +205,7 @@ func (d MountDev) apply(params *Params) error {
 				return err
 			}
 			if name, err := os.Readlink(hostProc.stdout()); err != nil {
-				return msg.WrapErr(err, err.Error())
+				return wrapErrSelf(err)
 			} else if err = hostProc.bindMount(
 				toHost(name),
 				consolePath,
@@ -244,7 +244,7 @@ func (m MountMqueue) apply(*Params) error {
 
 	target := toSysroot(v)
 	if err := os.MkdirAll(target, 0755); err != nil {
-		return msg.WrapErr(err, err.Error())
+		return wrapErrSelf(err)
 	}
 	return wrapErrSuffix(syscall.Mount("mqueue", target, "mqueue",
 		syscall.MS_NOSUID|syscall.MS_NOEXEC|syscall.MS_NODEV, ""),
@@ -304,10 +304,10 @@ func (l *Symlink) apply(*Params) error {
 
 	target := toSysroot(l[1])
 	if err := os.MkdirAll(path.Dir(target), 0755); err != nil {
-		return msg.WrapErr(err, err.Error())
+		return wrapErrSelf(err)
 	}
 	if err := os.Symlink(l[0], target); err != nil {
-		return msg.WrapErr(err, err.Error())
+		return wrapErrSelf(err)
 	}
 	return nil
 }
@@ -336,7 +336,7 @@ func (m *Mkdir) apply(*Params) error {
 	}
 
 	if err := os.MkdirAll(toSysroot(m.Path), m.Perm); err != nil {
-		return msg.WrapErr(err, err.Error())
+		return wrapErrSelf(err)
 	}
 	return nil
 }
@@ -366,7 +366,7 @@ func (t *Tmpfile) apply(*Params) error {
 
 	var tmpPath string
 	if f, err := os.CreateTemp("/", "tmp.*"); err != nil {
-		return msg.WrapErr(err, err.Error())
+		return wrapErrSelf(err)
 	} else if _, err = f.Write(t.Data); err != nil {
 		return wrapErrSuffix(err,
 			"cannot write to intermediate file:")
@@ -388,7 +388,7 @@ func (t *Tmpfile) apply(*Params) error {
 	); err != nil {
 		return err
 	} else if err = os.Remove(tmpPath); err != nil {
-		return msg.WrapErr(err, err.Error())
+		return wrapErrSelf(err)
 	}
 	return nil
 }

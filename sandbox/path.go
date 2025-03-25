@@ -32,16 +32,16 @@ func toHost(name string) string {
 
 func createFile(name string, perm, pperm os.FileMode, content []byte) error {
 	if err := os.MkdirAll(path.Dir(name), pperm); err != nil {
-		return msg.WrapErr(err, err.Error())
+		return wrapErrSelf(err)
 	}
 	f, err := os.OpenFile(name, syscall.O_CREAT|syscall.O_EXCL|syscall.O_WRONLY, perm)
 	if err != nil {
-		return msg.WrapErr(err, err.Error())
+		return wrapErrSelf(err)
 	}
 	if content != nil {
 		_, err = f.Write(content)
 		if err != nil {
-			err = msg.WrapErr(err, err.Error())
+			err = wrapErrSelf(err)
 		}
 	}
 	return errors.Join(f.Close(), err)
@@ -78,7 +78,7 @@ func (p *procPaths) stdout() string   { return p.self + "/fd/1" }
 func (p *procPaths) fd(fd int) string { return p.self + "/fd/" + strconv.Itoa(fd) }
 func (p *procPaths) mountinfo(f func(d *vfs.MountInfoDecoder) error) error {
 	if r, err := os.Open(p.self + "/mountinfo"); err != nil {
-		return msg.WrapErr(err, err.Error())
+		return wrapErrSelf(err)
 	} else {
 		d := vfs.NewMountInfoDecoder(r)
 		err0 := f(d)

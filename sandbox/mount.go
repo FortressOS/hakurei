@@ -25,7 +25,7 @@ func (p *procPaths) bindMount(source, target string, flags uintptr, eq bool) err
 
 	var targetFinal string
 	if v, err := filepath.EvalSymlinks(target); err != nil {
-		return msg.WrapErr(err, err.Error())
+		return wrapErrSelf(err)
 	} else {
 		targetFinal = v
 		if targetFinal != target {
@@ -45,7 +45,7 @@ func (p *procPaths) bindMount(source, target string, flags uintptr, eq bool) err
 				fmt.Sprintf("cannot open %q:", targetFinal))
 		}
 		if v, err := os.Readlink(p.fd(destFd)); err != nil {
-			return msg.WrapErr(err, err.Error())
+			return wrapErrSelf(err)
 		} else if err = syscall.Close(destFd); err != nil {
 			return wrapErrSuffix(err,
 				fmt.Sprintf("cannot close %q:", targetFinal))
@@ -102,7 +102,7 @@ func remountWithFlags(n *vfs.MountInfoNode, mf uintptr) error {
 func mountTmpfs(fsname, name string, size int, perm os.FileMode) error {
 	target := toSysroot(name)
 	if err := os.MkdirAll(target, parentPerm(perm)); err != nil {
-		return msg.WrapErr(err, err.Error())
+		return wrapErrSelf(err)
 	}
 	opt := fmt.Sprintf("mode=%#o", perm)
 	if size > 0 {

@@ -17,3 +17,10 @@ func wrapErrSuffix(err error, a ...any) error {
 	}
 	return msg.WrapErr(err, append(a, err)...)
 }
+
+func wrapErrSelf(err error) error {
+	if err == nil {
+		return nil
+	}
+	return msg.WrapErr(err, err.Error())
+}
