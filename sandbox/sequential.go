@@ -8,6 +8,7 @@ import (
 	"path"
 	"path/filepath"
 	"slices"
+	"strings"
 	"syscall"
 	"unsafe"
 )
@@ -294,7 +295,21 @@ func init() { gob.Register(new(Symlink)) }
 // Symlink creates a symlink in the container filesystem.
 type Symlink [2]string
 
-func (l *Symlink) early(*Params) error { return nil }
+func (l *Symlink) early(*Params) error {
+	if strings.HasPrefix(l[0], "*") {
+		l[0] = l[0][1:]
+		if !path.IsAbs(l[0]) {
+			return msg.WrapErr(syscall.EBADE,
+				fmt.Sprintf("path %q is not absolute", l[0]))
+		}
+		if name, err := os.Readlink(l[0]); err != nil {
+			return wrapErrSelf(err)
+		} else {
+			l[0] = name
+		}
+	}
+	return nil
+}
 func (l *Symlink) apply(params *Params) error {
 	// symlink target is an arbitrary path value, so only validate link name here
 	if !path.IsAbs(l[1]) {
