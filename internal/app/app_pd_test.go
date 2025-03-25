@@ -146,7 +146,7 @@ var testCasesPd = []sealTestCase{
 				Link(fst.Tmp+"/etc/zshenv", "/etc/zshenv").
 				Link(fst.Tmp+"/etc/zshrc", "/etc/zshrc").
 				Tmpfs("/run/user", 4096, 0755).
-				Tmpfs("/run/user/65534", 8388608, 0755).
+				Tmpfs("/run/user/65534", 8388608, 0700).
 				Bind("/tmp/fortify.1971/tmpdir/0", "/tmp", sandbox.BindWritable).
 				Bind("/home/chronos", "/home/chronos", sandbox.BindWritable).
 				Place("/etc/passwd", []byte("chronos:x:65534:65534:Fortify:/home/chronos:/run/current-system/sw/bin/zsh\n")).
@@ -366,7 +366,7 @@ var testCasesPd = []sealTestCase{
 				Link(fst.Tmp+"/etc/zshenv", "/etc/zshenv").
 				Link(fst.Tmp+"/etc/zshrc", "/etc/zshrc").
 				Tmpfs("/run/user", 4096, 0755).
-				Tmpfs("/run/user/65534", 8388608, 0755).
+				Tmpfs("/run/user/65534", 8388608, 0700).
 				Bind("/tmp/fortify.1971/tmpdir/9", "/tmp", sandbox.BindWritable).
 				Bind("/home/chronos", "/home/chronos", sandbox.BindWritable).
 				Place("/etc/passwd", []byte("chronos:x:65534:65534:Fortify:/home/chronos:/run/current-system/sw/bin/zsh\n")).

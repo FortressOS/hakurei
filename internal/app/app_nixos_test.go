@@ -203,7 +203,7 @@ var testCasesNixos = []sealTestCase{
 				Link(fst.Tmp+"/etc/zshenv", "/etc/zshenv").
 				Link(fst.Tmp+"/etc/zshrc", "/etc/zshrc").
 				Tmpfs("/run/user", 4096, 0755).
-				Tmpfs("/run/user/1971", 8388608, 0755).
+				Tmpfs("/run/user/1971", 8388608, 0700).
 				Bind("/tmp/fortify.1971/tmpdir/1", "/tmp", sandbox.BindWritable).
 				Bind("/var/lib/persist/module/fortify/0/1", "/var/lib/persist/module/fortify/0/1", sandbox.BindWritable).
 				Place("/etc/passwd", []byte("u0_a1:x:1971:100:Fortify:/var/lib/persist/module/fortify/0/1:/run/current-system/sw/bin/zsh\n")).

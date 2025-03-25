@@ -291,7 +291,7 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *fst.Co
 	// inner XDG_RUNTIME_DIR default formatting of `/run/user/%d` as post-fsu user
 	innerRuntimeDir := path.Join("/run/user", mapuid.String())
 	seal.container.Tmpfs("/run/user", 1<<12, 0755)
-	seal.container.Tmpfs(innerRuntimeDir, 1<<23, 0755)
+	seal.container.Tmpfs(innerRuntimeDir, 1<<23, 0700)
 	seal.env[xdgRuntimeDir] = innerRuntimeDir
 	seal.env[xdgSessionClass] = "user"
 	seal.env[xdgSessionType] = "tty"
