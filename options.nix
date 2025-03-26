@@ -94,6 +94,24 @@ in
                 '';
               };
 
+              path = mkOption {
+                type = nullOr str;
+                default = null;
+                description = ''
+                  Custom executable path.
+                  Setting this to null will default to the start script.
+                '';
+              };
+
+              args = mkOption {
+                type = nullOr (listOf str);
+                default = null;
+                description = ''
+                  Custom args.
+                  Setting this to null will default to script name.
+                '';
+              };
+
               script = mkOption {
                 type = nullOr str;
                 default = null;

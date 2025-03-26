@@ -88,11 +88,15 @@ in
 
                   conf = {
                     inherit (app) id;
-                    path = pkgs.writeScript "${app.name}-start" ''
-                      #!${pkgs.zsh}${pkgs.zsh.shellPath}
-                      ${script}
-                    '';
-                    args = [ "${app.name}-start" ];
+                    path =
+                      if app.path == null then
+                        pkgs.writeScript "${app.name}-start" ''
+                          #!${pkgs.zsh}${pkgs.zsh.shellPath}
+                          ${script}
+                        ''
+                      else
+                        app.path;
+                    args = if app.args == null then [ "${app.name}-start" ] else app.args;
 
                     confinement = {
                       app_id = aid;
