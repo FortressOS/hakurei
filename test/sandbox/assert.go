@@ -23,6 +23,7 @@ func printf(format string, v ...any) { printfFunc(format, v...) }
 func fatalf(format string, v ...any) { fatalfFunc(format, v...) }
 
 type TestCase struct {
+	Env     []string          `json:"env"`
 	FS      *FS               `json:"fs"`
 	Mount   []*MountinfoEntry `json:"mount"`
 	Seccomp bool              `json:"seccomp"`
@@ -44,6 +45,36 @@ func (t *T) MustCheckFile(wantFilePath, markerPath string) {
 }
 
 func (t *T) MustCheck(want *TestCase) {
+	if want.Env != nil {
+		var (
+			fail bool
+			i    int
+			got  string
+		)
+		for i, got = range os.Environ() {
+			if i == len(want.Env) {
+				fatalf("got more than %d environment variables", len(want.Env))
+			}
+			if got != want.Env[i] {
+				fail = true
+				printf("[FAIL] %s", got)
+			} else {
+				printf("[ OK ] %s", got)
+			}
+		}
+
+		i++
+		if i != len(want.Env) {
+			fatalf("got %d environment variables, want %d", i, len(want.Env))
+		}
+
+		if fail {
+			fatalf("[FAIL] some environment variables did not match")
+		}
+	} else {
+		printf("[SKIP] skipping environ check")
+	}
+
 	if want.FS != nil && t.FS != nil {
 		if err := want.FS.Compare(".", t.FS); err != nil {
 			fatalf("%v", err)

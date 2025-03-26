@@ -9,6 +9,19 @@
   mapRealUid = false;
 
   want = {
+    env = [
+      "DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/65534/bus"
+      "HOME=/var/lib/fortify/u0/a1"
+      "PULSE_SERVER=unix:/run/user/65534/pulse/native"
+      "SHELL=/run/current-system/sw/bin/bash"
+      "TERM=linux"
+      "USER=u0_a1"
+      "WAYLAND_DISPLAY=wayland-0"
+      "XDG_RUNTIME_DIR=/run/user/65534"
+      "XDG_SESSION_CLASS=user"
+      "XDG_SESSION_TYPE=tty"
+    ];
+
     fs = fs "dead" {
       ".fortify" = fs "800001ed" {
         etc = fs "800001ed" null null;
