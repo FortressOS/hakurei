@@ -101,6 +101,7 @@ var testCasesNixos = []sealTestCase{
 				"HOME=/var/lib/persist/module/fortify/0/1",
 				"PULSE_COOKIE=" + fst.Tmp + "/pulse-cookie",
 				"PULSE_SERVER=unix:/run/user/1971/pulse/native",
+				"SHELL=/run/current-system/sw/bin/zsh",
 				"TERM=xterm-256color",
 				"USER=u0_a1",
 				"WAYLAND_DISPLAY=wayland-0",

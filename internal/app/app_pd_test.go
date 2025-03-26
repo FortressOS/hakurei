@@ -41,6 +41,7 @@ var testCasesPd = []sealTestCase{
 			Args:  []string{"/run/current-system/sw/bin/zsh"},
 			Env: []string{
 				"HOME=/home/chronos",
+				"SHELL=/run/current-system/sw/bin/zsh",
 				"TERM=xterm-256color",
 				"USER=chronos",
 				"XDG_RUNTIME_DIR=/run/user/65534",
@@ -259,6 +260,7 @@ var testCasesPd = []sealTestCase{
 				"HOME=/home/chronos",
 				"PULSE_COOKIE=" + fst.Tmp + "/pulse-cookie",
 				"PULSE_SERVER=unix:/run/user/65534/pulse/native",
+				"SHELL=/run/current-system/sw/bin/zsh",
 				"TERM=xterm-256color",
 				"USER=chronos",
 				"WAYLAND_DISPLAY=wayland-0",

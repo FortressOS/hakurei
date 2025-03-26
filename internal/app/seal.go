@@ -255,8 +255,9 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *fst.Co
 		mapuid = newInt(uid)
 		mapgid = newInt(gid)
 		if seal.env == nil {
-			seal.env = make(map[string]string)
+			seal.env = make(map[string]string, 1<<6)
 		}
+		seal.env[shell] = shellPath
 	}
 
 	/*
