@@ -1,6 +1,7 @@
 {
   lib,
   callPackage,
+  writeText,
   foot,
 
   version,
@@ -29,7 +30,7 @@ let
       ;
   };
 
-  checkSandbox = callPackage ../. { inherit version; };
+  checkSandbox = callPackage ../assert.nix { inherit version; };
 
   callTestCase =
     path:
@@ -48,7 +49,11 @@ let
       inherit (tc) tty mapRealUid;
       share = foot;
       packages = [ ];
-      command = builtins.toString (checkSandbox tc.name tc.want);
+      path = "${checkSandbox}/bin/test";
+      args = [
+        "test"
+        (toString (writeText "fortify-${tc.name}-want.json" (builtins.toJSON tc.want)))
+      ];
     };
 in
 {

@@ -34,10 +34,13 @@ type T struct {
 	MountsPath string
 }
 
-func (t *T) MustCheckFile(wantFilePath string) {
+func (t *T) MustCheckFile(wantFilePath, markerPath string) {
 	var want *TestCase
 	mustDecode(wantFilePath, &want)
 	t.MustCheck(want)
+	if _, err := os.Create(markerPath); err != nil {
+		fatalf("cannot create success marker: %v", err)
+	}
 }
 
 func (t *T) MustCheck(want *TestCase) {

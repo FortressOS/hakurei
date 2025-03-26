@@ -6,7 +6,12 @@
 }:
 let
   testCases = import ./sandbox/case {
-    inherit (pkgs) lib callPackage foot;
+    inherit (pkgs)
+      lib
+      callPackage
+      writeText
+      foot
+      ;
     inherit (config.environment.fortify.package) version;
   };
 in

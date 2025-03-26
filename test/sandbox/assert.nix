@@ -24,7 +24,7 @@ buildGoModule {
       import "os"
       import "git.gensokyo.uk/security/fortify/test/sandbox"
 
-      func main() { (&sandbox.T{FS: os.DirFS("/")}).MustCheckFile(os.Args[1]) }
+      func main() { (&sandbox.T{FS: os.DirFS("/")}).MustCheckFile(os.Args[1], "/tmp/sandbox-ok") }
     ''} main.go
   '';
 }
