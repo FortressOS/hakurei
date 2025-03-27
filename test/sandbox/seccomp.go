@@ -10,9 +10,7 @@ import (
 */
 import "C"
 
-const NULL = 0
-
-func TrySyscalls() error {
+func trySyscalls() error {
 	testCases := []struct {
 		name  string
 		errno syscall.Errno

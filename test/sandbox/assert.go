@@ -116,7 +116,7 @@ func (t *T) MustCheck(want *TestCase) {
 	}
 
 	if want.Seccomp {
-		if TrySyscalls() != nil {
+		if trySyscalls() != nil {
 			os.Exit(1)
 		}
 	} else {
