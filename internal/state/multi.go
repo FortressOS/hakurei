@@ -33,10 +33,10 @@ func (s *multiStore) Do(aid int, f func(c Cursor)) (bool, error) {
 
 	// load or initialise new backend
 	b := new(multiBackend)
+	b.lock.Lock()
 	if v, ok := s.backends.LoadOrStore(aid, b); ok {
 		b = v.(*multiBackend)
 	} else {
-		b.lock.Lock()
 		b.path = path.Join(s.base, strconv.Itoa(aid))
 
 		// ensure directory
