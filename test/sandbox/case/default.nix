@@ -46,6 +46,10 @@ let
       go mod init git.gensokyo.uk/security/fortify/test >& /dev/null
       cp ${./main.go} main.go
     '';
+
+    postInstall = ''
+      mv $out/bin/test $out/bin/fortify-test
+    '';
   };
 
   callTestCase =
@@ -65,7 +69,7 @@ let
       inherit (tc) tty mapRealUid;
       share = foot;
       packages = [ ];
-      path = "${checkSandbox}/bin/test";
+      path = "${checkSandbox}/bin/fortify-test";
       args = [
         "test"
         (toString (writeText "fortify-${tc.name}-want.json" (builtins.toJSON tc.want)))
@@ -76,4 +80,6 @@ in
   preset = callTestCase ./preset.nix;
   tty = callTestCase ./tty.nix;
   mapuid = callTestCase ./mapuid.nix;
+
+  _testProgram = checkSandbox;
 }
