@@ -101,12 +101,16 @@ type sockFilter struct { /* Filter block */
 	k    uint32 /* Generic multiuse field */
 }
 
-func getFilter(pid, index int) ([]sockFilter, error) {
-	var buf []sockFilter
+func getFilter[T comparable](pid, index int) ([]T, error) {
+	if s := unsafe.Sizeof(*new(T)); s != 8 {
+		panic(fmt.Sprintf("invalid filter block size %d", s))
+	}
+
+	var buf []T
 	if n, errno := ptrace(PTRACE_SECCOMP_GET_FILTER, pid, index, nil); errno != 0 {
 		return nil, &ptraceError{"PTRACE_SECCOMP_GET_FILTER", errno}
 	} else {
-		buf = make([]sockFilter, n)
+		buf = make([]T, n)
 	}
 	if _, errno := ptrace(PTRACE_SECCOMP_GET_FILTER, pid, index, unsafe.Pointer(&buf[0])); errno != 0 {
 		return nil, &ptraceError{"PTRACE_SECCOMP_GET_FILTER", errno}
