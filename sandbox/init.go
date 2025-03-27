@@ -223,17 +223,30 @@ func Init(prepare func(prefix string), setVerbose func(verbose bool)) {
 	if _, _, errno := syscall.Syscall(PR_SET_NO_NEW_PRIVS, 1, 0, 0); errno != 0 {
 		log.Fatalf("prctl(PR_SET_NO_NEW_PRIVS): %v", errno)
 	}
+
 	if _, _, errno := syscall.Syscall(syscall.SYS_PRCTL, PR_CAP_AMBIENT, PR_CAP_AMBIENT_CLEAR_ALL, 0); errno != 0 {
 		log.Fatalf("cannot clear the ambient capability set: %v", errno)
 	}
 	for i := uintptr(0); i <= LastCap(); i++ {
+		if params.Privileged && i == CAP_SYS_ADMIN {
+			continue
+		}
 		if _, _, errno := syscall.Syscall(syscall.SYS_PRCTL, syscall.PR_CAPBSET_DROP, i, 0); errno != 0 {
 			log.Fatalf("cannot drop capability from bonding set: %v", errno)
 		}
 	}
+
+	var keep [2]uint32
+	if params.Privileged {
+		keep[capToIndex(CAP_SYS_ADMIN)] |= capToMask(CAP_SYS_ADMIN)
+
+		if _, _, errno := syscall.Syscall(syscall.SYS_PRCTL, PR_CAP_AMBIENT, PR_CAP_AMBIENT_RAISE, CAP_SYS_ADMIN); errno != 0 {
+			log.Fatalf("cannot raise CAP_SYS_ADMIN: %v", errno)
+		}
+	}
 	if err := capset(
 		&capHeader{_LINUX_CAPABILITY_VERSION_3, 0},
-		&[2]capData{{0, 0, 0}, {0, 0, 0}},
+		&[2]capData{{0, keep[0], keep[0]}, {0, keep[1], keep[1]}},
 	); err != nil {
 		log.Fatalf("cannot capset: %v", err)
 	}

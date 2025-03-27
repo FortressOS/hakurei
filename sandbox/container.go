@@ -99,6 +99,8 @@ type (
 		// Permission bits of newly created parent directories.
 		// The zero value is interpreted as 0755.
 		ParentPerm os.FileMode
+		// Retain CAP_SYS_ADMIN.
+		Privileged bool
 
 		Flags HardeningFlags
 	}
