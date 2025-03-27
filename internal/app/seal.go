@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
-	"maps"
 	"os"
 	"path"
 	"regexp"
@@ -505,7 +504,13 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *fst.Co
 
 	// flatten and sort env for deterministic behaviour
 	seal.container.Env = make([]string, 0, len(seal.env))
-	maps.All(seal.env)(func(k string, v string) bool { seal.container.Env = append(seal.container.Env, k+"="+v); return true })
+	for k, v := range seal.env {
+		if strings.IndexByte(k, '=') != -1 {
+			return fmsg.WrapError(syscall.EINVAL,
+				fmt.Sprintf("invalid environment variable %s", k))
+		}
+		seal.container.Env = append(seal.container.Env, k+"="+v)
+	}
 	slices.Sort(seal.container.Env)
 
 	fmsg.Verbosef("created application seal for uid %s (%s) groups: %v, argv: %s",
