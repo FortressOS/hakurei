@@ -63,7 +63,7 @@ func flagRestoreFiles(offset int, ap, sp string) (argsFile, statFile *os.File) {
 func genericStub(argsFile, statFile *os.File) {
 	if argsFile != nil {
 		// this output is checked by parent
-		if _, err := io.Copy(os.Stderr, argsFile); err != nil {
+		if _, err := io.Copy(os.Stdout, argsFile); err != nil {
 			panic("cannot read args: " + err.Error())
 		}
 	}

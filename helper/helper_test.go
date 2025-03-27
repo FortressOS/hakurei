@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"strconv"
 	"strings"
 	"testing"
@@ -55,8 +56,8 @@ func testHelper(t *testing.T, createHelper func(ctx context.Context, setOutput f
 
 	t.Run("start helper with status channel and wait", func(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		stdout, stderr := new(strings.Builder), new(strings.Builder)
-		h := createHelper(ctx, func(stdoutP, stderrP *io.Writer) { *stdoutP, *stderrP = stdout, stderr }, true)
+		stdout := new(strings.Builder)
+		h := createHelper(ctx, func(stdoutP, stderrP *io.Writer) { *stdoutP, *stderrP = stdout, os.Stderr }, true)
 
 		t.Run("wait not yet started helper", func(t *testing.T) {
 			defer func() {
@@ -88,8 +89,8 @@ func testHelper(t *testing.T, createHelper func(ctx context.Context, setOutput f
 
 		t.Log("waiting on helper")
 		if err := h.Wait(); !errors.Is(err, context.Canceled) {
-			t.Errorf("Wait() err = %v stderr = %s",
-				err, stderr)
+			t.Errorf("Wait: error = %v",
+				err)
 		}
 
 		t.Run("wait already finalised helper", func(t *testing.T) {
@@ -101,8 +102,8 @@ func testHelper(t *testing.T, createHelper func(ctx context.Context, setOutput f
 			}
 		})
 
-		if got := stderr.String(); got != wantPayload {
-			t.Errorf("Start: stderr = %v, want %v",
+		if got := trimStdout(stdout); got != wantPayload {
+			t.Errorf("Start: stdout = %q, want %q",
 				got, wantPayload)
 		}
 	})
@@ -110,23 +111,27 @@ func testHelper(t *testing.T, createHelper func(ctx context.Context, setOutput f
 	t.Run("start helper and wait", func(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		stdout, stderr := new(strings.Builder), new(strings.Builder)
-		h := createHelper(ctx, func(stdoutP, stderrP *io.Writer) { *stdoutP, *stderrP = stdout, stderr }, false)
+		stdout := new(strings.Builder)
+		h := createHelper(ctx, func(stdoutP, stderrP *io.Writer) { *stdoutP, *stderrP = stdout, os.Stderr }, false)
 
 		if err := h.Start(); err != nil {
-			t.Errorf("Start() error = %v",
+			t.Errorf("Start: error = %v",
 				err)
 			return
 		}
 
 		if err := h.Wait(); err != nil {
-			t.Errorf("Wait() err = %v stdout = %s stderr = %s",
-				err, stdout, stderr)
+			t.Errorf("Wait: error = %v stdout = %q",
+				err, stdout)
 		}
 
-		if got := stderr.String(); got != wantPayload {
-			t.Errorf("Start() stderr = %v, want %v",
+		if got := trimStdout(stdout); got != wantPayload {
+			t.Errorf("Start: stdout = %q, want %q",
 				got, wantPayload)
 		}
 	})
+}
+
+func trimStdout(stdout fmt.Stringer) string {
+	return strings.TrimPrefix(stdout.String(), "=== RUN   TestHelperInit\n")
 }
