@@ -40,6 +40,9 @@ in
       # For D-Bus tests:
       libnotify
       mako
+
+      # For checking seccomp outcome:
+      testCases._testProgram
     ];
 
     variables = {

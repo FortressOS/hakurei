@@ -7,10 +7,14 @@ in the public sandbox/vfs package. Files in this package are excluded by the bui
 package sandbox
 
 import (
+	"crypto/sha512"
+	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"io/fs"
 	"log"
 	"os"
+	"syscall"
 )
 
 var (
@@ -121,6 +125,33 @@ func (t *T) MustCheck(want *TestCase) {
 		}
 	} else {
 		printf("[SKIP] skipping seccomp check")
+	}
+}
+
+func MustCheckFilter(pid int, want string) {
+	if err := ptraceAttach(pid); err != nil {
+		fatalf("cannot attach to process %d: %v", pid, err)
+	}
+	buf, err := getFilter[[8]byte](pid, 0)
+	if err0 := ptraceDetach(pid); err0 != nil {
+		printf("cannot detach from process %d: %v", pid, err0)
+	}
+	if err != nil {
+		if errors.Is(err, syscall.ENOENT) {
+			fatalf("seccomp filter not installed for process %d", pid)
+		}
+		fatalf("cannot get filter: %v", err)
+	}
+
+	h := sha512.New()
+	for _, b := range buf {
+		h.Write(b[:])
+	}
+
+	if got := hex.EncodeToString(h.Sum(nil)); got != want {
+		fatalf("[FAIL] %s", got)
+	} else {
+		printf("[ OK ] %s", got)
 	}
 }
 

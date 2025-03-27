@@ -99,6 +99,12 @@ print(denyOutputVerbose)
 # Fail direct fsu call:
 print(machine.fail("sudo -u alice -i fsu"))
 
+# Check seccomp outcome:
+swaymsg("exec fortify run cat")
+pid = int(machine.wait_until_succeeds("pgrep -U 1000000 -x cat", timeout=5))
+print(machine.succeed(f"fortify-test filter {pid} c698b081ff957afe17a6d94374537d37f2a63f6f9dd75da7546542407a9e32476ebda3312ba7785d7f618542bcfaf27ca27dcc2dddba852069d28bcfe8cad39a &>/dev/stdout", timeout=5))
+machine.succeed(f"kill -TERM {pid}")
+
 # Verify capabilities/securebits in user namespace:
 print(machine.succeed("sudo -u alice -i fortify run capsh --print"))
 print(machine.succeed("sudo -u alice -i fortify run capsh --has-no-new-privs"))
