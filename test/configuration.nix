@@ -5,15 +5,7 @@
   ...
 }:
 let
-  testCases = import ./sandbox/case {
-    inherit (pkgs)
-      lib
-      callPackage
-      writeText
-      foot
-      ;
-    inherit (config.environment.fortify.package) version;
-  };
+  testCases = import ./sandbox/case pkgs config.environment.fortify.package.version;
 in
 {
   users.users = {

@@ -1,12 +1,14 @@
-{
-  lib,
-  callPackage,
-  writeText,
-  foot,
-
-  version,
-}:
+pkgs: version:
 let
+  inherit (pkgs)
+    lib
+    writeText
+    buildGoModule
+    pkg-config
+    util-linux
+    foot
+    ;
+
   fs = mode: dir: data: {
     mode = lib.fromHexString mode;
     inherit
@@ -30,7 +32,21 @@ let
       ;
   };
 
-  checkSandbox = callPackage ../assert.nix { inherit version; };
+  checkSandbox = buildGoModule {
+    pname = "check-sandbox";
+    inherit version;
+
+    src = ../../.;
+    vendorHash = null;
+
+    buildInputs = [ util-linux ];
+    nativeBuildInputs = [ pkg-config ];
+
+    preBuild = ''
+      go mod init git.gensokyo.uk/security/fortify/test >& /dev/null
+      cp ${./main.go} main.go
+    '';
+  };
 
   callTestCase =
     path:
