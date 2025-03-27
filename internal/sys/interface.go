@@ -47,7 +47,7 @@ type State interface {
 	Uid(aid int) (int, error)
 }
 
-// CopyPaths is a generic implementation of [System.Paths].
+// CopyPaths is a generic implementation of [fst.Paths].
 func CopyPaths(os State, v *fst.Paths) {
 	v.SharePath = path.Join(os.TempDir(), "fortify."+strconv.Itoa(os.Getuid()))
 
