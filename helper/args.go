@@ -1,38 +1,17 @@
 package helper
 
 import (
-	"errors"
+	"bytes"
 	"io"
-	"strings"
+	"syscall"
 )
 
-var (
-	ErrContainsNull = errors.New("argument contains null character")
-)
-
-type argsWt []string
-
-// checks whether any element contains the null character
-// must be called before args use and args must not be modified after call
-func (a argsWt) check() error {
-	for _, arg := range a {
-		for _, b := range arg {
-			if b == '\x00' {
-				return ErrContainsNull
-			}
-		}
-	}
-
-	return nil
-}
+type argsWt [][]byte
 
 func (a argsWt) WriteTo(w io.Writer) (int64, error) {
-	// assuming already checked
-
 	nt := 0
-	// write null terminated arguments
 	for _, arg := range a {
-		n, err := w.Write([]byte(arg + "\x00"))
+		n, err := w.Write(arg)
 		nt += n
 
 		if err != nil {
@@ -44,18 +23,32 @@ func (a argsWt) WriteTo(w io.Writer) (int64, error) {
 }
 
 func (a argsWt) String() string {
-	return strings.Join(a, " ")
+	return string(
+		bytes.TrimSuffix(
+			bytes.ReplaceAll(
+				bytes.Join(a, nil),
+				[]byte{0}, []byte{' '},
+			),
+			[]byte{' '},
+		),
+	)
 }
 
-// NewCheckedArgs returns a checked argument writer for args.
-// Callers must not retain any references to args.
-func NewCheckedArgs(args []string) (io.WriterTo, error) {
-	a := argsWt(args)
-	return a, a.check()
+// NewCheckedArgs returns a checked null-terminated argument writer for a copy of args.
+func NewCheckedArgs(args []string) (wt io.WriterTo, err error) {
+	a := make(argsWt, len(args))
+	for i, arg := range args {
+		a[i], err = syscall.ByteSliceFromString(arg)
+		if err != nil {
+			return
+		}
+	}
+	wt = a
+	return
 }
 
-// MustNewCheckedArgs returns a checked argument writer for args and panics if check fails.
-// Callers must not retain any references to args.
+// MustNewCheckedArgs returns a checked null-terminated argument writer for a copy of args.
+// If s contains a NUL byte this function panics instead of returning an error.
 func MustNewCheckedArgs(args []string) io.WriterTo {
 	a, err := NewCheckedArgs(args)
 	if err != nil {

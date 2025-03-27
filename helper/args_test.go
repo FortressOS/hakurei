@@ -4,34 +4,33 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"syscall"
 	"testing"
 
 	"git.gensokyo.uk/security/fortify/helper"
 )
 
-func Test_argsFd_String(t *testing.T) {
+func TestArgsString(t *testing.T) {
 	wantString := strings.Join(wantArgs, " ")
 	if got := argsWt.(fmt.Stringer).String(); got != wantString {
-		t.Errorf("String(): got %v; want %v",
+		t.Errorf("String: %q, want %q",
 			got, wantString)
 	}
 }
 
 func TestNewCheckedArgs(t *testing.T) {
 	args := []string{"\x00"}
-	if _, err := helper.NewCheckedArgs(args); !errors.Is(err, helper.ErrContainsNull) {
-		t.Errorf("NewCheckedArgs(%q) error = %v, wantErr %v",
-			args,
-			err, helper.ErrContainsNull)
+	if _, err := helper.NewCheckedArgs(args); !errors.Is(err, syscall.EINVAL) {
+		t.Errorf("NewCheckedArgs: error = %v, wantErr %v",
+			err, syscall.EINVAL)
 	}
 
 	t.Run("must panic", func(t *testing.T) {
 		badPayload := []string{"\x00"}
 		defer func() {
-			wantPanic := "argument contains null character"
+			wantPanic := "invalid argument"
 			if r := recover(); r != wantPanic {
-				t.Errorf("MustNewCheckedArgs(%q) panic = %v, wantPanic %v",
-					badPayload,
+				t.Errorf("MustNewCheckedArgs: panic = %v, wantPanic %v",
 					r, wantPanic)
 			}
 		}()
