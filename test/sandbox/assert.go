@@ -129,18 +129,43 @@ func (t *T) MustCheck(want *TestCase) {
 }
 
 func MustCheckFilter(pid int, want string) {
-	if err := ptraceAttach(pid); err != nil {
+	err := CheckFilter(pid, want)
+	if err == nil {
+		return
+	}
+
+	var perr *ptraceError
+	if !errors.As(err, &perr) {
+		fatalf("%s", err)
+	}
+	switch perr.op {
+	case "PTRACE_ATTACH":
 		fatalf("cannot attach to process %d: %v", pid, err)
-	}
-	buf, err := getFilter[[8]byte](pid, 0)
-	if err0 := ptraceDetach(pid); err0 != nil {
-		printf("cannot detach from process %d: %v", pid, err0)
-	}
-	if err != nil {
-		if errors.Is(err, syscall.ENOENT) {
+	case "PTRACE_SECCOMP_GET_FILTER":
+		if perr.errno == syscall.ENOENT {
 			fatalf("seccomp filter not installed for process %d", pid)
 		}
 		fatalf("cannot get filter: %v", err)
+	default:
+		fatalf("cannot check filter: %v", err)
+	}
+
+	*(*int)(nil) = 0 // not reached
+}
+
+func CheckFilter(pid int, want string) error {
+	if err := ptraceAttach(pid); err != nil {
+		return err
+	}
+	defer func() {
+		if err := ptraceDetach(pid); err != nil {
+			printf("cannot detach from process %d: %v", pid, err)
+		}
+	}()
+
+	buf, err := getFilter[[8]byte](pid, 0)
+	if err != nil {
+		return err
 	}
 
 	h := sha512.New()
@@ -149,9 +174,11 @@ func MustCheckFilter(pid int, want string) {
 	}
 
 	if got := hex.EncodeToString(h.Sum(nil)); got != want {
-		fatalf("[FAIL] %s", got)
+		printf("[FAIL] %s", got)
+		return syscall.ENOTRECOVERABLE
 	} else {
 		printf("[ OK ] %s", got)
+		return nil
 	}
 }
 
