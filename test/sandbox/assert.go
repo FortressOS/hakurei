@@ -15,6 +15,7 @@ import (
 	"log"
 	"os"
 	"syscall"
+	"time"
 )
 
 var (
@@ -163,14 +164,35 @@ func CheckFilter(pid int, want string) error {
 		}
 	}()
 
-	buf, err := getFilter[[8]byte](pid, 0)
-	if err != nil {
-		return err
-	}
-
 	h := sha512.New()
-	for _, b := range buf {
-		h.Write(b[:])
+	{
+	getFilter:
+		buf, err := getFilter[[8]byte](pid, 0)
+		/* this is not how ESRCH should be handled: the manpage advises the
+		use of waitpid, however that is not applicable for attaching to an
+		arbitrary process, and spawning target process here is not easily
+		possible under the current testing framework;
+
+		despite checking for /proc/pid/status indicating state t (tracing stop),
+		it does not appear to be directly related to the internal state used to
+		determine whether a process is ready to accept ptrace operations, it also
+		introduces a TOCTOU that is irrelevant in the testing vm; this behaviour
+		is kept anyway as it reduces the average iterations required here;
+
+		since this code is only ever compiled into the test program, whatever
+		implications this ugliness might have should not hurt anyone */
+		if errors.Is(err, syscall.ESRCH) {
+			time.Sleep(100 * time.Millisecond)
+			goto getFilter
+		}
+
+		if err != nil {
+			return err
+		}
+
+		for _, b := range buf {
+			h.Write(b[:])
+		}
 	}
 
 	if got := hex.EncodeToString(h.Sum(nil)); got != want {
