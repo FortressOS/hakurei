@@ -1,14 +1,5 @@
-pkgs: version:
+lib: testProgram:
 let
-  inherit (pkgs)
-    lib
-    writeText
-    buildGoModule
-    pkg-config
-    util-linux
-    foot
-    ;
-
   fs = mode: dir: data: {
     mode = lib.fromHexString mode;
     inherit
@@ -32,26 +23,6 @@ let
       ;
   };
 
-  checkSandbox = buildGoModule {
-    pname = "check-sandbox";
-    inherit version;
-
-    src = ../../.;
-    vendorHash = null;
-
-    buildInputs = [ util-linux ];
-    nativeBuildInputs = [ pkg-config ];
-
-    preBuild = ''
-      go mod init git.gensokyo.uk/security/fortify/test >& /dev/null
-      cp ${./main.go} main.go
-    '';
-
-    postInstall = ''
-      mv $out/bin/test $out/bin/fortify-test
-    '';
-  };
-
   callTestCase =
     path:
     let
@@ -67,12 +38,12 @@ let
       name = "check-sandbox-${tc.name}";
       verbose = true;
       inherit (tc) tty mapRealUid;
-      share = foot;
+      share = testProgram;
       packages = [ ];
-      path = "${checkSandbox}/bin/fortify-test";
+      path = "${testProgram}/bin/fortify-test";
       args = [
         "test"
-        (toString (writeText "fortify-${tc.name}-want.json" (builtins.toJSON tc.want)))
+        (toString (builtins.toFile "fortify-${tc.name}-want.json" (builtins.toJSON tc.want)))
       ];
     };
 in
@@ -80,6 +51,4 @@ in
   preset = callTestCase ./preset.nix;
   tty = callTestCase ./tty.nix;
   mapuid = callTestCase ./mapuid.nix;
-
-  _testProgram = checkSandbox;
 }

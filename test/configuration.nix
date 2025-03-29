@@ -5,7 +5,38 @@
   ...
 }:
 let
-  testCases = import ./sandbox/case pkgs config.environment.fortify.package.version;
+  testProgram =
+    let
+      inherit (pkgs)
+        buildGoModule
+        pkg-config
+        util-linux
+        ;
+    in
+    buildGoModule rec {
+      pname = "check-sandbox";
+      inherit (config.environment.fortify.package) version;
+
+      src = builtins.path {
+        name = "${pname}-src";
+        path = lib.cleanSource ./.;
+        filter = path: type: (type == "directory" && lib.hasSuffix "sandbox" path) || (type == "regular" && lib.hasSuffix ".go" path);
+      };
+      vendorHash = null;
+
+      buildInputs = [ util-linux ];
+      nativeBuildInputs = [ pkg-config ];
+
+      preBuild = ''
+        go mod init git.gensokyo.uk/security/fortify/test >& /dev/null
+      '';
+
+      postInstall = ''
+        mv $out/bin/test $out/bin/fortify-test
+      '';
+    };
+
+  testCases = import ./sandbox/case lib testProgram;
 in
 {
   users.users = {
@@ -42,7 +73,7 @@ in
       mako
 
       # For checking seccomp outcome:
-      testCases._testProgram
+      testProgram
     ];
 
     variables = {
