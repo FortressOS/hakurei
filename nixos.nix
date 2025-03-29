@@ -201,9 +201,11 @@ in
                   ${copy "${pkg}/share/icons"}
                   ${copy "${pkg}/share/man"}
 
-                  substituteInPlace $out/share/applications/* \
-                    --replace-warn '${pkg}/bin/' "" \
-                    --replace-warn '${pkg}/libexec/' ""
+                  if test -d "$out/share/applications"; then
+                    substituteInPlace $out/share/applications/* \
+                      --replace-warn '${pkg}/bin/' "" \
+                      --replace-warn '${pkg}/libexec/' ""
+                  fi
                 ''
               )
               ++ acc
