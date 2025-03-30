@@ -458,20 +458,16 @@ func Test_printPs(t *testing.T) {
 		short, json bool
 		want        string
 	}{
-		{"no entries", make(state.Entries), false, false, `    Instance    PID    App    Uptime    Enablements    Command
-
+		{"no entries", make(state.Entries), false, false, `    Instance    PID    Application    Uptime
 `},
 		{"no entries short", make(state.Entries), true, false, ``},
-		{"nil instance", state.Entries{testID: nil}, false, false, `    Instance    PID    App    Uptime    Enablements    Command
-
+		{"nil instance", state.Entries{testID: nil}, false, false, `    Instance    PID    Application    Uptime
 `},
-		{"state corruption", state.Entries{fst.ID{}: testState}, false, false, `    Instance    PID    App    Uptime    Enablements    Command
-
+		{"state corruption", state.Entries{fst.ID{}: testState}, false, false, `    Instance    PID    Application    Uptime
 `},
 
-		{"valid", state.Entries{testID: testState}, false, false, `    Instance    PID           App    Uptime     Enablements                  Command
-    8e2c76b0    3735928559    9      1h2m32s    wayland, dbus, pulseaudio    ["chromium" "--ignore-gpu-blocklist" "--disable-smooth-scrolling" "--enable-features=UseOzonePlatform" "--ozone-platform=wayland"]
-
+		{"valid", state.Entries{testID: testState}, false, false, `    Instance    PID           Application                  Uptime
+    8e2c76b0    3735928559    9 (org.chromium.Chromium)    1h2m32s
 `},
 		{"valid short", state.Entries{testID: testState}, true, false, `8e2c76b0
 `},

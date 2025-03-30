@@ -247,22 +247,18 @@ func printPs(output io.Writer, now time.Time, s state.Store, short, flagJSON boo
 	t := newPrinter(output)
 	defer t.MustFlush()
 
-	t.Println("\tInstance\tPID\tApp\tUptime\tEnablements\tCommand")
+	t.Println("\tInstance\tPID\tApplication\tUptime")
 	for _, e := range exp {
-		var (
-			es = "(No confinement information)"
-			cs = "(No command information)"
-			as = "(No configuration information)"
-		)
+		as := "(No configuration information)"
 		if e.Config != nil {
-			es = e.Config.Confinement.Enablements.String()
-			cs = fmt.Sprintf("%q", e.Config.Args)
 			as = strconv.Itoa(e.Config.Confinement.AppID)
+			if e.Config.ID != "" {
+				as += " (" + e.Config.ID + ")"
+			}
 		}
-		t.Printf("\t%s\t%d\t%s\t%s\t%s\t%s\n",
-			e.s[:8], e.PID, as, now.Sub(e.Time).Round(time.Second).String(), strings.TrimPrefix(es, ", "), cs)
+		t.Printf("\t%s\t%d\t%s\t%s\n",
+			e.s[:8], e.PID, as, now.Sub(e.Time).Round(time.Second).String())
 	}
-	t.Println()
 }
 
 type expandedStateEntry struct {
