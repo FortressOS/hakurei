@@ -4,10 +4,6 @@
   config,
   ...
 }:
-let
-  testProgram = pkgs.callPackage ./sandbox/tool/package.nix { inherit (config.environment.fortify.package) version; };
-  testCases = import ./sandbox/case lib testProgram;
-in
 {
   users.users = {
     alice = {
@@ -41,9 +37,6 @@ in
       # For D-Bus tests:
       libnotify
       mako
-
-      # For checking seccomp outcome:
-      testProgram
     ];
 
     variables = {
@@ -109,10 +102,6 @@ in
     home-manager = _: _: { home.stateVersion = "23.05"; };
 
     apps = [
-      testCases.preset
-      testCases.tty
-      testCases.mapuid
-
       {
         name = "ne-foot";
         verbose = true;

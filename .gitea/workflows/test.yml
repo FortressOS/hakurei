@@ -22,6 +22,57 @@ jobs:
           path: result/*
           retention-days: 1
 
+  race:
+    name: Fortify (race detector)
+    runs-on: nix
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run NixOS test
+        run: nix build --out-link "result" --print-out-paths --print-build-logs .#checks.x86_64-linux.race
+
+      - name: Upload test output
+        uses: actions/upload-artifact@v3
+        with:
+          name: "fortify-race-vm-output"
+          path: result/*
+          retention-days: 1
+
+  sandbox:
+    name: Sandbox
+    runs-on: nix
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run NixOS test
+        run: nix build --out-link "result" --print-out-paths --print-build-logs .#checks.x86_64-linux.sandbox
+
+      - name: Upload test output
+        uses: actions/upload-artifact@v3
+        with:
+          name: "sandbox-vm-output"
+          path: result/*
+          retention-days: 1
+
+  sandbox-race:
+    name: Sandbox (race detector)
+    runs-on: nix
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run NixOS test
+        run: nix build --out-link "result" --print-out-paths --print-build-logs .#checks.x86_64-linux.sandbox-race
+
+      - name: Upload test output
+        uses: actions/upload-artifact@v3
+        with:
+          name: "sandbox-race-vm-output"
+          path: result/*
+          retention-days: 1
+
   fpkg:
     name: Fpkg
     runs-on: nix
@@ -39,29 +90,14 @@ jobs:
           path: result/*
           retention-days: 1
 
-  race:
-    name: Data race detector
-    runs-on: nix
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Run NixOS test
-        run: nix build --out-link "result" --print-out-paths --print-build-logs .#checks.x86_64-linux.race
-
-      - name: Upload test output
-        uses: actions/upload-artifact@v3
-        with:
-          name: "fortify-race-vm-output"
-          path: result/*
-          retention-days: 1
-
   check:
     name: Flake checks
     needs:
       - fortify
-      - fpkg
       - race
+      - sandbox
+      - sandbox-race
+      - fpkg
     runs-on: nix
     steps:
       - name: Checkout

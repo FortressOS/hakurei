@@ -97,7 +97,6 @@
         "pki" = fs "80001ff" null null;
         "polkit-1" = fs "80001ff" null null;
         "profile" = fs "80001ff" null null;
-        "profiles" = fs "80001ff" null null;
         "protocols" = fs "80001ff" null null;
         "resolv.conf" = fs "80001ff" null null;
         "resolvconf.conf" = fs "80001ff" null null;

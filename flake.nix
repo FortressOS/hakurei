@@ -58,11 +58,18 @@
         in
         {
           fortify = callPackage ./test { inherit system self; };
-          fpkg = callPackage ./cmd/fpkg/test { inherit system self; };
           race = callPackage ./test {
             inherit system self;
             withRace = true;
           };
+
+          sandbox = callPackage ./test/sandbox { inherit self; };
+          sandbox-race = callPackage ./test/sandbox {
+            inherit self;
+            withRace = true;
+          };
+
+          fpkg = callPackage ./cmd/fpkg/test { inherit system self; };
 
           formatting = runCommandLocal "check-formatting" { nativeBuildInputs = [ nixfmt-rfc-style ]; } ''
             cd ${./.}
