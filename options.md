@@ -35,7 +35,7 @@ package
 
 
 *Default:*
-` <derivation fortify-static-x86_64-unknown-linux-musl-0.3.1> `
+` <derivation fortify-static-x86_64-unknown-linux-musl-0.3.2> `
 
 
 
@@ -70,6 +70,25 @@ list of package
 
 *Default:*
 ` [ ] `
+
+
+
+## environment\.fortify\.apps\.\*\.args
+
+
+
+Custom args\.
+Setting this to null will default to script name\.
+
+
+
+*Type:*
+null or (list of string)
+
+
+
+*Default:*
+` null `
 
 
 
@@ -486,6 +505,25 @@ boolean
 
 
 
+## environment\.fortify\.apps\.\*\.path
+
+
+
+Custom executable path\.
+Setting this to null will default to the start script\.
+
+
+
+*Type:*
+null or string
+
+
+
+*Default:*
+` null `
+
+
+
 ## environment\.fortify\.apps\.\*\.script
 
 
@@ -606,7 +644,7 @@ package
 
 
 *Default:*
-` <derivation fortify-fsu-0.3.1> `
+` <derivation fortify-fsu-0.3.2> `
 
 
 
