@@ -77,7 +77,9 @@ func printShowInstance(
 	if len(config.Confinement.Groups) > 0 {
 		t.Printf(" Groups:\t%q\n", config.Confinement.Groups)
 	}
-	t.Printf(" Directory:\t%s\n", config.Confinement.Outer)
+	if config.Confinement.Outer != "" {
+		t.Printf(" Directory:\t%s\n", config.Confinement.Outer)
+	}
 	if config.Confinement.Sandbox != nil {
 		sandbox := config.Confinement.Sandbox
 		if sandbox.Hostname != "" {
@@ -114,7 +116,12 @@ func printShowInstance(
 		// Env           map[string]string   `json:"env"`
 		// Link          [][2]string         `json:"symlink"`
 	}
-	t.Printf(" Command:\t%s\n", strings.Join(config.Args, " "))
+	if config.Confinement.Sandbox != nil {
+		t.Printf(" Path:\t%s\n", config.Path)
+	}
+	if len(config.Args) > 0 {
+		t.Printf(" Arguments:\t%s\n", strings.Join(config.Args, " "))
+	}
 	t.Printf("\n")
 
 	if !short {

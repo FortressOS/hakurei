@@ -44,7 +44,8 @@ func Test_printShowInstance(t *testing.T) {
  Flags:          userns net dev tty mapuid autoetc
  Etc:            /etc
  Cover:          /var/run/nscd
- Command:        chromium --ignore-gpu-blocklist --disable-smooth-scrolling --enable-features=UseOzonePlatform --ozone-platform=wayland
+ Path:           /run/current-system/sw/bin/chromium
+ Arguments:      chromium --ignore-gpu-blocklist --disable-smooth-scrolling --enable-features=UseOzonePlatform --ozone-platform=wayland
 
 Filesystem
  +/nix/store
@@ -75,26 +76,22 @@ System bus
 App
  ID:             0
  Enablements:    (no enablements)
- Directory:      
- Command:        
 
 `},
 		{"config flag none", nil, &fst.Config{Confinement: fst.ConfinementConfig{Sandbox: new(fst.SandboxConfig)}}, false, false, `App
  ID:             0
  Enablements:    (no enablements)
- Directory:      
  Flags:          none
  Etc:            /etc
- Command:        
+ Path:           
 
 `},
 		{"config nil entries", nil, &fst.Config{Confinement: fst.ConfinementConfig{Sandbox: &fst.SandboxConfig{Filesystem: make([]*fst.FilesystemConfig, 1)}, ExtraPerms: make([]*fst.ExtraPermConfig, 1)}}, false, false, `App
  ID:             0
  Enablements:    (no enablements)
- Directory:      
  Flags:          none
  Etc:            /etc
- Command:        
+ Path:           
 
 Filesystem
 
@@ -106,8 +103,6 @@ Extra ACL
 App
  ID:             0
  Enablements:    (no enablements)
- Directory:      
- Command:        
 
 Session bus
  Filter:    false
@@ -128,7 +123,8 @@ App
  Flags:          userns net dev tty mapuid autoetc
  Etc:            /etc
  Cover:          /var/run/nscd
- Command:        chromium --ignore-gpu-blocklist --disable-smooth-scrolling --enable-features=UseOzonePlatform --ozone-platform=wayland
+ Path:           /run/current-system/sw/bin/chromium
+ Arguments:      chromium --ignore-gpu-blocklist --disable-smooth-scrolling --enable-features=UseOzonePlatform --ozone-platform=wayland
 
 Filesystem
  +/nix/store
@@ -163,8 +159,6 @@ State
 App
  ID:             0
  Enablements:    (no enablements)
- Directory:      
- Command:        
 
 `},
 
