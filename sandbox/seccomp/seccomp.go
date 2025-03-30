@@ -1,3 +1,4 @@
+// Package seccomp provides filter presets and high level wrappers around libseccomp.
 package seccomp
 
 /*
