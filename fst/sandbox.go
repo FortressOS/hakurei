@@ -97,6 +97,10 @@ func (s *SandboxConfig) ToContainer(sys SandboxSys, uid, gid *int) (*sandbox.Par
 		Seccomp:  s.Seccomp,
 	}
 
+	if s.Multiarch {
+		container.Seccomp |= seccomp.FlagMultiarch
+	}
+
 	/* this is only 4 KiB of memory on a 64-bit system,
 	permissive defaults on NixOS results in around 100 entries
 	so this capacity should eliminate copies for most setups */
