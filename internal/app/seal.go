@@ -367,14 +367,13 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *fst.Co
 		seal.env[wl.WaylandDisplay] = wl.FallbackName
 
 		if !config.Confinement.Sandbox.DirectWayland { // set up security-context-v1
-			socketDir := path.Join(share.sc.SharePath, "wayland")
-			outerPath := path.Join(socketDir, seal.id.String())
-			seal.sys.Ensure(socketDir, 0711)
 			appID := config.ID
 			if appID == "" {
 				// use instance ID in case app id is not set
 				appID = "uk.gensokyo.fortify." + seal.id.String()
 			}
+			// downstream socket paths
+			outerPath := path.Join(share.instance(), "wayland")
 			seal.sys.Wayland(&seal.sync, outerPath, socketPath, appID, seal.id.String())
 			seal.container.Bind(outerPath, innerPath, 0)
 		} else { // bind mount wayland socket (insecure)

@@ -205,14 +205,13 @@ var testCasesPd = []sealTestCase{
 			Ensure("/tmp/fortify.1971", 0711).
 			Ensure("/tmp/fortify.1971/tmpdir", 0700).UpdatePermType(system.User, "/tmp/fortify.1971/tmpdir", acl.Execute).
 			Ensure("/tmp/fortify.1971/tmpdir/9", 01700).UpdatePermType(system.User, "/tmp/fortify.1971/tmpdir/9", acl.Read, acl.Write, acl.Execute).
-			Ensure("/tmp/fortify.1971/wayland", 0711).
-			Wayland(new(*os.File), "/tmp/fortify.1971/wayland/ebf083d1b175911782d413369b64ce7c", "/run/user/1971/wayland-0", "org.chromium.Chromium", "ebf083d1b175911782d413369b64ce7c").
+			Ephemeral(system.Process, "/tmp/fortify.1971/ebf083d1b175911782d413369b64ce7c", 0711).
+			Wayland(new(*os.File), "/tmp/fortify.1971/ebf083d1b175911782d413369b64ce7c/wayland", "/run/user/1971/wayland-0", "org.chromium.Chromium", "ebf083d1b175911782d413369b64ce7c").
 			Ensure("/run/user/1971/fortify", 0700).UpdatePermType(system.User, "/run/user/1971/fortify", acl.Execute).
 			Ensure("/run/user/1971", 0700).UpdatePermType(system.User, "/run/user/1971", acl.Execute). // this is ordered as is because the previous Ensure only calls mkdir if XDG_RUNTIME_DIR is unset
 			Ephemeral(system.Process, "/run/user/1971/fortify/ebf083d1b175911782d413369b64ce7c", 0700).UpdatePermType(system.Process, "/run/user/1971/fortify/ebf083d1b175911782d413369b64ce7c", acl.Execute).
 			Link("/run/user/1971/pulse/native", "/run/user/1971/fortify/ebf083d1b175911782d413369b64ce7c/pulse").
 			CopyFile(new([]byte), "/home/ophestra/xdg/config/pulse/cookie", 256, 256).
-			Ephemeral(system.Process, "/tmp/fortify.1971/ebf083d1b175911782d413369b64ce7c", 0711).
 			MustProxyDBus("/tmp/fortify.1971/ebf083d1b175911782d413369b64ce7c/bus", &dbus.Config{
 				Talk: []string{
 					"org.freedesktop.Notifications",
@@ -369,7 +368,7 @@ var testCasesPd = []sealTestCase{
 				Bind("/home/chronos", "/home/chronos", sandbox.BindWritable).
 				Place("/etc/passwd", []byte("chronos:x:65534:65534:Fortify:/home/chronos:/run/current-system/sw/bin/zsh\n")).
 				Place("/etc/group", []byte("fortify:x:65534:\n")).
-				Bind("/tmp/fortify.1971/wayland/ebf083d1b175911782d413369b64ce7c", "/run/user/65534/wayland-0", 0).
+				Bind("/tmp/fortify.1971/ebf083d1b175911782d413369b64ce7c/wayland", "/run/user/65534/wayland-0", 0).
 				Bind("/run/user/1971/fortify/ebf083d1b175911782d413369b64ce7c/pulse", "/run/user/65534/pulse/native", 0).
 				Place(fst.Tmp+"/pulse-cookie", nil).
 				Bind("/tmp/fortify.1971/ebf083d1b175911782d413369b64ce7c/bus", "/run/user/65534/bus", 0).
