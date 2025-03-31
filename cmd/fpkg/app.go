@@ -73,6 +73,7 @@ func (app *appInfo) toFst(pathSet *appPathSet, argv []string, flagDropShell bool
 			Username: "fortify",
 			Inner:    path.Join("/data/data", app.ID),
 			Outer:    pathSet.homeDir,
+			Shell:    shellPath,
 			Sandbox: &fst.SandboxConfig{
 				Hostname:      formatHostname(app.Name),
 				Devel:         app.Devel,

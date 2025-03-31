@@ -202,6 +202,7 @@ App
       "username": "chronos",
       "home_inner": "/var/lib/fortify",
       "home": "/var/lib/persist/home/org.chromium.Chromium",
+      "shell": "/run/current-system/sw/bin/zsh",
       "sandbox": {
         "hostname": "localhost",
         "seccomp": 32,
@@ -326,6 +327,7 @@ App
     "username": "chronos",
     "home_inner": "/var/lib/fortify",
     "home": "/var/lib/persist/home/org.chromium.Chromium",
+    "shell": "/run/current-system/sw/bin/zsh",
     "sandbox": {
       "hostname": "localhost",
       "seccomp": 32,
@@ -504,6 +506,7 @@ func Test_printPs(t *testing.T) {
         "username": "chronos",
         "home_inner": "/var/lib/fortify",
         "home": "/var/lib/persist/home/org.chromium.Chromium",
+        "shell": "/run/current-system/sw/bin/zsh",
         "sandbox": {
           "hostname": "localhost",
           "seccomp": 32,

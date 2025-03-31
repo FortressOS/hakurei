@@ -35,6 +35,8 @@ type ConfinementConfig struct {
 	Inner string `json:"home_inner"`
 	// home directory in init namespace
 	Outer string `json:"home"`
+	// absolute path to shell, empty for host shell
+	Shell string `json:"shell,omitempty"`
 	// abstract sandbox configuration
 	Sandbox *SandboxConfig `json:"sandbox"`
 	// extra acl ops, runs after everything else
@@ -97,6 +99,7 @@ func Template() *Config {
 			Username: "chronos",
 			Outer:    "/var/lib/persist/home/org.chromium.Chromium",
 			Inner:    "/var/lib/fortify",
+			Shell:    "/run/current-system/sw/bin/zsh",
 			Sandbox: &SandboxConfig{
 				Hostname:      "localhost",
 				Devel:         true,

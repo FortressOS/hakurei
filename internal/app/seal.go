@@ -109,11 +109,6 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *fst.Co
 	}
 	seal.ctx = ctx
 
-	shellPath := "/bin/sh"
-	if s, ok := sys.LookupEnv(shell); ok && path.IsAbs(s) {
-		shellPath = s
-	}
-
 	{
 		// encode initial configuration for state tracking
 		ct := new(bytes.Buffer)
@@ -129,10 +124,6 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *fst.Co
 		return fmsg.WrapError(ErrUser,
 			fmt.Sprintf("aid %d out of range", config.Confinement.AppID))
 	}
-
-	/*
-		Resolve post-fsu user state
-	*/
 
 	seal.user = fsuUser{
 		aid:      newInt(config.Confinement.AppID),
@@ -169,9 +160,14 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *fst.Co
 		}
 	}
 
-	/*
-		Resolve initial container state
-	*/
+	// this also falls back to host path if encountering an invalid path
+	if !path.IsAbs(config.Confinement.Shell) {
+		config.Confinement.Shell = "/bin/sh"
+		if s, ok := sys.LookupEnv(shell); ok && path.IsAbs(s) {
+			config.Confinement.Shell = s
+		}
+	}
+	// do not use the value of shell before this point
 
 	// permissive defaults
 	if config.Confinement.Sandbox == nil {
@@ -186,7 +182,7 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *fst.Co
 					config.Path = p
 				}
 			} else {
-				config.Path = shellPath
+				config.Path = config.Confinement.Shell
 			}
 		}
 
@@ -256,7 +252,6 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *fst.Co
 		if seal.env == nil {
 			seal.env = make(map[string]string, 1<<6)
 		}
-		seal.env[shell] = shellPath
 	}
 
 	/*
@@ -323,9 +318,10 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *fst.Co
 	seal.container.Dir = homeDir
 	seal.env["HOME"] = homeDir
 	seal.env["USER"] = username
+	seal.env[shell] = config.Confinement.Shell
 
 	seal.container.Place("/etc/passwd",
-		[]byte(username+":x:"+mapuid.String()+":"+mapgid.String()+":Fortify:"+homeDir+":"+shellPath+"\n"))
+		[]byte(username+":x:"+mapuid.String()+":"+mapgid.String()+":Fortify:"+homeDir+":"+config.Confinement.Shell+"\n"))
 	seal.container.Place("/etc/group",
 		[]byte("fortify:x:"+mapgid.String()+":\n"))
 

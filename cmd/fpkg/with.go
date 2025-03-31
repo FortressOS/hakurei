@@ -34,6 +34,7 @@ func withNixDaemon(
 			Username: "fortify",
 			Inner:    path.Join("/data/data", app.ID),
 			Outer:    pathSet.homeDir,
+			Shell:    shellPath,
 			Sandbox: &fst.SandboxConfig{
 				Hostname: formatHostname(app.Name) + "-" + action,
 				Userns:   true, // nix sandbox requires userns
@@ -72,6 +73,7 @@ func withCacheDir(
 			Username: "nixos",
 			Inner:    path.Join("/data/data", app.ID, "cache"),
 			Outer:    pathSet.cacheDir, // this also ensures cacheDir via shim
+			Shell:    shellPath,
 			Sandbox: &fst.SandboxConfig{
 				Hostname: formatHostname(app.Name) + "-" + action,
 				Seccomp:  seccomp.FlagMultiarch,
