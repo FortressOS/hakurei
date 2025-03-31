@@ -45,10 +45,6 @@ func Init(prepare func(prefix string), setVerbose func(verbose bool)) {
 		log.Fatal("this process must run as pid 1")
 	}
 
-	/*
-		receive setup payload
-	*/
-
 	var (
 		params      initParams
 		closeSetup  func() error
@@ -111,10 +107,6 @@ func Init(prepare func(prefix string), setVerbose func(verbose bool)) {
 	// cache sysctl before pivot_root
 	LastCap()
 
-	/*
-		set up mount points from intermediate root
-	*/
-
 	if err := syscall.Mount("", "/", "",
 		syscall.MS_SILENT|syscall.MS_SLAVE|syscall.MS_REC,
 		""); err != nil {
@@ -155,6 +147,7 @@ func Init(prepare func(prefix string), setVerbose func(verbose bool)) {
 	if err := os.Mkdir(hostDir, 0755); err != nil {
 		log.Fatalf("%v", err)
 	}
+	// pivot_root uncovers basePath in hostDir
 	if err := syscall.PivotRoot(basePath, hostDir); err != nil {
 		log.Fatalf("cannot pivot into intermediate root: %v", err)
 	}
@@ -173,10 +166,7 @@ func Init(prepare func(prefix string), setVerbose func(verbose bool)) {
 		}
 	}
 
-	/*
-		pivot to sysroot
-	*/
-
+	// setup requiring host root complete at this point
 	if err := syscall.Mount(hostDir, hostDir, "",
 		syscall.MS_SILENT|syscall.MS_REC|syscall.MS_PRIVATE,
 		""); err != nil {
@@ -216,10 +206,6 @@ func Init(prepare func(prefix string), setVerbose func(verbose bool)) {
 		}
 	}
 
-	/*
-		caps/securebits and seccomp filter
-	*/
-
 	if _, _, errno := syscall.Syscall(PR_SET_NO_NEW_PRIVS, 1, 0, 0); errno != 0 {
 		log.Fatalf("prctl(PR_SET_NO_NEW_PRIVS): %v", errno)
 	}
@@ -255,19 +241,12 @@ func Init(prepare func(prefix string), setVerbose func(verbose bool)) {
 		log.Fatalf("cannot load syscall filter: %v", err)
 	}
 
-	/*
-		pass through extra files
-	*/
-
 	extraFiles := make([]*os.File, params.Count)
 	for i := range extraFiles {
+		// setup fd is placed before all extra files
 		extraFiles[i] = os.NewFile(uintptr(offsetSetup+i), "extra file "+strconv.Itoa(i))
 	}
 	syscall.Umask(oldmask)
-
-	/*
-		prepare initial process
-	*/
 
 	cmd := exec.Command(params.Path)
 	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
@@ -281,21 +260,10 @@ func Init(prepare func(prefix string), setVerbose func(verbose bool)) {
 	}
 	msg.Suspend()
 
-	/*
-		close setup pipe
-	*/
-
 	if err := closeSetup(); err != nil {
 		log.Println("cannot close setup pipe:", err)
 		// not fatal
 	}
-
-	/*
-		perform init duties
-	*/
-
-	sig := make(chan os.Signal, 2)
-	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
 
 	type winfo struct {
 		wpid    int
@@ -333,6 +301,10 @@ func Init(prepare func(prefix string), setVerbose func(verbose bool)) {
 		close(done)
 	}()
 
+	// handle signals to dump withheld messages
+	sig := make(chan os.Signal, 2)
+	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
+
 	// closed after residualProcessTimeout has elapsed after initial process death
 	timeout := make(chan struct{})
 
@@ -345,7 +317,6 @@ func Init(prepare func(prefix string), setVerbose func(verbose bool)) {
 			} else {
 				msg.Verbosef("terminating on %s", s.String())
 			}
-			msg.BeforeExit()
 			os.Exit(0)
 		case w := <-info:
 			if w.wpid == cmd.Process.Pid {

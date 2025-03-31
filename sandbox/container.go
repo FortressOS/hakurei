@@ -104,16 +104,6 @@ type (
 
 		Flags HardeningFlags
 	}
-
-	Ops []Op
-	Op  interface {
-		early(params *Params) error
-		apply(params *Params) error
-		prefix() string
-
-		Is(op Op) bool
-		fmt.Stringer
-	}
 )
 
 func (p *Container) Start() error {

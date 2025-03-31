@@ -13,6 +13,22 @@ import (
 	"unsafe"
 )
 
+type (
+	Ops []Op
+	Op  interface {
+		// early is called in host root.
+		early(params *Params) error
+		// apply is called in intermediate root.
+		apply(params *Params) error
+
+		prefix() string
+		Is(op Op) bool
+		fmt.Stringer
+	}
+)
+
+func (f *Ops) Grow(n int) { *f = slices.Grow(*f, n) }
+
 func init() { gob.Register(new(BindMount)) }
 
 // BindMount bind mounts host path Source on container path Target.
