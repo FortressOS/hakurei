@@ -176,25 +176,11 @@ machine.send_chars("clear; wayland-info && touch /tmp/client-ok\n")
 machine.wait_for_file(tmpdir_path(0, "client-ok"), timeout=15)
 collect_state_ui("foot_wayland")
 check_state("ne-foot", 1)
-# Verify acl on XDG_RUNTIME_DIR:
-print(machine.succeed(f"getfacl --absolute-names --omit-header --numeric /run/user/1000 | grep {aid(0) + 1000000}"))
+# Verify lack of acl on XDG_RUNTIME_DIR:
+machine.fail(f"getfacl --absolute-names --omit-header --numeric /run/user/1000 | grep {aid(0) + 1000000}")
 machine.send_chars("exit\n")
 machine.wait_until_fails("pgrep foot", timeout=5)
-# Verify acl cleanup on XDG_RUNTIME_DIR:
-machine.wait_until_fails(f"getfacl --absolute-names --omit-header --numeric /run/user/1000 | grep {aid(0) + 1000000}", timeout=5)
-
-# Start app (foot) with Wayland enablement from a terminal:
-swaymsg("exec foot $SHELL -c '(ne-foot) & sleep 1 && fortify show $(fortify ps --short) && touch /tmp/ps-show-ok && cat'")
-wait_for_window(f"u0_a{aid(0)}@machine")
-machine.send_chars("clear; wayland-info && touch /tmp/term-ok\n")
-machine.wait_for_file(tmpdir_path(0, "term-ok"), timeout=15)
-machine.wait_for_file("/tmp/ps-show-ok", timeout=5)
-collect_state_ui("foot_wayland_term")
-check_state("ne-foot", 1)
-machine.send_chars("exit\n")
-wait_for_window("foot")
-machine.send_key("ctrl-c")
-machine.wait_until_fails("pgrep foot", timeout=5)
+machine.fail(f"getfacl --absolute-names --omit-header --numeric /run/user/1000 | grep {aid(0) + 1000000}", timeout=5)
 
 # Test PulseAudio (fortify does not support PipeWire yet):
 swaymsg("exec pa-foot")
@@ -232,6 +218,22 @@ machine.wait_until_fails(f"getfacl --absolute-names --omit-header --numeric /run
 
 # Test syscall filter:
 print(machine.fail("sudo -u alice -i XDG_RUNTIME_DIR=/run/user/1000 strace-failure"))
+
+# Start app (foot) with Wayland enablement from a terminal:
+swaymsg("exec foot $SHELL -c '(ne-foot) & disown && exec $SHELL'")
+wait_for_window(f"u0_a{aid(0)}@machine")
+machine.send_chars("clear; wayland-info && touch /tmp/term-ok\n")
+machine.wait_for_file(tmpdir_path(0, "term-ok"), timeout=15)
+machine.send_key("alt-h")
+machine.send_chars("clear; fortify show $(fortify ps --short) && touch /tmp/ps-show-ok && exec cat\n")
+machine.wait_for_file("/tmp/ps-show-ok", timeout=5)
+collect_state_ui("foot_wayland_term")
+check_state("ne-foot", 1)
+machine.send_key("alt-l")
+machine.send_chars("exit\n")
+wait_for_window("alice@machine")
+machine.send_key("ctrl-c")
+machine.wait_until_fails("pgrep foot", timeout=5)
 
 # Exit Sway and verify process exit status 0:
 swaymsg("exit", succeed=False)

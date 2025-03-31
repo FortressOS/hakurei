@@ -85,6 +85,53 @@ type outcome struct {
 	f atomic.Bool
 }
 
+// shareHost holds optional share directory state that must not be accessed directly
+type shareHost struct {
+	// whether XDG_RUNTIME_DIR is used post fsu
+	useRuntimeDir bool
+	// process-specific directory in tmpdir, empty if unused
+	sharePath string
+	// process-specific directory in XDG_RUNTIME_DIR, empty if unused
+	runtimeSharePath string
+
+	seal *outcome
+	sc   fst.Paths
+}
+
+// ensureRuntimeDir must be called if direct access to paths within XDG_RUNTIME_DIR is required
+func (share *shareHost) ensureRuntimeDir() {
+	if share.useRuntimeDir {
+		return
+	}
+	share.useRuntimeDir = true
+	share.seal.sys.Ensure(share.sc.RunDirPath, 0700)
+	share.seal.sys.UpdatePermType(system.User, share.sc.RunDirPath, acl.Execute)
+	share.seal.sys.Ensure(share.sc.RuntimePath, 0700) // ensure this dir in case XDG_RUNTIME_DIR is unset
+	share.seal.sys.UpdatePermType(system.User, share.sc.RuntimePath, acl.Execute)
+}
+
+// instance returns a process-specific share path within tmpdir
+func (share *shareHost) instance() string {
+	if share.sharePath != "" {
+		return share.sharePath
+	}
+	share.sharePath = path.Join(share.sc.SharePath, share.seal.id.String())
+	share.seal.sys.Ephemeral(system.Process, share.sharePath, 0711)
+	return share.sharePath
+}
+
+// runtime returns a process-specific share path within XDG_RUNTIME_DIR
+func (share *shareHost) runtime() string {
+	if share.runtimeSharePath != "" {
+		return share.runtimeSharePath
+	}
+	share.ensureRuntimeDir()
+	share.runtimeSharePath = path.Join(share.sc.RunDirPath, share.seal.id.String())
+	share.seal.sys.Ephemeral(system.Process, share.runtimeSharePath, 0700)
+	share.seal.sys.UpdatePerm(share.runtimeSharePath, acl.Execute)
+	return share.runtimeSharePath
+}
+
 // fsuUser stores post-fsu credentials and metadata
 type fsuUser struct {
 	// application id
@@ -254,36 +301,7 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *fst.Co
 		}
 	}
 
-	/*
-		Initialise externals
-	*/
-
-	sc := sys.Paths()
-	seal.runDirPath = sc.RunDirPath
-	seal.sys = system.New(seal.user.uid.unwrap())
-
-	/*
-		Work directories
-	*/
-
-	// base fortify share path
-	seal.sys.Ensure(sc.SharePath, 0711)
-
-	// outer paths used by the main process
-	seal.sys.Ensure(sc.RunDirPath, 0700)
-	seal.sys.UpdatePermType(system.User, sc.RunDirPath, acl.Execute)
-	seal.sys.Ensure(sc.RuntimePath, 0700) // ensure this dir in case XDG_RUNTIME_DIR is unset
-	seal.sys.UpdatePermType(system.User, sc.RuntimePath, acl.Execute)
-
-	// outer process-specific share directory
-	sharePath := path.Join(sc.SharePath, seal.id.String())
-	seal.sys.Ephemeral(system.Process, sharePath, 0711)
-	// similar to share but within XDG_RUNTIME_DIR
-	sharePathLocal := path.Join(sc.RunDirPath, seal.id.String())
-	seal.sys.Ephemeral(system.Process, sharePathLocal, 0700)
-	seal.sys.UpdatePerm(sharePathLocal, acl.Execute)
-
-	// inner XDG_RUNTIME_DIR default formatting of `/run/user/%d` as post-fsu user
+	// inner XDG_RUNTIME_DIR default formatting of `/run/user/%d` as mapped uid
 	innerRuntimeDir := path.Join("/run/user", mapuid.String())
 	seal.container.Tmpfs("/run/user", 1<<12, 0755)
 	seal.container.Tmpfs(innerRuntimeDir, 1<<23, 0700)
@@ -291,45 +309,44 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *fst.Co
 	seal.env[xdgSessionClass] = "user"
 	seal.env[xdgSessionType] = "tty"
 
-	// outer path for inner /tmp
+	share := &shareHost{seal: seal, sc: sys.Paths()}
+	seal.runDirPath = share.sc.RunDirPath
+	seal.sys = system.New(seal.user.uid.unwrap())
+
 	{
-		tmpdir := path.Join(sc.SharePath, "tmpdir")
+		seal.sys.Ensure(share.sc.SharePath, 0711)
+		tmpdir := path.Join(share.sc.SharePath, "tmpdir")
 		seal.sys.Ensure(tmpdir, 0700)
 		seal.sys.UpdatePermType(system.User, tmpdir, acl.Execute)
 		tmpdirInst := path.Join(tmpdir, seal.user.aid.String())
 		seal.sys.Ensure(tmpdirInst, 01700)
 		seal.sys.UpdatePermType(system.User, tmpdirInst, acl.Read, acl.Write, acl.Execute)
+		// mount inner /tmp from share so it shares persistence and storage behaviour of host /tmp
 		seal.container.Bind(tmpdirInst, "/tmp", sandbox.BindWritable)
 	}
 
-	/*
-		Passwd database
-	*/
+	{
+		homeDir := "/var/empty"
+		if seal.user.home != "" {
+			homeDir = seal.user.home
+		}
+		username := "chronos"
+		if seal.user.username != "" {
+			username = seal.user.username
+		}
+		seal.container.Bind(seal.user.data, homeDir, sandbox.BindWritable)
+		seal.container.Dir = homeDir
+		seal.env["HOME"] = homeDir
+		seal.env["USER"] = username
+		seal.env[shell] = config.Confinement.Shell
 
-	homeDir := "/var/empty"
-	if seal.user.home != "" {
-		homeDir = seal.user.home
+		seal.container.Place("/etc/passwd",
+			[]byte(username+":x:"+mapuid.String()+":"+mapgid.String()+":Fortify:"+homeDir+":"+config.Confinement.Shell+"\n"))
+		seal.container.Place("/etc/group",
+			[]byte("fortify:x:"+mapgid.String()+":\n"))
 	}
-	username := "chronos"
-	if seal.user.username != "" {
-		username = seal.user.username
-	}
-	seal.container.Bind(seal.user.data, homeDir, sandbox.BindWritable)
-	seal.container.Dir = homeDir
-	seal.env["HOME"] = homeDir
-	seal.env["USER"] = username
-	seal.env[shell] = config.Confinement.Shell
 
-	seal.container.Place("/etc/passwd",
-		[]byte(username+":x:"+mapuid.String()+":"+mapgid.String()+":Fortify:"+homeDir+":"+config.Confinement.Shell+"\n"))
-	seal.container.Place("/etc/group",
-		[]byte("fortify:x:"+mapgid.String()+":\n"))
-
-	/*
-		Display servers
-	*/
-
-	// pass $TERM for proper terminal I/O in shell
+	// pass TERM for proper terminal I/O in initial process
 	if t, ok := sys.LookupEnv(term); ok {
 		seal.env[term] = t
 	}
@@ -339,9 +356,9 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *fst.Co
 		var socketPath string
 		if name, ok := sys.LookupEnv(wl.WaylandDisplay); !ok {
 			fmsg.Verbose(wl.WaylandDisplay + " is not set, assuming " + wl.FallbackName)
-			socketPath = path.Join(sc.RuntimePath, wl.FallbackName)
+			socketPath = path.Join(share.sc.RuntimePath, wl.FallbackName)
 		} else if !path.IsAbs(name) {
-			socketPath = path.Join(sc.RuntimePath, name)
+			socketPath = path.Join(share.sc.RuntimePath, name)
 		} else {
 			socketPath = name
 		}
@@ -350,7 +367,7 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *fst.Co
 		seal.env[wl.WaylandDisplay] = wl.FallbackName
 
 		if !config.Confinement.Sandbox.DirectWayland { // set up security-context-v1
-			socketDir := path.Join(sc.SharePath, "wayland")
+			socketDir := path.Join(share.sc.SharePath, "wayland")
 			outerPath := path.Join(socketDir, seal.id.String())
 			seal.sys.Ensure(socketDir, 0711)
 			appID := config.ID
@@ -362,6 +379,7 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *fst.Co
 			seal.container.Bind(outerPath, innerPath, 0)
 		} else { // bind mount wayland socket (insecure)
 			fmsg.Verbose("direct wayland access, PROCEED WITH CAUTION")
+			share.ensureRuntimeDir()
 			seal.container.Bind(socketPath, innerPath, 0)
 			seal.sys.UpdatePermType(system.EWayland, socketPath, acl.Read, acl.Write, acl.Execute)
 		}
@@ -378,13 +396,9 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *fst.Co
 		}
 	}
 
-	/*
-		PulseAudio server and authentication
-	*/
-
 	if config.Confinement.Enablements&system.EPulse != 0 {
 		// PulseAudio runtime directory (usually `/run/user/%d/pulse`)
-		pulseRuntimeDir := path.Join(sc.RuntimePath, "pulse")
+		pulseRuntimeDir := path.Join(share.sc.RuntimePath, "pulse")
 		// PulseAudio socket (usually `/run/user/%d/pulse/native`)
 		pulseSocket := path.Join(pulseRuntimeDir, "native")
 
@@ -412,7 +426,7 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *fst.Co
 		}
 
 		// hard link pulse socket into target-executable share
-		innerPulseRuntimeDir := path.Join(sharePathLocal, "pulse")
+		innerPulseRuntimeDir := path.Join(share.runtime(), "pulse")
 		innerPulseSocket := path.Join(innerRuntimeDir, "pulse", "native")
 		seal.sys.Link(pulseSocket, innerPulseRuntimeDir)
 		seal.container.Bind(innerPulseRuntimeDir, innerPulseSocket, 0)
@@ -431,10 +445,6 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *fst.Co
 		}
 	}
 
-	/*
-		D-Bus proxy
-	*/
-
 	if config.Confinement.Enablements&system.EDBus != 0 {
 		// ensure dbus session bus defaults
 		if config.Confinement.SessionBus == nil {
@@ -442,6 +452,7 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *fst.Co
 		}
 
 		// downstream socket paths
+		sharePath := share.instance()
 		sessionPath, systemPath := path.Join(sharePath, "bus"), path.Join(sharePath, "system_bus_socket")
 
 		// configure dbus proxy
@@ -466,10 +477,6 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *fst.Co
 			seal.sys.UpdatePerm(systemPath, acl.Read, acl.Write)
 		}
 	}
-
-	/*
-		Miscellaneous
-	*/
 
 	for _, dest := range config.Confinement.Sandbox.Cover {
 		seal.container.Tmpfs(dest, 1<<13, 0755)
