@@ -289,10 +289,10 @@ func runApp(config *fst.Config) {
 	rs := new(fst.RunState)
 	if sa, err := a.Seal(config); err != nil {
 		fmsg.PrintBaseError(err, "cannot seal app:")
-		rs.ExitCode = 1
+		internal.Exit(1)
 	} else {
-		// this updates ExitCode
-		app.PrintRunStateErr(rs, sa.Run(rs))
+		internal.Exit(app.PrintRunStateErr(rs, sa.Run(rs)))
 	}
-	internal.Exit(rs.ExitCode)
+
+	*(*int)(nil) = 0 // not reached
 }

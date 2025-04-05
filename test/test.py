@@ -169,6 +169,16 @@ machine.send_chars("exit\n")
 machine.wait_for_file("/tmp/p0-exit-ok", timeout=15)
 machine.fail("getfacl --absolute-names --omit-header --numeric /run/user/1000 | grep 1000000")
 
+# Check interrupt shim behaviour:
+swaymsg("exec sh -c 'ne-foot; echo -n $? > /tmp/monitor-exit-code'")
+wait_for_window(f"u0_a{aid(0)}@machine")
+machine.succeed("pkill -INT -f 'fortify -v app '")
+machine.wait_until_fails("pgrep foot", timeout=5)
+machine.wait_for_file("/tmp/monitor-exit-code")
+interrupt_exit_code = int(machine.succeed("cat /tmp/monitor-exit-code"))
+if interrupt_exit_code != 254:
+    raise Exception(f"unexpected exit code {interrupt_exit_code}")
+
 # Start app (foot) with Wayland enablement:
 swaymsg("exec ne-foot")
 wait_for_window(f"u0_a{aid(0)}@machine")

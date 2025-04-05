@@ -2,6 +2,7 @@
 package fst
 
 import (
+	"syscall"
 	"time"
 )
 
@@ -28,12 +29,21 @@ type RunState struct {
 	//
 	// Time is nil if no process was ever created.
 	Time *time.Time
-	// ExitCode is the value returned by shim.
-	ExitCode int
 	// RevertErr is stored by the deferred revert call.
 	RevertErr error
-	// WaitErr is error returned by the underlying wait syscall.
+	// WaitErr is the generic error value created by the standard library.
 	WaitErr error
+
+	syscall.WaitStatus
+}
+
+// SetStart stores the current time in [RunState] once.
+func (rs *RunState) SetStart() {
+	if rs.Time != nil {
+		panic("attempted to store time twice")
+	}
+	now := time.Now().UTC()
+	rs.Time = &now
 }
 
 // Paths contains environment-dependent paths used by fortify.

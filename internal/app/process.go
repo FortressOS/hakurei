@@ -2,55 +2,52 @@ package app
 
 import (
 	"context"
+	"encoding/gob"
 	"errors"
 	"log"
+	"os"
 	"os/exec"
+	"strconv"
+	"strings"
+	"syscall"
 	"time"
 
 	"git.gensokyo.uk/security/fortify/fst"
 	"git.gensokyo.uk/security/fortify/internal"
 	"git.gensokyo.uk/security/fortify/internal/fmsg"
 	"git.gensokyo.uk/security/fortify/internal/state"
+	"git.gensokyo.uk/security/fortify/sandbox"
 	"git.gensokyo.uk/security/fortify/system"
 )
 
-const shimSetupTimeout = 5 * time.Second
+const shimWaitTimeout = 5 * time.Second
 
 func (seal *outcome) Run(rs *fst.RunState) error {
 	if !seal.f.CompareAndSwap(false, true) {
 		// run does much more than just starting a process; calling it twice, even if the first call fails, will result
 		// in inconsistent state that is impossible to clean up; return here to limit damage and hopefully give the
 		// other Run a chance to return
-		panic("attempted to run twice")
+		return errors.New("outcome: attempted to run twice")
 	}
 
 	if rs == nil {
 		panic("invalid state")
 	}
 
-	// read comp values early to allow for early failure
-	fmsg.Verbosef("version %s", internal.Version())
-	fmsg.Verbosef("setuid helper at %s", internal.MustFsuPath())
-
-	/*
-		prepare/revert os state
-	*/
+	// read comp value early to allow for early failure
+	fsuPath := internal.MustFsuPath()
 
 	if err := seal.sys.Commit(seal.ctx); err != nil {
 		return err
 	}
 	store := state.NewMulti(seal.runDirPath)
-	deferredStoreFunc := func(c state.Cursor) error { return nil }
+	deferredStoreFunc := func(c state.Cursor) error { return nil } // noop until state in store
 	defer func() {
 		var revertErr error
 		storeErr := new(StateStoreError)
 		storeErr.Inner, storeErr.DoErr = store.Do(seal.user.aid.unwrap(), func(c state.Cursor) {
 			revertErr = func() error {
 				storeErr.InnerErr = deferredStoreFunc(c)
-
-				/*
-					revert app setup transaction
-				*/
 
 				var rt system.Enablement
 				ec := system.Process
@@ -60,10 +57,9 @@ func (seal *outcome) Run(rs *fst.RunState) error {
 					return seal.sys.Revert((*system.Criteria)(&ec))
 				} else {
 					if l := len(states); l == 0 {
-						fmsg.Verbose("no other launchers active, will clean up globals")
 						ec |= system.User
 					} else {
-						fmsg.Verbosef("found %d active launchers, cleaning up without globals", l)
+						fmsg.Verbosef("found %d instances, cleaning up without user-scoped operations", l)
 					}
 
 					// accumulate enablements of remaining launchers
@@ -78,92 +74,111 @@ func (seal *outcome) Run(rs *fst.RunState) error {
 				ec |= rt ^ (system.EWayland | system.EX11 | system.EDBus | system.EPulse)
 				if fmsg.Load() {
 					if ec > 0 {
-						fmsg.Verbose("reverting operations type", system.TypeString(ec))
+						fmsg.Verbose("reverting operations scope", system.TypeString(ec))
 					}
 				}
 
 				return seal.sys.Revert((*system.Criteria)(&ec))
 			}()
 		})
-		storeErr.save([]error{revertErr, store.Close()})
-		rs.RevertErr = storeErr.equiv("error returned during cleanup:")
+		storeErr.save(revertErr, store.Close())
+		rs.RevertErr = storeErr.equiv("error during cleanup:")
 	}()
 
-	/*
-		shim process lifecycle
-	*/
-
-	waitErr := make(chan error, 1)
-	cmd := new(shimProcess)
-	if startTime, err := cmd.Start(
-		seal.user.aid.String(),
-		seal.user.supp,
-	); err != nil {
-		return err
-	} else {
-		// whether/when the fsu process was created
-		rs.Time = startTime
-	}
-
-	ctx, cancel := context.WithTimeout(seal.ctx, shimSetupTimeout)
+	ctx, cancel := context.WithCancel(seal.ctx)
 	defer cancel()
+	cmd := exec.CommandContext(ctx, fsuPath)
+	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
+	cmd.Dir = "/" // container init enters final working directory
+	// shim runs in the same session as monitor; see shim.go for behaviour
+	cmd.Cancel = func() error { return cmd.Process.Signal(syscall.SIGCONT) }
 
-	go func() {
-		waitErr <- cmd.Unwrap().Wait()
-		// cancel shim setup in case shim died before receiving payload
-		cancel()
-	}()
-
-	if err := cmd.Serve(ctx, &shimParams{
-		Container: seal.container,
-		Home:      seal.user.data,
-
-		Verbose: fmsg.Load(),
-	}); err != nil {
-		return err
+	var e *gob.Encoder
+	if fd, encoder, err := sandbox.Setup(&cmd.ExtraFiles); err != nil {
+		return fmsg.WrapErrorSuffix(err,
+			"cannot create shim setup pipe:")
+	} else {
+		e = encoder
+		cmd.Env = []string{
+			// passed through to shim by fsu
+			shimEnv + "=" + strconv.Itoa(fd),
+			// interpreted by fsu
+			"FORTIFY_APP_ID=" + seal.user.aid.String(),
+		}
 	}
 
-	// shim accepted setup payload, create process state
-	sd := state.State{
-		ID:   seal.id.unwrap(),
-		PID:  cmd.Unwrap().Process.Pid,
-		Time: *rs.Time,
+	if len(seal.user.supp) > 0 {
+		fmsg.Verbosef("attaching supplementary group ids %s", seal.user.supp)
+		// interpreted by fsu
+		cmd.Env = append(cmd.Env, "FORTIFY_GROUPS="+strings.Join(seal.user.supp, " "))
 	}
-	var earlyStoreErr = new(StateStoreError) // returned after blocking on waitErr
-	earlyStoreErr.Inner, earlyStoreErr.DoErr = store.Do(seal.user.aid.unwrap(), func(c state.Cursor) {
-		earlyStoreErr.InnerErr = c.Save(&sd, seal.ct)
-	})
-	// destroy defunct state entry
-	deferredStoreFunc = func(c state.Cursor) error { return c.Destroy(seal.id.unwrap()) }
+
+	fmsg.Verbosef("setuid helper at %s", fsuPath)
+	fmsg.Suspend()
+	if err := cmd.Start(); err != nil {
+		return fmsg.WrapErrorSuffix(err,
+			"cannot start setuid wrapper:")
+	}
+	rs.SetStart()
+
+	// this prevents blocking forever on an early failure
+	waitErr, setupErr := make(chan error, 1), make(chan error, 1)
+	go func() { waitErr <- cmd.Wait(); cancel() }()
+	go func() { setupErr <- e.Encode(&shimParams{os.Getpid(), seal.container, seal.user.data, fmsg.Load()}) }()
 
 	select {
-	case err := <-waitErr: // block until fsu/shim returns
+	case err := <-setupErr:
 		if err != nil {
-			var exitError *exec.ExitError
-			if !errors.As(err, &exitError) {
-				// should be unreachable
-				rs.WaitErr = err
-			}
-
-			// store non-zero return code
-			rs.ExitCode = exitError.ExitCode()
-		} else {
-			rs.ExitCode = cmd.Unwrap().ProcessState.ExitCode()
+			fmsg.Resume()
+			return fmsg.WrapErrorSuffix(err,
+				"cannot transmit shim config:")
 		}
+
+	case <-ctx.Done():
+		fmsg.Resume()
+		return fmsg.WrapError(syscall.ECANCELED,
+			"shim setup canceled")
+	}
+
+	// returned after blocking on waitErr
+	var earlyStoreErr = new(StateStoreError)
+	{
+		// shim accepted setup payload, create process state
+		sd := state.State{
+			ID:   seal.id.unwrap(),
+			PID:  cmd.Process.Pid,
+			Time: *rs.Time,
+		}
+		earlyStoreErr.Inner, earlyStoreErr.DoErr = store.Do(seal.user.aid.unwrap(), func(c state.Cursor) {
+			earlyStoreErr.InnerErr = c.Save(&sd, seal.ct)
+		})
+	}
+
+	// state in store at this point, destroy defunct state entry on return
+	deferredStoreFunc = func(c state.Cursor) error { return c.Destroy(seal.id.unwrap()) }
+
+	waitTimeout := make(chan struct{})
+	go func() { <-seal.ctx.Done(); time.Sleep(shimWaitTimeout); close(waitTimeout) }()
+
+	select {
+	case rs.WaitErr = <-waitErr:
+		rs.WaitStatus = cmd.ProcessState.Sys().(syscall.WaitStatus)
 		if fmsg.Load() {
-			fmsg.Verbosef("process %d exited with exit code %d", cmd.Unwrap().Process.Pid, rs.ExitCode)
+			switch {
+			case rs.Exited():
+				fmsg.Verbosef("process %d exited with code %d", cmd.Process.Pid, rs.ExitStatus())
+			case rs.CoreDump():
+				fmsg.Verbosef("process %d dumped core", cmd.Process.Pid)
+			case rs.Signaled():
+				fmsg.Verbosef("process %d got %s", cmd.Process.Pid, rs.Signal())
+			default:
+				fmsg.Verbosef("process %d exited with status %#x", cmd.Process.Pid, rs.WaitStatus)
+			}
 		}
-
-	// this is reached when a fault makes an already running shim impossible to continue execution
-	// however a kill signal could not be delivered (should actually always happen like that since fsu)
-	// the effects of this is similar to the alternative exit path and ensures shim death
-	case err := <-cmd.Fallback():
-		rs.ExitCode = 255
-		log.Printf("cannot terminate shim on faulted setup: %v", err)
-
-	// alternative exit path relying on shim behaviour on monitor process exit
-	case <-seal.ctx.Done():
-		fmsg.Verbose("alternative exit path selected")
+	case <-waitTimeout:
+		rs.WaitErr = syscall.ETIMEDOUT
+		fmsg.Resume()
+		log.Printf("process %d did not terminate", cmd.Process.Pid)
 	}
 
 	fmsg.Resume()

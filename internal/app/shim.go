@@ -2,14 +2,11 @@ package app
 
 import (
 	"context"
-	"encoding/gob"
 	"errors"
 	"log"
 	"os"
 	"os/exec"
 	"os/signal"
-	"strconv"
-	"strings"
 	"syscall"
 	"time"
 
@@ -18,9 +15,63 @@ import (
 	"git.gensokyo.uk/security/fortify/sandbox"
 )
 
+/*
+#include <stdlib.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <errno.h>
+#include <signal.h>
+
+static pid_t f_shim_param_ppid = -1;
+
+// this cannot unblock fmsg since Go code is not async-signal-safe
+static void f_shim_sigaction(int sig, siginfo_t *si, void *ucontext) {
+  if (sig != SIGCONT || si == NULL) {
+    // unreachable
+    fprintf(stderr, "sigaction: sa_sigaction got invalid siginfo\n");
+    return;
+  }
+
+  // monitor requests shim exit
+  if (si->si_pid == f_shim_param_ppid)
+    exit(254);
+
+  fprintf(stderr, "sigaction: got SIGCONT from process %d\n", si->si_pid);
+
+  // shim orphaned before monitor delivers a signal
+  if (getppid() != f_shim_param_ppid)
+    exit(3);
+}
+
+void f_shim_setup_cont_signal(pid_t ppid) {
+  struct sigaction new_action = {0}, old_action = {0};
+  if (sigaction(SIGCONT, NULL, &old_action) != 0)
+    return;
+  if (old_action.sa_handler != SIG_DFL) {
+    errno = ENOTRECOVERABLE;
+    return;
+  }
+
+  new_action.sa_sigaction = f_shim_sigaction;
+  if (sigemptyset(&new_action.sa_mask) != 0)
+    return;
+  new_action.sa_flags = SA_ONSTACK | SA_SIGINFO;
+
+  if (sigaction(SIGCONT, &new_action, NULL) != 0)
+    return;
+
+  errno = 0;
+  f_shim_param_ppid = ppid;
+}
+*/
+import "C"
+
 const shimEnv = "FORTIFY_SHIM"
 
 type shimParams struct {
+	// monitor pid, checked against ppid in signal handler
+	Monitor int
+
 	// finalised container params
 	Container *sandbox.Params
 	// path to outer home directory
@@ -54,6 +105,16 @@ func ShimMain() {
 	} else {
 		internal.InstallFmsg(params.Verbose)
 		closeSetup = f
+
+		// the Go runtime does not expose siginfo_t so SIGCONT is handled in C to check si_pid
+		if _, err = C.f_shim_setup_cont_signal(C.pid_t(params.Monitor)); err != nil {
+			log.Fatalf("cannot install SIGCONT handler: %v", err)
+		}
+
+		// pdeath_signal delivery is checked as if the dying process called kill(2), see kernel/exit.c
+		if _, _, errno := syscall.Syscall(syscall.SYS_PRCTL, syscall.PR_SET_PDEATHSIG, uintptr(syscall.SIGCONT), 0); errno != 0 {
+			log.Fatalf("cannot set parent-death signal: %v", errno)
+		}
 	}
 
 	if params.Container == nil || params.Container.Ops == nil {
@@ -110,103 +171,5 @@ func ShimMain() {
 			os.Exit(127)
 		}
 		os.Exit(exitError.ExitCode())
-	}
-}
-
-type shimProcess struct {
-	// user switcher process
-	cmd *exec.Cmd
-	// fallback exit notifier with error returned killing the process
-	killFallback chan error
-	// monitor to shim encoder
-	encoder *gob.Encoder
-}
-
-func (s *shimProcess) Unwrap() *exec.Cmd    { return s.cmd }
-func (s *shimProcess) Fallback() chan error { return s.killFallback }
-
-func (s *shimProcess) String() string {
-	if s.cmd == nil {
-		return "(unused shim manager)"
-	}
-	return s.cmd.String()
-}
-
-func (s *shimProcess) Start(
-	aid string,
-	supp []string,
-) (*time.Time, error) {
-	// prepare user switcher invocation
-	fsuPath := internal.MustFsuPath()
-	s.cmd = exec.Command(fsuPath)
-
-	// pass shim setup pipe
-	if fd, e, err := sandbox.Setup(&s.cmd.ExtraFiles); err != nil {
-		return nil, fmsg.WrapErrorSuffix(err,
-			"cannot create shim setup pipe:")
-	} else {
-		s.encoder = e
-		s.cmd.Env = []string{
-			shimEnv + "=" + strconv.Itoa(fd),
-			"FORTIFY_APP_ID=" + aid,
-		}
-	}
-
-	// format fsu supplementary groups
-	if len(supp) > 0 {
-		fmsg.Verbosef("attaching supplementary group ids %s", supp)
-		s.cmd.Env = append(s.cmd.Env, "FORTIFY_GROUPS="+strings.Join(supp, " "))
-	}
-	s.cmd.Stdin, s.cmd.Stdout, s.cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
-	s.cmd.Dir = "/"
-
-	fmsg.Verbose("starting shim via fsu:", s.cmd)
-	// withhold messages to stderr
-	fmsg.Suspend()
-	if err := s.cmd.Start(); err != nil {
-		return nil, fmsg.WrapErrorSuffix(err,
-			"cannot start fsu:")
-	}
-	startTime := time.Now().UTC()
-
-	return &startTime, nil
-}
-
-func (s *shimProcess) Serve(ctx context.Context, params *shimParams) error {
-	// kill shim if something goes wrong and an error is returned
-	s.killFallback = make(chan error, 1)
-	killShim := func() {
-		if err := s.cmd.Process.Signal(os.Interrupt); err != nil {
-			s.killFallback <- err
-		}
-	}
-	defer func() { killShim() }()
-
-	encodeErr := make(chan error)
-	go func() { encodeErr <- s.encoder.Encode(params) }()
-
-	select {
-	// encode return indicates setup completion
-	case err := <-encodeErr:
-		if err != nil {
-			return fmsg.WrapErrorSuffix(err,
-				"cannot transmit shim config:")
-		}
-		killShim = func() {}
-		return nil
-
-	// setup canceled before payload was accepted
-	case <-ctx.Done():
-		err := ctx.Err()
-		if errors.Is(err, context.Canceled) {
-			return fmsg.WrapError(syscall.ECANCELED,
-				"shim setup canceled")
-		}
-		if errors.Is(err, context.DeadlineExceeded) {
-			return fmsg.WrapError(syscall.ETIMEDOUT,
-				"deadline exceeded waiting for shim")
-		}
-		// unreachable
-		return err
 	}
 }

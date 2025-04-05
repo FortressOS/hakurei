@@ -8,7 +8,9 @@ import (
 	"git.gensokyo.uk/security/fortify/internal/fmsg"
 )
 
-func PrintRunStateErr(rs *fst.RunState, runErr error) {
+func PrintRunStateErr(rs *fst.RunState, runErr error) (code int) {
+	code = rs.ExitStatus()
+
 	if runErr != nil {
 		if rs.Time == nil {
 			fmsg.PrintBaseError(runErr, "cannot start app:")
@@ -49,8 +51,8 @@ func PrintRunStateErr(rs *fst.RunState, runErr error) {
 			}
 		}
 
-		if rs.ExitCode == 0 {
-			rs.ExitCode = 126
+		if code == 0 {
+			code = 126
 		}
 	}
 
@@ -97,13 +99,14 @@ func PrintRunStateErr(rs *fst.RunState, runErr error) {
 		}
 
 	out:
-		if rs.ExitCode == 0 {
-			rs.ExitCode = 128
+		if code == 0 {
+			code = 128
 		}
 	}
 	if rs.WaitErr != nil {
-		log.Println("inner wait failed:", rs.WaitErr)
+		fmsg.Verbosef("wait: %v", rs.WaitErr)
 	}
+	return
 }
 
 // StateStoreError is returned for a failed state save
@@ -121,7 +124,7 @@ type StateStoreError struct {
 }
 
 // save saves arbitrary errors in [StateStoreError] once.
-func (e *StateStoreError) save(errs []error) {
+func (e *StateStoreError) save(errs ...error) {
 	if len(errs) == 0 || e.Err != nil {
 		panic("invalid call to save")
 	}
