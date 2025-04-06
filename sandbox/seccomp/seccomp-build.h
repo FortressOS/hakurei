@@ -19,5 +19,5 @@ typedef enum {
   F_BLUETOOTH  = 1 << 8,
 } f_syscall_opts;
 
-extern void F_println(char *v);
+extern void f_println(char *v);
 int32_t f_build_filter(int *ret_p, int fd, uint32_t arch, uint32_t multiarch, f_syscall_opts opts);

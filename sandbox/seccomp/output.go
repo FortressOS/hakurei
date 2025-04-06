@@ -22,8 +22,8 @@ func GetOutput() func(v ...any) {
 	}
 }
 
-//export F_println
-func F_println(v *C.char) {
+//export f_println
+func f_println(v *C.char) {
 	if fp := printlnP.Load(); fp != nil {
 		(*fp)(C.GoString(v))
 	}

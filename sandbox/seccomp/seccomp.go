@@ -7,6 +7,7 @@ package seccomp
 #include "seccomp-build.h"
 */
 import "C"
+
 import (
 	"errors"
 	"fmt"

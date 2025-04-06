@@ -28,7 +28,7 @@ struct f_syscall_act {
 #define LEN(arr) (sizeof(arr) / sizeof((arr)[0]))
 
 #define SECCOMP_RULESET_ADD(ruleset) do {                                                                         \
-  if (opts & F_VERBOSE) F_println("adding seccomp ruleset \"" #ruleset "\"");                                     \
+  if (opts & F_VERBOSE) f_println("adding seccomp ruleset \"" #ruleset "\"");                                     \
   for (int i = 0; i < LEN(ruleset); i++) {                                                                        \
     assert(ruleset[i].m_errno == EPERM || ruleset[i].m_errno == ENOSYS);                                          \
                                                                                                                   \
