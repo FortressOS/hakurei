@@ -13,6 +13,7 @@ import (
 	"git.gensokyo.uk/security/fortify/internal"
 	"git.gensokyo.uk/security/fortify/internal/fmsg"
 	"git.gensokyo.uk/security/fortify/sandbox"
+	"git.gensokyo.uk/security/fortify/sandbox/seccomp"
 )
 
 /*
@@ -161,6 +162,13 @@ func ShimMain() {
 	if err := container.Serve(); err != nil {
 		fmsg.PrintBaseError(err, "cannot configure container:")
 	}
+
+	if err := seccomp.Load(seccomp.FlagExt |
+		seccomp.FlagDenyNS | seccomp.FlagDenyTTY | seccomp.FlagDenyDevel |
+		seccomp.FlagMultiarch); err != nil {
+		log.Fatalf("cannot load syscall filter: %v", err)
+	}
+
 	if err := container.Wait(); err != nil {
 		var exitError *exec.ExitError
 		if !errors.As(err, &exitError) {
