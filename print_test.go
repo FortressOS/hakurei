@@ -454,19 +454,19 @@ func Test_printPs(t *testing.T) {
 		short, json bool
 		want        string
 	}{
-		{"no entries", make(state.Entries), false, false, `    Instance    PID    Application    Uptime
-`},
-		{"no entries short", make(state.Entries), true, false, ``},
-		{"nil instance", state.Entries{testID: nil}, false, false, `    Instance    PID    Application    Uptime
-`},
-		{"state corruption", state.Entries{fst.ID{}: testState}, false, false, `    Instance    PID    Application    Uptime
+		{"no entries", make(state.Entries), false, false, "    Instance    PID    Application    Uptime\n"},
+		{"no entries short", make(state.Entries), true, false, ""},
+		{"nil instance", state.Entries{testID: nil}, false, false, "    Instance    PID    Application    Uptime\n"},
+		{"state corruption", state.Entries{fst.ID{}: testState}, false, false, "    Instance    PID    Application    Uptime\n"},
+
+		{"valid pd", state.Entries{testID: &state.State{ID: testID, PID: 1 << 8, Config: new(fst.Config), Time: testAppTime}}, false, false, `    Instance    PID    Application                         Uptime
+    8e2c76b0    256    0 (uk.gensokyo.fortify.8e2c76b0)    1h2m32s
 `},
 
 		{"valid", state.Entries{testID: testState}, false, false, `    Instance    PID           Application                  Uptime
     8e2c76b0    3735928559    9 (org.chromium.Chromium)    1h2m32s
 `},
-		{"valid short", state.Entries{testID: testState}, true, false, `8e2c76b0
-`},
+		{"valid short", state.Entries{testID: testState}, true, false, "8e2c76b0\n"},
 		{"valid json", state.Entries{testID: testState}, false, true, `{
   "8e2c76b066dabe574cf073bdb46eb5c1": {
     "instance": [

@@ -265,9 +265,11 @@ func printPs(output io.Writer, now time.Time, s state.Store, short, flagJSON boo
 		as := "(No configuration information)"
 		if e.Config != nil {
 			as = strconv.Itoa(e.Config.Confinement.AppID)
-			if e.Config.ID != "" {
-				as += " (" + e.Config.ID + ")"
+			id := e.Config.ID
+			if id == "" {
+				id = "uk.gensokyo.fortify." + e.s[:8]
 			}
+			as += " (" + id + ")"
 		}
 		t.Printf("\t%s\t%d\t%s\t%s\n",
 			e.s[:8], e.PID, as, now.Sub(e.Time).Round(time.Second).String())
