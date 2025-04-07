@@ -256,6 +256,12 @@ func printPs(output io.Writer, now time.Time, s state.Store, short, flagJSON boo
 
 	t.Println("\tInstance\tPID\tApplication\tUptime")
 	for _, e := range exp {
+		if len(e.s) != 1<<5 {
+			// unreachable
+			log.Printf("possible store corruption: invalid instance string %s", e.s)
+			continue
+		}
+
 		as := "(No configuration information)"
 		if e.Config != nil {
 			as = strconv.Itoa(e.Config.Confinement.AppID)
