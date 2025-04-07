@@ -21,7 +21,7 @@ type (
 		Hostname string `json:"hostname,omitempty"`
 
 		// extra seccomp flags
-		Seccomp seccomp.SyscallOpts `json:"seccomp"`
+		Seccomp seccomp.FilterOpts `json:"seccomp"`
 		// allow ptrace and friends
 		Devel bool `json:"devel,omitempty"`
 		// allow userns creation in container
@@ -98,7 +98,7 @@ func (s *SandboxConfig) ToContainer(sys SandboxSys, uid, gid *int) (*sandbox.Par
 	}
 
 	if s.Multiarch {
-		container.Seccomp |= seccomp.FlagMultiarch
+		container.Seccomp |= seccomp.FilterMultiarch
 	}
 
 	/* this is only 4 KiB of memory on a 64-bit system,

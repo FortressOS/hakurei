@@ -163,9 +163,7 @@ func ShimMain() {
 		fmsg.PrintBaseError(err, "cannot configure container:")
 	}
 
-	if err := seccomp.Load(seccomp.FlagExt |
-		seccomp.FlagDenyNS | seccomp.FlagDenyTTY | seccomp.FlagDenyDevel |
-		seccomp.FlagMultiarch); err != nil {
+	if err := seccomp.Load(seccomp.PresetCommon); err != nil {
 		log.Fatalf("cannot load syscall filter: %v", err)
 	}
 

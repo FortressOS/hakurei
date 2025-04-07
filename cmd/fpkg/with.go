@@ -39,7 +39,7 @@ func withNixDaemon(
 				Hostname: formatHostname(app.Name) + "-" + action,
 				Userns:   true, // nix sandbox requires userns
 				Net:      net,
-				Seccomp:  seccomp.FlagMultiarch,
+				Seccomp:  seccomp.FilterMultiarch,
 				Tty:      dropShell,
 				Filesystem: []*fst.FilesystemConfig{
 					{Src: pathSet.nixPath, Dst: "/nix", Write: true, Must: true},
@@ -76,7 +76,7 @@ func withCacheDir(
 			Shell:    shellPath,
 			Sandbox: &fst.SandboxConfig{
 				Hostname: formatHostname(app.Name) + "-" + action,
-				Seccomp:  seccomp.FlagMultiarch,
+				Seccomp:  seccomp.FilterMultiarch,
 				Tty:      dropShell,
 				Filesystem: []*fst.FilesystemConfig{
 					{Src: path.Join(workDir, "nix"), Dst: "/nix", Must: true},

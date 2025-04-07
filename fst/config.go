@@ -106,7 +106,7 @@ func Template() *Config {
 				Userns:        true,
 				Net:           true,
 				Dev:           true,
-				Seccomp:       seccomp.FlagMultiarch,
+				Seccomp:       seccomp.FilterMultiarch,
 				Tty:           true,
 				Multiarch:     true,
 				MapRealUID:    true,

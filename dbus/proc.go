@@ -63,7 +63,7 @@ func (p *Proxy) Start(ctx context.Context, output io.Writer, useSandbox bool) er
 			c, toolPath,
 			p.seal, true,
 			argF, func(container *sandbox.Container) {
-				container.Seccomp |= seccomp.FlagMultiarch
+				container.Seccomp |= seccomp.FilterMultiarch
 				container.Hostname = "fortify-dbus"
 				container.CommandContext = p.CommandContext
 				if output != nil {

@@ -27,18 +27,18 @@ const (
 	FAllowNet
 )
 
-func (flags HardeningFlags) seccomp(opts seccomp.SyscallOpts) seccomp.SyscallOpts {
+func (flags HardeningFlags) seccomp(opts seccomp.FilterOpts) seccomp.FilterOpts {
 	if flags&FSyscallCompat == 0 {
-		opts |= seccomp.FlagExt
+		opts |= seccomp.FilterExt
 	}
 	if flags&FAllowDevel == 0 {
-		opts |= seccomp.FlagDenyDevel
+		opts |= seccomp.FilterDenyDevel
 	}
 	if flags&FAllowUserns == 0 {
-		opts |= seccomp.FlagDenyNS
+		opts |= seccomp.FilterDenyNS
 	}
 	if flags&FAllowTTY == 0 {
-		opts |= seccomp.FlagDenyTTY
+		opts |= seccomp.FilterDenyTTY
 	}
 	return opts
 }
@@ -95,7 +95,7 @@ type (
 		// Sequential container setup ops.
 		*Ops
 		// Extra seccomp options.
-		Seccomp seccomp.SyscallOpts
+		Seccomp seccomp.FilterOpts
 		// Permission bits of newly created parent directories.
 		// The zero value is interpreted as 0755.
 		ParentPerm os.FileMode

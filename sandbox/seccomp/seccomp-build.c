@@ -47,7 +47,7 @@ struct f_syscall_act {
   }                                                                                                               \
 } while (0)
 
-int32_t f_build_filter(int *ret_p, int fd, uint32_t arch, uint32_t multiarch, f_syscall_opts opts) {
+int32_t f_build_filter(int *ret_p, int fd, uint32_t arch, uint32_t multiarch, f_filter_opts opts) {
   int32_t res = 0; // refer to resErr for meaning
   int allow_multiarch = opts & F_MULTIARCH;
   int allowed_personality = PER_LINUX;
@@ -209,7 +209,7 @@ int32_t f_build_filter(int *ret_p, int fd, uint32_t arch, uint32_t multiarch, f_
   struct
   {
     int            family;
-    f_syscall_opts flags_mask;
+    f_filter_opts flags_mask;
   } socket_family_allowlist[] = {
     // NOTE: Keep in numerical order
     { AF_UNSPEC, 0 },

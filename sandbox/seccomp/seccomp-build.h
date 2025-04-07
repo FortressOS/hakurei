@@ -17,7 +17,7 @@ typedef enum {
   F_LINUX32    = 1 << 6,
   F_CAN        = 1 << 7,
   F_BLUETOOTH  = 1 << 8,
-} f_syscall_opts;
+} f_filter_opts;
 
 extern void f_println(char *v);
-int32_t f_build_filter(int *ret_p, int fd, uint32_t arch, uint32_t multiarch, f_syscall_opts opts);
+int32_t f_build_filter(int *ret_p, int fd, uint32_t arch, uint32_t multiarch, f_filter_opts opts);

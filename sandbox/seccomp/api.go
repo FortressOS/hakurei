@@ -8,11 +8,16 @@ import (
 	"git.gensokyo.uk/security/fortify/helper/proc"
 )
 
+const (
+	PresetStrict = FilterExt | FilterDenyNS | FilterDenyTTY | FilterDenyDevel
+	PresetCommon = PresetStrict | FilterMultiarch
+)
+
 // New returns an inactive Encoder instance.
-func New(opts SyscallOpts) *Encoder { return &Encoder{newExporter(opts)} }
+func New(opts FilterOpts) *Encoder { return &Encoder{newExporter(opts)} }
 
 // Load loads a filter into the kernel.
-func Load(opts SyscallOpts) error { return buildFilter(-1, opts) }
+func Load(opts FilterOpts) error { return buildFilter(-1, opts) }
 
 /*
 An Encoder writes a BPF program to an output stream.
@@ -42,11 +47,11 @@ func (e *Encoder) Close() error {
 }
 
 // NewFile returns an instance of exporter implementing [proc.File].
-func NewFile(opts SyscallOpts) proc.File { return &File{opts: opts} }
+func NewFile(opts FilterOpts) proc.File { return &File{opts: opts} }
 
 // File implements [proc.File] and provides access to the read end of exporter pipe.
 type File struct {
-	opts SyscallOpts
+	opts FilterOpts
 	proc.BaseFile
 }
 

@@ -57,29 +57,29 @@ var resPrefix = [...]string{
 	7: "seccomp_load failed",
 }
 
-type SyscallOpts = C.f_syscall_opts
+type FilterOpts = C.f_filter_opts
 
 const (
-	flagVerbose SyscallOpts = C.F_VERBOSE
-	// FlagExt are project-specific extensions.
-	FlagExt SyscallOpts = C.F_EXT
-	// FlagDenyNS denies namespace setup syscalls.
-	FlagDenyNS SyscallOpts = C.F_DENY_NS
-	// FlagDenyTTY denies faking input.
-	FlagDenyTTY SyscallOpts = C.F_DENY_TTY
-	// FlagDenyDevel denies development-related syscalls.
-	FlagDenyDevel SyscallOpts = C.F_DENY_DEVEL
-	// FlagMultiarch allows multiarch/emulation.
-	FlagMultiarch SyscallOpts = C.F_MULTIARCH
-	// FlagLinux32 sets PER_LINUX32.
-	FlagLinux32 SyscallOpts = C.F_LINUX32
-	// FlagCan allows AF_CAN.
-	FlagCan SyscallOpts = C.F_CAN
-	// FlagBluetooth allows AF_BLUETOOTH.
-	FlagBluetooth SyscallOpts = C.F_BLUETOOTH
+	filterVerbose FilterOpts = C.F_VERBOSE
+	// FilterExt are project-specific extensions.
+	FilterExt FilterOpts = C.F_EXT
+	// FilterDenyNS denies namespace setup syscalls.
+	FilterDenyNS FilterOpts = C.F_DENY_NS
+	// FilterDenyTTY denies faking input.
+	FilterDenyTTY FilterOpts = C.F_DENY_TTY
+	// FilterDenyDevel denies development-related syscalls.
+	FilterDenyDevel FilterOpts = C.F_DENY_DEVEL
+	// FilterMultiarch allows multiarch/emulation.
+	FilterMultiarch FilterOpts = C.F_MULTIARCH
+	// FilterLinux32 sets PER_LINUX32.
+	FilterLinux32 FilterOpts = C.F_LINUX32
+	// FilterCan allows AF_CAN.
+	FilterCan FilterOpts = C.F_CAN
+	// FilterBluetooth allows AF_BLUETOOTH.
+	FilterBluetooth FilterOpts = C.F_BLUETOOTH
 )
 
-func buildFilter(fd int, opts SyscallOpts) error {
+func buildFilter(fd int, opts FilterOpts) error {
 	var (
 		arch      C.uint32_t = 0
 		multiarch C.uint32_t = 0
@@ -100,7 +100,7 @@ func buildFilter(fd int, opts SyscallOpts) error {
 	// this removes repeated transitions between C and Go execution
 	// when producing log output via F_println and CPrintln is nil
 	if fp := printlnP.Load(); fp != nil {
-		opts |= flagVerbose
+		opts |= filterVerbose
 	}
 
 	var ret C.int

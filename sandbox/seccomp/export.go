@@ -7,7 +7,7 @@ import (
 )
 
 type exporter struct {
-	opts SyscallOpts
+	opts FilterOpts
 	r, w *os.File
 
 	prepareOnce sync.Once
@@ -53,6 +53,6 @@ func (e *exporter) closeWrite() error {
 	return e.closeErr
 }
 
-func newExporter(opts SyscallOpts) *exporter {
+func newExporter(opts FilterOpts) *exporter {
 	return &exporter{opts: opts}
 }
