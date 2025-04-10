@@ -440,3 +440,57 @@ func (f *Ops) PlaceP(name string, dataP **[]byte) *Ops {
 	*f = append(*f, t)
 	return f
 }
+
+func init() { gob.Register(new(AutoEtc)) }
+
+// AutoEtc creates a toplevel symlink mirror of a directory in sysroot with /etc semantics.
+// This is not a generic setup op. It is implemented here to reduce ipc overhead.
+type AutoEtc struct {
+	// this is an absolute path within sysroot
+	HostEtc string
+}
+
+func (e *AutoEtc) early(*Params) error { return nil }
+func (e *AutoEtc) apply(*Params) error {
+	if !path.IsAbs(e.HostEtc) {
+		return msg.WrapErr(syscall.EBADE,
+			fmt.Sprintf("path %q is not absolute", e.HostEtc))
+	}
+
+	const target = sysrootPath + "/etc/"
+	if err := os.MkdirAll(target, 0755); err != nil {
+		return wrapErrSelf(err)
+	}
+
+	if d, err := os.ReadDir(toSysroot(e.HostEtc)); err != nil {
+		return wrapErrSelf(err)
+	} else {
+		for _, ent := range d {
+			n := ent.Name()
+			switch n {
+			case "passwd":
+			case "group":
+
+			case "mtab":
+				if err = os.Symlink("/proc/mounts", target+n); err != nil {
+					return wrapErrSelf(err)
+				}
+
+			default:
+				if err = os.Symlink(path.Join(e.HostEtc, n), target+n); err != nil {
+					return wrapErrSelf(err)
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
+func (e *AutoEtc) Is(op Op) bool {
+	ve, ok := op.(*AutoEtc)
+	return ok && ((e == nil && ve == nil) || (e != nil && ve != nil && *e == *ve))
+}
+func (*AutoEtc) prefix() string     { return "setting up" }
+func (e *AutoEtc) String() string   { return fmt.Sprintf("auto etc via %s", e.HostEtc) }
+func (f *Ops) Etc(host string) *Ops { *f = append(*f, &AutoEtc{host}); return f }

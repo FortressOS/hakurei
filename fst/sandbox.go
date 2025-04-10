@@ -245,29 +245,13 @@ func (s *SandboxConfig) ToContainer(sys SandboxSys, uid, gid *int) (*sandbox.Par
 			container.Bind(s.Etc, "/etc", 0)
 		}
 	} else {
+		const hostEtc = Tmp + "/etc"
+
 		etcPath := s.Etc
 		if etcPath == "" {
 			etcPath = "/etc"
 		}
-		container.Bind(etcPath, Tmp+"/etc", 0)
-
-		// link host /etc contents to prevent dropping passwd/group bind mounts
-		if d, err := sys.ReadDir(etcPath); err != nil {
-			return nil, nil, err
-		} else {
-			for _, ent := range d {
-				n := ent.Name()
-				switch n {
-				case "passwd":
-				case "group":
-
-				case "mtab":
-					container.Link("/proc/mounts", "/etc/"+n)
-				default:
-					container.Link(Tmp+"/etc/"+n, "/etc/"+n)
-				}
-			}
-		}
+		container.Bind(etcPath, hostEtc, 0).Etc(hostEtc)
 	}
 
 	return container, maps.Clone(s.Env), nil
