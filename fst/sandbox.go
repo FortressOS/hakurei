@@ -138,7 +138,7 @@ func (s *SandboxConfig) ToContainer(sys SandboxSys, uid, gid *int) (*sandbox.Par
 	if !s.Device {
 		container.Dev("/dev").Mqueue("/dev/mqueue")
 	} else {
-		container.Bind("/dev", "/dev", sandbox.BindDevice)
+		container.Bind("/dev", "/dev", sandbox.BindWritable|sandbox.BindDevice)
 	}
 
 	/* retrieve paths and hide them if they're made available in the sandbox;
