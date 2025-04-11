@@ -108,7 +108,7 @@ in
                           devel
                           userns
                           net
-                          dev
+                          device
                           tty
                           multiarch
                           env

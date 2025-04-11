@@ -39,7 +39,7 @@ type (
 		MapRealUID bool `json:"map_real_uid"`
 
 		// expose all devices
-		Dev bool `json:"dev,omitempty"`
+		Device bool `json:"device,omitempty"`
 		// container host filesystem bind mounts
 		Filesystem []*FilesystemConfig `json:"filesystem"`
 		// create symlinks inside container filesystem
@@ -135,7 +135,7 @@ func (s *SandboxConfig) ToContainer(sys SandboxSys, uid, gid *int) (*sandbox.Par
 		Proc("/proc").
 		Tmpfs(Tmp, 1<<12, 0755)
 
-	if !s.Dev {
+	if !s.Device {
 		container.Dev("/dev").Mqueue("/dev/mqueue")
 	} else {
 		container.Bind("/dev", "/dev", sandbox.BindDevice)

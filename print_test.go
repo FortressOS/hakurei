@@ -41,7 +41,7 @@ func Test_printShowInstance(t *testing.T) {
  Groups:         ["video"]
  Directory:      /var/lib/persist/home/org.chromium.Chromium
  Hostname:       "localhost"
- Flags:          userns net dev tty mapuid autoetc
+ Flags:          userns devel net device tty mapuid autoetc
  Etc:            /etc
  Cover:          /var/run/nscd
  Path:           /run/current-system/sw/bin/chromium
@@ -120,7 +120,7 @@ App
  Groups:         ["video"]
  Directory:      /var/lib/persist/home/org.chromium.Chromium
  Hostname:       "localhost"
- Flags:          userns net dev tty mapuid autoetc
+ Flags:          userns devel net device tty mapuid autoetc
  Etc:            /etc
  Cover:          /var/run/nscd
  Path:           /run/current-system/sw/bin/chromium
@@ -217,7 +217,7 @@ App
           "GOOGLE_DEFAULT_CLIENT_SECRET": "OTJgUOQcT7lO7GsGZq2G4IlT"
         },
         "map_real_uid": true,
-        "dev": true,
+        "device": true,
         "filesystem": [
           {
             "src": "/nix/store"
@@ -342,7 +342,7 @@ App
         "GOOGLE_DEFAULT_CLIENT_SECRET": "OTJgUOQcT7lO7GsGZq2G4IlT"
       },
       "map_real_uid": true,
-      "dev": true,
+      "device": true,
       "filesystem": [
         {
           "src": "/nix/store"
@@ -521,7 +521,7 @@ func Test_printPs(t *testing.T) {
             "GOOGLE_DEFAULT_CLIENT_SECRET": "OTJgUOQcT7lO7GsGZq2G4IlT"
           },
           "map_real_uid": true,
-          "dev": true,
+          "device": true,
           "filesystem": [
             {
               "src": "/nix/store"

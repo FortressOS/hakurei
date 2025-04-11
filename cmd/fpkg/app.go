@@ -29,7 +29,7 @@ type appInfo struct {
 	// passed through to [fst.Config]
 	Net bool `json:"net,omitempty"`
 	// passed through to [fst.Config]
-	Dev bool `json:"dev,omitempty"`
+	Device bool `json:"dev,omitempty"`
 	// passed through to [fst.Config]
 	Tty bool `json:"tty,omitempty"`
 	// passed through to [fst.Config]
@@ -79,7 +79,7 @@ func (app *appInfo) toFst(pathSet *appPathSet, argv []string, flagDropShell bool
 				Devel:         app.Devel,
 				Userns:        app.Userns,
 				Net:           app.Net,
-				Dev:           app.Dev,
+				Device:        app.Device,
 				Tty:           app.Tty || flagDropShell,
 				MapRealUID:    app.MapRealUID,
 				DirectWayland: app.DirectWayland,

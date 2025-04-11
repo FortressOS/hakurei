@@ -105,7 +105,7 @@ func Template() *Config {
 				Devel:         true,
 				Userns:        true,
 				Net:           true,
-				Dev:           true,
+				Device:        true,
 				Seccomp:       seccomp.FilterMultiarch,
 				Tty:           true,
 				Multiarch:     true,

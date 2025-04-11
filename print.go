@@ -92,8 +92,9 @@ func printShowInstance(
 			}
 		}
 		writeFlag("userns", sandbox.Userns)
+		writeFlag("devel", sandbox.Devel)
 		writeFlag("net", sandbox.Net)
-		writeFlag("dev", sandbox.Dev)
+		writeFlag("device", sandbox.Device)
 		writeFlag("tty", sandbox.Tty)
 		writeFlag("mapuid", sandbox.MapRealUID)
 		writeFlag("directwl", sandbox.DirectWayland)

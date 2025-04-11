@@ -177,7 +177,7 @@ in
 
               nix = mkEnableOption "nix daemon access";
               mapRealUid = mkEnableOption "mapping to priv-user uid";
-              dev = mkEnableOption "access to all devices";
+              device = mkEnableOption "access to all devices";
               insecureWayland = mkEnableOption "direct access to the Wayland socket";
 
               gpu = mkOption {
