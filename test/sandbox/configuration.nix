@@ -67,10 +67,11 @@ in
 
     home-manager = _: _: { home.stateVersion = "23.05"; };
 
-    apps = [
-      testCases.preset
-      testCases.tty
-      testCases.mapuid
+    apps = with testCases; [
+      preset
+      tty
+      mapuid
+      device
     ];
   };
 }

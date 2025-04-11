@@ -62,6 +62,7 @@ def check_sandbox(name):
 check_sandbox("preset")
 check_sandbox("tty")
 check_sandbox("mapuid")
+check_sandbox("device")
 
 # Exit Sway and verify process exit status 0:
 swaymsg("exit", succeed=False)

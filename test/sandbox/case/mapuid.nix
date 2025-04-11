@@ -6,6 +6,7 @@
 {
   name = "mapuid";
   tty = false;
+  device = false;
   mapRealUid = true;
 
   want = {

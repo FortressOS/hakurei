@@ -6,6 +6,7 @@
 {
   name = "tty";
   tty = true;
+  device = false;
   mapRealUid = false;
 
   want = {
