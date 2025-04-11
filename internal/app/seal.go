@@ -301,6 +301,18 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *fst.Co
 		}
 	}
 
+	if !config.Confinement.Sandbox.AutoEtc {
+		if config.Confinement.Sandbox.Etc != "" {
+			seal.container.Bind(config.Confinement.Sandbox.Etc, "/etc", 0)
+		}
+	} else {
+		etcPath := config.Confinement.Sandbox.Etc
+		if etcPath == "" {
+			etcPath = "/etc"
+		}
+		seal.container.Etc(etcPath, seal.id.String())
+	}
+
 	// inner XDG_RUNTIME_DIR default formatting of `/run/user/%d` as mapped uid
 	innerRuntimeDir := path.Join("/run/user", mapuid.String())
 	seal.container.Tmpfs("/run/user", 1<<12, 0755)

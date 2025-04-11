@@ -124,8 +124,7 @@ var testCasesNixos = []sealTestCase{
 				Bind("/sys/devices", "/sys/devices", sandbox.BindOptional).
 				Bind("/run/opengl-driver", "/run/opengl-driver", 0).
 				Bind("/dev/dri", "/dev/dri", sandbox.BindDevice|sandbox.BindWritable|sandbox.BindOptional).
-				Bind("/etc", fst.Tmp+"/etc", 0).
-				Etc(fst.Tmp+"/etc").
+				Etc("/etc", "8e2c76b066dabe574cf073bdb46eb5c1").
 				Tmpfs("/run/user", 4096, 0755).
 				Tmpfs("/run/user/1971", 8388608, 0700).
 				Bind("/tmp/fortify.1971/tmpdir/1", "/tmp", sandbox.BindWritable).

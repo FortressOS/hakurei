@@ -63,8 +63,7 @@ var testCasesPd = []sealTestCase{
 				Bind("/dev/kvm", "/dev/kvm", sandbox.BindWritable|sandbox.BindDevice|sandbox.BindOptional).
 				Tmpfs("/run/user/1971", 8192, 0755).
 				Tmpfs("/run/dbus", 8192, 0755).
-				Bind("/etc", fst.Tmp+"/etc", 0).
-				Etc(fst.Tmp+"/etc").
+				Etc("/etc", "4a450b6596d7bc15bd01780eb9a607ac").
 				Tmpfs("/run/user", 4096, 0755).
 				Tmpfs("/run/user/65534", 8388608, 0700).
 				Bind("/tmp/fortify.1971/tmpdir/0", "/tmp", sandbox.BindWritable).
@@ -206,8 +205,7 @@ var testCasesPd = []sealTestCase{
 				Bind("/dev/kvm", "/dev/kvm", sandbox.BindWritable|sandbox.BindDevice|sandbox.BindOptional).
 				Tmpfs("/run/user/1971", 8192, 0755).
 				Tmpfs("/run/dbus", 8192, 0755).
-				Bind("/etc", fst.Tmp+"/etc", 0).
-				Etc(fst.Tmp+"/etc").
+				Etc("/etc", "ebf083d1b175911782d413369b64ce7c").
 				Tmpfs("/run/user", 4096, 0755).
 				Tmpfs("/run/user/65534", 8388608, 0700).
 				Bind("/tmp/fortify.1971/tmpdir/9", "/tmp", sandbox.BindWritable).

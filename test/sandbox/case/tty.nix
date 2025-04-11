@@ -23,9 +23,7 @@
     ];
 
     fs = fs "dead" {
-      ".fortify" = fs "800001ed" {
-        etc = fs "800001ed" null null;
-      } null;
+      ".fortify" = fs "800001ed" { } null;
       bin = fs "800001ed" { sh = fs "80001ff" null null; } null;
       dev = fs "800001ed" {
         console = fs "4200190" null null;
@@ -55,6 +53,7 @@
       } null;
       etc = fs "800001ed" {
         ".clean" = fs "80001ff" null null;
+        ".host" = fs "800001c0" null null;
         ".updated" = fs "80001ff" null null;
         "NIXOS" = fs "80001ff" null null;
         "X11" = fs "80001ff" null null;
@@ -215,7 +214,7 @@
       (ent "/dev" "/sys/dev" "ro,nosuid,nodev,noexec,relatime" "sysfs" "sysfs" "rw")
       (ent "/devices" "/sys/devices" "ro,nosuid,nodev,noexec,relatime" "sysfs" "sysfs" "rw")
       (ent "/dri" "/dev/dri" "rw,nosuid" "devtmpfs" "devtmpfs" ignore)
-      (ent "/etc" "/.fortify/etc" "ro,nosuid,nodev,relatime" "ext4" "/dev/disk/by-label/nixos" "rw")
+      (ent "/etc" ignore "ro,nosuid,nodev,relatime" "ext4" "/dev/disk/by-label/nixos" "rw")
       (ent "/" "/run/user" "rw,nosuid,nodev,relatime" "tmpfs" "tmpfs" "rw,size=4k,mode=755,uid=1000002,gid=1000002")
       (ent "/" "/run/user/65534" "rw,nosuid,nodev,relatime" "tmpfs" "tmpfs" "rw,size=8192k,mode=700,uid=1000002,gid=1000002")
       (ent "/tmp/fortify.1000/tmpdir/2" "/tmp" "rw,nosuid,nodev,relatime" "ext4" "/dev/disk/by-label/nixos" "rw")

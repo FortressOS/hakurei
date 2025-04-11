@@ -239,21 +239,6 @@ func (s *SandboxConfig) ToContainer(sys SandboxSys, uid, gid *int) (*sandbox.Par
 		container.Link(l[0], l[1])
 	}
 
-	// perf: this might work better if implemented as a setup op in container init
-	if !s.AutoEtc {
-		if s.Etc != "" {
-			container.Bind(s.Etc, "/etc", 0)
-		}
-	} else {
-		const hostEtc = Tmp + "/etc"
-
-		etcPath := s.Etc
-		if etcPath == "" {
-			etcPath = "/etc"
-		}
-		container.Bind(etcPath, hostEtc, 0).Etc(hostEtc)
-	}
-
 	return container, maps.Clone(s.Env), nil
 }
 
