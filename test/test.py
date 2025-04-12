@@ -69,8 +69,8 @@ def check_state(name, enablements):
     if len(config['args']) != 1 or config['args'][0] != command:
         raise Exception(f"unexpected args {config['args']}")
 
-    if config['confinement']['enablements'] != enablements:
-        raise Exception(f"unexpected enablements {instance['config']['confinement']['enablements']}")
+    if config['enablements'] != enablements:
+        raise Exception(f"unexpected enablements {instance['config']['enablements']}")
 
 
 def fortify(command):

@@ -4,9 +4,9 @@ import (
 	"git.gensokyo.uk/security/fortify/sandbox/seccomp"
 )
 
-// SandboxConfig describes resources made available to the sandbox.
 type (
-	SandboxConfig struct {
+	// ContainerConfig describes the container configuration baseline to which the app implementation adds upon.
+	ContainerConfig struct {
 		// container hostname
 		Hostname string `json:"hostname,omitempty"`
 
@@ -18,7 +18,7 @@ type (
 		Userns bool `json:"userns,omitempty"`
 		// share host net namespace
 		Net bool `json:"net,omitempty"`
-		// expose main process tty
+		// allow dangerous terminal I/O
 		Tty bool `json:"tty,omitempty"`
 		// allow multiarch
 		Multiarch bool `json:"multiarch,omitempty"`
@@ -28,16 +28,12 @@ type (
 		// map target user uid to privileged user uid in the user namespace
 		MapRealUID bool `json:"map_real_uid"`
 
-		// expose all devices
+		// pass through all devices
 		Device bool `json:"device,omitempty"`
 		// container host filesystem bind mounts
 		Filesystem []*FilesystemConfig `json:"filesystem"`
 		// create symlinks inside container filesystem
 		Link [][2]string `json:"symlink"`
-
-		// direct access to wayland socket; when this gets set no attempt is made to attach security-context-v1
-		// and the bare socket is mounted to the sandbox
-		DirectWayland bool `json:"direct_wayland,omitempty"`
 
 		// read-only /etc directory
 		Etc string `json:"etc,omitempty"`
@@ -47,7 +43,7 @@ type (
 		Cover []string `json:"cover"`
 	}
 
-	// FilesystemConfig is a representation of [sandbox.BindMount].
+	// FilesystemConfig is an abstract representation of a bind mount.
 	FilesystemConfig struct {
 		// mount point in container, same as src if empty
 		Dst string `json:"dst,omitempty"`

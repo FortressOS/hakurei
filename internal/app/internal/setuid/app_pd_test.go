@@ -14,13 +14,7 @@ import (
 var testCasesPd = []sealTestCase{
 	{
 		"nixos permissive defaults no enablements", new(stubNixOS),
-		&fst.Config{
-			Confinement: fst.ConfinementConfig{
-				AppID:    0,
-				Username: "chronos",
-				Outer:    "/home/chronos",
-			},
-		},
+		&fst.Config{Username: "chronos", Data: "/home/chronos"},
 		app.ID{
 			0x4a, 0x45, 0x0b, 0x65,
 			0x96, 0xd7, 0xbc, 0x15,
@@ -77,46 +71,44 @@ var testCasesPd = []sealTestCase{
 	{
 		"nixos permissive defaults chromium", new(stubNixOS),
 		&fst.Config{
-			ID:   "org.chromium.Chromium",
-			Args: []string{"zsh", "-c", "exec chromium "},
-			Confinement: fst.ConfinementConfig{
-				AppID:    9,
-				Groups:   []string{"video"},
-				Username: "chronos",
-				Outer:    "/home/chronos",
-				SessionBus: &dbus.Config{
-					Talk: []string{
-						"org.freedesktop.Notifications",
-						"org.freedesktop.FileManager1",
-						"org.freedesktop.ScreenSaver",
-						"org.freedesktop.secrets",
-						"org.kde.kwalletd5",
-						"org.kde.kwalletd6",
-						"org.gnome.SessionManager",
-					},
-					Own: []string{
-						"org.chromium.Chromium.*",
-						"org.mpris.MediaPlayer2.org.chromium.Chromium.*",
-						"org.mpris.MediaPlayer2.chromium.*",
-					},
-					Call: map[string]string{
-						"org.freedesktop.portal.*": "*",
-					},
-					Broadcast: map[string]string{
-						"org.freedesktop.portal.*": "@/org/freedesktop/portal/*",
-					},
-					Filter: true,
+			ID:       "org.chromium.Chromium",
+			Args:     []string{"zsh", "-c", "exec chromium "},
+			Identity: 9,
+			Groups:   []string{"video"},
+			Username: "chronos",
+			Data:     "/home/chronos",
+			SessionBus: &dbus.Config{
+				Talk: []string{
+					"org.freedesktop.Notifications",
+					"org.freedesktop.FileManager1",
+					"org.freedesktop.ScreenSaver",
+					"org.freedesktop.secrets",
+					"org.kde.kwalletd5",
+					"org.kde.kwalletd6",
+					"org.gnome.SessionManager",
 				},
-				SystemBus: &dbus.Config{
-					Talk: []string{
-						"org.bluez",
-						"org.freedesktop.Avahi",
-						"org.freedesktop.UPower",
-					},
-					Filter: true,
+				Own: []string{
+					"org.chromium.Chromium.*",
+					"org.mpris.MediaPlayer2.org.chromium.Chromium.*",
+					"org.mpris.MediaPlayer2.chromium.*",
 				},
-				Enablements: system.EWayland | system.EDBus | system.EPulse,
+				Call: map[string]string{
+					"org.freedesktop.portal.*": "*",
+				},
+				Broadcast: map[string]string{
+					"org.freedesktop.portal.*": "@/org/freedesktop/portal/*",
+				},
+				Filter: true,
 			},
+			SystemBus: &dbus.Config{
+				Talk: []string{
+					"org.bluez",
+					"org.freedesktop.Avahi",
+					"org.freedesktop.UPower",
+				},
+				Filter: true,
+			},
+			Enablements: system.EWayland | system.EDBus | system.EPulse,
 		},
 		app.ID{
 			0xeb, 0xf0, 0x83, 0xd1,

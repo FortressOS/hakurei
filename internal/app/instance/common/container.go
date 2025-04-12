@@ -16,9 +16,9 @@ import (
 	"git.gensokyo.uk/security/fortify/sandbox/seccomp"
 )
 
-// NewContainer initialises [sandbox.Params] via [fst.SandboxConfig].
+// NewContainer initialises [sandbox.Params] via [fst.ContainerConfig].
 // Note that remaining container setup must be queued by the caller.
-func NewContainer(s *fst.SandboxConfig, os sys.State, uid, gid *int) (*sandbox.Params, map[string]string, error) {
+func NewContainer(s *fst.ContainerConfig, os sys.State, uid, gid *int) (*sandbox.Params, map[string]string, error) {
 	if s == nil {
 		return nil, nil, syscall.EBADE
 	}

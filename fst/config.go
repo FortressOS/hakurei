@@ -8,7 +8,7 @@ import (
 
 const Tmp = "/.fortify"
 
-// Config is used to seal an app
+// Config is used to seal an app implementation.
 type Config struct {
 	// reverse-DNS style arbitrary identifier string from config;
 	// passed to wayland security-context-v1 as application ID
@@ -20,39 +20,40 @@ type Config struct {
 	// final args passed to container init
 	Args []string `json:"args"`
 
-	Confinement ConfinementConfig `json:"confinement"`
-}
+	// system services to make available in the container
+	Enablements system.Enablement `json:"enablements"`
 
-// ConfinementConfig defines fortified child's confinement
-type ConfinementConfig struct {
-	// numerical application id, determines uid in the init namespace
-	AppID int `json:"app_id"`
-	// list of supplementary groups to inherit
-	Groups []string `json:"groups"`
+	// session D-Bus proxy configuration;
+	// nil makes session bus proxy assume built-in defaults
+	SessionBus *dbus.Config `json:"session_bus,omitempty"`
+	// system D-Bus proxy configuration;
+	// nil disables system bus proxy
+	SystemBus *dbus.Config `json:"system_bus,omitempty"`
+	// direct access to wayland socket; when this gets set no attempt is made to attach security-context-v1
+	// and the bare socket is mounted to the sandbox
+	DirectWayland bool `json:"direct_wayland,omitempty"`
+
 	// passwd username in container, defaults to passwd name of target uid or chronos
 	Username string `json:"username,omitempty"`
-	// home directory in container, empty for outer
-	Inner string `json:"home_inner"`
-	// home directory in init namespace
-	Outer string `json:"home"`
 	// absolute path to shell, empty for host shell
 	Shell string `json:"shell,omitempty"`
-	// abstract sandbox configuration
-	Sandbox *SandboxConfig `json:"sandbox"`
-	// extra acl ops, runs after everything else
+	// absolute path to home directory in the init mount namespace
+	Data string `json:"data"`
+	// directory to enter and use as home in the container mount namespace, empty for Data
+	Dir string `json:"dir"`
+	// extra acl ops, dispatches before container init
 	ExtraPerms []*ExtraPermConfig `json:"extra_perms,omitempty"`
 
-	// reference to a system D-Bus proxy configuration,
-	// nil value disables system bus proxy
-	SystemBus *dbus.Config `json:"system_bus,omitempty"`
-	// reference to a session D-Bus proxy configuration,
-	// nil value makes session bus proxy assume built-in defaults
-	SessionBus *dbus.Config `json:"session_bus,omitempty"`
+	// numerical application id, used for init user namespace credentials
+	Identity int `json:"identity"`
+	// list of supplementary groups inherited by container processes
+	Groups []string `json:"groups"`
 
-	// system resources to expose to the container
-	Enablements system.Enablement `json:"enablements"`
+	// abstract container configuration baseline
+	Container *ContainerConfig `json:"container"`
 }
 
+// ExtraPermConfig describes an acl update op.
 type ExtraPermConfig struct {
 	Ensure  bool   `json:"ensure,omitempty"`
 	Path    string `json:"path"`

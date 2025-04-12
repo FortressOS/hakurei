@@ -39,9 +39,9 @@ func Test_printShowInstance(t *testing.T) {
 		{"config", nil, fst.Template(), false, false, `App
  ID:             9 (org.chromium.Chromium)
  Enablements:    wayland, dbus, pulseaudio
- Groups:         ["video"]
- Directory:      /var/lib/persist/home/org.chromium.Chromium
- Hostname:       "localhost"
+ Groups:         video, dialout, plugdev
+ Data:           /var/lib/fortify/u0/org.chromium.Chromium
+ Hostname:       localhost
  Flags:          userns devel net device tty mapuid autoetc
  Etc:            /etc
  Cover:          /var/run/nscd
@@ -79,7 +79,7 @@ App
  Enablements:    (no enablements)
 
 `},
-		{"config flag none", nil, &fst.Config{Confinement: fst.ConfinementConfig{Sandbox: new(fst.SandboxConfig)}}, false, false, `App
+		{"config flag none", nil, &fst.Config{Container: new(fst.ContainerConfig)}, false, false, `App
  ID:             0
  Enablements:    (no enablements)
  Flags:          none
@@ -87,7 +87,7 @@ App
  Path:           
 
 `},
-		{"config nil entries", nil, &fst.Config{Confinement: fst.ConfinementConfig{Sandbox: &fst.SandboxConfig{Filesystem: make([]*fst.FilesystemConfig, 1)}, ExtraPerms: make([]*fst.ExtraPermConfig, 1)}}, false, false, `App
+		{"config nil entries", nil, &fst.Config{Container: &fst.ContainerConfig{Filesystem: make([]*fst.FilesystemConfig, 1)}, ExtraPerms: make([]*fst.ExtraPermConfig, 1)}, false, false, `App
  ID:             0
  Enablements:    (no enablements)
  Flags:          none
@@ -99,7 +99,7 @@ Filesystem
 Extra ACL
 
 `},
-		{"config pd dbus see", nil, &fst.Config{Confinement: fst.ConfinementConfig{SessionBus: &dbus.Config{See: []string{"org.example.test"}}}}, false, false, `Warning: this configuration uses permissive defaults!
+		{"config pd dbus see", nil, &fst.Config{SessionBus: &dbus.Config{See: []string{"org.example.test"}}}, false, false, `Warning: this configuration uses permissive defaults!
 
 App
  ID:             0
@@ -118,9 +118,9 @@ Session bus
 App
  ID:             9 (org.chromium.Chromium)
  Enablements:    wayland, dbus, pulseaudio
- Groups:         ["video"]
- Directory:      /var/lib/persist/home/org.chromium.Chromium
- Hostname:       "localhost"
+ Groups:         video, dialout, plugdev
+ Data:           /var/lib/fortify/u0/org.chromium.Chromium
+ Hostname:       localhost
  Flags:          userns devel net device tty mapuid autoetc
  Etc:            /etc
  Cover:          /var/run/nscd
@@ -195,141 +195,67 @@ App
       "--enable-features=UseOzonePlatform",
       "--ozone-platform=wayland"
     ],
-    "confinement": {
-      "app_id": 9,
-      "groups": [
-        "video"
+    "enablements": 13,
+    "session_bus": {
+      "see": null,
+      "talk": [
+        "org.freedesktop.Notifications",
+        "org.freedesktop.FileManager1",
+        "org.freedesktop.ScreenSaver",
+        "org.freedesktop.secrets",
+        "org.kde.kwalletd5",
+        "org.kde.kwalletd6",
+        "org.gnome.SessionManager"
       ],
-      "username": "chronos",
-      "home_inner": "/var/lib/fortify",
-      "home": "/var/lib/persist/home/org.chromium.Chromium",
-      "shell": "/run/current-system/sw/bin/zsh",
-      "sandbox": {
-        "hostname": "localhost",
-        "seccomp": 32,
-        "devel": true,
-        "userns": true,
-        "net": true,
-        "tty": true,
-        "multiarch": true,
-        "env": {
-          "GOOGLE_API_KEY": "AIzaSyBHDrl33hwRp4rMQY0ziRbj8K9LPA6vUCY",
-          "GOOGLE_DEFAULT_CLIENT_ID": "77185425430.apps.googleusercontent.com",
-          "GOOGLE_DEFAULT_CLIENT_SECRET": "OTJgUOQcT7lO7GsGZq2G4IlT"
-        },
-        "map_real_uid": true,
-        "device": true,
-        "filesystem": [
-          {
-            "src": "/nix/store"
-          },
-          {
-            "src": "/run/current-system"
-          },
-          {
-            "src": "/run/opengl-driver"
-          },
-          {
-            "src": "/var/db/nix-channels"
-          },
-          {
-            "dst": "/data/data/org.chromium.Chromium",
-            "src": "/var/lib/fortify/u0/org.chromium.Chromium",
-            "write": true,
-            "require": true
-          },
-          {
-            "src": "/dev/dri",
-            "dev": true
-          }
-        ],
-        "symlink": [
-          [
-            "/run/user/65534",
-            "/run/user/150"
-          ]
-        ],
-        "etc": "/etc",
-        "auto_etc": true,
-        "cover": [
-          "/var/run/nscd"
-        ]
-      },
-      "extra_perms": [
-        {
-          "ensure": true,
-          "path": "/var/lib/fortify/u0",
-          "x": true
-        },
-        {
-          "path": "/var/lib/fortify/u0/org.chromium.Chromium",
-          "r": true,
-          "w": true,
-          "x": true
-        }
+      "own": [
+        "org.chromium.Chromium.*",
+        "org.mpris.MediaPlayer2.org.chromium.Chromium.*",
+        "org.mpris.MediaPlayer2.chromium.*"
       ],
-      "system_bus": {
-        "see": null,
-        "talk": [
-          "org.bluez",
-          "org.freedesktop.Avahi",
-          "org.freedesktop.UPower"
-        ],
-        "own": null,
-        "call": null,
-        "broadcast": null,
-        "filter": true
+      "call": {
+        "org.freedesktop.portal.*": "*"
       },
-      "session_bus": {
-        "see": null,
-        "talk": [
-          "org.freedesktop.Notifications",
-          "org.freedesktop.FileManager1",
-          "org.freedesktop.ScreenSaver",
-          "org.freedesktop.secrets",
-          "org.kde.kwalletd5",
-          "org.kde.kwalletd6",
-          "org.gnome.SessionManager"
-        ],
-        "own": [
-          "org.chromium.Chromium.*",
-          "org.mpris.MediaPlayer2.org.chromium.Chromium.*",
-          "org.mpris.MediaPlayer2.chromium.*"
-        ],
-        "call": {
-          "org.freedesktop.portal.*": "*"
-        },
-        "broadcast": {
-          "org.freedesktop.portal.*": "@/org/freedesktop/portal/*"
-        },
-        "filter": true
+      "broadcast": {
+        "org.freedesktop.portal.*": "@/org/freedesktop/portal/*"
       },
-      "enablements": 13
-    }
-  },
-  "time": "1970-01-01T00:00:00.000000009Z"
-}
-`},
-		{"json config", nil, fst.Template(), false, true, `{
-  "id": "org.chromium.Chromium",
-  "path": "/run/current-system/sw/bin/chromium",
-  "args": [
-    "chromium",
-    "--ignore-gpu-blocklist",
-    "--disable-smooth-scrolling",
-    "--enable-features=UseOzonePlatform",
-    "--ozone-platform=wayland"
-  ],
-  "confinement": {
-    "app_id": 9,
-    "groups": [
-      "video"
-    ],
+      "filter": true
+    },
+    "system_bus": {
+      "see": null,
+      "talk": [
+        "org.bluez",
+        "org.freedesktop.Avahi",
+        "org.freedesktop.UPower"
+      ],
+      "own": null,
+      "call": null,
+      "broadcast": null,
+      "filter": true
+    },
     "username": "chronos",
-    "home_inner": "/var/lib/fortify",
-    "home": "/var/lib/persist/home/org.chromium.Chromium",
     "shell": "/run/current-system/sw/bin/zsh",
-    "sandbox": {
+    "data": "/var/lib/fortify/u0/org.chromium.Chromium",
+    "dir": "/data/data/org.chromium.Chromium",
+    "extra_perms": [
+      {
+        "ensure": true,
+        "path": "/var/lib/fortify/u0",
+        "x": true
+      },
+      {
+        "path": "/var/lib/fortify/u0/org.chromium.Chromium",
+        "r": true,
+        "w": true,
+        "x": true
+      }
+    ],
+    "identity": 9,
+    "groups": [
+      "video",
+      "dialout",
+      "plugdev"
+    ],
+    "container": {
       "hostname": "localhost",
       "seccomp": 32,
       "devel": true,
@@ -379,57 +305,131 @@ App
       "cover": [
         "/var/run/nscd"
       ]
+    }
+  },
+  "time": "1970-01-01T00:00:00.000000009Z"
+}
+`},
+		{"json config", nil, fst.Template(), false, true, `{
+  "id": "org.chromium.Chromium",
+  "path": "/run/current-system/sw/bin/chromium",
+  "args": [
+    "chromium",
+    "--ignore-gpu-blocklist",
+    "--disable-smooth-scrolling",
+    "--enable-features=UseOzonePlatform",
+    "--ozone-platform=wayland"
+  ],
+  "enablements": 13,
+  "session_bus": {
+    "see": null,
+    "talk": [
+      "org.freedesktop.Notifications",
+      "org.freedesktop.FileManager1",
+      "org.freedesktop.ScreenSaver",
+      "org.freedesktop.secrets",
+      "org.kde.kwalletd5",
+      "org.kde.kwalletd6",
+      "org.gnome.SessionManager"
+    ],
+    "own": [
+      "org.chromium.Chromium.*",
+      "org.mpris.MediaPlayer2.org.chromium.Chromium.*",
+      "org.mpris.MediaPlayer2.chromium.*"
+    ],
+    "call": {
+      "org.freedesktop.portal.*": "*"
     },
-    "extra_perms": [
+    "broadcast": {
+      "org.freedesktop.portal.*": "@/org/freedesktop/portal/*"
+    },
+    "filter": true
+  },
+  "system_bus": {
+    "see": null,
+    "talk": [
+      "org.bluez",
+      "org.freedesktop.Avahi",
+      "org.freedesktop.UPower"
+    ],
+    "own": null,
+    "call": null,
+    "broadcast": null,
+    "filter": true
+  },
+  "username": "chronos",
+  "shell": "/run/current-system/sw/bin/zsh",
+  "data": "/var/lib/fortify/u0/org.chromium.Chromium",
+  "dir": "/data/data/org.chromium.Chromium",
+  "extra_perms": [
+    {
+      "ensure": true,
+      "path": "/var/lib/fortify/u0",
+      "x": true
+    },
+    {
+      "path": "/var/lib/fortify/u0/org.chromium.Chromium",
+      "r": true,
+      "w": true,
+      "x": true
+    }
+  ],
+  "identity": 9,
+  "groups": [
+    "video",
+    "dialout",
+    "plugdev"
+  ],
+  "container": {
+    "hostname": "localhost",
+    "seccomp": 32,
+    "devel": true,
+    "userns": true,
+    "net": true,
+    "tty": true,
+    "multiarch": true,
+    "env": {
+      "GOOGLE_API_KEY": "AIzaSyBHDrl33hwRp4rMQY0ziRbj8K9LPA6vUCY",
+      "GOOGLE_DEFAULT_CLIENT_ID": "77185425430.apps.googleusercontent.com",
+      "GOOGLE_DEFAULT_CLIENT_SECRET": "OTJgUOQcT7lO7GsGZq2G4IlT"
+    },
+    "map_real_uid": true,
+    "device": true,
+    "filesystem": [
       {
-        "ensure": true,
-        "path": "/var/lib/fortify/u0",
-        "x": true
+        "src": "/nix/store"
       },
       {
-        "path": "/var/lib/fortify/u0/org.chromium.Chromium",
-        "r": true,
-        "w": true,
-        "x": true
+        "src": "/run/current-system"
+      },
+      {
+        "src": "/run/opengl-driver"
+      },
+      {
+        "src": "/var/db/nix-channels"
+      },
+      {
+        "dst": "/data/data/org.chromium.Chromium",
+        "src": "/var/lib/fortify/u0/org.chromium.Chromium",
+        "write": true,
+        "require": true
+      },
+      {
+        "src": "/dev/dri",
+        "dev": true
       }
     ],
-    "system_bus": {
-      "see": null,
-      "talk": [
-        "org.bluez",
-        "org.freedesktop.Avahi",
-        "org.freedesktop.UPower"
-      ],
-      "own": null,
-      "call": null,
-      "broadcast": null,
-      "filter": true
-    },
-    "session_bus": {
-      "see": null,
-      "talk": [
-        "org.freedesktop.Notifications",
-        "org.freedesktop.FileManager1",
-        "org.freedesktop.ScreenSaver",
-        "org.freedesktop.secrets",
-        "org.kde.kwalletd5",
-        "org.kde.kwalletd6",
-        "org.gnome.SessionManager"
-      ],
-      "own": [
-        "org.chromium.Chromium.*",
-        "org.mpris.MediaPlayer2.org.chromium.Chromium.*",
-        "org.mpris.MediaPlayer2.chromium.*"
-      ],
-      "call": {
-        "org.freedesktop.portal.*": "*"
-      },
-      "broadcast": {
-        "org.freedesktop.portal.*": "@/org/freedesktop/portal/*"
-      },
-      "filter": true
-    },
-    "enablements": 13
+    "symlink": [
+      [
+        "/run/user/65534",
+        "/run/user/150"
+      ]
+    ],
+    "etc": "/etc",
+    "auto_etc": true,
+    "cover": [
+      "/var/run/nscd"
+    ]
   }
 }
 `},
@@ -499,116 +499,116 @@ func Test_printPs(t *testing.T) {
         "--enable-features=UseOzonePlatform",
         "--ozone-platform=wayland"
       ],
-      "confinement": {
-        "app_id": 9,
-        "groups": [
-          "video"
+      "enablements": 13,
+      "session_bus": {
+        "see": null,
+        "talk": [
+          "org.freedesktop.Notifications",
+          "org.freedesktop.FileManager1",
+          "org.freedesktop.ScreenSaver",
+          "org.freedesktop.secrets",
+          "org.kde.kwalletd5",
+          "org.kde.kwalletd6",
+          "org.gnome.SessionManager"
         ],
-        "username": "chronos",
-        "home_inner": "/var/lib/fortify",
-        "home": "/var/lib/persist/home/org.chromium.Chromium",
-        "shell": "/run/current-system/sw/bin/zsh",
-        "sandbox": {
-          "hostname": "localhost",
-          "seccomp": 32,
-          "devel": true,
-          "userns": true,
-          "net": true,
-          "tty": true,
-          "multiarch": true,
-          "env": {
-            "GOOGLE_API_KEY": "AIzaSyBHDrl33hwRp4rMQY0ziRbj8K9LPA6vUCY",
-            "GOOGLE_DEFAULT_CLIENT_ID": "77185425430.apps.googleusercontent.com",
-            "GOOGLE_DEFAULT_CLIENT_SECRET": "OTJgUOQcT7lO7GsGZq2G4IlT"
-          },
-          "map_real_uid": true,
-          "device": true,
-          "filesystem": [
-            {
-              "src": "/nix/store"
-            },
-            {
-              "src": "/run/current-system"
-            },
-            {
-              "src": "/run/opengl-driver"
-            },
-            {
-              "src": "/var/db/nix-channels"
-            },
-            {
-              "dst": "/data/data/org.chromium.Chromium",
-              "src": "/var/lib/fortify/u0/org.chromium.Chromium",
-              "write": true,
-              "require": true
-            },
-            {
-              "src": "/dev/dri",
-              "dev": true
-            }
-          ],
-          "symlink": [
-            [
-              "/run/user/65534",
-              "/run/user/150"
-            ]
-          ],
-          "etc": "/etc",
-          "auto_etc": true,
-          "cover": [
-            "/var/run/nscd"
-          ]
+        "own": [
+          "org.chromium.Chromium.*",
+          "org.mpris.MediaPlayer2.org.chromium.Chromium.*",
+          "org.mpris.MediaPlayer2.chromium.*"
+        ],
+        "call": {
+          "org.freedesktop.portal.*": "*"
         },
-        "extra_perms": [
+        "broadcast": {
+          "org.freedesktop.portal.*": "@/org/freedesktop/portal/*"
+        },
+        "filter": true
+      },
+      "system_bus": {
+        "see": null,
+        "talk": [
+          "org.bluez",
+          "org.freedesktop.Avahi",
+          "org.freedesktop.UPower"
+        ],
+        "own": null,
+        "call": null,
+        "broadcast": null,
+        "filter": true
+      },
+      "username": "chronos",
+      "shell": "/run/current-system/sw/bin/zsh",
+      "data": "/var/lib/fortify/u0/org.chromium.Chromium",
+      "dir": "/data/data/org.chromium.Chromium",
+      "extra_perms": [
+        {
+          "ensure": true,
+          "path": "/var/lib/fortify/u0",
+          "x": true
+        },
+        {
+          "path": "/var/lib/fortify/u0/org.chromium.Chromium",
+          "r": true,
+          "w": true,
+          "x": true
+        }
+      ],
+      "identity": 9,
+      "groups": [
+        "video",
+        "dialout",
+        "plugdev"
+      ],
+      "container": {
+        "hostname": "localhost",
+        "seccomp": 32,
+        "devel": true,
+        "userns": true,
+        "net": true,
+        "tty": true,
+        "multiarch": true,
+        "env": {
+          "GOOGLE_API_KEY": "AIzaSyBHDrl33hwRp4rMQY0ziRbj8K9LPA6vUCY",
+          "GOOGLE_DEFAULT_CLIENT_ID": "77185425430.apps.googleusercontent.com",
+          "GOOGLE_DEFAULT_CLIENT_SECRET": "OTJgUOQcT7lO7GsGZq2G4IlT"
+        },
+        "map_real_uid": true,
+        "device": true,
+        "filesystem": [
           {
-            "ensure": true,
-            "path": "/var/lib/fortify/u0",
-            "x": true
+            "src": "/nix/store"
           },
           {
-            "path": "/var/lib/fortify/u0/org.chromium.Chromium",
-            "r": true,
-            "w": true,
-            "x": true
+            "src": "/run/current-system"
+          },
+          {
+            "src": "/run/opengl-driver"
+          },
+          {
+            "src": "/var/db/nix-channels"
+          },
+          {
+            "dst": "/data/data/org.chromium.Chromium",
+            "src": "/var/lib/fortify/u0/org.chromium.Chromium",
+            "write": true,
+            "require": true
+          },
+          {
+            "src": "/dev/dri",
+            "dev": true
           }
         ],
-        "system_bus": {
-          "see": null,
-          "talk": [
-            "org.bluez",
-            "org.freedesktop.Avahi",
-            "org.freedesktop.UPower"
-          ],
-          "own": null,
-          "call": null,
-          "broadcast": null,
-          "filter": true
-        },
-        "session_bus": {
-          "see": null,
-          "talk": [
-            "org.freedesktop.Notifications",
-            "org.freedesktop.FileManager1",
-            "org.freedesktop.ScreenSaver",
-            "org.freedesktop.secrets",
-            "org.kde.kwalletd5",
-            "org.kde.kwalletd6",
-            "org.gnome.SessionManager"
-          ],
-          "own": [
-            "org.chromium.Chromium.*",
-            "org.mpris.MediaPlayer2.org.chromium.Chromium.*",
-            "org.mpris.MediaPlayer2.chromium.*"
-          ],
-          "call": {
-            "org.freedesktop.portal.*": "*"
-          },
-          "broadcast": {
-            "org.freedesktop.portal.*": "@/org/freedesktop/portal/*"
-          },
-          "filter": true
-        },
-        "enablements": 13
+        "symlink": [
+          [
+            "/run/user/65534",
+            "/run/user/150"
+          ]
+        ],
+        "etc": "/etc",
+        "auto_etc": true,
+        "cover": [
+          "/var/run/nscd"
+        ]
       }
     },
     "time": "1970-01-01T00:00:00.000000009Z"

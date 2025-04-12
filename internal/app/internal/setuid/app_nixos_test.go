@@ -13,41 +13,43 @@ var testCasesNixos = []sealTestCase{
 	{
 		"nixos chromium direct wayland", new(stubNixOS),
 		&fst.Config{
-			ID:   "org.chromium.Chromium",
-			Path: "/nix/store/yqivzpzzn7z5x0lq9hmbzygh45d8rhqd-chromium-start",
-			Confinement: fst.ConfinementConfig{
-				AppID: 1, Groups: []string{}, Username: "u0_a1",
-				Outer: "/var/lib/persist/module/fortify/0/1",
-				Sandbox: &fst.SandboxConfig{
-					Userns: true, Net: true, MapRealUID: true, DirectWayland: true, Env: nil, AutoEtc: true,
-					Filesystem: []*fst.FilesystemConfig{
-						{Src: "/bin", Must: true}, {Src: "/usr/bin", Must: true},
-						{Src: "/nix/store", Must: true}, {Src: "/run/current-system", Must: true},
-						{Src: "/sys/block"}, {Src: "/sys/bus"}, {Src: "/sys/class"}, {Src: "/sys/dev"}, {Src: "/sys/devices"},
-						{Src: "/run/opengl-driver", Must: true}, {Src: "/dev/dri", Device: true},
-					},
-					Cover: []string{"/var/run/nscd"},
+			ID:          "org.chromium.Chromium",
+			Path:        "/nix/store/yqivzpzzn7z5x0lq9hmbzygh45d8rhqd-chromium-start",
+			Enablements: system.EWayland | system.EDBus | system.EPulse,
+
+			Container: &fst.ContainerConfig{
+				Userns: true, Net: true, MapRealUID: true, Env: nil, AutoEtc: true,
+				Filesystem: []*fst.FilesystemConfig{
+					{Src: "/bin", Must: true}, {Src: "/usr/bin", Must: true},
+					{Src: "/nix/store", Must: true}, {Src: "/run/current-system", Must: true},
+					{Src: "/sys/block"}, {Src: "/sys/bus"}, {Src: "/sys/class"}, {Src: "/sys/dev"}, {Src: "/sys/devices"},
+					{Src: "/run/opengl-driver", Must: true}, {Src: "/dev/dri", Device: true},
 				},
-				SystemBus: &dbus.Config{
-					Talk:   []string{"org.bluez", "org.freedesktop.Avahi", "org.freedesktop.UPower"},
-					Filter: true,
-				},
-				SessionBus: &dbus.Config{
-					Talk: []string{
-						"org.freedesktop.FileManager1", "org.freedesktop.Notifications",
-						"org.freedesktop.ScreenSaver", "org.freedesktop.secrets",
-						"org.kde.kwalletd5", "org.kde.kwalletd6",
-					},
-					Own: []string{
-						"org.chromium.Chromium.*",
-						"org.mpris.MediaPlayer2.org.chromium.Chromium.*",
-						"org.mpris.MediaPlayer2.chromium.*",
-					},
-					Call: map[string]string{}, Broadcast: map[string]string{},
-					Filter: true,
-				},
-				Enablements: system.EWayland | system.EDBus | system.EPulse,
+				Cover: []string{"/var/run/nscd"},
 			},
+			SystemBus: &dbus.Config{
+				Talk:   []string{"org.bluez", "org.freedesktop.Avahi", "org.freedesktop.UPower"},
+				Filter: true,
+			},
+			SessionBus: &dbus.Config{
+				Talk: []string{
+					"org.freedesktop.FileManager1", "org.freedesktop.Notifications",
+					"org.freedesktop.ScreenSaver", "org.freedesktop.secrets",
+					"org.kde.kwalletd5", "org.kde.kwalletd6",
+				},
+				Own: []string{
+					"org.chromium.Chromium.*",
+					"org.mpris.MediaPlayer2.org.chromium.Chromium.*",
+					"org.mpris.MediaPlayer2.chromium.*",
+				},
+				Call: map[string]string{}, Broadcast: map[string]string{},
+				Filter: true,
+			},
+			DirectWayland: true,
+
+			Username: "u0_a1",
+			Data:     "/var/lib/persist/module/fortify/0/1",
+			Identity: 1, Groups: []string{},
 		},
 		app.ID{
 			0x8e, 0x2c, 0x76, 0xb0,

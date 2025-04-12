@@ -16,7 +16,8 @@ func withNixDaemon(
 	app *appInfo, pathSet *appPathSet, dropShell bool, beforeFail func(),
 ) {
 	mustRunAppDropShell(ctx, updateConfig(&fst.Config{
-		ID:   app.ID,
+		ID: app.ID,
+
 		Path: shellPath,
 		Args: []string{shellPath, "-lc", "rm -f /nix/var/nix/daemon-socket/socket && " +
 			// start nix-daemon
@@ -29,33 +30,34 @@ func withNixDaemon(
 			// terminate nix-daemon
 			" && pkill nix-daemon",
 		},
-		Confinement: fst.ConfinementConfig{
-			AppID:    app.AppID,
-			Username: "fortify",
-			Inner:    path.Join("/data/data", app.ID),
-			Outer:    pathSet.homeDir,
-			Shell:    shellPath,
-			Sandbox: &fst.SandboxConfig{
-				Hostname: formatHostname(app.Name) + "-" + action,
-				Userns:   true, // nix sandbox requires userns
-				Net:      net,
-				Seccomp:  seccomp.FilterMultiarch,
-				Tty:      dropShell,
-				Filesystem: []*fst.FilesystemConfig{
-					{Src: pathSet.nixPath, Dst: "/nix", Write: true, Must: true},
-				},
-				Link: [][2]string{
-					{app.CurrentSystem, "/run/current-system"},
-					{"/run/current-system/sw/bin", "/bin"},
-					{"/run/current-system/sw/bin", "/usr/bin"},
-				},
-				Etc:     path.Join(pathSet.cacheDir, "etc"),
-				AutoEtc: true,
+
+		Username: "fortify",
+		Shell:    shellPath,
+		Data:     pathSet.homeDir,
+		Dir:      path.Join("/data/data", app.ID),
+		ExtraPerms: []*fst.ExtraPermConfig{
+			{Path: dataHome, Execute: true},
+			{Ensure: true, Path: pathSet.baseDir, Read: true, Write: true, Execute: true},
+		},
+
+		Identity: app.Identity,
+
+		Container: &fst.ContainerConfig{
+			Hostname: formatHostname(app.Name) + "-" + action,
+			Userns:   true, // nix sandbox requires userns
+			Net:      net,
+			Seccomp:  seccomp.FilterMultiarch,
+			Tty:      dropShell,
+			Filesystem: []*fst.FilesystemConfig{
+				{Src: pathSet.nixPath, Dst: "/nix", Write: true, Must: true},
 			},
-			ExtraPerms: []*fst.ExtraPermConfig{
-				{Path: dataHome, Execute: true},
-				{Ensure: true, Path: pathSet.baseDir, Read: true, Write: true, Execute: true},
+			Link: [][2]string{
+				{app.CurrentSystem, "/run/current-system"},
+				{"/run/current-system/sw/bin", "/bin"},
+				{"/run/current-system/sw/bin", "/usr/bin"},
 			},
+			Etc:     path.Join(pathSet.cacheDir, "etc"),
+			AutoEtc: true,
 		},
 	}), dropShell, beforeFail)
 }
@@ -65,36 +67,38 @@ func withCacheDir(
 	action string, command []string, workDir string,
 	app *appInfo, pathSet *appPathSet, dropShell bool, beforeFail func()) {
 	mustRunAppDropShell(ctx, &fst.Config{
-		ID:   app.ID,
+		ID: app.ID,
+
 		Path: shellPath,
 		Args: []string{shellPath, "-lc", strings.Join(command, " && ")},
-		Confinement: fst.ConfinementConfig{
-			AppID:    app.AppID,
-			Username: "nixos",
-			Inner:    path.Join("/data/data", app.ID, "cache"),
-			Outer:    pathSet.cacheDir, // this also ensures cacheDir via shim
-			Shell:    shellPath,
-			Sandbox: &fst.SandboxConfig{
-				Hostname: formatHostname(app.Name) + "-" + action,
-				Seccomp:  seccomp.FilterMultiarch,
-				Tty:      dropShell,
-				Filesystem: []*fst.FilesystemConfig{
-					{Src: path.Join(workDir, "nix"), Dst: "/nix", Must: true},
-					{Src: workDir, Dst: path.Join(fst.Tmp, "bundle"), Must: true},
-				},
-				Link: [][2]string{
-					{app.CurrentSystem, "/run/current-system"},
-					{"/run/current-system/sw/bin", "/bin"},
-					{"/run/current-system/sw/bin", "/usr/bin"},
-				},
-				Etc:     path.Join(workDir, "etc"),
-				AutoEtc: true,
+
+		Username: "nixos",
+		Shell:    shellPath,
+		Data:     pathSet.cacheDir, // this also ensures cacheDir via shim
+		Dir:      path.Join("/data/data", app.ID, "cache"),
+		ExtraPerms: []*fst.ExtraPermConfig{
+			{Path: dataHome, Execute: true},
+			{Ensure: true, Path: pathSet.baseDir, Read: true, Write: true, Execute: true},
+			{Path: workDir, Execute: true},
+		},
+
+		Identity: app.Identity,
+
+		Container: &fst.ContainerConfig{
+			Hostname: formatHostname(app.Name) + "-" + action,
+			Seccomp:  seccomp.FilterMultiarch,
+			Tty:      dropShell,
+			Filesystem: []*fst.FilesystemConfig{
+				{Src: path.Join(workDir, "nix"), Dst: "/nix", Must: true},
+				{Src: workDir, Dst: path.Join(fst.Tmp, "bundle"), Must: true},
 			},
-			ExtraPerms: []*fst.ExtraPermConfig{
-				{Path: dataHome, Execute: true},
-				{Ensure: true, Path: pathSet.baseDir, Read: true, Write: true, Execute: true},
-				{Path: workDir, Execute: true},
+			Link: [][2]string{
+				{app.CurrentSystem, "/run/current-system"},
+				{"/run/current-system/sw/bin", "/bin"},
+				{"/run/current-system/sw/bin", "/usr/bin"},
 			},
+			Etc:     path.Join(workDir, "etc"),
+			AutoEtc: true,
 		},
 	}, dropShell, beforeFail)
 }

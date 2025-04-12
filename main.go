@@ -154,33 +154,33 @@ func buildCommand(out io.Writer) command.Command {
 				userName = passwd.Username
 			}
 
-			config.Confinement.AppID = aid
-			config.Confinement.Groups = groups
-			config.Confinement.Outer = homeDir
-			config.Confinement.Username = userName
+			config.Identity = aid
+			config.Groups = groups
+			config.Data = homeDir
+			config.Username = userName
 
 			if wayland {
-				config.Confinement.Enablements |= system.EWayland
+				config.Enablements |= system.EWayland
 			}
 			if x11 {
-				config.Confinement.Enablements |= system.EX11
+				config.Enablements |= system.EX11
 			}
 			if dBus {
-				config.Confinement.Enablements |= system.EDBus
+				config.Enablements |= system.EDBus
 			}
 			if pulse {
-				config.Confinement.Enablements |= system.EPulse
+				config.Enablements |= system.EPulse
 			}
 
 			// parse D-Bus config file from flags if applicable
 			if dBus {
 				if dbusConfigSession == "builtin" {
-					config.Confinement.SessionBus = dbus.NewConfig(fid, true, mpris)
+					config.SessionBus = dbus.NewConfig(fid, true, mpris)
 				} else {
 					if conf, err := dbus.NewConfigFromFile(dbusConfigSession); err != nil {
 						log.Fatalf("cannot load session bus proxy config from %q: %s", dbusConfigSession, err)
 					} else {
-						config.Confinement.SessionBus = conf
+						config.SessionBus = conf
 					}
 				}
 
@@ -189,14 +189,14 @@ func buildCommand(out io.Writer) command.Command {
 					if conf, err := dbus.NewConfigFromFile(dbusConfigSystem); err != nil {
 						log.Fatalf("cannot load system bus proxy config from %q: %s", dbusConfigSystem, err)
 					} else {
-						config.Confinement.SystemBus = conf
+						config.SystemBus = conf
 					}
 				}
 
 				// override log from configuration
 				if dbusVerbose {
-					config.Confinement.SessionBus.Log = true
-					config.Confinement.SystemBus.Log = true
+					config.SessionBus.Log = true
+					config.SystemBus.Log = true
 				}
 			}
 

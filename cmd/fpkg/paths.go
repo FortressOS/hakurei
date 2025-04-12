@@ -72,7 +72,7 @@ func pathSetByApp(id string) *appPathSet {
 }
 
 func appendGPUFilesystem(config *fst.Config) {
-	config.Confinement.Sandbox.Filesystem = append(config.Confinement.Sandbox.Filesystem, []*fst.FilesystemConfig{
+	config.Container.Filesystem = append(config.Container.Filesystem, []*fst.FilesystemConfig{
 		// flatpak commit 763a686d874dd668f0236f911de00b80766ffe79
 		{Src: "/dev/dri", Device: true},
 		// mali

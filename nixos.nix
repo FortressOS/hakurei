@@ -88,6 +88,7 @@ in
 
                   conf = {
                     inherit (app) id;
+
                     path =
                       if app.path == null then
                         pkgs.writeScript "${app.name}-start" ''
@@ -98,88 +99,90 @@ in
                         app.path;
                     args = if app.args == null then [ "${app.name}-start" ] else app.args;
 
-                    confinement = {
-                      app_id = aid;
-                      inherit (app) groups;
-                      username = getsubname fid aid;
-                      home = getsubhome fid aid;
-                      sandbox = {
-                        inherit (app)
-                          devel
-                          userns
-                          net
-                          device
-                          tty
-                          multiarch
-                          env
-                          ;
-                        map_real_uid = app.mapRealUid;
-                        direct_wayland = app.insecureWayland;
+                    inherit enablements;
 
-                        filesystem =
-                          let
-                            bind = src: { inherit src; };
-                            mustBind = src: {
-                              inherit src;
-                              require = true;
-                            };
-                            devBind = src: {
-                              inherit src;
-                              dev = true;
-                            };
-                          in
+                    inherit (dbusConfig) session_bus system_bus;
+                    direct_wayland = app.insecureWayland;
+
+                    username = getsubname fid aid;
+                    data = getsubhome fid aid;
+
+                    identity = aid;
+                    inherit (app) groups;
+
+                    container = {
+                      inherit (app)
+                        devel
+                        userns
+                        net
+                        device
+                        tty
+                        multiarch
+                        env
+                        ;
+                      map_real_uid = app.mapRealUid;
+
+                      filesystem =
+                        let
+                          bind = src: { inherit src; };
+                          mustBind = src: {
+                            inherit src;
+                            require = true;
+                          };
+                          devBind = src: {
+                            inherit src;
+                            dev = true;
+                          };
+                        in
+                        [
+                          (mustBind "/bin")
+                          (mustBind "/usr/bin")
+                          (mustBind "/nix/store")
+                          (bind "/sys/block")
+                          (bind "/sys/bus")
+                          (bind "/sys/class")
+                          (bind "/sys/dev")
+                          (bind "/sys/devices")
+                        ]
+                        ++ optionals app.nix [
+                          (mustBind "/nix/var")
+                          (bind "/var/db/nix-channels")
+                        ]
+                        ++ optionals isGraphical [
+                          (devBind "/dev/dri")
+                          (devBind "/dev/nvidiactl")
+                          (devBind "/dev/nvidia-modeset")
+                          (devBind "/dev/nvidia-uvm")
+                          (devBind "/dev/nvidia-uvm-tools")
+                          (devBind "/dev/nvidia0")
+                        ]
+                        ++ app.extraPaths;
+                      auto_etc = true;
+                      cover = [ "/var/run/nscd" ];
+
+                      symlink =
+                        [
                           [
-                            (mustBind "/bin")
-                            (mustBind "/usr/bin")
-                            (mustBind "/nix/store")
-                            (bind "/sys/block")
-                            (bind "/sys/bus")
-                            (bind "/sys/class")
-                            (bind "/sys/dev")
-                            (bind "/sys/devices")
+                            "*/run/current-system"
+                            "/run/current-system"
                           ]
-                          ++ optionals app.nix [
-                            (mustBind "/nix/var")
-                            (bind "/var/db/nix-channels")
-                          ]
-                          ++ optionals isGraphical [
-                            (devBind "/dev/dri")
-                            (devBind "/dev/nvidiactl")
-                            (devBind "/dev/nvidia-modeset")
-                            (devBind "/dev/nvidia-uvm")
-                            (devBind "/dev/nvidia-uvm-tools")
-                            (devBind "/dev/nvidia0")
-                          ]
-                          ++ app.extraPaths;
-                        auto_etc = true;
-                        cover = [ "/var/run/nscd" ];
-
-                        symlink =
+                        ]
+                        ++ optionals (isGraphical && config.hardware.graphics.enable) (
                           [
                             [
-                              "*/run/current-system"
-                              "/run/current-system"
+                              config.systemd.tmpfiles.settings.graphics-driver."/run/opengl-driver"."L+".argument
+                              "/run/opengl-driver"
                             ]
                           ]
-                          ++ optionals (isGraphical && config.hardware.graphics.enable) (
+                          ++ optionals (app.multiarch && config.hardware.graphics.enable32Bit) [
                             [
-                              [
-                                config.systemd.tmpfiles.settings.graphics-driver."/run/opengl-driver"."L+".argument
-                                "/run/opengl-driver"
-                              ]
+                              config.systemd.tmpfiles.settings.graphics-driver."/run/opengl-driver-32"."L+".argument
+                              /run/opengl-driver-32
                             ]
-                            ++ optionals (app.multiarch && config.hardware.graphics.enable32Bit) [
-                              [
-                                config.systemd.tmpfiles.settings.graphics-driver."/run/opengl-driver-32"."L+".argument
-                                /run/opengl-driver-32
-                              ]
-                            ]
-                          );
-                      };
-
-                      inherit enablements;
-                      inherit (dbusConfig) session_bus system_bus;
+                          ]
+                        );
                     };
+
                   };
                 in
                 pkgs.writeShellScriptBin app.name ''

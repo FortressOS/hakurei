@@ -19,7 +19,7 @@ type appInfo struct {
 	// passed through to [fst.Config]
 	ID string `json:"id"`
 	// passed through to [fst.Config]
-	AppID int `json:"app_id"`
+	Identity int `json:"identity"`
 	// passed through to [fst.Config]
 	Groups []string `json:"groups,omitempty"`
 	// passed through to [fst.Config]
@@ -64,57 +64,61 @@ type appInfo struct {
 
 func (app *appInfo) toFst(pathSet *appPathSet, argv []string, flagDropShell bool) *fst.Config {
 	config := &fst.Config{
-		ID:   app.ID,
+		ID: app.ID,
+
 		Path: argv[0],
 		Args: argv,
-		Confinement: fst.ConfinementConfig{
-			AppID:    app.AppID,
-			Groups:   app.Groups,
-			Username: "fortify",
-			Inner:    path.Join("/data/data", app.ID),
-			Outer:    pathSet.homeDir,
-			Shell:    shellPath,
-			Sandbox: &fst.SandboxConfig{
-				Hostname:      formatHostname(app.Name),
-				Devel:         app.Devel,
-				Userns:        app.Userns,
-				Net:           app.Net,
-				Device:        app.Device,
-				Tty:           app.Tty || flagDropShell,
-				MapRealUID:    app.MapRealUID,
-				DirectWayland: app.DirectWayland,
-				Filesystem: []*fst.FilesystemConfig{
-					{Src: path.Join(pathSet.nixPath, "store"), Dst: "/nix/store", Must: true},
-					{Src: pathSet.metaPath, Dst: path.Join(fst.Tmp, "app"), Must: true},
-					{Src: "/etc/resolv.conf"},
-					{Src: "/sys/block"},
-					{Src: "/sys/bus"},
-					{Src: "/sys/class"},
-					{Src: "/sys/dev"},
-					{Src: "/sys/devices"},
-				},
-				Link: [][2]string{
-					{app.CurrentSystem, "/run/current-system"},
-					{"/run/current-system/sw/bin", "/bin"},
-					{"/run/current-system/sw/bin", "/usr/bin"},
-				},
-				Etc:     path.Join(pathSet.cacheDir, "etc"),
-				AutoEtc: true,
+
+		Enablements: app.Enablements,
+
+		SystemBus:     app.SystemBus,
+		SessionBus:    app.SessionBus,
+		DirectWayland: app.DirectWayland,
+
+		Username: "fortify",
+		Shell:    shellPath,
+		Data:     pathSet.homeDir,
+		Dir:      path.Join("/data/data", app.ID),
+
+		Identity: app.Identity,
+		Groups:   app.Groups,
+
+		Container: &fst.ContainerConfig{
+			Hostname:   formatHostname(app.Name),
+			Devel:      app.Devel,
+			Userns:     app.Userns,
+			Net:        app.Net,
+			Device:     app.Device,
+			Tty:        app.Tty || flagDropShell,
+			MapRealUID: app.MapRealUID,
+			Filesystem: []*fst.FilesystemConfig{
+				{Src: path.Join(pathSet.nixPath, "store"), Dst: "/nix/store", Must: true},
+				{Src: pathSet.metaPath, Dst: path.Join(fst.Tmp, "app"), Must: true},
+				{Src: "/etc/resolv.conf"},
+				{Src: "/sys/block"},
+				{Src: "/sys/bus"},
+				{Src: "/sys/class"},
+				{Src: "/sys/dev"},
+				{Src: "/sys/devices"},
 			},
-			ExtraPerms: []*fst.ExtraPermConfig{
-				{Path: dataHome, Execute: true},
-				{Ensure: true, Path: pathSet.baseDir, Read: true, Write: true, Execute: true},
+			Link: [][2]string{
+				{app.CurrentSystem, "/run/current-system"},
+				{"/run/current-system/sw/bin", "/bin"},
+				{"/run/current-system/sw/bin", "/usr/bin"},
 			},
-			SystemBus:   app.SystemBus,
-			SessionBus:  app.SessionBus,
-			Enablements: app.Enablements,
+			Etc:     path.Join(pathSet.cacheDir, "etc"),
+			AutoEtc: true,
+		},
+		ExtraPerms: []*fst.ExtraPermConfig{
+			{Path: dataHome, Execute: true},
+			{Ensure: true, Path: pathSet.baseDir, Read: true, Write: true, Execute: true},
 		},
 	}
 	if app.Multiarch {
-		config.Confinement.Sandbox.Seccomp |= seccomp.FilterMultiarch
+		config.Container.Seccomp |= seccomp.FilterMultiarch
 	}
 	if app.Bluetooth {
-		config.Confinement.Sandbox.Seccomp |= seccomp.FilterBluetooth
+		config.Container.Seccomp |= seccomp.FilterBluetooth
 	}
 	return config
 }

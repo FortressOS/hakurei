@@ -31,7 +31,7 @@
   '',
 
   id ? name,
-  app_id ? throw "app_id is required",
+  identity ? throw "identity is required",
   groups ? [ ],
   userns ? false,
   net ? true,
@@ -147,7 +147,7 @@ let
       name
       version
       id
-      app_id
+      identity
       launcher
       groups
       userns

@@ -157,11 +157,11 @@ func main() {
 					return errSuccess
 				}
 
-				// AppID determines uid
-				if a.AppID != bundle.AppID {
+				// identity determines uid
+				if a.Identity != bundle.Identity {
 					cleanup()
-					log.Printf("package %q app id %d differs from installed %d",
-						pkgPath, bundle.AppID, a.AppID)
+					log.Printf("package %q identity %d differs from installed %d",
+						pkgPath, bundle.Identity, a.Identity)
 					return syscall.EBADE
 				}
 
@@ -292,7 +292,7 @@ func main() {
 						"--override-input nixpkgs path:/etc/nixpkgs " +
 						"path:" + a.NixGL + "#nixVulkanNvidia",
 				}, true, func(config *fst.Config) *fst.Config {
-					config.Confinement.Sandbox.Filesystem = append(config.Confinement.Sandbox.Filesystem, []*fst.FilesystemConfig{
+					config.Container.Filesystem = append(config.Container.Filesystem, []*fst.FilesystemConfig{
 						{Src: "/etc/resolv.conf"},
 						{Src: "/sys/block"},
 						{Src: "/sys/bus"},
@@ -324,7 +324,7 @@ func main() {
 			*/
 
 			if a.GPU {
-				config.Confinement.Sandbox.Filesystem = append(config.Confinement.Sandbox.Filesystem,
+				config.Container.Filesystem = append(config.Container.Filesystem,
 					&fst.FilesystemConfig{Src: path.Join(pathSet.nixPath, ".nixGL"), Dst: path.Join(fst.Tmp, "nixGL")})
 				appendGPUFilesystem(config)
 			}

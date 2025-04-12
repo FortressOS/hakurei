@@ -65,8 +65,8 @@ def check_state(name, enablements):
     if len(config['args']) != 1 or not (config['args'][0].startswith("/nix/store/")) or f"fortify-{name}-" not in (config['args'][0]):
         raise Exception(f"unexpected args {instance['config']['args']}")
 
-    if config['confinement']['enablements'] != enablements:
-        raise Exception(f"unexpected enablements {instance['config']['confinement']['enablements']}")
+    if config['enablements'] != enablements:
+        raise Exception(f"unexpected enablements {instance['config']['enablements']}")
 
 
 start_all()

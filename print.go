@@ -56,7 +56,7 @@ func printShowInstance(
 	t := newPrinter(output)
 	defer t.MustFlush()
 
-	if config.Confinement.Sandbox == nil {
+	if config.Container == nil {
 		mustPrint(output, "Warning: this configuration uses permissive defaults!\n\n")
 	}
 
@@ -69,21 +69,21 @@ func printShowInstance(
 
 	t.Printf("App\n")
 	if config.ID != "" {
-		t.Printf(" ID:\t%d (%s)\n", config.Confinement.AppID, config.ID)
+		t.Printf(" ID:\t%d (%s)\n", config.Identity, config.ID)
 	} else {
-		t.Printf(" ID:\t%d\n", config.Confinement.AppID)
+		t.Printf(" ID:\t%d\n", config.Identity)
 	}
-	t.Printf(" Enablements:\t%s\n", config.Confinement.Enablements.String())
-	if len(config.Confinement.Groups) > 0 {
-		t.Printf(" Groups:\t%q\n", config.Confinement.Groups)
+	t.Printf(" Enablements:\t%s\n", config.Enablements.String())
+	if len(config.Groups) > 0 {
+		t.Printf(" Groups:\t%s\n", strings.Join(config.Groups, ", "))
 	}
-	if config.Confinement.Outer != "" {
-		t.Printf(" Directory:\t%s\n", config.Confinement.Outer)
+	if config.Data != "" {
+		t.Printf(" Data:\t%s\n", config.Data)
 	}
-	if config.Confinement.Sandbox != nil {
-		sandbox := config.Confinement.Sandbox
-		if sandbox.Hostname != "" {
-			t.Printf(" Hostname:\t%q\n", sandbox.Hostname)
+	if config.Container != nil {
+		container := config.Container
+		if container.Hostname != "" {
+			t.Printf(" Hostname:\t%s\n", container.Hostname)
 		}
 		flags := make([]string, 0, 7)
 		writeFlag := func(name string, value bool) {
@@ -91,33 +91,29 @@ func printShowInstance(
 				flags = append(flags, name)
 			}
 		}
-		writeFlag("userns", sandbox.Userns)
-		writeFlag("devel", sandbox.Devel)
-		writeFlag("net", sandbox.Net)
-		writeFlag("device", sandbox.Device)
-		writeFlag("tty", sandbox.Tty)
-		writeFlag("mapuid", sandbox.MapRealUID)
-		writeFlag("directwl", sandbox.DirectWayland)
-		writeFlag("autoetc", sandbox.AutoEtc)
+		writeFlag("userns", container.Userns)
+		writeFlag("devel", container.Devel)
+		writeFlag("net", container.Net)
+		writeFlag("device", container.Device)
+		writeFlag("tty", container.Tty)
+		writeFlag("mapuid", container.MapRealUID)
+		writeFlag("directwl", config.DirectWayland)
+		writeFlag("autoetc", container.AutoEtc)
 		if len(flags) == 0 {
 			flags = append(flags, "none")
 		}
 		t.Printf(" Flags:\t%s\n", strings.Join(flags, " "))
 
-		etc := sandbox.Etc
+		etc := container.Etc
 		if etc == "" {
 			etc = "/etc"
 		}
 		t.Printf(" Etc:\t%s\n", etc)
 
-		if len(sandbox.Cover) > 0 {
-			t.Printf(" Cover:\t%s\n", strings.Join(sandbox.Cover, " "))
+		if len(container.Cover) > 0 {
+			t.Printf(" Cover:\t%s\n", strings.Join(container.Cover, " "))
 		}
 
-		// Env           map[string]string   `json:"env"`
-		// Link          [][2]string         `json:"symlink"`
-	}
-	if config.Confinement.Sandbox != nil {
 		t.Printf(" Path:\t%s\n", config.Path)
 	}
 	if len(config.Args) > 0 {
@@ -126,9 +122,9 @@ func printShowInstance(
 	t.Printf("\n")
 
 	if !short {
-		if config.Confinement.Sandbox != nil && len(config.Confinement.Sandbox.Filesystem) > 0 {
+		if config.Container != nil && len(config.Container.Filesystem) > 0 {
 			t.Printf("Filesystem\n")
-			for _, f := range config.Confinement.Sandbox.Filesystem {
+			for _, f := range config.Container.Filesystem {
 				if f == nil {
 					continue
 				}
@@ -156,9 +152,9 @@ func printShowInstance(
 			}
 			t.Printf("\n")
 		}
-		if len(config.Confinement.ExtraPerms) > 0 {
+		if len(config.ExtraPerms) > 0 {
 			t.Printf("Extra ACL\n")
-			for _, p := range config.Confinement.ExtraPerms {
+			for _, p := range config.ExtraPerms {
 				if p == nil {
 					continue
 				}
@@ -186,14 +182,14 @@ func printShowInstance(
 			t.Printf(" Broadcast:\t%q\n", c.Broadcast)
 		}
 	}
-	if config.Confinement.SessionBus != nil {
+	if config.SessionBus != nil {
 		t.Printf("Session bus\n")
-		printDBus(config.Confinement.SessionBus)
+		printDBus(config.SessionBus)
 		t.Printf("\n")
 	}
-	if config.Confinement.SystemBus != nil {
+	if config.SystemBus != nil {
 		t.Printf("System bus\n")
-		printDBus(config.Confinement.SystemBus)
+		printDBus(config.SystemBus)
 		t.Printf("\n")
 	}
 }
@@ -265,7 +261,7 @@ func printPs(output io.Writer, now time.Time, s state.Store, short, flagJSON boo
 
 		as := "(No configuration information)"
 		if e.Config != nil {
-			as = strconv.Itoa(e.Config.Confinement.AppID)
+			as = strconv.Itoa(e.Config.Identity)
 			id := e.Config.ID
 			if id == "" {
 				id = "uk.gensokyo.fortify." + e.s[:8]

@@ -10,7 +10,7 @@ buildPackage {
   name = "foot";
   inherit (foot) version;
 
-  app_id = 2;
+  identity = 2;
   id = "org.codeberg.dnkl.foot";
 
   modules = [

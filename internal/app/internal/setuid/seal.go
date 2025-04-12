@@ -169,16 +169,16 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *fst.Co
 	}
 
 	// allowed aid range 0 to 9999, this is checked again in fsu
-	if config.Confinement.AppID < 0 || config.Confinement.AppID > 9999 {
+	if config.Identity < 0 || config.Identity > 9999 {
 		return fmsg.WrapError(ErrUser,
-			fmt.Sprintf("aid %d out of range", config.Confinement.AppID))
+			fmt.Sprintf("identity %d out of range", config.Identity))
 	}
 
 	seal.user = fsuUser{
-		aid:      newInt(config.Confinement.AppID),
-		data:     config.Confinement.Outer,
-		home:     config.Confinement.Inner,
-		username: config.Confinement.Username,
+		aid:      newInt(config.Identity),
+		data:     config.Data,
+		home:     config.Dir,
+		username: config.Username,
 	}
 	if seal.user.username == "" {
 		seal.user.username = "chronos"
@@ -199,8 +199,8 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *fst.Co
 	} else {
 		seal.user.uid = newInt(u)
 	}
-	seal.user.supp = make([]string, len(config.Confinement.Groups))
-	for i, name := range config.Confinement.Groups {
+	seal.user.supp = make([]string, len(config.Groups))
+	for i, name := range config.Groups {
 		if g, err := sys.LookupGroup(name); err != nil {
 			return fmsg.WrapError(err,
 				fmt.Sprintf("unknown group %q", name))
@@ -210,17 +210,17 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *fst.Co
 	}
 
 	// this also falls back to host path if encountering an invalid path
-	if !path.IsAbs(config.Confinement.Shell) {
-		config.Confinement.Shell = "/bin/sh"
+	if !path.IsAbs(config.Shell) {
+		config.Shell = "/bin/sh"
 		if s, ok := sys.LookupEnv(shell); ok && path.IsAbs(s) {
-			config.Confinement.Shell = s
+			config.Shell = s
 		}
 	}
 	// do not use the value of shell before this point
 
 	// permissive defaults
-	if config.Confinement.Sandbox == nil {
-		fmsg.Verbose("sandbox configuration not supplied, PROCEED WITH CAUTION")
+	if config.Container == nil {
+		fmsg.Verbose("container configuration not supplied, PROCEED WITH CAUTION")
 
 		// fsu clears the environment so resolve paths early
 		if !path.IsAbs(config.Path) {
@@ -231,11 +231,11 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *fst.Co
 					config.Path = p
 				}
 			} else {
-				config.Path = config.Confinement.Shell
+				config.Path = config.Shell
 			}
 		}
 
-		conf := &fst.SandboxConfig{
+		conf := &fst.ContainerConfig{
 			Userns:  true,
 			Net:     true,
 			Tty:     true,
@@ -268,20 +268,20 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *fst.Co
 			conf.Cover = append(conf.Cover, nscd)
 		}
 		// bind GPU stuff
-		if config.Confinement.Enablements&(system.EX11|system.EWayland) != 0 {
+		if config.Enablements&(system.EX11|system.EWayland) != 0 {
 			conf.Filesystem = append(conf.Filesystem, &fst.FilesystemConfig{Src: "/dev/dri", Device: true})
 		}
 		// opportunistically bind kvm
 		conf.Filesystem = append(conf.Filesystem, &fst.FilesystemConfig{Src: "/dev/kvm", Device: true})
 
-		config.Confinement.Sandbox = conf
+		config.Container = conf
 	}
 
 	var mapuid, mapgid *stringPair[int]
 	{
 		var uid, gid int
 		var err error
-		seal.container, seal.env, err = common.NewContainer(config.Confinement.Sandbox, sys, &uid, &gid)
+		seal.container, seal.env, err = common.NewContainer(config.Container, sys, &uid, &gid)
 		if err != nil {
 			return fmsg.WrapErrorSuffix(err,
 				"cannot initialise container configuration:")
@@ -303,12 +303,12 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *fst.Co
 		}
 	}
 
-	if !config.Confinement.Sandbox.AutoEtc {
-		if config.Confinement.Sandbox.Etc != "" {
-			seal.container.Bind(config.Confinement.Sandbox.Etc, "/etc", 0)
+	if !config.Container.AutoEtc {
+		if config.Container.Etc != "" {
+			seal.container.Bind(config.Container.Etc, "/etc", 0)
 		}
 	} else {
-		etcPath := config.Confinement.Sandbox.Etc
+		etcPath := config.Container.Etc
 		if etcPath == "" {
 			etcPath = "/etc"
 		}
@@ -352,10 +352,10 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *fst.Co
 		seal.container.Dir = homeDir
 		seal.env["HOME"] = homeDir
 		seal.env["USER"] = username
-		seal.env[shell] = config.Confinement.Shell
+		seal.env[shell] = config.Shell
 
 		seal.container.Place("/etc/passwd",
-			[]byte(username+":x:"+mapuid.String()+":"+mapgid.String()+":Fortify:"+homeDir+":"+config.Confinement.Shell+"\n"))
+			[]byte(username+":x:"+mapuid.String()+":"+mapgid.String()+":Fortify:"+homeDir+":"+config.Shell+"\n"))
 		seal.container.Place("/etc/group",
 			[]byte("fortify:x:"+mapgid.String()+":\n"))
 	}
@@ -365,7 +365,7 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *fst.Co
 		seal.env[term] = t
 	}
 
-	if config.Confinement.Enablements&system.EWayland != 0 {
+	if config.Enablements&system.EWayland != 0 {
 		// outer wayland socket (usually `/run/user/%d/wayland-%d`)
 		var socketPath string
 		if name, ok := sys.LookupEnv(wl.WaylandDisplay); !ok {
@@ -380,7 +380,7 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *fst.Co
 		innerPath := path.Join(innerRuntimeDir, wl.FallbackName)
 		seal.env[wl.WaylandDisplay] = wl.FallbackName
 
-		if !config.Confinement.Sandbox.DirectWayland { // set up security-context-v1
+		if !config.DirectWayland { // set up security-context-v1
 			appID := config.ID
 			if appID == "" {
 				// use instance ID in case app id is not set
@@ -398,7 +398,7 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *fst.Co
 		}
 	}
 
-	if config.Confinement.Enablements&system.EX11 != 0 {
+	if config.Enablements&system.EX11 != 0 {
 		if d, ok := sys.LookupEnv(display); !ok {
 			return fmsg.WrapError(ErrXDisplay,
 				"DISPLAY is not set")
@@ -409,7 +409,7 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *fst.Co
 		}
 	}
 
-	if config.Confinement.Enablements&system.EPulse != 0 {
+	if config.Enablements&system.EPulse != 0 {
 		// PulseAudio runtime directory (usually `/run/user/%d/pulse`)
 		pulseRuntimeDir := path.Join(share.sc.RuntimePath, "pulse")
 		// PulseAudio socket (usually `/run/user/%d/pulse/native`)
@@ -458,10 +458,10 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *fst.Co
 		}
 	}
 
-	if config.Confinement.Enablements&system.EDBus != 0 {
+	if config.Enablements&system.EDBus != 0 {
 		// ensure dbus session bus defaults
-		if config.Confinement.SessionBus == nil {
-			config.Confinement.SessionBus = dbus.NewConfig(config.ID, true, true)
+		if config.SessionBus == nil {
+			config.SessionBus = dbus.NewConfig(config.ID, true, true)
 		}
 
 		// downstream socket paths
@@ -470,7 +470,7 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *fst.Co
 
 		// configure dbus proxy
 		if f, err := seal.sys.ProxyDBus(
-			config.Confinement.SessionBus, config.Confinement.SystemBus,
+			config.SessionBus, config.SystemBus,
 			sessionPath, systemPath,
 		); err != nil {
 			return err
@@ -483,7 +483,7 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *fst.Co
 		seal.env[dbusSessionBusAddress] = "unix:path=" + sessionInner
 		seal.container.Bind(sessionPath, sessionInner, 0)
 		seal.sys.UpdatePerm(sessionPath, acl.Read, acl.Write)
-		if config.Confinement.SystemBus != nil {
+		if config.SystemBus != nil {
 			systemInner := "/run/dbus/system_bus_socket"
 			seal.env[dbusSystemBusAddress] = "unix:path=" + systemInner
 			seal.container.Bind(systemPath, systemInner, 0)
@@ -491,12 +491,12 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *fst.Co
 		}
 	}
 
-	for _, dest := range config.Confinement.Sandbox.Cover {
+	for _, dest := range config.Container.Cover {
 		seal.container.Tmpfs(dest, 1<<13, 0755)
 	}
 
 	// append ExtraPerms last
-	for _, p := range config.Confinement.ExtraPerms {
+	for _, p := range config.ExtraPerms {
 		if p == nil {
 			continue
 		}
@@ -530,7 +530,7 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *fst.Co
 	slices.Sort(seal.container.Env)
 
 	fmsg.Verbosef("created application seal for uid %s (%s) groups: %v, argv: %s",
-		seal.user.uid, seal.user.username, config.Confinement.Groups, seal.container.Args)
+		seal.user.uid, seal.user.username, config.Groups, seal.container.Args)
 
 	return nil
 }
