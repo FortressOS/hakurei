@@ -6,7 +6,6 @@ import (
 	"io/fs"
 	"maps"
 	"path"
-	"slices"
 	"syscall"
 
 	"git.gensokyo.uk/security/fortify/dbus"
@@ -15,6 +14,10 @@ import (
 	"git.gensokyo.uk/security/fortify/sandbox"
 	"git.gensokyo.uk/security/fortify/sandbox/seccomp"
 )
+
+// in practice there should be less than 30 entries added by the runtime;
+// allocating slightly more as a margin for future expansion
+const preallocateOpsCount = 1 << 5
 
 // NewContainer initialises [sandbox.Params] via [fst.ContainerConfig].
 // Note that remaining container setup must be queued by the caller.
@@ -25,18 +28,17 @@ func NewContainer(s *fst.ContainerConfig, os sys.State, uid, gid *int) (*sandbox
 
 	container := &sandbox.Params{
 		Hostname: s.Hostname,
-		Ops:      new(sandbox.Ops),
 		Seccomp:  s.Seccomp,
+	}
+
+	{
+		ops := make(sandbox.Ops, 0, preallocateOpsCount+len(s.Filesystem)+len(s.Link)+len(s.Cover))
+		container.Ops = &ops
 	}
 
 	if s.Multiarch {
 		container.Seccomp |= seccomp.FilterMultiarch
 	}
-
-	/* this is only 4 KiB of memory on a 64-bit system,
-	permissive defaults on NixOS results in around 100 entries
-	so this capacity should eliminate copies for most setups */
-	*container.Ops = slices.Grow(*container.Ops, 1<<8)
 
 	if s.Devel {
 		container.Flags |= sandbox.FAllowDevel

@@ -529,8 +529,10 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *fst.Co
 	}
 	slices.Sort(seal.container.Env)
 
-	fmsg.Verbosef("created application seal for uid %s (%s) groups: %v, argv: %s",
-		seal.user.uid, seal.user.username, config.Groups, seal.container.Args)
+	if fmsg.Load() {
+		fmsg.Verbosef("created application seal for uid %s (%s) groups: %v, argv: %s, ops: %d",
+			seal.user.uid, seal.user.username, config.Groups, seal.container.Args, len(*seal.container.Ops))
+	}
 
 	return nil
 }
