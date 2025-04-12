@@ -1,4 +1,4 @@
-package app_test
+package setuid_test
 
 import (
 	"os"

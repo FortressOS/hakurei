@@ -19,7 +19,7 @@ import (
 	"git.gensokyo.uk/security/fortify/dbus"
 	"git.gensokyo.uk/security/fortify/fst"
 	"git.gensokyo.uk/security/fortify/internal"
-	"git.gensokyo.uk/security/fortify/internal/app"
+	"git.gensokyo.uk/security/fortify/internal/app/setuid"
 	"git.gensokyo.uk/security/fortify/internal/fmsg"
 	"git.gensokyo.uk/security/fortify/internal/state"
 	"git.gensokyo.uk/security/fortify/internal/sys"
@@ -73,7 +73,7 @@ func buildCommand(out io.Writer) command.Command {
 		Flag(&flagVerbose, "v", command.BoolFlag(false), "Print debug messages to the console").
 		Flag(&flagJSON, "json", command.BoolFlag(false), "Serialise output as JSON when applicable")
 
-	c.Command("shim", command.UsageInternal, func([]string) error { app.ShimMain(); return errSuccess })
+	c.Command("shim", command.UsageInternal, func([]string) error { setuid.ShimMain(); return errSuccess })
 
 	c.Command("app", "Launch app defined by the specified config file", func(args []string) error {
 		if len(args) < 1 {
@@ -284,14 +284,14 @@ func runApp(config *fst.Config) {
 	ctx, stop := signal.NotifyContext(context.Background(),
 		syscall.SIGINT, syscall.SIGTERM)
 	defer stop() // unreachable
-	a := app.MustNew(ctx, std)
+	a := setuid.MustNew(ctx, std)
 
 	rs := new(fst.RunState)
 	if sa, err := a.Seal(config); err != nil {
 		fmsg.PrintBaseError(err, "cannot seal app:")
 		internal.Exit(1)
 	} else {
-		internal.Exit(app.PrintRunStateErr(rs, sa.Run(rs)))
+		internal.Exit(setuid.PrintRunStateErr(rs, sa.Run(rs)))
 	}
 
 	*(*int)(nil) = 0 // not reached

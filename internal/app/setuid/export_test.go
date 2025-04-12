@@ -1,4 +1,4 @@
-package app
+package setuid
 
 import (
 	"git.gensokyo.uk/security/fortify/fst"

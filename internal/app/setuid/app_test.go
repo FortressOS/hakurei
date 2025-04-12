@@ -1,4 +1,4 @@
-package app_test
+package setuid_test
 
 import (
 	"encoding/json"
@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"git.gensokyo.uk/security/fortify/fst"
-	"git.gensokyo.uk/security/fortify/internal/app"
+	"git.gensokyo.uk/security/fortify/internal/app/setuid"
 	"git.gensokyo.uk/security/fortify/internal/sys"
 	"git.gensokyo.uk/security/fortify/sandbox"
 	"git.gensokyo.uk/security/fortify/system"
@@ -28,7 +28,7 @@ func TestApp(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			a := app.NewWithID(tc.id, tc.os)
+			a := setuid.NewWithID(tc.id, tc.os)
 			var (
 				gotSys       *system.I
 				gotContainer *sandbox.Params
@@ -38,7 +38,7 @@ func TestApp(t *testing.T) {
 					t.Errorf("Seal: error = %v", err)
 					return
 				} else {
-					gotSys, gotContainer = app.AppIParams(a, sa)
+					gotSys, gotContainer = setuid.AppIParams(a, sa)
 				}
 			}) {
 				return
