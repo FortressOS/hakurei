@@ -13,7 +13,7 @@ import (
 	"git.gensokyo.uk/security/fortify/command"
 	"git.gensokyo.uk/security/fortify/fst"
 	"git.gensokyo.uk/security/fortify/internal"
-	"git.gensokyo.uk/security/fortify/internal/app/setuid"
+	"git.gensokyo.uk/security/fortify/internal/app/instance"
 	"git.gensokyo.uk/security/fortify/internal/fmsg"
 	"git.gensokyo.uk/security/fortify/internal/sys"
 	"git.gensokyo.uk/security/fortify/sandbox"
@@ -62,7 +62,7 @@ func main() {
 		Flag(&flagVerbose, "v", command.BoolFlag(false), "Print debug messages to the console").
 		Flag(&flagDropShell, "s", command.BoolFlag(false), "Drop to a shell in place of next fortify action")
 
-	c.Command("shim", command.UsageInternal, func([]string) error { setuid.ShimMain(); return errSuccess })
+	c.Command("shim", command.UsageInternal, func([]string) error { instance.ShimMain(); return errSuccess })
 
 	{
 		var (

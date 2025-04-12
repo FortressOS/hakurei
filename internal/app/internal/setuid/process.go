@@ -12,8 +12,8 @@ import (
 	"syscall"
 	"time"
 
-	"git.gensokyo.uk/security/fortify/fst"
 	"git.gensokyo.uk/security/fortify/internal"
+	. "git.gensokyo.uk/security/fortify/internal/app"
 	"git.gensokyo.uk/security/fortify/internal/fmsg"
 	"git.gensokyo.uk/security/fortify/internal/state"
 	"git.gensokyo.uk/security/fortify/sandbox"
@@ -22,7 +22,7 @@ import (
 
 const shimWaitTimeout = 5 * time.Second
 
-func (seal *outcome) Run(rs *fst.RunState) error {
+func (seal *outcome) Run(rs *RunState) error {
 	if !seal.f.CompareAndSwap(false, true) {
 		// run does much more than just starting a process; calling it twice, even if the first call fails, will result
 		// in inconsistent state that is impossible to clean up; return here to limit damage and hopefully give the

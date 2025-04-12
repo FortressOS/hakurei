@@ -1,4 +1,4 @@
-package fst
+package app
 
 import (
 	"crypto/rand"

@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"git.gensokyo.uk/security/fortify/fst"
+	"git.gensokyo.uk/security/fortify/internal/app"
 	"git.gensokyo.uk/security/fortify/internal/state"
 )
 
@@ -133,7 +134,7 @@ func testStore(t *testing.T, s state.Store) {
 }
 
 func makeState(t *testing.T, s *state.State, ct io.Writer) {
-	if err := fst.NewAppID(&s.ID); err != nil {
+	if err := app.NewAppID(&s.ID); err != nil {
 		t.Fatalf("cannot create dummy state: %v", err)
 	}
 	if err := gob.NewEncoder(ct).Encode(fst.Template()); err != nil {

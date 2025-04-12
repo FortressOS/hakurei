@@ -7,11 +7,12 @@ import (
 
 	"git.gensokyo.uk/security/fortify/dbus"
 	"git.gensokyo.uk/security/fortify/fst"
+	"git.gensokyo.uk/security/fortify/internal/app"
 	"git.gensokyo.uk/security/fortify/internal/state"
 )
 
 var (
-	testID = fst.ID{
+	testID = app.ID{
 		0x8e, 0x2c, 0x76, 0xb0,
 		0x66, 0xda, 0xbe, 0x57,
 		0x4c, 0xf0, 0x73, 0xbd,
@@ -457,7 +458,7 @@ func Test_printPs(t *testing.T) {
 		{"no entries", make(state.Entries), false, false, "    Instance    PID    Application    Uptime\n"},
 		{"no entries short", make(state.Entries), true, false, ""},
 		{"nil instance", state.Entries{testID: nil}, false, false, "    Instance    PID    Application    Uptime\n"},
-		{"state corruption", state.Entries{fst.ID{}: testState}, false, false, "    Instance    PID    Application    Uptime\n"},
+		{"state corruption", state.Entries{app.ID{}: testState}, false, false, "    Instance    PID    Application    Uptime\n"},
 
 		{"valid pd", state.Entries{testID: &state.State{ID: testID, PID: 1 << 8, Config: new(fst.Config), Time: testAppTime}}, false, false, `    Instance    PID    Application                         Uptime
     8e2c76b0    256    0 (uk.gensokyo.fortify.8e2c76b0)    1h2m32s

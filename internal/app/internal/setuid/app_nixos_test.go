@@ -4,6 +4,7 @@ import (
 	"git.gensokyo.uk/security/fortify/acl"
 	"git.gensokyo.uk/security/fortify/dbus"
 	"git.gensokyo.uk/security/fortify/fst"
+	"git.gensokyo.uk/security/fortify/internal/app"
 	"git.gensokyo.uk/security/fortify/sandbox"
 	"git.gensokyo.uk/security/fortify/system"
 )
@@ -48,7 +49,7 @@ var testCasesNixos = []sealTestCase{
 				Enablements: system.EWayland | system.EDBus | system.EPulse,
 			},
 		},
-		fst.ID{
+		app.ID{
 			0x8e, 0x2c, 0x76, 0xb0,
 			0x66, 0xda, 0xbe, 0x57,
 			0x4c, 0xf0, 0x73, 0xbd,

@@ -6,7 +6,7 @@ import (
 	"path"
 	"strconv"
 
-	"git.gensokyo.uk/security/fortify/fst"
+	"git.gensokyo.uk/security/fortify/internal/app"
 	"git.gensokyo.uk/security/fortify/internal/fmsg"
 )
 
@@ -41,14 +41,14 @@ type State interface {
 	Printf(format string, v ...any)
 
 	// Paths returns a populated [Paths] struct.
-	Paths() fst.Paths
+	Paths() app.Paths
 	// Uid invokes fsu and returns target uid.
 	// Any errors returned by Uid is already wrapped [fmsg.BaseError].
 	Uid(aid int) (int, error)
 }
 
 // CopyPaths is a generic implementation of [fst.Paths].
-func CopyPaths(os State, v *fst.Paths) {
+func CopyPaths(os State, v *app.Paths) {
 	v.SharePath = path.Join(os.TempDir(), "fortify."+strconv.Itoa(os.Getuid()))
 
 	fmsg.Verbosef("process share directory at %q", v.SharePath)

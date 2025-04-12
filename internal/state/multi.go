@@ -14,6 +14,7 @@ import (
 	"syscall"
 
 	"git.gensokyo.uk/security/fortify/fst"
+	"git.gensokyo.uk/security/fortify/internal/app"
 	"git.gensokyo.uk/security/fortify/internal/fmsg"
 )
 
@@ -129,7 +130,7 @@ type multiBackend struct {
 	lock sync.RWMutex
 }
 
-func (b *multiBackend) filename(id *fst.ID) string {
+func (b *multiBackend) filename(id *app.ID) string {
 	return path.Join(b.path, id.String())
 }
 
@@ -189,8 +190,8 @@ func (b *multiBackend) load(decode bool) (Entries, error) {
 			return nil, fmt.Errorf("unexpected directory %q in store", e.Name())
 		}
 
-		id := new(fst.ID)
-		if err := fst.ParseAppID(id, e.Name()); err != nil {
+		id := new(app.ID)
+		if err := app.ParseAppID(id, e.Name()); err != nil {
 			return nil, err
 		}
 
@@ -335,7 +336,7 @@ func (b *multiBackend) encodeState(w io.WriteSeeker, state *State, configWriter 
 	return err
 }
 
-func (b *multiBackend) Destroy(id fst.ID) error {
+func (b *multiBackend) Destroy(id app.ID) error {
 	b.lock.Lock()
 	defer b.lock.Unlock()
 

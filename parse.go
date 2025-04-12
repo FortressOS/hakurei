@@ -67,7 +67,7 @@ func tryFd(name string) io.ReadCloser {
 	}
 }
 
-func tryShort(name string) (config *fst.Config, instance *state.State) {
+func tryShort(name string) (config *fst.Config, entry *state.State) {
 	likePrefix := false
 	if len(name) <= 32 {
 		likePrefix = true
@@ -96,8 +96,8 @@ func tryShort(name string) (config *fst.Config, instance *state.State) {
 				v := id.String()
 				if strings.HasPrefix(v, name) {
 					// match, use config from this state entry
-					instance = entries[id]
-					config = instance.Config
+					entry = entries[id]
+					config = entry.Config
 					break
 				}
 

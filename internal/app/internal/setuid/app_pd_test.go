@@ -6,6 +6,7 @@ import (
 	"git.gensokyo.uk/security/fortify/acl"
 	"git.gensokyo.uk/security/fortify/dbus"
 	"git.gensokyo.uk/security/fortify/fst"
+	"git.gensokyo.uk/security/fortify/internal/app"
 	"git.gensokyo.uk/security/fortify/sandbox"
 	"git.gensokyo.uk/security/fortify/system"
 )
@@ -20,7 +21,7 @@ var testCasesPd = []sealTestCase{
 				Outer:    "/home/chronos",
 			},
 		},
-		fst.ID{
+		app.ID{
 			0x4a, 0x45, 0x0b, 0x65,
 			0x96, 0xd7, 0xbc, 0x15,
 			0xbd, 0x01, 0x78, 0x0e,
@@ -117,7 +118,7 @@ var testCasesPd = []sealTestCase{
 				Enablements: system.EWayland | system.EDBus | system.EPulse,
 			},
 		},
-		fst.ID{
+		app.ID{
 			0xeb, 0xf0, 0x83, 0xd1,
 			0xb1, 0x75, 0x91, 0x17,
 			0x82, 0xd4, 0x13, 0x36,

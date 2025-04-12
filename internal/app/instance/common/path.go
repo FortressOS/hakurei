@@ -1,4 +1,4 @@
-package fst
+package common
 
 import (
 	"path/filepath"

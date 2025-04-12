@@ -6,11 +6,12 @@ import (
 	"time"
 
 	"git.gensokyo.uk/security/fortify/fst"
+	"git.gensokyo.uk/security/fortify/internal/app"
 )
 
 var ErrNoConfig = errors.New("state does not contain config")
 
-type Entries map[fst.ID]*State
+type Entries map[app.ID]*State
 
 type Store interface {
 	// Do calls f exactly once and ensures store exclusivity until f returns.
@@ -29,7 +30,7 @@ type Store interface {
 // Cursor provides access to the store
 type Cursor interface {
 	Save(state *State, configWriter io.WriterTo) error
-	Destroy(id fst.ID) error
+	Destroy(id app.ID) error
 	Load() (Entries, error)
 	Len() (int, error)
 }
@@ -37,7 +38,7 @@ type Cursor interface {
 // State is a fortify process's state
 type State struct {
 	// fortify instance id
-	ID fst.ID `json:"instance"`
+	ID app.ID `json:"instance"`
 	// child process PID value
 	PID int `json:"pid"`
 	// sealed app configuration

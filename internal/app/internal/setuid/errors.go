@@ -4,11 +4,11 @@ import (
 	"errors"
 	"log"
 
-	"git.gensokyo.uk/security/fortify/fst"
+	. "git.gensokyo.uk/security/fortify/internal/app"
 	"git.gensokyo.uk/security/fortify/internal/fmsg"
 )
 
-func PrintRunStateErr(rs *fst.RunState, runErr error) (code int) {
+func PrintRunStateErr(rs *RunState, runErr error) (code int) {
 	code = rs.ExitStatus()
 
 	if runErr != nil {

@@ -1,18 +1,20 @@
-// Package fst exports shared fortify types.
-package fst
+// Package app defines the generic [App] interface.
+package app
 
 import (
 	"syscall"
 	"time"
+
+	"git.gensokyo.uk/security/fortify/fst"
 )
 
 type App interface {
-	// ID returns a copy of [fst.ID] held by App.
+	// ID returns a copy of [ID] held by App.
 	ID() ID
 
 	// Seal determines the outcome of config as a [SealedApp].
 	// The value of config might be overwritten and must not be used again.
-	Seal(config *Config) (SealedApp, error)
+	Seal(config *fst.Config) (SealedApp, error)
 
 	String() string
 }

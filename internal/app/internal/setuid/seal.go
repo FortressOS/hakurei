@@ -20,6 +20,8 @@ import (
 	"git.gensokyo.uk/security/fortify/dbus"
 	"git.gensokyo.uk/security/fortify/fst"
 	"git.gensokyo.uk/security/fortify/internal"
+	. "git.gensokyo.uk/security/fortify/internal/app"
+	"git.gensokyo.uk/security/fortify/internal/app/instance/common"
 	"git.gensokyo.uk/security/fortify/internal/fmsg"
 	"git.gensokyo.uk/security/fortify/internal/sys"
 	"git.gensokyo.uk/security/fortify/sandbox"
@@ -64,7 +66,7 @@ var posixUsername = regexp.MustCompilePOSIX("^[a-z_]([A-Za-z0-9_-]{0,31}|[A-Za-z
 // outcome stores copies of various parts of [fst.Config]
 type outcome struct {
 	// copied from initialising [app]
-	id *stringPair[fst.ID]
+	id *stringPair[ID]
 	// copied from [sys.State] response
 	runDirPath string
 
@@ -95,7 +97,7 @@ type shareHost struct {
 	runtimeSharePath string
 
 	seal *outcome
-	sc   fst.Paths
+	sc   Paths
 }
 
 // ensureRuntimeDir must be called if direct access to paths within XDG_RUNTIME_DIR is required
@@ -279,7 +281,7 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *fst.Co
 	{
 		var uid, gid int
 		var err error
-		seal.container, seal.env, err = config.Confinement.Sandbox.ToContainer(sys, &uid, &gid)
+		seal.container, seal.env, err = common.NewContainer(config.Confinement.Sandbox, sys, &uid, &gid)
 		if err != nil {
 			return fmsg.WrapErrorSuffix(err,
 				"cannot initialise container configuration:")

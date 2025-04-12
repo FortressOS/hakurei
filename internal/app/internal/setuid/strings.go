@@ -3,11 +3,11 @@ package setuid
 import (
 	"strconv"
 
-	"git.gensokyo.uk/security/fortify/fst"
+	. "git.gensokyo.uk/security/fortify/internal/app"
 )
 
-func newInt(v int) *stringPair[int]        { return &stringPair[int]{v, strconv.Itoa(v)} }
-func newID(id *fst.ID) *stringPair[fst.ID] { return &stringPair[fst.ID]{*id, id.String()} }
+func newInt(v int) *stringPair[int] { return &stringPair[int]{v, strconv.Itoa(v)} }
+func newID(id *ID) *stringPair[ID]  { return &stringPair[ID]{*id, id.String()} }
 
 // stringPair stores a value and its string representation.
 type stringPair[T comparable] struct {

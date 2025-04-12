@@ -8,7 +8,8 @@ import (
 	"time"
 
 	"git.gensokyo.uk/security/fortify/fst"
-	"git.gensokyo.uk/security/fortify/internal/app/setuid"
+	"git.gensokyo.uk/security/fortify/internal/app"
+	"git.gensokyo.uk/security/fortify/internal/app/internal/setuid"
 	"git.gensokyo.uk/security/fortify/internal/sys"
 	"git.gensokyo.uk/security/fortify/sandbox"
 	"git.gensokyo.uk/security/fortify/system"
@@ -18,7 +19,7 @@ type sealTestCase struct {
 	name          string
 	os            sys.State
 	config        *fst.Config
-	id            fst.ID
+	id            app.ID
 	wantSys       *system.I
 	wantContainer *sandbox.Params
 }
