@@ -35,7 +35,7 @@ package
 
 
 *Default:*
-` <derivation fortify-static-x86_64-unknown-linux-musl-0.3.3> `
+` <derivation fortify-static-x86_64-unknown-linux-musl-0.4.0> `
 
 
 
@@ -222,11 +222,11 @@ null or anything
 
 
 
-## environment\.fortify\.apps\.\*\.dev
+## environment\.fortify\.apps\.\*\.devel
 
 
 
-Whether to enable access to all devices\.
+Whether to enable debugging-related kernel interfaces\.
 
 
 
@@ -245,11 +245,11 @@ boolean
 
 
 
-## environment\.fortify\.apps\.\*\.devel
+## environment\.fortify\.apps\.\*\.device
 
 
 
-Whether to enable debugging-related kernel interfaces\.
+Whether to enable access to all devices\.
 
 
 
@@ -644,7 +644,7 @@ package
 
 
 *Default:*
-` <derivation fortify-fsu-0.3.3> `
+` <derivation fortify-fsu-0.4.0> `
 
 
 
