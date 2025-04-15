@@ -152,6 +152,8 @@ print(machine.fail("sudo -u alice -i fortify -v run --wayland true"))
 fortify('-v run --wayland --dbus notify-send -a "NixOS Tests" "Test notification" "Notification from within sandbox." && touch /tmp/dbus-ok')
 machine.wait_for_file("/tmp/dbus-ok", timeout=15)
 collect_state_ui("dbus_notify_exited")
+# not in pid namespace, verify termination
+machine.wait_until_fails("pgrep xdg-dbus-proxy")
 machine.succeed("pkill -9 mako")
 
 # Check revert type selection:
