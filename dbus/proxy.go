@@ -2,11 +2,10 @@ package dbus
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"io"
 	"os/exec"
 	"sync"
+	"syscall"
 
 	"git.gensokyo.uk/security/fortify/helper"
 )
@@ -15,84 +14,88 @@ import (
 // Overriding ProxyName will only affect Proxy instance created after the change.
 var ProxyName = "xdg-dbus-proxy"
 
-// Proxy holds references to a xdg-dbus-proxy process, and should never be copied.
-// Once sealed, configuration changes will no longer be possible and attempting to do so will result in a panic.
+// Proxy holds the state of a xdg-dbus-proxy process, and should never be copied.
 type Proxy struct {
 	helper helper.Helper
 	ctx    context.Context
-	cancel context.CancelCauseFunc
 
-	name    string
-	session [2]string
-	system  [2]string
-	CmdF    func(any)
-	sysP    bool
+	cancel context.CancelCauseFunc
+	cause  func() error
+
+	final      *Final
+	output     io.Writer
+	useSandbox bool
+
+	name string
+	CmdF func(any)
 
 	CommandContext func(ctx context.Context) (cmd *exec.Cmd)
 	FilterF        func([]byte) []byte
 
-	seal io.WriterTo
-	lock sync.RWMutex
+	mu, pmu sync.RWMutex
 }
-
-func (p *Proxy) Session() [2]string { return p.session }
-func (p *Proxy) System() [2]string  { return p.system }
-func (p *Proxy) Sealed() bool       { p.lock.RLock(); defer p.lock.RUnlock(); return p.seal != nil }
-
-var (
-	ErrConfig = errors.New("no configuration to seal")
-)
 
 func (p *Proxy) String() string {
 	if p == nil {
 		return "(invalid dbus proxy)"
 	}
 
-	p.lock.RLock()
-	defer p.lock.RUnlock()
+	p.mu.RLock()
+	defer p.mu.RUnlock()
 
 	if p.helper != nil {
 		return p.helper.String()
 	}
 
-	if p.seal != nil {
-		return p.seal.(fmt.Stringer).String()
-	}
-
-	return "(unsealed dbus proxy)"
+	return "(unused dbus proxy)"
 }
 
-// Seal seals the Proxy instance.
-func (p *Proxy) Seal(session, system *Config) error {
-	p.lock.Lock()
-	defer p.lock.Unlock()
+// Final describes the outcome of a proxy configuration.
+type Final struct {
+	Session, System ProxyPair
+	// parsed upstream address
+	SessionUpstream, SystemUpstream []AddrEntry
+	io.WriterTo
+}
 
-	if p.seal != nil {
-		panic("dbus proxy sealed twice")
-	}
-
+// Finalise creates a checked argument writer for [Proxy].
+func Finalise(sessionBus, systemBus ProxyPair, session, system *Config) (final *Final, err error) {
 	if session == nil && system == nil {
-		return ErrConfig
+		return nil, syscall.EBADE
 	}
 
 	var args []string
 	if session != nil {
-		args = append(args, session.Args(p.session)...)
+		args = append(args, session.Args(sessionBus)...)
 	}
 	if system != nil {
-		args = append(args, system.Args(p.system)...)
-		p.sysP = true
-	}
-	if seal, err := helper.NewCheckedArgs(args); err != nil {
-		return err
-	} else {
-		p.seal = seal
+		args = append(args, system.Args(systemBus)...)
 	}
 
-	return nil
+	final = &Final{Session: sessionBus, System: systemBus}
+
+	final.WriterTo, err = helper.NewCheckedArgs(args)
+	if err != nil {
+		return
+	}
+
+	if session != nil {
+		final.SessionUpstream, err = Parse([]byte(final.Session[0]))
+		if err != nil {
+			return
+		}
+	}
+	if system != nil {
+		final.SystemUpstream, err = Parse([]byte(final.System[0]))
+		if err != nil {
+			return
+		}
+	}
+
+	return
 }
 
-// New returns a reference to a new unsealed Proxy.
-func New(session, system [2]string) *Proxy {
-	return &Proxy{name: ProxyName, session: session, system: system}
+// New returns a new instance of [Proxy].
+func New(ctx context.Context, final *Final, output io.Writer) *Proxy {
+	return &Proxy{name: ProxyName, ctx: ctx, final: final, output: output, useSandbox: true}
 }

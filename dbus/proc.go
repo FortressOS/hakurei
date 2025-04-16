@@ -3,14 +3,12 @@ package dbus
 import (
 	"context"
 	"errors"
-	"io"
 	"os"
 	"os/exec"
 	"path"
 	"path/filepath"
 	"slices"
 	"strconv"
-	"strings"
 	"syscall"
 
 	"git.gensokyo.uk/security/fortify/helper"
@@ -19,25 +17,30 @@ import (
 	"git.gensokyo.uk/security/fortify/sandbox/seccomp"
 )
 
-// Start launches the D-Bus proxy.
-func (p *Proxy) Start(ctx context.Context, output io.Writer, useSandbox bool) error {
-	p.lock.Lock()
-	defer p.lock.Unlock()
-
-	if p.seal == nil {
-		return errors.New("proxy not sealed")
+// Start starts and configures a D-Bus proxy process.
+func (p *Proxy) Start() error {
+	if p.final == nil || p.final.WriterTo == nil {
+		return syscall.ENOTRECOVERABLE
 	}
 
-	var h helper.Helper
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.pmu.Lock()
+	defer p.pmu.Unlock()
 
-	c, cancel := context.WithCancelCause(ctx)
-	if !useSandbox {
-		h = helper.NewDirect(c, p.name, p.seal, true, argF, func(cmd *exec.Cmd) {
+	if p.cancel != nil || p.cause != nil {
+		return errors.New("dbus: already started")
+	}
+
+	ctx, cancel := context.WithCancelCause(p.ctx)
+
+	if !p.useSandbox {
+		p.helper = helper.NewDirect(ctx, p.name, p.final, true, argF, func(cmd *exec.Cmd) {
 			if p.CmdF != nil {
 				p.CmdF(cmd)
 			}
-			if output != nil {
-				cmd.Stdout, cmd.Stderr = output, output
+			if p.output != nil {
+				cmd.Stdout, cmd.Stderr = p.output, p.output
 			}
 			cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 			cmd.Env = make([]string, 0)
@@ -59,15 +62,15 @@ func (p *Proxy) Start(ctx context.Context, output io.Writer, useSandbox bool) er
 			libPaths = ldd.Path(entries)
 		}
 
-		h = helper.New(
-			c, toolPath,
-			p.seal, true,
+		p.helper = helper.New(
+			ctx, toolPath,
+			p.final, true,
 			argF, func(container *sandbox.Container) {
 				container.Seccomp |= seccomp.FilterMultiarch
 				container.Hostname = "fortify-dbus"
 				container.CommandContext = p.CommandContext
-				if output != nil {
-					container.Stdout, container.Stderr = output, output
+				if p.output != nil {
+					container.Stdout, container.Stderr = p.output, p.output
 				}
 
 				if p.CmdF != nil {
@@ -81,10 +84,17 @@ func (p *Proxy) Start(ctx context.Context, output io.Writer, useSandbox bool) er
 
 				// upstream bus directories
 				upstreamPaths := make([]string, 0, 2)
-				for _, as := range []string{p.session[0], p.system[0]} {
-					if len(as) > 0 && strings.HasPrefix(as, "unix:path=/") {
-						// leave / intact
-						upstreamPaths = append(upstreamPaths, path.Dir(as[10:]))
+				for _, addr := range [][]AddrEntry{p.final.SessionUpstream, p.final.SystemUpstream} {
+					for _, ent := range addr {
+						if ent.Method != "unix" {
+							continue
+						}
+						for _, pair := range ent.Values {
+							if pair[0] != "path" || !path.IsAbs(pair[1]) {
+								continue
+							}
+							upstreamPaths = append(upstreamPaths, path.Dir(pair[1]))
+						}
 					}
 				}
 				slices.Sort(upstreamPaths)
@@ -95,10 +105,10 @@ func (p *Proxy) Start(ctx context.Context, output io.Writer, useSandbox bool) er
 
 				// parent directories of bind paths
 				sockDirPaths := make([]string, 0, 2)
-				if d := path.Dir(p.session[1]); path.IsAbs(d) {
+				if d := path.Dir(p.final.Session[1]); path.IsAbs(d) {
 					sockDirPaths = append(sockDirPaths, d)
 				}
-				if d := path.Dir(p.system[1]); path.IsAbs(d) {
+				if d := path.Dir(p.final.System[1]); path.IsAbs(d) {
 					sockDirPaths = append(sockDirPaths, d)
 				}
 				slices.Sort(sockDirPaths)
@@ -113,14 +123,13 @@ func (p *Proxy) Start(ctx context.Context, output io.Writer, useSandbox bool) er
 			}, nil)
 	}
 
-	if err := h.Start(); err != nil {
+	if err := p.helper.Start(); err != nil {
 		cancel(err)
+		p.helper = nil
 		return err
 	}
 
-	p.helper = h
-	p.ctx = c
-	p.cancel = cancel
+	p.cancel, p.cause = cancel, func() error { return context.Cause(ctx) }
 	return nil
 }
 
@@ -128,28 +137,30 @@ var proxyClosed = errors.New("proxy closed")
 
 // Wait blocks until xdg-dbus-proxy exits and releases resources.
 func (p *Proxy) Wait() error {
-	p.lock.RLock()
-	defer p.lock.RUnlock()
+	p.mu.RLock()
+	defer p.mu.RUnlock()
 
-	if p.helper == nil {
+	p.pmu.RLock()
+	if p.helper == nil || p.cancel == nil || p.cause == nil {
+		p.pmu.RUnlock()
 		return errors.New("dbus: not started")
 	}
 
 	errs := make([]error, 3)
 
 	errs[0] = p.helper.Wait()
-	if p.cancel == nil &&
-		errors.Is(errs[0], context.Canceled) &&
-		errors.Is(context.Cause(p.ctx), proxyClosed) {
+	if errors.Is(errs[0], context.Canceled) &&
+		errors.Is(p.cause(), proxyClosed) {
 		errs[0] = nil
 	}
+	p.pmu.RUnlock()
 
 	// ensure socket removal so ephemeral directory is empty at revert
-	if err := os.Remove(p.session[1]); err != nil && !errors.Is(err, os.ErrNotExist) {
+	if err := os.Remove(p.final.Session[1]); err != nil && !errors.Is(err, os.ErrNotExist) {
 		errs[1] = err
 	}
-	if p.sysP {
-		if err := os.Remove(p.system[1]); err != nil && !errors.Is(err, os.ErrNotExist) {
+	if p.final.System[1] != "" {
+		if err := os.Remove(p.final.System[1]); err != nil && !errors.Is(err, os.ErrNotExist) {
 			errs[2] = err
 		}
 	}
@@ -159,14 +170,13 @@ func (p *Proxy) Wait() error {
 
 // Close cancels the context passed to the helper instance attached to xdg-dbus-proxy.
 func (p *Proxy) Close() {
-	p.lock.Lock()
-	defer p.lock.Unlock()
+	p.pmu.Lock()
+	defer p.pmu.Unlock()
 
 	if p.cancel == nil {
 		panic("dbus: not started")
 	}
 	p.cancel(proxyClosed)
-	p.cancel = nil
 }
 
 func argF(argsFd, statFd int) []string {

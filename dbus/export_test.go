@@ -1,13 +1,13 @@
 package dbus
 
-import "io"
+import (
+	"context"
+	"io"
+)
 
-// CompareTestNew provides TestNew with comparison access to unexported Proxy fields.
-func (p *Proxy) CompareTestNew(session, system [2]string) bool {
-	return session == p.session && system == p.system
-}
-
-// AccessTestProxySeal provides TestProxy_Seal with access to unexported Proxy seal field.
-func (p *Proxy) AccessTestProxySeal() io.WriterTo {
-	return p.seal
+// NewDirect returns a new instance of [Proxy] with its sandbox disabled.
+func NewDirect(ctx context.Context, final *Final, output io.Writer) *Proxy {
+	p := New(ctx, final, output)
+	p.useSandbox = false
+	return p
 }

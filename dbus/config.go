@@ -7,6 +7,9 @@ import (
 	"os"
 )
 
+// ProxyPair is an upstream dbus address and a downstream socket path.
+type ProxyPair [2]string
+
 type Config struct {
 	// See set 'see' policy for NAME (--see=NAME)
 	See []string `json:"see"`
@@ -24,7 +27,7 @@ type Config struct {
 	Filter bool `json:"filter"`
 }
 
-func (c *Config) Args(bus [2]string) (args []string) {
+func (c *Config) Args(bus ProxyPair) (args []string) {
 	argc := 2 + len(c.See) + len(c.Talk) + len(c.Own) + len(c.Call) + len(c.Broadcast)
 	if c.Log {
 		argc++

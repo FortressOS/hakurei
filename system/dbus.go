@@ -7,6 +7,7 @@ import (
 	"log"
 	"strings"
 	"sync"
+	"syscall"
 
 	"git.gensokyo.uk/security/fortify/dbus"
 )
@@ -26,64 +27,62 @@ func (sys *I) MustProxyDBus(sessionPath string, session *dbus.Config, systemPath
 func (sys *I) ProxyDBus(session, system *dbus.Config, sessionPath, systemPath string) (func(), error) {
 	d := new(DBus)
 
-	// session bus is mandatory
+	// session bus is required as otherwise this is effectively a very expensive noop
 	if session == nil {
 		return nil, msg.WrapErr(ErrDBusConfig,
-			"attempted to seal message bus proxy without session bus config")
+			"attempted to create message bus proxy args without session bus config")
 	}
 
 	// system bus is optional
 	d.system = system != nil
 
-	// upstream address, downstream socket path
-	var sessionBus, systemBus [2]string
-
-	// resolve upstream bus addresses
-	sessionBus[0], systemBus[0] = dbus.Address()
-
-	// set paths from caller
-	sessionBus[1], systemBus[1] = sessionPath, systemPath
-
-	// create proxy instance
-	d.proxy = dbus.New(sessionBus, systemBus)
-
-	defer func() {
-		if msg.IsVerbose() && d.proxy.Sealed() {
-			msg.Verbose("sealed session proxy", session.Args(sessionBus))
-			if system != nil {
-				msg.Verbose("sealed system proxy", system.Args(systemBus))
-			}
-			msg.Verbose("message bus proxy final args:", d.proxy)
-		}
-	}()
-
-	// queue operation
-	sys.ops = append(sys.ops, d)
-
-	// seal dbus proxy
+	d.sessionBus[0], d.systemBus[0] = dbus.Address()
+	d.sessionBus[1], d.systemBus[1] = sessionPath, systemPath
 	d.out = &scanToFmsg{msg: new(strings.Builder)}
-	return d.out.Dump, wrapErrSuffix(d.proxy.Seal(session, system),
-		"cannot seal message bus proxy:")
+	if final, err := dbus.Finalise(d.sessionBus, d.systemBus, session, system); err != nil {
+		if errors.Is(err, syscall.EINVAL) {
+			return nil, msg.WrapErr(err, "message bus proxy configuration contains NUL byte")
+		}
+		return nil, wrapErrSuffix(err, "cannot finalise message bus proxy:")
+	} else {
+		if msg.IsVerbose() {
+			msg.Verbose("session bus proxy:", session.Args(d.sessionBus))
+			if system != nil {
+				msg.Verbose("system bus proxy:", system.Args(d.systemBus))
+			}
+
+			// this calls the argsWt String method
+			msg.Verbose("message bus proxy final args:", final.WriterTo)
+		}
+
+		d.final = final
+	}
+
+	sys.ops = append(sys.ops, d)
+	return d.out.Dump, nil
 }
 
 type DBus struct {
-	proxy *dbus.Proxy
+	proxy *dbus.Proxy // populated during apply
 
-	out *scanToFmsg
+	final *dbus.Final
+	out   *scanToFmsg
 	// whether system bus proxy is enabled
 	system bool
+
+	sessionBus, systemBus dbus.ProxyPair
 }
 
 func (d *DBus) Type() Enablement { return Process }
 
 func (d *DBus) apply(sys *I) error {
-	msg.Verbosef("session bus proxy on %q for upstream %q", d.proxy.Session()[1], d.proxy.Session()[0])
+	msg.Verbosef("session bus proxy on %q for upstream %q", d.sessionBus[1], d.sessionBus[0])
 	if d.system {
-		msg.Verbosef("system bus proxy on %q for upstream %q", d.proxy.System()[1], d.proxy.System()[0])
+		msg.Verbosef("system bus proxy on %q for upstream %q", d.systemBus[1], d.systemBus[0])
 	}
 
-	// this starts the process and blocks until ready
-	if err := d.proxy.Start(sys.ctx, d.out, true); err != nil {
+	d.proxy = dbus.New(sys.ctx, d.final, d.out)
+	if err := d.proxy.Start(); err != nil {
 		d.out.Dump()
 		return wrapErrSuffix(err,
 			"cannot start message bus proxy:")
