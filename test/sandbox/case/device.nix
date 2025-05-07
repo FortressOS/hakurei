@@ -140,7 +140,12 @@
             u0 = fs "800001c0" {
               a4 = fs "800001c0" {
                 ".cache" = fs "800001ed" { ".keep" = fs "80001ff" null ""; } null;
-                ".config" = fs "800001ed" { "environment.d" = fs "800001ed" { "10-home-manager.conf" = fs "80001ff" null null; } null; } null;
+                ".config" = fs "800001ed" {
+                  "environment.d" = fs "800001ed" { "10-home-manager.conf" = fs "80001ff" null null; } null;
+                  systemd = fs "800001ed" {
+                    user = fs "800001ed" { "tray.target" = fs "80001ff" null null; } null;
+                  } null;
+                } null;
                 ".local" = fs "800001ed" {
                   state = fs "800001ed" {
                     home-manager = fs "800001ed" { gcroots = fs "800001ed" { current-home = fs "80001ff" null null; } null; } null;
