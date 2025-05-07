@@ -36,31 +36,31 @@ Commands:
 Usage:	fortify run [-h | --help] [--dbus-config <value>] [--dbus-system <value>] [--mpris] [--dbus-log] [--id <value>] [-a <int>] [-g <value>] [-d <value>] [-u <value>] [--wayland] [-X] [--dbus] [--pulse] COMMAND [OPTIONS]
 
 Flags:
-  -X	Share X11 socket and allow connection
+  -X	Enable direct connection to X11
   -a int
-    	Fortify application ID
+    	Application identity
   -d string
-    	Application home directory (default "os")
+    	Container home directory (default "os")
   -dbus
-    	Proxy D-Bus connection
+    	Enable proxied connection to D-Bus
   -dbus-config string
-    	Path to D-Bus proxy config file, or "builtin" for defaults (default "builtin")
+    	Path to session bus proxy config file, or "builtin" for defaults (default "builtin")
   -dbus-log
-    	Force logging in the D-Bus proxy
+    	Force buffered logging in the D-Bus proxy
   -dbus-system string
-    	Path to system D-Bus proxy config file, or "nil" to disable (default "nil")
+    	Path to system bus proxy config file, or "nil" to disable (default "nil")
   -g value
-    	Groups inherited by the app process
+    	Groups inherited by all container processes
   -id string
-    	App ID, leave empty to disable security context app_id
+    	Reverse-DNS style Application identifier, leave empty to inherit instance identifier
   -mpris
     	Allow owning MPRIS D-Bus path, has no effect if custom config is available
   -pulse
-    	Share PulseAudio socket and cookie
+    	Enable direct connection to PulseAudio
   -u string
-    	Passwd name within sandbox (default "chronos")
+    	Passwd user name within sandbox (default "chronos")
   -wayland
-    	Allow Wayland connections
+    	Enable connection to Wayland via security-context-v1
 
 `,
 		},

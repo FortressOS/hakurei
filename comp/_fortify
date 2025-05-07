@@ -7,24 +7,24 @@ _fortify_app() {
 
 _fortify_run() {
   _arguments \
-    '--id[App ID, leave empty to disable security context app_id]:id' \
-    '-a[Fortify application ID]: :_numbers' \
-    '-g[Groups inherited by the app process]: :_groups' \
-    '-d[Application home directory]: :_files -/' \
-    '-u[Passwd name within sandbox]: :_users' \
-    '--wayland[Share Wayland socket]' \
-    '-X[Share X11 socket and allow connection]' \
-    '--dbus[Proxy D-Bus connection]' \
-    '--pulse[Share PulseAudio socket and cookie]' \
-    '--dbus-config[Path to D-Bus proxy config file]: :_files -g "*.json"' \
-    '--dbus-system[Path to system D-Bus proxy config file]: :_files -g "*.json"' \
+    '--id[Reverse-DNS style Application identifier, leave empty to inherit instance identifier]:id' \
+    '-a[Application identity]: :_numbers' \
+    '-g[Groups inherited by all container processes]: :_groups' \
+    '-d[Container home directory]: :_files -/' \
+    '-u[Passwd user name within sandbox]: :_users' \
+    '--wayland[Enable connection to Wayland via security-context-v1]' \
+    '-X[Enable direct connection to X11]' \
+    '--dbus[Enable proxied connection to D-Bus]' \
+    '--pulse[Enable direct connection to PulseAudio]' \
+    '--dbus-config[Path to session bus proxy config file]: :_files -g "*.json"' \
+    '--dbus-system[Path to system bus proxy config file]: :_files -g "*.json"' \
     '--mpris[Allow owning MPRIS D-Bus path]' \
-    '--dbus-log[Force logging in the D-Bus proxy]'
+    '--dbus-log[Force buffered logging in the D-Bus proxy]'
 }
 
 _fortify_ps() {
   _arguments \
-    '--short[Print instance id]'
+    '--short[List instances only]'
 }
 
 _fortify_show() {
@@ -78,5 +78,5 @@ __fortify_instances() {
 
 _arguments -C \
   '-v[Verbose output]' \
-  '--json[Format output in JSON when applicable]' \
+  '--json[Serialise output in JSON when applicable]' \
   '*::fortify command:_fortify_commands'

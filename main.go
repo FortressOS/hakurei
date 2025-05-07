@@ -72,7 +72,7 @@ func buildCommand(out io.Writer) command.Command {
 		return nil
 	}).
 		Flag(&flagVerbose, "v", command.BoolFlag(false), "Print debug messages to the console").
-		Flag(&flagJSON, "json", command.BoolFlag(false), "Serialise output as JSON when applicable")
+		Flag(&flagJSON, "json", command.BoolFlag(false), "Serialise output in JSON when applicable")
 
 	c.Command("shim", command.UsageInternal, func([]string) error { instance.ShimMain(); return errSuccess })
 
@@ -205,31 +205,31 @@ func buildCommand(out io.Writer) command.Command {
 			panic("unreachable")
 		}).
 			Flag(&dbusConfigSession, "dbus-config", command.StringFlag("builtin"),
-				"Path to D-Bus proxy config file, or \"builtin\" for defaults").
+				"Path to session bus proxy config file, or \"builtin\" for defaults").
 			Flag(&dbusConfigSystem, "dbus-system", command.StringFlag("nil"),
-				"Path to system D-Bus proxy config file, or \"nil\" to disable").
+				"Path to system bus proxy config file, or \"nil\" to disable").
 			Flag(&mpris, "mpris", command.BoolFlag(false),
 				"Allow owning MPRIS D-Bus path, has no effect if custom config is available").
 			Flag(&dbusVerbose, "dbus-log", command.BoolFlag(false),
-				"Force logging in the D-Bus proxy").
+				"Force buffered logging in the D-Bus proxy").
 			Flag(&fid, "id", command.StringFlag(""),
-				"App ID, leave empty to disable security context app_id").
+				"Reverse-DNS style Application identifier, leave empty to inherit instance identifier").
 			Flag(&aid, "a", command.IntFlag(0),
-				"Fortify application ID").
+				"Application identity").
 			Flag(nil, "g", &groups,
-				"Groups inherited by the app process").
+				"Groups inherited by all container processes").
 			Flag(&homeDir, "d", command.StringFlag("os"),
-				"Application home directory").
+				"Container home directory").
 			Flag(&userName, "u", command.StringFlag("chronos"),
-				"Passwd name within sandbox").
+				"Passwd user name within sandbox").
 			Flag(&wayland, "wayland", command.BoolFlag(false),
-				"Allow Wayland connections").
+				"Enable connection to Wayland via security-context-v1").
 			Flag(&x11, "X", command.BoolFlag(false),
-				"Share X11 socket and allow connection").
+				"Enable direct connection to X11").
 			Flag(&dBus, "dbus", command.BoolFlag(false),
-				"Proxy D-Bus connection").
+				"Enable proxied connection to D-Bus").
 			Flag(&pulse, "pulse", command.BoolFlag(false),
-				"Share PulseAudio socket and cookie")
+				"Enable direct connection to PulseAudio")
 	}
 
 	var showFlagShort bool
