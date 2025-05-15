@@ -3,6 +3,38 @@ packages:
 
 let
   inherit (lib) types mkOption mkEnableOption;
+
+  mountPoint =
+    let
+      inherit (types)
+        str
+        submodule
+        nullOr
+        listOf
+        ;
+    in
+    listOf (submodule {
+      options = {
+        dst = mkOption {
+          type = nullOr str;
+          default = null;
+          description = ''
+            Mount point in container, same as src if null.
+          '';
+        };
+
+        src = mkOption {
+          type = str;
+          description = ''
+            Host filesystem path to make available to the container.
+          '';
+        };
+
+        write = mkEnableOption "mounting path as writable";
+        dev = mkEnableOption "use of device files";
+        require = mkEnableOption "start failure if the bind mount cannot be established for any reason";
+      };
+    });
 in
 
 {
@@ -33,14 +65,10 @@ in
         '';
       };
 
-      home-manager = mkOption {
-        type =
-          let
-            inherit (types) functionTo attrsOf anything;
-          in
-          functionTo (functionTo (attrsOf anything));
+      extraHomeConfig = mkOption {
+        type = types.anything;
         description = ''
-          Target user shared home-manager configuration.
+          Extra home-manager configuration to merge with all target users.
         '';
       };
 
@@ -189,11 +217,15 @@ in
                 '';
               };
 
+              useCommonPaths = mkEnableOption "common extra paths" // {
+                default = true;
+              };
+
               extraPaths = mkOption {
-                type = listOf anything;
+                type = mountPoint;
                 default = [ ];
                 description = ''
-                  Extra paths to make available to the sandbox.
+                  Extra paths to make available to the container.
                 '';
               };
 
@@ -242,7 +274,17 @@ in
             };
           });
         default = [ ];
-        description = "Declarative fortify apps.";
+        description = ''
+          Declaratively configured fortify apps.
+        '';
+      };
+
+      commonPaths = mkOption {
+        type = mountPoint;
+        default = [ ];
+        description = ''
+          Common extra paths to make available to the container.
+        '';
       };
 
       stateDir = mkOption {

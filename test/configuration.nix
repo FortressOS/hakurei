@@ -30,13 +30,9 @@
 
   environment = {
     systemPackages = with pkgs; [
-      # For glinfo and wayland-info:
-      mesa-demos
-      wayland-utils
-
       # For D-Bus tests:
-      libnotify
       mako
+      libnotify
     ];
 
     variables = {
@@ -99,14 +95,21 @@
     stateDir = "/var/lib/fortify";
     users.alice = 0;
 
-    home-manager = _: _: { home.stateVersion = "23.05"; };
+    extraHomeConfig = {
+      home.stateVersion = "23.05";
+    };
 
     apps = [
       {
         name = "ne-foot";
         verbose = true;
         share = pkgs.foot;
-        packages = [ pkgs.foot ];
+        packages = with pkgs; [
+          foot
+
+          # For wayland-info:
+          wayland-utils
+        ];
         command = "foot";
         capability = {
           dbus = false;
@@ -125,7 +128,13 @@
         name = "x11-alacritty";
         verbose = true;
         share = pkgs.alacritty;
-        packages = [ pkgs.alacritty ];
+        packages = with pkgs; [
+          # For X11 terminal emulator:
+          alacritty
+
+          # For glinfo:
+          mesa-demos
+        ];
         command = "alacritty";
         capability = {
           wayland = false;
@@ -139,7 +148,12 @@
         verbose = true;
         insecureWayland = true;
         share = pkgs.foot;
-        packages = [ pkgs.foot ];
+        packages = with pkgs; [
+          foot
+
+          # For wayland-info:
+          wayland-utils
+        ];
         command = "foot";
         capability = {
           dbus = false;

@@ -146,7 +146,6 @@ in
                         ]
                         ++ optionals app.nix [
                           (mustBind "/nix/var")
-                          (bind "/var/db/nix-channels")
                         ]
                         ++ optionals isGraphical [
                           (devBind "/dev/dri")
@@ -156,6 +155,7 @@ in
                           (devBind "/dev/nvidia-uvm-tools")
                           (devBind "/dev/nvidia0")
                         ]
+                        ++ optionals app.useCommonPaths cfg.commonPaths
                         ++ app.extraPaths;
                       auto_etc = true;
                       cover = [ "/var/run/nscd" ];
@@ -225,13 +225,13 @@ in
               # aid 0 is reserved
               imap1 (aid: app: {
                 ${getsubname fid aid} = mkMerge [
-                  (cfg.home-manager (getsubname fid aid) (getsubuid fid aid))
+                  cfg.extraHomeConfig
                   app.extraConfig
                   { home.packages = app.packages; }
                 ];
               }) cfg.apps
             ))
-            { ${getsubname fid 0} = cfg.home-manager (getsubname fid 0) (getsubuid fid 0); }
+            { ${getsubname fid 0} = cfg.extraHomeConfig; }
             acc
           ]
         ) privPackages cfg.users;

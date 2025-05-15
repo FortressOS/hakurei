@@ -8,6 +8,7 @@
   tty = false;
   device = true;
   mapRealUid = false;
+  useCommonPaths = true;
 
   want = {
     env = [
@@ -169,6 +170,7 @@
           } null;
         } null;
         run = fs "800001ed" { nscd = fs "800001ed" { } null; } null;
+        cache = fs "800001ed" { private = fs "800001c0" null null; } null;
       } null;
     } null;
 
@@ -190,6 +192,7 @@
       (ent "/dev" "/sys/dev" "ro,nosuid,nodev,noexec,relatime" "sysfs" "sysfs" "rw")
       (ent "/devices" "/sys/devices" "ro,nosuid,nodev,noexec,relatime" "sysfs" "sysfs" "rw")
       (ent "/dri" "/dev/dri" "rw,nosuid" "devtmpfs" "devtmpfs" ignore)
+      (ent "/var/cache" "/var/cache" "rw,nosuid,nodev,relatime" "ext4" "/dev/disk/by-label/nixos" "rw")
       (ent "/etc" ignore "ro,nosuid,nodev,relatime" "ext4" "/dev/disk/by-label/nixos" "rw")
       (ent "/" "/run/user" "rw,nosuid,nodev,relatime" "tmpfs" "tmpfs" "rw,size=4k,mode=755,uid=1000004,gid=1000004")
       (ent "/" "/run/user/65534" "rw,nosuid,nodev,relatime" "tmpfs" "tmpfs" "rw,size=8192k,mode=700,uid=1000004,gid=1000004")

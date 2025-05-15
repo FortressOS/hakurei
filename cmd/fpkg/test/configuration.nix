@@ -55,6 +55,8 @@
     stateDir = "/var/lib/fortify";
     users.alice = 0;
 
-    home-manager = _: _: { home.stateVersion = "23.05"; };
+    extraHomeConfig = {
+      home.stateVersion = "23.05";
+    };
   };
 }

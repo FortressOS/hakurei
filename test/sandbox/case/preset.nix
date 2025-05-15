@@ -8,6 +8,7 @@
   tty = false;
   device = false;
   mapRealUid = false;
+  useCommonPaths = false;
 
   want = {
     env = [

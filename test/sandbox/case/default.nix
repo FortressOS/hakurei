@@ -37,7 +37,12 @@ let
     {
       name = "check-sandbox-${tc.name}";
       verbose = true;
-      inherit (tc) tty device mapRealUid;
+      inherit (tc)
+        tty
+        device
+        mapRealUid
+        useCommonPaths
+        ;
       share = testProgram;
       packages = [ ];
       path = "${testProgram}/bin/fortify-test";
