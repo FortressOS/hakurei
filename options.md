@@ -35,27 +35,27 @@ package
 
 
 *Default:*
-` <derivation fortify-static-x86_64-unknown-linux-musl-0.4.0> `
+` <derivation fortify-static-x86_64-unknown-linux-musl-0.4.1> `
 
 
 
 ## environment\.fortify\.apps
 
-Declarative fortify apps\.
+Declaratively configured fortify apps\.
 
 
 
 *Type:*
-list of (submodule)
+attribute set of (submodule)
 
 
 
 *Default:*
-` [ ] `
+` { } `
 
 
 
-## environment\.fortify\.apps\.\*\.packages
+## environment\.fortify\.apps\.\<name>\.packages
 
 
 
@@ -73,7 +73,7 @@ list of package
 
 
 
-## environment\.fortify\.apps\.\*\.args
+## environment\.fortify\.apps\.\<name>\.args
 
 
 
@@ -92,7 +92,7 @@ null or (list of string)
 
 
 
-## environment\.fortify\.apps\.\*\.capability\.dbus
+## environment\.fortify\.apps\.\<name>\.capability\.dbus
 
 
 
@@ -110,7 +110,7 @@ boolean
 
 
 
-## environment\.fortify\.apps\.\*\.capability\.pulse
+## environment\.fortify\.apps\.\<name>\.capability\.pulse
 
 
 
@@ -128,7 +128,7 @@ boolean
 
 
 
-## environment\.fortify\.apps\.\*\.capability\.wayland
+## environment\.fortify\.apps\.\<name>\.capability\.wayland
 
 
 
@@ -146,7 +146,7 @@ boolean
 
 
 
-## environment\.fortify\.apps\.\*\.capability\.x11
+## environment\.fortify\.apps\.\<name>\.capability\.x11
 
 
 
@@ -164,7 +164,7 @@ boolean
 
 
 
-## environment\.fortify\.apps\.\*\.command
+## environment\.fortify\.apps\.\<name>\.command
 
 
 
@@ -184,7 +184,7 @@ null or string
 
 
 
-## environment\.fortify\.apps\.\*\.dbus\.session
+## environment\.fortify\.apps\.\<name>\.dbus\.session
 
 
 
@@ -203,7 +203,7 @@ null or (function that evaluates to a(n) anything)
 
 
 
-## environment\.fortify\.apps\.\*\.dbus\.system
+## environment\.fortify\.apps\.\<name>\.dbus\.system
 
 
 
@@ -222,7 +222,7 @@ null or anything
 
 
 
-## environment\.fortify\.apps\.\*\.devel
+## environment\.fortify\.apps\.\<name>\.devel
 
 
 
@@ -245,7 +245,7 @@ boolean
 
 
 
-## environment\.fortify\.apps\.\*\.device
+## environment\.fortify\.apps\.\<name>\.device
 
 
 
@@ -268,7 +268,7 @@ boolean
 
 
 
-## environment\.fortify\.apps\.\*\.env
+## environment\.fortify\.apps\.\<name>\.env
 
 
 
@@ -286,7 +286,7 @@ null or (attribute set of string)
 
 
 
-## environment\.fortify\.apps\.\*\.extraConfig
+## environment\.fortify\.apps\.\<name>\.extraConfig
 
 
 
@@ -304,16 +304,16 @@ anything
 
 
 
-## environment\.fortify\.apps\.\*\.extraPaths
+## environment\.fortify\.apps\.\<name>\.extraPaths
 
 
 
-Extra paths to make available to the sandbox\.
+Extra paths to make available to the container\.
 
 
 
 *Type:*
-list of anything
+list of (submodule)
 
 
 
@@ -322,7 +322,107 @@ list of anything
 
 
 
-## environment\.fortify\.apps\.\*\.gpu
+## environment\.fortify\.apps\.\<name>\.extraPaths\.\*\.dev
+
+
+
+Whether to enable use of device files\.
+
+
+
+*Type:*
+boolean
+
+
+
+*Default:*
+` false `
+
+
+
+*Example:*
+` true `
+
+
+
+## environment\.fortify\.apps\.\<name>\.extraPaths\.\*\.dst
+
+
+
+Mount point in container, same as src if null\.
+
+
+
+*Type:*
+null or string
+
+
+
+*Default:*
+` null `
+
+
+
+## environment\.fortify\.apps\.\<name>\.extraPaths\.\*\.require
+
+
+
+Whether to enable start failure if the bind mount cannot be established for any reason\.
+
+
+
+*Type:*
+boolean
+
+
+
+*Default:*
+` false `
+
+
+
+*Example:*
+` true `
+
+
+
+## environment\.fortify\.apps\.\<name>\.extraPaths\.\*\.src
+
+
+
+Host filesystem path to make available to the container\.
+
+
+
+*Type:*
+string
+
+
+
+## environment\.fortify\.apps\.\<name>\.extraPaths\.\*\.write
+
+
+
+Whether to enable mounting path as writable\.
+
+
+
+*Type:*
+boolean
+
+
+
+*Default:*
+` false `
+
+
+
+*Example:*
+` true `
+
+
+
+## environment\.fortify\.apps\.\<name>\.gpu
 
 
 
@@ -341,7 +441,7 @@ null or boolean
 
 
 
-## environment\.fortify\.apps\.\*\.groups
+## environment\.fortify\.apps\.\<name>\.groups
 
 
 
@@ -359,25 +459,20 @@ list of string
 
 
 
-## environment\.fortify\.apps\.\*\.id
+## environment\.fortify\.apps\.\<name>\.identity
 
 
 
-Freedesktop application ID\.
+Application identity\. Identity 0 is reserved for system services\.
 
 
 
 *Type:*
-null or string
+integer between 1 and 9999 (both inclusive)
 
 
 
-*Default:*
-` null `
-
-
-
-## environment\.fortify\.apps\.\*\.insecureWayland
+## environment\.fortify\.apps\.\<name>\.insecureWayland
 
 
 
@@ -400,7 +495,7 @@ boolean
 
 
 
-## environment\.fortify\.apps\.\*\.mapRealUid
+## environment\.fortify\.apps\.\<name>\.mapRealUid
 
 
 
@@ -423,7 +518,7 @@ boolean
 
 
 
-## environment\.fortify\.apps\.\*\.multiarch
+## environment\.fortify\.apps\.\<name>\.multiarch
 
 
 
@@ -446,7 +541,7 @@ boolean
 
 
 
-## environment\.fortify\.apps\.\*\.name
+## environment\.fortify\.apps\.\<name>\.name
 
 
 
@@ -459,7 +554,7 @@ string
 
 
 
-## environment\.fortify\.apps\.\*\.net
+## environment\.fortify\.apps\.\<name>\.net
 
 
 
@@ -482,7 +577,7 @@ boolean
 
 
 
-## environment\.fortify\.apps\.\*\.nix
+## environment\.fortify\.apps\.\<name>\.nix
 
 
 
@@ -505,7 +600,7 @@ boolean
 
 
 
-## environment\.fortify\.apps\.\*\.path
+## environment\.fortify\.apps\.\<name>\.path
 
 
 
@@ -524,7 +619,7 @@ null or string
 
 
 
-## environment\.fortify\.apps\.\*\.script
+## environment\.fortify\.apps\.\<name>\.script
 
 
 
@@ -542,7 +637,7 @@ null or string
 
 
 
-## environment\.fortify\.apps\.\*\.share
+## environment\.fortify\.apps\.\<name>\.share
 
 
 
@@ -561,7 +656,30 @@ null or package
 
 
 
-## environment\.fortify\.apps\.\*\.tty
+## environment\.fortify\.apps\.\<name>\.shareUid
+
+
+
+Whether to enable sharing identity with another application\.
+
+
+
+*Type:*
+boolean
+
+
+
+*Default:*
+` false `
+
+
+
+*Example:*
+` true `
+
+
+
+## environment\.fortify\.apps\.\<name>\.tty
 
 
 
@@ -584,7 +702,30 @@ boolean
 
 
 
-## environment\.fortify\.apps\.\*\.userns
+## environment\.fortify\.apps\.\<name>\.useCommonPaths
+
+
+
+Whether to enable common extra paths\.
+
+
+
+*Type:*
+boolean
+
+
+
+*Default:*
+` true `
+
+
+
+*Example:*
+` true `
+
+
+
+## environment\.fortify\.apps\.\<name>\.userns
 
 
 
@@ -607,7 +748,7 @@ boolean
 
 
 
-## environment\.fortify\.apps\.\*\.verbose
+## environment\.fortify\.apps\.\<name>\.verbose
 
 
 
@@ -630,6 +771,137 @@ boolean
 
 
 
+## environment\.fortify\.commonPaths
+
+
+
+Common extra paths to make available to the container\.
+
+
+
+*Type:*
+list of (submodule)
+
+
+
+*Default:*
+` [ ] `
+
+
+
+## environment\.fortify\.commonPaths\.\*\.dev
+
+
+
+Whether to enable use of device files\.
+
+
+
+*Type:*
+boolean
+
+
+
+*Default:*
+` false `
+
+
+
+*Example:*
+` true `
+
+
+
+## environment\.fortify\.commonPaths\.\*\.dst
+
+
+
+Mount point in container, same as src if null\.
+
+
+
+*Type:*
+null or string
+
+
+
+*Default:*
+` null `
+
+
+
+## environment\.fortify\.commonPaths\.\*\.require
+
+
+
+Whether to enable start failure if the bind mount cannot be established for any reason\.
+
+
+
+*Type:*
+boolean
+
+
+
+*Default:*
+` false `
+
+
+
+*Example:*
+` true `
+
+
+
+## environment\.fortify\.commonPaths\.\*\.src
+
+
+
+Host filesystem path to make available to the container\.
+
+
+
+*Type:*
+string
+
+
+
+## environment\.fortify\.commonPaths\.\*\.write
+
+
+
+Whether to enable mounting path as writable\.
+
+
+
+*Type:*
+boolean
+
+
+
+*Default:*
+` false `
+
+
+
+*Example:*
+` true `
+
+
+
+## environment\.fortify\.extraHomeConfig
+
+
+
+Extra home-manager configuration to merge with all target users\.
+
+
+
+*Type:*
+anything
+
+
+
 ## environment\.fortify\.fsuPackage
 
 
@@ -644,20 +916,7 @@ package
 
 
 *Default:*
-` <derivation fortify-fsu-0.4.0> `
-
-
-
-## environment\.fortify\.home-manager
-
-
-
-Target user shared home-manager configuration\.
-
-
-
-*Type:*
-function that evaluates to a(n) function that evaluates to a(n) attribute set of anything
+` <derivation fortify-fsu-0.4.1> `
 
 
 

@@ -62,16 +62,27 @@ This adds the `environment.fortify` option:
 {
   environment.fortify = {
     enable = true;
-    stateDir = "/var/lib/persist/module/fortify";
+    stateDir = "/var/lib/fortify";
     users = {
       alice = 0;
       nixos = 10;
     };
 
-    apps = [
+    commonPaths = [
       {
+        src = "/sdcard";
+        write = true;
+      }
+    ];
+
+    extraHomeConfig = {
+      home.stateVersion = "23.05";
+    };
+
+    apps = {
+      "org.chromium.Chromium" = {
         name = "chromium";
-        id = "org.chromium.Chromium";
+        identity = 1;
         packages = [ pkgs.chromium ];
         userns = true;
         mapRealUid = true;
@@ -104,16 +115,20 @@ This adds the `environment.fortify` option:
               broadcast = { };
             };
         };
-      }
-      {
+      };
+
+      "org.claws_mail.Claws-Mail" = {
         name = "claws-mail";
-        id = "org.claws_mail.Claws-Mail";
+        identity = 2;
         packages = [ pkgs.claws-mail ];
         gpu = false;
         capability.pulse = false;
-      }
-      {
+      };
+
+      "org.weechat" = {
         name = "weechat";
+        identity = 3;
+        shareUid = true;
         packages = [ pkgs.weechat ];
         capability = {
           wayland = false;
@@ -121,10 +136,12 @@ This adds the `environment.fortify` option:
           dbus = true;
           pulse = false;
         };
-      }
-      {
+      };
+
+      "dev.vencord.Vesktop" = {
         name = "discord";
-        id = "dev.vencord.Vesktop";
+        identity = 3;
+        shareUid = true;
         packages = [ pkgs.vesktop ];
         share = pkgs.vesktop;
         command = "vesktop --ozone-platform-hint=wayland";
@@ -142,9 +159,12 @@ This adds the `environment.fortify` option:
             };
           system.filter = true;
         };
-      }
-      {
+      };
+
+      "io.looking-glass" = {
         name = "looking-glass-client";
+        identity = 4;
+        useCommonPaths = false;
         groups = [ "plugdev" ];
         extraPaths = [
           {
@@ -155,8 +175,8 @@ This adds the `environment.fortify` option:
         extraConfig = {
           programs.looking-glass-client.enable = true;
         };
-      }
-    ];
+      };
+    };
   };
 }
 ```
