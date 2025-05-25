@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"os"
+	"strings"
 )
 
 // ProxyPair is an upstream dbus address and a downstream socket path.
@@ -25,6 +26,61 @@ type Config struct {
 
 	Log    bool `json:"log,omitempty"`
 	Filter bool `json:"filter"`
+}
+
+func (c *Config) interfaces(yield func(string) bool) {
+	for _, iface := range c.See {
+		if !yield(iface) {
+			return
+		}
+	}
+	for _, iface := range c.Talk {
+		if !yield(iface) {
+			return
+		}
+	}
+	for _, iface := range c.Own {
+		if !yield(iface) {
+			return
+		}
+	}
+
+	for iface := range c.Call {
+		if !yield(iface) {
+			return
+		}
+	}
+	for iface := range c.Broadcast {
+		if !yield(iface) {
+			return
+		}
+	}
+}
+
+func (c *Config) checkInterfaces(segment string) error {
+	for iface := range c.interfaces {
+		/*
+			xdg-dbus-proxy fails without output when this condition is not met:
+				char *dot = strrchr (filter->interface, '.');
+				if (dot != NULL)
+				  {
+				    *dot = 0;
+				    if (strcmp (dot + 1, "*") != 0)
+				      filter->member = g_strdup (dot + 1);
+				  }
+
+			trim ".*" since they are removed before searching for '.':
+				if (g_str_has_suffix (name, ".*"))
+				  {
+				    name[strlen (name) - 2] = 0;
+				    wildcard = TRUE;
+				  }
+		*/
+		if strings.IndexByte(strings.TrimSuffix(iface, ".*"), '.') == -1 {
+			return &BadInterfaceError{iface, segment}
+		}
+	}
+	return nil
 }
 
 func (c *Config) Args(bus ProxyPair) (args []string) {
@@ -63,9 +119,7 @@ func (c *Config) Args(bus ProxyPair) (args []string) {
 	return
 }
 
-func (c *Config) Load(r io.Reader) error {
-	return json.NewDecoder(r).Decode(&c)
-}
+func (c *Config) Load(r io.Reader) error { return json.NewDecoder(r).Decode(&c) }
 
 // NewConfigFromFile opens the target config file at path and parses its contents into *Config.
 func NewConfigFromFile(path string) (*Config, error) {
