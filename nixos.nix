@@ -8,12 +8,10 @@ packages:
 
 let
   inherit (lib)
+    lists
     mkMerge
     mkIf
     mapAttrs
-    mergeAttrsList
-    imap1
-    foldr
     foldlAttrs
     optional
     optionals
@@ -30,6 +28,27 @@ in
   imports = [ (import ./options.nix packages) ];
 
   config = mkIf cfg.enable {
+    assertions = [
+      (
+        let
+          conflictingApps = foldlAttrs (
+            acc: id: app:
+            (
+              acc
+              ++ foldlAttrs (
+                acc': id': app':
+                if id == id' || app.shareUid && app'.shareUid || app.identity != app'.identity then acc' else acc' ++ [ id ]
+              ) [ ] cfg.apps
+            )
+          ) [ ] cfg.apps;
+        in
+        {
+          assertion = (lists.length conflictingApps) == 0;
+          message = "the following fortify apps have conflicting identities: " + (builtins.concatStringsSep ", " conflictingApps);
+        }
+      )
+    ];
+
     security.wrappers.fsu = {
       source = "${cfg.fsuPackage}/bin/fsu";
       setuid = true;
@@ -49,22 +68,19 @@ in
     home-manager =
       let
         privPackages = mapAttrs (username: fid: {
-          home.packages =
-            let
-              # aid 0 is reserved
-              wrappers = imap1 (
-                aid: app:
+          home.packages = foldlAttrs (
+            acc: id: app:
+            [
+              (
                 let
                   extendDBusDefault = id: ext: {
                     filter = true;
 
                     talk = [ "org.freedesktop.Notifications" ] ++ ext.talk;
-                    own =
-                      (optionals (app.id != null) [
-                        "${id}.*"
-                        "org.mpris.MediaPlayer2.${id}.*"
-                      ])
-                      ++ ext.own;
+                    own = [
+                      "${id}.*"
+                      "org.mpris.MediaPlayer2.${id}.*"
+                    ] ++ ext.own;
 
                     inherit (ext) call broadcast;
                   };
@@ -78,7 +94,7 @@ in
                       };
                     in
                     {
-                      session_bus = if app.dbus.session != null then (app.dbus.session (extendDBusDefault app.id)) else (extendDBusDefault app.id default);
+                      session_bus = if app.dbus.session != null then (app.dbus.session (extendDBusDefault id)) else (extendDBusDefault id default);
                       system_bus = app.dbus.system;
                     };
                   command = if app.command == null then app.name else app.command;
@@ -87,8 +103,6 @@ in
                   isGraphical = if app.gpu != null then app.gpu else app.capability.wayland || app.capability.x11;
 
                   conf = {
-                    inherit (app) id;
-
                     path =
                       if app.path == null then
                         pkgs.writeScript "${app.name}-start" ''
@@ -99,16 +113,15 @@ in
                         app.path;
                     args = if app.args == null then [ "${app.name}-start" ] else app.args;
 
-                    inherit enablements;
+                    inherit id enablements;
 
                     inherit (dbusConfig) session_bus system_bus;
                     direct_wayland = app.insecureWayland;
 
-                    username = getsubname fid aid;
-                    data = getsubhome fid aid;
+                    username = getsubname fid app.identity;
+                    data = getsubhome fid app.identity;
 
-                    identity = aid;
-                    inherit (app) groups;
+                    inherit (app) identity groups;
 
                     container = {
                       inherit (app)
@@ -188,10 +201,9 @@ in
                 pkgs.writeShellScriptBin app.name ''
                   exec fortify${if app.verbose then " -v" else ""} app ${pkgs.writeText "fortify-${app.name}.json" (builtins.toJSON conf)} $@
                 ''
-              ) cfg.apps;
-            in
-            foldr (
-              app: acc:
+              )
+            ]
+            ++ (
               let
                 pkg = if app.share != null then app.share else pkgs.${app.name};
                 copy = source: "[ -d '${source}' ] && cp -Lrv '${source}' $out/share || true";
@@ -211,30 +223,33 @@ in
                   fi
                 ''
               )
-              ++ acc
-            ) (wrappers ++ [ cfg.package ]) cfg.apps;
+            )
+            ++ acc
+          ) [ cfg.package ] cfg.apps;
         }) cfg.users;
       in
       {
         useUserPackages = false; # prevent users.users entries from being added
 
-        users = foldlAttrs (
-          acc: _: fid:
-          mkMerge [
-            (mergeAttrsList (
-              # aid 0 is reserved
-              imap1 (aid: app: {
-                ${getsubname fid aid} = mkMerge [
-                  cfg.extraHomeConfig
-                  app.extraConfig
-                  { home.packages = app.packages; }
-                ];
-              }) cfg.apps
-            ))
-            { ${getsubname fid 0} = cfg.extraHomeConfig; }
+        users = mkMerge (
+          foldlAttrs (
+            acc: _: fid:
             acc
-          ]
-        ) privPackages cfg.users;
+            ++ foldlAttrs (
+              acc': _: app:
+              acc'
+              ++ [
+                {
+                  ${getsubname fid app.identity} = mkMerge [
+                    cfg.extraHomeConfig
+                    app.extraConfig
+                    { home.packages = app.packages; }
+                  ];
+                }
+              ]
+            ) [ { ${getsubname fid 0} = cfg.extraHomeConfig; } ] cfg.apps
+          ) [ privPackages ] cfg.users
+        );
       };
 
     users =
@@ -250,33 +265,27 @@ in
         getgroup = fid: aid: { gid = getsubuid fid aid; };
       in
       {
-        users = foldlAttrs (
-          acc: _: fid:
-          mkMerge [
-            (mergeAttrsList (
-              # aid 0 is reserved
-              imap1 (aid: _: {
-                ${getsubname fid aid} = getuser fid aid;
-              }) cfg.apps
-            ))
-            { ${getsubname fid 0} = getuser fid 0; }
+        users = mkMerge (
+          foldlAttrs (
+            acc: _: fid:
             acc
-          ]
-        ) { } cfg.users;
+            ++ foldlAttrs (
+              acc': _: app:
+              acc' ++ [ { ${getsubname fid app.identity} = getuser fid app.identity; } ]
+            ) [ { ${getsubname fid 0} = getuser fid 0; } ] cfg.apps
+          ) [ ] cfg.users
+        );
 
-        groups = foldlAttrs (
-          acc: _: fid:
-          mkMerge [
-            (mergeAttrsList (
-              # aid 0 is reserved
-              imap1 (aid: _: {
-                ${getsubname fid aid} = getgroup fid aid;
-              }) cfg.apps
-            ))
-            { ${getsubname fid 0} = getgroup fid 0; }
+        groups = mkMerge (
+          foldlAttrs (
+            acc: _: fid:
             acc
-          ]
-        ) { } cfg.users;
+            ++ foldlAttrs (
+              acc': _: app:
+              acc' ++ [ { ${getsubname fid app.identity} = getgroup fid app.identity; } ]
+            ) [ { ${getsubname fid 0} = getgroup fid 0; } ] cfg.apps
+          ) [ ] cfg.users
+        );
       };
   };
 }

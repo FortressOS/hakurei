@@ -76,6 +76,7 @@ in
         type =
           let
             inherit (types)
+              ints
               str
               bool
               package
@@ -87,7 +88,7 @@ in
               functionTo
               ;
           in
-          listOf (submodule {
+          attrsOf (submodule {
             options = {
               name = mkOption {
                 type = str;
@@ -98,13 +99,13 @@ in
 
               verbose = mkEnableOption "launchers with verbose output";
 
-              id = mkOption {
-                type = nullOr str;
-                default = null;
+              identity = mkOption {
+                type = ints.between 1 9999;
                 description = ''
-                  Freedesktop application ID.
+                  Application identity. Identity 0 is reserved for system services.
                 '';
               };
+              shareUid = mkEnableOption "sharing identity with another application";
 
               packages = mkOption {
                 type = listOf package;
@@ -273,7 +274,7 @@ in
               };
             };
           });
-        default = [ ];
+        default = { };
         description = ''
           Declaratively configured fortify apps.
         '';

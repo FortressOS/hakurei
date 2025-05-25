@@ -6,7 +6,6 @@
 }:
 let
   testProgram = pkgs.callPackage ./tool/package.nix { inherit (config.environment.fortify.package) version; };
-  testCases = import ./case lib testProgram;
 in
 {
   users.users = {
@@ -76,11 +75,6 @@ in
       }
     ];
 
-    apps = with testCases; [
-      preset
-      tty
-      mapuid
-      device
-    ];
+    apps = import ./case lib testProgram;
   };
 }

@@ -99,9 +99,10 @@
       home.stateVersion = "23.05";
     };
 
-    apps = [
-      {
+    apps = {
+      "cat.gensokyo.extern.foot.noEnablements" = {
         name = "ne-foot";
+        identity = 1;
         verbose = true;
         share = pkgs.foot;
         packages = with pkgs; [
@@ -115,17 +116,21 @@
           dbus = false;
           pulse = false;
         };
-      }
-      {
+      };
+
+      "cat.gensokyo.extern.foot.pulseaudio" = {
         name = "pa-foot";
+        identity = 2;
         verbose = true;
         share = pkgs.foot;
         packages = [ pkgs.foot ];
         command = "foot";
         capability.dbus = false;
-      }
-      {
+      };
+
+      "cat.gensokyo.extern.Alacritty.x11" = {
         name = "x11-alacritty";
+        identity = 3;
         verbose = true;
         share = pkgs.alacritty;
         packages = with pkgs; [
@@ -142,9 +147,11 @@
           dbus = false;
           pulse = false;
         };
-      }
-      {
+      };
+
+      "cat.gensokyo.extern.foot.directWayland" = {
         name = "da-foot";
+        identity = 4;
         verbose = true;
         insecureWayland = true;
         share = pkgs.foot;
@@ -159,9 +166,11 @@
           dbus = false;
           pulse = false;
         };
-      }
-      {
+      };
+
+      "cat.gensokyo.extern.strace.wantFail" = {
         name = "strace-failure";
+        identity = 5;
         verbose = true;
         share = pkgs.strace;
         command = "strace true";
@@ -171,7 +180,7 @@
           dbus = false;
           pulse = false;
         };
-      }
-    ];
+      };
+    };
   };
 }

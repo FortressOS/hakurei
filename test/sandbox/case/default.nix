@@ -24,7 +24,7 @@ let
   };
 
   callTestCase =
-    path:
+    path: identity:
     let
       tc = import path {
         inherit
@@ -36,6 +36,7 @@ let
     in
     {
       name = "check-sandbox-${tc.name}";
+      inherit identity;
       verbose = true;
       inherit (tc)
         tty
@@ -51,10 +52,12 @@ let
         (toString (builtins.toFile "fortify-${tc.name}-want.json" (builtins.toJSON tc.want)))
       ];
     };
+
+  testCaseName = name: "cat.gensokyo.fortify.test." + name;
 in
 {
-  preset = callTestCase ./preset.nix;
-  tty = callTestCase ./tty.nix;
-  mapuid = callTestCase ./mapuid.nix;
-  device = callTestCase ./device.nix;
+  ${testCaseName "preset"} = callTestCase ./preset.nix 1;
+  ${testCaseName "tty"} = callTestCase ./tty.nix 2;
+  ${testCaseName "mapuid"} = callTestCase ./mapuid.nix 3;
+  ${testCaseName "device"} = callTestCase ./device.nix 4;
 }
