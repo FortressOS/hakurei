@@ -90,9 +90,9 @@ func testProxyFinaliseStartWaitCloseString(t *testing.T, useSandbox bool) {
 
 	t.Run("invalid start", func(t *testing.T) {
 		if !useSandbox {
-			p = dbus.NewDirect(context.TODO(), nil, nil)
+			p = dbus.NewDirect(t.Context(), nil, nil)
 		} else {
-			p = dbus.New(context.TODO(), nil, nil)
+			p = dbus.New(t.Context(), nil, nil)
 		}
 
 		if err := p.Start(); !errors.Is(err, syscall.ENOTRECOVERABLE) {
@@ -120,7 +120,7 @@ func testProxyFinaliseStartWaitCloseString(t *testing.T, useSandbox bool) {
 				}
 			})
 
-			ctx, cancel := context.WithTimeout(context.TODO(), 5*time.Second)
+			ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 			defer cancel()
 			if !useSandbox {
 				p = dbus.NewDirect(ctx, final, nil)

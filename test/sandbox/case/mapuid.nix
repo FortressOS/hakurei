@@ -59,6 +59,7 @@
         "NIXOS" = fs "80001ff" null null;
         "X11" = fs "80001ff" null null;
         "alsa" = fs "80001ff" null null;
+        "bash_logout" = fs "80001ff" null null;
         "bashrc" = fs "80001ff" null null;
         "binfmt.d" = fs "80001ff" null null;
         "dbus-1" = fs "80001ff" null null;
@@ -172,7 +173,15 @@
                   } null;
                 } null;
                 ".local" = fs "800001ed" {
+                  share = fs "800001ed" {
+                    dbus-1 = fs "800001ed" {
+                      services = fs "800001ed" {
+                        "ca.desrt.dconf.service" = fs "80001ff" null null;
+                      } null;
+                    } null;
+                  } null;
                   state = fs "800001ed" {
+                    ".keep" = fs "80001ff" null "";
                     home-manager = fs "800001ed" { gcroots = fs "800001ed" { current-home = fs "80001ff" null null; } null; } null;
                     nix = fs "800001ed" {
                       profiles = fs "800001ed" {

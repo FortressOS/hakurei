@@ -13,7 +13,7 @@ import (
 
 func TestCmd(t *testing.T) {
 	t.Run("start non-existent helper path", func(t *testing.T) {
-		h := helper.NewDirect(context.Background(), "/proc/nonexistent", argsWt, false, argF, nil, nil)
+		h := helper.NewDirect(t.Context(), "/proc/nonexistent", argsWt, false, argF, nil, nil)
 
 		if err := h.Start(); !errors.Is(err, os.ErrNotExist) {
 			t.Errorf("Start: error = %v, wantErr %v",
@@ -22,7 +22,7 @@ func TestCmd(t *testing.T) {
 	})
 
 	t.Run("valid new helper nil check", func(t *testing.T) {
-		if got := helper.NewDirect(context.TODO(), "fortify", argsWt, false, argF, nil, nil); got == nil {
+		if got := helper.NewDirect(t.Context(), "fortify", argsWt, false, argF, nil, nil); got == nil {
 			t.Errorf("NewDirect(%q, %q) got nil",
 				argsWt, "fortify")
 			return

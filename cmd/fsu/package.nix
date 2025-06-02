@@ -10,7 +10,7 @@ buildGoModule {
 
   src = ./.;
   inherit (fortify) vendorHash;
-  CGO_ENABLED = 0;
+  env.CGO_ENABLED = 0;
 
   preBuild = ''
     go mod init fsu >& /dev/null

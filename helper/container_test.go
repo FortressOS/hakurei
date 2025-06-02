@@ -15,7 +15,7 @@ import (
 
 func TestContainer(t *testing.T) {
 	t.Run("start empty container", func(t *testing.T) {
-		h := helper.New(context.Background(), "/nonexistent", argsWt, false, argF, nil, nil)
+		h := helper.New(t.Context(), "/nonexistent", argsWt, false, argF, nil, nil)
 
 		wantErr := "sandbox: starting an empty container"
 		if err := h.Start(); err == nil || err.Error() != wantErr {
@@ -25,7 +25,7 @@ func TestContainer(t *testing.T) {
 	})
 
 	t.Run("valid new helper nil check", func(t *testing.T) {
-		if got := helper.New(context.TODO(), "fortify", argsWt, false, argF, nil, nil); got == nil {
+		if got := helper.New(t.Context(), "fortify", argsWt, false, argF, nil, nil); got == nil {
 			t.Errorf("New(%q, %q) got nil",
 				argsWt, "fortify")
 			return

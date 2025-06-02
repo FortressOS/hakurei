@@ -70,7 +70,7 @@ func TestContainer(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 			defer cancel()
 
 			container := sandbox.New(ctx, "/usr/bin/sandbox.test", "-test.v",
@@ -162,7 +162,7 @@ func e(root, target, vfsOptstr, fsType, source, fsOptstr string) *vfs.MountInfoE
 }
 
 func TestContainerString(t *testing.T) {
-	container := sandbox.New(context.TODO(), "ldd", "/usr/bin/env")
+	container := sandbox.New(t.Context(), "ldd", "/usr/bin/env")
 	container.Flags |= sandbox.FAllowDevel
 	container.Seccomp |= seccomp.FilterMultiarch
 	want := `argv: ["ldd" "/usr/bin/env"], flags: 0x2, seccomp: 0x2e`
