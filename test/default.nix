@@ -31,14 +31,13 @@ nixosTest {
     {
       environment.systemPackages = [
         # For go tests:
-        (writeShellScriptBin "fortify-go-test" ''
-          set -e
-          WORK="$(mktemp -ud)"
-          cp -r "${self.packages.${system}.fortify.src}" "$WORK"
-          chmod -R +w "$WORK"
-          cd "$WORK"
+        (writeShellScriptBin "fortify-test" ''
+          cd ${self.packages.${system}.fortify.src}
           ${fhs}/bin/fortify-fhs -c \
-            'go generate ./... && go test ${if withRace then "-race" else "-count 16"} ./... && touch /tmp/go-test-ok'
+            'go test ${if withRace then "-race" else "-count 16"} ./...' \
+            &> /tmp/fortify-test.log && \
+            touch /tmp/fortify-test-ok
+          touch /tmp/fortify-test-done
         '')
       ];
 

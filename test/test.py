@@ -80,15 +80,15 @@ def fortify(command):
 start_all()
 machine.wait_for_unit("multi-user.target")
 
-# Run fortify Go tests outside of nix build in the background:
-machine.succeed("sudo -u untrusted -i fortify-go-test &> /tmp/go-test &")
-
 # To check fortify's version:
 print(machine.succeed("sudo -u alice -i fortify version"))
 
 # Wait for Sway to complete startup:
 machine.wait_for_file("/run/user/1000/wayland-1")
 machine.wait_for_file("/tmp/sway-ipc.sock")
+
+# Run fortify Go tests outside of nix build in the background:
+swaymsg("exec fortify-test")
 
 # Deny unmapped uid:
 denyOutput = machine.fail("sudo -u untrusted -i fortify run &>/dev/stdout")
@@ -255,6 +255,6 @@ machine.wait_for_file("/tmp/sway-exit-ok")
 print(machine.succeed("find /run/user/1000/fortify"))
 
 # Verify go test status:
-machine.wait_for_file("/tmp/go-test", timeout=5)
-print(machine.succeed("cat /tmp/go-test"))
-machine.wait_for_file("/tmp/go-test-ok", timeout=5)
+machine.wait_for_file("/tmp/fortify-test-done")
+print(machine.succeed("cat /tmp/fortify-test.log"))
+machine.wait_for_file("/tmp/fortify-test-ok", timeout=2)

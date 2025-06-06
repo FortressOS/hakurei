@@ -33,12 +33,33 @@ buildGoModule rec {
   pname = "fortify";
   version = "0.4.1";
 
-  src = builtins.path {
+  srcFiltered = builtins.path {
     name = "${pname}-src";
     path = lib.cleanSource ./.;
     filter = path: type: !(type == "regular" && (lib.hasSuffix ".nix" path || lib.hasSuffix ".py" path)) && !(type == "directory" && lib.hasSuffix "/test" path) && !(type == "directory" && lib.hasSuffix "/cmd/fsu" path);
   };
   vendorHash = null;
+
+  src = stdenv.mkDerivation {
+    name = "${pname}-src-full";
+    inherit version;
+    enableParallelBuilding = true;
+    src = srcFiltered;
+
+    buildInputs = [
+      wayland
+      wayland-protocols
+    ];
+
+    nativeBuildInputs = [
+      go
+      pkg-config
+      wayland-scanner
+    ];
+
+    buildPhase = "GOCACHE=$(mktemp -d) go generate ./...";
+    installPhase = "cp -r . $out";
+  };
 
   ldflags =
     lib.attrsets.foldlAttrs
@@ -67,7 +88,6 @@ buildGoModule rec {
       libseccomp
       acl
       wayland
-      wayland-protocols
     ]
     ++ (with xorg; [
       libxcb
@@ -77,13 +97,8 @@ buildGoModule rec {
 
   nativeBuildInputs = [
     pkg-config
-    wayland-scanner
     makeBinaryWrapper
   ];
-
-  preBuild = ''
-    HOME="$(mktemp -d)" PATH="${pkg-config}/bin:$PATH" go generate ./...
-  '';
 
   postInstall =
     let
@@ -120,6 +135,10 @@ buildGoModule rec {
       gcc
       xorg.xorgproto
       util-linux
+
+      # for go generate
+      wayland-protocols
+      wayland-scanner
     ]
     ++ buildInputs
     ++ nativeBuildInputs;
