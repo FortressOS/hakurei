@@ -206,9 +206,9 @@ machine.wait_until_fails("pgrep foot", timeout=5)
 
 # Test XWayland (foot does not support X):
 swaymsg("exec x11-alacritty")
-wait_for_window(f"u0_a{aid(2)}@machine")
+wait_for_window(f"u0_a{aid(0)}@machine")
 machine.send_chars("clear; glinfo && touch /tmp/x11-ok\n")
-machine.wait_for_file(tmpdir_path(2, "x11-ok"), timeout=15)
+machine.wait_for_file(tmpdir_path(0, "x11-ok"), timeout=15)
 collect_state_ui("alacritty_x11")
 check_state("x11-alacritty", 2)
 machine.send_chars("exit\n")

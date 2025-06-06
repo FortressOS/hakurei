@@ -95,14 +95,23 @@
     stateDir = "/var/lib/fortify";
     users.alice = 0;
 
-    extraHomeConfig = {
-      home.stateVersion = "23.05";
-    };
+    extraHomeConfig =
+      { config, ... }:
+      {
+        # To test merge deduplication:
+        options._fortify.stateVersion = lib.mkOption { type = lib.types.str; };
+
+        config = {
+          home = { inherit (config._fortify) stateVersion; };
+          _fortify.stateVersion = "23.05";
+        };
+      };
 
     apps = {
       "cat.gensokyo.extern.foot.noEnablements" = {
         name = "ne-foot";
         identity = 1;
+        shareUid = true;
         verbose = true;
         share = pkgs.foot;
         packages = with pkgs; [
@@ -130,7 +139,8 @@
 
       "cat.gensokyo.extern.Alacritty.x11" = {
         name = "x11-alacritty";
-        identity = 3;
+        identity = 1;
+        shareUid = true;
         verbose = true;
         share = pkgs.alacritty;
         packages = with pkgs; [

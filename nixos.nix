@@ -9,6 +9,7 @@ packages:
 let
   inherit (lib)
     lists
+    attrsets
     mkMerge
     mkIf
     mapAttrs
@@ -231,25 +232,48 @@ in
       {
         useUserPackages = false; # prevent users.users entries from being added
 
-        users = mkMerge (
-          foldlAttrs (
-            acc: _: fid:
-            acc
-            ++ foldlAttrs (
-              acc': _: app:
-              acc'
-              ++ [
-                {
-                  ${getsubname fid app.identity} = mkMerge [
-                    cfg.extraHomeConfig
-                    app.extraConfig
-                    { home.packages = app.packages; }
-                  ];
-                }
-              ]
-            ) [ { ${getsubname fid 0} = cfg.extraHomeConfig; } ] cfg.apps
-          ) [ privPackages ] cfg.users
-        );
+        users =
+          mkMerge
+            (foldlAttrs
+              (
+                acc: _: fid:
+                foldlAttrs
+                  (
+                    acc: _: app:
+                    (
+                      let
+                        key = getsubname fid app.identity;
+                      in
+                      {
+                        usernames = acc.usernames // {
+                          ${key} = true;
+                        };
+                        merge = acc.merge ++ [
+                          {
+                            ${key} = mkMerge (
+                              [
+                                app.extraConfig
+                                { home.packages = app.packages; }
+                              ]
+                              ++ lib.optional (!attrsets.hasAttrByPath [ key ] acc.usernames) cfg.extraHomeConfig
+                            );
+                          }
+                        ];
+                      }
+                    )
+                  )
+                  {
+                    inherit (acc) usernames;
+                    merge = acc.merge ++ [ { ${getsubname fid 0} = cfg.extraHomeConfig; } ];
+                  }
+                  cfg.apps
+              )
+              {
+                usernames = { };
+                merge = [ privPackages ];
+              }
+              cfg.users
+            ).merge;
       };
 
     users =
