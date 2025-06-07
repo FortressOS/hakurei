@@ -59,6 +59,8 @@ var testCasesNixos = []sealTestCase{
 		},
 		system.New(1000001).
 			Ensure("/tmp/fortify.1971", 0711).
+			Ensure("/tmp/fortify.1971/runtime", 0700).UpdatePermType(system.User, "/tmp/fortify.1971/runtime", acl.Execute).
+			Ensure("/tmp/fortify.1971/runtime/1", 0700).UpdatePermType(system.User, "/tmp/fortify.1971/runtime/1", acl.Read, acl.Write, acl.Execute).
 			Ensure("/tmp/fortify.1971/tmpdir", 0700).UpdatePermType(system.User, "/tmp/fortify.1971/tmpdir", acl.Execute).
 			Ensure("/tmp/fortify.1971/tmpdir/1", 01700).UpdatePermType(system.User, "/tmp/fortify.1971/tmpdir/1", acl.Read, acl.Write, acl.Execute).
 			Ensure("/run/user/1971/fortify", 0700).UpdatePermType(system.User, "/run/user/1971/fortify", acl.Execute).
@@ -129,7 +131,7 @@ var testCasesNixos = []sealTestCase{
 				Bind("/dev/dri", "/dev/dri", sandbox.BindDevice|sandbox.BindWritable|sandbox.BindOptional).
 				Etc("/etc", "8e2c76b066dabe574cf073bdb46eb5c1").
 				Tmpfs("/run/user", 4096, 0755).
-				Tmpfs("/run/user/1971", 8388608, 0700).
+				Bind("/tmp/fortify.1971/runtime/1", "/run/user/1971", sandbox.BindWritable).
 				Bind("/tmp/fortify.1971/tmpdir/1", "/tmp", sandbox.BindWritable).
 				Bind("/var/lib/persist/module/fortify/0/1", "/var/lib/persist/module/fortify/0/1", sandbox.BindWritable).
 				Place("/etc/passwd", []byte("u0_a1:x:1971:100:Fortify:/var/lib/persist/module/fortify/0/1:/run/current-system/sw/bin/zsh\n")).

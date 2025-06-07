@@ -23,6 +23,8 @@ var testCasesPd = []sealTestCase{
 		},
 		system.New(1000000).
 			Ensure("/tmp/fortify.1971", 0711).
+			Ensure("/tmp/fortify.1971/runtime", 0700).UpdatePermType(system.User, "/tmp/fortify.1971/runtime", acl.Execute).
+			Ensure("/tmp/fortify.1971/runtime/0", 0700).UpdatePermType(system.User, "/tmp/fortify.1971/runtime/0", acl.Read, acl.Write, acl.Execute).
 			Ensure("/tmp/fortify.1971/tmpdir", 0700).UpdatePermType(system.User, "/tmp/fortify.1971/tmpdir", acl.Execute).
 			Ensure("/tmp/fortify.1971/tmpdir/0", 01700).UpdatePermType(system.User, "/tmp/fortify.1971/tmpdir/0", acl.Read, acl.Write, acl.Execute),
 		&sandbox.Params{
@@ -60,7 +62,7 @@ var testCasesPd = []sealTestCase{
 				Tmpfs("/run/dbus", 8192, 0755).
 				Etc("/etc", "4a450b6596d7bc15bd01780eb9a607ac").
 				Tmpfs("/run/user", 4096, 0755).
-				Tmpfs("/run/user/65534", 8388608, 0700).
+				Bind("/tmp/fortify.1971/runtime/0", "/run/user/65534", sandbox.BindWritable).
 				Bind("/tmp/fortify.1971/tmpdir/0", "/tmp", sandbox.BindWritable).
 				Bind("/home/chronos", "/home/chronos", sandbox.BindWritable).
 				Place("/etc/passwd", []byte("chronos:x:65534:65534:Fortify:/home/chronos:/run/current-system/sw/bin/zsh\n")).
@@ -118,6 +120,8 @@ var testCasesPd = []sealTestCase{
 		},
 		system.New(1000009).
 			Ensure("/tmp/fortify.1971", 0711).
+			Ensure("/tmp/fortify.1971/runtime", 0700).UpdatePermType(system.User, "/tmp/fortify.1971/runtime", acl.Execute).
+			Ensure("/tmp/fortify.1971/runtime/9", 0700).UpdatePermType(system.User, "/tmp/fortify.1971/runtime/9", acl.Read, acl.Write, acl.Execute).
 			Ensure("/tmp/fortify.1971/tmpdir", 0700).UpdatePermType(system.User, "/tmp/fortify.1971/tmpdir", acl.Execute).
 			Ensure("/tmp/fortify.1971/tmpdir/9", 01700).UpdatePermType(system.User, "/tmp/fortify.1971/tmpdir/9", acl.Read, acl.Write, acl.Execute).
 			Ephemeral(system.Process, "/tmp/fortify.1971/ebf083d1b175911782d413369b64ce7c", 0711).
@@ -200,7 +204,7 @@ var testCasesPd = []sealTestCase{
 				Tmpfs("/run/dbus", 8192, 0755).
 				Etc("/etc", "ebf083d1b175911782d413369b64ce7c").
 				Tmpfs("/run/user", 4096, 0755).
-				Tmpfs("/run/user/65534", 8388608, 0700).
+				Bind("/tmp/fortify.1971/runtime/9", "/run/user/65534", sandbox.BindWritable).
 				Bind("/tmp/fortify.1971/tmpdir/9", "/tmp", sandbox.BindWritable).
 				Bind("/home/chronos", "/home/chronos", sandbox.BindWritable).
 				Place("/etc/passwd", []byte("chronos:x:65534:65534:Fortify:/home/chronos:/run/current-system/sw/bin/zsh\n")).

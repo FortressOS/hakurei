@@ -317,8 +317,6 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *fst.Co
 
 	// inner XDG_RUNTIME_DIR default formatting of `/run/user/%d` as mapped uid
 	innerRuntimeDir := path.Join("/run/user", mapuid.String())
-	seal.container.Tmpfs("/run/user", 1<<12, 0755)
-	seal.container.Tmpfs(innerRuntimeDir, 1<<23, 0700)
 	seal.env[xdgRuntimeDir] = innerRuntimeDir
 	seal.env[xdgSessionClass] = "user"
 	seal.env[xdgSessionType] = "tty"
@@ -326,9 +324,20 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *fst.Co
 	share := &shareHost{seal: seal, sc: sys.Paths()}
 	seal.runDirPath = share.sc.RunDirPath
 	seal.sys = system.New(seal.user.uid.unwrap())
+	seal.sys.Ensure(share.sc.SharePath, 0711)
 
 	{
-		seal.sys.Ensure(share.sc.SharePath, 0711)
+		runtimeDir := path.Join(share.sc.SharePath, "runtime")
+		seal.sys.Ensure(runtimeDir, 0700)
+		seal.sys.UpdatePermType(system.User, runtimeDir, acl.Execute)
+		runtimeDirInst := path.Join(runtimeDir, seal.user.aid.String())
+		seal.sys.Ensure(runtimeDirInst, 0700)
+		seal.sys.UpdatePermType(system.User, runtimeDirInst, acl.Read, acl.Write, acl.Execute)
+		seal.container.Tmpfs("/run/user", 1<<12, 0755)
+		seal.container.Bind(runtimeDirInst, innerRuntimeDir, sandbox.BindWritable)
+	}
+
+	{
 		tmpdir := path.Join(share.sc.SharePath, "tmpdir")
 		seal.sys.Ensure(tmpdir, 0700)
 		seal.sys.UpdatePermType(system.User, tmpdir, acl.Execute)
