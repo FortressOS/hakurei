@@ -1,30 +1,36 @@
 #include "wayland-bind.h"
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 #include <sys/socket.h>
 #include <sys/un.h>
+#include <unistd.h>
 
-#include <wayland-client.h>
 #include "security-context-v1-protocol.h"
+#include <wayland-client.h>
 
-static void registry_handle_global(void *data, struct wl_registry *registry, uint32_t name, const char *interface, uint32_t version) {
+static void registry_handle_global(void *data, struct wl_registry *registry,
+                                   uint32_t name, const char *interface,
+                                   uint32_t version) {
   struct wp_security_context_manager_v1 **out = data;
 
   if (strcmp(interface, wp_security_context_manager_v1_interface.name) == 0)
-      *out = wl_registry_bind(registry, name, &wp_security_context_manager_v1_interface, 1);
+    *out = wl_registry_bind(registry, name,
+                            &wp_security_context_manager_v1_interface, 1);
 }
 
-static void registry_handle_global_remove(void *data, struct wl_registry *registry, uint32_t name) { } // no-op
+static void registry_handle_global_remove(void *data,
+                                          struct wl_registry *registry,
+                                          uint32_t name) {} /* no-op */
 
 static const struct wl_registry_listener registry_listener = {
-  .global = registry_handle_global,
-  .global_remove = registry_handle_global_remove,
+    .global = registry_handle_global,
+    .global_remove = registry_handle_global_remove,
 };
 
-int32_t f_bind_wayland_fd(char *socket_path, int fd, const char *app_id, const char *instance_id, int sync_fd) {
-  int32_t res = 0; // refer to resErr for meaning
+int32_t f_bind_wayland_fd(char *socket_path, int fd, const char *app_id,
+                          const char *instance_id, int sync_fd) {
+  int32_t res = 0; /* refer to resErr for corresponding Go error */
 
   struct wl_display *display;
   display = wl_display_connect_to_fd(fd);
@@ -37,7 +43,8 @@ int32_t f_bind_wayland_fd(char *socket_path, int fd, const char *app_id, const c
   registry = wl_display_get_registry(display);
 
   struct wp_security_context_manager_v1 *security_context_manager = NULL;
-  wl_registry_add_listener(registry, &registry_listener, &security_context_manager);
+  wl_registry_add_listener(registry, &registry_listener,
+                           &security_context_manager);
   int ret;
   ret = wl_display_roundtrip(display);
   wl_registry_destroy(registry);
@@ -64,8 +71,11 @@ int32_t f_bind_wayland_fd(char *socket_path, int fd, const char *app_id, const c
     goto out;
 
   struct wp_security_context_v1 *security_context;
-  security_context = wp_security_context_manager_v1_create_listener(security_context_manager, listen_fd, sync_fd);
-  wp_security_context_v1_set_sandbox_engine(security_context, "uk.gensokyo.fortify");
+  security_context = wp_security_context_manager_v1_create_listener(
+      security_context_manager, listen_fd, sync_fd);
+  wp_security_context_v1_set_sandbox_engine(security_context,
+                                            "uk.gensokyo.fortify");
+
   wp_security_context_v1_set_app_id(security_context, app_id);
   wp_security_context_v1_set_instance_id(security_context, instance_id);
   wp_security_context_v1_commit(security_context);
