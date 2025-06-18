@@ -6,7 +6,7 @@ out="dist/${pname}"
 
 mkdir -p "${out}"
 cp -v "README.md" "dist/fsurc.default" "dist/install.sh" "${out}"
-cp -rv "comp" "${out}"
+cp -rv "dist/comp" "${out}"
 
 go generate ./...
 go build -trimpath -v -o "${out}/bin/" -ldflags "-s -w -buildid= -extldflags '-static'

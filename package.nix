@@ -108,7 +108,7 @@ buildGoModule rec {
       ];
     in
     ''
-      install -D --target-directory=$out/share/zsh/site-functions comp/*
+      install -D --target-directory=$out/share/zsh/site-functions dist/comp/*
 
       mkdir "$out/libexec"
       mv "$out"/bin/* "$out/libexec/"
