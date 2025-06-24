@@ -31,7 +31,7 @@
 
 buildGoModule rec {
   pname = "hakurei";
-  version = "0.4.1";
+  version = "0.0.1";
 
   srcFiltered = builtins.path {
     name = "${pname}-src";

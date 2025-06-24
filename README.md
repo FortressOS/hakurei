@@ -4,8 +4,8 @@ Hakurei
 [![Go Reference](https://pkg.go.dev/badge/git.gensokyo.uk/security/hakurei.svg)](https://pkg.go.dev/git.gensokyo.uk/security/hakurei)
 [![Go Report Card](https://goreportcard.com/badge/git.gensokyo.uk/security/hakurei)](https://goreportcard.com/report/git.gensokyo.uk/security/hakurei)
 
-Lets you run graphical applications as another user in a confined environment with a nice NixOS
-module to configure target users and provide launchers and desktop files for your privileged user.
+Lets you run graphical applications as dedicated subordinate users in a container environment with a nice NixOS
+module to configure target users and provide launch scripts and desktop files.
 
 Why would you want this?
 
@@ -23,7 +23,7 @@ nix run git+https://git.gensokyo.uk/security/hakurei -- help
 
 ## Module usage
 
-The NixOS module currently requires home-manager to function correctly.
+The NixOS module currently requires home-manager to configure subordinate users.
 
 Full module documentation can be found [here](options.md).
 
