@@ -20,5 +20,5 @@ jobs:
         uses: https://gitea.com/actions/release-action@main
         with:
           files: |-
-            result/fortify-**
+            result/hakurei-**
           api_key: '${{secrets.RELEASE_TOKEN}}'

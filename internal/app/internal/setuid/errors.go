@@ -4,8 +4,8 @@ import (
 	"errors"
 	"log"
 
-	. "git.gensokyo.uk/security/fortify/internal/app"
-	"git.gensokyo.uk/security/fortify/internal/fmsg"
+	. "git.gensokyo.uk/security/hakurei/internal/app"
+	"git.gensokyo.uk/security/hakurei/internal/hlog"
 )
 
 func PrintRunStateErr(rs *RunState, runErr error) (code int) {
@@ -13,10 +13,10 @@ func PrintRunStateErr(rs *RunState, runErr error) (code int) {
 
 	if runErr != nil {
 		if rs.Time == nil {
-			fmsg.PrintBaseError(runErr, "cannot start app:")
+			hlog.PrintBaseError(runErr, "cannot start app:")
 		} else {
-			var e *fmsg.BaseError
-			if !fmsg.AsBaseError(runErr, &e) {
+			var e *hlog.BaseError
+			if !hlog.AsBaseError(runErr, &e) {
 				log.Println("wait failed:", runErr)
 			} else {
 				// Wait only returns either *app.ProcessError or *app.StateStoreError wrapped in a *app.BaseError
@@ -37,7 +37,7 @@ func PrintRunStateErr(rs *RunState, runErr error) (code int) {
 
 						// every error here is wrapped in *app.BaseError
 						for _, ei := range errs {
-							var eb *fmsg.BaseError
+							var eb *hlog.BaseError
 							if !errors.As(ei, &eb) {
 								// unreachable
 								log.Println("invalid error type returned by revert:", ei)
@@ -59,7 +59,7 @@ func PrintRunStateErr(rs *RunState, runErr error) (code int) {
 	if rs.RevertErr != nil {
 		var stateStoreError *StateStoreError
 		if !errors.As(rs.RevertErr, &stateStoreError) || stateStoreError == nil {
-			fmsg.PrintBaseError(rs.RevertErr, "generic fault during cleanup:")
+			hlog.PrintBaseError(rs.RevertErr, "generic fault during cleanup:")
 			goto out
 		}
 
@@ -67,11 +67,11 @@ func PrintRunStateErr(rs *RunState, runErr error) (code int) {
 			if len(stateStoreError.Err) == 2 {
 				if stateStoreError.Err[0] != nil {
 					if joinedErrs, ok := stateStoreError.Err[0].(interface{ Unwrap() []error }); !ok {
-						fmsg.PrintBaseError(stateStoreError.Err[0], "generic fault during revert:")
+						hlog.PrintBaseError(stateStoreError.Err[0], "generic fault during revert:")
 					} else {
 						for _, err := range joinedErrs.Unwrap() {
 							if err != nil {
-								fmsg.PrintBaseError(err, "fault during revert:")
+								hlog.PrintBaseError(err, "fault during revert:")
 							}
 						}
 					}
@@ -91,11 +91,11 @@ func PrintRunStateErr(rs *RunState, runErr error) (code int) {
 		}
 
 		if stateStoreError.DoErr != nil {
-			fmsg.PrintBaseError(stateStoreError.DoErr, "state store operation unsuccessful:")
+			hlog.PrintBaseError(stateStoreError.DoErr, "state store operation unsuccessful:")
 		}
 
 		if stateStoreError.Inner && stateStoreError.InnerErr != nil {
-			fmsg.PrintBaseError(stateStoreError.InnerErr, "cannot destroy state entry:")
+			hlog.PrintBaseError(stateStoreError.InnerErr, "cannot destroy state entry:")
 		}
 
 	out:
@@ -104,7 +104,7 @@ func PrintRunStateErr(rs *RunState, runErr error) (code int) {
 		}
 	}
 	if rs.WaitErr != nil {
-		fmsg.Verbosef("wait: %v", rs.WaitErr)
+		hlog.Verbosef("wait: %v", rs.WaitErr)
 	}
 	return
 }
@@ -135,7 +135,7 @@ func (e *StateStoreError) equiv(a ...any) error {
 	if e.Inner && e.InnerErr == nil && e.DoErr == nil && e.OpErr == nil && errors.Join(e.Err...) == nil {
 		return nil
 	} else {
-		return fmsg.WrapErrorSuffix(e, a...)
+		return hlog.WrapErrSuffix(e, a...)
 	}
 }
 

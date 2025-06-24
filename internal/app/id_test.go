@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	. "git.gensokyo.uk/security/fortify/internal/app"
+	. "git.gensokyo.uk/security/hakurei/internal/app"
 )
 
 func TestParseAppID(t *testing.T) {

@@ -1,5 +1,5 @@
-// Package fmsg provides various functions for output messages.
-package fmsg
+// Package hlog provides various functions for output messages.
+package hlog
 
 import (
 	"bytes"

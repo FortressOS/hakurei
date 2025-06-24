@@ -46,14 +46,14 @@ let
         ;
       share = testProgram;
       packages = [ ];
-      path = "${testProgram}/bin/fortify-test";
+      path = "${testProgram}/bin/hakurei-test";
       args = [
         "test"
-        (toString (builtins.toFile "fortify-${tc.name}-want.json" (builtins.toJSON tc.want)))
+        (toString (builtins.toFile "hakurei-${tc.name}-want.json" (builtins.toJSON tc.want)))
       ];
     };
 
-  testCaseName = name: "cat.gensokyo.fortify.test." + name;
+  testCaseName = name: "cat.gensokyo.hakurei.test." + name;
 in
 {
   ${testCaseName "preset"} = callTestCase ./preset.nix 1;

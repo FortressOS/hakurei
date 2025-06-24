@@ -50,7 +50,7 @@ func parseConfig(r io.Reader, puid int) (fid int, ok bool, err error) {
 		if ok {
 			// allowed fid range 0 to 99
 			if fid, err = parseUint32Fast(lf[1]); err != nil || fid < 0 || fid > 99 {
-				return -1, false, fmt.Errorf("invalid fortify uid on line %d", line)
+				return -1, false, fmt.Errorf("invalid identity on line %d", line)
 			}
 			return
 		}

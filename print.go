@@ -12,21 +12,21 @@ import (
 	"text/tabwriter"
 	"time"
 
-	"git.gensokyo.uk/security/fortify/dbus"
-	"git.gensokyo.uk/security/fortify/fst"
-	"git.gensokyo.uk/security/fortify/internal/fmsg"
-	"git.gensokyo.uk/security/fortify/internal/state"
+	"git.gensokyo.uk/security/hakurei/dbus"
+	"git.gensokyo.uk/security/hakurei/hst"
+	"git.gensokyo.uk/security/hakurei/internal/hlog"
+	"git.gensokyo.uk/security/hakurei/internal/state"
 )
 
 func printShowSystem(output io.Writer, short, flagJSON bool) {
 	t := newPrinter(output)
 	defer t.MustFlush()
 
-	info := new(fst.Info)
+	info := new(hst.Info)
 
 	// get fid by querying uid of aid 0
 	if uid, err := std.Uid(0); err != nil {
-		fmsg.PrintBaseError(err, "cannot obtain uid from fsu:")
+		hlog.PrintBaseError(err, "cannot obtain uid from setuid wrapper:")
 		os.Exit(1)
 	} else {
 		info.User = (uid / 10000) - 100
@@ -42,7 +42,7 @@ func printShowSystem(output io.Writer, short, flagJSON bool) {
 
 func printShowInstance(
 	output io.Writer, now time.Time,
-	instance *state.State, config *fst.Config,
+	instance *state.State, config *hst.Config,
 	short, flagJSON bool) {
 	if flagJSON {
 		if instance != nil {
@@ -69,9 +69,9 @@ func printShowInstance(
 
 	t.Printf("App\n")
 	if config.ID != "" {
-		t.Printf(" ID:\t%d (%s)\n", config.Identity, config.ID)
+		t.Printf(" Identity:\t%d (%s)\n", config.Identity, config.ID)
 	} else {
-		t.Printf(" ID:\t%d\n", config.Identity)
+		t.Printf(" Identity:\t%d\n", config.Identity)
 	}
 	t.Printf(" Enablements:\t%s\n", config.Enablements.String())
 	if len(config.Groups) > 0 {
@@ -264,7 +264,7 @@ func printPs(output io.Writer, now time.Time, s state.Store, short, flagJSON boo
 			as = strconv.Itoa(e.Config.Identity)
 			id := e.Config.ID
 			if id == "" {
-				id = "uk.gensokyo.fortify." + e.s[:8]
+				id = "uk.gensokyo.hakurei." + e.s[:8]
 			}
 			as += " (" + id + ")"
 		}

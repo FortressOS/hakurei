@@ -5,7 +5,7 @@
   ...
 }:
 let
-  testProgram = pkgs.callPackage ./tool/package.nix { inherit (config.environment.fortify.package) version; };
+  testProgram = pkgs.callPackage ./tool/package.nix { inherit (config.environment.hakurei.package) version; };
 in
 {
   users.users = {
@@ -23,7 +23,7 @@ in
   services.getty.autologinUser = "alice";
 
   environment = {
-    systemPackages = with pkgs; [
+    systemPackages = [
       # For checking seccomp outcome:
       testProgram
     ];
@@ -59,9 +59,9 @@ in
     "-smp 8"
   ];
 
-  environment.fortify = {
+  environment.hakurei = {
     enable = true;
-    stateDir = "/var/lib/fortify";
+    stateDir = "/var/lib/hakurei";
     users.alice = 0;
 
     extraHomeConfig = {

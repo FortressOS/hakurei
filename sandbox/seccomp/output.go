@@ -22,8 +22,8 @@ func GetOutput() func(v ...any) {
 	}
 }
 
-//export f_println
-func f_println(v *C.char) {
+//export hakurei_println
+func hakurei_println(v *C.char) {
 	if fp := printlnP.Load(); fp != nil {
 		(*fp)(C.GoString(v))
 	}

@@ -3,7 +3,7 @@ package dbus_test
 import (
 	"testing"
 
-	"git.gensokyo.uk/security/fortify/helper"
+	"git.gensokyo.uk/security/hakurei/helper"
 )
 
 func TestHelperStub(t *testing.T) { helper.InternalHelperStub() }

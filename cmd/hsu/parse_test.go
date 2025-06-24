@@ -65,7 +65,7 @@ func Test_parseConfig(t *testing.T) {
 		{"empty", 0, -1, "", ``},
 		{"invalid field", 0, -1, "invalid entry on line 1", `9`},
 		{"invalid puid", 0, -1, "invalid parent uid on line 1", `f 9`},
-		{"invalid fid", 1000, -1, "invalid fortify uid on line 1", `1000 f`},
+		{"invalid fid", 1000, -1, "invalid identity on line 1", `1000 f`},
 		{"match", 1000, 0, "", `1000 0`},
 	}
 

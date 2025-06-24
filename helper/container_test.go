@@ -7,10 +7,10 @@ import (
 	"os/exec"
 	"testing"
 
-	"git.gensokyo.uk/security/fortify/helper"
-	"git.gensokyo.uk/security/fortify/internal"
-	"git.gensokyo.uk/security/fortify/internal/fmsg"
-	"git.gensokyo.uk/security/fortify/sandbox"
+	"git.gensokyo.uk/security/hakurei/helper"
+	"git.gensokyo.uk/security/hakurei/internal"
+	"git.gensokyo.uk/security/hakurei/internal/hlog"
+	"git.gensokyo.uk/security/hakurei/sandbox"
 )
 
 func TestContainer(t *testing.T) {
@@ -25,9 +25,9 @@ func TestContainer(t *testing.T) {
 	})
 
 	t.Run("valid new helper nil check", func(t *testing.T) {
-		if got := helper.New(t.Context(), "fortify", argsWt, false, argF, nil, nil); got == nil {
+		if got := helper.New(t.Context(), "hakurei", argsWt, false, argF, nil, nil); got == nil {
 			t.Errorf("New(%q, %q) got nil",
-				argsWt, "fortify")
+				argsWt, "hakurei")
 			return
 		}
 	})
@@ -52,6 +52,6 @@ func TestHelperInit(t *testing.T) {
 	if len(os.Args) != 5 || os.Args[4] != "init" {
 		return
 	}
-	sandbox.SetOutput(fmsg.Output{})
-	sandbox.Init(fmsg.Prepare, func(bool) { internal.InstallFmsg(false) })
+	sandbox.SetOutput(hlog.Output{})
+	sandbox.Init(hlog.Prepare, func(bool) { internal.InstallFmsg(false) })
 }

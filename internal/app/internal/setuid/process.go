@@ -12,12 +12,12 @@ import (
 	"syscall"
 	"time"
 
-	"git.gensokyo.uk/security/fortify/internal"
-	. "git.gensokyo.uk/security/fortify/internal/app"
-	"git.gensokyo.uk/security/fortify/internal/fmsg"
-	"git.gensokyo.uk/security/fortify/internal/state"
-	"git.gensokyo.uk/security/fortify/sandbox"
-	"git.gensokyo.uk/security/fortify/system"
+	"git.gensokyo.uk/security/hakurei/internal"
+	. "git.gensokyo.uk/security/hakurei/internal/app"
+	"git.gensokyo.uk/security/hakurei/internal/hlog"
+	"git.gensokyo.uk/security/hakurei/internal/state"
+	"git.gensokyo.uk/security/hakurei/sandbox"
+	"git.gensokyo.uk/security/hakurei/system"
 )
 
 const shimWaitTimeout = 5 * time.Second
@@ -35,7 +35,7 @@ func (seal *outcome) Run(rs *RunState) error {
 	}
 
 	// read comp value early to allow for early failure
-	fsuPath := internal.MustFsuPath()
+	hsuPath := internal.MustHsuPath()
 
 	if err := seal.sys.Commit(seal.ctx); err != nil {
 		return err
@@ -59,7 +59,7 @@ func (seal *outcome) Run(rs *RunState) error {
 					if l := len(states); l == 0 {
 						ec |= system.User
 					} else {
-						fmsg.Verbosef("found %d instances, cleaning up without user-scoped operations", l)
+						hlog.Verbosef("found %d instances, cleaning up without user-scoped operations", l)
 					}
 
 					// accumulate enablements of remaining launchers
@@ -72,9 +72,9 @@ func (seal *outcome) Run(rs *RunState) error {
 					}
 				}
 				ec |= rt ^ (system.EWayland | system.EX11 | system.EDBus | system.EPulse)
-				if fmsg.Load() {
+				if hlog.Load() {
 					if ec > 0 {
-						fmsg.Verbose("reverting operations scope", system.TypeString(ec))
+						hlog.Verbose("reverting operations scope", system.TypeString(ec))
 					}
 				}
 
@@ -87,7 +87,7 @@ func (seal *outcome) Run(rs *RunState) error {
 
 	ctx, cancel := context.WithCancel(seal.ctx)
 	defer cancel()
-	cmd := exec.CommandContext(ctx, fsuPath)
+	cmd := exec.CommandContext(ctx, hsuPath)
 	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
 	cmd.Dir = "/" // container init enters final working directory
 	// shim runs in the same session as monitor; see shim.go for behaviour
@@ -95,28 +95,28 @@ func (seal *outcome) Run(rs *RunState) error {
 
 	var e *gob.Encoder
 	if fd, encoder, err := sandbox.Setup(&cmd.ExtraFiles); err != nil {
-		return fmsg.WrapErrorSuffix(err,
+		return hlog.WrapErrSuffix(err,
 			"cannot create shim setup pipe:")
 	} else {
 		e = encoder
 		cmd.Env = []string{
-			// passed through to shim by fsu
+			// passed through to shim by hsu
 			shimEnv + "=" + strconv.Itoa(fd),
-			// interpreted by fsu
-			"FORTIFY_APP_ID=" + seal.user.aid.String(),
+			// interpreted by hsu
+			"HAKUREI_APP_ID=" + seal.user.aid.String(),
 		}
 	}
 
 	if len(seal.user.supp) > 0 {
-		fmsg.Verbosef("attaching supplementary group ids %s", seal.user.supp)
-		// interpreted by fsu
-		cmd.Env = append(cmd.Env, "FORTIFY_GROUPS="+strings.Join(seal.user.supp, " "))
+		hlog.Verbosef("attaching supplementary group ids %s", seal.user.supp)
+		// interpreted by hsu
+		cmd.Env = append(cmd.Env, "HAKUREI_GROUPS="+strings.Join(seal.user.supp, " "))
 	}
 
-	fmsg.Verbosef("setuid helper at %s", fsuPath)
-	fmsg.Suspend()
+	hlog.Verbosef("setuid helper at %s", hsuPath)
+	hlog.Suspend()
 	if err := cmd.Start(); err != nil {
-		return fmsg.WrapErrorSuffix(err,
+		return hlog.WrapErrSuffix(err,
 			"cannot start setuid wrapper:")
 	}
 	rs.SetStart()
@@ -124,19 +124,19 @@ func (seal *outcome) Run(rs *RunState) error {
 	// this prevents blocking forever on an early failure
 	waitErr, setupErr := make(chan error, 1), make(chan error, 1)
 	go func() { waitErr <- cmd.Wait(); cancel() }()
-	go func() { setupErr <- e.Encode(&shimParams{os.Getpid(), seal.container, seal.user.data, fmsg.Load()}) }()
+	go func() { setupErr <- e.Encode(&shimParams{os.Getpid(), seal.container, seal.user.data, hlog.Load()}) }()
 
 	select {
 	case err := <-setupErr:
 		if err != nil {
-			fmsg.Resume()
-			return fmsg.WrapErrorSuffix(err,
+			hlog.Resume()
+			return hlog.WrapErrSuffix(err,
 				"cannot transmit shim config:")
 		}
 
 	case <-ctx.Done():
-		fmsg.Resume()
-		return fmsg.WrapError(syscall.ECANCELED,
+		hlog.Resume()
+		return hlog.WrapErr(syscall.ECANCELED,
 			"shim setup canceled")
 	}
 
@@ -163,25 +163,25 @@ func (seal *outcome) Run(rs *RunState) error {
 	select {
 	case rs.WaitErr = <-waitErr:
 		rs.WaitStatus = cmd.ProcessState.Sys().(syscall.WaitStatus)
-		if fmsg.Load() {
+		if hlog.Load() {
 			switch {
 			case rs.Exited():
-				fmsg.Verbosef("process %d exited with code %d", cmd.Process.Pid, rs.ExitStatus())
+				hlog.Verbosef("process %d exited with code %d", cmd.Process.Pid, rs.ExitStatus())
 			case rs.CoreDump():
-				fmsg.Verbosef("process %d dumped core", cmd.Process.Pid)
+				hlog.Verbosef("process %d dumped core", cmd.Process.Pid)
 			case rs.Signaled():
-				fmsg.Verbosef("process %d got %s", cmd.Process.Pid, rs.Signal())
+				hlog.Verbosef("process %d got %s", cmd.Process.Pid, rs.Signal())
 			default:
-				fmsg.Verbosef("process %d exited with status %#x", cmd.Process.Pid, rs.WaitStatus)
+				hlog.Verbosef("process %d exited with status %#x", cmd.Process.Pid, rs.WaitStatus)
 			}
 		}
 	case <-waitTimeout:
 		rs.WaitErr = syscall.ETIMEDOUT
-		fmsg.Resume()
+		hlog.Resume()
 		log.Printf("process %d did not terminate", cmd.Process.Pid)
 	}
 
-	fmsg.Resume()
+	hlog.Resume()
 	if seal.sync != nil {
 		if err := seal.sync.Close(); err != nil {
 			log.Printf("cannot close wayland security context: %v", err)

@@ -30,13 +30,13 @@
 }:
 
 buildGoModule rec {
-  pname = "fortify";
+  pname = "hakurei";
   version = "0.4.1";
 
   srcFiltered = builtins.path {
     name = "${pname}-src";
     path = lib.cleanSource ./.;
-    filter = path: type: !(type == "regular" && (lib.hasSuffix ".nix" path || lib.hasSuffix ".py" path)) && !(type == "directory" && lib.hasSuffix "/test" path) && !(type == "directory" && lib.hasSuffix "/cmd/fsu" path);
+    filter = path: type: !(type == "regular" && (lib.hasSuffix ".nix" path || lib.hasSuffix ".py" path)) && !(type == "directory" && lib.hasSuffix "/test" path) && !(type == "directory" && lib.hasSuffix "/cmd/hsu" path);
   };
   vendorHash = null;
 
@@ -65,7 +65,7 @@ buildGoModule rec {
     lib.attrsets.foldlAttrs
       (
         ldflags: name: value:
-        ldflags ++ [ "-X git.gensokyo.uk/security/fortify/internal.${name}=${value}" ]
+        ldflags ++ [ "-X git.gensokyo.uk/security/hakurei/internal.${name}=${value}" ]
       )
       (
         [ "-s -w" ]
@@ -76,7 +76,7 @@ buildGoModule rec {
       )
       {
         version = "v${version}";
-        fsu = "/run/wrappers/bin/fsu";
+        hsu = "/run/wrappers/bin/hsu";
       };
 
   # nix build environment does not allow acls
@@ -113,7 +113,7 @@ buildGoModule rec {
       mkdir "$out/libexec"
       mv "$out"/bin/* "$out/libexec/"
 
-      makeBinaryWrapper "$out/libexec/fortify" "$out/bin/fortify" \
+      makeBinaryWrapper "$out/libexec/hakurei" "$out/bin/hakurei" \
         --inherit-argv0 --prefix PATH : ${lib.makeBinPath appPackages}
 
       makeBinaryWrapper "$out/libexec/fpkg" "$out/bin/fpkg" \

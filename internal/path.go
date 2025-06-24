@@ -4,19 +4,19 @@ import (
 	"log"
 	"path"
 
-	"git.gensokyo.uk/security/fortify/internal/fmsg"
+	"git.gensokyo.uk/security/hakurei/internal/hlog"
 )
 
 var (
-	fsu = compPoison
+	hsu = compPoison
 )
 
-func MustFsuPath() string {
-	if name, ok := checkPath(fsu); ok {
+func MustHsuPath() string {
+	if name, ok := checkPath(hsu); ok {
 		return name
 	}
-	fmsg.BeforeExit()
-	log.Fatal("invalid fsu path, this program is compiled incorrectly")
+	hlog.BeforeExit()
+	log.Fatal("invalid hsu path, this program is compiled incorrectly")
 	return compPoison
 }
 

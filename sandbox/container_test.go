@@ -12,13 +12,13 @@ import (
 	"testing"
 	"time"
 
-	"git.gensokyo.uk/security/fortify/fst"
-	"git.gensokyo.uk/security/fortify/internal"
-	"git.gensokyo.uk/security/fortify/internal/fmsg"
-	"git.gensokyo.uk/security/fortify/ldd"
-	"git.gensokyo.uk/security/fortify/sandbox"
-	"git.gensokyo.uk/security/fortify/sandbox/seccomp"
-	"git.gensokyo.uk/security/fortify/sandbox/vfs"
+	"git.gensokyo.uk/security/hakurei/hst"
+	"git.gensokyo.uk/security/hakurei/internal"
+	"git.gensokyo.uk/security/hakurei/internal/hlog"
+	"git.gensokyo.uk/security/hakurei/ldd"
+	"git.gensokyo.uk/security/hakurei/sandbox"
+	"git.gensokyo.uk/security/hakurei/sandbox/seccomp"
+	"git.gensokyo.uk/security/hakurei/sandbox/vfs"
 )
 
 const (
@@ -28,10 +28,10 @@ const (
 
 func TestContainer(t *testing.T) {
 	{
-		oldVerbose := fmsg.Load()
+		oldVerbose := hlog.Load()
 		oldOutput := sandbox.GetOutput()
 		internal.InstallFmsg(true)
-		t.Cleanup(func() { fmsg.Store(oldVerbose) })
+		t.Cleanup(func() { hlog.Store(oldVerbose) })
 		t.Cleanup(func() { sandbox.SetOutput(oldOutput) })
 	}
 
@@ -47,9 +47,9 @@ func TestContainer(t *testing.T) {
 			new(sandbox.Ops), nil, "test-minimal"},
 		{"tmpfs", 0,
 			new(sandbox.Ops).
-				Tmpfs(fst.Tmp, 0, 0755),
+				Tmpfs(hst.Tmp, 0, 0755),
 			[]*vfs.MountInfoEntry{
-				e("/", fst.Tmp, "rw,nosuid,nodev,relatime", "tmpfs", "tmpfs", ignore),
+				e("/", hst.Tmp, "rw,nosuid,nodev,relatime", "tmpfs", "tmpfs", ignore),
 			}, "test-tmpfs"},
 		{"dev", sandbox.FAllowTTY, // go test output is not a tty
 			new(sandbox.Ops).
@@ -132,14 +132,14 @@ func TestContainer(t *testing.T) {
 			container.Stdin = want
 
 			if err := container.Start(); err != nil {
-				fmsg.PrintBaseError(err, "start:")
+				hlog.PrintBaseError(err, "start:")
 				t.Fatalf("cannot start container: %v", err)
 			} else if err = container.Serve(); err != nil {
-				fmsg.PrintBaseError(err, "serve:")
+				hlog.PrintBaseError(err, "serve:")
 				t.Errorf("cannot serve setup params: %v", err)
 			}
 			if err := container.Wait(); err != nil {
-				fmsg.PrintBaseError(err, "wait:")
+				hlog.PrintBaseError(err, "wait:")
 				t.Fatalf("wait: %v", err)
 			}
 		})
@@ -175,8 +175,8 @@ func TestHelperInit(t *testing.T) {
 	if len(os.Args) != 5 || os.Args[4] != "init" {
 		return
 	}
-	sandbox.SetOutput(fmsg.Output{})
-	sandbox.Init(fmsg.Prepare, internal.InstallFmsg)
+	sandbox.SetOutput(hlog.Output{})
+	sandbox.Init(hlog.Prepare, internal.InstallFmsg)
 }
 
 func TestHelperCheckContainer(t *testing.T) {

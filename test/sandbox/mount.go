@@ -7,7 +7,7 @@ package sandbox
 #include <stdio.h>
 #include <libmount.h>
 
-const char *F_MOUNTINFO_PATH = "/proc/self/mountinfo";
+const char *HAKUREI_MOUNTINFO_PATH = "/proc/self/mountinfo";
 */
 import "C"
 
@@ -86,7 +86,7 @@ func (m *Mountinfo) Parse() error {
 	}
 
 	if m.p == "" {
-		m.tb = C.mnt_new_table_from_file(C.F_MOUNTINFO_PATH)
+		m.tb = C.mnt_new_table_from_file(C.HAKUREI_MOUNTINFO_PATH)
 	} else {
 		name := C.CString(m.p)
 		m.tb = C.mnt_new_table_from_file(name)

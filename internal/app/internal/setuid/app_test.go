@@ -7,18 +7,18 @@ import (
 	"testing"
 	"time"
 
-	"git.gensokyo.uk/security/fortify/fst"
-	"git.gensokyo.uk/security/fortify/internal/app"
-	"git.gensokyo.uk/security/fortify/internal/app/internal/setuid"
-	"git.gensokyo.uk/security/fortify/internal/sys"
-	"git.gensokyo.uk/security/fortify/sandbox"
-	"git.gensokyo.uk/security/fortify/system"
+	"git.gensokyo.uk/security/hakurei/hst"
+	"git.gensokyo.uk/security/hakurei/internal/app"
+	"git.gensokyo.uk/security/hakurei/internal/app/internal/setuid"
+	"git.gensokyo.uk/security/hakurei/internal/sys"
+	"git.gensokyo.uk/security/hakurei/sandbox"
+	"git.gensokyo.uk/security/hakurei/system"
 )
 
 type sealTestCase struct {
 	name          string
 	os            sys.State
-	config        *fst.Config
+	config        *hst.Config
 	id            app.ID
 	wantSys       *system.I
 	wantContainer *sandbox.Params
@@ -80,70 +80,25 @@ func stubDirEntries(names ...string) (e []fs.DirEntry, err error) {
 
 type stubDirEntryPath string
 
-func (p stubDirEntryPath) Name() string {
-	return string(p)
-}
-
-func (p stubDirEntryPath) IsDir() bool {
-	panic("attempted to call IsDir")
-}
-
-func (p stubDirEntryPath) Type() fs.FileMode {
-	panic("attempted to call Type")
-}
-
-func (p stubDirEntryPath) Info() (fs.FileInfo, error) {
-	panic("attempted to call Info")
-}
+func (p stubDirEntryPath) Name() string               { return string(p) }
+func (p stubDirEntryPath) IsDir() bool                { panic("attempted to call IsDir") }
+func (p stubDirEntryPath) Type() fs.FileMode          { panic("attempted to call Type") }
+func (p stubDirEntryPath) Info() (fs.FileInfo, error) { panic("attempted to call Info") }
 
 type stubFileInfoMode fs.FileMode
 
-func (s stubFileInfoMode) Name() string {
-	panic("attempted to call Name")
-}
-
-func (s stubFileInfoMode) Size() int64 {
-	panic("attempted to call Size")
-}
-
-func (s stubFileInfoMode) Mode() fs.FileMode {
-	return fs.FileMode(s)
-}
-
-func (s stubFileInfoMode) ModTime() time.Time {
-	panic("attempted to call ModTime")
-}
-
-func (s stubFileInfoMode) IsDir() bool {
-	panic("attempted to call IsDir")
-}
-
-func (s stubFileInfoMode) Sys() any {
-	panic("attempted to call Sys")
-}
+func (s stubFileInfoMode) Name() string       { panic("attempted to call Name") }
+func (s stubFileInfoMode) Size() int64        { panic("attempted to call Size") }
+func (s stubFileInfoMode) Mode() fs.FileMode  { return fs.FileMode(s) }
+func (s stubFileInfoMode) ModTime() time.Time { panic("attempted to call ModTime") }
+func (s stubFileInfoMode) IsDir() bool        { panic("attempted to call IsDir") }
+func (s stubFileInfoMode) Sys() any           { panic("attempted to call Sys") }
 
 type stubFileInfoIsDir bool
 
-func (s stubFileInfoIsDir) Name() string {
-	panic("attempted to call Name")
-}
-
-func (s stubFileInfoIsDir) Size() int64 {
-	panic("attempted to call Size")
-}
-
-func (s stubFileInfoIsDir) Mode() fs.FileMode {
-	panic("attempted to call Mode")
-}
-
-func (s stubFileInfoIsDir) ModTime() time.Time {
-	panic("attempted to call ModTime")
-}
-
-func (s stubFileInfoIsDir) IsDir() bool {
-	return bool(s)
-}
-
-func (s stubFileInfoIsDir) Sys() any {
-	panic("attempted to call Sys")
-}
+func (s stubFileInfoIsDir) Name() string       { panic("attempted to call Name") }
+func (s stubFileInfoIsDir) Size() int64        { panic("attempted to call Size") }
+func (s stubFileInfoIsDir) Mode() fs.FileMode  { panic("attempted to call Mode") }
+func (s stubFileInfoIsDir) ModTime() time.Time { panic("attempted to call ModTime") }
+func (s stubFileInfoIsDir) IsDir() bool        { return bool(s) }
+func (s stubFileInfoIsDir) Sys() any           { panic("attempted to call Sys") }

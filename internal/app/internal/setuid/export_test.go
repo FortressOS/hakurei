@@ -1,10 +1,10 @@
 package setuid
 
 import (
-	. "git.gensokyo.uk/security/fortify/internal/app"
-	"git.gensokyo.uk/security/fortify/internal/sys"
-	"git.gensokyo.uk/security/fortify/sandbox"
-	"git.gensokyo.uk/security/fortify/system"
+	. "git.gensokyo.uk/security/hakurei/internal/app"
+	"git.gensokyo.uk/security/hakurei/internal/sys"
+	"git.gensokyo.uk/security/hakurei/sandbox"
+	"git.gensokyo.uk/security/hakurei/system"
 )
 
 func NewWithID(id ID, os sys.State) App {

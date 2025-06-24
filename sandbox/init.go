@@ -13,7 +13,7 @@ import (
 	"syscall"
 	"time"
 
-	"git.gensokyo.uk/security/fortify/sandbox/seccomp"
+	"git.gensokyo.uk/security/hakurei/sandbox/seccomp"
 )
 
 const (
@@ -24,7 +24,7 @@ const (
 	basePath = "/tmp"
 
 	// setup params file descriptor
-	setupEnv = "FORTIFY_SETUP"
+	setupEnv = "HAKUREI_SETUP"
 )
 
 type initParams struct {
@@ -56,7 +56,7 @@ func Init(prepare func(prefix string), setVerbose func(verbose bool)) {
 			log.Fatal("invalid setup descriptor")
 		}
 		if errors.Is(err, ErrNotSet) {
-			log.Fatal("FORTIFY_SETUP not set")
+			log.Fatal("HAKUREI_SETUP not set")
 		}
 
 		log.Fatalf("cannot decode init setup payload: %v", err)

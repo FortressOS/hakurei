@@ -39,19 +39,19 @@ in
 
 {
   options = {
-    environment.fortify = {
-      enable = mkEnableOption "fortify";
+    environment.hakurei = {
+      enable = mkEnableOption "hakurei";
 
       package = mkOption {
         type = types.package;
-        default = packages.${pkgs.system}.fortify;
-        description = "The fortify package to use.";
+        default = packages.${pkgs.system}.hakurei;
+        description = "The hakurei package to use.";
       };
 
-      fsuPackage = mkOption {
+      hsuPackage = mkOption {
         type = types.package;
-        default = packages.${pkgs.system}.fsu;
-        description = "The fsu package to use.";
+        default = packages.${pkgs.system}.hsu;
+        description = "The hsu package to use.";
       };
 
       users = mkOption {
@@ -61,7 +61,7 @@ in
           in
           attrsOf (ints.between 0 99);
         description = ''
-          Users allowed to spawn fortify apps and their corresponding fortify fid.
+          Users allowed to spawn hakurei apps and their corresponding hakurei identity.
         '';
       };
 
@@ -276,7 +276,7 @@ in
           });
         default = { };
         description = ''
-          Declaratively configured fortify apps.
+          Declaratively configured hakurei apps.
         '';
       };
 

@@ -7,17 +7,17 @@
 #endif
 
 typedef enum {
-  F_VERBOSE = 1 << 0,
-  F_EXT = 1 << 1,
-  F_DENY_NS = 1 << 2,
-  F_DENY_TTY = 1 << 3,
-  F_DENY_DEVEL = 1 << 4,
-  F_MULTIARCH = 1 << 5,
-  F_LINUX32 = 1 << 6,
-  F_CAN = 1 << 7,
-  F_BLUETOOTH = 1 << 8,
-} f_filter_opts;
+  HAKUREI_VERBOSE = 1 << 0,
+  HAKUREI_EXT = 1 << 1,
+  HAKUREI_DENY_NS = 1 << 2,
+  HAKUREI_DENY_TTY = 1 << 3,
+  HAKUREI_DENY_DEVEL = 1 << 4,
+  HAKUREI_MULTIARCH = 1 << 5,
+  HAKUREI_LINUX32 = 1 << 6,
+  HAKUREI_CAN = 1 << 7,
+  HAKUREI_BLUETOOTH = 1 << 8,
+} hakurei_filter_opts;
 
-extern void f_println(char *v);
-int32_t f_build_filter(int *ret_p, int fd, uint32_t arch, uint32_t multiarch,
-                       f_filter_opts opts);
+extern void hakurei_println(char *v);
+int32_t hakurei_build_filter(int *ret_p, int fd, uint32_t arch, uint32_t multiarch,
+                       hakurei_filter_opts opts);

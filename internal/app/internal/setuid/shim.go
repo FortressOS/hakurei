@@ -10,10 +10,10 @@ import (
 	"syscall"
 	"time"
 
-	"git.gensokyo.uk/security/fortify/internal"
-	"git.gensokyo.uk/security/fortify/internal/fmsg"
-	"git.gensokyo.uk/security/fortify/sandbox"
-	"git.gensokyo.uk/security/fortify/sandbox/seccomp"
+	"git.gensokyo.uk/security/hakurei/internal"
+	"git.gensokyo.uk/security/hakurei/internal/hlog"
+	"git.gensokyo.uk/security/hakurei/sandbox"
+	"git.gensokyo.uk/security/hakurei/sandbox/seccomp"
 )
 
 /*
@@ -23,10 +23,10 @@ import (
 #include <errno.h>
 #include <signal.h>
 
-static pid_t f_shim_param_ppid = -1;
+static pid_t hakurei_shim_param_ppid = -1;
 
-// this cannot unblock fmsg since Go code is not async-signal-safe
-static void f_shim_sigaction(int sig, siginfo_t *si, void *ucontext) {
+// this cannot unblock hlog since Go code is not async-signal-safe
+static void hakurei_shim_sigaction(int sig, siginfo_t *si, void *ucontext) {
   if (sig != SIGCONT || si == NULL) {
     // unreachable
     fprintf(stderr, "sigaction: sa_sigaction got invalid siginfo\n");
@@ -34,17 +34,17 @@ static void f_shim_sigaction(int sig, siginfo_t *si, void *ucontext) {
   }
 
   // monitor requests shim exit
-  if (si->si_pid == f_shim_param_ppid)
+  if (si->si_pid == hakurei_shim_param_ppid)
     exit(254);
 
   fprintf(stderr, "sigaction: got SIGCONT from process %d\n", si->si_pid);
 
   // shim orphaned before monitor delivers a signal
-  if (getppid() != f_shim_param_ppid)
+  if (getppid() != hakurei_shim_param_ppid)
     exit(3);
 }
 
-void f_shim_setup_cont_signal(pid_t ppid) {
+void hakurei_shim_setup_cont_signal(pid_t ppid) {
   struct sigaction new_action = {0}, old_action = {0};
   if (sigaction(SIGCONT, NULL, &old_action) != 0)
     return;
@@ -53,7 +53,7 @@ void f_shim_setup_cont_signal(pid_t ppid) {
     return;
   }
 
-  new_action.sa_sigaction = f_shim_sigaction;
+  new_action.sa_sigaction = hakurei_shim_sigaction;
   if (sigemptyset(&new_action.sa_mask) != 0)
     return;
   new_action.sa_flags = SA_ONSTACK | SA_SIGINFO;
@@ -62,12 +62,12 @@ void f_shim_setup_cont_signal(pid_t ppid) {
     return;
 
   errno = 0;
-  f_shim_param_ppid = ppid;
+  hakurei_shim_param_ppid = ppid;
 }
 */
 import "C"
 
-const shimEnv = "FORTIFY_SHIM"
+const shimEnv = "HAKUREI_SHIM"
 
 type shimParams struct {
 	// monitor pid, checked against ppid in signal handler
@@ -84,7 +84,7 @@ type shimParams struct {
 
 // ShimMain is the main function of the shim process and runs as the unconstrained target user.
 func ShimMain() {
-	fmsg.Prepare("shim")
+	hlog.Prepare("shim")
 
 	if err := sandbox.SetDumpable(sandbox.SUID_DUMP_DISABLE); err != nil {
 		log.Fatalf("cannot set SUID_DUMP_DISABLE: %s", err)
@@ -99,7 +99,7 @@ func ShimMain() {
 			log.Fatal("invalid config descriptor")
 		}
 		if errors.Is(err, sandbox.ErrNotSet) {
-			log.Fatal("FORTIFY_SHIM not set")
+			log.Fatal("HAKUREI_SHIM not set")
 		}
 
 		log.Fatalf("cannot receive shim setup params: %v", err)
@@ -108,7 +108,7 @@ func ShimMain() {
 		closeSetup = f
 
 		// the Go runtime does not expose siginfo_t so SIGCONT is handled in C to check si_pid
-		if _, err = C.f_shim_setup_cont_signal(C.pid_t(params.Monitor)); err != nil {
+		if _, err = C.hakurei_shim_setup_cont_signal(C.pid_t(params.Monitor)); err != nil {
 			log.Fatalf("cannot install SIGCONT handler: %v", err)
 		}
 
@@ -156,11 +156,11 @@ func ShimMain() {
 	container.WaitDelay = 2 * time.Second
 
 	if err := container.Start(); err != nil {
-		fmsg.PrintBaseError(err, "cannot start container:")
+		hlog.PrintBaseError(err, "cannot start container:")
 		os.Exit(1)
 	}
 	if err := container.Serve(); err != nil {
-		fmsg.PrintBaseError(err, "cannot configure container:")
+		hlog.PrintBaseError(err, "cannot configure container:")
 	}
 
 	if err := seccomp.Load(seccomp.PresetCommon); err != nil {

@@ -12,10 +12,10 @@ import (
 	"sync"
 	"syscall"
 
-	"git.gensokyo.uk/security/fortify/internal"
-	"git.gensokyo.uk/security/fortify/internal/app"
-	"git.gensokyo.uk/security/fortify/internal/fmsg"
-	"git.gensokyo.uk/security/fortify/sandbox"
+	"git.gensokyo.uk/security/hakurei/internal"
+	"git.gensokyo.uk/security/hakurei/internal/app"
+	"git.gensokyo.uk/security/hakurei/internal/hlog"
+	"git.gensokyo.uk/security/hakurei/sandbox"
 )
 
 // Std implements System using the standard library.
@@ -43,8 +43,8 @@ func (s *Std) Stat(name string) (fs.FileInfo, error)        { return os.Stat(nam
 func (s *Std) Open(name string) (fs.File, error)            { return os.Open(name) }
 func (s *Std) EvalSymlinks(path string) (string, error)     { return filepath.EvalSymlinks(path) }
 func (s *Std) Exit(code int)                                { internal.Exit(code) }
-func (s *Std) Println(v ...any)                             { fmsg.Verbose(v...) }
-func (s *Std) Printf(format string, v ...any)               { fmsg.Verbosef(format, v...) }
+func (s *Std) Println(v ...any)                             { hlog.Verbose(v...) }
+func (s *Std) Printf(format string, v ...any)               { hlog.Verbosef(format, v...) }
 
 const xdgRuntimeDir = "XDG_RUNTIME_DIR"
 
@@ -80,12 +80,12 @@ func (s *Std) Uid(aid int) (int, error) {
 	defer func() { s.uidCopy[aid] = u }()
 
 	u.uid = -1
-	fsuPath := internal.MustFsuPath()
+	hsuPath := internal.MustHsuPath()
 
-	cmd := exec.Command(fsuPath)
-	cmd.Path = fsuPath
+	cmd := exec.Command(hsuPath)
+	cmd.Path = hsuPath
 	cmd.Stderr = os.Stderr // pass through fatal messages
-	cmd.Env = []string{"FORTIFY_APP_ID=" + strconv.Itoa(aid)}
+	cmd.Env = []string{"HAKUREI_APP_ID=" + strconv.Itoa(aid)}
 	cmd.Dir = "/"
 	var (
 		p         []byte
@@ -95,12 +95,12 @@ func (s *Std) Uid(aid int) (int, error) {
 	if p, u.err = cmd.Output(); u.err == nil {
 		u.uid, u.err = strconv.Atoi(string(p))
 		if u.err != nil {
-			u.err = fmsg.WrapErrorSuffix(u.err, "cannot parse uid from fsu:")
+			u.err = hlog.WrapErrSuffix(u.err, "cannot parse uid from hsu:")
 		}
 	} else if errors.As(u.err, &exitError) && exitError != nil && exitError.ExitCode() == 1 {
-		u.err = fmsg.WrapError(syscall.EACCES, "") // fsu prints to stderr in this case
+		u.err = hlog.WrapErr(syscall.EACCES, "") // hsu prints to stderr in this case
 	} else if os.IsNotExist(u.err) {
-		u.err = fmsg.WrapError(os.ErrNotExist, fmt.Sprintf("the setuid helper is missing: %s", fsuPath))
+		u.err = hlog.WrapErr(os.ErrNotExist, fmt.Sprintf("the setuid helper is missing: %s", hsuPath))
 	}
 	return u.uid, u.err
 }

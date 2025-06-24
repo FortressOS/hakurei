@@ -1,6 +1,6 @@
 package system
 
-import "git.gensokyo.uk/security/fortify/sandbox"
+import "git.gensokyo.uk/security/hakurei/sandbox"
 
 var msg sandbox.Msg = new(sandbox.DefaultMsg)
 

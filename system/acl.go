@@ -6,7 +6,7 @@ import (
 	"os"
 	"slices"
 
-	"git.gensokyo.uk/security/fortify/acl"
+	"git.gensokyo.uk/security/hakurei/acl"
 )
 
 // UpdatePerm appends an ephemeral acl update Op.

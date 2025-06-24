@@ -10,7 +10,7 @@ import (
 	"strings"
 	"syscall"
 
-	"git.gensokyo.uk/security/fortify/sandbox/vfs"
+	"git.gensokyo.uk/security/hakurei/sandbox/vfs"
 )
 
 const (

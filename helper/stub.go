@@ -14,13 +14,13 @@ import (
 func InternalHelperStub() {
 	// this test mocks the helper process
 	var ap, sp string
-	if v, ok := os.LookupEnv(FortifyHelper); !ok {
+	if v, ok := os.LookupEnv(HakureiHelper); !ok {
 		return
 	} else {
 		ap = v
 	}
-	if v, ok := os.LookupEnv(FortifyStatus); !ok {
-		panic(FortifyStatus)
+	if v, ok := os.LookupEnv(HakureiStatus); !ok {
+		panic(HakureiStatus)
 	} else {
 		sp = v
 	}

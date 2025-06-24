@@ -1,4 +1,4 @@
-package fmsg
+package hlog
 
 import (
 	"fmt"
@@ -12,13 +12,8 @@ type baseError struct {
 	Err error
 }
 
-func (e *baseError) Error() string {
-	return e.Err.Error()
-}
-
-func (e *baseError) Unwrap() error {
-	return e.Err
-}
+func (e *baseError) Error() string { return e.Err.Error() }
+func (e *baseError) Unwrap() error { return e.Err }
 
 // BaseError implements an error container with a user-facing message
 type BaseError struct {
@@ -27,35 +22,33 @@ type BaseError struct {
 }
 
 // Message returns a user-facing error message
-func (e *BaseError) Message() string {
-	return e.message
-}
+func (e *BaseError) Message() string { return e.message }
 
-// WrapError wraps an error with a corresponding message.
-func WrapError(err error, a ...any) error {
+// WrapErr wraps an error with a corresponding message.
+func WrapErr(err error, a ...any) error {
 	if err == nil {
 		return nil
 	}
-	return wrapError(err, fmt.Sprintln(a...))
+	return wrapErr(err, fmt.Sprintln(a...))
 }
 
-// WrapErrorSuffix wraps an error with a corresponding message with err at the end of the message.
-func WrapErrorSuffix(err error, a ...any) error {
+// WrapErrSuffix wraps an error with a corresponding message with err at the end of the message.
+func WrapErrSuffix(err error, a ...any) error {
 	if err == nil {
 		return nil
 	}
-	return wrapError(err, fmt.Sprintln(append(a, err)...))
+	return wrapErr(err, fmt.Sprintln(append(a, err)...))
 }
 
-// WrapErrorFunc wraps an error with a corresponding message returned by f.
-func WrapErrorFunc(err error, f func(err error) string) error {
+// WrapErrFunc wraps an error with a corresponding message returned by f.
+func WrapErrFunc(err error, f func(err error) string) error {
 	if err == nil {
 		return nil
 	}
-	return wrapError(err, f(err))
+	return wrapErr(err, f(err))
 }
 
-func wrapError(err error, message string) *BaseError {
+func wrapErr(err error, message string) *BaseError {
 	return &BaseError{message, baseError{err}}
 }
 

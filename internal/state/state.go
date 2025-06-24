@@ -5,8 +5,8 @@ import (
 	"io"
 	"time"
 
-	"git.gensokyo.uk/security/fortify/fst"
-	"git.gensokyo.uk/security/fortify/internal/app"
+	"git.gensokyo.uk/security/hakurei/hst"
+	"git.gensokyo.uk/security/hakurei/internal/app"
 )
 
 var ErrNoConfig = errors.New("state does not contain config")
@@ -35,14 +35,14 @@ type Cursor interface {
 	Len() (int, error)
 }
 
-// State is a fortify process's state
+// State is an instance state
 type State struct {
-	// fortify instance id
+	// hakurei instance id
 	ID app.ID `json:"instance"`
 	// child process PID value
 	PID int `json:"pid"`
 	// sealed app configuration
-	Config *fst.Config `json:"config"`
+	Config *hst.Config `json:"config"`
 
 	// process start time
 	Time time.Time `json:"time"`

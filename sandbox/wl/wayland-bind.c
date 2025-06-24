@@ -28,7 +28,7 @@ static const struct wl_registry_listener registry_listener = {
     .global_remove = registry_handle_global_remove,
 };
 
-int32_t f_bind_wayland_fd(char *socket_path, int fd, const char *app_id,
+int32_t hakurei_bind_wayland_fd(char *socket_path, int fd, const char *app_id,
                           const char *instance_id, int sync_fd) {
   int32_t res = 0; /* refer to resErr for corresponding Go error */
 
@@ -74,7 +74,7 @@ int32_t f_bind_wayland_fd(char *socket_path, int fd, const char *app_id,
   security_context = wp_security_context_manager_v1_create_listener(
       security_context_manager, listen_fd, sync_fd);
   wp_security_context_v1_set_sandbox_engine(security_context,
-                                            "uk.gensokyo.fortify");
+                                            "uk.gensokyo.hakurei");
 
   wp_security_context_v1_set_app_id(security_context, app_id);
   wp_security_context_v1_set_instance_id(security_context, instance_id);

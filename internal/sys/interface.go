@@ -6,8 +6,8 @@ import (
 	"path"
 	"strconv"
 
-	"git.gensokyo.uk/security/fortify/internal/app"
-	"git.gensokyo.uk/security/fortify/internal/fmsg"
+	"git.gensokyo.uk/security/hakurei/internal/app"
+	"git.gensokyo.uk/security/hakurei/internal/hlog"
 )
 
 // State provides safe interaction with operating system state.
@@ -42,25 +42,25 @@ type State interface {
 
 	// Paths returns a populated [Paths] struct.
 	Paths() app.Paths
-	// Uid invokes fsu and returns target uid.
+	// Uid invokes hsu and returns target uid.
 	// Any errors returned by Uid is already wrapped [fmsg.BaseError].
 	Uid(aid int) (int, error)
 }
 
-// CopyPaths is a generic implementation of [fst.Paths].
+// CopyPaths is a generic implementation of [hst.Paths].
 func CopyPaths(os State, v *app.Paths) {
-	v.SharePath = path.Join(os.TempDir(), "fortify."+strconv.Itoa(os.Getuid()))
+	v.SharePath = path.Join(os.TempDir(), "hakurei."+strconv.Itoa(os.Getuid()))
 
-	fmsg.Verbosef("process share directory at %q", v.SharePath)
+	hlog.Verbosef("process share directory at %q", v.SharePath)
 
 	if r, ok := os.LookupEnv(xdgRuntimeDir); !ok || r == "" || !path.IsAbs(r) {
-		// fall back to path in share since fortify has no hard XDG dependency
+		// fall back to path in share since hakurei has no hard XDG dependency
 		v.RunDirPath = path.Join(v.SharePath, "run")
 		v.RuntimePath = path.Join(v.RunDirPath, "compat")
 	} else {
 		v.RuntimePath = r
-		v.RunDirPath = path.Join(v.RuntimePath, "fortify")
+		v.RunDirPath = path.Join(v.RuntimePath, "hakurei")
 	}
 
-	fmsg.Verbosef("runtime directory at %q", v.RunDirPath)
+	hlog.Verbosef("runtime directory at %q", v.RunDirPath)
 }

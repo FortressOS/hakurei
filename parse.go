@@ -10,19 +10,19 @@ import (
 	"strings"
 	"syscall"
 
-	"git.gensokyo.uk/security/fortify/fst"
-	"git.gensokyo.uk/security/fortify/internal/fmsg"
-	"git.gensokyo.uk/security/fortify/internal/state"
+	"git.gensokyo.uk/security/hakurei/hst"
+	"git.gensokyo.uk/security/hakurei/internal/hlog"
+	"git.gensokyo.uk/security/hakurei/internal/state"
 )
 
-func tryPath(name string) (config *fst.Config) {
+func tryPath(name string) (config *hst.Config) {
 	var r io.Reader
-	config = new(fst.Config)
+	config = new(hst.Config)
 
 	if name != "-" {
 		r = tryFd(name)
 		if r == nil {
-			fmsg.Verbose("load configuration from file")
+			hlog.Verbose("load configuration from file")
 
 			if f, err := os.Open(name); err != nil {
 				log.Fatalf("cannot access configuration file %q: %s", name, err)
@@ -51,11 +51,11 @@ func tryPath(name string) (config *fst.Config) {
 func tryFd(name string) io.ReadCloser {
 	if v, err := strconv.Atoi(name); err != nil {
 		if !errors.Is(err, strconv.ErrSyntax) {
-			fmsg.Verbosef("name cannot be interpreted as int64: %v", err)
+			hlog.Verbosef("name cannot be interpreted as int64: %v", err)
 		}
 		return nil
 	} else {
-		fmsg.Verbosef("trying config stream from %d", v)
+		hlog.Verbosef("trying config stream from %d", v)
 		fd := uintptr(v)
 		if _, _, errno := syscall.Syscall(syscall.SYS_FCNTL, fd, syscall.F_GETFD, 0); errno != 0 {
 			if errors.Is(errno, syscall.EBADF) {
@@ -67,7 +67,7 @@ func tryFd(name string) io.ReadCloser {
 	}
 }
 
-func tryShort(name string) (config *fst.Config, entry *state.State) {
+func tryShort(name string) (config *hst.Config, entry *state.State) {
 	likePrefix := false
 	if len(name) <= 32 {
 		likePrefix = true
@@ -85,7 +85,7 @@ func tryShort(name string) (config *fst.Config, entry *state.State) {
 
 	// try to match from state store
 	if likePrefix && len(name) >= 8 {
-		fmsg.Verbose("argument looks like prefix")
+		hlog.Verbose("argument looks like prefix")
 
 		s := state.NewMulti(std.Paths().RunDirPath)
 		if entries, err := state.Join(s); err != nil {
@@ -101,7 +101,7 @@ func tryShort(name string) (config *fst.Config, entry *state.State) {
 					break
 				}
 
-				fmsg.Verbosef("instance %s skipped", v)
+				hlog.Verbosef("instance %s skipped", v)
 			}
 		}
 	}

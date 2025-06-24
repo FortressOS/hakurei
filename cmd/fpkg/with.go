@@ -5,17 +5,17 @@ import (
 	"path"
 	"strings"
 
-	"git.gensokyo.uk/security/fortify/fst"
-	"git.gensokyo.uk/security/fortify/internal"
-	"git.gensokyo.uk/security/fortify/sandbox/seccomp"
+	"git.gensokyo.uk/security/hakurei/hst"
+	"git.gensokyo.uk/security/hakurei/internal"
+	"git.gensokyo.uk/security/hakurei/sandbox/seccomp"
 )
 
 func withNixDaemon(
 	ctx context.Context,
-	action string, command []string, net bool, updateConfig func(config *fst.Config) *fst.Config,
+	action string, command []string, net bool, updateConfig func(config *hst.Config) *hst.Config,
 	app *appInfo, pathSet *appPathSet, dropShell bool, beforeFail func(),
 ) {
-	mustRunAppDropShell(ctx, updateConfig(&fst.Config{
+	mustRunAppDropShell(ctx, updateConfig(&hst.Config{
 		ID: app.ID,
 
 		Path: shellPath,
@@ -31,24 +31,24 @@ func withNixDaemon(
 			" && pkill nix-daemon",
 		},
 
-		Username: "fortify",
+		Username: "hakurei",
 		Shell:    shellPath,
 		Data:     pathSet.homeDir,
 		Dir:      path.Join("/data/data", app.ID),
-		ExtraPerms: []*fst.ExtraPermConfig{
+		ExtraPerms: []*hst.ExtraPermConfig{
 			{Path: dataHome, Execute: true},
 			{Ensure: true, Path: pathSet.baseDir, Read: true, Write: true, Execute: true},
 		},
 
 		Identity: app.Identity,
 
-		Container: &fst.ContainerConfig{
+		Container: &hst.ContainerConfig{
 			Hostname: formatHostname(app.Name) + "-" + action,
 			Userns:   true, // nix sandbox requires userns
 			Net:      net,
 			Seccomp:  seccomp.FilterMultiarch,
 			Tty:      dropShell,
-			Filesystem: []*fst.FilesystemConfig{
+			Filesystem: []*hst.FilesystemConfig{
 				{Src: pathSet.nixPath, Dst: "/nix", Write: true, Must: true},
 			},
 			Link: [][2]string{
@@ -66,7 +66,7 @@ func withCacheDir(
 	ctx context.Context,
 	action string, command []string, workDir string,
 	app *appInfo, pathSet *appPathSet, dropShell bool, beforeFail func()) {
-	mustRunAppDropShell(ctx, &fst.Config{
+	mustRunAppDropShell(ctx, &hst.Config{
 		ID: app.ID,
 
 		Path: shellPath,
@@ -76,7 +76,7 @@ func withCacheDir(
 		Shell:    shellPath,
 		Data:     pathSet.cacheDir, // this also ensures cacheDir via shim
 		Dir:      path.Join("/data/data", app.ID, "cache"),
-		ExtraPerms: []*fst.ExtraPermConfig{
+		ExtraPerms: []*hst.ExtraPermConfig{
 			{Path: dataHome, Execute: true},
 			{Ensure: true, Path: pathSet.baseDir, Read: true, Write: true, Execute: true},
 			{Path: workDir, Execute: true},
@@ -84,13 +84,13 @@ func withCacheDir(
 
 		Identity: app.Identity,
 
-		Container: &fst.ContainerConfig{
+		Container: &hst.ContainerConfig{
 			Hostname: formatHostname(app.Name) + "-" + action,
 			Seccomp:  seccomp.FilterMultiarch,
 			Tty:      dropShell,
-			Filesystem: []*fst.FilesystemConfig{
+			Filesystem: []*hst.FilesystemConfig{
 				{Src: path.Join(workDir, "nix"), Dst: "/nix", Must: true},
-				{Src: workDir, Dst: path.Join(fst.Tmp, "bundle"), Must: true},
+				{Src: workDir, Dst: path.Join(hst.Tmp, "bundle"), Must: true},
 			},
 			Link: [][2]string{
 				{app.CurrentSystem, "/run/current-system"},
@@ -103,7 +103,7 @@ func withCacheDir(
 	}, dropShell, beforeFail)
 }
 
-func mustRunAppDropShell(ctx context.Context, config *fst.Config, dropShell bool, beforeFail func()) {
+func mustRunAppDropShell(ctx context.Context, config *hst.Config, dropShell bool, beforeFail func()) {
 	if dropShell {
 		config.Args = []string{shellPath, "-l"}
 		mustRunApp(ctx, config, beforeFail)

@@ -29,7 +29,7 @@ func bindWaylandFd(socketPath string, fd uintptr, appID, instanceID string, sync
 	if hasNull(appID) || hasNull(instanceID) {
 		return ErrContainsNull
 	}
-	res := C.f_bind_wayland_fd(C.CString(socketPath), C.int(fd), C.CString(appID), C.CString(instanceID), C.int(syncFd))
+	res := C.hakurei_bind_wayland_fd(C.CString(socketPath), C.int(fd), C.CString(appID), C.CString(instanceID), C.int(syncFd))
 	return resErr[int32(res)]
 }
 

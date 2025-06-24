@@ -13,7 +13,7 @@
   want = {
     env = [
       "DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/65534/bus"
-      "HOME=/var/lib/fortify/u0/a2"
+      "HOME=/var/lib/hakurei/u0/a2"
       "PULSE_SERVER=unix:/run/user/65534/pulse/native"
       "SHELL=/run/current-system/sw/bin/bash"
       "TERM=linux"
@@ -25,7 +25,7 @@
     ];
 
     fs = fs "dead" {
-      ".fortify" = fs "800001ed" { } null;
+      ".hakurei" = fs "800001ed" { } null;
       bin = fs "800001ed" { sh = fs "80001ff" null null; } null;
       dev = fs "800001ed" {
         console = fs "4200190" null null;
@@ -68,9 +68,9 @@
         "dhcpcd.exit-hook" = fs "80001ff" null null;
         "fonts" = fs "80001ff" null null;
         "fstab" = fs "80001ff" null null;
-        "fsurc" = fs "80001ff" null null;
+        "hsurc" = fs "80001ff" null null;
         "fuse.conf" = fs "80001ff" null null;
-        "group" = fs "180" null "fortify:x:65534:\n";
+        "group" = fs "180" null "hakurei:x:65534:\n";
         "host.conf" = fs "80001ff" null null;
         "hostname" = fs "80001ff" null null;
         "hosts" = fs "80001ff" null null;
@@ -95,7 +95,7 @@
         "os-release" = fs "80001ff" null null;
         "pam" = fs "80001ff" null null;
         "pam.d" = fs "80001ff" null null;
-        "passwd" = fs "180" null "u0_a2:x:65534:65534:Fortify:/var/lib/fortify/u0/a2:/run/current-system/sw/bin/bash\n";
+        "passwd" = fs "180" null "u0_a2:x:65534:65534:Hakurei:/var/lib/hakurei/u0/a2:/run/current-system/sw/bin/bash\n";
         "pipewire" = fs "80001ff" null null;
         "pki" = fs "80001ff" null null;
         "polkit-1" = fs "80001ff" null null;
@@ -163,7 +163,7 @@
       usr = fs "800001c0" { bin = fs "800001ed" { env = fs "80001ff" null null; } null; } null;
       var = fs "800001c0" {
         lib = fs "800001c0" {
-          fortify = fs "800001c0" {
+          hakurei = fs "800001c0" {
             u0 = fs "800001c0" {
               a2 = fs "800001c0" {
                 ".cache" = fs "800001ed" { ".keep" = fs "80001ff" null ""; } null;
@@ -211,7 +211,7 @@
     mount = [
       (ent "/sysroot" "/" "rw,nosuid,nodev,relatime" "tmpfs" "rootfs" "rw,uid=1000002,gid=1000002")
       (ent "/" "/proc" "rw,nosuid,nodev,noexec,relatime" "proc" "proc" "rw")
-      (ent "/" "/.fortify" "rw,nosuid,nodev,relatime" "tmpfs" "tmpfs" "rw,size=4k,mode=755,uid=1000002,gid=1000002")
+      (ent "/" "/.hakurei" "rw,nosuid,nodev,relatime" "tmpfs" "tmpfs" "rw,size=4k,mode=755,uid=1000002,gid=1000002")
       (ent "/" "/dev" "rw,nosuid,nodev,relatime" "tmpfs" "devtmpfs" "rw,mode=755,uid=1000002,gid=1000002")
       (ent "/null" "/dev/null" "rw,nosuid" "devtmpfs" "devtmpfs" ignore)
       (ent "/zero" "/dev/zero" "rw,nosuid" "devtmpfs" "devtmpfs" ignore)
@@ -234,9 +234,9 @@
       (ent "/var/cache" "/var/cache" "rw,nosuid,nodev,relatime" "ext4" "/dev/disk/by-label/nixos" "rw")
       (ent "/etc" ignore "ro,nosuid,nodev,relatime" "ext4" "/dev/disk/by-label/nixos" "rw")
       (ent "/" "/run/user" "rw,nosuid,nodev,relatime" "tmpfs" "tmpfs" "rw,size=4k,mode=755,uid=1000002,gid=1000002")
-      (ent "/tmp/fortify.1000/runtime/2" "/run/user/65534" "rw,nosuid,nodev,relatime" "ext4" "/dev/disk/by-label/nixos" "rw")
-      (ent "/tmp/fortify.1000/tmpdir/2" "/tmp" "rw,nosuid,nodev,relatime" "ext4" "/dev/disk/by-label/nixos" "rw")
-      (ent "/var/lib/fortify/u0/a2" "/var/lib/fortify/u0/a2" "rw,nosuid,nodev,relatime" "ext4" "/dev/disk/by-label/nixos" "rw")
+      (ent "/tmp/hakurei.1000/runtime/2" "/run/user/65534" "rw,nosuid,nodev,relatime" "ext4" "/dev/disk/by-label/nixos" "rw")
+      (ent "/tmp/hakurei.1000/tmpdir/2" "/tmp" "rw,nosuid,nodev,relatime" "ext4" "/dev/disk/by-label/nixos" "rw")
+      (ent "/var/lib/hakurei/u0/a2" "/var/lib/hakurei/u0/a2" "rw,nosuid,nodev,relatime" "ext4" "/dev/disk/by-label/nixos" "rw")
       (ent ignore "/etc/passwd" "ro,nosuid,nodev,relatime" "tmpfs" "rootfs" "rw,uid=1000002,gid=1000002")
       (ent ignore "/etc/group" "ro,nosuid,nodev,relatime" "tmpfs" "rootfs" "rw,uid=1000002,gid=1000002")
       (ent ignore "/run/user/65534/wayland-0" "ro,nosuid,nodev,relatime" "ext4" "/dev/disk/by-label/nixos" "rw")

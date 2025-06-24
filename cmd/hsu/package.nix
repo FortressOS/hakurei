@@ -1,19 +1,19 @@
 {
   lib,
   buildGoModule,
-  fortify ? abort "fortify package required",
+  hakurei ? abort "hakurei package required",
 }:
 
 buildGoModule {
-  pname = "${fortify.pname}-fsu";
-  inherit (fortify) version;
+  pname = "${hakurei.pname}-hsu";
+  inherit (hakurei) version;
 
   src = ./.;
-  inherit (fortify) vendorHash;
+  inherit (hakurei) vendorHash;
   env.CGO_ENABLED = 0;
 
   preBuild = ''
-    go mod init fsu >& /dev/null
+    go mod init hsu >& /dev/null
   '';
 
   ldflags =
@@ -24,7 +24,7 @@ buildGoModule {
       )
       [ "-s -w" ]
       {
-        fmain = "${fortify}/libexec/fortify";
-        fpkg = "${fortify}/libexec/fpkg";
+        hmain = "${hakurei}/libexec/hakurei";
+        fpkg = "${hakurei}/libexec/fpkg";
       };
 }

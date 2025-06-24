@@ -3,7 +3,7 @@ package internal
 import (
 	"os"
 
-	"git.gensokyo.uk/security/fortify/internal/fmsg"
+	"git.gensokyo.uk/security/hakurei/internal/hlog"
 )
 
-func Exit(code int) { fmsg.BeforeExit(); os.Exit(code) }
+func Exit(code int) { hlog.BeforeExit(); os.Exit(code) }

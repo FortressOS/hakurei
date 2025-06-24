@@ -8,16 +8,16 @@ import (
 	"os"
 	"time"
 
-	"git.gensokyo.uk/security/fortify/helper/proc"
+	"git.gensokyo.uk/security/hakurei/helper/proc"
 )
 
 var WaitDelay = 2 * time.Second
 
 const (
-	// FortifyHelper is set to 1 when args fd is enabled and 0 otherwise.
-	FortifyHelper = "FORTIFY_HELPER"
-	// FortifyStatus is set to 1 when stat fd is enabled and 0 otherwise.
-	FortifyStatus = "FORTIFY_STATUS"
+	// HakureiHelper is set to 1 when args fd is enabled and 0 otherwise.
+	HakureiHelper = "HAKUREI_HELPER"
+	// HakureiStatus is set to 1 when stat fd is enabled and 0 otherwise.
+	HakureiStatus = "HAKUREI_STATUS"
 )
 
 type Helper interface {

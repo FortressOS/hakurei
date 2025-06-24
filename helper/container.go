@@ -9,8 +9,8 @@ import (
 	"slices"
 	"sync"
 
-	"git.gensokyo.uk/security/fortify/helper/proc"
-	"git.gensokyo.uk/security/fortify/sandbox"
+	"git.gensokyo.uk/security/hakurei/helper/proc"
+	"git.gensokyo.uk/security/hakurei/sandbox"
 )
 
 // New initialises a Helper instance with wt as the null-terminated argument writer.
@@ -54,17 +54,17 @@ func (h *helperContainer) Start() error {
 
 	h.Env = slices.Grow(h.Env, 2)
 	if h.useArgsFd {
-		h.Env = append(h.Env, FortifyHelper+"=1")
+		h.Env = append(h.Env, HakureiHelper+"=1")
 	} else {
-		h.Env = append(h.Env, FortifyHelper+"=0")
+		h.Env = append(h.Env, HakureiHelper+"=0")
 	}
 	if h.useStatFd {
-		h.Env = append(h.Env, FortifyStatus+"=1")
+		h.Env = append(h.Env, HakureiStatus+"=1")
 
 		// stat is populated on fulfill
 		h.Cancel = func(*exec.Cmd) error { return h.stat.Close() }
 	} else {
-		h.Env = append(h.Env, FortifyStatus+"=0")
+		h.Env = append(h.Env, HakureiStatus+"=0")
 	}
 
 	return proc.Fulfill(h.helperFiles.ctx, &h.ExtraFiles, func() error {

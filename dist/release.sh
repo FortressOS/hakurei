@@ -1,18 +1,18 @@
 #!/bin/sh -e
 cd "$(dirname -- "$0")/.."
-VERSION="${FORTIFY_VERSION:-untagged}"
-pname="fortify-${VERSION}"
+VERSION="${HAKUREI_VERSION:-untagged}"
+pname="hakurei-${VERSION}"
 out="dist/${pname}"
 
 mkdir -p "${out}"
-cp -v "README.md" "dist/fsurc.default" "dist/install.sh" "${out}"
+cp -v "README.md" "dist/hsurc.default" "dist/install.sh" "${out}"
 cp -rv "dist/comp" "${out}"
 
 go generate ./...
 go build -trimpath -v -o "${out}/bin/" -ldflags "-s -w -buildid= -extldflags '-static'
-  -X git.gensokyo.uk/security/fortify/internal.version=${VERSION}
-  -X git.gensokyo.uk/security/fortify/internal.fsu=/usr/bin/fsu
-  -X main.fmain=/usr/bin/fortify
+  -X git.gensokyo.uk/security/hakurei/internal.version=${VERSION}
+  -X git.gensokyo.uk/security/hakurei/internal.hsu=/usr/bin/hsu
+  -X main.hmain=/usr/bin/hakurei
   -X main.fpkg=/usr/bin/fpkg" ./...
 
 rm -f "./${out}.tar.gz" && tar -C dist -czf "${out}.tar.gz" "${pname}"

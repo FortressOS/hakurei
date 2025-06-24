@@ -19,7 +19,7 @@
       uid = 1001;
 
       # For deny unmapped uid test:
-      packages = [ config.environment.fortify.package ];
+      packages = [ config.environment.hakurei.package ];
     };
   };
 
@@ -90,20 +90,20 @@
     "-smp 8"
   ];
 
-  environment.fortify = {
+  environment.hakurei = {
     enable = true;
-    stateDir = "/var/lib/fortify";
+    stateDir = "/var/lib/hakurei";
     users.alice = 0;
 
     extraHomeConfig =
       { config, ... }:
       {
         # To test merge deduplication:
-        options._fortify.stateVersion = lib.mkOption { type = lib.types.str; };
+        options._hakurei.stateVersion = lib.mkOption { type = lib.types.str; };
 
         config = {
-          home = { inherit (config._fortify) stateVersion; };
-          _fortify.stateVersion = "23.05";
+          home = { inherit (config._hakurei) stateVersion; };
+          _hakurei.stateVersion = "23.05";
         };
       };
 

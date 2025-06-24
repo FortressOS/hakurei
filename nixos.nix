@@ -18,7 +18,7 @@ let
     optionals
     ;
 
-  cfg = config.environment.fortify;
+  cfg = config.environment.hakurei;
 
   getsubuid = fid: aid: 1000000 + fid * 10000 + aid;
   getsubname = fid: aid: "u${toString fid}_a${toString aid}";
@@ -45,20 +45,21 @@ in
         in
         {
           assertion = (lists.length conflictingApps) == 0;
-          message = "the following fortify apps have conflicting identities: " + (builtins.concatStringsSep ", " conflictingApps);
+          message = "the following hakurei apps have conflicting identities: " + (builtins.concatStringsSep ", " conflictingApps);
         }
       )
     ];
 
-    security.wrappers.fsu = {
-      source = "${cfg.fsuPackage}/bin/fsu";
+    security.wrappers.hsu = {
+
+      source = "${cfg.hsuPackage}/bin/hsu";
       setuid = true;
       owner = "root";
       setgid = true;
       group = "root";
     };
 
-    environment.etc.fsurc = {
+    environment.etc.hsurc = {
       mode = "0400";
       text = foldlAttrs (
         acc: username: fid:
@@ -200,7 +201,7 @@ in
                   };
                 in
                 pkgs.writeShellScriptBin app.name ''
-                  exec fortify${if app.verbose then " -v" else ""} app ${pkgs.writeText "fortify-${app.name}.json" (builtins.toJSON conf)} $@
+                  exec hakurei${if app.verbose then " -v" else ""} app ${pkgs.writeText "hakurei-app-${app.name}.json" (builtins.toJSON conf)} $@
                 ''
               )
             ]
@@ -281,7 +282,7 @@ in
         getuser = fid: aid: {
           isSystemUser = true;
           createHome = true;
-          description = "Fortify subordinate user ${toString aid} (u${toString fid})";
+          description = "Hakurei subordinate user ${toString aid} (u${toString fid})";
           group = getsubname fid aid;
           home = getsubhome fid aid;
           uid = getsubuid fid aid;

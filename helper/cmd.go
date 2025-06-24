@@ -10,7 +10,7 @@ import (
 	"sync"
 	"syscall"
 
-	"git.gensokyo.uk/security/fortify/helper/proc"
+	"git.gensokyo.uk/security/hakurei/helper/proc"
 )
 
 // NewDirect initialises a new direct Helper instance with wt as the null-terminated argument writer.
@@ -67,17 +67,17 @@ func (h *helperCmd) Start() error {
 
 	h.Env = slices.Grow(h.Env, 2)
 	if h.useArgsFd {
-		h.Env = append(h.Env, FortifyHelper+"=1")
+		h.Env = append(h.Env, HakureiHelper+"=1")
 	} else {
-		h.Env = append(h.Env, FortifyHelper+"=0")
+		h.Env = append(h.Env, HakureiHelper+"=0")
 	}
 	if h.useStatFd {
-		h.Env = append(h.Env, FortifyStatus+"=1")
+		h.Env = append(h.Env, HakureiStatus+"=1")
 
 		// stat is populated on fulfill
 		h.Cancel = func() error { return h.stat.Close() }
 	} else {
-		h.Env = append(h.Env, FortifyStatus+"=0")
+		h.Env = append(h.Env, HakureiStatus+"=0")
 	}
 
 	return proc.Fulfill(h.helperFiles.ctx, &h.ExtraFiles, h.Cmd.Start, h.files, h.extraFiles)

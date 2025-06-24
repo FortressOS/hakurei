@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"testing"
 
-	"git.gensokyo.uk/security/fortify/ldd"
+	"git.gensokyo.uk/security/hakurei/ldd"
 )
 
 func TestParseError(t *testing.T) {

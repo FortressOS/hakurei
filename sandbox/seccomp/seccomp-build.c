@@ -18,7 +18,7 @@
 #error This package requires libseccomp >= v2.5.1
 #endif
 
-struct f_syscall_act {
+struct hakurei_syscall_act {
   int syscall;
   int m_errno;
   struct scmp_arg_cmp *arg;
@@ -28,8 +28,8 @@ struct f_syscall_act {
 
 #define SECCOMP_RULESET_ADD(ruleset)                                           \
   do {                                                                         \
-    if (opts & F_VERBOSE)                                                      \
-      f_println("adding seccomp ruleset \"" #ruleset "\"");                    \
+    if (opts & HAKUREI_VERBOSE)                                                      \
+      hakurei_println("adding seccomp ruleset \"" #ruleset "\"");                    \
     for (int i = 0; i < LEN(ruleset); i++) {                                   \
       assert(ruleset[i].m_errno == EPERM || ruleset[i].m_errno == ENOSYS);     \
                                                                                \
@@ -50,18 +50,18 @@ struct f_syscall_act {
     }                                                                          \
   } while (0)
 
-int32_t f_build_filter(int *ret_p, int fd, uint32_t arch, uint32_t multiarch,
-                       f_filter_opts opts) {
+int32_t hakurei_build_filter(int *ret_p, int fd, uint32_t arch, uint32_t multiarch,
+                       hakurei_filter_opts opts) {
   int32_t res = 0; /* refer to resPrefix for message */
-  int allow_multiarch = opts & F_MULTIARCH;
+  int allow_multiarch = opts & HAKUREI_MULTIARCH;
   int allowed_personality = PER_LINUX;
 
-  if (opts & F_LINUX32)
+  if (opts & HAKUREI_LINUX32)
     allowed_personality = PER_LINUX32;
 
   /* flatpak commit 4c3bf179e2e4a2a298cd1db1d045adaf3f564532 */
 
-  struct f_syscall_act deny_common[] = {
+  struct hakurei_syscall_act deny_common[] = {
       /* Block dmesg */
       {SCMP_SYS(syslog), EPERM},
       /* Useless old syscall */
@@ -84,8 +84,8 @@ int32_t f_build_filter(int *ret_p, int fd, uint32_t arch, uint32_t multiarch,
       {SCMP_SYS(migrate_pages), EPERM},
   };
 
-  /* fortify: project-specific extensions */
-  struct f_syscall_act deny_common_ext[] = {
+  /* hakurei: project-specific extensions */
+  struct hakurei_syscall_act deny_common_ext[] = {
       /* system calls for changing the system clock */
       {SCMP_SYS(adjtimex), EPERM},
       {SCMP_SYS(clock_adjtime), EPERM},
@@ -109,7 +109,7 @@ int32_t f_build_filter(int *ret_p, int fd, uint32_t arch, uint32_t multiarch,
       {SCMP_SYS(swapon), EPERM},
   };
 
-  struct f_syscall_act deny_ns[] = {
+  struct hakurei_syscall_act deny_ns[] = {
       /* Don't allow subnamespace setups: */
       {SCMP_SYS(unshare), EPERM},
       {SCMP_SYS(setns), EPERM},
@@ -149,8 +149,8 @@ int32_t f_build_filter(int *ret_p, int fd, uint32_t arch, uint32_t multiarch,
       {SCMP_SYS(mount_setattr), ENOSYS},
   };
 
-  /* fortify: project-specific extensions */
-  struct f_syscall_act deny_ns_ext[] = {
+  /* hakurei: project-specific extensions */
+  struct hakurei_syscall_act deny_ns_ext[] = {
       /* changing file ownership */
       {SCMP_SYS(chown), EPERM},
       {SCMP_SYS(chown32), EPERM},
@@ -177,7 +177,7 @@ int32_t f_build_filter(int *ret_p, int fd, uint32_t arch, uint32_t multiarch,
       {SCMP_SYS(setuid32), EPERM},
   };
 
-  struct f_syscall_act deny_tty[] = {
+  struct hakurei_syscall_act deny_tty[] = {
       /* Don't allow faking input to the controlling tty (CVE-2017-5226) */
       {SCMP_SYS(ioctl), EPERM,
        &SCMP_A1(SCMP_CMP_MASKED_EQ, 0xFFFFFFFFu, (int)TIOCSTI)},
@@ -188,7 +188,7 @@ int32_t f_build_filter(int *ret_p, int fd, uint32_t arch, uint32_t multiarch,
        &SCMP_A1(SCMP_CMP_MASKED_EQ, 0xFFFFFFFFu, (int)TIOCLINUX)},
   };
 
-  struct f_syscall_act deny_devel[] = {
+  struct hakurei_syscall_act deny_devel[] = {
       /* Profiling operations; we expect these to be done by tools from outside
        * the sandbox.  In particular perf has been the source of many CVEs. */
       {SCMP_SYS(perf_event_open), EPERM},
@@ -198,7 +198,7 @@ int32_t f_build_filter(int *ret_p, int fd, uint32_t arch, uint32_t multiarch,
 
       {SCMP_SYS(ptrace), EPERM}};
 
-  struct f_syscall_act deny_emu[] = {
+  struct hakurei_syscall_act deny_emu[] = {
       /* modify_ldt is a historic source of interesting information leaks,
        * so it's disabled as a hardening measure.
        * However, it is required to run old 16-bit applications
@@ -206,8 +206,8 @@ int32_t f_build_filter(int *ret_p, int fd, uint32_t arch, uint32_t multiarch,
       {SCMP_SYS(modify_ldt), EPERM},
   };
 
-  /* fortify: project-specific extensions */
-  struct f_syscall_act deny_emu_ext[] = {
+  /* hakurei: project-specific extensions */
+  struct hakurei_syscall_act deny_emu_ext[] = {
       {SCMP_SYS(subpage_prot), ENOSYS},
       {SCMP_SYS(switch_endian), ENOSYS},
       {SCMP_SYS(vm86), ENOSYS},
@@ -217,7 +217,7 @@ int32_t f_build_filter(int *ret_p, int fd, uint32_t arch, uint32_t multiarch,
   /* Blocklist all but unix, inet, inet6 and netlink */
   struct {
     int family;
-    f_filter_opts flags_mask;
+    hakurei_filter_opts flags_mask;
   } socket_family_allowlist[] = {
       /* NOTE: Keep in numerical order */
       {AF_UNSPEC, 0},
@@ -225,8 +225,8 @@ int32_t f_build_filter(int *ret_p, int fd, uint32_t arch, uint32_t multiarch,
       {AF_INET, 0},
       {AF_INET6, 0},
       {AF_NETLINK, 0},
-      {AF_CAN, F_CAN},
-      {AF_BLUETOOTH, F_BLUETOOTH},
+      {AF_CAN, HAKUREI_CAN},
+      {AF_BLUETOOTH, HAKUREI_BLUETOOTH},
   };
 
   scmp_filter_ctx ctx = seccomp_init(SCMP_ACT_ALLOW);
@@ -260,17 +260,17 @@ int32_t f_build_filter(int *ret_p, int fd, uint32_t arch, uint32_t multiarch,
   }
 
   SECCOMP_RULESET_ADD(deny_common);
-  if (opts & F_DENY_NS)
+  if (opts & HAKUREI_DENY_NS)
     SECCOMP_RULESET_ADD(deny_ns);
-  if (opts & F_DENY_TTY)
+  if (opts & HAKUREI_DENY_TTY)
     SECCOMP_RULESET_ADD(deny_tty);
-  if (opts & F_DENY_DEVEL)
+  if (opts & HAKUREI_DENY_DEVEL)
     SECCOMP_RULESET_ADD(deny_devel);
   if (!allow_multiarch)
     SECCOMP_RULESET_ADD(deny_emu);
-  if (opts & F_EXT) {
+  if (opts & HAKUREI_EXT) {
     SECCOMP_RULESET_ADD(deny_common_ext);
-    if (opts & F_DENY_NS)
+    if (opts & HAKUREI_DENY_NS)
       SECCOMP_RULESET_ADD(deny_ns_ext);
     if (!allow_multiarch)
       SECCOMP_RULESET_ADD(deny_emu_ext);

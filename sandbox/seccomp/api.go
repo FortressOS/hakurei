@@ -5,7 +5,7 @@ import (
 	"errors"
 	"syscall"
 
-	"git.gensokyo.uk/security/fortify/helper/proc"
+	"git.gensokyo.uk/security/hakurei/helper/proc"
 )
 
 const (

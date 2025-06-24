@@ -57,7 +57,7 @@ let
     modules = modules ++ [
       {
         home = {
-          username = "fortify";
+          username = "hakurei";
           homeDirectory = "/data/data/${id}";
           stateVersion = "22.11";
         };
@@ -65,7 +65,7 @@ let
     ];
   };
 
-  launcher = writeScript "fortify-${pname}" ''
+  launcher = writeScript "hakurei-${pname}" ''
     #!${runtimeShell} -el
     ${script}
   '';

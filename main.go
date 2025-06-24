@@ -15,17 +15,17 @@ import (
 	"syscall"
 	"time"
 
-	"git.gensokyo.uk/security/fortify/command"
-	"git.gensokyo.uk/security/fortify/dbus"
-	"git.gensokyo.uk/security/fortify/fst"
-	"git.gensokyo.uk/security/fortify/internal"
-	"git.gensokyo.uk/security/fortify/internal/app"
-	"git.gensokyo.uk/security/fortify/internal/app/instance"
-	"git.gensokyo.uk/security/fortify/internal/fmsg"
-	"git.gensokyo.uk/security/fortify/internal/state"
-	"git.gensokyo.uk/security/fortify/internal/sys"
-	"git.gensokyo.uk/security/fortify/sandbox"
-	"git.gensokyo.uk/security/fortify/system"
+	"git.gensokyo.uk/security/hakurei/command"
+	"git.gensokyo.uk/security/hakurei/dbus"
+	"git.gensokyo.uk/security/hakurei/hst"
+	"git.gensokyo.uk/security/hakurei/internal"
+	"git.gensokyo.uk/security/hakurei/internal/app"
+	"git.gensokyo.uk/security/hakurei/internal/app/instance"
+	"git.gensokyo.uk/security/hakurei/internal/hlog"
+	"git.gensokyo.uk/security/hakurei/internal/state"
+	"git.gensokyo.uk/security/hakurei/internal/sys"
+	"git.gensokyo.uk/security/hakurei/sandbox"
+	"git.gensokyo.uk/security/hakurei/system"
 )
 
 var (
@@ -35,13 +35,13 @@ var (
 	license string
 )
 
-func init() { fmsg.Prepare("fortify") }
+func init() { hlog.Prepare("hakurei") }
 
 var std sys.State = new(sys.Std)
 
 func main() {
 	// early init path, skips root check and duplicate PR_SET_DUMPABLE
-	sandbox.TryArgv0(fmsg.Output{}, fmsg.Prepare, internal.InstallFmsg)
+	sandbox.TryArgv0(hlog.Output{}, hlog.Prepare, internal.InstallFmsg)
 
 	if err := sandbox.SetDumpable(sandbox.SUID_DUMP_DISABLE); err != nil {
 		log.Printf("cannot set SUID_DUMP_DISABLE: %s", err)
@@ -53,9 +53,9 @@ func main() {
 	}
 
 	buildCommand(os.Stderr).MustParse(os.Args[1:], func(err error) {
-		fmsg.Verbosef("command returned %v", err)
+		hlog.Verbosef("command returned %v", err)
 		if errors.Is(err, errSuccess) {
-			fmsg.BeforeExit()
+			hlog.BeforeExit()
 			os.Exit(0)
 		}
 	})
@@ -67,16 +67,13 @@ func buildCommand(out io.Writer) command.Command {
 		flagVerbose bool
 		flagJSON    bool
 	)
-	c := command.New(out, log.Printf, "fortify", func([]string) error {
-		internal.InstallFmsg(flagVerbose)
-		return nil
-	}).
-		Flag(&flagVerbose, "v", command.BoolFlag(false), "Print debug messages to the console").
+	c := command.New(out, log.Printf, "hakurei", func([]string) error { internal.InstallFmsg(flagVerbose); return nil }).
+		Flag(&flagVerbose, "v", command.BoolFlag(false), "Increase log verbosity").
 		Flag(&flagJSON, "json", command.BoolFlag(false), "Serialise output in JSON when applicable")
 
 	c.Command("shim", command.UsageInternal, func([]string) error { instance.ShimMain(); return errSuccess })
 
-	c.Command("app", "Launch app defined by the specified config file", func(args []string) error {
+	c.Command("app", "Load app from configuration file", func(args []string) error {
 		if len(args) < 1 {
 			log.Fatal("app requires at least 1 argument")
 		}
@@ -107,7 +104,7 @@ func buildCommand(out io.Writer) command.Command {
 
 		c.NewCommand("run", "Configure and start a permissive default sandbox", func(args []string) error {
 			// initialise config from flags
-			config := &fst.Config{
+			config := &hst.Config{
 				ID:   fid,
 				Args: args,
 			}
@@ -123,19 +120,19 @@ func buildCommand(out io.Writer) command.Command {
 				passwdFunc = func() {
 					var us string
 					if uid, err := std.Uid(aid); err != nil {
-						fmsg.PrintBaseError(err, "cannot obtain uid from fsu:")
+						hlog.PrintBaseError(err, "cannot obtain uid from setuid wrapper:")
 						os.Exit(1)
 					} else {
 						us = strconv.Itoa(uid)
 					}
 
 					if u, err := user.LookupId(us); err != nil {
-						fmsg.Verbosef("cannot look up uid %s", us)
+						hlog.Verbosef("cannot look up uid %s", us)
 						passwd = &user.User{
 							Uid:      us,
 							Gid:      us,
 							Username: "chronos",
-							Name:     "Fortify",
+							Name:     "Hakurei Permissive Default",
 							HomeDir:  "/var/empty",
 						}
 					} else {
@@ -233,7 +230,7 @@ func buildCommand(out io.Writer) command.Command {
 	}
 
 	var showFlagShort bool
-	c.NewCommand("show", "Show the contents of an app configuration", func(args []string) error {
+	c.NewCommand("show", "Show live or local app configuration", func(args []string) error {
 		switch len(args) {
 		case 0: // system
 			printShowSystem(os.Stdout, showFlagShort, flagJSON)
@@ -253,12 +250,12 @@ func buildCommand(out io.Writer) command.Command {
 	}).Flag(&showFlagShort, "short", command.BoolFlag(false), "Omit filesystem information")
 
 	var psFlagShort bool
-	c.NewCommand("ps", "List active apps and their state", func(args []string) error {
+	c.NewCommand("ps", "List active instances", func(args []string) error {
 		printPs(os.Stdout, time.Now().UTC(), state.NewMulti(std.Paths().RunDirPath), psFlagShort, flagJSON)
 		return errSuccess
 	}).Flag(&psFlagShort, "short", command.BoolFlag(false), "Print instance id")
 
-	c.Command("version", "Show fortify version", func(args []string) error {
+	c.Command("version", "Display version information", func(args []string) error {
 		fmt.Println(internal.Version())
 		return errSuccess
 	})
@@ -269,7 +266,7 @@ func buildCommand(out io.Writer) command.Command {
 	})
 
 	c.Command("template", "Produce a config template", func(args []string) error {
-		printJSON(os.Stdout, false, fst.Template())
+		printJSON(os.Stdout, false, hst.Template())
 		return errSuccess
 	})
 
@@ -281,7 +278,7 @@ func buildCommand(out io.Writer) command.Command {
 	return c
 }
 
-func runApp(config *fst.Config) {
+func runApp(config *hst.Config) {
 	ctx, stop := signal.NotifyContext(context.Background(),
 		syscall.SIGINT, syscall.SIGTERM)
 	defer stop() // unreachable
@@ -289,7 +286,7 @@ func runApp(config *fst.Config) {
 
 	rs := new(app.RunState)
 	if sa, err := a.Seal(config); err != nil {
-		fmsg.PrintBaseError(err, "cannot seal app:")
+		hlog.PrintBaseError(err, "cannot seal app:")
 		internal.Exit(1)
 	} else {
 		internal.Exit(instance.PrintRunStateErr(instance.ISetuid, rs, sa.Run(rs)))

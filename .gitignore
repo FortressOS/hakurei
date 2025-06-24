@@ -5,7 +5,7 @@
 *.so
 *.dylib
 *.pkg
-/fortify
+/hakurei
 
 # Test binary, built with `go test -c`
 *.test
@@ -29,4 +29,4 @@ go.work.sum
 security-context-v1-protocol.*
 
 # release
-/dist/fortify-*
+/dist/hakurei-*

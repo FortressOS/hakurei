@@ -8,12 +8,12 @@ import (
 	"testing"
 	"testing/fstest"
 
-	"git.gensokyo.uk/security/fortify/test/sandbox"
+	"git.gensokyo.uk/security/hakurei/test/sandbox"
 )
 
 var (
-	fsPasswdSample = "u0_a20:x:65534:65534:Fortify:/var/lib/persist/module/fortify/u0/a20:/run/current-system/sw/bin/zsh"
-	fsGroupSample  = "fortify:x:65534:"
+	fsPasswdSample = "u0_a20:x:65534:65534:Hakurei:/var/lib/persist/module/hakurei/u0/a20:/run/current-system/sw/bin/zsh"
+	fsGroupSample  = "hakurei:x:65534:"
 )
 
 func TestCompare(t *testing.T) {
@@ -26,15 +26,15 @@ func TestCompare(t *testing.T) {
 		wantErr error
 	}{
 		{"skip", fstest.MapFS{}, &sandbox.FS{}, "[ OK ] s .\x00", nil},
-		{"simple pass", fstest.MapFS{".fortify": {Mode: 0x800001ed}},
-			&sandbox.FS{Dir: map[string]*sandbox.FS{".fortify": {Mode: 0x800001ed}}},
-			"[ OK ] s .fortify\x00[ OK ] d .\x00", nil},
-		{"bad length", fstest.MapFS{".fortify": {Mode: 0x800001ed}},
+		{"simple pass", fstest.MapFS{".hakurei": {Mode: 0x800001ed}},
+			&sandbox.FS{Dir: map[string]*sandbox.FS{".hakurei": {Mode: 0x800001ed}}},
+			"[ OK ] s .hakurei\x00[ OK ] d .\x00", nil},
+		{"bad length", fstest.MapFS{".hakurei": {Mode: 0x800001ed}},
 			&sandbox.FS{Dir: make(map[string]*sandbox.FS)},
-			"[FAIL] d .: \".fortify/\"\x00", sandbox.ErrFSBadLength},
-		{"top level bad mode", fstest.MapFS{".fortify": {Mode: 0x800001ed}},
-			&sandbox.FS{Dir: map[string]*sandbox.FS{".fortify": {Mode: 0xdeadbeef}}},
-			"[FAIL] m .fortify: 800001ed, want deadbeef\x00", sandbox.ErrFSBadMode},
+			"[FAIL] d .: \".hakurei/\"\x00", sandbox.ErrFSBadLength},
+		{"top level bad mode", fstest.MapFS{".hakurei": {Mode: 0x800001ed}},
+			&sandbox.FS{Dir: map[string]*sandbox.FS{".hakurei": {Mode: 0xdeadbeef}}},
+			"[FAIL] m .hakurei: 800001ed, want deadbeef\x00", sandbox.ErrFSBadMode},
 		{"invalid entry condition", fstest.MapFS{"test": {Data: []byte{'0'}, Mode: 0644}},
 			&sandbox.FS{Dir: map[string]*sandbox.FS{"test": {Dir: make(map[string]*sandbox.FS)}}},
 			"[FAIL] d .: \"test\"\x00", sandbox.ErrFSInvalidEnt},
@@ -54,7 +54,7 @@ func TestCompare(t *testing.T) {
 		}, &sandbox.FS{Dir: map[string]*sandbox.FS{"etc": {Mode: 0x800001c0, Dir: map[string]*sandbox.FS{
 			"passwd": {Mode: 0x1a4, Data: &fsGroupSample},
 			"group":  {Mode: 0x1a4, Data: &fsGroupSample},
-		}}}}, "[ OK ] f etc/group\x00[FAIL] f etc/passwd\x00got:  u0_a20:x:65534:65534:Fortify:/var/lib/persist/module/fortify/u0/a20:/run/current-system/sw/bin/zsh\x00want: fortify:x:65534:\x00", sandbox.ErrFSBadData},
+		}}}}, "[ OK ] f etc/group\x00[FAIL] f etc/passwd\x00got:  u0_a20:x:65534:65534:Hakurei:/var/lib/persist/module/hakurei/u0/a20:/run/current-system/sw/bin/zsh\x00want: hakurei:x:65534:\x00", sandbox.ErrFSBadData},
 	}
 
 	for _, tc := range testCases {

@@ -8,7 +8,7 @@ import (
 	"os/exec"
 	"time"
 
-	"git.gensokyo.uk/security/fortify/sandbox"
+	"git.gensokyo.uk/security/hakurei/sandbox"
 )
 
 const lddTimeout = 2 * time.Second
@@ -28,7 +28,7 @@ func ExecFilter(ctx context.Context,
 	defer cancel()
 	container := sandbox.New(c, "ldd", p)
 	container.CommandContext = commandContext
-	container.Hostname = "fortify-ldd"
+	container.Hostname = "hakurei-ldd"
 	stdout, stderr := new(bytes.Buffer), new(bytes.Buffer)
 	container.Stdout = stdout
 	container.Stderr = stderr

@@ -1,8 +1,8 @@
-## environment\.fortify\.enable
+## environment\.hakurei\.enable
 
 
 
-Whether to enable fortify\.
+Whether to enable hakurei\.
 
 
 
@@ -21,11 +21,11 @@ boolean
 
 
 
-## environment\.fortify\.package
+## environment\.hakurei\.package
 
 
 
-The fortify package to use\.
+The hakurei package to use\.
 
 
 
@@ -35,13 +35,13 @@ package
 
 
 *Default:*
-` <derivation fortify-static-x86_64-unknown-linux-musl-0.4.1> `
+` <derivation hakurei-static-x86_64-unknown-linux-musl-0.4.1> `
 
 
 
-## environment\.fortify\.apps
+## environment\.hakurei\.apps
 
-Declaratively configured fortify apps\.
+Declaratively configured hakurei apps\.
 
 
 
@@ -55,7 +55,7 @@ attribute set of (submodule)
 
 
 
-## environment\.fortify\.apps\.\<name>\.packages
+## environment\.hakurei\.apps\.\<name>\.packages
 
 
 
@@ -73,7 +73,7 @@ list of package
 
 
 
-## environment\.fortify\.apps\.\<name>\.args
+## environment\.hakurei\.apps\.\<name>\.args
 
 
 
@@ -92,7 +92,7 @@ null or (list of string)
 
 
 
-## environment\.fortify\.apps\.\<name>\.capability\.dbus
+## environment\.hakurei\.apps\.\<name>\.capability\.dbus
 
 
 
@@ -110,7 +110,7 @@ boolean
 
 
 
-## environment\.fortify\.apps\.\<name>\.capability\.pulse
+## environment\.hakurei\.apps\.\<name>\.capability\.pulse
 
 
 
@@ -128,7 +128,7 @@ boolean
 
 
 
-## environment\.fortify\.apps\.\<name>\.capability\.wayland
+## environment\.hakurei\.apps\.\<name>\.capability\.wayland
 
 
 
@@ -146,7 +146,7 @@ boolean
 
 
 
-## environment\.fortify\.apps\.\<name>\.capability\.x11
+## environment\.hakurei\.apps\.\<name>\.capability\.x11
 
 
 
@@ -164,7 +164,7 @@ boolean
 
 
 
-## environment\.fortify\.apps\.\<name>\.command
+## environment\.hakurei\.apps\.\<name>\.command
 
 
 
@@ -184,7 +184,7 @@ null or string
 
 
 
-## environment\.fortify\.apps\.\<name>\.dbus\.session
+## environment\.hakurei\.apps\.\<name>\.dbus\.session
 
 
 
@@ -203,7 +203,7 @@ null or (function that evaluates to a(n) anything)
 
 
 
-## environment\.fortify\.apps\.\<name>\.dbus\.system
+## environment\.hakurei\.apps\.\<name>\.dbus\.system
 
 
 
@@ -222,7 +222,7 @@ null or anything
 
 
 
-## environment\.fortify\.apps\.\<name>\.devel
+## environment\.hakurei\.apps\.\<name>\.devel
 
 
 
@@ -245,7 +245,7 @@ boolean
 
 
 
-## environment\.fortify\.apps\.\<name>\.device
+## environment\.hakurei\.apps\.\<name>\.device
 
 
 
@@ -268,7 +268,7 @@ boolean
 
 
 
-## environment\.fortify\.apps\.\<name>\.env
+## environment\.hakurei\.apps\.\<name>\.env
 
 
 
@@ -286,7 +286,7 @@ null or (attribute set of string)
 
 
 
-## environment\.fortify\.apps\.\<name>\.extraConfig
+## environment\.hakurei\.apps\.\<name>\.extraConfig
 
 
 
@@ -304,7 +304,7 @@ anything
 
 
 
-## environment\.fortify\.apps\.\<name>\.extraPaths
+## environment\.hakurei\.apps\.\<name>\.extraPaths
 
 
 
@@ -322,7 +322,7 @@ list of (submodule)
 
 
 
-## environment\.fortify\.apps\.\<name>\.extraPaths\.\*\.dev
+## environment\.hakurei\.apps\.\<name>\.extraPaths\.\*\.dev
 
 
 
@@ -345,7 +345,7 @@ boolean
 
 
 
-## environment\.fortify\.apps\.\<name>\.extraPaths\.\*\.dst
+## environment\.hakurei\.apps\.\<name>\.extraPaths\.\*\.dst
 
 
 
@@ -363,7 +363,7 @@ null or string
 
 
 
-## environment\.fortify\.apps\.\<name>\.extraPaths\.\*\.require
+## environment\.hakurei\.apps\.\<name>\.extraPaths\.\*\.require
 
 
 
@@ -386,7 +386,7 @@ boolean
 
 
 
-## environment\.fortify\.apps\.\<name>\.extraPaths\.\*\.src
+## environment\.hakurei\.apps\.\<name>\.extraPaths\.\*\.src
 
 
 
@@ -399,7 +399,7 @@ string
 
 
 
-## environment\.fortify\.apps\.\<name>\.extraPaths\.\*\.write
+## environment\.hakurei\.apps\.\<name>\.extraPaths\.\*\.write
 
 
 
@@ -422,7 +422,7 @@ boolean
 
 
 
-## environment\.fortify\.apps\.\<name>\.gpu
+## environment\.hakurei\.apps\.\<name>\.gpu
 
 
 
@@ -441,7 +441,7 @@ null or boolean
 
 
 
-## environment\.fortify\.apps\.\<name>\.groups
+## environment\.hakurei\.apps\.\<name>\.groups
 
 
 
@@ -459,7 +459,7 @@ list of string
 
 
 
-## environment\.fortify\.apps\.\<name>\.identity
+## environment\.hakurei\.apps\.\<name>\.identity
 
 
 
@@ -472,7 +472,7 @@ integer between 1 and 9999 (both inclusive)
 
 
 
-## environment\.fortify\.apps\.\<name>\.insecureWayland
+## environment\.hakurei\.apps\.\<name>\.insecureWayland
 
 
 
@@ -495,7 +495,7 @@ boolean
 
 
 
-## environment\.fortify\.apps\.\<name>\.mapRealUid
+## environment\.hakurei\.apps\.\<name>\.mapRealUid
 
 
 
@@ -518,7 +518,7 @@ boolean
 
 
 
-## environment\.fortify\.apps\.\<name>\.multiarch
+## environment\.hakurei\.apps\.\<name>\.multiarch
 
 
 
@@ -541,7 +541,7 @@ boolean
 
 
 
-## environment\.fortify\.apps\.\<name>\.name
+## environment\.hakurei\.apps\.\<name>\.name
 
 
 
@@ -554,7 +554,7 @@ string
 
 
 
-## environment\.fortify\.apps\.\<name>\.net
+## environment\.hakurei\.apps\.\<name>\.net
 
 
 
@@ -577,7 +577,7 @@ boolean
 
 
 
-## environment\.fortify\.apps\.\<name>\.nix
+## environment\.hakurei\.apps\.\<name>\.nix
 
 
 
@@ -600,7 +600,7 @@ boolean
 
 
 
-## environment\.fortify\.apps\.\<name>\.path
+## environment\.hakurei\.apps\.\<name>\.path
 
 
 
@@ -619,7 +619,7 @@ null or string
 
 
 
-## environment\.fortify\.apps\.\<name>\.script
+## environment\.hakurei\.apps\.\<name>\.script
 
 
 
@@ -637,7 +637,7 @@ null or string
 
 
 
-## environment\.fortify\.apps\.\<name>\.share
+## environment\.hakurei\.apps\.\<name>\.share
 
 
 
@@ -656,7 +656,7 @@ null or package
 
 
 
-## environment\.fortify\.apps\.\<name>\.shareUid
+## environment\.hakurei\.apps\.\<name>\.shareUid
 
 
 
@@ -679,7 +679,7 @@ boolean
 
 
 
-## environment\.fortify\.apps\.\<name>\.tty
+## environment\.hakurei\.apps\.\<name>\.tty
 
 
 
@@ -702,7 +702,7 @@ boolean
 
 
 
-## environment\.fortify\.apps\.\<name>\.useCommonPaths
+## environment\.hakurei\.apps\.\<name>\.useCommonPaths
 
 
 
@@ -725,7 +725,7 @@ boolean
 
 
 
-## environment\.fortify\.apps\.\<name>\.userns
+## environment\.hakurei\.apps\.\<name>\.userns
 
 
 
@@ -748,7 +748,7 @@ boolean
 
 
 
-## environment\.fortify\.apps\.\<name>\.verbose
+## environment\.hakurei\.apps\.\<name>\.verbose
 
 
 
@@ -771,7 +771,7 @@ boolean
 
 
 
-## environment\.fortify\.commonPaths
+## environment\.hakurei\.commonPaths
 
 
 
@@ -789,7 +789,7 @@ list of (submodule)
 
 
 
-## environment\.fortify\.commonPaths\.\*\.dev
+## environment\.hakurei\.commonPaths\.\*\.dev
 
 
 
@@ -812,7 +812,7 @@ boolean
 
 
 
-## environment\.fortify\.commonPaths\.\*\.dst
+## environment\.hakurei\.commonPaths\.\*\.dst
 
 
 
@@ -830,7 +830,7 @@ null or string
 
 
 
-## environment\.fortify\.commonPaths\.\*\.require
+## environment\.hakurei\.commonPaths\.\*\.require
 
 
 
@@ -853,7 +853,7 @@ boolean
 
 
 
-## environment\.fortify\.commonPaths\.\*\.src
+## environment\.hakurei\.commonPaths\.\*\.src
 
 
 
@@ -866,7 +866,7 @@ string
 
 
 
-## environment\.fortify\.commonPaths\.\*\.write
+## environment\.hakurei\.commonPaths\.\*\.write
 
 
 
@@ -889,7 +889,7 @@ boolean
 
 
 
-## environment\.fortify\.extraHomeConfig
+## environment\.hakurei\.extraHomeConfig
 
 
 
@@ -902,11 +902,11 @@ anything
 
 
 
-## environment\.fortify\.fsuPackage
+## environment\.hakurei\.hsuPackage
 
 
 
-The fsu package to use\.
+The hsu package to use\.
 
 
 
@@ -916,11 +916,11 @@ package
 
 
 *Default:*
-` <derivation fortify-fsu-0.4.1> `
+` <derivation hakurei-hsu-0.4.1> `
 
 
 
-## environment\.fortify\.stateDir
+## environment\.hakurei\.stateDir
 
 
 
@@ -933,11 +933,11 @@ string
 
 
 
-## environment\.fortify\.users
+## environment\.hakurei\.users
 
 
 
-Users allowed to spawn fortify apps and their corresponding fortify fid\.
+Users allowed to spawn hakurei apps and their corresponding hakurei identity\.
 
 
 

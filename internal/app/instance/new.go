@@ -6,9 +6,9 @@ import (
 	"log"
 	"syscall"
 
-	"git.gensokyo.uk/security/fortify/internal/app"
-	"git.gensokyo.uk/security/fortify/internal/app/internal/setuid"
-	"git.gensokyo.uk/security/fortify/internal/sys"
+	"git.gensokyo.uk/security/hakurei/internal/app"
+	"git.gensokyo.uk/security/hakurei/internal/app/internal/setuid"
+	"git.gensokyo.uk/security/hakurei/internal/sys"
 )
 
 const (

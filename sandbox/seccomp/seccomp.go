@@ -57,26 +57,26 @@ var resPrefix = [...]string{
 	7: "seccomp_load failed",
 }
 
-type FilterOpts = C.f_filter_opts
+type FilterOpts = C.hakurei_filter_opts
 
 const (
-	filterVerbose FilterOpts = C.F_VERBOSE
+	filterVerbose FilterOpts = C.HAKUREI_VERBOSE
 	// FilterExt are project-specific extensions.
-	FilterExt FilterOpts = C.F_EXT
+	FilterExt FilterOpts = C.HAKUREI_EXT
 	// FilterDenyNS denies namespace setup syscalls.
-	FilterDenyNS FilterOpts = C.F_DENY_NS
+	FilterDenyNS FilterOpts = C.HAKUREI_DENY_NS
 	// FilterDenyTTY denies faking input.
-	FilterDenyTTY FilterOpts = C.F_DENY_TTY
+	FilterDenyTTY FilterOpts = C.HAKUREI_DENY_TTY
 	// FilterDenyDevel denies development-related syscalls.
-	FilterDenyDevel FilterOpts = C.F_DENY_DEVEL
+	FilterDenyDevel FilterOpts = C.HAKUREI_DENY_DEVEL
 	// FilterMultiarch allows multiarch/emulation.
-	FilterMultiarch FilterOpts = C.F_MULTIARCH
+	FilterMultiarch FilterOpts = C.HAKUREI_MULTIARCH
 	// FilterLinux32 sets PER_LINUX32.
-	FilterLinux32 FilterOpts = C.F_LINUX32
+	FilterLinux32 FilterOpts = C.HAKUREI_LINUX32
 	// FilterCan allows AF_CAN.
-	FilterCan FilterOpts = C.F_CAN
+	FilterCan FilterOpts = C.HAKUREI_CAN
 	// FilterBluetooth allows AF_BLUETOOTH.
-	FilterBluetooth FilterOpts = C.F_BLUETOOTH
+	FilterBluetooth FilterOpts = C.HAKUREI_BLUETOOTH
 )
 
 func buildFilter(fd int, opts FilterOpts) error {
@@ -98,13 +98,13 @@ func buildFilter(fd int, opts FilterOpts) error {
 	}
 
 	// this removes repeated transitions between C and Go execution
-	// when producing log output via F_println and CPrintln is nil
+	// when producing log output via hakurei_println and CPrintln is nil
 	if fp := printlnP.Load(); fp != nil {
 		opts |= filterVerbose
 	}
 
 	var ret C.int
-	res, err := C.f_build_filter(&ret, C.int(fd), arch, multiarch, opts)
+	res, err := C.hakurei_build_filter(&ret, C.int(fd), arch, multiarch, opts)
 	if prefix := resPrefix[res]; prefix != "" {
 		return &LibraryError{
 			prefix,

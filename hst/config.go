@@ -1,12 +1,12 @@
-// Package fst exports shared fortify types.
-package fst
+// Package hst exports shared types for invoking hakurei.
+package hst
 
 import (
-	"git.gensokyo.uk/security/fortify/dbus"
-	"git.gensokyo.uk/security/fortify/system"
+	"git.gensokyo.uk/security/hakurei/dbus"
+	"git.gensokyo.uk/security/hakurei/system"
 )
 
-const Tmp = "/.fortify"
+const Tmp = "/.hakurei"
 
 // Config is used to seal an app implementation.
 type Config struct {

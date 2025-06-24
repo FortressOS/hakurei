@@ -1,4 +1,4 @@
-package fmsg
+package hlog
 
 import (
 	"log"

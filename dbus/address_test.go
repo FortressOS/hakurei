@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"testing"
 
-	"git.gensokyo.uk/security/fortify/dbus"
+	"git.gensokyo.uk/security/hakurei/dbus"
 )
 
 func TestParse(t *testing.T) {

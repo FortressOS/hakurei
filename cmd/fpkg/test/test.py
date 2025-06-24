@@ -47,22 +47,22 @@ def wait_for_window(pattern):
 
 
 def collect_state_ui(name):
-    swaymsg(f"exec fortify ps > '/tmp/{name}.ps'")
+    swaymsg(f"exec hakurei ps > '/tmp/{name}.ps'")
     machine.copy_from_vm(f"/tmp/{name}.ps", "")
-    swaymsg(f"exec fortify --json ps > '/tmp/{name}.json'")
+    swaymsg(f"exec hakurei --json ps > '/tmp/{name}.json'")
     machine.copy_from_vm(f"/tmp/{name}.json", "")
     machine.screenshot(name)
 
 
 def check_state(name, enablements):
-    instances = json.loads(machine.succeed("sudo -u alice -i XDG_RUNTIME_DIR=/run/user/1000 fortify --json ps"))
+    instances = json.loads(machine.succeed("sudo -u alice -i XDG_RUNTIME_DIR=/run/user/1000 hakurei --json ps"))
     if len(instances) != 1:
         raise Exception(f"unexpected state length {len(instances)}")
     instance = next(iter(instances.values()))
 
     config = instance['config']
 
-    if len(config['args']) != 1 or not (config['args'][0].startswith("/nix/store/")) or f"fortify-{name}-" not in (config['args'][0]):
+    if len(config['args']) != 1 or not (config['args'][0].startswith("/nix/store/")) or f"hakurei-{name}-" not in (config['args'][0]):
         raise Exception(f"unexpected args {instance['config']['args']}")
 
     if config['enablements'] != enablements:
@@ -72,15 +72,15 @@ def check_state(name, enablements):
 start_all()
 machine.wait_for_unit("multi-user.target")
 
-# To check fortify's version:
-print(machine.succeed("sudo -u alice -i fortify version"))
+# To check hakurei's version:
+print(machine.succeed("sudo -u alice -i hakurei version"))
 
 # Wait for Sway to complete startup:
 machine.wait_for_file("/run/user/1000/wayland-1")
 machine.wait_for_file("/tmp/sway-ipc.sock")
 
 # Prepare fpkg directory:
-machine.succeed("install -dm 0700 -o alice -g users /var/lib/fortify/1000")
+machine.succeed("install -dm 0700 -o alice -g users /var/lib/hakurei/1000")
 
 # Install fpkg app:
 swaymsg("exec fpkg -v install /etc/foot.pkg && touch /tmp/fpkg-install-done")
@@ -88,9 +88,9 @@ machine.wait_for_file("/tmp/fpkg-install-done")
 
 # Start app (foot) with Wayland enablement:
 swaymsg("exec fpkg -v start org.codeberg.dnkl.foot")
-wait_for_window("fortify@machine-foot")
+wait_for_window("hakurei@machine-foot")
 machine.send_chars("clear; wayland-info && touch /tmp/success-client\n")
-machine.wait_for_file("/tmp/fortify.1000/tmpdir/2/success-client")
+machine.wait_for_file("/tmp/hakurei.1000/tmpdir/2/success-client")
 collect_state_ui("app_wayland")
 check_state("foot", 13)
 # Verify acl on XDG_RUNTIME_DIR:
@@ -104,5 +104,5 @@ machine.wait_until_fails("getfacl --absolute-names --omit-header --numeric /run/
 swaymsg("exit", succeed=False)
 machine.wait_for_file("/tmp/sway-exit-ok")
 
-# Print fortify runDir contents:
-print(machine.succeed("find /run/user/1000/fortify"))
+# Print hakurei runDir contents:
+print(machine.succeed("find /run/user/1000/hakurei"))

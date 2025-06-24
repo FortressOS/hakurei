@@ -3,8 +3,8 @@ package instance
 import (
 	"syscall"
 
-	"git.gensokyo.uk/security/fortify/internal/app"
-	"git.gensokyo.uk/security/fortify/internal/app/internal/setuid"
+	"git.gensokyo.uk/security/hakurei/internal/app"
+	"git.gensokyo.uk/security/hakurei/internal/app/internal/setuid"
 )
 
 func PrintRunStateErr(whence int, rs *app.RunState, runErr error) (code int) {

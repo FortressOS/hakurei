@@ -13,9 +13,9 @@ import (
 	"sync"
 	"syscall"
 
-	"git.gensokyo.uk/security/fortify/fst"
-	"git.gensokyo.uk/security/fortify/internal/app"
-	"git.gensokyo.uk/security/fortify/internal/fmsg"
+	"git.gensokyo.uk/security/hakurei/hst"
+	"git.gensokyo.uk/security/hakurei/internal/app"
+	"git.gensokyo.uk/security/hakurei/internal/hlog"
 )
 
 // fine-grained locking and access
@@ -86,17 +86,17 @@ func (s *multiStore) List() ([]int, error) {
 	for _, e := range entries {
 		// skip non-directories
 		if !e.IsDir() {
-			fmsg.Verbosef("skipped non-directory entry %q", e.Name())
+			hlog.Verbosef("skipped non-directory entry %q", e.Name())
 			continue
 		}
 
 		// skip non-numerical names
 		if v, err := strconv.Atoi(e.Name()); err != nil {
-			fmsg.Verbosef("skipped non-aid entry %q", e.Name())
+			hlog.Verbosef("skipped non-aid entry %q", e.Name())
 			continue
 		} else {
 			if v < 0 || v > 9999 {
-				fmsg.Verbosef("skipped out of bounds entry %q", e.Name())
+				hlog.Verbosef("skipped out of bounds entry %q", e.Name())
 				continue
 			}
 
@@ -232,7 +232,7 @@ func (b *multiBackend) load(decode bool) (Entries, error) {
 }
 
 // state file consists of an eight byte header, followed by concatenated gobs
-// of [fst.Config] and [State], if [State.Config] is not nil or offset < 0,
+// of [hst.Config] and [State], if [State.Config] is not nil or offset < 0,
 // the first gob is skipped
 func (b *multiBackend) decodeState(r io.ReadSeeker, state *State) error {
 	offset := make([]byte, 8)
@@ -269,7 +269,7 @@ func (b *multiBackend) decodeState(r io.ReadSeeker, state *State) error {
 			return ErrNoConfig
 		}
 
-		state.Config = new(fst.Config)
+		state.Config = new(hst.Config)
 		if _, err := r.Seek(8, io.SeekStart); err != nil {
 			return err
 		}

@@ -13,11 +13,11 @@ import (
 	"testing"
 	"time"
 
-	"git.gensokyo.uk/security/fortify/dbus"
-	"git.gensokyo.uk/security/fortify/helper"
-	"git.gensokyo.uk/security/fortify/internal"
-	"git.gensokyo.uk/security/fortify/internal/fmsg"
-	"git.gensokyo.uk/security/fortify/sandbox"
+	"git.gensokyo.uk/security/hakurei/dbus"
+	"git.gensokyo.uk/security/hakurei/helper"
+	"git.gensokyo.uk/security/hakurei/internal"
+	"git.gensokyo.uk/security/hakurei/internal/hlog"
+	"git.gensokyo.uk/security/hakurei/sandbox"
 )
 
 func TestFinalise(t *testing.T) {
@@ -208,6 +208,6 @@ func TestHelperInit(t *testing.T) {
 	if len(os.Args) != 5 || os.Args[4] != "init" {
 		return
 	}
-	sandbox.SetOutput(fmsg.Output{})
-	sandbox.Init(fmsg.Prepare, internal.InstallFmsg)
+	sandbox.SetOutput(hlog.Output{})
+	sandbox.Init(hlog.Prepare, internal.InstallFmsg)
 }

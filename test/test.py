@@ -47,15 +47,15 @@ def wait_for_window(pattern):
 
 
 def collect_state_ui(name):
-    swaymsg(f"exec fortify ps > '/tmp/{name}.ps'")
+    swaymsg(f"exec hakurei ps > '/tmp/{name}.ps'")
     machine.copy_from_vm(f"/tmp/{name}.ps", "")
-    swaymsg(f"exec fortify --json ps > '/tmp/{name}.json'")
+    swaymsg(f"exec hakurei --json ps > '/tmp/{name}.json'")
     machine.copy_from_vm(f"/tmp/{name}.json", "")
     machine.screenshot(name)
 
 
 def check_state(name, enablements):
-    instances = json.loads(machine.succeed("sudo -u alice -i XDG_RUNTIME_DIR=/run/user/1000 fortify --json ps"))
+    instances = json.loads(machine.succeed("sudo -u alice -i XDG_RUNTIME_DIR=/run/user/1000 hakurei --json ps"))
     if len(instances) != 1:
         raise Exception(f"unexpected state length {len(instances)}")
     instance = next(iter(instances.values()))
@@ -73,36 +73,36 @@ def check_state(name, enablements):
         raise Exception(f"unexpected enablements {instance['config']['enablements']}")
 
 
-def fortify(command):
-    swaymsg(f"exec fortify {command}")
+def hakurei(command):
+    swaymsg(f"exec hakurei {command}")
 
 
 start_all()
 machine.wait_for_unit("multi-user.target")
 
-# To check fortify's version:
-print(machine.succeed("sudo -u alice -i fortify version"))
+# To check hakurei's version:
+print(machine.succeed("sudo -u alice -i hakurei version"))
 
 # Wait for Sway to complete startup:
 machine.wait_for_file("/run/user/1000/wayland-1")
 machine.wait_for_file("/tmp/sway-ipc.sock")
 
-# Run fortify Go tests outside of nix build in the background:
-swaymsg("exec fortify-test")
+# Run hakurei Go tests outside of nix build in the background:
+swaymsg("exec hakurei-test")
 
 # Deny unmapped uid:
-denyOutput = machine.fail("sudo -u untrusted -i fortify run &>/dev/stdout")
+denyOutput = machine.fail("sudo -u untrusted -i hakurei run &>/dev/stdout")
 print(denyOutput)
-denyOutputVerbose = machine.fail("sudo -u untrusted -i fortify -v run &>/dev/stdout")
+denyOutputVerbose = machine.fail("sudo -u untrusted -i hakurei -v run &>/dev/stdout")
 print(denyOutputVerbose)
 
-# Fail direct fsu call:
-print(machine.fail("sudo -u alice -i fsu"))
+# Fail direct hsu call:
+print(machine.fail("sudo -u alice -i hsu"))
 
 # Verify PrintBaseError behaviour:
-if denyOutput != "fsu: uid 1001 is not in the fsurc file\n":
+if denyOutput != "hsu: uid 1001 is not in the hsurc file\n":
     raise Exception(f"unexpected deny output:\n{denyOutput}")
-if denyOutputVerbose != "fsu: uid 1001 is not in the fsurc file\nfortify: *cannot obtain uid from fsu: permission denied\n":
+if denyOutputVerbose != "hsu: uid 1001 is not in the hsurc file\nhakurei: *cannot obtain uid from setuid wrapper: permission denied\n":
     raise Exception(f"unexpected deny verbose output:\n{denyOutputVerbose}")
 
 check_offset = 0
@@ -113,15 +113,15 @@ def aid(offset):
 
 
 def tmpdir_path(offset, name):
-    return f"/tmp/fortify.1000/tmpdir/{aid(offset)}/{name}"
+    return f"/tmp/hakurei.1000/tmpdir/{aid(offset)}/{name}"
 
 
-# Start fortify permissive defaults outside Wayland session:
-print(machine.succeed("sudo -u alice -i fortify -v run -a 0 touch /tmp/pd-bare-ok"))
-machine.wait_for_file("/tmp/fortify.1000/tmpdir/0/pd-bare-ok", timeout=5)
+# Start hakurei permissive defaults outside Wayland session:
+print(machine.succeed("sudo -u alice -i hakurei -v run -a 0 touch /tmp/pd-bare-ok"))
+machine.wait_for_file("/tmp/hakurei.1000/tmpdir/0/pd-bare-ok", timeout=5)
 
 # Verify silent output permissive defaults:
-output = machine.succeed("sudo -u alice -i fortify run -a 0 true &>/dev/stdout")
+output = machine.succeed("sudo -u alice -i hakurei run -a 0 true &>/dev/stdout")
 if output != "":
     raise Exception(f"unexpected output\n{output}")
 
@@ -130,12 +130,12 @@ def silent_output_interrupt(flags):
     swaymsg("exec foot")
     wait_for_window("alice@machine")
     # aid 0 does not have home-manager
-    machine.send_chars(f"exec fortify run {flags}-a 0 sh -c 'export PATH=/run/current-system/sw/bin:$PATH && touch /tmp/pd-silent-ready && sleep infinity' &>/tmp/pd-silent\n")
-    machine.wait_for_file("/tmp/fortify.1000/tmpdir/0/pd-silent-ready", timeout=15)
-    machine.succeed("rm /tmp/fortify.1000/tmpdir/0/pd-silent-ready")
+    machine.send_chars(f"exec hakurei run {flags}-a 0 sh -c 'export PATH=/run/current-system/sw/bin:$PATH && touch /tmp/pd-silent-ready && sleep infinity' &>/tmp/pd-silent\n")
+    machine.wait_for_file("/tmp/hakurei.1000/tmpdir/0/pd-silent-ready", timeout=15)
+    machine.succeed("rm /tmp/hakurei.1000/tmpdir/0/pd-silent-ready")
     machine.send_key("ctrl-c")
     machine.wait_until_fails("pgrep foot", timeout=5)
-    machine.wait_until_fails(f"pgrep -u alice -f 'fortify run {flags}-a 0 '", timeout=5)
+    machine.wait_until_fails(f"pgrep -u alice -f 'hakurei run {flags}-a 0 '", timeout=5)
     output = machine.succeed("cat /tmp/pd-silent && rm /tmp/pd-silent")
     if output != "":
         raise Exception(f"unexpected output\n{output}")
@@ -146,10 +146,10 @@ silent_output_interrupt("--dbus ") # this one is especially painful as it mainta
 silent_output_interrupt("--wayland -X --dbus --pulse ")
 
 # Verify graceful failure on bad Wayland display name:
-print(machine.fail("sudo -u alice -i fortify -v run --wayland true"))
+print(machine.fail("sudo -u alice -i hakurei -v run --wayland true"))
 
-# Start fortify permissive defaults within Wayland session:
-fortify('-v run --wayland --dbus notify-send -a "NixOS Tests" "Test notification" "Notification from within sandbox." && touch /tmp/dbus-ok')
+# Start hakurei permissive defaults within Wayland session:
+hakurei('-v run --wayland --dbus notify-send -a "NixOS Tests" "Test notification" "Notification from within sandbox." && touch /tmp/dbus-ok')
 machine.wait_for_file("/tmp/dbus-ok", timeout=15)
 collect_state_ui("dbus_notify_exited")
 # not in pid namespace, verify termination
@@ -157,10 +157,10 @@ machine.wait_until_fails("pgrep xdg-dbus-proxy")
 machine.succeed("pkill -9 mako")
 
 # Check revert type selection:
-fortify("-v run --wayland -X --dbus --pulse -u p0 foot && touch /tmp/p0-exit-ok")
+hakurei("-v run --wayland -X --dbus --pulse -u p0 foot && touch /tmp/p0-exit-ok")
 wait_for_window("p0@machine")
 print(machine.succeed("getfacl --absolute-names --omit-header --numeric /run/user/1000 | grep 1000000"))
-fortify("-v run --wayland -X --dbus --pulse -u p1 foot && touch /tmp/p1-exit-ok")
+hakurei("-v run --wayland -X --dbus --pulse -u p1 foot && touch /tmp/p1-exit-ok")
 wait_for_window("p1@machine")
 print(machine.succeed("getfacl --absolute-names --omit-header --numeric /run/user/1000 | grep 1000000"))
 machine.send_chars("exit\n")
@@ -174,7 +174,7 @@ machine.fail("getfacl --absolute-names --omit-header --numeric /run/user/1000 | 
 # Check interrupt shim behaviour:
 swaymsg("exec sh -c 'ne-foot; echo -n $? > /tmp/monitor-exit-code'")
 wait_for_window(f"u0_a{aid(0)}@machine")
-machine.succeed("pkill -INT -f 'fortify -v app '")
+machine.succeed("pkill -INT -f 'hakurei -v app '")
 machine.wait_until_fails("pgrep foot", timeout=5)
 machine.wait_for_file("/tmp/monitor-exit-code")
 interrupt_exit_code = int(machine.succeed("cat /tmp/monitor-exit-code"))
@@ -194,7 +194,7 @@ machine.send_chars("exit\n")
 machine.wait_until_fails("pgrep foot", timeout=5)
 machine.fail(f"getfacl --absolute-names --omit-header --numeric /run/user/1000 | grep {aid(0) + 1000000}", timeout=5)
 
-# Test PulseAudio (fortify does not support PipeWire yet):
+# Test PulseAudio (hakurei does not support PipeWire yet):
 swaymsg("exec pa-foot")
 wait_for_window(f"u0_a{aid(1)}@machine")
 machine.send_chars("clear; pactl info && touch /tmp/pulse-ok\n")
@@ -237,7 +237,7 @@ wait_for_window(f"u0_a{aid(0)}@machine")
 machine.send_chars("clear; wayland-info && touch /tmp/term-ok\n")
 machine.wait_for_file(tmpdir_path(0, "term-ok"), timeout=15)
 machine.send_key("alt-h")
-machine.send_chars("clear; fortify show $(fortify ps --short) && touch /tmp/ps-show-ok && exec cat\n")
+machine.send_chars("clear; hakurei show $(hakurei ps --short) && touch /tmp/ps-show-ok && exec cat\n")
 machine.wait_for_file("/tmp/ps-show-ok", timeout=5)
 collect_state_ui("foot_wayland_term")
 check_state("ne-foot", 1)
@@ -251,10 +251,10 @@ machine.wait_until_fails("pgrep foot", timeout=5)
 swaymsg("exit", succeed=False)
 machine.wait_for_file("/tmp/sway-exit-ok")
 
-# Print fortify runDir contents:
-print(machine.succeed("find /run/user/1000/fortify"))
+# Print hakurei runDir contents:
+print(machine.succeed("find /run/user/1000/hakurei"))
 
 # Verify go test status:
-machine.wait_for_file("/tmp/fortify-test-done")
-print(machine.succeed("cat /tmp/fortify-test.log"))
-machine.wait_for_file("/tmp/fortify-test-ok", timeout=2)
+machine.wait_for_file("/tmp/hakurei-test-done")
+print(machine.succeed("cat /tmp/hakurei-test.log"))
+machine.wait_for_file("/tmp/hakurei-test-ok", timeout=2)

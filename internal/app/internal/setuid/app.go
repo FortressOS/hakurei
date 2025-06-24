@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"sync"
 
-	"git.gensokyo.uk/security/fortify/fst"
-	. "git.gensokyo.uk/security/fortify/internal/app"
-	"git.gensokyo.uk/security/fortify/internal/fmsg"
-	"git.gensokyo.uk/security/fortify/internal/sys"
+	"git.gensokyo.uk/security/hakurei/hst"
+	. "git.gensokyo.uk/security/hakurei/internal/app"
+	"git.gensokyo.uk/security/hakurei/internal/hlog"
+	"git.gensokyo.uk/security/hakurei/internal/sys"
 )
 
 func New(ctx context.Context, os sys.State) (App, error) {
@@ -52,7 +52,7 @@ func (a *app) String() string {
 	return fmt.Sprintf("(unsealed app %s)", a.id)
 }
 
-func (a *app) Seal(config *fst.Config) (SealedApp, error) {
+func (a *app) Seal(config *hst.Config) (SealedApp, error) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
@@ -60,7 +60,7 @@ func (a *app) Seal(config *fst.Config) (SealedApp, error) {
 		panic("app sealed twice")
 	}
 	if config == nil {
-		return nil, fmsg.WrapError(ErrConfig,
+		return nil, hlog.WrapErr(ErrConfig,
 			"attempted to seal app with nil config")
 	}
 

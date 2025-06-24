@@ -16,17 +16,17 @@ import (
 	"sync/atomic"
 	"syscall"
 
-	"git.gensokyo.uk/security/fortify/acl"
-	"git.gensokyo.uk/security/fortify/dbus"
-	"git.gensokyo.uk/security/fortify/fst"
-	"git.gensokyo.uk/security/fortify/internal"
-	. "git.gensokyo.uk/security/fortify/internal/app"
-	"git.gensokyo.uk/security/fortify/internal/app/instance/common"
-	"git.gensokyo.uk/security/fortify/internal/fmsg"
-	"git.gensokyo.uk/security/fortify/internal/sys"
-	"git.gensokyo.uk/security/fortify/sandbox"
-	"git.gensokyo.uk/security/fortify/sandbox/wl"
-	"git.gensokyo.uk/security/fortify/system"
+	"git.gensokyo.uk/security/hakurei/acl"
+	"git.gensokyo.uk/security/hakurei/dbus"
+	"git.gensokyo.uk/security/hakurei/hst"
+	"git.gensokyo.uk/security/hakurei/internal"
+	. "git.gensokyo.uk/security/hakurei/internal/app"
+	"git.gensokyo.uk/security/hakurei/internal/app/instance/common"
+	"git.gensokyo.uk/security/hakurei/internal/hlog"
+	"git.gensokyo.uk/security/hakurei/internal/sys"
+	"git.gensokyo.uk/security/hakurei/sandbox"
+	"git.gensokyo.uk/security/hakurei/sandbox/wl"
+	"git.gensokyo.uk/security/hakurei/system"
 )
 
 const (
@@ -63,20 +63,20 @@ var (
 
 var posixUsername = regexp.MustCompilePOSIX("^[a-z_]([A-Za-z0-9_-]{0,31}|[A-Za-z0-9_-]{0,30}\\$)$")
 
-// outcome stores copies of various parts of [fst.Config]
+// outcome stores copies of various parts of [hst.Config]
 type outcome struct {
 	// copied from initialising [app]
 	id *stringPair[ID]
 	// copied from [sys.State] response
 	runDirPath string
 
-	// initial [fst.Config] gob stream for state data;
+	// initial [hst.Config] gob stream for state data;
 	// this is prepared ahead of time as config is clobbered during seal creation
 	ct io.WriterTo
 	// dump dbus proxy message buffer
 	dbusMsg func()
 
-	user fsuUser
+	user hsuUser
 	sys  *system.I
 	ctx  context.Context
 
@@ -89,7 +89,7 @@ type outcome struct {
 
 // shareHost holds optional share directory state that must not be accessed directly
 type shareHost struct {
-	// whether XDG_RUNTIME_DIR is used post fsu
+	// whether XDG_RUNTIME_DIR is used post hsu
 	useRuntimeDir bool
 	// process-specific directory in tmpdir, empty if unused
 	sharePath string
@@ -134,8 +134,8 @@ func (share *shareHost) runtime() string {
 	return share.runtimeSharePath
 }
 
-// fsuUser stores post-fsu credentials and metadata
-type fsuUser struct {
+// hsuUser stores post-hsu credentials and metadata
+type hsuUser struct {
 	// application id
 	aid *stringPair[int]
 	// target uid resolved by fid:aid
@@ -152,7 +152,7 @@ type fsuUser struct {
 	username string
 }
 
-func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *fst.Config) error {
+func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *hst.Config) error {
 	if seal.ctx != nil {
 		panic("finalise called twice")
 	}
@@ -162,19 +162,19 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *fst.Co
 		// encode initial configuration for state tracking
 		ct := new(bytes.Buffer)
 		if err := gob.NewEncoder(ct).Encode(config); err != nil {
-			return fmsg.WrapErrorSuffix(err,
+			return hlog.WrapErrSuffix(err,
 				"cannot encode initial config:")
 		}
 		seal.ct = ct
 	}
 
-	// allowed aid range 0 to 9999, this is checked again in fsu
+	// allowed aid range 0 to 9999, this is checked again in hsu
 	if config.Identity < 0 || config.Identity > 9999 {
-		return fmsg.WrapError(ErrUser,
+		return hlog.WrapErr(ErrUser,
 			fmt.Sprintf("identity %d out of range", config.Identity))
 	}
 
-	seal.user = fsuUser{
+	seal.user = hsuUser{
 		aid:      newInt(config.Identity),
 		data:     config.Data,
 		home:     config.Dir,
@@ -184,11 +184,11 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *fst.Co
 		seal.user.username = "chronos"
 	} else if !posixUsername.MatchString(seal.user.username) ||
 		len(seal.user.username) >= internal.Sysconf_SC_LOGIN_NAME_MAX() {
-		return fmsg.WrapError(ErrName,
+		return hlog.WrapErr(ErrName,
 			fmt.Sprintf("invalid user name %q", seal.user.username))
 	}
 	if seal.user.data == "" || !path.IsAbs(seal.user.data) {
-		return fmsg.WrapError(ErrHome,
+		return hlog.WrapErr(ErrHome,
 			fmt.Sprintf("invalid home directory %q", seal.user.data))
 	}
 	if seal.user.home == "" {
@@ -202,7 +202,7 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *fst.Co
 	seal.user.supp = make([]string, len(config.Groups))
 	for i, name := range config.Groups {
 		if g, err := sys.LookupGroup(name); err != nil {
-			return fmsg.WrapError(err,
+			return hlog.WrapErr(err,
 				fmt.Sprintf("unknown group %q", name))
 		} else {
 			seal.user.supp[i] = g.Gid
@@ -220,13 +220,13 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *fst.Co
 
 	// permissive defaults
 	if config.Container == nil {
-		fmsg.Verbose("container configuration not supplied, PROCEED WITH CAUTION")
+		hlog.Verbose("container configuration not supplied, PROCEED WITH CAUTION")
 
-		// fsu clears the environment so resolve paths early
+		// hsu clears the environment so resolve paths early
 		if !path.IsAbs(config.Path) {
 			if len(config.Args) > 0 {
 				if p, err := sys.LookPath(config.Args[0]); err != nil {
-					return fmsg.WrapError(err, err.Error())
+					return hlog.WrapErr(err, err.Error())
 				} else {
 					config.Path = p
 				}
@@ -235,7 +235,7 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *fst.Co
 			}
 		}
 
-		conf := &fst.ContainerConfig{
+		conf := &hst.ContainerConfig{
 			Userns:  true,
 			Net:     true,
 			Tty:     true,
@@ -245,7 +245,7 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *fst.Co
 		if d, err := sys.ReadDir("/"); err != nil {
 			return err
 		} else {
-			b := make([]*fst.FilesystemConfig, 0, len(d))
+			b := make([]*hst.FilesystemConfig, 0, len(d))
 			for _, ent := range d {
 				p := "/" + ent.Name()
 				switch p {
@@ -256,7 +256,7 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *fst.Co
 				case "/etc":
 
 				default:
-					b = append(b, &fst.FilesystemConfig{Src: p, Write: true, Must: true})
+					b = append(b, &hst.FilesystemConfig{Src: p, Write: true, Must: true})
 				}
 			}
 			conf.Filesystem = append(conf.Filesystem, b...)
@@ -269,10 +269,10 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *fst.Co
 		}
 		// bind GPU stuff
 		if config.Enablements&(system.EX11|system.EWayland) != 0 {
-			conf.Filesystem = append(conf.Filesystem, &fst.FilesystemConfig{Src: "/dev/dri", Device: true})
+			conf.Filesystem = append(conf.Filesystem, &hst.FilesystemConfig{Src: "/dev/dri", Device: true})
 		}
 		// opportunistically bind kvm
-		conf.Filesystem = append(conf.Filesystem, &fst.FilesystemConfig{Src: "/dev/kvm", Device: true})
+		conf.Filesystem = append(conf.Filesystem, &hst.FilesystemConfig{Src: "/dev/kvm", Device: true})
 
 		config.Container = conf
 	}
@@ -283,11 +283,11 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *fst.Co
 		var err error
 		seal.container, seal.env, err = common.NewContainer(config.Container, sys, &uid, &gid)
 		if err != nil {
-			return fmsg.WrapErrorSuffix(err,
+			return hlog.WrapErrSuffix(err,
 				"cannot initialise container configuration:")
 		}
 		if !path.IsAbs(config.Path) {
-			return fmsg.WrapError(syscall.EINVAL,
+			return hlog.WrapErr(syscall.EINVAL,
 				"invalid program path")
 		}
 		if len(config.Args) == 0 {
@@ -364,9 +364,9 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *fst.Co
 		seal.env[shell] = config.Shell
 
 		seal.container.Place("/etc/passwd",
-			[]byte(username+":x:"+mapuid.String()+":"+mapgid.String()+":Fortify:"+homeDir+":"+config.Shell+"\n"))
+			[]byte(username+":x:"+mapuid.String()+":"+mapgid.String()+":Hakurei:"+homeDir+":"+config.Shell+"\n"))
 		seal.container.Place("/etc/group",
-			[]byte("fortify:x:"+mapgid.String()+":\n"))
+			[]byte("hakurei:x:"+mapgid.String()+":\n"))
 	}
 
 	// pass TERM for proper terminal I/O in initial process
@@ -378,7 +378,7 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *fst.Co
 		// outer wayland socket (usually `/run/user/%d/wayland-%d`)
 		var socketPath string
 		if name, ok := sys.LookupEnv(wl.WaylandDisplay); !ok {
-			fmsg.Verbose(wl.WaylandDisplay + " is not set, assuming " + wl.FallbackName)
+			hlog.Verbose(wl.WaylandDisplay + " is not set, assuming " + wl.FallbackName)
 			socketPath = path.Join(share.sc.RuntimePath, wl.FallbackName)
 		} else if !path.IsAbs(name) {
 			socketPath = path.Join(share.sc.RuntimePath, name)
@@ -393,14 +393,14 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *fst.Co
 			appID := config.ID
 			if appID == "" {
 				// use instance ID in case app id is not set
-				appID = "uk.gensokyo.fortify." + seal.id.String()
+				appID = "uk.gensokyo.hakurei." + seal.id.String()
 			}
 			// downstream socket paths
 			outerPath := path.Join(share.instance(), "wayland")
 			seal.sys.Wayland(&seal.sync, outerPath, socketPath, appID, seal.id.String())
 			seal.container.Bind(outerPath, innerPath, 0)
 		} else { // bind mount wayland socket (insecure)
-			fmsg.Verbose("direct wayland access, PROCEED WITH CAUTION")
+			hlog.Verbose("direct wayland access, PROCEED WITH CAUTION")
 			share.ensureRuntimeDir()
 			seal.container.Bind(socketPath, innerPath, 0)
 			seal.sys.UpdatePermType(system.EWayland, socketPath, acl.Read, acl.Write, acl.Execute)
@@ -409,7 +409,7 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *fst.Co
 
 	if config.Enablements&system.EX11 != 0 {
 		if d, ok := sys.LookupEnv(display); !ok {
-			return fmsg.WrapError(ErrXDisplay,
+			return hlog.WrapErr(ErrXDisplay,
 				"DISPLAY is not set")
 		} else {
 			seal.sys.ChangeHosts("#" + seal.user.uid.String())
@@ -426,23 +426,23 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *fst.Co
 
 		if _, err := sys.Stat(pulseRuntimeDir); err != nil {
 			if !errors.Is(err, fs.ErrNotExist) {
-				return fmsg.WrapErrorSuffix(err,
+				return hlog.WrapErrSuffix(err,
 					fmt.Sprintf("cannot access PulseAudio directory %q:", pulseRuntimeDir))
 			}
-			return fmsg.WrapError(ErrPulseSocket,
+			return hlog.WrapErr(ErrPulseSocket,
 				fmt.Sprintf("PulseAudio directory %q not found", pulseRuntimeDir))
 		}
 
 		if s, err := sys.Stat(pulseSocket); err != nil {
 			if !errors.Is(err, fs.ErrNotExist) {
-				return fmsg.WrapErrorSuffix(err,
+				return hlog.WrapErrSuffix(err,
 					fmt.Sprintf("cannot access PulseAudio socket %q:", pulseSocket))
 			}
-			return fmsg.WrapError(ErrPulseSocket,
+			return hlog.WrapErr(ErrPulseSocket,
 				fmt.Sprintf("PulseAudio directory %q found but socket does not exist", pulseRuntimeDir))
 		} else {
 			if m := s.Mode(); m&0o006 != 0o006 {
-				return fmsg.WrapError(ErrPulseMode,
+				return hlog.WrapErr(ErrPulseMode,
 					fmt.Sprintf("unexpected permissions on %q:", pulseSocket), m)
 			}
 		}
@@ -457,9 +457,9 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *fst.Co
 		// publish current user's pulse cookie for target user
 		if src, err := discoverPulseCookie(sys); err != nil {
 			// not fatal
-			fmsg.Verbose(strings.TrimSpace(err.(*fmsg.BaseError).Message()))
+			hlog.Verbose(strings.TrimSpace(err.(*hlog.BaseError).Message()))
 		} else {
-			innerDst := fst.Tmp + "/pulse-cookie"
+			innerDst := hst.Tmp + "/pulse-cookie"
 			seal.env[pulseCookie] = innerDst
 			var payload *[]byte
 			seal.container.PlaceP(innerDst, &payload)
@@ -531,15 +531,15 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *fst.Co
 	seal.container.Env = make([]string, 0, len(seal.env))
 	for k, v := range seal.env {
 		if strings.IndexByte(k, '=') != -1 {
-			return fmsg.WrapError(syscall.EINVAL,
+			return hlog.WrapErr(syscall.EINVAL,
 				fmt.Sprintf("invalid environment variable %s", k))
 		}
 		seal.container.Env = append(seal.container.Env, k+"="+v)
 	}
 	slices.Sort(seal.container.Env)
 
-	if fmsg.Load() {
-		fmsg.Verbosef("created application seal for uid %s (%s) groups: %v, argv: %s, ops: %d",
+	if hlog.Load() {
+		hlog.Verbosef("created application seal for uid %s (%s) groups: %v, argv: %s, ops: %d",
 			seal.user.uid, seal.user.username, config.Groups, seal.container.Args, len(*seal.container.Ops))
 	}
 
@@ -557,7 +557,7 @@ func discoverPulseCookie(sys sys.State) (string, error) {
 		p = path.Join(p, ".pulse-cookie")
 		if s, err := sys.Stat(p); err != nil {
 			if !errors.Is(err, fs.ErrNotExist) {
-				return p, fmsg.WrapErrorSuffix(err,
+				return p, hlog.WrapErrSuffix(err,
 					fmt.Sprintf("cannot access PulseAudio cookie %q:", p))
 			}
 			// not found, try next method
@@ -571,7 +571,7 @@ func discoverPulseCookie(sys sys.State) (string, error) {
 		p = path.Join(p, "pulse", "cookie")
 		if s, err := sys.Stat(p); err != nil {
 			if !errors.Is(err, fs.ErrNotExist) {
-				return p, fmsg.WrapErrorSuffix(err,
+				return p, hlog.WrapErrSuffix(err,
 					fmt.Sprintf("cannot access PulseAudio cookie %q:", p))
 			}
 			// not found, try next method
@@ -580,7 +580,7 @@ func discoverPulseCookie(sys sys.State) (string, error) {
 		}
 	}
 
-	return "", fmsg.WrapError(ErrPulseCookie,
+	return "", hlog.WrapErr(ErrPulseCookie,
 		fmt.Sprintf("cannot locate PulseAudio cookie (tried $%s, $%s/pulse/cookie, $%s/.pulse-cookie)",
 			pulseCookie, xdgConfigHome, home))
 }

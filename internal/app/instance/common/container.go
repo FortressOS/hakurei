@@ -8,20 +8,20 @@ import (
 	"path"
 	"syscall"
 
-	"git.gensokyo.uk/security/fortify/dbus"
-	"git.gensokyo.uk/security/fortify/fst"
-	"git.gensokyo.uk/security/fortify/internal/sys"
-	"git.gensokyo.uk/security/fortify/sandbox"
-	"git.gensokyo.uk/security/fortify/sandbox/seccomp"
+	"git.gensokyo.uk/security/hakurei/dbus"
+	"git.gensokyo.uk/security/hakurei/hst"
+	"git.gensokyo.uk/security/hakurei/internal/sys"
+	"git.gensokyo.uk/security/hakurei/sandbox"
+	"git.gensokyo.uk/security/hakurei/sandbox/seccomp"
 )
 
 // in practice there should be less than 30 entries added by the runtime;
 // allocating slightly more as a margin for future expansion
 const preallocateOpsCount = 1 << 5
 
-// NewContainer initialises [sandbox.Params] via [fst.ContainerConfig].
+// NewContainer initialises [sandbox.Params] via [hst.ContainerConfig].
 // Note that remaining container setup must be queued by the caller.
-func NewContainer(s *fst.ContainerConfig, os sys.State, uid, gid *int) (*sandbox.Params, map[string]string, error) {
+func NewContainer(s *hst.ContainerConfig, os sys.State, uid, gid *int) (*sandbox.Params, map[string]string, error) {
 	if s == nil {
 		return nil, nil, syscall.EBADE
 	}
@@ -67,7 +67,7 @@ func NewContainer(s *fst.ContainerConfig, os sys.State, uid, gid *int) (*sandbox
 
 	container.
 		Proc("/proc").
-		Tmpfs(fst.Tmp, 1<<12, 0755)
+		Tmpfs(hst.Tmp, 1<<12, 0755)
 
 	if !s.Device {
 		container.Dev("/dev").Mqueue("/dev/mqueue")

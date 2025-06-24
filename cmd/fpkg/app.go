@@ -6,46 +6,46 @@ import (
 	"os"
 	"path"
 
-	"git.gensokyo.uk/security/fortify/dbus"
-	"git.gensokyo.uk/security/fortify/fst"
-	"git.gensokyo.uk/security/fortify/sandbox/seccomp"
-	"git.gensokyo.uk/security/fortify/system"
+	"git.gensokyo.uk/security/hakurei/dbus"
+	"git.gensokyo.uk/security/hakurei/hst"
+	"git.gensokyo.uk/security/hakurei/sandbox/seccomp"
+	"git.gensokyo.uk/security/hakurei/system"
 )
 
 type appInfo struct {
 	Name    string `json:"name"`
 	Version string `json:"version"`
 
-	// passed through to [fst.Config]
+	// passed through to [hst.Config]
 	ID string `json:"id"`
-	// passed through to [fst.Config]
+	// passed through to [hst.Config]
 	Identity int `json:"identity"`
-	// passed through to [fst.Config]
+	// passed through to [hst.Config]
 	Groups []string `json:"groups,omitempty"`
-	// passed through to [fst.Config]
+	// passed through to [hst.Config]
 	Devel bool `json:"devel,omitempty"`
-	// passed through to [fst.Config]
+	// passed through to [hst.Config]
 	Userns bool `json:"userns,omitempty"`
-	// passed through to [fst.Config]
+	// passed through to [hst.Config]
 	Net bool `json:"net,omitempty"`
-	// passed through to [fst.Config]
+	// passed through to [hst.Config]
 	Device bool `json:"dev,omitempty"`
-	// passed through to [fst.Config]
+	// passed through to [hst.Config]
 	Tty bool `json:"tty,omitempty"`
-	// passed through to [fst.Config]
+	// passed through to [hst.Config]
 	MapRealUID bool `json:"map_real_uid,omitempty"`
-	// passed through to [fst.Config]
+	// passed through to [hst.Config]
 	DirectWayland bool `json:"direct_wayland,omitempty"`
-	// passed through to [fst.Config]
+	// passed through to [hst.Config]
 	SystemBus *dbus.Config `json:"system_bus,omitempty"`
-	// passed through to [fst.Config]
+	// passed through to [hst.Config]
 	SessionBus *dbus.Config `json:"session_bus,omitempty"`
-	// passed through to [fst.Config]
+	// passed through to [hst.Config]
 	Enablements system.Enablement `json:"enablements"`
 
-	// passed through to [fst.Config]
+	// passed through to [hst.Config]
 	Multiarch bool `json:"multiarch,omitempty"`
-	// passed through to [fst.Config]
+	// passed through to [hst.Config]
 	Bluetooth bool `json:"bluetooth,omitempty"`
 
 	// allow gpu access within sandbox
@@ -62,8 +62,8 @@ type appInfo struct {
 	ActivationPackage string `json:"activation_package"`
 }
 
-func (app *appInfo) toFst(pathSet *appPathSet, argv []string, flagDropShell bool) *fst.Config {
-	config := &fst.Config{
+func (app *appInfo) toFst(pathSet *appPathSet, argv []string, flagDropShell bool) *hst.Config {
+	config := &hst.Config{
 		ID: app.ID,
 
 		Path: argv[0],
@@ -75,7 +75,7 @@ func (app *appInfo) toFst(pathSet *appPathSet, argv []string, flagDropShell bool
 		SessionBus:    app.SessionBus,
 		DirectWayland: app.DirectWayland,
 
-		Username: "fortify",
+		Username: "hakurei",
 		Shell:    shellPath,
 		Data:     pathSet.homeDir,
 		Dir:      path.Join("/data/data", app.ID),
@@ -83,7 +83,7 @@ func (app *appInfo) toFst(pathSet *appPathSet, argv []string, flagDropShell bool
 		Identity: app.Identity,
 		Groups:   app.Groups,
 
-		Container: &fst.ContainerConfig{
+		Container: &hst.ContainerConfig{
 			Hostname:   formatHostname(app.Name),
 			Devel:      app.Devel,
 			Userns:     app.Userns,
@@ -91,9 +91,9 @@ func (app *appInfo) toFst(pathSet *appPathSet, argv []string, flagDropShell bool
 			Device:     app.Device,
 			Tty:        app.Tty || flagDropShell,
 			MapRealUID: app.MapRealUID,
-			Filesystem: []*fst.FilesystemConfig{
+			Filesystem: []*hst.FilesystemConfig{
 				{Src: path.Join(pathSet.nixPath, "store"), Dst: "/nix/store", Must: true},
-				{Src: pathSet.metaPath, Dst: path.Join(fst.Tmp, "app"), Must: true},
+				{Src: pathSet.metaPath, Dst: path.Join(hst.Tmp, "app"), Must: true},
 				{Src: "/etc/resolv.conf"},
 				{Src: "/sys/block"},
 				{Src: "/sys/bus"},
@@ -109,7 +109,7 @@ func (app *appInfo) toFst(pathSet *appPathSet, argv []string, flagDropShell bool
 			Etc:     path.Join(pathSet.cacheDir, "etc"),
 			AutoEtc: true,
 		},
-		ExtraPerms: []*fst.ExtraPermConfig{
+		ExtraPerms: []*hst.ExtraPermConfig{
 			{Path: dataHome, Execute: true},
 			{Ensure: true, Path: pathSet.baseDir, Read: true, Write: true, Execute: true},
 		},
@@ -147,7 +147,7 @@ func loadAppInfo(name string, beforeFail func()) *appInfo {
 func formatHostname(name string) string {
 	if h, err := os.Hostname(); err != nil {
 		log.Printf("cannot get hostname: %v", err)
-		return "fortify-" + name
+		return "hakurei-" + name
 	} else {
 		return h + "-" + name
 	}

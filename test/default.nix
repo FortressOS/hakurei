@@ -10,18 +10,18 @@
 }:
 
 nixosTest {
-  name = "fortify" + (if withRace then "-race" else "");
+  name = "hakurei" + (if withRace then "-race" else "");
   nodes.machine =
     { options, pkgs, ... }:
     let
       fhs =
         let
-          fortify = options.environment.fortify.package.default;
+          hakurei = options.environment.hakurei.package.default;
         in
         buildFHSEnv {
-          pname = "fortify-fhs";
-          inherit (fortify) version;
-          targetPkgs = _: fortify.targetPkgs;
+          pname = "hakurei-fhs";
+          inherit (hakurei) version;
+          targetPkgs = _: hakurei.targetPkgs;
           extraOutputsToInstall = [ "dev" ];
           profile = ''
             export PKG_CONFIG_PATH="/usr/share/pkgconfig:$PKG_CONFIG_PATH"
@@ -31,29 +31,29 @@ nixosTest {
     {
       environment.systemPackages = [
         # For go tests:
-        (writeShellScriptBin "fortify-test" ''
-          cd ${self.packages.${system}.fortify.src}
-          ${fhs}/bin/fortify-fhs -c \
+        (writeShellScriptBin "hakurei-test" ''
+          cd ${self.packages.${system}.hakurei.src}
+          ${fhs}/bin/hakurei-fhs -c \
             'go test ${if withRace then "-race" else "-count 16"} ./...' \
-            &> /tmp/fortify-test.log && \
-            touch /tmp/fortify-test-ok
-          touch /tmp/fortify-test-done
+            &> /tmp/hakurei-test.log && \
+            touch /tmp/hakurei-test-ok
+          touch /tmp/hakurei-test-done
         '')
       ];
 
       # Run with Go race detector:
-      environment.fortify = lib.mkIf withRace rec {
+      environment.hakurei = lib.mkIf withRace rec {
         # race detector does not support static linking
         package = (pkgs.callPackage ../package.nix { }).overrideAttrs (previousAttrs: {
           GOFLAGS = previousAttrs.GOFLAGS ++ [ "-race" ];
         });
-        fsuPackage = options.environment.fortify.fsuPackage.default.override { fortify = package; };
+        hsuPackage = options.environment.hakurei.hsuPackage.default.override { hakurei = package; };
       };
 
       imports = [
         ./configuration.nix
 
-        self.nixosModules.fortify
+        self.nixosModules.hakurei
         self.inputs.home-manager.nixosModules.home-manager
       ];
     };

@@ -3,7 +3,7 @@ package system
 import (
 	"fmt"
 
-	"git.gensokyo.uk/security/fortify/system/internal/xcb"
+	"git.gensokyo.uk/security/hakurei/system/internal/xcb"
 )
 
 // ChangeHosts appends an X11 ChangeHosts command Op.

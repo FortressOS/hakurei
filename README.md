@@ -1,8 +1,8 @@
-Fortify
+Hakurei
 =======
 
-[![Go Reference](https://pkg.go.dev/badge/git.gensokyo.uk/security/fortify.svg)](https://pkg.go.dev/git.gensokyo.uk/security/fortify)
-[![Go Report Card](https://goreportcard.com/badge/git.gensokyo.uk/security/fortify)](https://goreportcard.com/report/git.gensokyo.uk/security/fortify)
+[![Go Reference](https://pkg.go.dev/badge/git.gensokyo.uk/security/hakurei.svg)](https://pkg.go.dev/git.gensokyo.uk/security/hakurei)
+[![Go Report Card](https://goreportcard.com/badge/git.gensokyo.uk/security/hakurei)](https://goreportcard.com/report/git.gensokyo.uk/security/hakurei)
 
 Lets you run graphical applications as another user in a confined environment with a nice NixOS
 module to configure target users and provide launchers and desktop files for your privileged user.
@@ -18,7 +18,7 @@ Why would you want this?
 If you have a flakes-enabled nix environment, you can try out the tool by running:
 
 ```shell
-nix run git+https://git.gensokyo.uk/security/fortify -- help
+nix run git+https://git.gensokyo.uk/security/hakurei -- help
 ```
 
 ## Module usage
@@ -34,35 +34,35 @@ To use the module, import it into your configuration with
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.05";
 
-    fortify = {
-      url = "git+https://git.gensokyo.uk/security/fortify";
+    hakurei = {
+      url = "git+https://git.gensokyo.uk/security/hakurei";
 
       # Optional but recommended to limit the size of your system closure.
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
 
-  outputs = { self, nixpkgs, fortify, ... }:
+  outputs = { self, nixpkgs, hakurei, ... }:
   {
-    nixosConfigurations.fortify = nixpkgs.lib.nixosSystem {
+    nixosConfigurations.hakurei = nixpkgs.lib.nixosSystem {
       system = "x86_64-linux";
       modules = [
-        fortify.nixosModules.fortify
+        hakurei.nixosModules.hakurei
       ];
     };
   };
 }
 ```
 
-This adds the `environment.fortify` option:
+This adds the `environment.hakurei` option:
 
 ```nix
 { pkgs, ... }:
 
 {
-  environment.fortify = {
+  environment.hakurei = {
     enable = true;
-    stateDir = "/var/lib/fortify";
+    stateDir = "/var/lib/hakurei";
     users = {
       alice = 0;
       nixos = 10;

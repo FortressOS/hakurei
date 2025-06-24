@@ -5,25 +5,25 @@ on:
   - pull_request
 
 jobs:
-  fortify:
-    name: Fortify
+  hakurei:
+    name: Hakurei
     runs-on: nix
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Run NixOS test
-        run: nix build --out-link "result" --print-out-paths --print-build-logs .#checks.x86_64-linux.fortify
+        run: nix build --out-link "result" --print-out-paths --print-build-logs .#checks.x86_64-linux.hakurei
 
       - name: Upload test output
         uses: actions/upload-artifact@v3
         with:
-          name: "fortify-vm-output"
+          name: "hakurei-vm-output"
           path: result/*
           retention-days: 1
 
   race:
-    name: Fortify (race detector)
+    name: Hakurei (race detector)
     runs-on: nix
     steps:
       - name: Checkout
@@ -35,7 +35,7 @@ jobs:
       - name: Upload test output
         uses: actions/upload-artifact@v3
         with:
-          name: "fortify-race-vm-output"
+          name: "hakurei-race-vm-output"
           path: result/*
           retention-days: 1
 
@@ -93,7 +93,7 @@ jobs:
   check:
     name: Flake checks
     needs:
-      - fortify
+      - hakurei
       - race
       - sandbox
       - sandbox-race
@@ -116,15 +116,15 @@ jobs:
       - name: Build for test
         id: build-test
         run: >-
-          export FORTIFY_REV="$(git rev-parse --short HEAD)" &&
-          sed -i.old 's/version = /version = "0.0.0-'$FORTIFY_REV'"; # version = /' package.nix &&
+          export HAKUREI_REV="$(git rev-parse --short HEAD)" &&
+          sed -i.old 's/version = /version = "0.0.0-'$HAKUREI_REV'"; # version = /' package.nix &&
           nix build --print-out-paths --print-build-logs .#dist &&
           mv package.nix.old package.nix &&
-          echo "rev=$FORTIFY_REV" >> $GITHUB_OUTPUT
+          echo "rev=$HAKUREI_REV" >> $GITHUB_OUTPUT
 
       - name: Upload test build
         uses: actions/upload-artifact@v3
         with:
-          name: "fortify-${{ steps.build-test.outputs.rev }}"
+          name: "hakurei-${{ steps.build-test.outputs.rev }}"
           path: result/*
           retention-days: 1

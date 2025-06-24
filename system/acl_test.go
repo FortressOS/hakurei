@@ -3,7 +3,7 @@ package system
 import (
 	"testing"
 
-	"git.gensokyo.uk/security/fortify/acl"
+	"git.gensokyo.uk/security/hakurei/acl"
 )
 
 func TestUpdatePerm(t *testing.T) {
@@ -11,8 +11,8 @@ func TestUpdatePerm(t *testing.T) {
 		path  string
 		perms []acl.Perm
 	}{
-		{"/run/user/1971/fortify", []acl.Perm{acl.Execute}},
-		{"/tmp/fortify.1971/tmpdir/150", []acl.Perm{acl.Read, acl.Write, acl.Execute}},
+		{"/run/user/1971/hakurei", []acl.Perm{acl.Execute}},
+		{"/tmp/hakurei.1971/tmpdir/150", []acl.Perm{acl.Read, acl.Write, acl.Execute}},
 	}
 
 	for _, tc := range testCases {
@@ -29,11 +29,11 @@ func TestUpdatePermType(t *testing.T) {
 		perms []acl.Perm
 		tcOp
 	}{
-		{[]acl.Perm{acl.Execute}, tcOp{User, "/tmp/fortify.1971/tmpdir"}},
-		{[]acl.Perm{acl.Read, acl.Write, acl.Execute}, tcOp{User, "/tmp/fortify.1971/tmpdir/150"}},
-		{[]acl.Perm{acl.Execute}, tcOp{Process, "/run/user/1971/fortify/fcb8a12f7c482d183ade8288c3de78b5"}},
-		{[]acl.Perm{acl.Read}, tcOp{Process, "/tmp/fortify.1971/fcb8a12f7c482d183ade8288c3de78b5/passwd"}},
-		{[]acl.Perm{acl.Read}, tcOp{Process, "/tmp/fortify.1971/fcb8a12f7c482d183ade8288c3de78b5/group"}},
+		{[]acl.Perm{acl.Execute}, tcOp{User, "/tmp/hakurei.1971/tmpdir"}},
+		{[]acl.Perm{acl.Read, acl.Write, acl.Execute}, tcOp{User, "/tmp/hakurei.1971/tmpdir/150"}},
+		{[]acl.Perm{acl.Execute}, tcOp{Process, "/run/user/1971/hakurei/fcb8a12f7c482d183ade8288c3de78b5"}},
+		{[]acl.Perm{acl.Read}, tcOp{Process, "/tmp/hakurei.1971/fcb8a12f7c482d183ade8288c3de78b5/passwd"}},
+		{[]acl.Perm{acl.Read}, tcOp{Process, "/tmp/hakurei.1971/fcb8a12f7c482d183ade8288c3de78b5/group"}},
 		{[]acl.Perm{acl.Read, acl.Write, acl.Execute}, tcOp{EWayland, "/run/user/1971/wayland-0"}},
 	}
 

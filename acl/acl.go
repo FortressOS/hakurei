@@ -23,7 +23,7 @@ func Update(name string, uid int, perms ...Perm) error {
 		p = &perms[0]
 	}
 
-	r, err := C.f_acl_update_file_by_uid(
+	r, err := C.hakurei_acl_update_file_by_uid(
 		C.CString(name),
 		C.uid_t(uid),
 		(*C.acl_perm_t)(p),

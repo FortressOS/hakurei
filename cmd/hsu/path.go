@@ -8,7 +8,7 @@ import (
 const compPoison = "INVALIDINVALIDINVALIDINVALIDINVALID"
 
 var (
-	fmain = compPoison
+	hmain = compPoison
 	fpkg  = compPoison
 )
 

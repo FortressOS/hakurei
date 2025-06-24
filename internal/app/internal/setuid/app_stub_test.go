@@ -7,7 +7,7 @@ import (
 	"os/user"
 	"strconv"
 
-	"git.gensokyo.uk/security/fortify/internal/app"
+	"git.gensokyo.uk/security/hakurei/internal/app"
 )
 
 // fs methods are not implemented using a real FS
@@ -20,7 +20,7 @@ type stubNixOS struct {
 func (s *stubNixOS) Getuid() int                              { return 1971 }
 func (s *stubNixOS) Getgid() int                              { return 100 }
 func (s *stubNixOS) TempDir() string                          { return "/tmp" }
-func (s *stubNixOS) MustExecutable() string                   { return "/run/wrappers/bin/fortify" }
+func (s *stubNixOS) MustExecutable() string                   { return "/run/wrappers/bin/hakurei" }
 func (s *stubNixOS) Exit(code int)                            { panic("called exit on stub with code " + strconv.Itoa(code)) }
 func (s *stubNixOS) EvalSymlinks(path string) (string, error) { return path, nil }
 func (s *stubNixOS) Uid(aid int) (int, error)                 { return 1000000 + 0*10000 + aid, nil }
@@ -127,8 +127,8 @@ func (s *stubNixOS) Open(name string) (fs.File, error) {
 
 func (s *stubNixOS) Paths() app.Paths {
 	return app.Paths{
-		SharePath:   "/tmp/fortify.1971",
+		SharePath:   "/tmp/hakurei.1971",
 		RuntimePath: "/run/user/1971",
-		RunDirPath:  "/run/user/1971/fortify",
+		RunDirPath:  "/run/user/1971/hakurei",
 	}
 }

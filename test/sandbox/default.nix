@@ -7,23 +7,23 @@
 }:
 
 nixosTest {
-  name = "fortify-sandbox" + (if withRace then "-race" else "");
+  name = "hakurei-sandbox" + (if withRace then "-race" else "");
   nodes.machine =
     { options, pkgs, ... }:
     {
       # Run with Go race detector:
-      environment.fortify = lib.mkIf withRace rec {
+      environment.hakurei = lib.mkIf withRace rec {
         # race detector does not support static linking
         package = (pkgs.callPackage ../../package.nix { }).overrideAttrs (previousAttrs: {
           GOFLAGS = previousAttrs.GOFLAGS ++ [ "-race" ];
         });
-        fsuPackage = options.environment.fortify.fsuPackage.default.override { fortify = package; };
+        hsuPackage = options.environment.hakurei.hsuPackage.default.override { hakurei = package; };
       };
 
       imports = [
         ./configuration.nix
 
-        self.nixosModules.fortify
+        self.nixosModules.hakurei
         self.inputs.home-manager.nixosModules.home-manager
       ];
     };

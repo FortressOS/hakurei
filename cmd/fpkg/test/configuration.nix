@@ -50,9 +50,9 @@
     ];
   };
 
-  environment.fortify = {
+  environment.hakurei = {
     enable = true;
-    stateDir = "/var/lib/fortify";
+    stateDir = "/var/lib/hakurei";
     users.alice = 0;
 
     extraHomeConfig = {

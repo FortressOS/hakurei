@@ -11,13 +11,13 @@ import (
 	"testing"
 	"time"
 
-	"git.gensokyo.uk/security/fortify/helper"
+	"git.gensokyo.uk/security/hakurei/helper"
 )
 
 var (
 	wantArgs = []string{
 		"unix:path=/run/dbus/system_bus_socket",
-		"/tmp/fortify.1971/12622d846cc3fe7b4c10359d01f0eb47/system_bus_socket",
+		"/tmp/hakurei.1971/12622d846cc3fe7b4c10359d01f0eb47/system_bus_socket",
 		"--filter",
 		"--talk=org.bluez",
 		"--talk=org.freedesktop.Avahi",

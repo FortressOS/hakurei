@@ -10,10 +10,10 @@ func TestEnsure(t *testing.T) {
 		name string
 		perm os.FileMode
 	}{
-		{"/tmp/fortify.1971", 0701},
-		{"/tmp/fortify.1971/tmpdir", 0700},
-		{"/tmp/fortify.1971/tmpdir/150", 0700},
-		{"/run/user/1971/fortify", 0700},
+		{"/tmp/hakurei.1971", 0701},
+		{"/tmp/hakurei.1971/tmpdir", 0700},
+		{"/tmp/hakurei.1971/tmpdir/150", 0700},
+		{"/run/user/1971/hakurei", 0700},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name+"_"+tc.perm.String(), func(t *testing.T) {
@@ -29,8 +29,8 @@ func TestEphemeral(t *testing.T) {
 		perm os.FileMode
 		tcOp
 	}{
-		{0700, tcOp{Process, "/run/user/1971/fortify/ec07546a772a07cde87389afc84ffd13"}},
-		{0701, tcOp{Process, "/tmp/fortify.1971/ec07546a772a07cde87389afc84ffd13"}},
+		{0700, tcOp{Process, "/run/user/1971/hakurei/ec07546a772a07cde87389afc84ffd13"}},
+		{0701, tcOp{Process, "/tmp/hakurei.1971/ec07546a772a07cde87389afc84ffd13"}},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.path+"_"+tc.perm.String()+"_"+TypeString(tc.et), func(t *testing.T) {

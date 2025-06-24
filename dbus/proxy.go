@@ -8,7 +8,7 @@ import (
 	"sync"
 	"syscall"
 
-	"git.gensokyo.uk/security/fortify/helper"
+	"git.gensokyo.uk/security/hakurei/helper"
 )
 
 // ProxyName is the file name or path to the proxy program.

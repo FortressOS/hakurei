@@ -8,8 +8,8 @@ import (
 	"strconv"
 	"sync/atomic"
 
-	"git.gensokyo.uk/security/fortify/fst"
-	"git.gensokyo.uk/security/fortify/internal/fmsg"
+	"git.gensokyo.uk/security/hakurei/hst"
+	"git.gensokyo.uk/security/hakurei/internal/hlog"
 )
 
 var (
@@ -18,10 +18,10 @@ var (
 
 func init() {
 	// dataHome
-	if p, ok := os.LookupEnv("FORTIFY_DATA_HOME"); ok {
+	if p, ok := os.LookupEnv("HAKUREI_DATA_HOME"); ok {
 		dataHome = p
 	} else {
-		dataHome = "/var/lib/fortify/" + strconv.Itoa(os.Getuid())
+		dataHome = "/var/lib/hakurei/" + strconv.Itoa(os.Getuid())
 	}
 }
 
@@ -37,7 +37,7 @@ func lookPath(file string) string {
 var beforeRunFail = new(atomic.Pointer[func()])
 
 func mustRun(name string, arg ...string) {
-	fmsg.Verbosef("spawning process: %q %q", name, arg)
+	hlog.Verbosef("spawning process: %q %q", name, arg)
 	cmd := exec.Command(name, arg...)
 	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
 	if err := cmd.Run(); err != nil {
@@ -71,8 +71,8 @@ func pathSetByApp(id string) *appPathSet {
 	return pathSet
 }
 
-func appendGPUFilesystem(config *fst.Config) {
-	config.Container.Filesystem = append(config.Container.Filesystem, []*fst.FilesystemConfig{
+func appendGPUFilesystem(config *hst.Config) {
+	config.Container.Filesystem = append(config.Container.Filesystem, []*hst.FilesystemConfig{
 		// flatpak commit 763a686d874dd668f0236f911de00b80766ffe79
 		{Src: "/dev/dri", Device: true},
 		// mali

@@ -5,7 +5,7 @@ import (
 	"path"
 	"testing"
 
-	"git.gensokyo.uk/security/fortify/test/sandbox"
+	"git.gensokyo.uk/security/hakurei/test/sandbox"
 )
 
 func TestMountinfo(t *testing.T) {

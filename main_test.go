@@ -6,7 +6,7 @@ import (
 	"flag"
 	"testing"
 
-	"git.gensokyo.uk/security/fortify/command"
+	"git.gensokyo.uk/security/hakurei/command"
 )
 
 func TestHelp(t *testing.T) {
@@ -17,14 +17,14 @@ func TestHelp(t *testing.T) {
 	}{
 		{
 			"main", []string{}, `
-Usage:	fortify [-h | --help] [-v] [--json] COMMAND [OPTIONS]
+Usage:	hakurei [-h | --help] [-v] [--json] COMMAND [OPTIONS]
 
 Commands:
-    app         Launch app defined by the specified config file
+    app         Load app from configuration file
     run         Configure and start a permissive default sandbox
-    show        Show the contents of an app configuration
-    ps          List active apps and their state
-    version     Show fortify version
+    show        Show live or local app configuration
+    ps          List active instances
+    version     Display version information
     license     Show full license text
     template    Produce a config template
     help        Show this help message
@@ -33,7 +33,7 @@ Commands:
 		},
 		{
 			"run", []string{"run", "-h"}, `
-Usage:	fortify run [-h | --help] [--dbus-config <value>] [--dbus-system <value>] [--mpris] [--dbus-log] [--id <value>] [-a <int>] [-g <value>] [-d <value>] [-u <value>] [--wayland] [-X] [--dbus] [--pulse] COMMAND [OPTIONS]
+Usage:	hakurei run [-h | --help] [--dbus-config <value>] [--dbus-system <value>] [--mpris] [--dbus-log] [--id <value>] [-a <int>] [-g <value>] [-d <value>] [-u <value>] [--wayland] [-X] [--dbus] [--pulse] COMMAND [OPTIONS]
 
 Flags:
   -X	Enable direct connection to X11

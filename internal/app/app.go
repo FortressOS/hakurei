@@ -5,7 +5,7 @@ import (
 	"syscall"
 	"time"
 
-	"git.gensokyo.uk/security/fortify/fst"
+	"git.gensokyo.uk/security/hakurei/hst"
 )
 
 type App interface {
@@ -14,7 +14,7 @@ type App interface {
 
 	// Seal determines the outcome of config as a [SealedApp].
 	// The value of config might be overwritten and must not be used again.
-	Seal(config *fst.Config) (SealedApp, error)
+	Seal(config *hst.Config) (SealedApp, error)
 
 	String() string
 }
@@ -48,12 +48,12 @@ func (rs *RunState) SetStart() {
 	rs.Time = &now
 }
 
-// Paths contains environment-dependent paths used by fortify.
+// Paths contains environment-dependent paths used by hakurei.
 type Paths struct {
-	// path to shared directory (usually `/tmp/fortify.%d`)
+	// path to shared directory (usually `/tmp/hakurei.%d`)
 	SharePath string `json:"share_path"`
 	// XDG_RUNTIME_DIR value (usually `/run/user/%d`)
 	RuntimePath string `json:"runtime_path"`
-	// application runtime directory (usually `/run/user/%d/fortify`)
+	// application runtime directory (usually `/run/user/%d/hakurei`)
 	RunDirPath string `json:"run_dir_path"`
 }

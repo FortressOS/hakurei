@@ -11,10 +11,10 @@ import (
 	"strconv"
 	"syscall"
 
-	"git.gensokyo.uk/security/fortify/helper"
-	"git.gensokyo.uk/security/fortify/ldd"
-	"git.gensokyo.uk/security/fortify/sandbox"
-	"git.gensokyo.uk/security/fortify/sandbox/seccomp"
+	"git.gensokyo.uk/security/hakurei/helper"
+	"git.gensokyo.uk/security/hakurei/ldd"
+	"git.gensokyo.uk/security/hakurei/sandbox"
+	"git.gensokyo.uk/security/hakurei/sandbox/seccomp"
 )
 
 // Start starts and configures a D-Bus proxy process.
@@ -67,7 +67,7 @@ func (p *Proxy) Start() error {
 			p.final, true,
 			argF, func(container *sandbox.Container) {
 				container.Seccomp |= seccomp.FilterMultiarch
-				container.Hostname = "fortify-dbus"
+				container.Hostname = "hakurei-dbus"
 				container.CommandContext = p.CommandContext
 				if p.output != nil {
 					container.Stdout, container.Stderr = p.output, p.output

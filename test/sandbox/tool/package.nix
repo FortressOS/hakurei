@@ -21,10 +21,10 @@ buildGoModule rec {
   nativeBuildInputs = [ pkg-config ];
 
   preBuild = ''
-    go mod init git.gensokyo.uk/security/fortify/test/sandbox >& /dev/null
+    go mod init git.gensokyo.uk/security/hakurei/test/sandbox >& /dev/null
   '';
 
   postInstall = ''
-    mv $out/bin/tool $out/bin/fortify-test
+    mv $out/bin/tool $out/bin/hakurei-test
   '';
 }

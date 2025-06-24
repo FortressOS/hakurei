@@ -1,9 +1,9 @@
-package fst
+package hst
 
 import (
-	"git.gensokyo.uk/security/fortify/dbus"
-	"git.gensokyo.uk/security/fortify/sandbox/seccomp"
-	"git.gensokyo.uk/security/fortify/system"
+	"git.gensokyo.uk/security/hakurei/dbus"
+	"git.gensokyo.uk/security/hakurei/sandbox/seccomp"
+	"git.gensokyo.uk/security/hakurei/system"
 )
 
 // Template returns a fully populated instance of Config.
@@ -46,11 +46,11 @@ func Template() *Config {
 
 		Username: "chronos",
 		Shell:    "/run/current-system/sw/bin/zsh",
-		Data:     "/var/lib/fortify/u0/org.chromium.Chromium",
+		Data:     "/var/lib/hakurei/u0/org.chromium.Chromium",
 		Dir:      "/data/data/org.chromium.Chromium",
 		ExtraPerms: []*ExtraPermConfig{
-			{Path: "/var/lib/fortify/u0", Ensure: true, Execute: true},
-			{Path: "/var/lib/fortify/u0/org.chromium.Chromium", Read: true, Write: true, Execute: true},
+			{Path: "/var/lib/hakurei/u0", Ensure: true, Execute: true},
+			{Path: "/var/lib/hakurei/u0/org.chromium.Chromium", Read: true, Write: true, Execute: true},
 		},
 
 		Identity: 9,
@@ -78,7 +78,7 @@ func Template() *Config {
 				{Src: "/run/current-system"},
 				{Src: "/run/opengl-driver"},
 				{Src: "/var/db/nix-channels"},
-				{Src: "/var/lib/fortify/u0/org.chromium.Chromium",
+				{Src: "/var/lib/hakurei/u0/org.chromium.Chromium",
 					Dst: "/data/data/org.chromium.Chromium", Write: true, Must: true},
 				{Src: "/dev/dri", Device: true},
 			},

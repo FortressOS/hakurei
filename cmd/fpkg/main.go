@@ -10,13 +10,13 @@ import (
 	"path"
 	"syscall"
 
-	"git.gensokyo.uk/security/fortify/command"
-	"git.gensokyo.uk/security/fortify/fst"
-	"git.gensokyo.uk/security/fortify/internal"
-	"git.gensokyo.uk/security/fortify/internal/app/instance"
-	"git.gensokyo.uk/security/fortify/internal/fmsg"
-	"git.gensokyo.uk/security/fortify/internal/sys"
-	"git.gensokyo.uk/security/fortify/sandbox"
+	"git.gensokyo.uk/security/hakurei/command"
+	"git.gensokyo.uk/security/hakurei/hst"
+	"git.gensokyo.uk/security/hakurei/internal"
+	"git.gensokyo.uk/security/hakurei/internal/app/instance"
+	"git.gensokyo.uk/security/hakurei/internal/hlog"
+	"git.gensokyo.uk/security/hakurei/internal/sys"
+	"git.gensokyo.uk/security/hakurei/sandbox"
 )
 
 const shellPath = "/run/current-system/sw/bin/bash"
@@ -28,7 +28,7 @@ var (
 )
 
 func init() {
-	fmsg.Prepare("fpkg")
+	hlog.Prepare("fpkg")
 	if err := os.Setenv("SHELL", shellPath); err != nil {
 		log.Fatalf("cannot set $SHELL: %v", err)
 	}
@@ -36,7 +36,7 @@ func init() {
 
 func main() {
 	// early init path, skips root check and duplicate PR_SET_DUMPABLE
-	sandbox.TryArgv0(fmsg.Output{}, fmsg.Prepare, internal.InstallFmsg)
+	sandbox.TryArgv0(hlog.Output{}, hlog.Prepare, internal.InstallFmsg)
 
 	if err := sandbox.SetDumpable(sandbox.SUID_DUMP_DISABLE); err != nil {
 		log.Printf("cannot set SUID_DUMP_DISABLE: %s", err)
@@ -60,7 +60,7 @@ func main() {
 		return nil
 	}).
 		Flag(&flagVerbose, "v", command.BoolFlag(false), "Print debug messages to the console").
-		Flag(&flagDropShell, "s", command.BoolFlag(false), "Drop to a shell in place of next fortify action")
+		Flag(&flagDropShell, "s", command.BoolFlag(false), "Drop to a shell in place of next hakurei action")
 
 	c.Command("shim", command.UsageInternal, func([]string) error { instance.ShimMain(); return errSuccess })
 
@@ -166,10 +166,10 @@ func main() {
 				}
 
 				// sec: should compare version string
-				fmsg.Verbosef("installing application %q version %q over local %q",
+				hlog.Verbosef("installing application %q version %q over local %q",
 					bundle.ID, bundle.Version, a.Version)
 			} else {
-				fmsg.Verbosef("application %q clean installation", bundle.ID)
+				hlog.Verbosef("application %q clean installation", bundle.ID)
 				// sec: should install credentials
 			}
 
@@ -179,7 +179,7 @@ func main() {
 
 			withCacheDir(ctx, "install", []string{
 				// export inner bundle path in the environment
-				"export BUNDLE=" + fst.Tmp + "/bundle",
+				"export BUNDLE=" + hst.Tmp + "/bundle",
 				// replace inner /etc
 				"mkdir -p etc",
 				"chmod -R +w etc",
@@ -218,7 +218,7 @@ func main() {
 				"rm -rf .local/state/{nix,home-manager}",
 				// run activation script
 				bundle.ActivationPackage + "/activate",
-			}, false, func(config *fst.Config) *fst.Config { return config },
+			}, false, func(config *hst.Config) *hst.Config { return config },
 				bundle, pathSet, flagDropShellActivate, cleanup)
 
 			/*
@@ -291,8 +291,8 @@ func main() {
 						"--out-link /nix/.nixGL/auto/vulkan " +
 						"--override-input nixpkgs path:/etc/nixpkgs " +
 						"path:" + a.NixGL + "#nixVulkanNvidia",
-				}, true, func(config *fst.Config) *fst.Config {
-					config.Container.Filesystem = append(config.Container.Filesystem, []*fst.FilesystemConfig{
+				}, true, func(config *hst.Config) *hst.Config {
+					config.Container.Filesystem = append(config.Container.Filesystem, []*hst.FilesystemConfig{
 						{Src: "/etc/resolv.conf"},
 						{Src: "/sys/block"},
 						{Src: "/sys/bus"},
@@ -325,7 +325,7 @@ func main() {
 
 			if a.GPU {
 				config.Container.Filesystem = append(config.Container.Filesystem,
-					&fst.FilesystemConfig{Src: path.Join(pathSet.nixPath, ".nixGL"), Dst: path.Join(fst.Tmp, "nixGL")})
+					&hst.FilesystemConfig{Src: path.Join(pathSet.nixPath, ".nixGL"), Dst: path.Join(hst.Tmp, "nixGL")})
 				appendGPUFilesystem(config)
 			}
 
@@ -341,9 +341,9 @@ func main() {
 	}
 
 	c.MustParse(os.Args[1:], func(err error) {
-		fmsg.Verbosef("command returned %v", err)
+		hlog.Verbosef("command returned %v", err)
 		if errors.Is(err, errSuccess) {
-			fmsg.BeforeExit()
+			hlog.BeforeExit()
 			os.Exit(0)
 		}
 	})

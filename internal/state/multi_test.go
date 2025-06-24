@@ -3,7 +3,7 @@ package state_test
 import (
 	"testing"
 
-	"git.gensokyo.uk/security/fortify/internal/state"
+	"git.gensokyo.uk/security/hakurei/internal/state"
 )
 
 func TestMulti(t *testing.T) {

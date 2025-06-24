@@ -8,7 +8,7 @@ import (
 	"syscall"
 	"testing"
 
-	"git.gensokyo.uk/security/fortify/sandbox/vfs"
+	"git.gensokyo.uk/security/hakurei/sandbox/vfs"
 )
 
 func TestUnfold(t *testing.T) {

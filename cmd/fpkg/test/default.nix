@@ -18,7 +18,7 @@ nixosTest {
     imports = [
       ./configuration.nix
 
-      self.nixosModules.fortify
+      self.nixosModules.hakurei
       self.inputs.home-manager.nixosModules.home-manager
     ];
   };

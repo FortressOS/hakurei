@@ -1,5 +1,5 @@
 {
-  description = "fortify sandbox tool and nixos module";
+  description = "hakurei container tool and nixos module";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.05";
@@ -27,7 +27,7 @@
       nixpkgsFor = forAllSystems (system: import nixpkgs { inherit system; });
     in
     {
-      nixosModules.fortify = import ./nixos.nix self.packages;
+      nixosModules.hakurei = import ./nixos.nix self.packages;
 
       buildPackage = forAllSystems (
         system:
@@ -57,7 +57,7 @@
             ;
         in
         {
-          fortify = callPackage ./test { inherit system self; };
+          hakurei = callPackage ./test { inherit system self; };
           race = callPackage ./test {
             inherit system self;
             withRace = true;
@@ -105,12 +105,12 @@
       packages = forAllSystems (
         system:
         let
-          inherit (self.packages.${system}) fortify fsu;
+          inherit (self.packages.${system}) hakurei hsu;
           pkgs = nixpkgsFor.${system};
         in
         {
-          default = fortify;
-          fortify = pkgs.pkgsStatic.callPackage ./package.nix {
+          default = hakurei;
+          hakurei = pkgs.pkgsStatic.callPackage ./package.nix {
             inherit (pkgs)
               # passthru.buildInputs
               go
@@ -131,20 +131,20 @@
               coreutils
               ;
           };
-          fsu = pkgs.callPackage ./cmd/fsu/package.nix { inherit (self.packages.${system}) fortify; };
+          hsu = pkgs.callPackage ./cmd/hsu/package.nix { inherit (self.packages.${system}) hakurei; };
 
-          dist = pkgs.runCommand "${fortify.name}-dist" { buildInputs = fortify.targetPkgs ++ [ pkgs.pkgsStatic.musl ]; } ''
+          dist = pkgs.runCommand "${hakurei.name}-dist" { buildInputs = hakurei.targetPkgs ++ [ pkgs.pkgsStatic.musl ]; } ''
             # go requires XDG_CACHE_HOME for the build cache
             export XDG_CACHE_HOME="$(mktemp -d)"
 
             # get a different workdir as go does not like /build
             cd $(mktemp -d) \
-                && cp -r ${fortify.src}/. . \
-                && chmod +w cmd && cp -r ${fsu.src}/. cmd/fsu/ \
+                && cp -r ${hakurei.src}/. . \
+                && chmod +w cmd && cp -r ${hsu.src}/. cmd/hsu/ \
                 && chmod -R +w .
 
-            export FORTIFY_VERSION="v${fortify.version}"
-            ./dist/release.sh && mkdir $out && cp -v "dist/fortify-$FORTIFY_VERSION.tar.gz"* $out
+            export HAKUREI_VERSION="v${hakurei.version}"
+            ./dist/release.sh && mkdir $out && cp -v "dist/hakurei-$HAKUREI_VERSION.tar.gz"* $out
           '';
         }
       );
@@ -152,12 +152,12 @@
       devShells = forAllSystems (
         system:
         let
-          inherit (self.packages.${system}) fortify;
+          inherit (self.packages.${system}) hakurei;
           pkgs = nixpkgsFor.${system};
         in
         {
-          default = pkgs.mkShell { buildInputs = fortify.targetPkgs; };
-          withPackage = pkgs.mkShell { buildInputs = [ fortify ] ++ fortify.targetPkgs; };
+          default = pkgs.mkShell { buildInputs = hakurei.targetPkgs; };
+          withPackage = pkgs.mkShell { buildInputs = [ hakurei ] ++ hakurei.targetPkgs; };
 
           generateDoc =
             let
@@ -174,7 +174,7 @@
                   cleanEval = lib.filterAttrsRecursive (n: _: n != "_module") eval;
                 in
                 pkgs.nixosOptionsDoc { inherit (cleanEval) options; };
-              docText = pkgs.runCommand "fortify-module-docs.md" { } ''
+              docText = pkgs.runCommand "hakurei-module-docs.md" { } ''
                 cat ${doc.optionsCommonMark} > $out
                 sed -i '/*Declared by:*/,+1 d' $out
               '';

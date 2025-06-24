@@ -1,10 +1,10 @@
-package fst_test
+package hst_test
 
 import (
 	"encoding/json"
 	"testing"
 
-	"git.gensokyo.uk/security/fortify/fst"
+	"git.gensokyo.uk/security/hakurei/hst"
 )
 
 func TestTemplate(t *testing.T) {
@@ -57,16 +57,16 @@ func TestTemplate(t *testing.T) {
 	},
 	"username": "chronos",
 	"shell": "/run/current-system/sw/bin/zsh",
-	"data": "/var/lib/fortify/u0/org.chromium.Chromium",
+	"data": "/var/lib/hakurei/u0/org.chromium.Chromium",
 	"dir": "/data/data/org.chromium.Chromium",
 	"extra_perms": [
 		{
 			"ensure": true,
-			"path": "/var/lib/fortify/u0",
+			"path": "/var/lib/hakurei/u0",
 			"x": true
 		},
 		{
-			"path": "/var/lib/fortify/u0/org.chromium.Chromium",
+			"path": "/var/lib/hakurei/u0/org.chromium.Chromium",
 			"r": true,
 			"w": true,
 			"x": true
@@ -108,7 +108,7 @@ func TestTemplate(t *testing.T) {
 			},
 			{
 				"dst": "/data/data/org.chromium.Chromium",
-				"src": "/var/lib/fortify/u0/org.chromium.Chromium",
+				"src": "/var/lib/hakurei/u0/org.chromium.Chromium",
 				"write": true,
 				"require": true
 			},
@@ -131,7 +131,7 @@ func TestTemplate(t *testing.T) {
 	}
 }`
 
-	if p, err := json.MarshalIndent(fst.Template(), "", "\t"); err != nil {
+	if p, err := json.MarshalIndent(hst.Template(), "", "\t"); err != nil {
 		t.Fatalf("cannot marshal: %v", err)
 	} else if s := string(p); s != want {
 		t.Fatalf("Template:\n%s\nwant:\n%s",

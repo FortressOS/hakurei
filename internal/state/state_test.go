@@ -10,9 +10,9 @@ import (
 	"testing"
 	"time"
 
-	"git.gensokyo.uk/security/fortify/fst"
-	"git.gensokyo.uk/security/fortify/internal/app"
-	"git.gensokyo.uk/security/fortify/internal/state"
+	"git.gensokyo.uk/security/hakurei/hst"
+	"git.gensokyo.uk/security/hakurei/internal/app"
+	"git.gensokyo.uk/security/hakurei/internal/state"
 )
 
 func testStore(t *testing.T, s state.Store) {
@@ -63,7 +63,7 @@ func testStore(t *testing.T, s state.Store) {
 					&tc[i].state.ID)
 			} else {
 				got.Time = tc[i].state.Time
-				tc[i].state.Config = fst.Template()
+				tc[i].state.Config = hst.Template()
 				if !reflect.DeepEqual(got, &tc[i].state) {
 					t.Fatalf("Load: entry %s got %#v, want %#v",
 						&tc[i].state.ID, got, &tc[i].state)
@@ -137,7 +137,7 @@ func makeState(t *testing.T, s *state.State, ct io.Writer) {
 	if err := app.NewAppID(&s.ID); err != nil {
 		t.Fatalf("cannot create dummy state: %v", err)
 	}
-	if err := gob.NewEncoder(ct).Encode(fst.Template()); err != nil {
+	if err := gob.NewEncoder(ct).Encode(hst.Template()); err != nil {
 		t.Fatalf("cannot encode dummy config: %v", err)
 	}
 	s.PID = rand.Int()

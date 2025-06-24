@@ -8,7 +8,7 @@ import (
 	"os/exec"
 	"testing"
 
-	"git.gensokyo.uk/security/fortify/helper"
+	"git.gensokyo.uk/security/hakurei/helper"
 )
 
 func TestCmd(t *testing.T) {
@@ -22,9 +22,9 @@ func TestCmd(t *testing.T) {
 	})
 
 	t.Run("valid new helper nil check", func(t *testing.T) {
-		if got := helper.NewDirect(t.Context(), "fortify", argsWt, false, argF, nil, nil); got == nil {
+		if got := helper.NewDirect(t.Context(), "hakurei", argsWt, false, argF, nil, nil); got == nil {
 			t.Errorf("NewDirect(%q, %q) got nil",
-				argsWt, "fortify")
+				argsWt, "hakurei")
 			return
 		}
 	})

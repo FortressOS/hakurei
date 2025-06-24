@@ -1,17 +1,17 @@
 package internal
 
 import (
-	"git.gensokyo.uk/security/fortify/internal/fmsg"
-	"git.gensokyo.uk/security/fortify/sandbox"
-	"git.gensokyo.uk/security/fortify/sandbox/seccomp"
-	"git.gensokyo.uk/security/fortify/system"
+	"git.gensokyo.uk/security/hakurei/internal/hlog"
+	"git.gensokyo.uk/security/hakurei/sandbox"
+	"git.gensokyo.uk/security/hakurei/sandbox/seccomp"
+	"git.gensokyo.uk/security/hakurei/system"
 )
 
 func InstallFmsg(verbose bool) {
-	fmsg.Store(verbose)
-	sandbox.SetOutput(fmsg.Output{})
-	system.SetOutput(fmsg.Output{})
+	hlog.Store(verbose)
+	sandbox.SetOutput(hlog.Output{})
+	system.SetOutput(hlog.Output{})
 	if verbose {
-		seccomp.SetOutput(fmsg.Verbose)
+		seccomp.SetOutput(hlog.Verbose)
 	}
 }

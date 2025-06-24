@@ -5,10 +5,10 @@ import (
 	"testing"
 	"time"
 
-	"git.gensokyo.uk/security/fortify/dbus"
-	"git.gensokyo.uk/security/fortify/fst"
-	"git.gensokyo.uk/security/fortify/internal/app"
-	"git.gensokyo.uk/security/fortify/internal/state"
+	"git.gensokyo.uk/security/hakurei/dbus"
+	"git.gensokyo.uk/security/hakurei/hst"
+	"git.gensokyo.uk/security/hakurei/internal/app"
+	"git.gensokyo.uk/security/hakurei/internal/state"
 )
 
 var (
@@ -21,7 +21,7 @@ var (
 	testState = &state.State{
 		ID:     testID,
 		PID:    0xDEADBEEF,
-		Config: fst.Template(),
+		Config: hst.Template(),
 		Time:   testAppTime,
 	}
 	testTime    = time.Unix(3752, 1).UTC()
@@ -32,15 +32,15 @@ func Test_printShowInstance(t *testing.T) {
 	testCases := []struct {
 		name        string
 		instance    *state.State
-		config      *fst.Config
+		config      *hst.Config
 		short, json bool
 		want        string
 	}{
-		{"config", nil, fst.Template(), false, false, `App
- ID:             9 (org.chromium.Chromium)
+		{"config", nil, hst.Template(), false, false, `App
+ Identity:       9 (org.chromium.Chromium)
  Enablements:    wayland, dbus, pulseaudio
  Groups:         video, dialout, plugdev
- Data:           /var/lib/fortify/u0/org.chromium.Chromium
+ Data:           /var/lib/hakurei/u0/org.chromium.Chromium
  Hostname:       localhost
  Flags:          userns devel net device tty mapuid autoetc
  Etc:            /etc
@@ -53,12 +53,12 @@ Filesystem
  +/run/current-system
  +/run/opengl-driver
  +/var/db/nix-channels
- w*/var/lib/fortify/u0/org.chromium.Chromium:/data/data/org.chromium.Chromium
+ w*/var/lib/hakurei/u0/org.chromium.Chromium:/data/data/org.chromium.Chromium
  d+/dev/dri
 
 Extra ACL
- --x+:/var/lib/fortify/u0
- rwx:/var/lib/fortify/u0/org.chromium.Chromium
+ --x+:/var/lib/hakurei/u0
+ rwx:/var/lib/hakurei/u0/org.chromium.Chromium
 
 Session bus
  Filter:       true
@@ -72,23 +72,23 @@ System bus
  Talk:      ["org.bluez" "org.freedesktop.Avahi" "org.freedesktop.UPower"]
 
 `},
-		{"config pd", nil, new(fst.Config), false, false, `Warning: this configuration uses permissive defaults!
+		{"config pd", nil, new(hst.Config), false, false, `Warning: this configuration uses permissive defaults!
 
 App
- ID:             0
+ Identity:       0
  Enablements:    (no enablements)
 
 `},
-		{"config flag none", nil, &fst.Config{Container: new(fst.ContainerConfig)}, false, false, `App
- ID:             0
+		{"config flag none", nil, &hst.Config{Container: new(hst.ContainerConfig)}, false, false, `App
+ Identity:       0
  Enablements:    (no enablements)
  Flags:          none
  Etc:            /etc
  Path:           
 
 `},
-		{"config nil entries", nil, &fst.Config{Container: &fst.ContainerConfig{Filesystem: make([]*fst.FilesystemConfig, 1)}, ExtraPerms: make([]*fst.ExtraPermConfig, 1)}, false, false, `App
- ID:             0
+		{"config nil entries", nil, &hst.Config{Container: &hst.ContainerConfig{Filesystem: make([]*hst.FilesystemConfig, 1)}, ExtraPerms: make([]*hst.ExtraPermConfig, 1)}, false, false, `App
+ Identity:       0
  Enablements:    (no enablements)
  Flags:          none
  Etc:            /etc
@@ -99,10 +99,10 @@ Filesystem
 Extra ACL
 
 `},
-		{"config pd dbus see", nil, &fst.Config{SessionBus: &dbus.Config{See: []string{"org.example.test"}}}, false, false, `Warning: this configuration uses permissive defaults!
+		{"config pd dbus see", nil, &hst.Config{SessionBus: &dbus.Config{See: []string{"org.example.test"}}}, false, false, `Warning: this configuration uses permissive defaults!
 
 App
- ID:             0
+ Identity:       0
  Enablements:    (no enablements)
 
 Session bus
@@ -111,15 +111,15 @@ Session bus
 
 `},
 
-		{"instance", testState, fst.Template(), false, false, `State
+		{"instance", testState, hst.Template(), false, false, `State
  Instance:    8e2c76b066dabe574cf073bdb46eb5c1 (3735928559)
  Uptime:      1h2m32s
 
 App
- ID:             9 (org.chromium.Chromium)
+ Identity:       9 (org.chromium.Chromium)
  Enablements:    wayland, dbus, pulseaudio
  Groups:         video, dialout, plugdev
- Data:           /var/lib/fortify/u0/org.chromium.Chromium
+ Data:           /var/lib/hakurei/u0/org.chromium.Chromium
  Hostname:       localhost
  Flags:          userns devel net device tty mapuid autoetc
  Etc:            /etc
@@ -132,12 +132,12 @@ Filesystem
  +/run/current-system
  +/run/opengl-driver
  +/var/db/nix-channels
- w*/var/lib/fortify/u0/org.chromium.Chromium:/data/data/org.chromium.Chromium
+ w*/var/lib/hakurei/u0/org.chromium.Chromium:/data/data/org.chromium.Chromium
  d+/dev/dri
 
 Extra ACL
- --x+:/var/lib/fortify/u0
- rwx:/var/lib/fortify/u0/org.chromium.Chromium
+ --x+:/var/lib/hakurei/u0
+ rwx:/var/lib/hakurei/u0/org.chromium.Chromium
 
 Session bus
  Filter:       true
@@ -151,14 +151,14 @@ System bus
  Talk:      ["org.bluez" "org.freedesktop.Avahi" "org.freedesktop.UPower"]
 
 `},
-		{"instance pd", testState, new(fst.Config), false, false, `Warning: this configuration uses permissive defaults!
+		{"instance pd", testState, new(hst.Config), false, false, `Warning: this configuration uses permissive defaults!
 
 State
  Instance:    8e2c76b066dabe574cf073bdb46eb5c1 (3735928559)
  Uptime:      1h2m32s
 
 App
- ID:             0
+ Identity:       0
  Enablements:    (no enablements)
 
 `},
@@ -234,16 +234,16 @@ App
     },
     "username": "chronos",
     "shell": "/run/current-system/sw/bin/zsh",
-    "data": "/var/lib/fortify/u0/org.chromium.Chromium",
+    "data": "/var/lib/hakurei/u0/org.chromium.Chromium",
     "dir": "/data/data/org.chromium.Chromium",
     "extra_perms": [
       {
         "ensure": true,
-        "path": "/var/lib/fortify/u0",
+        "path": "/var/lib/hakurei/u0",
         "x": true
       },
       {
-        "path": "/var/lib/fortify/u0/org.chromium.Chromium",
+        "path": "/var/lib/hakurei/u0/org.chromium.Chromium",
         "r": true,
         "w": true,
         "x": true
@@ -285,7 +285,7 @@ App
         },
         {
           "dst": "/data/data/org.chromium.Chromium",
-          "src": "/var/lib/fortify/u0/org.chromium.Chromium",
+          "src": "/var/lib/hakurei/u0/org.chromium.Chromium",
           "write": true,
           "require": true
         },
@@ -310,7 +310,7 @@ App
   "time": "1970-01-01T00:00:00.000000009Z"
 }
 `},
-		{"json config", nil, fst.Template(), false, true, `{
+		{"json config", nil, hst.Template(), false, true, `{
   "id": "org.chromium.Chromium",
   "path": "/run/current-system/sw/bin/chromium",
   "args": [
@@ -359,16 +359,16 @@ App
   },
   "username": "chronos",
   "shell": "/run/current-system/sw/bin/zsh",
-  "data": "/var/lib/fortify/u0/org.chromium.Chromium",
+  "data": "/var/lib/hakurei/u0/org.chromium.Chromium",
   "dir": "/data/data/org.chromium.Chromium",
   "extra_perms": [
     {
       "ensure": true,
-      "path": "/var/lib/fortify/u0",
+      "path": "/var/lib/hakurei/u0",
       "x": true
     },
     {
-      "path": "/var/lib/fortify/u0/org.chromium.Chromium",
+      "path": "/var/lib/hakurei/u0/org.chromium.Chromium",
       "r": true,
       "w": true,
       "x": true
@@ -410,7 +410,7 @@ App
       },
       {
         "dst": "/data/data/org.chromium.Chromium",
-        "src": "/var/lib/fortify/u0/org.chromium.Chromium",
+        "src": "/var/lib/hakurei/u0/org.chromium.Chromium",
         "write": true,
         "require": true
       },
@@ -460,8 +460,8 @@ func Test_printPs(t *testing.T) {
 		{"nil instance", state.Entries{testID: nil}, false, false, "    Instance    PID    Application    Uptime\n"},
 		{"state corruption", state.Entries{app.ID{}: testState}, false, false, "    Instance    PID    Application    Uptime\n"},
 
-		{"valid pd", state.Entries{testID: &state.State{ID: testID, PID: 1 << 8, Config: new(fst.Config), Time: testAppTime}}, false, false, `    Instance    PID    Application                         Uptime
-    8e2c76b0    256    0 (uk.gensokyo.fortify.8e2c76b0)    1h2m32s
+		{"valid pd", state.Entries{testID: &state.State{ID: testID, PID: 1 << 8, Config: new(hst.Config), Time: testAppTime}}, false, false, `    Instance    PID    Application                         Uptime
+    8e2c76b0    256    0 (uk.gensokyo.hakurei.8e2c76b0)    1h2m32s
 `},
 
 		{"valid", state.Entries{testID: testState}, false, false, `    Instance    PID           Application                  Uptime
@@ -538,16 +538,16 @@ func Test_printPs(t *testing.T) {
       },
       "username": "chronos",
       "shell": "/run/current-system/sw/bin/zsh",
-      "data": "/var/lib/fortify/u0/org.chromium.Chromium",
+      "data": "/var/lib/hakurei/u0/org.chromium.Chromium",
       "dir": "/data/data/org.chromium.Chromium",
       "extra_perms": [
         {
           "ensure": true,
-          "path": "/var/lib/fortify/u0",
+          "path": "/var/lib/hakurei/u0",
           "x": true
         },
         {
-          "path": "/var/lib/fortify/u0/org.chromium.Chromium",
+          "path": "/var/lib/hakurei/u0/org.chromium.Chromium",
           "r": true,
           "w": true,
           "x": true
@@ -589,7 +589,7 @@ func Test_printPs(t *testing.T) {
           },
           {
             "dst": "/data/data/org.chromium.Chromium",
-            "src": "/var/lib/fortify/u0/org.chromium.Chromium",
+            "src": "/var/lib/hakurei/u0/org.chromium.Chromium",
             "write": true,
             "require": true
           },
