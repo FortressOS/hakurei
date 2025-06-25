@@ -460,8 +460,8 @@ func Test_printPs(t *testing.T) {
 		{"nil instance", state.Entries{testID: nil}, false, false, "    Instance    PID    Application    Uptime\n"},
 		{"state corruption", state.Entries{app.ID{}: testState}, false, false, "    Instance    PID    Application    Uptime\n"},
 
-		{"valid pd", state.Entries{testID: &state.State{ID: testID, PID: 1 << 8, Config: new(hst.Config), Time: testAppTime}}, false, false, `    Instance    PID    Application                         Uptime
-    8e2c76b0    256    0 (uk.gensokyo.hakurei.8e2c76b0)    1h2m32s
+		{"valid pd", state.Entries{testID: &state.State{ID: testID, PID: 1 << 8, Config: new(hst.Config), Time: testAppTime}}, false, false, `    Instance    PID    Application                 Uptime
+    8e2c76b0    256    0 (app.hakurei.8e2c76b0)    1h2m32s
 `},
 
 		{"valid", state.Entries{testID: testState}, false, false, `    Instance    PID           Application                  Uptime

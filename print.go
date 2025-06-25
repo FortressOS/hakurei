@@ -264,7 +264,7 @@ func printPs(output io.Writer, now time.Time, s state.Store, short, flagJSON boo
 			as = strconv.Itoa(e.Config.Identity)
 			id := e.Config.ID
 			if id == "" {
-				id = "uk.gensokyo.hakurei." + e.s[:8]
+				id = "app.hakurei." + e.s[:8]
 			}
 			as += " (" + id + ")"
 		}

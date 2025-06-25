@@ -393,7 +393,7 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 			appID := config.ID
 			if appID == "" {
 				// use instance ID in case app id is not set
-				appID = "uk.gensokyo.hakurei." + seal.id.String()
+				appID = "app.hakurei." + seal.id.String()
 			}
 			// downstream socket paths
 			outerPath := path.Join(share.instance(), "wayland")
