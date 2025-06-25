@@ -1,0 +1,46 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    name: Create release
+    runs-on: ubuntu-latest
+
+    permissions:
+      packages: write
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: nixbuild/nix-quick-install-action@v32
+        with:
+          nix_conf: |
+            keep-env-derivations = true
+            keep-outputs = true
+
+      - name: Restore and cache Nix store
+        uses: nix-community/cache-nix-action@v6
+        with:
+          primary-key: build-${{ runner.os }}-${{ hashFiles('**/*.nix') }}
+          restore-prefixes-first-match: build-${{ runner.os }}-
+          gc-max-store-size-linux: 1G
+          purge: true
+          purge-prefixes: build-${{ runner.os }}-
+          purge-created: 60
+          purge-primary-key: never
+
+      - name: Build for release
+        run: nix build --print-out-paths --print-build-logs .#dist
+
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |-
+            result/hakurei-**
