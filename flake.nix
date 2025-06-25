@@ -184,6 +184,16 @@
                 exec cat ${docText} > options.md
               '';
             };
+
+          generateSyscallTable = pkgs.mkShell {
+            # this should be made cross-platform via nix
+            shellHook = ''
+              exec ${pkgs.perl}/bin/perl \
+                sandbox/seccomp/mksysnum_linux.pl \
+                ${pkgs.linuxHeaders}/include/asm/unistd_64.h > \
+                sandbox/seccomp/syscall_linux_amd64.go
+            '';
+          };
         }
       );
     };

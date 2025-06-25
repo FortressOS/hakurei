@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"runtime"
 	"syscall"
+	"unsafe"
 )
 
 // LibraryError represents a libseccomp error.
@@ -113,4 +114,12 @@ func buildFilter(fd int, opts FilterOpts) error {
 		}
 	}
 	return err
+}
+
+// only used for testing
+func syscallResolveName(s string) (trap int) {
+	v := C.CString(s)
+	trap = int(C.seccomp_syscall_resolve_name(v))
+	C.free(unsafe.Pointer(v))
+	return
 }
