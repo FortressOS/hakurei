@@ -11,9 +11,9 @@ cp -rv "dist/comp" "${out}"
 go generate ./...
 go build -trimpath -v -o "${out}/bin/" -ldflags "-s -w -buildid= -extldflags '-static'
   -X git.gensokyo.uk/security/hakurei/internal.version=${VERSION}
+  -X git.gensokyo.uk/security/hakurei/internal.hakurei=/usr/bin/hakurei
   -X git.gensokyo.uk/security/hakurei/internal.hsu=/usr/bin/hsu
-  -X main.hmain=/usr/bin/hakurei
-  -X main.fpkg=/usr/bin/fpkg" ./...
+  -X main.hmain=/usr/bin/hakurei" ./...
 
 rm -f "./${out}.tar.gz" && tar -C dist -czf "${out}.tar.gz" "${pname}"
 rm -rf "./${out}"

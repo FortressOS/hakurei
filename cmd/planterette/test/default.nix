@@ -9,7 +9,7 @@ let
   buildPackage = self.buildPackage.${system};
 in
 nixosTest {
-  name = "fpkg";
+  name = "planterette";
   nodes.machine = {
     environment.etc = {
       "foot.pkg".source = callPackage ./foot.nix { inherit buildPackage; };

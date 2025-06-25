@@ -16,15 +16,8 @@ buildGoModule {
     go mod init hsu >& /dev/null
   '';
 
-  ldflags =
-    lib.attrsets.foldlAttrs
-      (
-        ldflags: name: value:
-        ldflags ++ [ "-X main.${name}=${value}" ]
-      )
-      [ "-s -w" ]
-      {
-        hmain = "${hakurei}/libexec/hakurei";
-        fpkg = "${hakurei}/libexec/fpkg";
-      };
+  ldflags = lib.attrsets.foldlAttrs (
+    ldflags: name: value:
+    ldflags ++ [ "-X main.${name}=${value}" ]
+  ) [ "-s -w" ] { hmain = "${hakurei}/libexec/hakurei"; };
 }

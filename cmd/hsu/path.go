@@ -9,7 +9,6 @@ const compPoison = "INVALIDINVALIDINVALIDINVALIDINVALID"
 
 var (
 	hmain = compPoison
-	fpkg  = compPoison
 )
 
 func mustCheckPath(p string) string {

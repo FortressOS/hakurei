@@ -41,7 +41,7 @@ func main() {
 		log.Fatalf("cannot read parent executable path: %v", err)
 	} else if strings.HasSuffix(p, " (deleted)") {
 		log.Fatal("hakurei executable has been deleted")
-	} else if p != mustCheckPath(hmain) && p != mustCheckPath(fpkg) {
+	} else if p != mustCheckPath(hmain) {
 		log.Fatal("this program must be started by hakurei")
 	} else {
 		toolPath = p

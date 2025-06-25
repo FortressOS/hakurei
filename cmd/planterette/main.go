@@ -13,36 +13,23 @@ import (
 	"git.gensokyo.uk/security/hakurei/command"
 	"git.gensokyo.uk/security/hakurei/hst"
 	"git.gensokyo.uk/security/hakurei/internal"
-	"git.gensokyo.uk/security/hakurei/internal/app/instance"
 	"git.gensokyo.uk/security/hakurei/internal/hlog"
-	"git.gensokyo.uk/security/hakurei/internal/sys"
-	"git.gensokyo.uk/security/hakurei/sandbox"
 )
 
 const shellPath = "/run/current-system/sw/bin/bash"
 
 var (
 	errSuccess = errors.New("success")
-
-	std sys.State = new(sys.Std)
 )
 
 func init() {
-	hlog.Prepare("fpkg")
+	hlog.Prepare("planterette")
 	if err := os.Setenv("SHELL", shellPath); err != nil {
 		log.Fatalf("cannot set $SHELL: %v", err)
 	}
 }
 
 func main() {
-	// early init path, skips root check and duplicate PR_SET_DUMPABLE
-	sandbox.TryArgv0(hlog.Output{}, hlog.Prepare, internal.InstallFmsg)
-
-	if err := sandbox.SetDumpable(sandbox.SUID_DUMP_DISABLE); err != nil {
-		log.Printf("cannot set SUID_DUMP_DISABLE: %s", err)
-		// not fatal: this program runs as the privileged user
-	}
-
 	if os.Geteuid() == 0 {
 		log.Fatal("this program must not run as root")
 	}
@@ -55,14 +42,9 @@ func main() {
 		flagVerbose   bool
 		flagDropShell bool
 	)
-	c := command.New(os.Stderr, log.Printf, "fpkg", func([]string) error {
-		internal.InstallFmsg(flagVerbose)
-		return nil
-	}).
+	c := command.New(os.Stderr, log.Printf, "planterette", func([]string) error { internal.InstallFmsg(flagVerbose); return nil }).
 		Flag(&flagVerbose, "v", command.BoolFlag(false), "Print debug messages to the console").
 		Flag(&flagDropShell, "s", command.BoolFlag(false), "Drop to a shell in place of next hakurei action")
-
-	c.Command("shim", command.UsageInternal, func([]string) error { instance.ShimMain(); return errSuccess })
 
 	{
 		var (
@@ -84,7 +66,7 @@ func main() {
 			}
 
 			/*
-				Look up paths to programs started by fpkg.
+				Look up paths to programs started by planterette.
 				This is done here to ease error handling as cleanup is not yet required.
 			*/
 
@@ -100,7 +82,7 @@ func main() {
 			*/
 
 			var workDir string
-			if p, err := os.MkdirTemp("", "fpkg.*"); err != nil {
+			if p, err := os.MkdirTemp("", "planterette.*"); err != nil {
 				log.Printf("cannot create temporary directory: %v", err)
 				return err
 			} else {

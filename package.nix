@@ -13,7 +13,7 @@
   wayland-scanner,
   xorg,
 
-  # for fpkg
+  # for planterette
   zstd,
   gnutar,
   coreutils,
@@ -76,6 +76,7 @@ buildGoModule rec {
       )
       {
         version = "v${version}";
+        hakurei = "${placeholder "out"}/libexec/hakurei";
         hsu = "/run/wrappers/bin/hsu";
       };
 
@@ -116,7 +117,7 @@ buildGoModule rec {
       makeBinaryWrapper "$out/libexec/hakurei" "$out/bin/hakurei" \
         --inherit-argv0 --prefix PATH : ${lib.makeBinPath appPackages}
 
-      makeBinaryWrapper "$out/libexec/fpkg" "$out/bin/fpkg" \
+      makeBinaryWrapper "$out/libexec/planterette" "$out/bin/planterette" \
         --inherit-argv0 --prefix PATH : ${
           lib.makeBinPath (
             appPackages
