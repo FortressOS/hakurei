@@ -28,8 +28,8 @@ struct hakurei_syscall_act {
 
 #define SECCOMP_RULESET_ADD(ruleset)                                           \
   do {                                                                         \
-    if (opts & HAKUREI_VERBOSE)                                                      \
-      hakurei_println("adding seccomp ruleset \"" #ruleset "\"");                    \
+    if (opts & HAKUREI_VERBOSE)                                                \
+      hakurei_println("adding seccomp ruleset \"" #ruleset "\"");              \
     for (int i = 0; i < LEN(ruleset); i++) {                                   \
       assert(ruleset[i].m_errno == EPERM || ruleset[i].m_errno == ENOSYS);     \
                                                                                \
@@ -50,8 +50,8 @@ struct hakurei_syscall_act {
     }                                                                          \
   } while (0)
 
-int32_t hakurei_build_filter(int *ret_p, int fd, uint32_t arch, uint32_t multiarch,
-                       hakurei_filter_opts opts) {
+int32_t hakurei_build_filter(int *ret_p, int fd, uint32_t arch,
+                             uint32_t multiarch, hakurei_filter_opts opts) {
   int32_t res = 0; /* refer to resPrefix for message */
   int allow_multiarch = opts & HAKUREI_MULTIARCH;
   int allowed_personality = PER_LINUX;

@@ -19,5 +19,5 @@ typedef enum {
 } hakurei_filter_opts;
 
 extern void hakurei_println(char *v);
-int32_t hakurei_build_filter(int *ret_p, int fd, uint32_t arch, uint32_t multiarch,
-                       hakurei_filter_opts opts);
+int32_t hakurei_build_filter(int *ret_p, int fd, uint32_t arch,
+                             uint32_t multiarch, hakurei_filter_opts opts);

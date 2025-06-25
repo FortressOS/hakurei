@@ -29,7 +29,7 @@ static const struct wl_registry_listener registry_listener = {
 };
 
 int32_t hakurei_bind_wayland_fd(char *socket_path, int fd, const char *app_id,
-                          const char *instance_id, int sync_fd) {
+                                const char *instance_id, int sync_fd) {
   int32_t res = 0; /* refer to resErr for corresponding Go error */
 
   struct wl_display *display;
