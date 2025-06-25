@@ -35,7 +35,7 @@ package
 
 
 *Default:*
-` <derivation hakurei-static-x86_64-unknown-linux-musl-0.4.1> `
+` <derivation hakurei-static-x86_64-unknown-linux-musl-0.0.2> `
 
 
 
@@ -916,7 +916,7 @@ package
 
 
 *Default:*
-` <derivation hakurei-hsu-0.4.1> `
+` <derivation hakurei-hsu-0.0.2> `
 
 
 

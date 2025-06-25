@@ -1,38 +1,29 @@
-Hakurei
-=======
+<p align="center">
+  <a href="https://git.gensokyo.uk/security/hakurei">
+    <picture>
+      <img src="https://basement.gensokyo.uk/images/yukari1.png" width="200px" alt="Yukari">
+    </picture>
+  </a>
+</p>
 
-[![Go Reference](https://pkg.go.dev/badge/git.gensokyo.uk/security/hakurei.svg)](https://pkg.go.dev/git.gensokyo.uk/security/hakurei)
-[![Go Report Card](https://goreportcard.com/badge/git.gensokyo.uk/security/hakurei)](https://goreportcard.com/report/git.gensokyo.uk/security/hakurei)
+<p align="center">
+  <a href="https://pkg.go.dev/git.gensokyo.uk/security/hakurei"><img src="https://pkg.go.dev/badge/git.gensokyo.uk/security/hakurei.svg" alt="Go Reference" /></a>
+  <a href="https://goreportcard.com/report/git.gensokyo.uk/security/hakurei"><img src="https://goreportcard.com/badge/git.gensokyo.uk/security/hakurei" alt="Go Report Card" /></a>
+</p>
 
-Lets you run graphical applications as dedicated subordinate users in a container environment with a nice NixOS
-module to configure target users and provide launch scripts and desktop files.
+Hakurei is a tool for running sandboxed graphical applications as dedicated subordinate users on the Linux kernel.
+It also implements [planterette (WIP)](cmd/planterette), a self-contained Android-like package manager with modern security features.
 
-Why would you want this?
+## NixOS Module usage
 
-- It protects the desktop environment from applications.
-
-- It protects applications from each other.
-
-- It provides UID isolation on top of the standard application sandbox.
-
-If you have a flakes-enabled nix environment, you can try out the tool by running:
-
-```shell
-nix run git+https://git.gensokyo.uk/security/hakurei -- help
-```
-
-## Module usage
-
-The NixOS module currently requires home-manager to configure subordinate users.
-
-Full module documentation can be found [here](options.md).
+The NixOS module currently requires home-manager to configure subordinate users. Full module documentation can be found [here](options.md).
 
 To use the module, import it into your configuration with
 
 ```nix
 {
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.05";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.11";
 
     hakurei = {
       url = "git+https://git.gensokyo.uk/security/hakurei";
