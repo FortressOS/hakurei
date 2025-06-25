@@ -1,0 +1,48 @@
+name: Test
+
+on:
+  - push
+
+jobs:
+  dist:
+    name: Create distribution
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: nixbuild/nix-quick-install-action@v32
+        with:
+          nix_conf: |
+            keep-env-derivations = true
+            keep-outputs = true
+
+      - name: Restore and cache Nix store
+        uses: nix-community/cache-nix-action@v6
+        with:
+          primary-key: build-${{ runner.os }}-${{ hashFiles('**/*.nix') }}
+          restore-prefixes-first-match: build-${{ runner.os }}-
+          gc-max-store-size-linux: 1G
+          purge: true
+          purge-prefixes: build-${{ runner.os }}-
+          purge-created: 60
+          purge-primary-key: never
+
+      - name: Build for test
+        id: build-test
+        run: >-
+          export HAKUREI_REV="$(git rev-parse --short HEAD)" &&
+          sed -i.old 's/version = /version = "0.0.0-'$HAKUREI_REV'"; # version = /' package.nix &&
+          nix build --print-out-paths --print-build-logs .#dist &&
+          mv package.nix.old package.nix &&
+          echo "rev=$HAKUREI_REV" >> $GITHUB_OUTPUT
+
+      - name: Upload test build
+        uses: actions/upload-artifact@v4
+        with:
+          name: "hakurei-${{ steps.build-test.outputs.rev }}"
+          path: result/*
+          retention-days: 1
