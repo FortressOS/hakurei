@@ -187,12 +187,14 @@
 
           generateSyscallTable = pkgs.mkShell {
             # this should be made cross-platform via nix
-            shellHook = ''
-              exec ${pkgs.perl}/bin/perl \
+            shellHook = "exec ${pkgs.writeShellScript "generate-syscall-table" ''
+              set -e
+              ${pkgs.perl}/bin/perl \
                 sandbox/seccomp/mksysnum_linux.pl \
-                ${pkgs.linuxHeaders}/include/asm/unistd_64.h > \
+                ${pkgs.linuxHeaders}/include/asm/unistd_64.h | \
+                ${pkgs.go}/bin/gofmt > \
                 sandbox/seccomp/syscall_linux_amd64.go
-            '';
+            ''}";
           };
         }
       );
