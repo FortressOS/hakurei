@@ -309,76 +309,151 @@ var syscallNum = map[string]int{
 	"fanotify_init":           SYS_FANOTIFY_INIT,
 	"fanotify_mark":           SYS_FANOTIFY_MARK,
 	"prlimit64":               SYS_PRLIMIT64,
-	"name_to_handle_at":       303,
-	"open_by_handle_at":       304,
-	"clock_adjtime":           305,
-	"syncfs":                  306,
-	"sendmmsg":                307,
-	"setns":                   308,
-	"getcpu":                  309,
-	"process_vm_readv":        310,
-	"process_vm_writev":       311,
-	"kcmp":                    312,
-	"finit_module":            313,
-	"sched_setattr":           314,
-	"sched_getattr":           315,
-	"renameat2":               316,
-	"seccomp":                 317,
-	"getrandom":               318,
-	"memfd_create":            319,
-	"kexec_file_load":         320,
-	"bpf":                     321,
-	"execveat":                322,
-	"userfaultfd":             323,
-	"membarrier":              324,
-	"mlock2":                  325,
-	"copy_file_range":         326,
-	"preadv2":                 327,
-	"pwritev2":                328,
-	"pkey_mprotect":           329,
-	"pkey_alloc":              330,
-	"pkey_free":               331,
-	"statx":                   332,
-	"io_pgetevents":           333,
-	"rseq":                    334,
-	"uretprobe":               335,
-	"pidfd_send_signal":       424,
-	"io_uring_setup":          425,
-	"io_uring_enter":          426,
-	"io_uring_register":       427,
-	"open_tree":               428,
-	"move_mount":              429,
-	"fsopen":                  430,
-	"fsconfig":                431,
-	"fsmount":                 432,
-	"fspick":                  433,
-	"pidfd_open":              434,
-	"clone3":                  435,
-	"close_range":             436,
-	"openat2":                 437,
-	"pidfd_getfd":             438,
-	"faccessat2":              439,
-	"process_madvise":         440,
-	"epoll_pwait2":            441,
-	"mount_setattr":           442,
-	"quotactl_fd":             443,
-	"landlock_create_ruleset": 444,
-	"landlock_add_rule":       445,
-	"landlock_restrict_self":  446,
-	"memfd_secret":            447,
-	"process_mrelease":        448,
-	"futex_waitv":             449,
-	"set_mempolicy_home_node": 450,
-	"cachestat":               451,
-	"fchmodat2":               452,
-	"map_shadow_stack":        453,
-	"futex_wake":              454,
-	"futex_wait":              455,
-	"futex_requeue":           456,
-	"statmount":               457,
-	"listmount":               458,
-	"lsm_get_self_attr":       459,
-	"lsm_set_self_attr":       460,
-	"lsm_list_modules":        461,
-	"mseal":                   462,
+	"name_to_handle_at":       SYS_NAME_TO_HANDLE_AT,
+	"open_by_handle_at":       SYS_OPEN_BY_HANDLE_AT,
+	"clock_adjtime":           SYS_CLOCK_ADJTIME,
+	"syncfs":                  SYS_SYNCFS,
+	"sendmmsg":                SYS_SENDMMSG,
+	"setns":                   SYS_SETNS,
+	"getcpu":                  SYS_GETCPU,
+	"process_vm_readv":        SYS_PROCESS_VM_READV,
+	"process_vm_writev":       SYS_PROCESS_VM_WRITEV,
+	"kcmp":                    SYS_KCMP,
+	"finit_module":            SYS_FINIT_MODULE,
+	"sched_setattr":           SYS_SCHED_SETATTR,
+	"sched_getattr":           SYS_SCHED_GETATTR,
+	"renameat2":               SYS_RENAMEAT2,
+	"seccomp":                 SYS_SECCOMP,
+	"getrandom":               SYS_GETRANDOM,
+	"memfd_create":            SYS_MEMFD_CREATE,
+	"kexec_file_load":         SYS_KEXEC_FILE_LOAD,
+	"bpf":                     SYS_BPF,
+	"execveat":                SYS_EXECVEAT,
+	"userfaultfd":             SYS_USERFAULTFD,
+	"membarrier":              SYS_MEMBARRIER,
+	"mlock2":                  SYS_MLOCK2,
+	"copy_file_range":         SYS_COPY_FILE_RANGE,
+	"preadv2":                 SYS_PREADV2,
+	"pwritev2":                SYS_PWRITEV2,
+	"pkey_mprotect":           SYS_PKEY_MPROTECT,
+	"pkey_alloc":              SYS_PKEY_ALLOC,
+	"pkey_free":               SYS_PKEY_FREE,
+	"statx":                   SYS_STATX,
+	"io_pgetevents":           SYS_IO_PGETEVENTS,
+	"rseq":                    SYS_RSEQ,
+	"uretprobe":               SYS_URETPROBE,
+	"pidfd_send_signal":       SYS_PIDFD_SEND_SIGNAL,
+	"io_uring_setup":          SYS_IO_URING_SETUP,
+	"io_uring_enter":          SYS_IO_URING_ENTER,
+	"io_uring_register":       SYS_IO_URING_REGISTER,
+	"open_tree":               SYS_OPEN_TREE,
+	"move_mount":              SYS_MOVE_MOUNT,
+	"fsopen":                  SYS_FSOPEN,
+	"fsconfig":                SYS_FSCONFIG,
+	"fsmount":                 SYS_FSMOUNT,
+	"fspick":                  SYS_FSPICK,
+	"pidfd_open":              SYS_PIDFD_OPEN,
+	"clone3":                  SYS_CLONE3,
+	"close_range":             SYS_CLOSE_RANGE,
+	"openat2":                 SYS_OPENAT2,
+	"pidfd_getfd":             SYS_PIDFD_GETFD,
+	"faccessat2":              SYS_FACCESSAT2,
+	"process_madvise":         SYS_PROCESS_MADVISE,
+	"epoll_pwait2":            SYS_EPOLL_PWAIT2,
+	"mount_setattr":           SYS_MOUNT_SETATTR,
+	"quotactl_fd":             SYS_QUOTACTL_FD,
+	"landlock_create_ruleset": SYS_LANDLOCK_CREATE_RULESET,
+	"landlock_add_rule":       SYS_LANDLOCK_ADD_RULE,
+	"landlock_restrict_self":  SYS_LANDLOCK_RESTRICT_SELF,
+	"memfd_secret":            SYS_MEMFD_SECRET,
+	"process_mrelease":        SYS_PROCESS_MRELEASE,
+	"futex_waitv":             SYS_FUTEX_WAITV,
+	"set_mempolicy_home_node": SYS_SET_MEMPOLICY_HOME_NODE,
+	"cachestat":               SYS_CACHESTAT,
+	"fchmodat2":               SYS_FCHMODAT2,
+	"map_shadow_stack":        SYS_MAP_SHADOW_STACK,
+	"futex_wake":              SYS_FUTEX_WAKE,
+	"futex_wait":              SYS_FUTEX_WAIT,
+	"futex_requeue":           SYS_FUTEX_REQUEUE,
+	"statmount":               SYS_STATMOUNT,
+	"listmount":               SYS_LISTMOUNT,
+	"lsm_get_self_attr":       SYS_LSM_GET_SELF_ATTR,
+	"lsm_set_self_attr":       SYS_LSM_SET_SELF_ATTR,
+	"lsm_list_modules":        SYS_LSM_LIST_MODULES,
+	"mseal":                   SYS_MSEAL,
 }
+
+const (
+	SYS_NAME_TO_HANDLE_AT       = 303
+	SYS_OPEN_BY_HANDLE_AT       = 304
+	SYS_CLOCK_ADJTIME           = 305
+	SYS_SYNCFS                  = 306
+	SYS_SENDMMSG                = 307
+	SYS_SETNS                   = 308
+	SYS_GETCPU                  = 309
+	SYS_PROCESS_VM_READV        = 310
+	SYS_PROCESS_VM_WRITEV       = 311
+	SYS_KCMP                    = 312
+	SYS_FINIT_MODULE            = 313
+	SYS_SCHED_SETATTR           = 314
+	SYS_SCHED_GETATTR           = 315
+	SYS_RENAMEAT2               = 316
+	SYS_SECCOMP                 = 317
+	SYS_GETRANDOM               = 318
+	SYS_MEMFD_CREATE            = 319
+	SYS_KEXEC_FILE_LOAD         = 320
+	SYS_BPF                     = 321
+	SYS_EXECVEAT                = 322
+	SYS_USERFAULTFD             = 323
+	SYS_MEMBARRIER              = 324
+	SYS_MLOCK2                  = 325
+	SYS_COPY_FILE_RANGE         = 326
+	SYS_PREADV2                 = 327
+	SYS_PWRITEV2                = 328
+	SYS_PKEY_MPROTECT           = 329
+	SYS_PKEY_ALLOC              = 330
+	SYS_PKEY_FREE               = 331
+	SYS_STATX                   = 332
+	SYS_IO_PGETEVENTS           = 333
+	SYS_RSEQ                    = 334
+	SYS_URETPROBE               = 335
+	SYS_PIDFD_SEND_SIGNAL       = 424
+	SYS_IO_URING_SETUP          = 425
+	SYS_IO_URING_ENTER          = 426
+	SYS_IO_URING_REGISTER       = 427
+	SYS_OPEN_TREE               = 428
+	SYS_MOVE_MOUNT              = 429
+	SYS_FSOPEN                  = 430
+	SYS_FSCONFIG                = 431
+	SYS_FSMOUNT                 = 432
+	SYS_FSPICK                  = 433
+	SYS_PIDFD_OPEN              = 434
+	SYS_CLONE3                  = 435
+	SYS_CLOSE_RANGE             = 436
+	SYS_OPENAT2                 = 437
+	SYS_PIDFD_GETFD             = 438
+	SYS_FACCESSAT2              = 439
+	SYS_PROCESS_MADVISE         = 440
+	SYS_EPOLL_PWAIT2            = 441
+	SYS_MOUNT_SETATTR           = 442
+	SYS_QUOTACTL_FD             = 443
+	SYS_LANDLOCK_CREATE_RULESET = 444
+	SYS_LANDLOCK_ADD_RULE       = 445
+	SYS_LANDLOCK_RESTRICT_SELF  = 446
+	SYS_MEMFD_SECRET            = 447
+	SYS_PROCESS_MRELEASE        = 448
+	SYS_FUTEX_WAITV             = 449
+	SYS_SET_MEMPOLICY_HOME_NODE = 450
+	SYS_CACHESTAT               = 451
+	SYS_FCHMODAT2               = 452
+	SYS_MAP_SHADOW_STACK        = 453
+	SYS_FUTEX_WAKE              = 454
+	SYS_FUTEX_WAIT              = 455
+	SYS_FUTEX_REQUEUE           = 456
+	SYS_STATMOUNT               = 457
+	SYS_LISTMOUNT               = 458
+	SYS_LSM_GET_SELF_ATTR       = 459
+	SYS_LSM_SET_SELF_ATTR       = 460
+	SYS_LSM_LIST_MODULES        = 461
+	SYS_MSEAL                   = 462
+)

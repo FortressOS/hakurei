@@ -19,6 +19,7 @@ var syscallNum = map[string]int{
 EOF
 
 my $offset = 0;
+my $state = -1;
 
 sub fmt {
 	my ($name, $num) = @_;
@@ -30,12 +31,22 @@ sub fmt {
 	(my $name_upper = $name) =~ y/a-z/A-Z/;
 	$num = $num + $offset;
 	if($num > 302){ # not wired in Go standard library
-	    print "	\"$name\": $num,\n";
+		if($state < 0){
+			print "	\"$name\": SYS_$name_upper,\n";
+		}
+		else{
+			print " SYS_$name_upper = $num;\n";
+		}
+	}
+	elsif($state < 0){
+		print "	\"$name\": SYS_$name_upper,\n";
 	}
 	else{
-	    print "	\"$name\": SYS_$name_upper,\n";
+		return;
 	}
 }
+
+GENERATE:
 
 my $prev;
 open(GCC, "gcc -E -dD $ARGV[0] |") || die "can't run gcc";
@@ -63,6 +74,10 @@ while(<GCC>){
 	}
 }
 
-print <<EOF;
+if($state < 0){
+	$state = $state + 1;
+	print "}\n\nconst (\n";
+	goto GENERATE;
 }
-EOF
+
+print ")";
