@@ -49,12 +49,17 @@ func (e *LibraryError) Is(err error) bool {
 		(e.Errno != nil && errors.Is(err, e.Errno))
 }
 
+type (
+	ScmpSyscall = C.int
+	ScmpErrno   = C.int
+)
+
 // A NativeRule specifies an arch-specific action taken by seccomp under certain conditions.
 type NativeRule struct {
 	// Syscall is the arch-dependent syscall number to act against.
-	Syscall C.int
+	Syscall ScmpSyscall
 	// Errno is the errno value to return when the condition is satisfied.
-	Errno C.int
+	Errno ScmpErrno
 	// Arg is the optional struct scmp_arg_cmp passed to libseccomp.
 	Arg *ScmpArgCmp
 }

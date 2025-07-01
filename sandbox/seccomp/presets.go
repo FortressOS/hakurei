@@ -2,7 +2,6 @@ package seccomp
 
 /* flatpak commit 4c3bf179e2e4a2a298cd1db1d045adaf3f564532 */
 
-import "C"
 import (
 	. "syscall"
 )
@@ -82,62 +81,62 @@ func preparePreset(fd int, presets FilterPreset, flags PrepareFlag) error {
 var (
 	presetCommon = []NativeRule{
 		/* Block dmesg */
-		{C.int(SYS_SYSLOG), C.int(EPERM), nil},
+		{ScmpSyscall(SYS_SYSLOG), ScmpErrno(EPERM), nil},
 		/* Useless old syscall */
-		{C.int(SYS_USELIB), C.int(EPERM), nil},
+		{ScmpSyscall(SYS_USELIB), ScmpErrno(EPERM), nil},
 		/* Don't allow disabling accounting */
-		{C.int(SYS_ACCT), C.int(EPERM), nil},
+		{ScmpSyscall(SYS_ACCT), ScmpErrno(EPERM), nil},
 		/* Don't allow reading current quota use */
-		{C.int(SYS_QUOTACTL), C.int(EPERM), nil},
+		{ScmpSyscall(SYS_QUOTACTL), ScmpErrno(EPERM), nil},
 
 		/* Don't allow access to the kernel keyring */
-		{C.int(SYS_ADD_KEY), C.int(EPERM), nil},
-		{C.int(SYS_KEYCTL), C.int(EPERM), nil},
-		{C.int(SYS_REQUEST_KEY), C.int(EPERM), nil},
+		{ScmpSyscall(SYS_ADD_KEY), ScmpErrno(EPERM), nil},
+		{ScmpSyscall(SYS_KEYCTL), ScmpErrno(EPERM), nil},
+		{ScmpSyscall(SYS_REQUEST_KEY), ScmpErrno(EPERM), nil},
 
 		/* Scary VM/NUMA ops */
-		{C.int(SYS_MOVE_PAGES), C.int(EPERM), nil},
-		{C.int(SYS_MBIND), C.int(EPERM), nil},
-		{C.int(SYS_GET_MEMPOLICY), C.int(EPERM), nil},
-		{C.int(SYS_SET_MEMPOLICY), C.int(EPERM), nil},
-		{C.int(SYS_MIGRATE_PAGES), C.int(EPERM), nil},
+		{ScmpSyscall(SYS_MOVE_PAGES), ScmpErrno(EPERM), nil},
+		{ScmpSyscall(SYS_MBIND), ScmpErrno(EPERM), nil},
+		{ScmpSyscall(SYS_GET_MEMPOLICY), ScmpErrno(EPERM), nil},
+		{ScmpSyscall(SYS_SET_MEMPOLICY), ScmpErrno(EPERM), nil},
+		{ScmpSyscall(SYS_MIGRATE_PAGES), ScmpErrno(EPERM), nil},
 	}
 
 	/* hakurei: project-specific extensions */
 	presetCommonExt = []NativeRule{
 		/* system calls for changing the system clock */
-		{C.int(SYS_ADJTIMEX), C.int(EPERM), nil},
-		{C.int(SYS_CLOCK_ADJTIME), C.int(EPERM), nil},
-		{C.int(SYS_CLOCK_ADJTIME64), C.int(EPERM), nil},
-		{C.int(SYS_CLOCK_SETTIME), C.int(EPERM), nil},
-		{C.int(SYS_CLOCK_SETTIME64), C.int(EPERM), nil},
-		{C.int(SYS_SETTIMEOFDAY), C.int(EPERM), nil},
+		{ScmpSyscall(SYS_ADJTIMEX), ScmpErrno(EPERM), nil},
+		{ScmpSyscall(SYS_CLOCK_ADJTIME), ScmpErrno(EPERM), nil},
+		{ScmpSyscall(SYS_CLOCK_ADJTIME64), ScmpErrno(EPERM), nil},
+		{ScmpSyscall(SYS_CLOCK_SETTIME), ScmpErrno(EPERM), nil},
+		{ScmpSyscall(SYS_CLOCK_SETTIME64), ScmpErrno(EPERM), nil},
+		{ScmpSyscall(SYS_SETTIMEOFDAY), ScmpErrno(EPERM), nil},
 
 		/* loading and unloading of kernel modules */
-		{C.int(SYS_DELETE_MODULE), C.int(EPERM), nil},
-		{C.int(SYS_FINIT_MODULE), C.int(EPERM), nil},
-		{C.int(SYS_INIT_MODULE), C.int(EPERM), nil},
+		{ScmpSyscall(SYS_DELETE_MODULE), ScmpErrno(EPERM), nil},
+		{ScmpSyscall(SYS_FINIT_MODULE), ScmpErrno(EPERM), nil},
+		{ScmpSyscall(SYS_INIT_MODULE), ScmpErrno(EPERM), nil},
 
 		/* system calls for rebooting and reboot preparation */
-		{C.int(SYS_KEXEC_FILE_LOAD), C.int(EPERM), nil},
-		{C.int(SYS_KEXEC_LOAD), C.int(EPERM), nil},
-		{C.int(SYS_REBOOT), C.int(EPERM), nil},
+		{ScmpSyscall(SYS_KEXEC_FILE_LOAD), ScmpErrno(EPERM), nil},
+		{ScmpSyscall(SYS_KEXEC_LOAD), ScmpErrno(EPERM), nil},
+		{ScmpSyscall(SYS_REBOOT), ScmpErrno(EPERM), nil},
 
 		/* system calls for enabling/disabling swap devices */
-		{C.int(SYS_SWAPOFF), C.int(EPERM), nil},
-		{C.int(SYS_SWAPON), C.int(EPERM), nil},
+		{ScmpSyscall(SYS_SWAPOFF), ScmpErrno(EPERM), nil},
+		{ScmpSyscall(SYS_SWAPON), ScmpErrno(EPERM), nil},
 	}
 
 	presetNamespace = []NativeRule{
 		/* Don't allow subnamespace setups: */
-		{C.int(SYS_UNSHARE), C.int(EPERM), nil},
-		{C.int(SYS_SETNS), C.int(EPERM), nil},
-		{C.int(SYS_MOUNT), C.int(EPERM), nil},
-		{C.int(SYS_UMOUNT), C.int(EPERM), nil},
-		{C.int(SYS_UMOUNT2), C.int(EPERM), nil},
-		{C.int(SYS_PIVOT_ROOT), C.int(EPERM), nil},
-		{C.int(SYS_CHROOT), C.int(EPERM), nil},
-		{C.int(SYS_CLONE), C.int(EPERM),
+		{ScmpSyscall(SYS_UNSHARE), ScmpErrno(EPERM), nil},
+		{ScmpSyscall(SYS_SETNS), ScmpErrno(EPERM), nil},
+		{ScmpSyscall(SYS_MOUNT), ScmpErrno(EPERM), nil},
+		{ScmpSyscall(SYS_UMOUNT), ScmpErrno(EPERM), nil},
+		{ScmpSyscall(SYS_UMOUNT2), ScmpErrno(EPERM), nil},
+		{ScmpSyscall(SYS_PIVOT_ROOT), ScmpErrno(EPERM), nil},
+		{ScmpSyscall(SYS_CHROOT), ScmpErrno(EPERM), nil},
+		{ScmpSyscall(SYS_CLONE), ScmpErrno(EPERM),
 			&ScmpArgCmp{cloneArg, SCMP_CMP_MASKED_EQ, CLONE_NEWUSER, CLONE_NEWUSER}},
 
 		/* seccomp can't look into clone3()'s struct clone_args to check whether
@@ -145,57 +144,57 @@ var (
 		 * Return ENOSYS so user-space will fall back to clone().
 		 * (CVE-2021-41133; see also https://github.com/moby/moby/commit/9f6b562d)
 		 */
-		{C.int(SYS_CLONE3), C.int(ENOSYS), nil},
+		{ScmpSyscall(SYS_CLONE3), ScmpErrno(ENOSYS), nil},
 
 		/* New mount manipulation APIs can also change our VFS. There's no
 		 * legitimate reason to do these in the sandbox, so block all of them
 		 * rather than thinking about which ones might be dangerous.
 		 * (CVE-2021-41133) */
-		{C.int(SYS_OPEN_TREE), C.int(ENOSYS), nil},
-		{C.int(SYS_MOVE_MOUNT), C.int(ENOSYS), nil},
-		{C.int(SYS_FSOPEN), C.int(ENOSYS), nil},
-		{C.int(SYS_FSCONFIG), C.int(ENOSYS), nil},
-		{C.int(SYS_FSMOUNT), C.int(ENOSYS), nil},
-		{C.int(SYS_FSPICK), C.int(ENOSYS), nil},
-		{C.int(SYS_MOUNT_SETATTR), C.int(ENOSYS), nil},
+		{ScmpSyscall(SYS_OPEN_TREE), ScmpErrno(ENOSYS), nil},
+		{ScmpSyscall(SYS_MOVE_MOUNT), ScmpErrno(ENOSYS), nil},
+		{ScmpSyscall(SYS_FSOPEN), ScmpErrno(ENOSYS), nil},
+		{ScmpSyscall(SYS_FSCONFIG), ScmpErrno(ENOSYS), nil},
+		{ScmpSyscall(SYS_FSMOUNT), ScmpErrno(ENOSYS), nil},
+		{ScmpSyscall(SYS_FSPICK), ScmpErrno(ENOSYS), nil},
+		{ScmpSyscall(SYS_MOUNT_SETATTR), ScmpErrno(ENOSYS), nil},
 	}
 
 	/* hakurei: project-specific extensions */
 	presetNamespaceExt = []NativeRule{
 		/* changing file ownership */
-		{C.int(SYS_CHOWN), C.int(EPERM), nil},
-		{C.int(SYS_CHOWN32), C.int(EPERM), nil},
-		{C.int(SYS_FCHOWN), C.int(EPERM), nil},
-		{C.int(SYS_FCHOWN32), C.int(EPERM), nil},
-		{C.int(SYS_FCHOWNAT), C.int(EPERM), nil},
-		{C.int(SYS_LCHOWN), C.int(EPERM), nil},
-		{C.int(SYS_LCHOWN32), C.int(EPERM), nil},
+		{ScmpSyscall(SYS_CHOWN), ScmpErrno(EPERM), nil},
+		{ScmpSyscall(SYS_CHOWN32), ScmpErrno(EPERM), nil},
+		{ScmpSyscall(SYS_FCHOWN), ScmpErrno(EPERM), nil},
+		{ScmpSyscall(SYS_FCHOWN32), ScmpErrno(EPERM), nil},
+		{ScmpSyscall(SYS_FCHOWNAT), ScmpErrno(EPERM), nil},
+		{ScmpSyscall(SYS_LCHOWN), ScmpErrno(EPERM), nil},
+		{ScmpSyscall(SYS_LCHOWN32), ScmpErrno(EPERM), nil},
 
 		/* system calls for changing user ID and group ID credentials */
-		{C.int(SYS_SETGID), C.int(EPERM), nil},
-		{C.int(SYS_SETGID32), C.int(EPERM), nil},
-		{C.int(SYS_SETGROUPS), C.int(EPERM), nil},
-		{C.int(SYS_SETGROUPS32), C.int(EPERM), nil},
-		{C.int(SYS_SETREGID), C.int(EPERM), nil},
-		{C.int(SYS_SETREGID32), C.int(EPERM), nil},
-		{C.int(SYS_SETRESGID), C.int(EPERM), nil},
-		{C.int(SYS_SETRESGID32), C.int(EPERM), nil},
-		{C.int(SYS_SETRESUID), C.int(EPERM), nil},
-		{C.int(SYS_SETRESUID32), C.int(EPERM), nil},
-		{C.int(SYS_SETREUID), C.int(EPERM), nil},
-		{C.int(SYS_SETREUID32), C.int(EPERM), nil},
-		{C.int(SYS_SETUID), C.int(EPERM), nil},
-		{C.int(SYS_SETUID32), C.int(EPERM), nil},
+		{ScmpSyscall(SYS_SETGID), ScmpErrno(EPERM), nil},
+		{ScmpSyscall(SYS_SETGID32), ScmpErrno(EPERM), nil},
+		{ScmpSyscall(SYS_SETGROUPS), ScmpErrno(EPERM), nil},
+		{ScmpSyscall(SYS_SETGROUPS32), ScmpErrno(EPERM), nil},
+		{ScmpSyscall(SYS_SETREGID), ScmpErrno(EPERM), nil},
+		{ScmpSyscall(SYS_SETREGID32), ScmpErrno(EPERM), nil},
+		{ScmpSyscall(SYS_SETRESGID), ScmpErrno(EPERM), nil},
+		{ScmpSyscall(SYS_SETRESGID32), ScmpErrno(EPERM), nil},
+		{ScmpSyscall(SYS_SETRESUID), ScmpErrno(EPERM), nil},
+		{ScmpSyscall(SYS_SETRESUID32), ScmpErrno(EPERM), nil},
+		{ScmpSyscall(SYS_SETREUID), ScmpErrno(EPERM), nil},
+		{ScmpSyscall(SYS_SETREUID32), ScmpErrno(EPERM), nil},
+		{ScmpSyscall(SYS_SETUID), ScmpErrno(EPERM), nil},
+		{ScmpSyscall(SYS_SETUID32), ScmpErrno(EPERM), nil},
 	}
 
 	presetTTY = []NativeRule{
 		/* Don't allow faking input to the controlling tty (CVE-2017-5226) */
-		{C.int(SYS_IOCTL), C.int(EPERM),
+		{ScmpSyscall(SYS_IOCTL), ScmpErrno(EPERM),
 			&ScmpArgCmp{1, SCMP_CMP_MASKED_EQ, 0xFFFFFFFF, TIOCSTI}},
 		/* In the unlikely event that the controlling tty is a Linux virtual
 		 * console (/dev/tty2 or similar), copy/paste operations have an effect
 		 * similar to TIOCSTI (CVE-2023-28100) */
-		{C.int(SYS_IOCTL), C.int(EPERM),
+		{ScmpSyscall(SYS_IOCTL), ScmpErrno(EPERM),
 			&ScmpArgCmp{1, SCMP_CMP_MASKED_EQ, 0xFFFFFFFF, TIOCLINUX}},
 	}
 
@@ -204,15 +203,15 @@ var (
 		 * so it's disabled as a hardening measure.
 		 * However, it is required to run old 16-bit applications
 		 * as well as some Wine patches, so it's allowed in multiarch. */
-		{C.int(SYS_MODIFY_LDT), C.int(EPERM), nil},
+		{ScmpSyscall(SYS_MODIFY_LDT), ScmpErrno(EPERM), nil},
 	}
 
 	/* hakurei: project-specific extensions */
 	presetEmuExt = []NativeRule{
-		{C.int(SYS_SUBPAGE_PROT), C.int(ENOSYS), nil},
-		{C.int(SYS_SWITCH_ENDIAN), C.int(ENOSYS), nil},
-		{C.int(SYS_VM86), C.int(ENOSYS), nil},
-		{C.int(SYS_VM86OLD), C.int(ENOSYS), nil},
+		{ScmpSyscall(SYS_SUBPAGE_PROT), ScmpErrno(ENOSYS), nil},
+		{ScmpSyscall(SYS_SWITCH_ENDIAN), ScmpErrno(ENOSYS), nil},
+		{ScmpSyscall(SYS_VM86), ScmpErrno(ENOSYS), nil},
+		{ScmpSyscall(SYS_VM86OLD), ScmpErrno(ENOSYS), nil},
 	}
 )
 
@@ -220,11 +219,11 @@ func presetDevel(allowedPersonality ScmpDatum) []NativeRule {
 	return []NativeRule{
 		/* Profiling operations; we expect these to be done by tools from outside
 		 * the sandbox.  In particular perf has been the source of many CVEs. */
-		{C.int(SYS_PERF_EVENT_OPEN), C.int(EPERM), nil},
+		{ScmpSyscall(SYS_PERF_EVENT_OPEN), ScmpErrno(EPERM), nil},
 		/* Don't allow you to switch to bsd emulation or whatnot */
-		{C.int(SYS_PERSONALITY), C.int(EPERM),
+		{ScmpSyscall(SYS_PERSONALITY), ScmpErrno(EPERM),
 			&ScmpArgCmp{0, SCMP_CMP_NE, allowedPersonality, 0}},
 
-		{C.int(SYS_PTRACE), C.int(EPERM), nil},
+		{ScmpSyscall(SYS_PTRACE), ScmpErrno(EPERM), nil},
 	}
 }
