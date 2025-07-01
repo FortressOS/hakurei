@@ -10,7 +10,7 @@ import (
 	"path"
 	"runtime"
 	"strconv"
-	"syscall"
+	. "syscall"
 	"time"
 
 	"git.gensokyo.uk/security/hakurei/sandbox/seccomp"
@@ -97,9 +97,9 @@ func Init(prepare func(prefix string), setVerbose func(verbose bool)) {
 		log.Fatalf("cannot set SUID_DUMP_DISABLE: %s", err)
 	}
 
-	oldmask := syscall.Umask(0)
+	oldmask := Umask(0)
 	if params.Hostname != "" {
-		if err := syscall.Sethostname([]byte(params.Hostname)); err != nil {
+		if err := Sethostname([]byte(params.Hostname)); err != nil {
 			log.Fatalf("cannot set hostname: %v", err)
 		}
 	}
@@ -107,9 +107,7 @@ func Init(prepare func(prefix string), setVerbose func(verbose bool)) {
 	// cache sysctl before pivot_root
 	LastCap()
 
-	if err := syscall.Mount("", "/", "",
-		syscall.MS_SILENT|syscall.MS_SLAVE|syscall.MS_REC,
-		""); err != nil {
+	if err := Mount("", "/", "", MS_SILENT|MS_SLAVE|MS_REC, ""); err != nil {
 		log.Fatalf("cannot make / rslave: %v", err)
 	}
 
@@ -126,9 +124,7 @@ func Init(prepare func(prefix string), setVerbose func(verbose bool)) {
 		}
 	}
 
-	if err := syscall.Mount("rootfs", basePath, "tmpfs",
-		syscall.MS_NODEV|syscall.MS_NOSUID,
-		""); err != nil {
+	if err := Mount("rootfs", basePath, "tmpfs", MS_NODEV|MS_NOSUID, ""); err != nil {
 		log.Fatalf("cannot mount intermediate root: %v", err)
 	}
 	if err := os.Chdir(basePath); err != nil {
@@ -138,9 +134,7 @@ func Init(prepare func(prefix string), setVerbose func(verbose bool)) {
 	if err := os.Mkdir(sysrootDir, 0755); err != nil {
 		log.Fatalf("%v", err)
 	}
-	if err := syscall.Mount(sysrootDir, sysrootDir, "",
-		syscall.MS_SILENT|syscall.MS_MGC_VAL|syscall.MS_BIND|syscall.MS_REC,
-		""); err != nil {
+	if err := Mount(sysrootDir, sysrootDir, "", MS_SILENT|MS_MGC_VAL|MS_BIND|MS_REC, ""); err != nil {
 		log.Fatalf("cannot bind sysroot: %v", err)
 	}
 
@@ -148,7 +142,7 @@ func Init(prepare func(prefix string), setVerbose func(verbose bool)) {
 		log.Fatalf("%v", err)
 	}
 	// pivot_root uncovers basePath in hostDir
-	if err := syscall.PivotRoot(basePath, hostDir); err != nil {
+	if err := PivotRoot(basePath, hostDir); err != nil {
 		log.Fatalf("cannot pivot into intermediate root: %v", err)
 	}
 	if err := os.Chdir("/"); err != nil {
@@ -167,19 +161,17 @@ func Init(prepare func(prefix string), setVerbose func(verbose bool)) {
 	}
 
 	// setup requiring host root complete at this point
-	if err := syscall.Mount(hostDir, hostDir, "",
-		syscall.MS_SILENT|syscall.MS_REC|syscall.MS_PRIVATE,
-		""); err != nil {
+	if err := Mount(hostDir, hostDir, "", MS_SILENT|MS_REC|MS_PRIVATE, ""); err != nil {
 		log.Fatalf("cannot make host root rprivate: %v", err)
 	}
-	if err := syscall.Unmount(hostDir, syscall.MNT_DETACH); err != nil {
+	if err := Unmount(hostDir, MNT_DETACH); err != nil {
 		log.Fatalf("cannot unmount host root: %v", err)
 	}
 
 	{
 		var fd int
 		if err := IgnoringEINTR(func() (err error) {
-			fd, err = syscall.Open("/", syscall.O_DIRECTORY|syscall.O_RDONLY, 0)
+			fd, err = Open("/", O_DIRECTORY|O_RDONLY, 0)
 			return
 		}); err != nil {
 			log.Fatalf("cannot open intermediate root: %v", err)
@@ -188,36 +180,36 @@ func Init(prepare func(prefix string), setVerbose func(verbose bool)) {
 			log.Fatalf("%v", err)
 		}
 
-		if err := syscall.PivotRoot(".", "."); err != nil {
+		if err := PivotRoot(".", "."); err != nil {
 			log.Fatalf("cannot pivot into sysroot: %v", err)
 		}
-		if err := syscall.Fchdir(fd); err != nil {
+		if err := Fchdir(fd); err != nil {
 			log.Fatalf("cannot re-enter intermediate root: %v", err)
 		}
-		if err := syscall.Unmount(".", syscall.MNT_DETACH); err != nil {
+		if err := Unmount(".", MNT_DETACH); err != nil {
 			log.Fatalf("cannot unmount intemediate root: %v", err)
 		}
 		if err := os.Chdir("/"); err != nil {
 			log.Fatalf("%v", err)
 		}
 
-		if err := syscall.Close(fd); err != nil {
+		if err := Close(fd); err != nil {
 			log.Fatalf("cannot close intermediate root: %v", err)
 		}
 	}
 
-	if _, _, errno := syscall.Syscall(PR_SET_NO_NEW_PRIVS, 1, 0, 0); errno != 0 {
+	if _, _, errno := Syscall(PR_SET_NO_NEW_PRIVS, 1, 0, 0); errno != 0 {
 		log.Fatalf("prctl(PR_SET_NO_NEW_PRIVS): %v", errno)
 	}
 
-	if _, _, errno := syscall.Syscall(syscall.SYS_PRCTL, PR_CAP_AMBIENT, PR_CAP_AMBIENT_CLEAR_ALL, 0); errno != 0 {
+	if _, _, errno := Syscall(SYS_PRCTL, PR_CAP_AMBIENT, PR_CAP_AMBIENT_CLEAR_ALL, 0); errno != 0 {
 		log.Fatalf("cannot clear the ambient capability set: %v", errno)
 	}
 	for i := uintptr(0); i <= LastCap(); i++ {
 		if params.Privileged && i == CAP_SYS_ADMIN {
 			continue
 		}
-		if _, _, errno := syscall.Syscall(syscall.SYS_PRCTL, syscall.PR_CAPBSET_DROP, i, 0); errno != 0 {
+		if _, _, errno := Syscall(SYS_PRCTL, PR_CAPBSET_DROP, i, 0); errno != 0 {
 			log.Fatalf("cannot drop capability from bonding set: %v", errno)
 		}
 	}
@@ -226,7 +218,7 @@ func Init(prepare func(prefix string), setVerbose func(verbose bool)) {
 	if params.Privileged {
 		keep[capToIndex(CAP_SYS_ADMIN)] |= capToMask(CAP_SYS_ADMIN)
 
-		if _, _, errno := syscall.Syscall(syscall.SYS_PRCTL, PR_CAP_AMBIENT, PR_CAP_AMBIENT_RAISE, CAP_SYS_ADMIN); errno != 0 {
+		if _, _, errno := Syscall(SYS_PRCTL, PR_CAP_AMBIENT, PR_CAP_AMBIENT_RAISE, CAP_SYS_ADMIN); errno != 0 {
 			log.Fatalf("cannot raise CAP_SYS_ADMIN: %v", errno)
 		}
 	}
@@ -246,7 +238,7 @@ func Init(prepare func(prefix string), setVerbose func(verbose bool)) {
 		// setup fd is placed before all extra files
 		extraFiles[i] = os.NewFile(uintptr(offsetSetup+i), "extra file "+strconv.Itoa(i))
 	}
-	syscall.Umask(oldmask)
+	Umask(oldmask)
 
 	cmd := exec.Command(params.Path)
 	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
@@ -267,7 +259,7 @@ func Init(prepare func(prefix string), setVerbose func(verbose bool)) {
 
 	type winfo struct {
 		wpid    int
-		wstatus syscall.WaitStatus
+		wstatus WaitStatus
 	}
 	info := make(chan winfo, 1)
 	done := make(chan struct{})
@@ -276,7 +268,7 @@ func Init(prepare func(prefix string), setVerbose func(verbose bool)) {
 		var (
 			err     error
 			wpid    = -2
-			wstatus syscall.WaitStatus
+			wstatus WaitStatus
 		)
 
 		// keep going until no child process is left
@@ -289,12 +281,12 @@ func Init(prepare func(prefix string), setVerbose func(verbose bool)) {
 				info <- winfo{wpid, wstatus}
 			}
 
-			err = syscall.EINTR
-			for errors.Is(err, syscall.EINTR) {
-				wpid, err = syscall.Wait4(-1, &wstatus, 0, nil)
+			err = EINTR
+			for errors.Is(err, EINTR) {
+				wpid, err = Wait4(-1, &wstatus, 0, nil)
 			}
 		}
-		if !errors.Is(err, syscall.ECHILD) {
+		if !errors.Is(err, ECHILD) {
 			log.Println("unexpected wait4 response:", err)
 		}
 
@@ -303,7 +295,7 @@ func Init(prepare func(prefix string), setVerbose func(verbose bool)) {
 
 	// handle signals to dump withheld messages
 	sig := make(chan os.Signal, 2)
-	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
+	signal.Notify(sig, SIGINT, SIGTERM)
 
 	// closed after residualProcessTimeout has elapsed after initial process death
 	timeout := make(chan struct{})

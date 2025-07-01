@@ -11,7 +11,7 @@ import (
 	"os/exec"
 	"path"
 	"strconv"
-	"syscall"
+	. "syscall"
 	"time"
 
 	"git.gensokyo.uk/security/hakurei/sandbox/seccomp"
@@ -119,11 +119,9 @@ func (p *Container) Start() error {
 	ctx, cancel := context.WithCancel(p.ctx)
 	p.cancel = cancel
 
-	var cloneFlags uintptr = syscall.CLONE_NEWIPC |
-		syscall.CLONE_NEWUTS |
-		syscall.CLONE_NEWCGROUP
+	var cloneFlags uintptr = CLONE_NEWIPC | CLONE_NEWUTS | CLONE_NEWCGROUP
 	if p.Flags&FAllowNet == 0 {
-		cloneFlags |= syscall.CLONE_NEWNET
+		cloneFlags |= CLONE_NEWNET
 	}
 
 	// map to overflow id to work around ownership checks
@@ -146,17 +144,13 @@ func (p *Container) Start() error {
 	if p.Cancel != nil {
 		p.cmd.Cancel = func() error { return p.Cancel(p.cmd) }
 	} else {
-		p.cmd.Cancel = func() error { return p.cmd.Process.Signal(syscall.SIGTERM) }
+		p.cmd.Cancel = func() error { return p.cmd.Process.Signal(SIGTERM) }
 	}
 	p.cmd.Dir = "/"
-	p.cmd.SysProcAttr = &syscall.SysProcAttr{
-		Setsid:    p.Flags&FAllowTTY == 0,
-		Pdeathsig: syscall.SIGKILL,
-
-		Cloneflags: cloneFlags |
-			syscall.CLONE_NEWUSER |
-			syscall.CLONE_NEWPID |
-			syscall.CLONE_NEWNS,
+	p.cmd.SysProcAttr = &SysProcAttr{
+		Setsid:     p.Flags&FAllowTTY == 0,
+		Pdeathsig:  SIGKILL,
+		Cloneflags: cloneFlags | CLONE_NEWUSER | CLONE_NEWPID | CLONE_NEWNS,
 
 		// remain privileged for setup
 		AmbientCaps: []uintptr{CAP_SYS_ADMIN, CAP_SETPCAP},
@@ -194,7 +188,7 @@ func (p *Container) Serve() error {
 
 	if p.Path != "" && !path.IsAbs(p.Path) {
 		p.cancel()
-		return msg.WrapErr(syscall.EINVAL,
+		return msg.WrapErr(EINVAL,
 			fmt.Sprintf("invalid executable path %q", p.Path))
 	}
 
@@ -203,7 +197,7 @@ func (p *Container) Serve() error {
 			p.Path = os.Getenv("SHELL")
 			if !path.IsAbs(p.Path) {
 				p.cancel()
-				return msg.WrapErr(syscall.EBADE,
+				return msg.WrapErr(EBADE,
 					"no command specified and $SHELL is invalid")
 			}
 			p.name = path.Base(p.Path)
@@ -220,8 +214,8 @@ func (p *Container) Serve() error {
 	err := setup.Encode(
 		&initParams{
 			p.Params,
-			syscall.Getuid(),
-			syscall.Getgid(),
+			Getuid(),
+			Getgid(),
 			len(p.ExtraFiles),
 			msg.IsVerbose(),
 		},

@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
-	"syscall"
+	. "syscall"
 	"unsafe"
 )
 
@@ -46,8 +46,7 @@ const (
 
 func (b *BindMountOp) early(*Params) error {
 	if !path.IsAbs(b.Source) {
-		return msg.WrapErr(syscall.EBADE,
-			fmt.Sprintf("path %q is not absolute", b.Source))
+		return msg.WrapErr(EBADE, fmt.Sprintf("path %q is not absolute", b.Source))
 	}
 
 	if v, err := filepath.EvalSymlinks(b.Source); err != nil {
@@ -66,14 +65,13 @@ func (b *BindMountOp) apply(*Params) error {
 	if b.SourceFinal == "\x00" {
 		if b.Flags&BindOptional == 0 {
 			// unreachable
-			return syscall.EBADE
+			return EBADE
 		}
 		return nil
 	}
 
 	if !path.IsAbs(b.SourceFinal) || !path.IsAbs(b.Target) {
-		return msg.WrapErr(syscall.EBADE,
-			"path is not absolute")
+		return msg.WrapErr(EBADE, "path is not absolute")
 	}
 
 	source := toHost(b.SourceFinal)
@@ -91,12 +89,12 @@ func (b *BindMountOp) apply(*Params) error {
 		return err
 	}
 
-	var flags uintptr = syscall.MS_REC
+	var flags uintptr = MS_REC
 	if b.Flags&BindWritable == 0 {
-		flags |= syscall.MS_RDONLY
+		flags |= MS_RDONLY
 	}
 	if b.Flags&BindDevice == 0 {
-		flags |= syscall.MS_NODEV
+		flags |= MS_NODEV
 	}
 
 	return hostProc.bindMount(source, target, flags, b.SourceFinal == b.Target)
@@ -125,16 +123,14 @@ func (p MountProcOp) apply(params *Params) error {
 	v := string(p)
 
 	if !path.IsAbs(v) {
-		return msg.WrapErr(syscall.EBADE,
-			fmt.Sprintf("path %q is not absolute", v))
+		return msg.WrapErr(EBADE, fmt.Sprintf("path %q is not absolute", v))
 	}
 
 	target := toSysroot(v)
 	if err := os.MkdirAll(target, params.ParentPerm); err != nil {
 		return wrapErrSelf(err)
 	}
-	return wrapErrSuffix(syscall.Mount("proc", target, "proc",
-		syscall.MS_NOSUID|syscall.MS_NOEXEC|syscall.MS_NODEV, ""),
+	return wrapErrSuffix(Mount("proc", target, "proc", MS_NOSUID|MS_NOEXEC|MS_NODEV, ""),
 		fmt.Sprintf("cannot mount proc on %q:", v))
 }
 
@@ -156,8 +152,7 @@ func (d MountDevOp) apply(params *Params) error {
 	v := string(d)
 
 	if !path.IsAbs(v) {
-		return msg.WrapErr(syscall.EBADE,
-			fmt.Sprintf("path %q is not absolute", v))
+		return msg.WrapErr(EBADE, fmt.Sprintf("path %q is not absolute", v))
 	}
 	target := toSysroot(v)
 
@@ -204,8 +199,7 @@ func (d MountDevOp) apply(params *Params) error {
 		}
 	}
 
-	if err := syscall.Mount("devpts", devPtsPath, "devpts",
-		syscall.MS_NOSUID|syscall.MS_NOEXEC,
+	if err := Mount("devpts", devPtsPath, "devpts", MS_NOSUID|MS_NOEXEC,
 		"newinstance,ptmxmode=0666,mode=620"); err != nil {
 		return wrapErrSuffix(err,
 			fmt.Sprintf("cannot mount devpts on %q:", devPtsPath))
@@ -213,10 +207,7 @@ func (d MountDevOp) apply(params *Params) error {
 
 	if params.Flags&FAllowTTY != 0 {
 		var buf [8]byte
-		if _, _, errno := syscall.Syscall(
-			syscall.SYS_IOCTL, 1, syscall.TIOCGWINSZ,
-			uintptr(unsafe.Pointer(&buf[0])),
-		); errno == 0 {
+		if _, _, errno := Syscall(SYS_IOCTL, 1, TIOCGWINSZ, uintptr(unsafe.Pointer(&buf[0]))); errno == 0 {
 			consolePath := toSysroot(path.Join(v, "console"))
 			if err := ensureFile(consolePath, 0444, params.ParentPerm); err != nil {
 				return err
@@ -255,16 +246,14 @@ func (m MountMqueueOp) apply(params *Params) error {
 	v := string(m)
 
 	if !path.IsAbs(v) {
-		return msg.WrapErr(syscall.EBADE,
-			fmt.Sprintf("path %q is not absolute", v))
+		return msg.WrapErr(EBADE, fmt.Sprintf("path %q is not absolute", v))
 	}
 
 	target := toSysroot(v)
 	if err := os.MkdirAll(target, params.ParentPerm); err != nil {
 		return wrapErrSelf(err)
 	}
-	return wrapErrSuffix(syscall.Mount("mqueue", target, "mqueue",
-		syscall.MS_NOSUID|syscall.MS_NOEXEC|syscall.MS_NODEV, ""),
+	return wrapErrSuffix(Mount("mqueue", target, "mqueue", MS_NOSUID|MS_NOEXEC|MS_NODEV, ""),
 		fmt.Sprintf("cannot mount mqueue on %q:", v))
 }
 
@@ -288,12 +277,10 @@ type MountTmpfsOp struct {
 func (t *MountTmpfsOp) early(*Params) error { return nil }
 func (t *MountTmpfsOp) apply(*Params) error {
 	if !path.IsAbs(t.Path) {
-		return msg.WrapErr(syscall.EBADE,
-			fmt.Sprintf("path %q is not absolute", t.Path))
+		return msg.WrapErr(EBADE, fmt.Sprintf("path %q is not absolute", t.Path))
 	}
 	if t.Size < 0 || t.Size > math.MaxUint>>1 {
-		return msg.WrapErr(syscall.EBADE,
-			fmt.Sprintf("size %d out of bounds", t.Size))
+		return msg.WrapErr(EBADE, fmt.Sprintf("size %d out of bounds", t.Size))
 	}
 	return mountTmpfs("tmpfs", t.Path, t.Size, t.Perm)
 }
@@ -315,8 +302,7 @@ func (l *SymlinkOp) early(*Params) error {
 	if strings.HasPrefix(l[0], "*") {
 		l[0] = l[0][1:]
 		if !path.IsAbs(l[0]) {
-			return msg.WrapErr(syscall.EBADE,
-				fmt.Sprintf("path %q is not absolute", l[0]))
+			return msg.WrapErr(EBADE, fmt.Sprintf("path %q is not absolute", l[0]))
 		}
 		if name, err := os.Readlink(l[0]); err != nil {
 			return wrapErrSelf(err)
@@ -329,8 +315,7 @@ func (l *SymlinkOp) early(*Params) error {
 func (l *SymlinkOp) apply(params *Params) error {
 	// symlink target is an arbitrary path value, so only validate link name here
 	if !path.IsAbs(l[1]) {
-		return msg.WrapErr(syscall.EBADE,
-			fmt.Sprintf("path %q is not absolute", l[1]))
+		return msg.WrapErr(EBADE, fmt.Sprintf("path %q is not absolute", l[1]))
 	}
 
 	target := toSysroot(l[1])
@@ -362,8 +347,7 @@ type MkdirOp struct {
 func (m *MkdirOp) early(*Params) error { return nil }
 func (m *MkdirOp) apply(*Params) error {
 	if !path.IsAbs(m.Path) {
-		return msg.WrapErr(syscall.EBADE,
-			fmt.Sprintf("path %q is not absolute", m.Path))
+		return msg.WrapErr(EBADE, fmt.Sprintf("path %q is not absolute", m.Path))
 	}
 
 	if err := os.MkdirAll(toSysroot(m.Path), m.Perm); err != nil {
@@ -391,8 +375,7 @@ type TmpfileOp struct {
 func (t *TmpfileOp) early(*Params) error { return nil }
 func (t *TmpfileOp) apply(params *Params) error {
 	if !path.IsAbs(t.Path) {
-		return msg.WrapErr(syscall.EBADE,
-			fmt.Sprintf("path %q is not absolute", t.Path))
+		return msg.WrapErr(EBADE, fmt.Sprintf("path %q is not absolute", t.Path))
 	}
 
 	var tmpPath string
@@ -414,7 +397,7 @@ func (t *TmpfileOp) apply(params *Params) error {
 	} else if err = hostProc.bindMount(
 		tmpPath,
 		target,
-		syscall.MS_RDONLY|syscall.MS_NODEV,
+		MS_RDONLY|MS_NODEV,
 		false,
 	); err != nil {
 		return err
