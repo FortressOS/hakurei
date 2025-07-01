@@ -115,10 +115,10 @@ func (app *appInfo) toFst(pathSet *appPathSet, argv []string, flagDropShell bool
 		},
 	}
 	if app.Multiarch {
-		config.Container.Seccomp |= seccomp.FilterMultiarch
+		config.Container.SeccompFlags |= seccomp.AllowMultiarch
 	}
 	if app.Bluetooth {
-		config.Container.Seccomp |= seccomp.FilterBluetooth
+		config.Container.SeccompFlags |= seccomp.AllowBluetooth
 	}
 	return config
 }

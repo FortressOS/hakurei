@@ -1,125 +1,60 @@
-// Package seccomp provides filter presets and high level wrappers around libseccomp.
+// Package seccomp provides high level wrappers around libseccomp.
 package seccomp
 
-/*
-#cgo linux pkg-config: --static libseccomp
-
-#include "seccomp-build.h"
-*/
-import "C"
-
 import (
-	"errors"
-	"fmt"
+	"os"
 	"runtime"
-	"syscall"
-	"unsafe"
+	"sync"
 )
 
-// LibraryError represents a libseccomp error.
-type LibraryError struct {
-	Prefix  string
-	Seccomp syscall.Errno
-	Errno   error
+type exporter struct {
+	presets FilterPreset
+	flags   PrepareFlag
+	r, w    *os.File
+
+	prepareOnce sync.Once
+	prepareErr  error
+	closeOnce   sync.Once
+	closeErr    error
+	exportErr   <-chan error
 }
 
-func (e *LibraryError) Error() string {
-	if e.Seccomp == 0 {
-		if e.Errno == nil {
-			panic("invalid libseccomp error")
+func (e *exporter) prepare() error {
+	e.prepareOnce.Do(func() {
+		if r, w, err := os.Pipe(); err != nil {
+			e.prepareErr = err
+			return
+		} else {
+			e.r, e.w = r, w
 		}
-		return fmt.Sprintf("%s: %s", e.Prefix, e.Errno)
-	}
-	if e.Errno == nil {
-		return fmt.Sprintf("%s: %s", e.Prefix, e.Seccomp)
-	}
-	return fmt.Sprintf("%s: %s (%s)", e.Prefix, e.Seccomp, e.Errno)
+
+		ec := make(chan error, 1)
+		go func(fd uintptr) {
+			ec <- preparePreset(int(fd), e.presets, e.flags)
+			close(ec)
+			_ = e.closeWrite()
+			runtime.KeepAlive(e.w)
+		}(e.w.Fd())
+		e.exportErr = ec
+		runtime.SetFinalizer(e, (*exporter).closeWrite)
+	})
+	return e.prepareErr
 }
 
-func (e *LibraryError) Is(err error) bool {
-	if e == nil {
-		return err == nil
-	}
-	if ef, ok := err.(*LibraryError); ok {
-		return *e == *ef
-	}
-	return (e.Seccomp != 0 && errors.Is(err, e.Seccomp)) ||
-		(e.Errno != nil && errors.Is(err, e.Errno))
-}
-
-var resPrefix = [...]string{
-	0: "",
-	1: "seccomp_init failed",
-	2: "seccomp_arch_add failed",
-	3: "seccomp_arch_add failed (multiarch)",
-	4: "internal libseccomp failure",
-	5: "seccomp_rule_add failed",
-	6: "seccomp_export_bpf failed",
-	7: "seccomp_load failed",
-}
-
-type FilterOpts = C.hakurei_filter_opts
-
-const (
-	filterVerbose FilterOpts = C.HAKUREI_VERBOSE
-	// FilterExt are project-specific extensions.
-	FilterExt FilterOpts = C.HAKUREI_EXT
-	// FilterDenyNS denies namespace setup syscalls.
-	FilterDenyNS FilterOpts = C.HAKUREI_DENY_NS
-	// FilterDenyTTY denies faking input.
-	FilterDenyTTY FilterOpts = C.HAKUREI_DENY_TTY
-	// FilterDenyDevel denies development-related syscalls.
-	FilterDenyDevel FilterOpts = C.HAKUREI_DENY_DEVEL
-	// FilterMultiarch allows multiarch/emulation.
-	FilterMultiarch FilterOpts = C.HAKUREI_MULTIARCH
-	// FilterLinux32 sets PER_LINUX32.
-	FilterLinux32 FilterOpts = C.HAKUREI_LINUX32
-	// FilterCan allows AF_CAN.
-	FilterCan FilterOpts = C.HAKUREI_CAN
-	// FilterBluetooth allows AF_BLUETOOTH.
-	FilterBluetooth FilterOpts = C.HAKUREI_BLUETOOTH
-)
-
-func buildFilter(fd int, opts FilterOpts) error {
-	var (
-		arch      C.uint32_t = 0
-		multiarch C.uint32_t = 0
-	)
-	switch runtime.GOARCH {
-	case "386":
-		arch = C.SCMP_ARCH_X86
-	case "amd64":
-		arch = C.SCMP_ARCH_X86_64
-		multiarch = C.SCMP_ARCH_X86
-	case "arm":
-		arch = C.SCMP_ARCH_ARM
-	case "arm64":
-		arch = C.SCMP_ARCH_AARCH64
-		multiarch = C.SCMP_ARCH_ARM
-	}
-
-	// this removes repeated transitions between C and Go execution
-	// when producing log output via hakurei_println and CPrintln is nil
-	if fp := printlnP.Load(); fp != nil {
-		opts |= filterVerbose
-	}
-
-	var ret C.int
-	res, err := C.hakurei_build_filter(&ret, C.int(fd), arch, multiarch, opts)
-	if prefix := resPrefix[res]; prefix != "" {
-		return &LibraryError{
-			prefix,
-			-syscall.Errno(ret),
-			err,
+func (e *exporter) closeWrite() error {
+	e.closeOnce.Do(func() {
+		if e.w == nil {
+			panic("closeWrite called on invalid exporter")
 		}
-	}
-	return err
+		e.closeErr = e.w.Close()
+
+		// no need for a finalizer anymore
+		runtime.SetFinalizer(e, nil)
+	})
+
+	return e.closeErr
 }
 
-// only used for testing
-func syscallResolveName(s string) (trap int) {
-	v := C.CString(s)
-	trap = int(C.seccomp_syscall_resolve_name(v))
-	C.free(unsafe.Pointer(v))
-	return
+func newExporter(presets FilterPreset, flags PrepareFlag) *exporter {
+	return &exporter{presets: presets, flags: flags}
 }

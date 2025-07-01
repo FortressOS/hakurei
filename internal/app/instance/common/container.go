@@ -27,8 +27,9 @@ func NewContainer(s *hst.ContainerConfig, os sys.State, uid, gid *int) (*sandbox
 	}
 
 	container := &sandbox.Params{
-		Hostname: s.Hostname,
-		Seccomp:  s.Seccomp,
+		Hostname:       s.Hostname,
+		SeccompFlags:   s.SeccompFlags,
+		SeccompPresets: s.SeccompPresets,
 	}
 
 	{
@@ -37,7 +38,7 @@ func NewContainer(s *hst.ContainerConfig, os sys.State, uid, gid *int) (*sandbox
 	}
 
 	if s.Multiarch {
-		container.Seccomp |= seccomp.FilterMultiarch
+		container.SeccompFlags |= seccomp.AllowMultiarch
 	}
 
 	if s.Devel {

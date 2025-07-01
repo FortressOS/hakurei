@@ -178,7 +178,7 @@ func testProxyFinaliseStartWaitCloseString(t *testing.T, useSandbox bool) {
 				t.Run("string", func(t *testing.T) {
 					wantSubstr := fmt.Sprintf("%s -test.run=TestHelperStub -- --args=3 --fd=4", os.Args[0])
 					if useSandbox {
-						wantSubstr = fmt.Sprintf(`argv: ["%s" "-test.run=TestHelperStub" "--" "--args=3" "--fd=4"], flags: 0x0, seccomp: 0x3e`, os.Args[0])
+						wantSubstr = fmt.Sprintf(`argv: ["%s" "-test.run=TestHelperStub" "--" "--args=3" "--fd=4"], flags: 0x0, seccomp: 0x1, presets: 0xf`, os.Args[0])
 					}
 					if got := p.String(); !strings.Contains(got, wantSubstr) {
 						t.Errorf("String: %q, want %q",

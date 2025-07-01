@@ -164,8 +164,8 @@ func e(root, target, vfsOptstr, fsType, source, fsOptstr string) *vfs.MountInfoE
 func TestContainerString(t *testing.T) {
 	container := sandbox.New(t.Context(), "ldd", "/usr/bin/env")
 	container.Flags |= sandbox.FAllowDevel
-	container.Seccomp |= seccomp.FilterMultiarch
-	want := `argv: ["ldd" "/usr/bin/env"], flags: 0x2, seccomp: 0x2e`
+	container.SeccompFlags |= seccomp.AllowMultiarch
+	want := `argv: ["ldd" "/usr/bin/env"], flags: 0x2, seccomp: 0x1, presets: 0x7`
 	if got := container.String(); got != want {
 		t.Errorf("String: %s, want %s", got, want)
 	}

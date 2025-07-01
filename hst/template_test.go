@@ -80,7 +80,8 @@ func TestTemplate(t *testing.T) {
 	],
 	"container": {
 		"hostname": "localhost",
-		"seccomp": 32,
+		"seccomp_flags": 1,
+		"seccomp_presets": 1,
 		"devel": true,
 		"userns": true,
 		"net": true,

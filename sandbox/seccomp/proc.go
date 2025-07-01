@@ -9,15 +9,18 @@ import (
 )
 
 const (
-	PresetStrict = FilterExt | FilterDenyNS | FilterDenyTTY | FilterDenyDevel
-	PresetCommon = PresetStrict | FilterMultiarch
+	PresetStrict = PresetExt | PresetDenyNS | PresetDenyTTY | PresetDenyDevel
 )
 
 // New returns an inactive Encoder instance.
-func New(opts FilterOpts) *Encoder { return &Encoder{newExporter(opts)} }
+func New(presets FilterPreset, flags PrepareFlag) *Encoder {
+	return &Encoder{newExporter(presets, flags)}
+}
 
 // Load loads a filter into the kernel.
-func Load(opts FilterOpts) error { return buildFilter(-1, opts) }
+func Load(presets FilterPreset, flags PrepareFlag) error {
+	return preparePreset(-1, presets, flags)
+}
 
 /*
 An Encoder writes a BPF program to an output stream.
@@ -47,17 +50,20 @@ func (e *Encoder) Close() error {
 }
 
 // NewFile returns an instance of exporter implementing [proc.File].
-func NewFile(opts FilterOpts) proc.File { return &File{opts: opts} }
+func NewFile(presets FilterPreset, flags PrepareFlag) proc.File {
+	return &File{presets: presets, flags: flags}
+}
 
 // File implements [proc.File] and provides access to the read end of exporter pipe.
 type File struct {
-	opts FilterOpts
+	presets FilterPreset
+	flags   PrepareFlag
 	proc.BaseFile
 }
 
 func (f *File) ErrCount() int { return 2 }
 func (f *File) Fulfill(ctx context.Context, dispatchErr func(error)) error {
-	e := newExporter(f.opts)
+	e := newExporter(f.presets, f.flags)
 	if err := e.prepare(); err != nil {
 		return err
 	}

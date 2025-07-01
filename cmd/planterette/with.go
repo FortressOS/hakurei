@@ -43,11 +43,11 @@ func withNixDaemon(
 		Identity: app.Identity,
 
 		Container: &hst.ContainerConfig{
-			Hostname: formatHostname(app.Name) + "-" + action,
-			Userns:   true, // nix sandbox requires userns
-			Net:      net,
-			Seccomp:  seccomp.FilterMultiarch,
-			Tty:      dropShell,
+			Hostname:     formatHostname(app.Name) + "-" + action,
+			Userns:       true, // nix sandbox requires userns
+			Net:          net,
+			SeccompFlags: seccomp.AllowMultiarch,
+			Tty:          dropShell,
 			Filesystem: []*hst.FilesystemConfig{
 				{Src: pathSet.nixPath, Dst: "/nix", Write: true, Must: true},
 			},
@@ -85,9 +85,9 @@ func withCacheDir(
 		Identity: app.Identity,
 
 		Container: &hst.ContainerConfig{
-			Hostname: formatHostname(app.Name) + "-" + action,
-			Seccomp:  seccomp.FilterMultiarch,
-			Tty:      dropShell,
+			Hostname:     formatHostname(app.Name) + "-" + action,
+			SeccompFlags: seccomp.AllowMultiarch,
+			Tty:          dropShell,
 			Filesystem: []*hst.FilesystemConfig{
 				{Src: path.Join(workDir, "nix"), Dst: "/nix", Must: true},
 				{Src: workDir, Dst: path.Join(hst.Tmp, "bundle"), Must: true},

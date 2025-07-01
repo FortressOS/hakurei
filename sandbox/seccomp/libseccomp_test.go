@@ -8,17 +8,18 @@ import (
 	"syscall"
 	"testing"
 
-	"git.gensokyo.uk/security/hakurei/sandbox/seccomp"
+	. "git.gensokyo.uk/security/hakurei/sandbox/seccomp"
 )
 
 func TestExport(t *testing.T) {
 	testCases := []struct {
 		name    string
-		opts    seccomp.FilterOpts
+		presets FilterPreset
+		flags   PrepareFlag
 		want    []byte
 		wantErr bool
 	}{
-		{"compat", 0, []byte{
+		{"compat", 0, 0, []byte{
 			0x95, 0xec, 0x69, 0xd0, 0x17, 0x73, 0x3e, 0x07,
 			0x21, 0x60, 0xe0, 0xda, 0x80, 0xfd, 0xeb, 0xec,
 			0xdf, 0x27, 0xae, 0x81, 0x66, 0xf5, 0xe2, 0xa7,
@@ -28,7 +29,7 @@ func TestExport(t *testing.T) {
 			0xa7, 0x9b, 0x07, 0x0e, 0x04, 0xc0, 0xee, 0x9a,
 			0xcd, 0xf5, 0x8f, 0x55, 0xcf, 0xa8, 0x15, 0xa5,
 		}, false},
-		{"base", seccomp.FilterExt, []byte{
+		{"base", PresetExt, 0, []byte{
 			0xdc, 0x7f, 0x2e, 0x1c, 0x5e, 0x82, 0x9b, 0x79,
 			0xeb, 0xb7, 0xef, 0xc7, 0x59, 0x15, 0x0f, 0x54,
 			0xa8, 0x3a, 0x75, 0xc8, 0xdf, 0x6f, 0xee, 0x4d,
@@ -38,10 +39,10 @@ func TestExport(t *testing.T) {
 			0x1d, 0xb0, 0x5d, 0x90, 0x99, 0x7c, 0x86, 0x59,
 			0xb9, 0x58, 0x91, 0x20, 0x6a, 0xc9, 0x95, 0x2d,
 		}, false},
-		{"everything", seccomp.FilterExt |
-			seccomp.FilterDenyNS | seccomp.FilterDenyTTY | seccomp.FilterDenyDevel |
-			seccomp.FilterMultiarch | seccomp.FilterLinux32 | seccomp.FilterCan |
-			seccomp.FilterBluetooth, []byte{
+		{"everything", PresetExt |
+			PresetDenyNS | PresetDenyTTY | PresetDenyDevel |
+			PresetLinux32, AllowMultiarch | AllowCAN |
+			AllowBluetooth, []byte{
 			0xe9, 0x9d, 0xd3, 0x45, 0xe1, 0x95, 0x41, 0x34,
 			0x73, 0xd3, 0xcb, 0xee, 0x07, 0xb4, 0xed, 0x57,
 			0xb9, 0x08, 0xbf, 0xa8, 0x9e, 0xa2, 0x07, 0x2f,
@@ -51,7 +52,7 @@ func TestExport(t *testing.T) {
 			0x4c, 0x02, 0x4e, 0xd4, 0x88, 0x50, 0xbe, 0x69,
 			0xb6, 0x8a, 0x9a, 0x4c, 0x5f, 0x53, 0xa9, 0xdb,
 		}, false},
-		{"strict", seccomp.PresetStrict, []byte{
+		{"strict", PresetStrict, 0, []byte{
 			0xe8, 0x80, 0x29, 0x8d, 0xf2, 0xbd, 0x67, 0x51,
 			0xd0, 0x04, 0x0f, 0xc2, 0x1b, 0xc0, 0xed, 0x4c,
 			0x00, 0xf9, 0x5d, 0xc0, 0xd7, 0xba, 0x50, 0x6c,
@@ -62,7 +63,7 @@ func TestExport(t *testing.T) {
 			0x14, 0x89, 0x60, 0xfb, 0xd3, 0x5c, 0xd7, 0x35,
 		}, false},
 		{"strict compat", 0 |
-			seccomp.FilterDenyNS | seccomp.FilterDenyTTY | seccomp.FilterDenyDevel, []byte{
+			PresetDenyNS | PresetDenyTTY | PresetDenyDevel, 0, []byte{
 			0x39, 0x87, 0x1b, 0x93, 0xff, 0xaf, 0xc8, 0xb9,
 			0x79, 0xfc, 0xed, 0xc0, 0xb0, 0xc3, 0x7b, 0x9e,
 			0x03, 0x92, 0x2f, 0x5b, 0x02, 0x74, 0x8d, 0xc5,
@@ -72,7 +73,7 @@ func TestExport(t *testing.T) {
 			0x80, 0x8b, 0x1a, 0x6f, 0x84, 0xf3, 0x2b, 0xbd,
 			0xe1, 0xaa, 0x02, 0xae, 0x30, 0xee, 0xdc, 0xfa,
 		}, false},
-		{"hakurei default", seccomp.FilterExt | seccomp.FilterDenyDevel, []byte{
+		{"hakurei default", PresetExt | PresetDenyDevel, 0, []byte{
 			0xc6, 0x98, 0xb0, 0x81, 0xff, 0x95, 0x7a, 0xfe,
 			0x17, 0xa6, 0xd9, 0x43, 0x74, 0x53, 0x7d, 0x37,
 			0xf2, 0xa6, 0x3f, 0x6f, 0x9d, 0xd7, 0x5d, 0xa7,
@@ -87,11 +88,7 @@ func TestExport(t *testing.T) {
 	buf := make([]byte, 8)
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			oldF := seccomp.GetOutput()
-			seccomp.SetOutput(t.Log)
-			t.Cleanup(func() { seccomp.SetOutput(oldF) })
-
-			e := seccomp.New(tc.opts)
+			e := New(tc.presets, tc.flags)
 			digest := sha512.New()
 
 			if _, err := io.CopyBuffer(digest, e, buf); (err != nil) != tc.wantErr {
@@ -100,7 +97,6 @@ func TestExport(t *testing.T) {
 			}
 			if err := e.Close(); err != nil {
 				t.Errorf("Close: error = %v", err)
-				return
 			}
 			if got := digest.Sum(nil); !slices.Equal(got, tc.want) {
 				t.Fatalf("Export() hash = %x, want %x",
@@ -111,7 +107,7 @@ func TestExport(t *testing.T) {
 	}
 
 	t.Run("close without use", func(t *testing.T) {
-		e := seccomp.New(0)
+		e := New(0, 0)
 		if err := e.Close(); !errors.Is(err, syscall.EINVAL) {
 			t.Errorf("Close: error = %v", err)
 			return
@@ -119,7 +115,7 @@ func TestExport(t *testing.T) {
 	})
 
 	t.Run("close partial read", func(t *testing.T) {
-		e := seccomp.New(0)
+		e := New(0, 0)
 		if _, err := e.Read(nil); err != nil {
 			t.Errorf("Read: error = %v", err)
 			return
@@ -137,10 +133,9 @@ func TestExport(t *testing.T) {
 func BenchmarkExport(b *testing.B) {
 	buf := make([]byte, 8)
 	for i := 0; i < b.N; i++ {
-		e := seccomp.New(seccomp.FilterExt |
-			seccomp.FilterDenyNS | seccomp.FilterDenyTTY | seccomp.FilterDenyDevel |
-			seccomp.FilterMultiarch | seccomp.FilterLinux32 | seccomp.FilterCan |
-			seccomp.FilterBluetooth)
+		e := New(PresetExt|
+			PresetDenyNS|PresetDenyTTY|PresetDenyDevel|PresetLinux32,
+			AllowMultiarch|AllowCAN|AllowBluetooth)
 		if _, err := io.CopyBuffer(io.Discard, e, buf); err != nil {
 			b.Fatalf("cannot export: %v", err)
 		}

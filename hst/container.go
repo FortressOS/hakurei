@@ -11,7 +11,9 @@ type (
 		Hostname string `json:"hostname,omitempty"`
 
 		// extra seccomp flags
-		Seccomp seccomp.FilterOpts `json:"seccomp"`
+		SeccompFlags seccomp.PrepareFlag `json:"seccomp_flags"`
+		// extra seccomp presets
+		SeccompPresets seccomp.FilterPreset `json:"seccomp_presets"`
 		// allow ptrace and friends
 		Devel bool `json:"devel,omitempty"`
 		// allow userns creation in container

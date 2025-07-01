@@ -27,20 +27,20 @@ const (
 	FAllowNet
 )
 
-func (flags HardeningFlags) seccomp(opts seccomp.FilterOpts) seccomp.FilterOpts {
+func (flags HardeningFlags) seccomp(presets seccomp.FilterPreset) seccomp.FilterPreset {
 	if flags&FSyscallCompat == 0 {
-		opts |= seccomp.FilterExt
+		presets |= seccomp.PresetExt
 	}
 	if flags&FAllowDevel == 0 {
-		opts |= seccomp.FilterDenyDevel
+		presets |= seccomp.PresetDenyDevel
 	}
 	if flags&FAllowUserns == 0 {
-		opts |= seccomp.FilterDenyNS
+		presets |= seccomp.PresetDenyNS
 	}
 	if flags&FAllowTTY == 0 {
-		opts |= seccomp.FilterDenyTTY
+		presets |= seccomp.PresetDenyTTY
 	}
-	return opts
+	return presets
 }
 
 type (
@@ -94,8 +94,10 @@ type (
 		Hostname string
 		// Sequential container setup ops.
 		*Ops
-		// Extra seccomp options.
-		Seccomp seccomp.FilterOpts
+		// Extra seccomp flags.
+		SeccompFlags seccomp.PrepareFlag
+		// Extra seccomp presets.
+		SeccompPresets seccomp.FilterPreset
 		// Permission bits of newly created parent directories.
 		// The zero value is interpreted as 0755.
 		ParentPerm os.FileMode
@@ -233,8 +235,8 @@ func (p *Container) Serve() error {
 func (p *Container) Wait() error { defer p.cancel(); return p.cmd.Wait() }
 
 func (p *Container) String() string {
-	return fmt.Sprintf("argv: %q, flags: %#x, seccomp: %#x",
-		p.Args, p.Flags, int(p.Flags.seccomp(p.Seccomp)))
+	return fmt.Sprintf("argv: %q, flags: %#x, seccomp: %#x, presets: %#x",
+		p.Args, p.Flags, int(p.SeccompFlags), int(p.Flags.seccomp(p.SeccompPresets)))
 }
 
 func New(ctx context.Context, name string, args ...string) *Container {
