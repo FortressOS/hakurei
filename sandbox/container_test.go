@@ -36,22 +36,39 @@ func TestContainer(t *testing.T) {
 	}
 
 	testCases := []struct {
-		name  string
-		flags sandbox.HardeningFlags
-		ops   *sandbox.Ops
-		mnt   []*vfs.MountInfoEntry
-		host  string
+		name    string
+		filter  bool
+		session bool
+		net     bool
+		ops     *sandbox.Ops
+		mnt     []*vfs.MountInfoEntry
+		host    string
+		rules   []seccomp.NativeRule
+		flags   seccomp.ExportFlag
+		presets seccomp.FilterPreset
 	}{
-		{"minimal", 0, new(sandbox.Ops), nil, "test-minimal"},
-		{"allow", sandbox.FAllowUserns | sandbox.FAllowNet | sandbox.FAllowTTY,
-			new(sandbox.Ops), nil, "test-minimal"},
-		{"tmpfs", 0,
+		{"minimal", true, false, false,
+			new(sandbox.Ops), nil, "test-minimal",
+			nil, 0, seccomp.PresetStrict},
+		{"allow", true, true, true,
+			new(sandbox.Ops), nil, "test-minimal",
+			nil, 0, seccomp.PresetExt | seccomp.PresetDenyDevel},
+		{"no filter", false, true, true,
+			new(sandbox.Ops), nil, "test-no-filter",
+			nil, 0, seccomp.PresetExt},
+		{"custom rules", true, true, true,
+			new(sandbox.Ops), nil, "test-no-filter",
+			[]seccomp.NativeRule{
+				{seccomp.ScmpSyscall(syscall.SYS_SETUID), seccomp.ScmpErrno(syscall.EPERM), nil},
+			}, 0, seccomp.PresetExt},
+		{"tmpfs", true, false, false,
 			new(sandbox.Ops).
 				Tmpfs(hst.Tmp, 0, 0755),
 			[]*vfs.MountInfoEntry{
 				e("/", hst.Tmp, "rw,nosuid,nodev,relatime", "tmpfs", "tmpfs", ignore),
-			}, "test-tmpfs"},
-		{"dev", sandbox.FAllowTTY, // go test output is not a tty
+			}, "test-tmpfs",
+			nil, 0, seccomp.PresetStrict},
+		{"dev", true, true /* go test output is not a tty */, false,
 			new(sandbox.Ops).
 				Dev("/dev").
 				Mqueue("/dev/mqueue"),
@@ -65,7 +82,8 @@ func TestContainer(t *testing.T) {
 				e("/tty", "/dev/tty", "rw,nosuid", "devtmpfs", "devtmpfs", ignore),
 				e("/", "/dev/pts", "rw,nosuid,noexec,relatime", "devpts", "devpts", "rw,mode=620,ptmxmode=666"),
 				e("/", "/dev/mqueue", "rw,nosuid,nodev,noexec,relatime", "mqueue", "mqueue", "rw"),
-			}, ""},
+			}, "",
+			nil, 0, seccomp.PresetStrict},
 	}
 
 	for _, tc := range testCases {
@@ -79,9 +97,14 @@ func TestContainer(t *testing.T) {
 			container.Gid = 100
 			container.Hostname = tc.host
 			container.CommandContext = commandContext
-			container.Flags |= tc.flags
 			container.Stdout, container.Stderr = os.Stdout, os.Stderr
 			container.Ops = tc.ops
+			container.SeccompRules = tc.rules
+			container.SeccompFlags = tc.flags | seccomp.AllowMultiarch
+			container.SeccompPresets = tc.presets
+			container.SeccompDisable = !tc.filter
+			container.RetainSession = tc.session
+			container.HostNet = tc.net
 			if container.Args[5] == "" {
 				if name, err := os.Hostname(); err != nil {
 					t.Fatalf("cannot get hostname: %v", err)
@@ -163,9 +186,12 @@ func e(root, target, vfsOptstr, fsType, source, fsOptstr string) *vfs.MountInfoE
 
 func TestContainerString(t *testing.T) {
 	container := sandbox.New(t.Context(), "ldd", "/usr/bin/env")
-	container.Flags |= sandbox.FAllowDevel
 	container.SeccompFlags |= seccomp.AllowMultiarch
-	want := `argv: ["ldd" "/usr/bin/env"], flags: 0x2, seccomp: 0x1, presets: 0x7`
+	container.SeccompRules = seccomp.Preset(
+		seccomp.PresetExt|seccomp.PresetDenyNS|seccomp.PresetDenyTTY,
+		container.SeccompFlags)
+	container.SeccompPresets = seccomp.PresetStrict
+	want := `argv: ["ldd" "/usr/bin/env"], filter: true, rules: 65, flags: 0x1, presets: 0xf`
 	if got := container.String(); got != want {
 		t.Errorf("String: %s, want %s", got, want)
 	}

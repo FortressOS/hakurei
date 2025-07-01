@@ -17,32 +17,6 @@ import (
 	"git.gensokyo.uk/security/hakurei/sandbox/seccomp"
 )
 
-type HardeningFlags uintptr
-
-const (
-	FSyscallCompat HardeningFlags = 1 << iota
-	FAllowDevel
-	FAllowUserns
-	FAllowTTY
-	FAllowNet
-)
-
-func (flags HardeningFlags) seccomp(presets seccomp.FilterPreset) seccomp.FilterPreset {
-	if flags&FSyscallCompat == 0 {
-		presets |= seccomp.PresetExt
-	}
-	if flags&FAllowDevel == 0 {
-		presets |= seccomp.PresetDenyDevel
-	}
-	if flags&FAllowUserns == 0 {
-		presets |= seccomp.PresetDenyNS
-	}
-	if flags&FAllowTTY == 0 {
-		presets |= seccomp.PresetDenyTTY
-	}
-	return presets
-}
-
 type (
 	// Container represents a container environment being prepared or run.
 	// None of [Container] methods are safe for concurrent use.
@@ -94,17 +68,23 @@ type (
 		Hostname string
 		// Sequential container setup ops.
 		*Ops
+		// Seccomp system call filter rules.
+		SeccompRules []seccomp.NativeRule
 		// Extra seccomp flags.
 		SeccompFlags seccomp.ExportFlag
-		// Extra seccomp presets.
+		// Seccomp presets. Has no effect unless SeccompRules is zero-length.
 		SeccompPresets seccomp.FilterPreset
+		// Do not load seccomp program.
+		SeccompDisable bool
 		// Permission bits of newly created parent directories.
 		// The zero value is interpreted as 0755.
 		ParentPerm os.FileMode
+		// Do not syscall.Setsid.
+		RetainSession bool
+		// Do not [syscall.CLONE_NEWNET].
+		HostNet bool
 		// Retain CAP_SYS_ADMIN.
 		Privileged bool
-
-		Flags HardeningFlags
 	}
 )
 
@@ -120,7 +100,7 @@ func (p *Container) Start() error {
 	p.cancel = cancel
 
 	var cloneFlags uintptr = CLONE_NEWIPC | CLONE_NEWUTS | CLONE_NEWCGROUP
-	if p.Flags&FAllowNet == 0 {
+	if !p.HostNet {
 		cloneFlags |= CLONE_NEWNET
 	}
 
@@ -130,6 +110,10 @@ func (p *Container) Start() error {
 	}
 	if p.Gid < 1 {
 		p.Gid = OverflowGid()
+	}
+
+	if !p.RetainSession {
+		p.SeccompPresets |= seccomp.PresetDenyTTY
 	}
 
 	if p.CommandContext != nil {
@@ -148,7 +132,7 @@ func (p *Container) Start() error {
 	}
 	p.cmd.Dir = "/"
 	p.cmd.SysProcAttr = &SysProcAttr{
-		Setsid:     p.Flags&FAllowTTY == 0,
+		Setsid:     !p.RetainSession,
 		Pdeathsig:  SIGKILL,
 		Cloneflags: cloneFlags | CLONE_NEWUSER | CLONE_NEWPID | CLONE_NEWNS,
 
@@ -211,6 +195,11 @@ func (p *Container) Serve() error {
 		}
 	}
 
+	if p.SeccompRules == nil {
+		// do not transmit nil
+		p.SeccompRules = make([]seccomp.NativeRule, 0)
+	}
+
 	err := setup.Encode(
 		&initParams{
 			p.Params,
@@ -229,8 +218,8 @@ func (p *Container) Serve() error {
 func (p *Container) Wait() error { defer p.cancel(); return p.cmd.Wait() }
 
 func (p *Container) String() string {
-	return fmt.Sprintf("argv: %q, flags: %#x, seccomp: %#x, presets: %#x",
-		p.Args, p.Flags, int(p.SeccompFlags), int(p.Flags.seccomp(p.SeccompPresets)))
+	return fmt.Sprintf("argv: %q, filter: %v, rules: %d, flags: %#x, presets: %#x",
+		p.Args, !p.SeccompDisable, len(p.SeccompRules), int(p.SeccompFlags), int(p.SeccompPresets))
 }
 
 func New(ctx context.Context, name string, args ...string) *Container {

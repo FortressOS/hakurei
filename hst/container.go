@@ -14,6 +14,8 @@ type (
 		SeccompFlags seccomp.ExportFlag `json:"seccomp_flags"`
 		// extra seccomp presets
 		SeccompPresets seccomp.FilterPreset `json:"seccomp_presets"`
+		// disable project-specific filter extensions
+		SeccompCompat bool `json:"seccomp_compat,omitempty"`
 		// allow ptrace and friends
 		Devel bool `json:"devel,omitempty"`
 		// allow userns creation in container

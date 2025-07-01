@@ -171,11 +171,11 @@ type ScmpDatum uint64
 // Argument / Value comparison definition
 type ScmpArgCmp struct {
 	// argument number, starting at 0
-	arg C.uint
+	Arg C.uint
 	// the comparison op, e.g. SCMP_CMP_*
-	op ScmpCompare
+	Op ScmpCompare
 
-	datum_a, datum_b ScmpDatum
+	DatumA, DatumB ScmpDatum
 }
 
 // only used for testing

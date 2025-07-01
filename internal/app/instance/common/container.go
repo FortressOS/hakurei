@@ -30,6 +30,8 @@ func NewContainer(s *hst.ContainerConfig, os sys.State, uid, gid *int) (*sandbox
 		Hostname:       s.Hostname,
 		SeccompFlags:   s.SeccompFlags,
 		SeccompPresets: s.SeccompPresets,
+		RetainSession:  s.Tty,
+		HostNet:        s.Net,
 	}
 
 	{
@@ -41,17 +43,17 @@ func NewContainer(s *hst.ContainerConfig, os sys.State, uid, gid *int) (*sandbox
 		container.SeccompFlags |= seccomp.AllowMultiarch
 	}
 
-	if s.Devel {
-		container.Flags |= sandbox.FAllowDevel
+	if !s.SeccompCompat {
+		container.SeccompPresets |= seccomp.PresetExt
 	}
-	if s.Userns {
-		container.Flags |= sandbox.FAllowUserns
+	if !s.Devel {
+		container.SeccompPresets |= seccomp.PresetDenyDevel
 	}
-	if s.Net {
-		container.Flags |= sandbox.FAllowNet
+	if !s.Userns {
+		container.SeccompPresets |= seccomp.PresetDenyNS
 	}
-	if s.Tty {
-		container.Flags |= sandbox.FAllowTTY
+	if !s.Tty {
+		container.SeccompPresets |= seccomp.PresetDenyTTY
 	}
 
 	if s.MapRealUID {

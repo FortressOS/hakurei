@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"git.gensokyo.uk/security/hakurei/sandbox"
+	"git.gensokyo.uk/security/hakurei/sandbox/seccomp"
 )
 
 const lddTimeout = 2 * time.Second
@@ -29,6 +30,8 @@ func ExecFilter(ctx context.Context,
 	container := sandbox.New(c, "ldd", p)
 	container.CommandContext = commandContext
 	container.Hostname = "hakurei-ldd"
+	container.SeccompFlags |= seccomp.AllowMultiarch
+	container.SeccompPresets |= seccomp.PresetStrict
 	stdout, stderr := new(bytes.Buffer), new(bytes.Buffer)
 	container.Stdout = stdout
 	container.Stderr = stderr

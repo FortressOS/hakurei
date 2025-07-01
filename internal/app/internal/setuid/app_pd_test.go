@@ -8,6 +8,7 @@ import (
 	"git.gensokyo.uk/security/hakurei/hst"
 	"git.gensokyo.uk/security/hakurei/internal/app"
 	"git.gensokyo.uk/security/hakurei/sandbox"
+	"git.gensokyo.uk/security/hakurei/sandbox/seccomp"
 	"git.gensokyo.uk/security/hakurei/system"
 )
 
@@ -28,10 +29,9 @@ var testCasesPd = []sealTestCase{
 			Ensure("/tmp/hakurei.1971/tmpdir", 0700).UpdatePermType(system.User, "/tmp/hakurei.1971/tmpdir", acl.Execute).
 			Ensure("/tmp/hakurei.1971/tmpdir/0", 01700).UpdatePermType(system.User, "/tmp/hakurei.1971/tmpdir/0", acl.Read, acl.Write, acl.Execute),
 		&sandbox.Params{
-			Flags: sandbox.FAllowNet | sandbox.FAllowUserns | sandbox.FAllowTTY,
-			Dir:   "/home/chronos",
-			Path:  "/run/current-system/sw/bin/zsh",
-			Args:  []string{"/run/current-system/sw/bin/zsh"},
+			Dir:  "/home/chronos",
+			Path: "/run/current-system/sw/bin/zsh",
+			Args: []string{"/run/current-system/sw/bin/zsh"},
 			Env: []string{
 				"HOME=/home/chronos",
 				"SHELL=/run/current-system/sw/bin/zsh",
@@ -68,6 +68,9 @@ var testCasesPd = []sealTestCase{
 				Place("/etc/passwd", []byte("chronos:x:65534:65534:Hakurei:/home/chronos:/run/current-system/sw/bin/zsh\n")).
 				Place("/etc/group", []byte("hakurei:x:65534:\n")).
 				Tmpfs("/var/run/nscd", 8192, 0755),
+			SeccompPresets: seccomp.PresetExt | seccomp.PresetDenyDevel,
+			HostNet:        true,
+			RetainSession:  true,
 		},
 	},
 	{
@@ -164,10 +167,9 @@ var testCasesPd = []sealTestCase{
 			UpdatePerm("/tmp/hakurei.1971/ebf083d1b175911782d413369b64ce7c/bus", acl.Read, acl.Write).
 			UpdatePerm("/tmp/hakurei.1971/ebf083d1b175911782d413369b64ce7c/system_bus_socket", acl.Read, acl.Write),
 		&sandbox.Params{
-			Flags: sandbox.FAllowNet | sandbox.FAllowUserns | sandbox.FAllowTTY,
-			Dir:   "/home/chronos",
-			Path:  "/run/current-system/sw/bin/zsh",
-			Args:  []string{"zsh", "-c", "exec chromium "},
+			Dir:  "/home/chronos",
+			Path: "/run/current-system/sw/bin/zsh",
+			Args: []string{"zsh", "-c", "exec chromium "},
 			Env: []string{
 				"DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/65534/bus",
 				"DBUS_SYSTEM_BUS_ADDRESS=unix:path=/run/dbus/system_bus_socket",
@@ -215,6 +217,9 @@ var testCasesPd = []sealTestCase{
 				Bind("/tmp/hakurei.1971/ebf083d1b175911782d413369b64ce7c/bus", "/run/user/65534/bus", 0).
 				Bind("/tmp/hakurei.1971/ebf083d1b175911782d413369b64ce7c/system_bus_socket", "/run/dbus/system_bus_socket", 0).
 				Tmpfs("/var/run/nscd", 8192, 0755),
+			SeccompPresets: seccomp.PresetExt | seccomp.PresetDenyDevel,
+			HostNet:        true,
+			RetainSession:  true,
 		},
 	},
 }

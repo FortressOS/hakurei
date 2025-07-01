@@ -6,6 +6,7 @@ import (
 	"git.gensokyo.uk/security/hakurei/hst"
 	"git.gensokyo.uk/security/hakurei/internal/app"
 	"git.gensokyo.uk/security/hakurei/sandbox"
+	"git.gensokyo.uk/security/hakurei/sandbox/seccomp"
 	"git.gensokyo.uk/security/hakurei/system"
 )
 
@@ -94,12 +95,11 @@ var testCasesNixos = []sealTestCase{
 			UpdatePerm("/tmp/hakurei.1971/8e2c76b066dabe574cf073bdb46eb5c1/bus", acl.Read, acl.Write).
 			UpdatePerm("/tmp/hakurei.1971/8e2c76b066dabe574cf073bdb46eb5c1/system_bus_socket", acl.Read, acl.Write),
 		&sandbox.Params{
-			Uid:   1971,
-			Gid:   100,
-			Flags: sandbox.FAllowNet | sandbox.FAllowUserns,
-			Dir:   "/var/lib/persist/module/hakurei/0/1",
-			Path:  "/nix/store/yqivzpzzn7z5x0lq9hmbzygh45d8rhqd-chromium-start",
-			Args:  []string{"/nix/store/yqivzpzzn7z5x0lq9hmbzygh45d8rhqd-chromium-start"},
+			Uid:  1971,
+			Gid:  100,
+			Dir:  "/var/lib/persist/module/hakurei/0/1",
+			Path: "/nix/store/yqivzpzzn7z5x0lq9hmbzygh45d8rhqd-chromium-start",
+			Args: []string{"/nix/store/yqivzpzzn7z5x0lq9hmbzygh45d8rhqd-chromium-start"},
 			Env: []string{
 				"DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1971/bus",
 				"DBUS_SYSTEM_BUS_ADDRESS=unix:path=/run/dbus/system_bus_socket",
@@ -142,6 +142,8 @@ var testCasesNixos = []sealTestCase{
 				Bind("/tmp/hakurei.1971/8e2c76b066dabe574cf073bdb46eb5c1/bus", "/run/user/1971/bus", 0).
 				Bind("/tmp/hakurei.1971/8e2c76b066dabe574cf073bdb46eb5c1/system_bus_socket", "/run/dbus/system_bus_socket", 0).
 				Tmpfs("/var/run/nscd", 8192, 0755),
+			SeccompPresets: seccomp.PresetExt | seccomp.PresetDenyTTY | seccomp.PresetDenyDevel,
+			HostNet:        true,
 		},
 	},
 }

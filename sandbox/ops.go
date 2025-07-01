@@ -205,7 +205,7 @@ func (d MountDevOp) apply(params *Params) error {
 			fmt.Sprintf("cannot mount devpts on %q:", devPtsPath))
 	}
 
-	if params.Flags&FAllowTTY != 0 {
+	if params.RetainSession {
 		var buf [8]byte
 		if _, _, errno := Syscall(SYS_IOCTL, 1, TIOCGWINSZ, uintptr(unsafe.Pointer(&buf[0]))); errno == 0 {
 			consolePath := toSysroot(path.Join(v, "console"))

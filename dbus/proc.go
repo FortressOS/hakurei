@@ -67,6 +67,7 @@ func (p *Proxy) Start() error {
 			p.final, true,
 			argF, func(container *sandbox.Container) {
 				container.SeccompFlags |= seccomp.AllowMultiarch
+				container.SeccompPresets |= seccomp.PresetStrict
 				container.Hostname = "hakurei-dbus"
 				container.CommandContext = p.CommandContext
 				if p.output != nil {

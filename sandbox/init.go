@@ -229,8 +229,18 @@ func Init(prepare func(prefix string), setVerbose func(verbose bool)) {
 		log.Fatalf("cannot capset: %v", err)
 	}
 
-	if err := seccomp.Load(seccomp.Preset(params.Flags.seccomp(params.SeccompPresets), params.SeccompFlags), params.SeccompFlags); err != nil {
-		log.Fatalf("cannot load syscall filter: %v", err)
+	if !params.SeccompDisable {
+		rules := params.SeccompRules
+		if len(rules) == 0 { // non-empty rules slice always overrides presets
+			msg.Verbosef("resolving presets %#x", params.SeccompPresets)
+			rules = seccomp.Preset(params.SeccompPresets, params.SeccompFlags)
+		}
+		if err := seccomp.Load(rules, params.SeccompFlags); err != nil {
+			log.Fatalf("cannot load syscall filter: %v", err)
+		}
+		msg.Verbosef("%d filter rules loaded", len(rules))
+	} else {
+		msg.Verbose("syscall filter not configured")
 	}
 
 	extraFiles := make([]*os.File, params.Count)
