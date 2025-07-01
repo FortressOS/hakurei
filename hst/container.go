@@ -11,7 +11,7 @@ type (
 		Hostname string `json:"hostname,omitempty"`
 
 		// extra seccomp flags
-		SeccompFlags seccomp.PrepareFlag `json:"seccomp_flags"`
+		SeccompFlags seccomp.ExportFlag `json:"seccomp_flags"`
 		// extra seccomp presets
 		SeccompPresets seccomp.FilterPreset `json:"seccomp_presets"`
 		// allow ptrace and friends

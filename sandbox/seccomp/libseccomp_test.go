@@ -15,7 +15,7 @@ func TestExport(t *testing.T) {
 	testCases := []struct {
 		name    string
 		presets FilterPreset
-		flags   PrepareFlag
+		flags   ExportFlag
 		want    []byte
 		wantErr bool
 	}{

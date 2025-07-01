@@ -95,7 +95,7 @@ type (
 		// Sequential container setup ops.
 		*Ops
 		// Extra seccomp flags.
-		SeccompFlags seccomp.PrepareFlag
+		SeccompFlags seccomp.ExportFlag
 		// Extra seccomp presets.
 		SeccompPresets seccomp.FilterPreset
 		// Permission bits of newly created parent directories.

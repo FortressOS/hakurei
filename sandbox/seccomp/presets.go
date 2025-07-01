@@ -21,7 +21,7 @@ const (
 	PresetLinux32
 )
 
-func Preset(presets FilterPreset, flags PrepareFlag) (rules []NativeRule) {
+func Preset(presets FilterPreset, flags ExportFlag) (rules []NativeRule) {
 	allowedPersonality := PER_LINUX
 	if presets&PresetLinux32 != 0 {
 		allowedPersonality = PER_LINUX32

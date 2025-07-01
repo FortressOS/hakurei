@@ -9,7 +9,7 @@ import (
 
 type exporter struct {
 	rules []NativeRule
-	flags PrepareFlag
+	flags ExportFlag
 	r, w  *os.File
 
 	prepareOnce sync.Once
@@ -30,7 +30,7 @@ func (e *exporter) prepare() error {
 
 		ec := make(chan error, 1)
 		go func(fd uintptr) {
-			ec <- Prepare(int(fd), e.rules, e.flags)
+			ec <- Export(int(fd), e.rules, e.flags)
 			close(ec)
 			_ = e.closeWrite()
 			runtime.KeepAlive(e.w)
@@ -55,6 +55,6 @@ func (e *exporter) closeWrite() error {
 	return e.closeErr
 }
 
-func newExporter(rules []NativeRule, flags PrepareFlag) *exporter {
+func newExporter(rules []NativeRule, flags ExportFlag) *exporter {
 	return &exporter{rules: rules, flags: flags}
 }

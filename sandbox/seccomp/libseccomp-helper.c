@@ -9,10 +9,10 @@
 
 #define LEN(arr) (sizeof(arr) / sizeof((arr)[0]))
 
-int32_t hakurei_prepare_filter(int *ret_p, int fd, uint32_t arch,
-                               uint32_t multiarch,
-                               struct hakurei_syscall_rule *rules,
-                               size_t rules_sz, hakurei_prepare_flag flags) {
+int32_t hakurei_export_filter(int *ret_p, int fd, uint32_t arch,
+                              uint32_t multiarch,
+                              struct hakurei_syscall_rule *rules,
+                              size_t rules_sz, hakurei_export_flag flags) {
   int i;
   int last_allowed_family;
   int disallowed;
@@ -23,7 +23,7 @@ int32_t hakurei_prepare_filter(int *ret_p, int fd, uint32_t arch,
   /* Blocklist all but unix, inet, inet6 and netlink */
   struct {
     int family;
-    hakurei_prepare_flag flags_mask;
+    hakurei_export_flag flags_mask;
   } socket_family_allowlist[] = {
       /* NOTE: Keep in numerical order */
       {AF_UNSPEC, 0},
@@ -31,8 +31,8 @@ int32_t hakurei_prepare_filter(int *ret_p, int fd, uint32_t arch,
       {AF_INET, 0},
       {AF_INET6, 0},
       {AF_NETLINK, 0},
-      {AF_CAN, HAKUREI_PREPARE_CAN},
-      {AF_BLUETOOTH, HAKUREI_PREPARE_BLUETOOTH},
+      {AF_CAN, HAKUREI_EXPORT_CAN},
+      {AF_BLUETOOTH, HAKUREI_EXPORT_BLUETOOTH},
   };
 
   scmp_filter_ctx ctx = seccomp_init(SCMP_ACT_ALLOW);
@@ -56,7 +56,7 @@ int32_t hakurei_prepare_filter(int *ret_p, int fd, uint32_t arch,
       goto out;
     }
 
-    if (flags & HAKUREI_PREPARE_MULTIARCH && multiarch != 0) {
+    if (flags & HAKUREI_EXPORT_MULTIARCH && multiarch != 0) {
       *ret_p = seccomp_arch_add(ctx, multiarch);
       if (*ret_p < 0 && *ret_p != -EEXIST) {
         res = 3;

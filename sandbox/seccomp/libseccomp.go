@@ -64,15 +64,15 @@ type NativeRule struct {
 	Arg *ScmpArgCmp
 }
 
-type PrepareFlag = C.hakurei_prepare_flag
+type ExportFlag = C.hakurei_export_flag
 
 const (
 	// AllowMultiarch allows multiarch/emulation.
-	AllowMultiarch PrepareFlag = C.HAKUREI_PREPARE_MULTIARCH
+	AllowMultiarch ExportFlag = C.HAKUREI_EXPORT_MULTIARCH
 	// AllowCAN allows AF_CAN.
-	AllowCAN PrepareFlag = C.HAKUREI_PREPARE_CAN
+	AllowCAN ExportFlag = C.HAKUREI_EXPORT_CAN
 	// AllowBluetooth allows AF_BLUETOOTH.
-	AllowBluetooth PrepareFlag = C.HAKUREI_PREPARE_BLUETOOTH
+	AllowBluetooth ExportFlag = C.HAKUREI_EXPORT_BLUETOOTH
 )
 
 var resPrefix = [...]string{
@@ -86,8 +86,8 @@ var resPrefix = [...]string{
 	7: "seccomp_load failed",
 }
 
-// Prepare streams filter contents to fd, or installs it to the current process if fd < 0.
-func Prepare(fd int, rules []NativeRule, flags PrepareFlag) error {
+// Export streams filter contents to fd, or installs it to the current process if fd < 0.
+func Export(fd int, rules []NativeRule, flags ExportFlag) error {
 	if len(rules) == 0 {
 		return ErrInvalidRules
 	}
@@ -119,7 +119,7 @@ func Prepare(fd int, rules []NativeRule, flags PrepareFlag) error {
 			rulesPinner.Pin(rule.Arg)
 		}
 	}
-	res, err := C.hakurei_prepare_filter(
+	res, err := C.hakurei_export_filter(
 		&ret, C.int(fd),
 		arch, multiarch,
 		(*C.struct_hakurei_syscall_rule)(unsafe.Pointer(&rules[0])),
