@@ -29,10 +29,10 @@ type (
 
 func (f *Ops) Grow(n int) { *f = slices.Grow(*f, n) }
 
-func init() { gob.Register(new(BindMount)) }
+func init() { gob.Register(new(BindMountOp)) }
 
-// BindMount bind mounts host path Source on container path Target.
-type BindMount struct {
+// BindMountOp bind mounts host path Source on container path Target.
+type BindMountOp struct {
 	Source, SourceFinal, Target string
 
 	Flags int
@@ -44,7 +44,7 @@ const (
 	BindDevice
 )
 
-func (b *BindMount) early(*Params) error {
+func (b *BindMountOp) early(*Params) error {
 	if !path.IsAbs(b.Source) {
 		return msg.WrapErr(syscall.EBADE,
 			fmt.Sprintf("path %q is not absolute", b.Source))
@@ -62,7 +62,7 @@ func (b *BindMount) early(*Params) error {
 	}
 }
 
-func (b *BindMount) apply(*Params) error {
+func (b *BindMountOp) apply(*Params) error {
 	if b.SourceFinal == "\x00" {
 		if b.Flags&BindOptional == 0 {
 			// unreachable
@@ -102,26 +102,26 @@ func (b *BindMount) apply(*Params) error {
 	return hostProc.bindMount(source, target, flags, b.SourceFinal == b.Target)
 }
 
-func (b *BindMount) Is(op Op) bool { vb, ok := op.(*BindMount); return ok && *b == *vb }
-func (*BindMount) prefix() string  { return "mounting" }
-func (b *BindMount) String() string {
+func (b *BindMountOp) Is(op Op) bool { vb, ok := op.(*BindMountOp); return ok && *b == *vb }
+func (*BindMountOp) prefix() string  { return "mounting" }
+func (b *BindMountOp) String() string {
 	if b.Source == b.Target {
 		return fmt.Sprintf("%q flags %#x", b.Source, b.Flags)
 	}
 	return fmt.Sprintf("%q on %q flags %#x", b.Source, b.Target, b.Flags&BindWritable)
 }
 func (f *Ops) Bind(source, target string, flags int) *Ops {
-	*f = append(*f, &BindMount{source, "", target, flags})
+	*f = append(*f, &BindMountOp{source, "", target, flags})
 	return f
 }
 
-func init() { gob.Register(new(MountProc)) }
+func init() { gob.Register(new(MountProcOp)) }
 
-// MountProc mounts a private instance of proc.
-type MountProc string
+// MountProcOp mounts a private instance of proc.
+type MountProcOp string
 
-func (p MountProc) early(*Params) error { return nil }
-func (p MountProc) apply(params *Params) error {
+func (p MountProcOp) early(*Params) error { return nil }
+func (p MountProcOp) apply(params *Params) error {
 	v := string(p)
 
 	if !path.IsAbs(v) {
@@ -138,21 +138,21 @@ func (p MountProc) apply(params *Params) error {
 		fmt.Sprintf("cannot mount proc on %q:", v))
 }
 
-func (p MountProc) Is(op Op) bool  { vp, ok := op.(MountProc); return ok && p == vp }
-func (MountProc) prefix() string   { return "mounting" }
-func (p MountProc) String() string { return fmt.Sprintf("proc on %q", string(p)) }
+func (p MountProcOp) Is(op Op) bool  { vp, ok := op.(MountProcOp); return ok && p == vp }
+func (MountProcOp) prefix() string   { return "mounting" }
+func (p MountProcOp) String() string { return fmt.Sprintf("proc on %q", string(p)) }
 func (f *Ops) Proc(dest string) *Ops {
-	*f = append(*f, MountProc(dest))
+	*f = append(*f, MountProcOp(dest))
 	return f
 }
 
-func init() { gob.Register(new(MountDev)) }
+func init() { gob.Register(new(MountDevOp)) }
 
-// MountDev mounts part of host dev.
-type MountDev string
+// MountDevOp mounts part of host dev.
+type MountDevOp string
 
-func (d MountDev) early(*Params) error { return nil }
-func (d MountDev) apply(params *Params) error {
+func (d MountDevOp) early(*Params) error { return nil }
+func (d MountDevOp) apply(params *Params) error {
 	v := string(d)
 
 	if !path.IsAbs(v) {
@@ -237,21 +237,21 @@ func (d MountDev) apply(params *Params) error {
 	return nil
 }
 
-func (d MountDev) Is(op Op) bool  { vd, ok := op.(MountDev); return ok && d == vd }
-func (MountDev) prefix() string   { return "mounting" }
-func (d MountDev) String() string { return fmt.Sprintf("dev on %q", string(d)) }
+func (d MountDevOp) Is(op Op) bool  { vd, ok := op.(MountDevOp); return ok && d == vd }
+func (MountDevOp) prefix() string   { return "mounting" }
+func (d MountDevOp) String() string { return fmt.Sprintf("dev on %q", string(d)) }
 func (f *Ops) Dev(dest string) *Ops {
-	*f = append(*f, MountDev(dest))
+	*f = append(*f, MountDevOp(dest))
 	return f
 }
 
-func init() { gob.Register(new(MountMqueue)) }
+func init() { gob.Register(new(MountMqueueOp)) }
 
-// MountMqueue mounts a private mqueue instance on container Path.
-type MountMqueue string
+// MountMqueueOp mounts a private mqueue instance on container Path.
+type MountMqueueOp string
 
-func (m MountMqueue) early(*Params) error { return nil }
-func (m MountMqueue) apply(params *Params) error {
+func (m MountMqueueOp) early(*Params) error { return nil }
+func (m MountMqueueOp) apply(params *Params) error {
 	v := string(m)
 
 	if !path.IsAbs(v) {
@@ -268,25 +268,25 @@ func (m MountMqueue) apply(params *Params) error {
 		fmt.Sprintf("cannot mount mqueue on %q:", v))
 }
 
-func (m MountMqueue) Is(op Op) bool  { vm, ok := op.(MountMqueue); return ok && m == vm }
-func (MountMqueue) prefix() string   { return "mounting" }
-func (m MountMqueue) String() string { return fmt.Sprintf("mqueue on %q", string(m)) }
+func (m MountMqueueOp) Is(op Op) bool  { vm, ok := op.(MountMqueueOp); return ok && m == vm }
+func (MountMqueueOp) prefix() string   { return "mounting" }
+func (m MountMqueueOp) String() string { return fmt.Sprintf("mqueue on %q", string(m)) }
 func (f *Ops) Mqueue(dest string) *Ops {
-	*f = append(*f, MountMqueue(dest))
+	*f = append(*f, MountMqueueOp(dest))
 	return f
 }
 
-func init() { gob.Register(new(MountTmpfs)) }
+func init() { gob.Register(new(MountTmpfsOp)) }
 
-// MountTmpfs mounts tmpfs on container Path.
-type MountTmpfs struct {
+// MountTmpfsOp mounts tmpfs on container Path.
+type MountTmpfsOp struct {
 	Path string
 	Size int
 	Perm os.FileMode
 }
 
-func (t *MountTmpfs) early(*Params) error { return nil }
-func (t *MountTmpfs) apply(*Params) error {
+func (t *MountTmpfsOp) early(*Params) error { return nil }
+func (t *MountTmpfsOp) apply(*Params) error {
 	if !path.IsAbs(t.Path) {
 		return msg.WrapErr(syscall.EBADE,
 			fmt.Sprintf("path %q is not absolute", t.Path))
@@ -298,20 +298,20 @@ func (t *MountTmpfs) apply(*Params) error {
 	return mountTmpfs("tmpfs", t.Path, t.Size, t.Perm)
 }
 
-func (t *MountTmpfs) Is(op Op) bool  { vt, ok := op.(*MountTmpfs); return ok && *t == *vt }
-func (*MountTmpfs) prefix() string   { return "mounting" }
-func (t *MountTmpfs) String() string { return fmt.Sprintf("tmpfs on %q size %d", t.Path, t.Size) }
+func (t *MountTmpfsOp) Is(op Op) bool  { vt, ok := op.(*MountTmpfsOp); return ok && *t == *vt }
+func (*MountTmpfsOp) prefix() string   { return "mounting" }
+func (t *MountTmpfsOp) String() string { return fmt.Sprintf("tmpfs on %q size %d", t.Path, t.Size) }
 func (f *Ops) Tmpfs(dest string, size int, perm os.FileMode) *Ops {
-	*f = append(*f, &MountTmpfs{dest, size, perm})
+	*f = append(*f, &MountTmpfsOp{dest, size, perm})
 	return f
 }
 
-func init() { gob.Register(new(Symlink)) }
+func init() { gob.Register(new(SymlinkOp)) }
 
-// Symlink creates a symlink in the container filesystem.
-type Symlink [2]string
+// SymlinkOp creates a symlink in the container filesystem.
+type SymlinkOp [2]string
 
-func (l *Symlink) early(*Params) error {
+func (l *SymlinkOp) early(*Params) error {
 	if strings.HasPrefix(l[0], "*") {
 		l[0] = l[0][1:]
 		if !path.IsAbs(l[0]) {
@@ -326,7 +326,7 @@ func (l *Symlink) early(*Params) error {
 	}
 	return nil
 }
-func (l *Symlink) apply(params *Params) error {
+func (l *SymlinkOp) apply(params *Params) error {
 	// symlink target is an arbitrary path value, so only validate link name here
 	if !path.IsAbs(l[1]) {
 		return msg.WrapErr(syscall.EBADE,
@@ -343,24 +343,24 @@ func (l *Symlink) apply(params *Params) error {
 	return nil
 }
 
-func (l *Symlink) Is(op Op) bool  { vl, ok := op.(*Symlink); return ok && *l == *vl }
-func (*Symlink) prefix() string   { return "creating" }
-func (l *Symlink) String() string { return fmt.Sprintf("symlink on %q target %q", l[1], l[0]) }
+func (l *SymlinkOp) Is(op Op) bool  { vl, ok := op.(*SymlinkOp); return ok && *l == *vl }
+func (*SymlinkOp) prefix() string   { return "creating" }
+func (l *SymlinkOp) String() string { return fmt.Sprintf("symlink on %q target %q", l[1], l[0]) }
 func (f *Ops) Link(target, linkName string) *Ops {
-	*f = append(*f, &Symlink{target, linkName})
+	*f = append(*f, &SymlinkOp{target, linkName})
 	return f
 }
 
-func init() { gob.Register(new(Mkdir)) }
+func init() { gob.Register(new(MkdirOp)) }
 
-// Mkdir creates a directory in the container filesystem.
-type Mkdir struct {
+// MkdirOp creates a directory in the container filesystem.
+type MkdirOp struct {
 	Path string
 	Perm os.FileMode
 }
 
-func (m *Mkdir) early(*Params) error { return nil }
-func (m *Mkdir) apply(*Params) error {
+func (m *MkdirOp) early(*Params) error { return nil }
+func (m *MkdirOp) apply(*Params) error {
 	if !path.IsAbs(m.Path) {
 		return msg.WrapErr(syscall.EBADE,
 			fmt.Sprintf("path %q is not absolute", m.Path))
@@ -372,24 +372,24 @@ func (m *Mkdir) apply(*Params) error {
 	return nil
 }
 
-func (m *Mkdir) Is(op Op) bool  { vm, ok := op.(*Mkdir); return ok && m == vm }
-func (*Mkdir) prefix() string   { return "creating" }
-func (m *Mkdir) String() string { return fmt.Sprintf("directory %q perm %s", m.Path, m.Perm) }
+func (m *MkdirOp) Is(op Op) bool  { vm, ok := op.(*MkdirOp); return ok && m == vm }
+func (*MkdirOp) prefix() string   { return "creating" }
+func (m *MkdirOp) String() string { return fmt.Sprintf("directory %q perm %s", m.Path, m.Perm) }
 func (f *Ops) Mkdir(dest string, perm os.FileMode) *Ops {
-	*f = append(*f, &Mkdir{dest, perm})
+	*f = append(*f, &MkdirOp{dest, perm})
 	return f
 }
 
-func init() { gob.Register(new(Tmpfile)) }
+func init() { gob.Register(new(TmpfileOp)) }
 
-// Tmpfile places a file in container Path containing Data.
-type Tmpfile struct {
+// TmpfileOp places a file in container Path containing Data.
+type TmpfileOp struct {
 	Path string
 	Data []byte
 }
 
-func (t *Tmpfile) early(*Params) error { return nil }
-func (t *Tmpfile) apply(params *Params) error {
+func (t *TmpfileOp) early(*Params) error { return nil }
+func (t *TmpfileOp) apply(params *Params) error {
 	if !path.IsAbs(t.Path) {
 		return msg.WrapErr(syscall.EBADE,
 			fmt.Sprintf("path %q is not absolute", t.Path))
@@ -424,31 +424,31 @@ func (t *Tmpfile) apply(params *Params) error {
 	return nil
 }
 
-func (t *Tmpfile) Is(op Op) bool {
-	vt, ok := op.(*Tmpfile)
+func (t *TmpfileOp) Is(op Op) bool {
+	vt, ok := op.(*TmpfileOp)
 	return ok && t.Path == vt.Path && slices.Equal(t.Data, vt.Data)
 }
-func (*Tmpfile) prefix() string { return "placing" }
-func (t *Tmpfile) String() string {
+func (*TmpfileOp) prefix() string { return "placing" }
+func (t *TmpfileOp) String() string {
 	return fmt.Sprintf("tmpfile %q (%d bytes)", t.Path, len(t.Data))
 }
-func (f *Ops) Place(name string, data []byte) *Ops { *f = append(*f, &Tmpfile{name, data}); return f }
+func (f *Ops) Place(name string, data []byte) *Ops { *f = append(*f, &TmpfileOp{name, data}); return f }
 func (f *Ops) PlaceP(name string, dataP **[]byte) *Ops {
-	t := &Tmpfile{Path: name}
+	t := &TmpfileOp{Path: name}
 	*dataP = &t.Data
 
 	*f = append(*f, t)
 	return f
 }
 
-func init() { gob.Register(new(AutoEtc)) }
+func init() { gob.Register(new(AutoEtcOp)) }
 
-// AutoEtc expands host /etc into a toplevel symlink mirror with /etc semantics.
+// AutoEtcOp expands host /etc into a toplevel symlink mirror with /etc semantics.
 // This is not a generic setup op. It is implemented here to reduce ipc overhead.
-type AutoEtc struct{ Prefix string }
+type AutoEtcOp struct{ Prefix string }
 
-func (e *AutoEtc) early(*Params) error { return nil }
-func (e *AutoEtc) apply(*Params) error {
+func (e *AutoEtcOp) early(*Params) error { return nil }
+func (e *AutoEtcOp) apply(*Params) error {
 	const target = sysrootPath + "/etc/"
 	rel := e.hostRel() + "/"
 
@@ -481,17 +481,17 @@ func (e *AutoEtc) apply(*Params) error {
 
 	return nil
 }
-func (e *AutoEtc) hostPath() string { return "/etc/" + e.hostRel() }
-func (e *AutoEtc) hostRel() string  { return ".host/" + e.Prefix }
+func (e *AutoEtcOp) hostPath() string { return "/etc/" + e.hostRel() }
+func (e *AutoEtcOp) hostRel() string  { return ".host/" + e.Prefix }
 
-func (e *AutoEtc) Is(op Op) bool {
-	ve, ok := op.(*AutoEtc)
+func (e *AutoEtcOp) Is(op Op) bool {
+	ve, ok := op.(*AutoEtcOp)
 	return ok && ((e == nil && ve == nil) || (e != nil && ve != nil && *e == *ve))
 }
-func (*AutoEtc) prefix() string   { return "setting up" }
-func (e *AutoEtc) String() string { return fmt.Sprintf("auto etc %s", e.Prefix) }
+func (*AutoEtcOp) prefix() string   { return "setting up" }
+func (e *AutoEtcOp) String() string { return fmt.Sprintf("auto etc %s", e.Prefix) }
 func (f *Ops) Etc(host, prefix string) *Ops {
-	e := &AutoEtc{prefix}
+	e := &AutoEtcOp{prefix}
 	f.Mkdir("/etc", 0755)
 	f.Bind(host, e.hostPath(), 0)
 	*f = append(*f, e)
