@@ -8,9 +8,9 @@ import (
 )
 
 type exporter struct {
-	presets FilterPreset
-	flags   PrepareFlag
-	r, w    *os.File
+	rules []NativeRule
+	flags PrepareFlag
+	r, w  *os.File
 
 	prepareOnce sync.Once
 	prepareErr  error
@@ -30,7 +30,7 @@ func (e *exporter) prepare() error {
 
 		ec := make(chan error, 1)
 		go func(fd uintptr) {
-			ec <- preparePreset(int(fd), e.presets, e.flags)
+			ec <- Prepare(int(fd), e.rules, e.flags)
 			close(ec)
 			_ = e.closeWrite()
 			runtime.KeepAlive(e.w)
@@ -55,6 +55,6 @@ func (e *exporter) closeWrite() error {
 	return e.closeErr
 }
 
-func newExporter(presets FilterPreset, flags PrepareFlag) *exporter {
-	return &exporter{presets: presets, flags: flags}
+func newExporter(rules []NativeRule, flags PrepareFlag) *exporter {
+	return &exporter{rules: rules, flags: flags}
 }

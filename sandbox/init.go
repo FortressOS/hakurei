@@ -237,7 +237,7 @@ func Init(prepare func(prefix string), setVerbose func(verbose bool)) {
 		log.Fatalf("cannot capset: %v", err)
 	}
 
-	if err := seccomp.Load(params.Flags.seccomp(params.SeccompPresets), params.SeccompFlags); err != nil {
+	if err := seccomp.Load(seccomp.Preset(params.Flags.seccomp(params.SeccompPresets), params.SeccompFlags), params.SeccompFlags); err != nil {
 		log.Fatalf("cannot load syscall filter: %v", err)
 	}
 

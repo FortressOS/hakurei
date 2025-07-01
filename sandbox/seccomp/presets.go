@@ -21,7 +21,7 @@ const (
 	PresetLinux32
 )
 
-func preparePreset(fd int, presets FilterPreset, flags PrepareFlag) error {
+func Preset(presets FilterPreset, flags PrepareFlag) (rules []NativeRule) {
 	allowedPersonality := PER_LINUX
 	if presets&PresetLinux32 != 0 {
 		allowedPersonality = PER_LINUX32
@@ -51,7 +51,7 @@ func preparePreset(fd int, presets FilterPreset, flags PrepareFlag) error {
 		}
 	}
 
-	rules := make([]NativeRule, 0, l)
+	rules = make([]NativeRule, 0, l)
 	rules = append(rules, presetCommon...)
 	if presets&PresetDenyNS != 0 {
 		rules = append(rules, presetNamespace...)
@@ -75,7 +75,7 @@ func preparePreset(fd int, presets FilterPreset, flags PrepareFlag) error {
 		}
 	}
 
-	return Prepare(fd, rules, flags)
+	return
 }
 
 var (

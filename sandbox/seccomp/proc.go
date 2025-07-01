@@ -13,14 +13,10 @@ const (
 )
 
 // New returns an inactive Encoder instance.
-func New(presets FilterPreset, flags PrepareFlag) *Encoder {
-	return &Encoder{newExporter(presets, flags)}
-}
+func New(rules []NativeRule, flags PrepareFlag) *Encoder { return &Encoder{newExporter(rules, flags)} }
 
 // Load loads a filter into the kernel.
-func Load(presets FilterPreset, flags PrepareFlag) error {
-	return preparePreset(-1, presets, flags)
-}
+func Load(rules []NativeRule, flags PrepareFlag) error { return Prepare(-1, rules, flags) }
 
 /*
 An Encoder writes a BPF program to an output stream.
@@ -50,20 +46,20 @@ func (e *Encoder) Close() error {
 }
 
 // NewFile returns an instance of exporter implementing [proc.File].
-func NewFile(presets FilterPreset, flags PrepareFlag) proc.File {
-	return &File{presets: presets, flags: flags}
+func NewFile(rules []NativeRule, flags PrepareFlag) proc.File {
+	return &File{rules: rules, flags: flags}
 }
 
 // File implements [proc.File] and provides access to the read end of exporter pipe.
 type File struct {
-	presets FilterPreset
-	flags   PrepareFlag
+	rules []NativeRule
+	flags PrepareFlag
 	proc.BaseFile
 }
 
 func (f *File) ErrCount() int { return 2 }
 func (f *File) Fulfill(ctx context.Context, dispatchErr func(error)) error {
-	e := newExporter(f.presets, f.flags)
+	e := newExporter(f.rules, f.flags)
 	if err := e.prepare(); err != nil {
 		return err
 	}

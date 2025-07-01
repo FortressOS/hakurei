@@ -88,7 +88,7 @@ func TestExport(t *testing.T) {
 	buf := make([]byte, 8)
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			e := New(tc.presets, tc.flags)
+			e := New(Preset(tc.presets, tc.flags), tc.flags)
 			digest := sha512.New()
 
 			if _, err := io.CopyBuffer(digest, e, buf); (err != nil) != tc.wantErr {
@@ -107,7 +107,7 @@ func TestExport(t *testing.T) {
 	}
 
 	t.Run("close without use", func(t *testing.T) {
-		e := New(0, 0)
+		e := New(Preset(0, 0), 0)
 		if err := e.Close(); !errors.Is(err, syscall.EINVAL) {
 			t.Errorf("Close: error = %v", err)
 			return
@@ -115,7 +115,7 @@ func TestExport(t *testing.T) {
 	})
 
 	t.Run("close partial read", func(t *testing.T) {
-		e := New(0, 0)
+		e := New(Preset(0, 0), 0)
 		if _, err := e.Read(nil); err != nil {
 			t.Errorf("Read: error = %v", err)
 			return
@@ -133,8 +133,9 @@ func TestExport(t *testing.T) {
 func BenchmarkExport(b *testing.B) {
 	buf := make([]byte, 8)
 	for i := 0; i < b.N; i++ {
-		e := New(PresetExt|
-			PresetDenyNS|PresetDenyTTY|PresetDenyDevel|PresetLinux32,
+		e := New(
+			Preset(PresetExt|PresetDenyNS|PresetDenyTTY|PresetDenyDevel|PresetLinux32,
+				AllowMultiarch|AllowCAN|AllowBluetooth),
 			AllowMultiarch|AllowCAN|AllowBluetooth)
 		if _, err := io.CopyBuffer(io.Discard, e, buf); err != nil {
 			b.Fatalf("cannot export: %v", err)
