@@ -26,7 +26,6 @@ go.work.sum
 .vscode
 
 # go generate
-security-context-v1-protocol.*
 /cmd/hakurei/LICENSE
 
 # release
