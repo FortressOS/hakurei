@@ -14,10 +14,10 @@ import (
 	"time"
 
 	"git.gensokyo.uk/security/hakurei"
-	"git.gensokyo.uk/security/hakurei/dbus"
 	"git.gensokyo.uk/security/hakurei/helper"
 	"git.gensokyo.uk/security/hakurei/internal"
 	"git.gensokyo.uk/security/hakurei/internal/hlog"
+	"git.gensokyo.uk/security/hakurei/system/dbus"
 )
 
 func TestFinalise(t *testing.T) {

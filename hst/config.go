@@ -2,8 +2,8 @@
 package hst
 
 import (
-	"git.gensokyo.uk/security/hakurei/dbus"
 	"git.gensokyo.uk/security/hakurei/system"
+	"git.gensokyo.uk/security/hakurei/system/dbus"
 )
 
 const Tmp = "/.hakurei"

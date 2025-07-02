@@ -7,8 +7,8 @@ import (
 
 	"git.gensokyo.uk/security/hakurei/cmd/hakurei/internal/app"
 	"git.gensokyo.uk/security/hakurei/cmd/hakurei/internal/state"
-	"git.gensokyo.uk/security/hakurei/dbus"
 	"git.gensokyo.uk/security/hakurei/hst"
+	"git.gensokyo.uk/security/hakurei/system/dbus"
 )
 
 var (

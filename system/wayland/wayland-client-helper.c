@@ -1,4 +1,4 @@
-#include "wayland-bind.h"
+#include "wayland-client-helper.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

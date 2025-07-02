@@ -17,16 +17,16 @@ import (
 	"syscall"
 
 	"git.gensokyo.uk/security/hakurei"
-	"git.gensokyo.uk/security/hakurei/acl"
 	. "git.gensokyo.uk/security/hakurei/cmd/hakurei/internal/app"
 	"git.gensokyo.uk/security/hakurei/cmd/hakurei/internal/app/instance/common"
-	"git.gensokyo.uk/security/hakurei/dbus"
 	"git.gensokyo.uk/security/hakurei/hst"
 	"git.gensokyo.uk/security/hakurei/internal"
 	"git.gensokyo.uk/security/hakurei/internal/hlog"
 	"git.gensokyo.uk/security/hakurei/internal/sys"
-	"git.gensokyo.uk/security/hakurei/sandbox/wl"
 	"git.gensokyo.uk/security/hakurei/system"
+	"git.gensokyo.uk/security/hakurei/system/acl"
+	"git.gensokyo.uk/security/hakurei/system/dbus"
+	"git.gensokyo.uk/security/hakurei/system/wayland"
 )
 
 const (
@@ -377,17 +377,17 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 	if config.Enablements&system.EWayland != 0 {
 		// outer wayland socket (usually `/run/user/%d/wayland-%d`)
 		var socketPath string
-		if name, ok := sys.LookupEnv(wl.WaylandDisplay); !ok {
-			hlog.Verbose(wl.WaylandDisplay + " is not set, assuming " + wl.FallbackName)
-			socketPath = path.Join(share.sc.RuntimePath, wl.FallbackName)
+		if name, ok := sys.LookupEnv(wayland.WaylandDisplay); !ok {
+			hlog.Verbose(wayland.WaylandDisplay + " is not set, assuming " + wayland.FallbackName)
+			socketPath = path.Join(share.sc.RuntimePath, wayland.FallbackName)
 		} else if !path.IsAbs(name) {
 			socketPath = path.Join(share.sc.RuntimePath, name)
 		} else {
 			socketPath = name
 		}
 
-		innerPath := path.Join(innerRuntimeDir, wl.FallbackName)
-		seal.env[wl.WaylandDisplay] = wl.FallbackName
+		innerPath := path.Join(innerRuntimeDir, wayland.FallbackName)
+		seal.env[wayland.WaylandDisplay] = wayland.FallbackName
 
 		if !config.DirectWayland { // set up security-context-v1
 			appID := config.ID

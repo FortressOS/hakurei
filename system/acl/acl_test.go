@@ -7,7 +7,7 @@ import (
 	"reflect"
 	"testing"
 
-	"git.gensokyo.uk/security/hakurei/acl"
+	"git.gensokyo.uk/security/hakurei/system/acl"
 )
 
 const testFileName = "acl.test"

@@ -4,7 +4,7 @@ package acl
 /*
 #cgo linux pkg-config: --static libacl
 
-#include "acl-update.h"
+#include "libacl-helper.h"
 */
 import "C"
 

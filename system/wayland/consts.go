@@ -1,4 +1,4 @@
-package wl
+package wayland
 
 const (
 	// WaylandDisplay contains the name of the server socket

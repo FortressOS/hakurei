@@ -1,4 +1,4 @@
-package wl
+package wayland
 
 //go:generate sh -c "wayland-scanner client-header `pkg-config --variable=datarootdir wayland-protocols`/wayland-protocols/staging/security-context/security-context-v1.xml security-context-v1-protocol.h"
 //go:generate sh -c "wayland-scanner private-code `pkg-config --variable=datarootdir wayland-protocols`/wayland-protocols/staging/security-context/security-context-v1.xml security-context-v1-protocol.c"
@@ -7,7 +7,7 @@ package wl
 #cgo linux pkg-config: --static wayland-client
 #cgo freebsd openbsd LDFLAGS: -lwayland-client
 
-#include "wayland-bind.h"
+#include "wayland-client-helper.h"
 */
 import "C"
 import (

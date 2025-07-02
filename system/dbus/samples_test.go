@@ -3,7 +3,7 @@ package dbus_test
 import (
 	"sync"
 
-	"git.gensokyo.uk/security/hakurei/dbus"
+	"git.gensokyo.uk/security/hakurei/system/dbus"
 )
 
 const (

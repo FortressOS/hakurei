@@ -4,12 +4,12 @@ import (
 	"os"
 
 	"git.gensokyo.uk/security/hakurei"
-	"git.gensokyo.uk/security/hakurei/acl"
 	"git.gensokyo.uk/security/hakurei/cmd/hakurei/internal/app"
-	"git.gensokyo.uk/security/hakurei/dbus"
 	"git.gensokyo.uk/security/hakurei/hst"
 	"git.gensokyo.uk/security/hakurei/seccomp"
 	"git.gensokyo.uk/security/hakurei/system"
+	"git.gensokyo.uk/security/hakurei/system/acl"
+	"git.gensokyo.uk/security/hakurei/system/dbus"
 )
 
 var testCasesPd = []sealTestCase{

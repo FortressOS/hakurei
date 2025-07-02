@@ -9,7 +9,7 @@ import (
 	"sync"
 	"syscall"
 
-	"git.gensokyo.uk/security/hakurei/dbus"
+	"git.gensokyo.uk/security/hakurei/system/dbus"
 )
 
 var (

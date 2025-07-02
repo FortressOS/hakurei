@@ -17,11 +17,11 @@ import (
 	"git.gensokyo.uk/security/hakurei/cmd/hakurei/internal/app/instance"
 	"git.gensokyo.uk/security/hakurei/cmd/hakurei/internal/state"
 	"git.gensokyo.uk/security/hakurei/command"
-	"git.gensokyo.uk/security/hakurei/dbus"
 	"git.gensokyo.uk/security/hakurei/hst"
 	"git.gensokyo.uk/security/hakurei/internal"
 	"git.gensokyo.uk/security/hakurei/internal/hlog"
 	"git.gensokyo.uk/security/hakurei/system"
+	"git.gensokyo.uk/security/hakurei/system/dbus"
 )
 
 func buildCommand(out io.Writer) command.Command {

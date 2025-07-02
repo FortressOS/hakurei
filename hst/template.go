@@ -1,9 +1,9 @@
 package hst
 
 import (
-	"git.gensokyo.uk/security/hakurei/dbus"
 	"git.gensokyo.uk/security/hakurei/seccomp"
 	"git.gensokyo.uk/security/hakurei/system"
+	"git.gensokyo.uk/security/hakurei/system/dbus"
 )
 
 // Template returns a fully populated instance of Config.

@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"os"
 
-	"git.gensokyo.uk/security/hakurei/acl"
-	"git.gensokyo.uk/security/hakurei/sandbox/wl"
+	"git.gensokyo.uk/security/hakurei/system/acl"
+	"git.gensokyo.uk/security/hakurei/system/wayland"
 )
 
 // Wayland sets up a wayland socket with a security context attached.
@@ -14,7 +14,7 @@ func (sys *I) Wayland(syncFd **os.File, dst, src, appID, instanceID string) *I {
 	sys.lock.Lock()
 	defer sys.lock.Unlock()
 
-	sys.ops = append(sys.ops, &Wayland{syncFd, dst, src, appID, instanceID, wl.Conn{}})
+	sys.ops = append(sys.ops, &Wayland{syncFd, dst, src, appID, instanceID, wayland.Conn{}})
 
 	return sys
 }
@@ -24,7 +24,7 @@ type Wayland struct {
 	dst, src          string
 	appID, instanceID string
 
-	conn wl.Conn
+	conn wayland.Conn
 }
 
 func (w *Wayland) Type() Enablement { return Process }
