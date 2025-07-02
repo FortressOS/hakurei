@@ -13,7 +13,7 @@ import (
 	"git.gensokyo.uk/security/hakurei"
 	"git.gensokyo.uk/security/hakurei/internal"
 	"git.gensokyo.uk/security/hakurei/internal/hlog"
-	"git.gensokyo.uk/security/hakurei/sandbox/seccomp"
+	"git.gensokyo.uk/security/hakurei/seccomp"
 )
 
 /*

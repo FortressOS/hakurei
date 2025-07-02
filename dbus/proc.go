@@ -14,7 +14,7 @@ import (
 	"git.gensokyo.uk/security/hakurei"
 	"git.gensokyo.uk/security/hakurei/helper"
 	"git.gensokyo.uk/security/hakurei/ldd"
-	"git.gensokyo.uk/security/hakurei/sandbox/seccomp"
+	"git.gensokyo.uk/security/hakurei/seccomp"
 )
 
 // Start starts and configures a D-Bus proxy process.

@@ -17,8 +17,8 @@ import (
 	"git.gensokyo.uk/security/hakurei/internal"
 	"git.gensokyo.uk/security/hakurei/internal/hlog"
 	"git.gensokyo.uk/security/hakurei/ldd"
-	"git.gensokyo.uk/security/hakurei/sandbox/seccomp"
-	"git.gensokyo.uk/security/hakurei/sandbox/vfs"
+	"git.gensokyo.uk/security/hakurei/seccomp"
+	"git.gensokyo.uk/security/hakurei/vfs"
 )
 
 const (

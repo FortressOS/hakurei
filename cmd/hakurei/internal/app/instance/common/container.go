@@ -12,7 +12,7 @@ import (
 	"git.gensokyo.uk/security/hakurei/dbus"
 	"git.gensokyo.uk/security/hakurei/hst"
 	"git.gensokyo.uk/security/hakurei/internal/sys"
-	"git.gensokyo.uk/security/hakurei/sandbox/seccomp"
+	"git.gensokyo.uk/security/hakurei/seccomp"
 )
 
 // in practice there should be less than 30 entries added by the runtime;

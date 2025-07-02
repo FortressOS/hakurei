@@ -6,7 +6,7 @@ import (
 	"syscall"
 	"testing"
 
-	"git.gensokyo.uk/security/hakurei/sandbox/seccomp"
+	"git.gensokyo.uk/security/hakurei/seccomp"
 )
 
 func TestLibraryError(t *testing.T) {

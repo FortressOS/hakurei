@@ -2,7 +2,7 @@ package hst
 
 import (
 	"git.gensokyo.uk/security/hakurei/dbus"
-	"git.gensokyo.uk/security/hakurei/sandbox/seccomp"
+	"git.gensokyo.uk/security/hakurei/seccomp"
 	"git.gensokyo.uk/security/hakurei/system"
 )
 
