@@ -12,10 +12,10 @@ import (
 	"text/tabwriter"
 	"time"
 
-	"git.gensokyo.uk/security/hakurei/cmd/hakurei/internal/state"
-	"git.gensokyo.uk/security/hakurei/hst"
-	"git.gensokyo.uk/security/hakurei/internal/hlog"
-	"git.gensokyo.uk/security/hakurei/system/dbus"
+	"hakurei.app/cmd/hakurei/internal/state"
+	"hakurei.app/hst"
+	"hakurei.app/internal/hlog"
+	"hakurei.app/system/dbus"
 )
 
 func printShowSystem(output io.Writer, short, flagJSON bool) {

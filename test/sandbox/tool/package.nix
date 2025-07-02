@@ -21,7 +21,7 @@ buildGoModule rec {
   nativeBuildInputs = [ pkg-config ];
 
   preBuild = ''
-    go mod init git.gensokyo.uk/security/hakurei/test/sandbox >& /dev/null
+    go mod init hakurei.app/test/sandbox >& /dev/null
   '';
 
   postInstall = ''

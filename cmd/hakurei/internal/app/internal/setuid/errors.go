@@ -4,8 +4,8 @@ import (
 	"errors"
 	"log"
 
-	. "git.gensokyo.uk/security/hakurei/cmd/hakurei/internal/app"
-	"git.gensokyo.uk/security/hakurei/internal/hlog"
+	. "hakurei.app/cmd/hakurei/internal/app"
+	"hakurei.app/internal/hlog"
 )
 
 func PrintRunStateErr(rs *RunState, runErr error) (code int) {

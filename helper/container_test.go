@@ -7,10 +7,10 @@ import (
 	"os/exec"
 	"testing"
 
-	"git.gensokyo.uk/security/hakurei/container"
-	"git.gensokyo.uk/security/hakurei/helper"
-	"git.gensokyo.uk/security/hakurei/internal"
-	"git.gensokyo.uk/security/hakurei/internal/hlog"
+	"hakurei.app/container"
+	"hakurei.app/helper"
+	"hakurei.app/internal"
+	"hakurei.app/internal/hlog"
 )
 
 func TestContainer(t *testing.T) {

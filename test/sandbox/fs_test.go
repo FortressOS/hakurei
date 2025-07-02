@@ -8,7 +8,7 @@ import (
 	"testing"
 	"testing/fstest"
 
-	"git.gensokyo.uk/security/hakurei/test/sandbox"
+	"hakurei.app/test/sandbox"
 )
 
 var (

@@ -9,10 +9,10 @@ import (
 	"log"
 	"os"
 
-	"git.gensokyo.uk/security/hakurei/container"
-	"git.gensokyo.uk/security/hakurei/internal"
-	"git.gensokyo.uk/security/hakurei/internal/hlog"
-	"git.gensokyo.uk/security/hakurei/internal/sys"
+	"hakurei.app/container"
+	"hakurei.app/internal"
+	"hakurei.app/internal/hlog"
+	"hakurei.app/internal/sys"
 )
 
 var (

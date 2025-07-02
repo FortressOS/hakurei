@@ -8,8 +8,8 @@ import (
 	"os/exec"
 	"time"
 
-	"git.gensokyo.uk/security/hakurei/container"
-	"git.gensokyo.uk/security/hakurei/container/seccomp"
+	"hakurei.app/container"
+	"hakurei.app/container/seccomp"
 )
 
 const lddTimeout = 2 * time.Second

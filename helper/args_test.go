@@ -7,7 +7,7 @@ import (
 	"syscall"
 	"testing"
 
-	"git.gensokyo.uk/security/hakurei/helper"
+	"hakurei.app/helper"
 )
 
 func TestArgsString(t *testing.T) {

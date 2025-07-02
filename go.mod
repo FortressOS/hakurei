@@ -1,3 +1,3 @@
-module git.gensokyo.uk/security/hakurei
+module hakurei.app
 
 go 1.24

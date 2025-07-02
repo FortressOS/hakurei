@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"git.gensokyo.uk/security/hakurei/hst"
+	"hakurei.app/hst"
 )
 
 func TestTemplate(t *testing.T) {

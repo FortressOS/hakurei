@@ -1,13 +1,13 @@
 package setuid_test
 
 import (
-	"git.gensokyo.uk/security/hakurei/cmd/hakurei/internal/app"
-	"git.gensokyo.uk/security/hakurei/container"
-	"git.gensokyo.uk/security/hakurei/container/seccomp"
-	"git.gensokyo.uk/security/hakurei/hst"
-	"git.gensokyo.uk/security/hakurei/system"
-	"git.gensokyo.uk/security/hakurei/system/acl"
-	"git.gensokyo.uk/security/hakurei/system/dbus"
+	"hakurei.app/cmd/hakurei/internal/app"
+	"hakurei.app/container"
+	"hakurei.app/container/seccomp"
+	"hakurei.app/hst"
+	"hakurei.app/system"
+	"hakurei.app/system/acl"
+	"hakurei.app/system/dbus"
 )
 
 var testCasesNixos = []sealTestCase{

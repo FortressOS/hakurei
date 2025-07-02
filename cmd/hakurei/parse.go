@@ -10,9 +10,9 @@ import (
 	"strings"
 	"syscall"
 
-	"git.gensokyo.uk/security/hakurei/cmd/hakurei/internal/state"
-	"git.gensokyo.uk/security/hakurei/hst"
-	"git.gensokyo.uk/security/hakurei/internal/hlog"
+	"hakurei.app/cmd/hakurei/internal/state"
+	"hakurei.app/hst"
+	"hakurei.app/internal/hlog"
 )
 
 func tryPath(name string) (config *hst.Config) {

@@ -1,10 +1,10 @@
 package setuid
 
 import (
-	. "git.gensokyo.uk/security/hakurei/cmd/hakurei/internal/app"
-	"git.gensokyo.uk/security/hakurei/container"
-	"git.gensokyo.uk/security/hakurei/internal/sys"
-	"git.gensokyo.uk/security/hakurei/system"
+	. "hakurei.app/cmd/hakurei/internal/app"
+	"hakurei.app/container"
+	"hakurei.app/internal/sys"
+	"hakurei.app/system"
 )
 
 func NewWithID(id ID, os sys.State) App {

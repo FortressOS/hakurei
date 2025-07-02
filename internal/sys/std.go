@@ -12,10 +12,10 @@ import (
 	"sync"
 	"syscall"
 
-	"git.gensokyo.uk/security/hakurei/container"
-	"git.gensokyo.uk/security/hakurei/hst"
-	"git.gensokyo.uk/security/hakurei/internal"
-	"git.gensokyo.uk/security/hakurei/internal/hlog"
+	"hakurei.app/container"
+	"hakurei.app/hst"
+	"hakurei.app/internal"
+	"hakurei.app/internal/hlog"
 )
 
 // Std implements System using the standard library.

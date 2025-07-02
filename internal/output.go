@@ -1,9 +1,9 @@
 package internal
 
 import (
-	"git.gensokyo.uk/security/hakurei/container"
-	"git.gensokyo.uk/security/hakurei/internal/hlog"
-	"git.gensokyo.uk/security/hakurei/system"
+	"hakurei.app/container"
+	"hakurei.app/internal/hlog"
+	"hakurei.app/system"
 )
 
 func InstallOutput(verbose bool) {

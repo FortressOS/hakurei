@@ -9,9 +9,9 @@ import (
 	"os"
 	"os/exec"
 
-	"git.gensokyo.uk/security/hakurei/hst"
-	"git.gensokyo.uk/security/hakurei/internal"
-	"git.gensokyo.uk/security/hakurei/internal/hlog"
+	"hakurei.app/hst"
+	"hakurei.app/internal"
+	"hakurei.app/internal/hlog"
 )
 
 var hakureiPath = internal.MustHakureiPath()

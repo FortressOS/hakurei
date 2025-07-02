@@ -10,7 +10,7 @@ import (
 	"sync"
 	"syscall"
 
-	"git.gensokyo.uk/security/hakurei/helper/proc"
+	"hakurei.app/helper/proc"
 )
 
 // NewDirect initialises a new direct Helper instance with wt as the null-terminated argument writer.

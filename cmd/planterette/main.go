@@ -10,10 +10,10 @@ import (
 	"path"
 	"syscall"
 
-	"git.gensokyo.uk/security/hakurei/command"
-	"git.gensokyo.uk/security/hakurei/hst"
-	"git.gensokyo.uk/security/hakurei/internal"
-	"git.gensokyo.uk/security/hakurei/internal/hlog"
+	"hakurei.app/command"
+	"hakurei.app/hst"
+	"hakurei.app/internal"
+	"hakurei.app/internal/hlog"
 )
 
 const shellPath = "/run/current-system/sw/bin/bash"

@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	. "syscall"
 
-	"git.gensokyo.uk/security/hakurei/container/vfs"
+	"hakurei.app/container/vfs"
 )
 
 func (p *procPaths) bindMount(source, target string, flags uintptr, eq bool) error {

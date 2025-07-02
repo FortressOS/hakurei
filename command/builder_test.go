@@ -3,7 +3,7 @@ package command_test
 import (
 	"testing"
 
-	"git.gensokyo.uk/security/hakurei/command"
+	"hakurei.app/command"
 )
 
 func TestBuild(t *testing.T) {

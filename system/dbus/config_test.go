@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"git.gensokyo.uk/security/hakurei/system/dbus"
+	"hakurei.app/system/dbus"
 )
 
 func TestConfig_Args(t *testing.T) {

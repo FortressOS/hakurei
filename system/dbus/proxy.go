@@ -8,7 +8,7 @@ import (
 	"sync"
 	"syscall"
 
-	"git.gensokyo.uk/security/hakurei/helper"
+	"hakurei.app/helper"
 )
 
 // ProxyName is the file name or path to the proxy program.

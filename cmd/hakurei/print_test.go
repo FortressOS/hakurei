@@ -5,10 +5,10 @@ import (
 	"testing"
 	"time"
 
-	"git.gensokyo.uk/security/hakurei/cmd/hakurei/internal/app"
-	"git.gensokyo.uk/security/hakurei/cmd/hakurei/internal/state"
-	"git.gensokyo.uk/security/hakurei/hst"
-	"git.gensokyo.uk/security/hakurei/system/dbus"
+	"hakurei.app/cmd/hakurei/internal/app"
+	"hakurei.app/cmd/hakurei/internal/state"
+	"hakurei.app/hst"
+	"hakurei.app/system/dbus"
 )
 
 var (

@@ -9,8 +9,8 @@ import (
 	"slices"
 	"sync"
 
-	"git.gensokyo.uk/security/hakurei/container"
-	"git.gensokyo.uk/security/hakurei/helper/proc"
+	"hakurei.app/container"
+	"hakurei.app/helper/proc"
 )
 
 // New initialises a Helper instance with wt as the null-terminated argument writer.

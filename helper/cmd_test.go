@@ -8,7 +8,7 @@ import (
 	"os/exec"
 	"testing"
 
-	"git.gensokyo.uk/security/hakurei/helper"
+	"hakurei.app/helper"
 )
 
 func TestCmd(t *testing.T) {

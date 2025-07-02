@@ -4,7 +4,7 @@ import (
 	"strconv"
 	"testing"
 
-	"git.gensokyo.uk/security/hakurei/system"
+	"hakurei.app/system"
 )
 
 func TestNew(t *testing.T) {

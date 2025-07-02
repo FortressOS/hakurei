@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"os"
 
-	"git.gensokyo.uk/security/hakurei/system/acl"
-	"git.gensokyo.uk/security/hakurei/system/wayland"
+	"hakurei.app/system/acl"
+	"hakurei.app/system/wayland"
 )
 
 // Wayland sets up a wayland socket with a security context attached.

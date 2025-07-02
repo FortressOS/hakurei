@@ -8,7 +8,7 @@ import (
 	"os"
 	"time"
 
-	"git.gensokyo.uk/security/hakurei/helper/proc"
+	"hakurei.app/helper/proc"
 )
 
 var WaitDelay = 2 * time.Second

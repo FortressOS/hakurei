@@ -12,12 +12,12 @@ import (
 	"syscall"
 	"time"
 
-	. "git.gensokyo.uk/security/hakurei/cmd/hakurei/internal/app"
-	"git.gensokyo.uk/security/hakurei/cmd/hakurei/internal/state"
-	"git.gensokyo.uk/security/hakurei/container"
-	"git.gensokyo.uk/security/hakurei/internal"
-	"git.gensokyo.uk/security/hakurei/internal/hlog"
-	"git.gensokyo.uk/security/hakurei/system"
+	. "hakurei.app/cmd/hakurei/internal/app"
+	"hakurei.app/cmd/hakurei/internal/state"
+	"hakurei.app/container"
+	"hakurei.app/internal"
+	"hakurei.app/internal/hlog"
+	"hakurei.app/system"
 )
 
 const shimWaitTimeout = 5 * time.Second

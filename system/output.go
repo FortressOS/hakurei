@@ -1,7 +1,7 @@
 package system
 
 import (
-	"git.gensokyo.uk/security/hakurei/container"
+	"hakurei.app/container"
 )
 
 var msg container.Msg = new(container.DefaultMsg)

@@ -5,7 +5,7 @@ import (
 	"errors"
 	"syscall"
 
-	"git.gensokyo.uk/security/hakurei/helper/proc"
+	"hakurei.app/helper/proc"
 )
 
 const (

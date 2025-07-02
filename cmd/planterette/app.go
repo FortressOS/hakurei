@@ -6,10 +6,10 @@ import (
 	"os"
 	"path"
 
-	"git.gensokyo.uk/security/hakurei/container/seccomp"
-	"git.gensokyo.uk/security/hakurei/hst"
-	"git.gensokyo.uk/security/hakurei/system"
-	"git.gensokyo.uk/security/hakurei/system/dbus"
+	"hakurei.app/container/seccomp"
+	"hakurei.app/hst"
+	"hakurei.app/system"
+	"hakurei.app/system/dbus"
 )
 
 type appInfo struct {

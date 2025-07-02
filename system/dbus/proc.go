@@ -11,10 +11,10 @@ import (
 	"strconv"
 	"syscall"
 
-	"git.gensokyo.uk/security/hakurei/container"
-	"git.gensokyo.uk/security/hakurei/container/seccomp"
-	"git.gensokyo.uk/security/hakurei/helper"
-	"git.gensokyo.uk/security/hakurei/ldd"
+	"hakurei.app/container"
+	"hakurei.app/container/seccomp"
+	"hakurei.app/helper"
+	"hakurei.app/ldd"
 )
 
 // Start starts and configures a D-Bus proxy process.

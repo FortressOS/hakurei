@@ -5,7 +5,7 @@ import (
 	"syscall"
 	"time"
 
-	"git.gensokyo.uk/security/hakurei/hst"
+	"hakurei.app/hst"
 )
 
 type App interface {

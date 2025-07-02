@@ -1,7 +1,7 @@
 package hst
 
 import (
-	"git.gensokyo.uk/security/hakurei/container/seccomp"
+	"hakurei.app/container/seccomp"
 )
 
 type (

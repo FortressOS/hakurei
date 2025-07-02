@@ -12,13 +12,13 @@ import (
 	"testing"
 	"time"
 
-	"git.gensokyo.uk/security/hakurei/container"
-	"git.gensokyo.uk/security/hakurei/container/seccomp"
-	"git.gensokyo.uk/security/hakurei/container/vfs"
-	"git.gensokyo.uk/security/hakurei/hst"
-	"git.gensokyo.uk/security/hakurei/internal"
-	"git.gensokyo.uk/security/hakurei/internal/hlog"
-	"git.gensokyo.uk/security/hakurei/ldd"
+	"hakurei.app/container"
+	"hakurei.app/container/seccomp"
+	"hakurei.app/container/vfs"
+	"hakurei.app/hst"
+	"hakurei.app/internal"
+	"hakurei.app/internal/hlog"
+	"hakurei.app/ldd"
 )
 
 const (

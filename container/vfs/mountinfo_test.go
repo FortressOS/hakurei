@@ -12,7 +12,7 @@ import (
 	"syscall"
 	"testing"
 
-	"git.gensokyo.uk/security/hakurei/container/vfs"
+	"hakurei.app/container/vfs"
 )
 
 func TestMountInfo(t *testing.T) {

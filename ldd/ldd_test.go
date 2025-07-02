@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"testing"
 
-	"git.gensokyo.uk/security/hakurei/ldd"
+	"hakurei.app/ldd"
 )
 
 func TestParseError(t *testing.T) {

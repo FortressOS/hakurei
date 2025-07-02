@@ -13,7 +13,7 @@ import (
 	. "syscall"
 	"time"
 
-	"git.gensokyo.uk/security/hakurei/container/seccomp"
+	"hakurei.app/container/seccomp"
 )
 
 const (

@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"git.gensokyo.uk/security/hakurei/container"
+	"hakurei.app/container"
 )
 
 func TestExecutable(t *testing.T) {

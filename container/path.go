@@ -10,7 +10,7 @@ import (
 	"strings"
 	"syscall"
 
-	"git.gensokyo.uk/security/hakurei/container/vfs"
+	"hakurei.app/container/vfs"
 )
 
 const (

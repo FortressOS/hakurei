@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"git.gensokyo.uk/security/hakurei/helper"
+	"hakurei.app/helper"
 )
 
 var (

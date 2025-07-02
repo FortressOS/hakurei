@@ -3,7 +3,7 @@ package system_test
 import (
 	"testing"
 
-	"git.gensokyo.uk/security/hakurei/system"
+	"hakurei.app/system"
 )
 
 func TestEnablementString(t *testing.T) {

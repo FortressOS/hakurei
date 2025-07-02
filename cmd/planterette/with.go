@@ -5,9 +5,9 @@ import (
 	"path"
 	"strings"
 
-	"git.gensokyo.uk/security/hakurei/container/seccomp"
-	"git.gensokyo.uk/security/hakurei/hst"
-	"git.gensokyo.uk/security/hakurei/internal"
+	"hakurei.app/container/seccomp"
+	"hakurei.app/hst"
+	"hakurei.app/internal"
 )
 
 func withNixDaemon(

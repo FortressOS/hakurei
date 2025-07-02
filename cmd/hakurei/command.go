@@ -13,15 +13,15 @@ import (
 	"syscall"
 	"time"
 
-	"git.gensokyo.uk/security/hakurei/cmd/hakurei/internal/app"
-	"git.gensokyo.uk/security/hakurei/cmd/hakurei/internal/app/instance"
-	"git.gensokyo.uk/security/hakurei/cmd/hakurei/internal/state"
-	"git.gensokyo.uk/security/hakurei/command"
-	"git.gensokyo.uk/security/hakurei/hst"
-	"git.gensokyo.uk/security/hakurei/internal"
-	"git.gensokyo.uk/security/hakurei/internal/hlog"
-	"git.gensokyo.uk/security/hakurei/system"
-	"git.gensokyo.uk/security/hakurei/system/dbus"
+	"hakurei.app/cmd/hakurei/internal/app"
+	"hakurei.app/cmd/hakurei/internal/app/instance"
+	"hakurei.app/cmd/hakurei/internal/state"
+	"hakurei.app/command"
+	"hakurei.app/hst"
+	"hakurei.app/internal"
+	"hakurei.app/internal/hlog"
+	"hakurei.app/system"
+	"hakurei.app/system/dbus"
 )
 
 func buildCommand(out io.Writer) command.Command {

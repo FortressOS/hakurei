@@ -6,7 +6,7 @@ import (
 	"flag"
 	"testing"
 
-	"git.gensokyo.uk/security/hakurei/command"
+	"hakurei.app/command"
 )
 
 func TestHelp(t *testing.T) {

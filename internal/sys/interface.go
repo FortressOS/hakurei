@@ -7,8 +7,8 @@ import (
 	"path"
 	"strconv"
 
-	"git.gensokyo.uk/security/hakurei/hst"
-	"git.gensokyo.uk/security/hakurei/internal/hlog"
+	"hakurei.app/hst"
+	"hakurei.app/internal/hlog"
 )
 
 // State provides safe interaction with operating system state.

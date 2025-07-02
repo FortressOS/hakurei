@@ -7,7 +7,7 @@ import (
 	"os/user"
 	"strconv"
 
-	"git.gensokyo.uk/security/hakurei/hst"
+	"hakurei.app/hst"
 )
 
 // fs methods are not implemented using a real FS

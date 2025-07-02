@@ -6,9 +6,9 @@ import (
 	"log"
 	"syscall"
 
-	"git.gensokyo.uk/security/hakurei/cmd/hakurei/internal/app"
-	"git.gensokyo.uk/security/hakurei/cmd/hakurei/internal/app/internal/setuid"
-	"git.gensokyo.uk/security/hakurei/internal/sys"
+	"hakurei.app/cmd/hakurei/internal/app"
+	"hakurei.app/cmd/hakurei/internal/app/internal/setuid"
+	"hakurei.app/internal/sys"
 )
 
 const (

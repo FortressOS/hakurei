@@ -4,7 +4,7 @@ import (
 	"log"
 	"path"
 
-	"git.gensokyo.uk/security/hakurei/internal/hlog"
+	"hakurei.app/internal/hlog"
 )
 
 var (

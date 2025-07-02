@@ -65,7 +65,7 @@ buildGoModule rec {
     lib.attrsets.foldlAttrs
       (
         ldflags: name: value:
-        ldflags ++ [ "-X git.gensokyo.uk/security/hakurei/internal.${name}=${value}" ]
+        ldflags ++ [ "-X hakurei.app/internal.${name}=${value}" ]
       )
       (
         [ "-s -w" ]

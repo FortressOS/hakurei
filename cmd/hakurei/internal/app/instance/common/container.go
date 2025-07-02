@@ -8,11 +8,11 @@ import (
 	"path"
 	"syscall"
 
-	"git.gensokyo.uk/security/hakurei/container"
-	"git.gensokyo.uk/security/hakurei/container/seccomp"
-	"git.gensokyo.uk/security/hakurei/hst"
-	"git.gensokyo.uk/security/hakurei/internal/sys"
-	"git.gensokyo.uk/security/hakurei/system/dbus"
+	"hakurei.app/container"
+	"hakurei.app/container/seccomp"
+	"hakurei.app/hst"
+	"hakurei.app/internal/sys"
+	"hakurei.app/system/dbus"
 )
 
 // in practice there should be less than 30 entries added by the runtime;

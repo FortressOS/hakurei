@@ -10,10 +10,10 @@ import (
 	"syscall"
 	"time"
 
-	"git.gensokyo.uk/security/hakurei/container"
-	"git.gensokyo.uk/security/hakurei/container/seccomp"
-	"git.gensokyo.uk/security/hakurei/internal"
-	"git.gensokyo.uk/security/hakurei/internal/hlog"
+	"hakurei.app/container"
+	"hakurei.app/container/seccomp"
+	"hakurei.app/internal"
+	"hakurei.app/internal/hlog"
 )
 
 /*

@@ -7,8 +7,8 @@
 </p>
 
 <p align="center">
-  <a href="https://pkg.go.dev/git.gensokyo.uk/security/hakurei"><img src="https://pkg.go.dev/badge/git.gensokyo.uk/security/hakurei.svg" alt="Go Reference" /></a>
-  <a href="https://goreportcard.com/report/git.gensokyo.uk/security/hakurei"><img src="https://goreportcard.com/badge/git.gensokyo.uk/security/hakurei" alt="Go Report Card" /></a>
+  <a href="https://pkg.go.dev/hakurei.app"><img src="https://pkg.go.dev/badge/hakurei.app.svg" alt="Go Reference" /></a>
+  <a href="https://goreportcard.com/report/hakurei.app"><img src="https://goreportcard.com/badge/hakurei.app" alt="Go Report Card" /></a>
 </p>
 
 Hakurei is a tool for running sandboxed graphical applications as dedicated subordinate users on the Linux kernel.

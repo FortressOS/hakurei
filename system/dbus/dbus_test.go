@@ -13,11 +13,11 @@ import (
 	"testing"
 	"time"
 
-	"git.gensokyo.uk/security/hakurei/container"
-	"git.gensokyo.uk/security/hakurei/helper"
-	"git.gensokyo.uk/security/hakurei/internal"
-	"git.gensokyo.uk/security/hakurei/internal/hlog"
-	"git.gensokyo.uk/security/hakurei/system/dbus"
+	"hakurei.app/container"
+	"hakurei.app/helper"
+	"hakurei.app/internal"
+	"hakurei.app/internal/hlog"
+	"hakurei.app/system/dbus"
 )
 
 func TestFinalise(t *testing.T) {

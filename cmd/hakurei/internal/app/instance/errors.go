@@ -3,8 +3,8 @@ package instance
 import (
 	"syscall"
 
-	"git.gensokyo.uk/security/hakurei/cmd/hakurei/internal/app"
-	"git.gensokyo.uk/security/hakurei/cmd/hakurei/internal/app/internal/setuid"
+	"hakurei.app/cmd/hakurei/internal/app"
+	"hakurei.app/cmd/hakurei/internal/app/internal/setuid"
 )
 
 func PrintRunStateErr(whence int, rs *app.RunState, runErr error) (code int) {

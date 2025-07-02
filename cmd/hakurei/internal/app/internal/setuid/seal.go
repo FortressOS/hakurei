@@ -16,17 +16,17 @@ import (
 	"sync/atomic"
 	"syscall"
 
-	. "git.gensokyo.uk/security/hakurei/cmd/hakurei/internal/app"
-	"git.gensokyo.uk/security/hakurei/cmd/hakurei/internal/app/instance/common"
-	"git.gensokyo.uk/security/hakurei/container"
-	"git.gensokyo.uk/security/hakurei/hst"
-	"git.gensokyo.uk/security/hakurei/internal"
-	"git.gensokyo.uk/security/hakurei/internal/hlog"
-	"git.gensokyo.uk/security/hakurei/internal/sys"
-	"git.gensokyo.uk/security/hakurei/system"
-	"git.gensokyo.uk/security/hakurei/system/acl"
-	"git.gensokyo.uk/security/hakurei/system/dbus"
-	"git.gensokyo.uk/security/hakurei/system/wayland"
+	. "hakurei.app/cmd/hakurei/internal/app"
+	"hakurei.app/cmd/hakurei/internal/app/instance/common"
+	"hakurei.app/container"
+	"hakurei.app/hst"
+	"hakurei.app/internal"
+	"hakurei.app/internal/hlog"
+	"hakurei.app/internal/sys"
+	"hakurei.app/system"
+	"hakurei.app/system/acl"
+	"hakurei.app/system/dbus"
+	"hakurei.app/system/wayland"
 )
 
 const (

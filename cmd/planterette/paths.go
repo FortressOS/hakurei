@@ -8,8 +8,8 @@ import (
 	"strconv"
 	"sync/atomic"
 
-	"git.gensokyo.uk/security/hakurei/hst"
-	"git.gensokyo.uk/security/hakurei/internal/hlog"
+	"hakurei.app/hst"
+	"hakurei.app/internal/hlog"
 )
 
 var (

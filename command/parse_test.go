@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"git.gensokyo.uk/security/hakurei/command"
+	"hakurei.app/command"
 )
 
 func TestParse(t *testing.T) {
