@@ -8,7 +8,7 @@ import (
 	"os/exec"
 	"time"
 
-	"git.gensokyo.uk/security/hakurei/sandbox"
+	"git.gensokyo.uk/security/hakurei"
 	"git.gensokyo.uk/security/hakurei/sandbox/seccomp"
 )
 
@@ -27,7 +27,7 @@ func ExecFilter(ctx context.Context,
 	p string) ([]*Entry, error) {
 	c, cancel := context.WithTimeout(ctx, lddTimeout)
 	defer cancel()
-	container := sandbox.New(c, "ldd", p)
+	container := hakurei.New(c, "ldd", p)
 	container.CommandContext = commandContext
 	container.Hostname = "hakurei-ldd"
 	container.SeccompFlags |= seccomp.AllowMultiarch

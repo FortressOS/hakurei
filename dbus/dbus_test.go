@@ -13,11 +13,11 @@ import (
 	"testing"
 	"time"
 
+	"git.gensokyo.uk/security/hakurei"
 	"git.gensokyo.uk/security/hakurei/dbus"
 	"git.gensokyo.uk/security/hakurei/helper"
 	"git.gensokyo.uk/security/hakurei/internal"
 	"git.gensokyo.uk/security/hakurei/internal/hlog"
-	"git.gensokyo.uk/security/hakurei/sandbox"
 )
 
 func TestFinalise(t *testing.T) {
@@ -134,7 +134,7 @@ func testProxyFinaliseStartWaitCloseString(t *testing.T, useSandbox bool) {
 			}
 			p.CmdF = func(v any) {
 				if useSandbox {
-					container := v.(*sandbox.Container)
+					container := v.(*hakurei.Container)
 					if container.Args[0] != dbus.ProxyName {
 						panic(fmt.Sprintf("unexpected argv0 %q", os.Args[0]))
 					}
@@ -208,6 +208,6 @@ func TestHelperInit(t *testing.T) {
 	if len(os.Args) != 5 || os.Args[4] != "init" {
 		return
 	}
-	sandbox.SetOutput(hlog.Output{})
-	sandbox.Init(hlog.Prepare, internal.InstallOutput)
+	hakurei.SetOutput(hlog.Output{})
+	hakurei.Init(hlog.Prepare, internal.InstallOutput)
 }

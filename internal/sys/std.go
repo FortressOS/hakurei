@@ -12,10 +12,10 @@ import (
 	"sync"
 	"syscall"
 
+	"git.gensokyo.uk/security/hakurei"
 	"git.gensokyo.uk/security/hakurei/hst"
 	"git.gensokyo.uk/security/hakurei/internal"
 	"git.gensokyo.uk/security/hakurei/internal/hlog"
-	"git.gensokyo.uk/security/hakurei/sandbox"
 )
 
 // Std implements System using the standard library.
@@ -36,7 +36,7 @@ func (s *Std) Getgid() int                                  { return os.Getgid()
 func (s *Std) LookupEnv(key string) (string, bool)          { return os.LookupEnv(key) }
 func (s *Std) TempDir() string                              { return os.TempDir() }
 func (s *Std) LookPath(file string) (string, error)         { return exec.LookPath(file) }
-func (s *Std) MustExecutable() string                       { return sandbox.MustExecutable() }
+func (s *Std) MustExecutable() string                       { return hakurei.MustExecutable() }
 func (s *Std) LookupGroup(name string) (*user.Group, error) { return user.LookupGroup(name) }
 func (s *Std) ReadDir(name string) ([]os.DirEntry, error)   { return os.ReadDir(name) }
 func (s *Std) Stat(name string) (fs.FileInfo, error)        { return os.Stat(name) }

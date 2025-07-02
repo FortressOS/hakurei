@@ -3,11 +3,11 @@ package setuid_test
 import (
 	"os"
 
+	"git.gensokyo.uk/security/hakurei"
 	"git.gensokyo.uk/security/hakurei/acl"
 	"git.gensokyo.uk/security/hakurei/cmd/hakurei/internal/app"
 	"git.gensokyo.uk/security/hakurei/dbus"
 	"git.gensokyo.uk/security/hakurei/hst"
-	"git.gensokyo.uk/security/hakurei/sandbox"
 	"git.gensokyo.uk/security/hakurei/sandbox/seccomp"
 	"git.gensokyo.uk/security/hakurei/system"
 )
@@ -28,7 +28,7 @@ var testCasesPd = []sealTestCase{
 			Ensure("/tmp/hakurei.1971/runtime/0", 0700).UpdatePermType(system.User, "/tmp/hakurei.1971/runtime/0", acl.Read, acl.Write, acl.Execute).
 			Ensure("/tmp/hakurei.1971/tmpdir", 0700).UpdatePermType(system.User, "/tmp/hakurei.1971/tmpdir", acl.Execute).
 			Ensure("/tmp/hakurei.1971/tmpdir/0", 01700).UpdatePermType(system.User, "/tmp/hakurei.1971/tmpdir/0", acl.Read, acl.Write, acl.Execute),
-		&sandbox.Params{
+		&hakurei.Params{
 			Dir:  "/home/chronos",
 			Path: "/run/current-system/sw/bin/zsh",
 			Args: []string{"/run/current-system/sw/bin/zsh"},
@@ -41,30 +41,30 @@ var testCasesPd = []sealTestCase{
 				"XDG_SESSION_CLASS=user",
 				"XDG_SESSION_TYPE=tty",
 			},
-			Ops: new(sandbox.Ops).
+			Ops: new(hakurei.Ops).
 				Proc("/proc").
 				Tmpfs(hst.Tmp, 4096, 0755).
 				Dev("/dev").Mqueue("/dev/mqueue").
-				Bind("/bin", "/bin", sandbox.BindWritable).
-				Bind("/boot", "/boot", sandbox.BindWritable).
-				Bind("/home", "/home", sandbox.BindWritable).
-				Bind("/lib", "/lib", sandbox.BindWritable).
-				Bind("/lib64", "/lib64", sandbox.BindWritable).
-				Bind("/nix", "/nix", sandbox.BindWritable).
-				Bind("/root", "/root", sandbox.BindWritable).
-				Bind("/run", "/run", sandbox.BindWritable).
-				Bind("/srv", "/srv", sandbox.BindWritable).
-				Bind("/sys", "/sys", sandbox.BindWritable).
-				Bind("/usr", "/usr", sandbox.BindWritable).
-				Bind("/var", "/var", sandbox.BindWritable).
-				Bind("/dev/kvm", "/dev/kvm", sandbox.BindWritable|sandbox.BindDevice|sandbox.BindOptional).
+				Bind("/bin", "/bin", hakurei.BindWritable).
+				Bind("/boot", "/boot", hakurei.BindWritable).
+				Bind("/home", "/home", hakurei.BindWritable).
+				Bind("/lib", "/lib", hakurei.BindWritable).
+				Bind("/lib64", "/lib64", hakurei.BindWritable).
+				Bind("/nix", "/nix", hakurei.BindWritable).
+				Bind("/root", "/root", hakurei.BindWritable).
+				Bind("/run", "/run", hakurei.BindWritable).
+				Bind("/srv", "/srv", hakurei.BindWritable).
+				Bind("/sys", "/sys", hakurei.BindWritable).
+				Bind("/usr", "/usr", hakurei.BindWritable).
+				Bind("/var", "/var", hakurei.BindWritable).
+				Bind("/dev/kvm", "/dev/kvm", hakurei.BindWritable|hakurei.BindDevice|hakurei.BindOptional).
 				Tmpfs("/run/user/1971", 8192, 0755).
 				Tmpfs("/run/dbus", 8192, 0755).
 				Etc("/etc", "4a450b6596d7bc15bd01780eb9a607ac").
 				Tmpfs("/run/user", 4096, 0755).
-				Bind("/tmp/hakurei.1971/runtime/0", "/run/user/65534", sandbox.BindWritable).
-				Bind("/tmp/hakurei.1971/tmpdir/0", "/tmp", sandbox.BindWritable).
-				Bind("/home/chronos", "/home/chronos", sandbox.BindWritable).
+				Bind("/tmp/hakurei.1971/runtime/0", "/run/user/65534", hakurei.BindWritable).
+				Bind("/tmp/hakurei.1971/tmpdir/0", "/tmp", hakurei.BindWritable).
+				Bind("/home/chronos", "/home/chronos", hakurei.BindWritable).
 				Place("/etc/passwd", []byte("chronos:x:65534:65534:Hakurei:/home/chronos:/run/current-system/sw/bin/zsh\n")).
 				Place("/etc/group", []byte("hakurei:x:65534:\n")).
 				Tmpfs("/var/run/nscd", 8192, 0755),
@@ -166,7 +166,7 @@ var testCasesPd = []sealTestCase{
 			}).
 			UpdatePerm("/tmp/hakurei.1971/ebf083d1b175911782d413369b64ce7c/bus", acl.Read, acl.Write).
 			UpdatePerm("/tmp/hakurei.1971/ebf083d1b175911782d413369b64ce7c/system_bus_socket", acl.Read, acl.Write),
-		&sandbox.Params{
+		&hakurei.Params{
 			Dir:  "/home/chronos",
 			Path: "/run/current-system/sw/bin/zsh",
 			Args: []string{"zsh", "-c", "exec chromium "},
@@ -184,31 +184,31 @@ var testCasesPd = []sealTestCase{
 				"XDG_SESSION_CLASS=user",
 				"XDG_SESSION_TYPE=tty",
 			},
-			Ops: new(sandbox.Ops).
+			Ops: new(hakurei.Ops).
 				Proc("/proc").
 				Tmpfs(hst.Tmp, 4096, 0755).
 				Dev("/dev").Mqueue("/dev/mqueue").
-				Bind("/bin", "/bin", sandbox.BindWritable).
-				Bind("/boot", "/boot", sandbox.BindWritable).
-				Bind("/home", "/home", sandbox.BindWritable).
-				Bind("/lib", "/lib", sandbox.BindWritable).
-				Bind("/lib64", "/lib64", sandbox.BindWritable).
-				Bind("/nix", "/nix", sandbox.BindWritable).
-				Bind("/root", "/root", sandbox.BindWritable).
-				Bind("/run", "/run", sandbox.BindWritable).
-				Bind("/srv", "/srv", sandbox.BindWritable).
-				Bind("/sys", "/sys", sandbox.BindWritable).
-				Bind("/usr", "/usr", sandbox.BindWritable).
-				Bind("/var", "/var", sandbox.BindWritable).
-				Bind("/dev/dri", "/dev/dri", sandbox.BindWritable|sandbox.BindDevice|sandbox.BindOptional).
-				Bind("/dev/kvm", "/dev/kvm", sandbox.BindWritable|sandbox.BindDevice|sandbox.BindOptional).
+				Bind("/bin", "/bin", hakurei.BindWritable).
+				Bind("/boot", "/boot", hakurei.BindWritable).
+				Bind("/home", "/home", hakurei.BindWritable).
+				Bind("/lib", "/lib", hakurei.BindWritable).
+				Bind("/lib64", "/lib64", hakurei.BindWritable).
+				Bind("/nix", "/nix", hakurei.BindWritable).
+				Bind("/root", "/root", hakurei.BindWritable).
+				Bind("/run", "/run", hakurei.BindWritable).
+				Bind("/srv", "/srv", hakurei.BindWritable).
+				Bind("/sys", "/sys", hakurei.BindWritable).
+				Bind("/usr", "/usr", hakurei.BindWritable).
+				Bind("/var", "/var", hakurei.BindWritable).
+				Bind("/dev/dri", "/dev/dri", hakurei.BindWritable|hakurei.BindDevice|hakurei.BindOptional).
+				Bind("/dev/kvm", "/dev/kvm", hakurei.BindWritable|hakurei.BindDevice|hakurei.BindOptional).
 				Tmpfs("/run/user/1971", 8192, 0755).
 				Tmpfs("/run/dbus", 8192, 0755).
 				Etc("/etc", "ebf083d1b175911782d413369b64ce7c").
 				Tmpfs("/run/user", 4096, 0755).
-				Bind("/tmp/hakurei.1971/runtime/9", "/run/user/65534", sandbox.BindWritable).
-				Bind("/tmp/hakurei.1971/tmpdir/9", "/tmp", sandbox.BindWritable).
-				Bind("/home/chronos", "/home/chronos", sandbox.BindWritable).
+				Bind("/tmp/hakurei.1971/runtime/9", "/run/user/65534", hakurei.BindWritable).
+				Bind("/tmp/hakurei.1971/tmpdir/9", "/tmp", hakurei.BindWritable).
+				Bind("/home/chronos", "/home/chronos", hakurei.BindWritable).
 				Place("/etc/passwd", []byte("chronos:x:65534:65534:Hakurei:/home/chronos:/run/current-system/sw/bin/zsh\n")).
 				Place("/etc/group", []byte("hakurei:x:65534:\n")).
 				Bind("/tmp/hakurei.1971/ebf083d1b175911782d413369b64ce7c/wayland", "/run/user/65534/wayland-0", 0).

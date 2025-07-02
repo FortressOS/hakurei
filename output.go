@@ -1,4 +1,4 @@
-package sandbox
+package hakurei
 
 var msg Msg = new(DefaultMsg)
 

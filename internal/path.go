@@ -8,12 +8,12 @@ import (
 )
 
 var (
-	hakurei = compPoison
-	hsu     = compPoison
+	hmain = compPoison
+	hsu   = compPoison
 )
 
 func MustHakureiPath() string {
-	if name, ok := checkPath(hakurei); ok {
+	if name, ok := checkPath(hmain); ok {
 		return name
 	}
 	hlog.BeforeExit()

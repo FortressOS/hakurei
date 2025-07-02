@@ -7,11 +7,11 @@ import (
 	"testing"
 	"time"
 
+	"git.gensokyo.uk/security/hakurei"
 	"git.gensokyo.uk/security/hakurei/cmd/hakurei/internal/app"
 	"git.gensokyo.uk/security/hakurei/cmd/hakurei/internal/app/internal/setuid"
 	"git.gensokyo.uk/security/hakurei/hst"
 	"git.gensokyo.uk/security/hakurei/internal/sys"
-	"git.gensokyo.uk/security/hakurei/sandbox"
 	"git.gensokyo.uk/security/hakurei/system"
 )
 
@@ -21,7 +21,7 @@ type sealTestCase struct {
 	config        *hst.Config
 	id            app.ID
 	wantSys       *system.I
-	wantContainer *sandbox.Params
+	wantContainer *hakurei.Params
 }
 
 func TestApp(t *testing.T) {
@@ -32,7 +32,7 @@ func TestApp(t *testing.T) {
 			a := setuid.NewWithID(tc.id, tc.os)
 			var (
 				gotSys       *system.I
-				gotContainer *sandbox.Params
+				gotContainer *hakurei.Params
 			)
 			if !t.Run("seal", func(t *testing.T) {
 				if sa, err := a.Seal(tc.config); err != nil {

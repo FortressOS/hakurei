@@ -1,5 +1,5 @@
-// Package sandbox implements unprivileged Linux container with hardening options useful for creating application sandboxes.
-package sandbox
+// Package hakurei implements unprivileged Linux containers with built-in support for syscall filtering.
+package hakurei
 
 import (
 	"context"

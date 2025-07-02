@@ -11,9 +11,9 @@ import (
 	"strconv"
 	"syscall"
 
+	"git.gensokyo.uk/security/hakurei"
 	"git.gensokyo.uk/security/hakurei/helper"
 	"git.gensokyo.uk/security/hakurei/ldd"
-	"git.gensokyo.uk/security/hakurei/sandbox"
 	"git.gensokyo.uk/security/hakurei/sandbox/seccomp"
 )
 
@@ -65,7 +65,7 @@ func (p *Proxy) Start() error {
 		p.helper = helper.New(
 			ctx, toolPath,
 			p.final, true,
-			argF, func(container *sandbox.Container) {
+			argF, func(container *hakurei.Container) {
 				container.SeccompFlags |= seccomp.AllowMultiarch
 				container.SeccompPresets |= seccomp.PresetStrict
 				container.Hostname = "hakurei-dbus"
@@ -115,7 +115,7 @@ func (p *Proxy) Start() error {
 				slices.Sort(sockDirPaths)
 				sockDirPaths = slices.Compact(sockDirPaths)
 				for _, name := range sockDirPaths {
-					container.Bind(name, name, sandbox.BindWritable)
+					container.Bind(name, name, hakurei.BindWritable)
 				}
 
 				// xdg-dbus-proxy bin path

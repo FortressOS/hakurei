@@ -10,9 +10,9 @@ import (
 	"syscall"
 	"time"
 
+	"git.gensokyo.uk/security/hakurei"
 	"git.gensokyo.uk/security/hakurei/internal"
 	"git.gensokyo.uk/security/hakurei/internal/hlog"
-	"git.gensokyo.uk/security/hakurei/sandbox"
 	"git.gensokyo.uk/security/hakurei/sandbox/seccomp"
 )
 
@@ -74,7 +74,7 @@ type shimParams struct {
 	Monitor int
 
 	// finalised container params
-	Container *sandbox.Params
+	Container *hakurei.Params
 	// path to outer home directory
 	Home string
 
@@ -86,7 +86,7 @@ type shimParams struct {
 func ShimMain() {
 	hlog.Prepare("shim")
 
-	if err := sandbox.SetDumpable(sandbox.SUID_DUMP_DISABLE); err != nil {
+	if err := hakurei.SetDumpable(hakurei.SUID_DUMP_DISABLE); err != nil {
 		log.Fatalf("cannot set SUID_DUMP_DISABLE: %s", err)
 	}
 
@@ -94,11 +94,11 @@ func ShimMain() {
 		params     shimParams
 		closeSetup func() error
 	)
-	if f, err := sandbox.Receive(shimEnv, &params, nil); err != nil {
-		if errors.Is(err, sandbox.ErrInvalid) {
+	if f, err := hakurei.Receive(shimEnv, &params, nil); err != nil {
+		if errors.Is(err, hakurei.ErrInvalid) {
 			log.Fatal("invalid config descriptor")
 		}
-		if errors.Is(err, sandbox.ErrNotSet) {
+		if errors.Is(err, hakurei.ErrNotSet) {
 			log.Fatal("HAKUREI_SHIM not set")
 		}
 
@@ -149,7 +149,7 @@ func ShimMain() {
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop() // unreachable
-	container := sandbox.New(ctx, name)
+	container := hakurei.New(ctx, name)
 	container.Params = *params.Container
 	container.Stdin, container.Stdout, container.Stderr = os.Stdin, os.Stdout, os.Stderr
 	container.Cancel = func(cmd *exec.Cmd) error { return cmd.Process.Signal(os.Interrupt) }

@@ -1,4 +1,4 @@
-package sandbox_test
+package hakurei_test
 
 import (
 	"bytes"
@@ -12,11 +12,11 @@ import (
 	"testing"
 	"time"
 
+	"git.gensokyo.uk/security/hakurei"
 	"git.gensokyo.uk/security/hakurei/hst"
 	"git.gensokyo.uk/security/hakurei/internal"
 	"git.gensokyo.uk/security/hakurei/internal/hlog"
 	"git.gensokyo.uk/security/hakurei/ldd"
-	"git.gensokyo.uk/security/hakurei/sandbox"
 	"git.gensokyo.uk/security/hakurei/sandbox/seccomp"
 	"git.gensokyo.uk/security/hakurei/sandbox/vfs"
 )
@@ -29,10 +29,10 @@ const (
 func TestContainer(t *testing.T) {
 	{
 		oldVerbose := hlog.Load()
-		oldOutput := sandbox.GetOutput()
+		oldOutput := hakurei.GetOutput()
 		internal.InstallOutput(true)
 		t.Cleanup(func() { hlog.Store(oldVerbose) })
-		t.Cleanup(func() { sandbox.SetOutput(oldOutput) })
+		t.Cleanup(func() { hakurei.SetOutput(oldOutput) })
 	}
 
 	testCases := []struct {
@@ -40,7 +40,7 @@ func TestContainer(t *testing.T) {
 		filter  bool
 		session bool
 		net     bool
-		ops     *sandbox.Ops
+		ops     *hakurei.Ops
 		mnt     []*vfs.MountInfoEntry
 		host    string
 		rules   []seccomp.NativeRule
@@ -48,28 +48,28 @@ func TestContainer(t *testing.T) {
 		presets seccomp.FilterPreset
 	}{
 		{"minimal", true, false, false,
-			new(sandbox.Ops), nil, "test-minimal",
+			new(hakurei.Ops), nil, "test-minimal",
 			nil, 0, seccomp.PresetStrict},
 		{"allow", true, true, true,
-			new(sandbox.Ops), nil, "test-minimal",
+			new(hakurei.Ops), nil, "test-minimal",
 			nil, 0, seccomp.PresetExt | seccomp.PresetDenyDevel},
 		{"no filter", false, true, true,
-			new(sandbox.Ops), nil, "test-no-filter",
+			new(hakurei.Ops), nil, "test-no-filter",
 			nil, 0, seccomp.PresetExt},
 		{"custom rules", true, true, true,
-			new(sandbox.Ops), nil, "test-no-filter",
+			new(hakurei.Ops), nil, "test-no-filter",
 			[]seccomp.NativeRule{
 				{seccomp.ScmpSyscall(syscall.SYS_SETUID), seccomp.ScmpErrno(syscall.EPERM), nil},
 			}, 0, seccomp.PresetExt},
 		{"tmpfs", true, false, false,
-			new(sandbox.Ops).
+			new(hakurei.Ops).
 				Tmpfs(hst.Tmp, 0, 0755),
 			[]*vfs.MountInfoEntry{
 				e("/", hst.Tmp, "rw,nosuid,nodev,relatime", "tmpfs", "tmpfs", ignore),
 			}, "test-tmpfs",
 			nil, 0, seccomp.PresetStrict},
 		{"dev", true, true /* go test output is not a tty */, false,
-			new(sandbox.Ops).
+			new(hakurei.Ops).
 				Dev("/dev").
 				Mqueue("/dev/mqueue"),
 			[]*vfs.MountInfoEntry{
@@ -91,7 +91,7 @@ func TestContainer(t *testing.T) {
 			ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 			defer cancel()
 
-			container := sandbox.New(ctx, "/usr/bin/sandbox.test", "-test.v",
+			container := hakurei.New(ctx, "/usr/bin/sandbox.test", "-test.v",
 				"-test.run=TestHelperCheckContainer", "--", "check", tc.host)
 			container.Uid = 1000
 			container.Gid = 100
@@ -185,7 +185,7 @@ func e(root, target, vfsOptstr, fsType, source, fsOptstr string) *vfs.MountInfoE
 }
 
 func TestContainerString(t *testing.T) {
-	container := sandbox.New(t.Context(), "ldd", "/usr/bin/env")
+	container := hakurei.New(t.Context(), "ldd", "/usr/bin/env")
 	container.SeccompFlags |= seccomp.AllowMultiarch
 	container.SeccompRules = seccomp.Preset(
 		seccomp.PresetExt|seccomp.PresetDenyNS|seccomp.PresetDenyTTY,
@@ -201,8 +201,8 @@ func TestHelperInit(t *testing.T) {
 	if len(os.Args) != 5 || os.Args[4] != "init" {
 		return
 	}
-	sandbox.SetOutput(hlog.Output{})
-	sandbox.Init(hlog.Prepare, internal.InstallOutput)
+	hakurei.SetOutput(hlog.Output{})
+	hakurei.Init(hlog.Prepare, internal.InstallOutput)
 }
 
 func TestHelperCheckContainer(t *testing.T) {

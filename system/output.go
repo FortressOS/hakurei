@@ -1,12 +1,14 @@
 package system
 
-import "git.gensokyo.uk/security/hakurei/sandbox"
+import (
+	"git.gensokyo.uk/security/hakurei"
+)
 
-var msg sandbox.Msg = new(sandbox.DefaultMsg)
+var msg hakurei.Msg = new(hakurei.DefaultMsg)
 
-func SetOutput(v sandbox.Msg) {
+func SetOutput(v hakurei.Msg) {
 	if v == nil {
-		msg = new(sandbox.DefaultMsg)
+		msg = new(hakurei.DefaultMsg)
 	} else {
 		msg = v
 	}

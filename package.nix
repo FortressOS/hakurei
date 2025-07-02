@@ -76,7 +76,7 @@ buildGoModule rec {
       )
       {
         version = "v${version}";
-        hakurei = "${placeholder "out"}/libexec/hakurei";
+        hmain = "${placeholder "out"}/libexec/hakurei";
         hsu = "/run/wrappers/bin/hsu";
       };
 

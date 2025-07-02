@@ -9,10 +9,10 @@ import (
 	"log"
 	"os"
 
+	"git.gensokyo.uk/security/hakurei"
 	"git.gensokyo.uk/security/hakurei/internal"
 	"git.gensokyo.uk/security/hakurei/internal/hlog"
 	"git.gensokyo.uk/security/hakurei/internal/sys"
-	"git.gensokyo.uk/security/hakurei/sandbox"
 )
 
 var (
@@ -28,9 +28,9 @@ var std sys.State = new(sys.Std)
 
 func main() {
 	// early init path, skips root check and duplicate PR_SET_DUMPABLE
-	sandbox.TryArgv0(hlog.Output{}, hlog.Prepare, internal.InstallOutput)
+	hakurei.TryArgv0(hlog.Output{}, hlog.Prepare, internal.InstallOutput)
 
-	if err := sandbox.SetDumpable(sandbox.SUID_DUMP_DISABLE); err != nil {
+	if err := hakurei.SetDumpable(hakurei.SUID_DUMP_DISABLE); err != nil {
 		log.Printf("cannot set SUID_DUMP_DISABLE: %s", err)
 		// not fatal: this program runs as the privileged user
 	}

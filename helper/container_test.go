@@ -7,10 +7,10 @@ import (
 	"os/exec"
 	"testing"
 
+	"git.gensokyo.uk/security/hakurei"
 	"git.gensokyo.uk/security/hakurei/helper"
 	"git.gensokyo.uk/security/hakurei/internal"
 	"git.gensokyo.uk/security/hakurei/internal/hlog"
-	"git.gensokyo.uk/security/hakurei/sandbox"
 )
 
 func TestContainer(t *testing.T) {
@@ -34,7 +34,7 @@ func TestContainer(t *testing.T) {
 
 	t.Run("implementation compliance", func(t *testing.T) {
 		testHelper(t, func(ctx context.Context, setOutput func(stdoutP, stderrP *io.Writer), stat bool) helper.Helper {
-			return helper.New(ctx, os.Args[0], argsWt, stat, argF, func(container *sandbox.Container) {
+			return helper.New(ctx, os.Args[0], argsWt, stat, argF, func(container *hakurei.Container) {
 				setOutput(&container.Stdout, &container.Stderr)
 				container.CommandContext = func(ctx context.Context) (cmd *exec.Cmd) {
 					return exec.CommandContext(ctx, os.Args[0], "-test.v",
@@ -52,6 +52,6 @@ func TestHelperInit(t *testing.T) {
 	if len(os.Args) != 5 || os.Args[4] != "init" {
 		return
 	}
-	sandbox.SetOutput(hlog.Output{})
-	sandbox.Init(hlog.Prepare, func(bool) { internal.InstallOutput(false) })
+	hakurei.SetOutput(hlog.Output{})
+	hakurei.Init(hlog.Prepare, func(bool) { internal.InstallOutput(false) })
 }

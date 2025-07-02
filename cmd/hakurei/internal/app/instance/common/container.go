@@ -8,10 +8,10 @@ import (
 	"path"
 	"syscall"
 
+	"git.gensokyo.uk/security/hakurei"
 	"git.gensokyo.uk/security/hakurei/dbus"
 	"git.gensokyo.uk/security/hakurei/hst"
 	"git.gensokyo.uk/security/hakurei/internal/sys"
-	"git.gensokyo.uk/security/hakurei/sandbox"
 	"git.gensokyo.uk/security/hakurei/sandbox/seccomp"
 )
 
@@ -21,12 +21,12 @@ const preallocateOpsCount = 1 << 5
 
 // NewContainer initialises [sandbox.Params] via [hst.ContainerConfig].
 // Note that remaining container setup must be queued by the caller.
-func NewContainer(s *hst.ContainerConfig, os sys.State, uid, gid *int) (*sandbox.Params, map[string]string, error) {
+func NewContainer(s *hst.ContainerConfig, os sys.State, uid, gid *int) (*hakurei.Params, map[string]string, error) {
 	if s == nil {
 		return nil, nil, syscall.EBADE
 	}
 
-	container := &sandbox.Params{
+	container := &hakurei.Params{
 		Hostname:       s.Hostname,
 		SeccompFlags:   s.SeccompFlags,
 		SeccompPresets: s.SeccompPresets,
@@ -35,7 +35,7 @@ func NewContainer(s *hst.ContainerConfig, os sys.State, uid, gid *int) (*sandbox
 	}
 
 	{
-		ops := make(sandbox.Ops, 0, preallocateOpsCount+len(s.Filesystem)+len(s.Link)+len(s.Cover))
+		ops := make(hakurei.Ops, 0, preallocateOpsCount+len(s.Filesystem)+len(s.Link)+len(s.Cover))
 		container.Ops = &ops
 	}
 
@@ -64,8 +64,8 @@ func NewContainer(s *hst.ContainerConfig, os sys.State, uid, gid *int) (*sandbox
 		container.Gid = os.Getgid()
 		*gid = container.Gid
 	} else {
-		*uid = sandbox.OverflowUid()
-		*gid = sandbox.OverflowGid()
+		*uid = hakurei.OverflowUid()
+		*gid = hakurei.OverflowGid()
 	}
 
 	container.
@@ -75,7 +75,7 @@ func NewContainer(s *hst.ContainerConfig, os sys.State, uid, gid *int) (*sandbox
 	if !s.Device {
 		container.Dev("/dev").Mqueue("/dev/mqueue")
 	} else {
-		container.Bind("/dev", "/dev", sandbox.BindWritable|sandbox.BindDevice)
+		container.Bind("/dev", "/dev", hakurei.BindWritable|hakurei.BindDevice)
 	}
 
 	/* retrieve paths and hide them if they're made available in the sandbox;
@@ -154,13 +154,13 @@ func NewContainer(s *hst.ContainerConfig, os sys.State, uid, gid *int) (*sandbox
 
 		var flags int
 		if c.Write {
-			flags |= sandbox.BindWritable
+			flags |= hakurei.BindWritable
 		}
 		if c.Device {
-			flags |= sandbox.BindDevice | sandbox.BindWritable
+			flags |= hakurei.BindDevice | hakurei.BindWritable
 		}
 		if !c.Must {
-			flags |= sandbox.BindOptional
+			flags |= hakurei.BindOptional
 		}
 		container.Bind(c.Src, dest, flags)
 	}
