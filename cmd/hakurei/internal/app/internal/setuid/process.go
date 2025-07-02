@@ -12,10 +12,10 @@ import (
 	"syscall"
 	"time"
 
+	. "git.gensokyo.uk/security/hakurei/cmd/hakurei/internal/app"
+	"git.gensokyo.uk/security/hakurei/cmd/hakurei/internal/state"
 	"git.gensokyo.uk/security/hakurei/internal"
-	. "git.gensokyo.uk/security/hakurei/internal/app"
 	"git.gensokyo.uk/security/hakurei/internal/hlog"
-	"git.gensokyo.uk/security/hakurei/internal/state"
 	"git.gensokyo.uk/security/hakurei/sandbox"
 	"git.gensokyo.uk/security/hakurei/system"
 )

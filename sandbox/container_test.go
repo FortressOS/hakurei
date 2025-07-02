@@ -30,7 +30,7 @@ func TestContainer(t *testing.T) {
 	{
 		oldVerbose := hlog.Load()
 		oldOutput := sandbox.GetOutput()
-		internal.InstallFmsg(true)
+		internal.InstallOutput(true)
 		t.Cleanup(func() { hlog.Store(oldVerbose) })
 		t.Cleanup(func() { sandbox.SetOutput(oldOutput) })
 	}
@@ -202,7 +202,7 @@ func TestHelperInit(t *testing.T) {
 		return
 	}
 	sandbox.SetOutput(hlog.Output{})
-	sandbox.Init(hlog.Prepare, internal.InstallFmsg)
+	sandbox.Init(hlog.Prepare, internal.InstallOutput)
 }
 
 func TestHelperCheckContainer(t *testing.T) {

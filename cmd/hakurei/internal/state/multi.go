@@ -13,8 +13,8 @@ import (
 	"sync"
 	"syscall"
 
+	"git.gensokyo.uk/security/hakurei/cmd/hakurei/internal/app"
 	"git.gensokyo.uk/security/hakurei/hst"
-	"git.gensokyo.uk/security/hakurei/internal/app"
 	"git.gensokyo.uk/security/hakurei/internal/hlog"
 )
 

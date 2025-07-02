@@ -3,7 +3,7 @@ package setuid
 import (
 	"strconv"
 
-	. "git.gensokyo.uk/security/hakurei/internal/app"
+	. "git.gensokyo.uk/security/hakurei/cmd/hakurei/internal/app"
 )
 
 func newInt(v int) *stringPair[int] { return &stringPair[int]{v, strconv.Itoa(v)} }

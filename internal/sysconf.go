@@ -3,4 +3,6 @@ package internal
 //#include <unistd.h>
 import "C"
 
-func Sysconf_SC_LOGIN_NAME_MAX() int { return int(C.sysconf(C._SC_LOGIN_NAME_MAX)) }
+const SC_LOGIN_NAME_MAX = C._SC_LOGIN_NAME_MAX
+
+func Sysconf(name C.int) int { return int(C.sysconf(name)) }

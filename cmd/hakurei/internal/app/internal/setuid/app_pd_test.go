@@ -4,9 +4,9 @@ import (
 	"os"
 
 	"git.gensokyo.uk/security/hakurei/acl"
+	"git.gensokyo.uk/security/hakurei/cmd/hakurei/internal/app"
 	"git.gensokyo.uk/security/hakurei/dbus"
 	"git.gensokyo.uk/security/hakurei/hst"
-	"git.gensokyo.uk/security/hakurei/internal/app"
 	"git.gensokyo.uk/security/hakurei/sandbox"
 	"git.gensokyo.uk/security/hakurei/sandbox/seccomp"
 	"git.gensokyo.uk/security/hakurei/system"

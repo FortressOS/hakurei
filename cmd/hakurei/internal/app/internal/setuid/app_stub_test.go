@@ -7,7 +7,7 @@ import (
 	"os/user"
 	"strconv"
 
-	"git.gensokyo.uk/security/hakurei/internal/app"
+	"git.gensokyo.uk/security/hakurei/hst"
 )
 
 // fs methods are not implemented using a real FS
@@ -125,8 +125,8 @@ func (s *stubNixOS) Open(name string) (fs.File, error) {
 	}
 }
 
-func (s *stubNixOS) Paths() app.Paths {
-	return app.Paths{
+func (s *stubNixOS) Paths() hst.Paths {
+	return hst.Paths{
 		SharePath:   "/tmp/hakurei.1971",
 		RuntimePath: "/run/user/1971",
 		RunDirPath:  "/run/user/1971/hakurei",

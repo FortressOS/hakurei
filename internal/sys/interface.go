@@ -1,3 +1,4 @@
+// Package sys wraps OS interaction library functions.
 package sys
 
 import (
@@ -6,7 +7,7 @@ import (
 	"path"
 	"strconv"
 
-	"git.gensokyo.uk/security/hakurei/internal/app"
+	"git.gensokyo.uk/security/hakurei/hst"
 	"git.gensokyo.uk/security/hakurei/internal/hlog"
 )
 
@@ -40,15 +41,15 @@ type State interface {
 	Println(v ...any)
 	Printf(format string, v ...any)
 
-	// Paths returns a populated [Paths] struct.
-	Paths() app.Paths
+	// Paths returns a populated [hst.Paths] struct.
+	Paths() hst.Paths
 	// Uid invokes hsu and returns target uid.
 	// Any errors returned by Uid is already wrapped [fmsg.BaseError].
 	Uid(aid int) (int, error)
 }
 
 // CopyPaths is a generic implementation of [hst.Paths].
-func CopyPaths(os State, v *app.Paths) {
+func CopyPaths(os State, v *hst.Paths) {
 	v.SharePath = path.Join(os.TempDir(), "hakurei."+strconv.Itoa(os.Getuid()))
 
 	hlog.Verbosef("process share directory at %q", v.SharePath)

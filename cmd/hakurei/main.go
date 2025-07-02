@@ -1,5 +1,8 @@
 package main
 
+// this works around go:embed '..' limitation
+//go:generate cp ../../LICENSE .
+
 import (
 	"context"
 	_ "embed"
@@ -15,14 +18,14 @@ import (
 	"syscall"
 	"time"
 
+	"git.gensokyo.uk/security/hakurei/cmd/hakurei/internal/app"
+	"git.gensokyo.uk/security/hakurei/cmd/hakurei/internal/app/instance"
+	"git.gensokyo.uk/security/hakurei/cmd/hakurei/internal/state"
 	"git.gensokyo.uk/security/hakurei/command"
 	"git.gensokyo.uk/security/hakurei/dbus"
 	"git.gensokyo.uk/security/hakurei/hst"
 	"git.gensokyo.uk/security/hakurei/internal"
-	"git.gensokyo.uk/security/hakurei/internal/app"
-	"git.gensokyo.uk/security/hakurei/internal/app/instance"
 	"git.gensokyo.uk/security/hakurei/internal/hlog"
-	"git.gensokyo.uk/security/hakurei/internal/state"
 	"git.gensokyo.uk/security/hakurei/internal/sys"
 	"git.gensokyo.uk/security/hakurei/sandbox"
 	"git.gensokyo.uk/security/hakurei/system"
@@ -41,7 +44,7 @@ var std sys.State = new(sys.Std)
 
 func main() {
 	// early init path, skips root check and duplicate PR_SET_DUMPABLE
-	sandbox.TryArgv0(hlog.Output{}, hlog.Prepare, internal.InstallFmsg)
+	sandbox.TryArgv0(hlog.Output{}, hlog.Prepare, internal.InstallOutput)
 
 	if err := sandbox.SetDumpable(sandbox.SUID_DUMP_DISABLE); err != nil {
 		log.Printf("cannot set SUID_DUMP_DISABLE: %s", err)
@@ -67,7 +70,7 @@ func buildCommand(out io.Writer) command.Command {
 		flagVerbose bool
 		flagJSON    bool
 	)
-	c := command.New(out, log.Printf, "hakurei", func([]string) error { internal.InstallFmsg(flagVerbose); return nil }).
+	c := command.New(out, log.Printf, "hakurei", func([]string) error { internal.InstallOutput(flagVerbose); return nil }).
 		Flag(&flagVerbose, "v", command.BoolFlag(false), "Increase log verbosity").
 		Flag(&flagJSON, "json", command.BoolFlag(false), "Serialise output in JSON when applicable")
 

@@ -6,8 +6,8 @@ import (
 	"log"
 	"syscall"
 
-	"git.gensokyo.uk/security/hakurei/internal/app"
-	"git.gensokyo.uk/security/hakurei/internal/app/internal/setuid"
+	"git.gensokyo.uk/security/hakurei/cmd/hakurei/internal/app"
+	"git.gensokyo.uk/security/hakurei/cmd/hakurei/internal/app/internal/setuid"
 	"git.gensokyo.uk/security/hakurei/internal/sys"
 )
 

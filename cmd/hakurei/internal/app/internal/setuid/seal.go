@@ -17,11 +17,11 @@ import (
 	"syscall"
 
 	"git.gensokyo.uk/security/hakurei/acl"
+	. "git.gensokyo.uk/security/hakurei/cmd/hakurei/internal/app"
+	"git.gensokyo.uk/security/hakurei/cmd/hakurei/internal/app/instance/common"
 	"git.gensokyo.uk/security/hakurei/dbus"
 	"git.gensokyo.uk/security/hakurei/hst"
 	"git.gensokyo.uk/security/hakurei/internal"
-	. "git.gensokyo.uk/security/hakurei/internal/app"
-	"git.gensokyo.uk/security/hakurei/internal/app/instance/common"
 	"git.gensokyo.uk/security/hakurei/internal/hlog"
 	"git.gensokyo.uk/security/hakurei/internal/sys"
 	"git.gensokyo.uk/security/hakurei/sandbox"
@@ -97,7 +97,7 @@ type shareHost struct {
 	runtimeSharePath string
 
 	seal *outcome
-	sc   Paths
+	sc   hst.Paths
 }
 
 // ensureRuntimeDir must be called if direct access to paths within XDG_RUNTIME_DIR is required
@@ -183,7 +183,7 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 	if seal.user.username == "" {
 		seal.user.username = "chronos"
 	} else if !posixUsername.MatchString(seal.user.username) ||
-		len(seal.user.username) >= internal.Sysconf_SC_LOGIN_NAME_MAX() {
+		len(seal.user.username) >= internal.Sysconf(internal.SC_LOGIN_NAME_MAX) {
 		return hlog.WrapErr(ErrName,
 			fmt.Sprintf("invalid user name %q", seal.user.username))
 	}

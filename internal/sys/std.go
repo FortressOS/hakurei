@@ -12,15 +12,15 @@ import (
 	"sync"
 	"syscall"
 
+	"git.gensokyo.uk/security/hakurei/hst"
 	"git.gensokyo.uk/security/hakurei/internal"
-	"git.gensokyo.uk/security/hakurei/internal/app"
 	"git.gensokyo.uk/security/hakurei/internal/hlog"
 	"git.gensokyo.uk/security/hakurei/sandbox"
 )
 
 // Std implements System using the standard library.
 type Std struct {
-	paths     app.Paths
+	paths     hst.Paths
 	pathsOnce sync.Once
 
 	uidOnce sync.Once
@@ -48,7 +48,7 @@ func (s *Std) Printf(format string, v ...any)               { hlog.Verbosef(form
 
 const xdgRuntimeDir = "XDG_RUNTIME_DIR"
 
-func (s *Std) Paths() app.Paths {
+func (s *Std) Paths() hst.Paths {
 	s.pathsOnce.Do(func() { CopyPaths(s, &s.paths) })
 	return s.paths
 }

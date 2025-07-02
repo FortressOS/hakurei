@@ -53,5 +53,5 @@ func TestHelperInit(t *testing.T) {
 		return
 	}
 	sandbox.SetOutput(hlog.Output{})
-	sandbox.Init(hlog.Prepare, func(bool) { internal.InstallFmsg(false) })
+	sandbox.Init(hlog.Prepare, func(bool) { internal.InstallOutput(false) })
 }

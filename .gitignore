@@ -27,6 +27,7 @@ go.work.sum
 
 # go generate
 security-context-v1-protocol.*
+/cmd/hakurei/LICENSE
 
 # release
 /dist/hakurei-*

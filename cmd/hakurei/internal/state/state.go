@@ -5,8 +5,8 @@ import (
 	"io"
 	"time"
 
+	"git.gensokyo.uk/security/hakurei/cmd/hakurei/internal/app"
 	"git.gensokyo.uk/security/hakurei/hst"
-	"git.gensokyo.uk/security/hakurei/internal/app"
 )
 
 var ErrNoConfig = errors.New("state does not contain config")

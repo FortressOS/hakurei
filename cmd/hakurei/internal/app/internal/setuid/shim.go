@@ -104,7 +104,7 @@ func ShimMain() {
 
 		log.Fatalf("cannot receive shim setup params: %v", err)
 	} else {
-		internal.InstallFmsg(params.Verbose)
+		internal.InstallOutput(params.Verbose)
 		closeSetup = f
 
 		// the Go runtime does not expose siginfo_t so SIGCONT is handled in C to check si_pid

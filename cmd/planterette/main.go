@@ -42,7 +42,7 @@ func main() {
 		flagVerbose   bool
 		flagDropShell bool
 	)
-	c := command.New(os.Stderr, log.Printf, "planterette", func([]string) error { internal.InstallFmsg(flagVerbose); return nil }).
+	c := command.New(os.Stderr, log.Printf, "planterette", func([]string) error { internal.InstallOutput(flagVerbose); return nil }).
 		Flag(&flagVerbose, "v", command.BoolFlag(false), "Print debug messages to the console").
 		Flag(&flagDropShell, "s", command.BoolFlag(false), "Drop to a shell in place of next hakurei action")
 

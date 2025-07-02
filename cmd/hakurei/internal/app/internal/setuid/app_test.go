@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
+	"git.gensokyo.uk/security/hakurei/cmd/hakurei/internal/app"
+	"git.gensokyo.uk/security/hakurei/cmd/hakurei/internal/app/internal/setuid"
 	"git.gensokyo.uk/security/hakurei/hst"
-	"git.gensokyo.uk/security/hakurei/internal/app"
-	"git.gensokyo.uk/security/hakurei/internal/app/internal/setuid"
 	"git.gensokyo.uk/security/hakurei/internal/sys"
 	"git.gensokyo.uk/security/hakurei/sandbox"
 	"git.gensokyo.uk/security/hakurei/system"

@@ -10,9 +10,9 @@ import (
 	"testing"
 	"time"
 
+	"git.gensokyo.uk/security/hakurei/cmd/hakurei/internal/app"
+	"git.gensokyo.uk/security/hakurei/cmd/hakurei/internal/state"
 	"git.gensokyo.uk/security/hakurei/hst"
-	"git.gensokyo.uk/security/hakurei/internal/app"
-	"git.gensokyo.uk/security/hakurei/internal/state"
 )
 
 func testStore(t *testing.T, s state.Store) {
