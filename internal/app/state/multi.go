@@ -13,7 +13,6 @@ import (
 	"sync"
 	"syscall"
 
-	"hakurei.app/cmd/hakurei/internal/app"
 	"hakurei.app/hst"
 	"hakurei.app/internal/hlog"
 )
@@ -130,7 +129,7 @@ type multiBackend struct {
 	lock sync.RWMutex
 }
 
-func (b *multiBackend) filename(id *app.ID) string {
+func (b *multiBackend) filename(id *ID) string {
 	return path.Join(b.path, id.String())
 }
 
@@ -190,8 +189,8 @@ func (b *multiBackend) load(decode bool) (Entries, error) {
 			return nil, fmt.Errorf("unexpected directory %q in store", e.Name())
 		}
 
-		id := new(app.ID)
-		if err := app.ParseAppID(id, e.Name()); err != nil {
+		id := new(ID)
+		if err := ParseAppID(id, e.Name()); err != nil {
 			return nil, err
 		}
 
@@ -336,7 +335,7 @@ func (b *multiBackend) encodeState(w io.WriteSeeker, state *State, configWriter 
 	return err
 }
 
-func (b *multiBackend) Destroy(id app.ID) error {
+func (b *multiBackend) Destroy(id ID) error {
 	b.lock.Lock()
 	defer b.lock.Unlock()
 

@@ -1,3 +1,4 @@
+// Package state provides cross-process state tracking for hakurei container instances.
 package state
 
 import (
@@ -5,13 +6,12 @@ import (
 	"io"
 	"time"
 
-	"hakurei.app/cmd/hakurei/internal/app"
 	"hakurei.app/hst"
 )
 
 var ErrNoConfig = errors.New("state does not contain config")
 
-type Entries map[app.ID]*State
+type Entries map[ID]*State
 
 type Store interface {
 	// Do calls f exactly once and ensures store exclusivity until f returns.
@@ -30,7 +30,7 @@ type Store interface {
 // Cursor provides access to the store
 type Cursor interface {
 	Save(state *State, configWriter io.WriterTo) error
-	Destroy(id app.ID) error
+	Destroy(id ID) error
 	Load() (Entries, error)
 	Len() (int, error)
 }
@@ -38,7 +38,7 @@ type Cursor interface {
 // State is an instance state
 type State struct {
 	// hakurei instance id
-	ID app.ID `json:"instance"`
+	ID ID `json:"instance"`
 	// child process PID value
 	PID int `json:"pid"`
 	// sealed app configuration

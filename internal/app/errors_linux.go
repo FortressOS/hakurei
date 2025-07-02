@@ -1,10 +1,9 @@
-package setuid
+package app
 
 import (
 	"errors"
 	"log"
 
-	. "hakurei.app/cmd/hakurei/internal/app"
 	"hakurei.app/internal/hlog"
 )
 

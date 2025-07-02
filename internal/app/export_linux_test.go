@@ -1,13 +1,13 @@
-package setuid
+package app
 
 import (
-	. "hakurei.app/cmd/hakurei/internal/app"
 	"hakurei.app/container"
+	"hakurei.app/internal/app/state"
 	"hakurei.app/internal/sys"
 	"hakurei.app/system"
 )
 
-func NewWithID(id ID, os sys.State) App {
+func NewWithID(id state.ID, os sys.State) App {
 	a := new(app)
 	a.id = newID(&id)
 	a.sys = os

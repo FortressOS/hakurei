@@ -1,4 +1,4 @@
-package setuid
+package app
 
 import (
 	"context"
@@ -12,10 +12,9 @@ import (
 	"syscall"
 	"time"
 
-	. "hakurei.app/cmd/hakurei/internal/app"
-	"hakurei.app/cmd/hakurei/internal/state"
 	"hakurei.app/container"
 	"hakurei.app/internal"
+	"hakurei.app/internal/app/state"
 	"hakurei.app/internal/hlog"
 	"hakurei.app/system"
 )

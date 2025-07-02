@@ -13,12 +13,11 @@ import (
 	"syscall"
 	"time"
 
-	"hakurei.app/cmd/hakurei/internal/app"
-	"hakurei.app/cmd/hakurei/internal/app/instance"
-	"hakurei.app/cmd/hakurei/internal/state"
 	"hakurei.app/command"
 	"hakurei.app/hst"
 	"hakurei.app/internal"
+	"hakurei.app/internal/app"
+	"hakurei.app/internal/app/state"
 	"hakurei.app/internal/hlog"
 	"hakurei.app/system"
 	"hakurei.app/system/dbus"
@@ -33,7 +32,7 @@ func buildCommand(out io.Writer) command.Command {
 		Flag(&flagVerbose, "v", command.BoolFlag(false), "Increase log verbosity").
 		Flag(&flagJSON, "json", command.BoolFlag(false), "Serialise output in JSON when applicable")
 
-	c.Command("shim", command.UsageInternal, func([]string) error { instance.ShimMain(); return errSuccess })
+	c.Command("shim", command.UsageInternal, func([]string) error { app.ShimMain(); return errSuccess })
 
 	c.Command("app", "Load app from configuration file", func(args []string) error {
 		if len(args) < 1 {
@@ -244,14 +243,14 @@ func runApp(config *hst.Config) {
 	ctx, stop := signal.NotifyContext(context.Background(),
 		syscall.SIGINT, syscall.SIGTERM)
 	defer stop() // unreachable
-	a := instance.MustNew(instance.ISetuid, ctx, std)
+	a := app.MustNew(ctx, std)
 
 	rs := new(app.RunState)
 	if sa, err := a.Seal(config); err != nil {
 		hlog.PrintBaseError(err, "cannot seal app:")
 		internal.Exit(1)
 	} else {
-		internal.Exit(instance.PrintRunStateErr(instance.ISetuid, rs, sa.Run(rs)))
+		internal.Exit(app.PrintRunStateErr(rs, sa.Run(rs)))
 	}
 
 	*(*int)(nil) = 0 // not reached

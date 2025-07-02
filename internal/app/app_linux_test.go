@@ -1,4 +1,4 @@
-package setuid_test
+package app_test
 
 import (
 	"encoding/json"
@@ -7,10 +7,10 @@ import (
 	"testing"
 	"time"
 
-	"hakurei.app/cmd/hakurei/internal/app"
-	"hakurei.app/cmd/hakurei/internal/app/internal/setuid"
 	"hakurei.app/container"
 	"hakurei.app/hst"
+	"hakurei.app/internal/app"
+	"hakurei.app/internal/app/state"
 	"hakurei.app/internal/sys"
 	"hakurei.app/system"
 )
@@ -19,7 +19,7 @@ type sealTestCase struct {
 	name          string
 	os            sys.State
 	config        *hst.Config
-	id            app.ID
+	id            state.ID
 	wantSys       *system.I
 	wantContainer *container.Params
 }
@@ -29,7 +29,7 @@ func TestApp(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			a := setuid.NewWithID(tc.id, tc.os)
+			a := app.NewWithID(tc.id, tc.os)
 			var (
 				gotSys       *system.I
 				gotContainer *container.Params
@@ -39,7 +39,7 @@ func TestApp(t *testing.T) {
 					t.Errorf("Seal: error = %v", err)
 					return
 				} else {
-					gotSys, gotContainer = setuid.AppIParams(a, sa)
+					gotSys, gotContainer = app.AppIParams(a, sa)
 				}
 			}) {
 				return

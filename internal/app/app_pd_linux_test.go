@@ -1,12 +1,12 @@
-package setuid_test
+package app_test
 
 import (
 	"os"
 
-	"hakurei.app/cmd/hakurei/internal/app"
 	"hakurei.app/container"
 	"hakurei.app/container/seccomp"
 	"hakurei.app/hst"
+	"hakurei.app/internal/app/state"
 	"hakurei.app/system"
 	"hakurei.app/system/acl"
 	"hakurei.app/system/dbus"
@@ -16,7 +16,7 @@ var testCasesPd = []sealTestCase{
 	{
 		"nixos permissive defaults no enablements", new(stubNixOS),
 		&hst.Config{Username: "chronos", Data: "/home/chronos"},
-		app.ID{
+		state.ID{
 			0x4a, 0x45, 0x0b, 0x65,
 			0x96, 0xd7, 0xbc, 0x15,
 			0xbd, 0x01, 0x78, 0x0e,
@@ -115,7 +115,7 @@ var testCasesPd = []sealTestCase{
 			},
 			Enablements: system.EWayland | system.EDBus | system.EPulse,
 		},
-		app.ID{
+		state.ID{
 			0xeb, 0xf0, 0x83, 0xd1,
 			0xb1, 0x75, 0x91, 0x17,
 			0x82, 0xd4, 0x13, 0x36,

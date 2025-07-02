@@ -1,12 +1,12 @@
-package setuid
+package app
 
 import (
 	"context"
 	"fmt"
 	"sync"
 
-	. "hakurei.app/cmd/hakurei/internal/app"
 	"hakurei.app/hst"
+	"hakurei.app/internal/app/state"
 	"hakurei.app/internal/hlog"
 	"hakurei.app/internal/sys"
 )
@@ -16,15 +16,15 @@ func New(ctx context.Context, os sys.State) (App, error) {
 	a.sys = os
 	a.ctx = ctx
 
-	id := new(ID)
-	err := NewAppID(id)
+	id := new(state.ID)
+	err := state.NewAppID(id)
 	a.id = newID(id)
 
 	return a, err
 }
 
 type app struct {
-	id  *stringPair[ID]
+	id  *stringPair[state.ID]
 	sys sys.State
 	ctx context.Context
 
@@ -32,7 +32,7 @@ type app struct {
 	mu sync.RWMutex
 }
 
-func (a *app) ID() ID { a.mu.RLock(); defer a.mu.RUnlock(); return a.id.unwrap() }
+func (a *app) ID() state.ID { a.mu.RLock(); defer a.mu.RUnlock(); return a.id.unwrap() }
 
 func (a *app) String() string {
 	if a == nil {

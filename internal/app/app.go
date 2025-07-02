@@ -2,15 +2,19 @@
 package app
 
 import (
+	"context"
+	"log"
 	"syscall"
 	"time"
 
 	"hakurei.app/hst"
+	"hakurei.app/internal/app/state"
+	"hakurei.app/internal/sys"
 )
 
 type App interface {
 	// ID returns a copy of [ID] held by App.
-	ID() ID
+	ID() state.ID
 
 	// Seal determines the outcome of config as a [SealedApp].
 	// The value of config might be overwritten and must not be used again.
@@ -46,4 +50,12 @@ func (rs *RunState) SetStart() {
 	}
 	now := time.Now().UTC()
 	rs.Time = &now
+}
+
+func MustNew(ctx context.Context, os sys.State) App {
+	a, err := New(ctx, os)
+	if err != nil {
+		log.Fatalf("cannot create app: %v", err)
+	}
+	return a
 }

@@ -5,14 +5,13 @@ import (
 	"testing"
 	"time"
 
-	"hakurei.app/cmd/hakurei/internal/app"
-	"hakurei.app/cmd/hakurei/internal/state"
 	"hakurei.app/hst"
+	"hakurei.app/internal/app/state"
 	"hakurei.app/system/dbus"
 )
 
 var (
-	testID = app.ID{
+	testID = state.ID{
 		0x8e, 0x2c, 0x76, 0xb0,
 		0x66, 0xda, 0xbe, 0x57,
 		0x4c, 0xf0, 0x73, 0xbd,
@@ -460,7 +459,7 @@ func Test_printPs(t *testing.T) {
 		{"no entries", make(state.Entries), false, false, "    Instance    PID    Application    Uptime\n"},
 		{"no entries short", make(state.Entries), true, false, ""},
 		{"nil instance", state.Entries{testID: nil}, false, false, "    Instance    PID    Application    Uptime\n"},
-		{"state corruption", state.Entries{app.ID{}: testState}, false, false, "    Instance    PID    Application    Uptime\n"},
+		{"state corruption", state.Entries{state.ID{}: testState}, false, false, "    Instance    PID    Application    Uptime\n"},
 
 		{"valid pd", state.Entries{testID: &state.State{ID: testID, PID: 1 << 8, Config: new(hst.Config), Time: testAppTime}}, false, false, `    Instance    PID    Application                 Uptime
     8e2c76b0    256    0 (app.hakurei.8e2c76b0)    1h2m32s

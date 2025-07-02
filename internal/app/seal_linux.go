@@ -1,4 +1,4 @@
-package setuid
+package app
 
 import (
 	"bytes"
@@ -16,11 +16,10 @@ import (
 	"sync/atomic"
 	"syscall"
 
-	. "hakurei.app/cmd/hakurei/internal/app"
-	"hakurei.app/cmd/hakurei/internal/app/instance/common"
 	"hakurei.app/container"
 	"hakurei.app/hst"
 	"hakurei.app/internal"
+	"hakurei.app/internal/app/state"
 	"hakurei.app/internal/hlog"
 	"hakurei.app/internal/sys"
 	"hakurei.app/system"
@@ -66,7 +65,7 @@ var posixUsername = regexp.MustCompilePOSIX("^[a-z_]([A-Za-z0-9_-]{0,31}|[A-Za-z
 // outcome stores copies of various parts of [hst.Config]
 type outcome struct {
 	// copied from initialising [app]
-	id *stringPair[ID]
+	id *stringPair[state.ID]
 	// copied from [sys.State] response
 	runDirPath string
 
@@ -281,7 +280,7 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 	{
 		var uid, gid int
 		var err error
-		seal.container, seal.env, err = common.NewContainer(config.Container, sys, &uid, &gid)
+		seal.container, seal.env, err = newContainer(config.Container, sys, &uid, &gid)
 		if err != nil {
 			return hlog.WrapErrSuffix(err,
 				"cannot initialise container configuration:")

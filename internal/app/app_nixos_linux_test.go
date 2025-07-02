@@ -1,10 +1,10 @@
-package setuid_test
+package app_test
 
 import (
-	"hakurei.app/cmd/hakurei/internal/app"
 	"hakurei.app/container"
 	"hakurei.app/container/seccomp"
 	"hakurei.app/hst"
+	"hakurei.app/internal/app/state"
 	"hakurei.app/system"
 	"hakurei.app/system/acl"
 	"hakurei.app/system/dbus"
@@ -52,7 +52,7 @@ var testCasesNixos = []sealTestCase{
 			Data:     "/var/lib/persist/module/hakurei/0/1",
 			Identity: 1, Groups: []string{},
 		},
-		app.ID{
+		state.ID{
 			0x8e, 0x2c, 0x76, 0xb0,
 			0x66, 0xda, 0xbe, 0x57,
 			0x4c, 0xf0, 0x73, 0xbd,

@@ -1,4 +1,4 @@
-package common
+package app
 
 import (
 	"errors"
@@ -19,9 +19,9 @@ import (
 // allocating slightly more as a margin for future expansion
 const preallocateOpsCount = 1 << 5
 
-// NewContainer initialises [sandbox.Params] via [hst.ContainerConfig].
+// newContainer initialises [container.Params] via [hst.ContainerConfig].
 // Note that remaining container setup must be queued by the caller.
-func NewContainer(s *hst.ContainerConfig, os sys.State, uid, gid *int) (*container.Params, map[string]string, error) {
+func newContainer(s *hst.ContainerConfig, os sys.State, uid, gid *int) (*container.Params, map[string]string, error) {
 	if s == nil {
 		return nil, nil, syscall.EBADE
 	}

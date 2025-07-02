@@ -10,9 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"hakurei.app/cmd/hakurei/internal/app"
-	"hakurei.app/cmd/hakurei/internal/state"
 	"hakurei.app/hst"
+	"hakurei.app/internal/app/state"
 )
 
 func testStore(t *testing.T, s state.Store) {
@@ -134,7 +133,7 @@ func testStore(t *testing.T, s state.Store) {
 }
 
 func makeState(t *testing.T, s *state.State, ct io.Writer) {
-	if err := app.NewAppID(&s.ID); err != nil {
+	if err := state.NewAppID(&s.ID); err != nil {
 		t.Fatalf("cannot create dummy state: %v", err)
 	}
 	if err := gob.NewEncoder(ct).Encode(hst.Template()); err != nil {

@@ -1,4 +1,4 @@
-package setuid
+package app
 
 import (
 	"context"

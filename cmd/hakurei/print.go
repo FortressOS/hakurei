@@ -12,8 +12,8 @@ import (
 	"text/tabwriter"
 	"time"
 
-	"hakurei.app/cmd/hakurei/internal/state"
 	"hakurei.app/hst"
+	"hakurei.app/internal/app/state"
 	"hakurei.app/internal/hlog"
 	"hakurei.app/system/dbus"
 )

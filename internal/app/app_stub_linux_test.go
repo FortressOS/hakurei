@@ -1,4 +1,4 @@
-package setuid_test
+package app_test
 
 import (
 	"fmt"
