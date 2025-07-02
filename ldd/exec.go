@@ -8,8 +8,8 @@ import (
 	"os/exec"
 	"time"
 
-	"git.gensokyo.uk/security/hakurei"
-	"git.gensokyo.uk/security/hakurei/seccomp"
+	"git.gensokyo.uk/security/hakurei/container"
+	"git.gensokyo.uk/security/hakurei/container/seccomp"
 )
 
 const lddTimeout = 2 * time.Second
@@ -27,24 +27,24 @@ func ExecFilter(ctx context.Context,
 	p string) ([]*Entry, error) {
 	c, cancel := context.WithTimeout(ctx, lddTimeout)
 	defer cancel()
-	container := hakurei.New(c, "ldd", p)
-	container.CommandContext = commandContext
-	container.Hostname = "hakurei-ldd"
-	container.SeccompFlags |= seccomp.AllowMultiarch
-	container.SeccompPresets |= seccomp.PresetStrict
+	z := container.New(c, "ldd", p)
+	z.CommandContext = commandContext
+	z.Hostname = "hakurei-ldd"
+	z.SeccompFlags |= seccomp.AllowMultiarch
+	z.SeccompPresets |= seccomp.PresetStrict
 	stdout, stderr := new(bytes.Buffer), new(bytes.Buffer)
-	container.Stdout = stdout
-	container.Stderr = stderr
-	container.Bind("/", "/", 0).Proc("/proc").Dev("/dev")
+	z.Stdout = stdout
+	z.Stderr = stderr
+	z.Bind("/", "/", 0).Proc("/proc").Dev("/dev")
 
-	if err := container.Start(); err != nil {
+	if err := z.Start(); err != nil {
 		return nil, err
 	}
 	defer func() { _, _ = io.Copy(os.Stderr, stderr) }()
-	if err := container.Serve(); err != nil {
+	if err := z.Serve(); err != nil {
 		return nil, err
 	}
-	if err := container.Wait(); err != nil {
+	if err := z.Wait(); err != nil {
 		m := stderr.Bytes()
 		if bytes.Contains(m, append([]byte(p+": "), msgStatic...)) ||
 			bytes.Contains(m, msgStaticGlibc) {

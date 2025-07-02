@@ -12,9 +12,9 @@ import (
 	"syscall"
 	"time"
 
-	"git.gensokyo.uk/security/hakurei"
 	. "git.gensokyo.uk/security/hakurei/cmd/hakurei/internal/app"
 	"git.gensokyo.uk/security/hakurei/cmd/hakurei/internal/state"
+	"git.gensokyo.uk/security/hakurei/container"
 	"git.gensokyo.uk/security/hakurei/internal"
 	"git.gensokyo.uk/security/hakurei/internal/hlog"
 	"git.gensokyo.uk/security/hakurei/system"
@@ -94,7 +94,7 @@ func (seal *outcome) Run(rs *RunState) error {
 	cmd.Cancel = func() error { return cmd.Process.Signal(syscall.SIGCONT) }
 
 	var e *gob.Encoder
-	if fd, encoder, err := hakurei.Setup(&cmd.ExtraFiles); err != nil {
+	if fd, encoder, err := container.Setup(&cmd.ExtraFiles); err != nil {
 		return hlog.WrapErrSuffix(err,
 			"cannot create shim setup pipe:")
 	} else {

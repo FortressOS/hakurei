@@ -8,10 +8,10 @@ import (
 	"path"
 	"syscall"
 
-	"git.gensokyo.uk/security/hakurei"
+	"git.gensokyo.uk/security/hakurei/container"
+	"git.gensokyo.uk/security/hakurei/container/seccomp"
 	"git.gensokyo.uk/security/hakurei/hst"
 	"git.gensokyo.uk/security/hakurei/internal/sys"
-	"git.gensokyo.uk/security/hakurei/seccomp"
 	"git.gensokyo.uk/security/hakurei/system/dbus"
 )
 
@@ -21,12 +21,12 @@ const preallocateOpsCount = 1 << 5
 
 // NewContainer initialises [sandbox.Params] via [hst.ContainerConfig].
 // Note that remaining container setup must be queued by the caller.
-func NewContainer(s *hst.ContainerConfig, os sys.State, uid, gid *int) (*hakurei.Params, map[string]string, error) {
+func NewContainer(s *hst.ContainerConfig, os sys.State, uid, gid *int) (*container.Params, map[string]string, error) {
 	if s == nil {
 		return nil, nil, syscall.EBADE
 	}
 
-	container := &hakurei.Params{
+	params := &container.Params{
 		Hostname:       s.Hostname,
 		SeccompFlags:   s.SeccompFlags,
 		SeccompPresets: s.SeccompPresets,
@@ -35,47 +35,47 @@ func NewContainer(s *hst.ContainerConfig, os sys.State, uid, gid *int) (*hakurei
 	}
 
 	{
-		ops := make(hakurei.Ops, 0, preallocateOpsCount+len(s.Filesystem)+len(s.Link)+len(s.Cover))
-		container.Ops = &ops
+		ops := make(container.Ops, 0, preallocateOpsCount+len(s.Filesystem)+len(s.Link)+len(s.Cover))
+		params.Ops = &ops
 	}
 
 	if s.Multiarch {
-		container.SeccompFlags |= seccomp.AllowMultiarch
+		params.SeccompFlags |= seccomp.AllowMultiarch
 	}
 
 	if !s.SeccompCompat {
-		container.SeccompPresets |= seccomp.PresetExt
+		params.SeccompPresets |= seccomp.PresetExt
 	}
 	if !s.Devel {
-		container.SeccompPresets |= seccomp.PresetDenyDevel
+		params.SeccompPresets |= seccomp.PresetDenyDevel
 	}
 	if !s.Userns {
-		container.SeccompPresets |= seccomp.PresetDenyNS
+		params.SeccompPresets |= seccomp.PresetDenyNS
 	}
 	if !s.Tty {
-		container.SeccompPresets |= seccomp.PresetDenyTTY
+		params.SeccompPresets |= seccomp.PresetDenyTTY
 	}
 
 	if s.MapRealUID {
 		/* some programs fail to connect to dbus session running as a different uid
 		so this workaround is introduced to map priv-side caller uid in container */
-		container.Uid = os.Getuid()
-		*uid = container.Uid
-		container.Gid = os.Getgid()
-		*gid = container.Gid
+		params.Uid = os.Getuid()
+		*uid = params.Uid
+		params.Gid = os.Getgid()
+		*gid = params.Gid
 	} else {
-		*uid = hakurei.OverflowUid()
-		*gid = hakurei.OverflowGid()
+		*uid = container.OverflowUid()
+		*gid = container.OverflowGid()
 	}
 
-	container.
+	params.
 		Proc("/proc").
 		Tmpfs(hst.Tmp, 1<<12, 0755)
 
 	if !s.Device {
-		container.Dev("/dev").Mqueue("/dev/mqueue")
+		params.Dev("/dev").Mqueue("/dev/mqueue")
 	} else {
-		container.Bind("/dev", "/dev", hakurei.BindWritable|hakurei.BindDevice)
+		params.Bind("/dev", "/dev", container.BindWritable|container.BindDevice)
 	}
 
 	/* retrieve paths and hide them if they're made available in the sandbox;
@@ -154,29 +154,29 @@ func NewContainer(s *hst.ContainerConfig, os sys.State, uid, gid *int) (*hakurei
 
 		var flags int
 		if c.Write {
-			flags |= hakurei.BindWritable
+			flags |= container.BindWritable
 		}
 		if c.Device {
-			flags |= hakurei.BindDevice | hakurei.BindWritable
+			flags |= container.BindDevice | container.BindWritable
 		}
 		if !c.Must {
-			flags |= hakurei.BindOptional
+			flags |= container.BindOptional
 		}
-		container.Bind(c.Src, dest, flags)
+		params.Bind(c.Src, dest, flags)
 	}
 
 	// cover matched paths
 	for i, ok := range hidePathMatch {
 		if ok {
-			container.Tmpfs(hidePaths[i], 1<<13, 0755)
+			params.Tmpfs(hidePaths[i], 1<<13, 0755)
 		}
 	}
 
 	for _, l := range s.Link {
-		container.Link(l[0], l[1])
+		params.Link(l[0], l[1])
 	}
 
-	return container, maps.Clone(s.Env), nil
+	return params, maps.Clone(s.Env), nil
 }
 
 func evalSymlinks(os sys.State, v *string) error {

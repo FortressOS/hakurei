@@ -10,10 +10,10 @@ import (
 	"syscall"
 	"time"
 
-	"git.gensokyo.uk/security/hakurei"
+	"git.gensokyo.uk/security/hakurei/container"
+	"git.gensokyo.uk/security/hakurei/container/seccomp"
 	"git.gensokyo.uk/security/hakurei/internal"
 	"git.gensokyo.uk/security/hakurei/internal/hlog"
-	"git.gensokyo.uk/security/hakurei/seccomp"
 )
 
 /*
@@ -74,7 +74,7 @@ type shimParams struct {
 	Monitor int
 
 	// finalised container params
-	Container *hakurei.Params
+	Container *container.Params
 	// path to outer home directory
 	Home string
 
@@ -86,7 +86,7 @@ type shimParams struct {
 func ShimMain() {
 	hlog.Prepare("shim")
 
-	if err := hakurei.SetDumpable(hakurei.SUID_DUMP_DISABLE); err != nil {
+	if err := container.SetDumpable(container.SUID_DUMP_DISABLE); err != nil {
 		log.Fatalf("cannot set SUID_DUMP_DISABLE: %s", err)
 	}
 
@@ -94,11 +94,11 @@ func ShimMain() {
 		params     shimParams
 		closeSetup func() error
 	)
-	if f, err := hakurei.Receive(shimEnv, &params, nil); err != nil {
-		if errors.Is(err, hakurei.ErrInvalid) {
+	if f, err := container.Receive(shimEnv, &params, nil); err != nil {
+		if errors.Is(err, container.ErrInvalid) {
 			log.Fatal("invalid config descriptor")
 		}
-		if errors.Is(err, hakurei.ErrNotSet) {
+		if errors.Is(err, container.ErrNotSet) {
 			log.Fatal("HAKUREI_SHIM not set")
 		}
 
@@ -149,17 +149,17 @@ func ShimMain() {
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop() // unreachable
-	container := hakurei.New(ctx, name)
-	container.Params = *params.Container
-	container.Stdin, container.Stdout, container.Stderr = os.Stdin, os.Stdout, os.Stderr
-	container.Cancel = func(cmd *exec.Cmd) error { return cmd.Process.Signal(os.Interrupt) }
-	container.WaitDelay = 2 * time.Second
+	z := container.New(ctx, name)
+	z.Params = *params.Container
+	z.Stdin, z.Stdout, z.Stderr = os.Stdin, os.Stdout, os.Stderr
+	z.Cancel = func(cmd *exec.Cmd) error { return cmd.Process.Signal(os.Interrupt) }
+	z.WaitDelay = 2 * time.Second
 
-	if err := container.Start(); err != nil {
+	if err := z.Start(); err != nil {
 		hlog.PrintBaseError(err, "cannot start container:")
 		os.Exit(1)
 	}
-	if err := container.Serve(); err != nil {
+	if err := z.Serve(); err != nil {
 		hlog.PrintBaseError(err, "cannot configure container:")
 	}
 
@@ -170,7 +170,7 @@ func ShimMain() {
 		log.Fatalf("cannot load syscall filter: %v", err)
 	}
 
-	if err := container.Wait(); err != nil {
+	if err := z.Wait(); err != nil {
 		var exitError *exec.ExitError
 		if !errors.As(err, &exitError) {
 			if errors.Is(err, context.Canceled) {

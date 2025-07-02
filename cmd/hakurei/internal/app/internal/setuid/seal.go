@@ -16,9 +16,9 @@ import (
 	"sync/atomic"
 	"syscall"
 
-	"git.gensokyo.uk/security/hakurei"
 	. "git.gensokyo.uk/security/hakurei/cmd/hakurei/internal/app"
 	"git.gensokyo.uk/security/hakurei/cmd/hakurei/internal/app/instance/common"
+	"git.gensokyo.uk/security/hakurei/container"
 	"git.gensokyo.uk/security/hakurei/hst"
 	"git.gensokyo.uk/security/hakurei/internal"
 	"git.gensokyo.uk/security/hakurei/internal/hlog"
@@ -80,7 +80,7 @@ type outcome struct {
 	sys  *system.I
 	ctx  context.Context
 
-	container *hakurei.Params
+	container *container.Params
 	env       map[string]string
 	sync      *os.File
 
@@ -334,7 +334,7 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 		seal.sys.Ensure(runtimeDirInst, 0700)
 		seal.sys.UpdatePermType(system.User, runtimeDirInst, acl.Read, acl.Write, acl.Execute)
 		seal.container.Tmpfs("/run/user", 1<<12, 0755)
-		seal.container.Bind(runtimeDirInst, innerRuntimeDir, hakurei.BindWritable)
+		seal.container.Bind(runtimeDirInst, innerRuntimeDir, container.BindWritable)
 	}
 
 	{
@@ -345,7 +345,7 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 		seal.sys.Ensure(tmpdirInst, 01700)
 		seal.sys.UpdatePermType(system.User, tmpdirInst, acl.Read, acl.Write, acl.Execute)
 		// mount inner /tmp from share so it shares persistence and storage behaviour of host /tmp
-		seal.container.Bind(tmpdirInst, "/tmp", hakurei.BindWritable)
+		seal.container.Bind(tmpdirInst, "/tmp", container.BindWritable)
 	}
 
 	{
@@ -357,7 +357,7 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 		if seal.user.username != "" {
 			username = seal.user.username
 		}
-		seal.container.Bind(seal.user.data, homeDir, hakurei.BindWritable)
+		seal.container.Bind(seal.user.data, homeDir, container.BindWritable)
 		seal.container.Dir = homeDir
 		seal.env["HOME"] = homeDir
 		seal.env["USER"] = username

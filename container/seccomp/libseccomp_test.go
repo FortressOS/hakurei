@@ -8,7 +8,7 @@ import (
 	"syscall"
 	"testing"
 
-	. "git.gensokyo.uk/security/hakurei/seccomp"
+	. "git.gensokyo.uk/security/hakurei/container/seccomp"
 )
 
 func TestExport(t *testing.T) {

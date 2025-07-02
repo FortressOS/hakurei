@@ -1,4 +1,4 @@
-package hakurei
+package container
 
 var msg Msg = new(DefaultMsg)
 

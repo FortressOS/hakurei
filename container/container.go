@@ -1,5 +1,5 @@
-// Package hakurei implements unprivileged Linux containers with built-in support for syscall filtering.
-package hakurei
+// Package container implements unprivileged Linux containers with built-in support for syscall filtering.
+package container
 
 import (
 	"context"
@@ -14,7 +14,7 @@ import (
 	. "syscall"
 	"time"
 
-	"git.gensokyo.uk/security/hakurei/seccomp"
+	"git.gensokyo.uk/security/hakurei/container/seccomp"
 )
 
 type (

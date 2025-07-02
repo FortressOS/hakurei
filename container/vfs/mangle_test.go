@@ -3,7 +3,7 @@ package vfs_test
 import (
 	"testing"
 
-	"git.gensokyo.uk/security/hakurei/vfs"
+	"git.gensokyo.uk/security/hakurei/container/vfs"
 )
 
 func TestUnmangle(t *testing.T) {

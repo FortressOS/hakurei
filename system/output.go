@@ -1,14 +1,14 @@
 package system
 
 import (
-	"git.gensokyo.uk/security/hakurei"
+	"git.gensokyo.uk/security/hakurei/container"
 )
 
-var msg hakurei.Msg = new(hakurei.DefaultMsg)
+var msg container.Msg = new(container.DefaultMsg)
 
-func SetOutput(v hakurei.Msg) {
+func SetOutput(v container.Msg) {
 	if v == nil {
-		msg = new(hakurei.DefaultMsg)
+		msg = new(container.DefaultMsg)
 	} else {
 		msg = v
 	}

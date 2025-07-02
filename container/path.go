@@ -1,4 +1,4 @@
-package hakurei
+package container
 
 import (
 	"errors"
@@ -10,7 +10,7 @@ import (
 	"strings"
 	"syscall"
 
-	"git.gensokyo.uk/security/hakurei/vfs"
+	"git.gensokyo.uk/security/hakurei/container/vfs"
 )
 
 const (

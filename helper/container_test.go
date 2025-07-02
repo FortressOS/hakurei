@@ -7,7 +7,7 @@ import (
 	"os/exec"
 	"testing"
 
-	"git.gensokyo.uk/security/hakurei"
+	"git.gensokyo.uk/security/hakurei/container"
 	"git.gensokyo.uk/security/hakurei/helper"
 	"git.gensokyo.uk/security/hakurei/internal"
 	"git.gensokyo.uk/security/hakurei/internal/hlog"
@@ -34,15 +34,13 @@ func TestContainer(t *testing.T) {
 
 	t.Run("implementation compliance", func(t *testing.T) {
 		testHelper(t, func(ctx context.Context, setOutput func(stdoutP, stderrP *io.Writer), stat bool) helper.Helper {
-			return helper.New(ctx, os.Args[0], argsWt, stat, argF, func(container *hakurei.Container) {
-				setOutput(&container.Stdout, &container.Stderr)
-				container.CommandContext = func(ctx context.Context) (cmd *exec.Cmd) {
+			return helper.New(ctx, os.Args[0], argsWt, stat, argF, func(z *container.Container) {
+				setOutput(&z.Stdout, &z.Stderr)
+				z.CommandContext = func(ctx context.Context) (cmd *exec.Cmd) {
 					return exec.CommandContext(ctx, os.Args[0], "-test.v",
 						"-test.run=TestHelperInit", "--", "init")
 				}
-				container.Bind("/", "/", 0)
-				container.Proc("/proc")
-				container.Dev("/dev")
+				z.Bind("/", "/", 0).Proc("/proc").Dev("/dev")
 			}, nil)
 		})
 	})
@@ -52,6 +50,6 @@ func TestHelperInit(t *testing.T) {
 	if len(os.Args) != 5 || os.Args[4] != "init" {
 		return
 	}
-	hakurei.SetOutput(hlog.Output{})
-	hakurei.Init(hlog.Prepare, func(bool) { internal.InstallOutput(false) })
+	container.SetOutput(hlog.Output{})
+	container.Init(hlog.Prepare, func(bool) { internal.InstallOutput(false) })
 }

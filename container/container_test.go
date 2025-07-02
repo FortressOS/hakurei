@@ -1,4 +1,4 @@
-package hakurei_test
+package container_test
 
 import (
 	"bytes"
@@ -12,13 +12,13 @@ import (
 	"testing"
 	"time"
 
-	"git.gensokyo.uk/security/hakurei"
+	"git.gensokyo.uk/security/hakurei/container"
+	"git.gensokyo.uk/security/hakurei/container/seccomp"
+	"git.gensokyo.uk/security/hakurei/container/vfs"
 	"git.gensokyo.uk/security/hakurei/hst"
 	"git.gensokyo.uk/security/hakurei/internal"
 	"git.gensokyo.uk/security/hakurei/internal/hlog"
 	"git.gensokyo.uk/security/hakurei/ldd"
-	"git.gensokyo.uk/security/hakurei/seccomp"
-	"git.gensokyo.uk/security/hakurei/vfs"
 )
 
 const (
@@ -29,10 +29,10 @@ const (
 func TestContainer(t *testing.T) {
 	{
 		oldVerbose := hlog.Load()
-		oldOutput := hakurei.GetOutput()
+		oldOutput := container.GetOutput()
 		internal.InstallOutput(true)
 		t.Cleanup(func() { hlog.Store(oldVerbose) })
-		t.Cleanup(func() { hakurei.SetOutput(oldOutput) })
+		t.Cleanup(func() { container.SetOutput(oldOutput) })
 	}
 
 	testCases := []struct {
@@ -40,7 +40,7 @@ func TestContainer(t *testing.T) {
 		filter  bool
 		session bool
 		net     bool
-		ops     *hakurei.Ops
+		ops     *container.Ops
 		mnt     []*vfs.MountInfoEntry
 		host    string
 		rules   []seccomp.NativeRule
@@ -48,28 +48,28 @@ func TestContainer(t *testing.T) {
 		presets seccomp.FilterPreset
 	}{
 		{"minimal", true, false, false,
-			new(hakurei.Ops), nil, "test-minimal",
+			new(container.Ops), nil, "test-minimal",
 			nil, 0, seccomp.PresetStrict},
 		{"allow", true, true, true,
-			new(hakurei.Ops), nil, "test-minimal",
+			new(container.Ops), nil, "test-minimal",
 			nil, 0, seccomp.PresetExt | seccomp.PresetDenyDevel},
 		{"no filter", false, true, true,
-			new(hakurei.Ops), nil, "test-no-filter",
+			new(container.Ops), nil, "test-no-filter",
 			nil, 0, seccomp.PresetExt},
 		{"custom rules", true, true, true,
-			new(hakurei.Ops), nil, "test-no-filter",
+			new(container.Ops), nil, "test-no-filter",
 			[]seccomp.NativeRule{
 				{seccomp.ScmpSyscall(syscall.SYS_SETUID), seccomp.ScmpErrno(syscall.EPERM), nil},
 			}, 0, seccomp.PresetExt},
 		{"tmpfs", true, false, false,
-			new(hakurei.Ops).
+			new(container.Ops).
 				Tmpfs(hst.Tmp, 0, 0755),
 			[]*vfs.MountInfoEntry{
 				e("/", hst.Tmp, "rw,nosuid,nodev,relatime", "tmpfs", "tmpfs", ignore),
 			}, "test-tmpfs",
 			nil, 0, seccomp.PresetStrict},
 		{"dev", true, true /* go test output is not a tty */, false,
-			new(hakurei.Ops).
+			new(container.Ops).
 				Dev("/dev").
 				Mqueue("/dev/mqueue"),
 			[]*vfs.MountInfoEntry{
@@ -91,34 +91,34 @@ func TestContainer(t *testing.T) {
 			ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 			defer cancel()
 
-			container := hakurei.New(ctx, "/usr/bin/sandbox.test", "-test.v",
+			c := container.New(ctx, "/usr/bin/sandbox.test", "-test.v",
 				"-test.run=TestHelperCheckContainer", "--", "check", tc.host)
-			container.Uid = 1000
-			container.Gid = 100
-			container.Hostname = tc.host
-			container.CommandContext = commandContext
-			container.Stdout, container.Stderr = os.Stdout, os.Stderr
-			container.Ops = tc.ops
-			container.SeccompRules = tc.rules
-			container.SeccompFlags = tc.flags | seccomp.AllowMultiarch
-			container.SeccompPresets = tc.presets
-			container.SeccompDisable = !tc.filter
-			container.RetainSession = tc.session
-			container.HostNet = tc.net
-			if container.Args[5] == "" {
+			c.Uid = 1000
+			c.Gid = 100
+			c.Hostname = tc.host
+			c.CommandContext = commandContext
+			c.Stdout, c.Stderr = os.Stdout, os.Stderr
+			c.Ops = tc.ops
+			c.SeccompRules = tc.rules
+			c.SeccompFlags = tc.flags | seccomp.AllowMultiarch
+			c.SeccompPresets = tc.presets
+			c.SeccompDisable = !tc.filter
+			c.RetainSession = tc.session
+			c.HostNet = tc.net
+			if c.Args[5] == "" {
 				if name, err := os.Hostname(); err != nil {
 					t.Fatalf("cannot get hostname: %v", err)
 				} else {
-					container.Args[5] = name
+					c.Args[5] = name
 				}
 			}
 
-			container.
+			c.
 				Tmpfs("/tmp", 0, 0755).
 				Bind(os.Args[0], os.Args[0], 0).
 				Mkdir("/usr/bin", 0755).
 				Link(os.Args[0], "/usr/bin/sandbox.test").
-				Place("/etc/hostname", []byte(container.Args[5]))
+				Place("/etc/hostname", []byte(c.Args[5]))
 			// in case test has cgo enabled
 			var libPaths []string
 			if entries, err := ldd.ExecFilter(ctx,
@@ -131,10 +131,10 @@ func TestContainer(t *testing.T) {
 				libPaths = ldd.Path(entries)
 			}
 			for _, name := range libPaths {
-				container.Bind(name, name, 0)
+				c.Bind(name, name, 0)
 			}
 			// needs /proc to check mountinfo
-			container.Proc("/proc")
+			c.Proc("/proc")
 
 			mnt := make([]*vfs.MountInfoEntry, 0, 3+len(libPaths))
 			mnt = append(mnt, e("/sysroot", "/", "rw,nosuid,nodev,relatime", "tmpfs", "rootfs", ignore))
@@ -152,16 +152,16 @@ func TestContainer(t *testing.T) {
 			if err := gob.NewEncoder(want).Encode(mnt); err != nil {
 				t.Fatalf("cannot serialise expected mount points: %v", err)
 			}
-			container.Stdin = want
+			c.Stdin = want
 
-			if err := container.Start(); err != nil {
+			if err := c.Start(); err != nil {
 				hlog.PrintBaseError(err, "start:")
 				t.Fatalf("cannot start container: %v", err)
-			} else if err = container.Serve(); err != nil {
+			} else if err = c.Serve(); err != nil {
 				hlog.PrintBaseError(err, "serve:")
 				t.Errorf("cannot serve setup params: %v", err)
 			}
-			if err := container.Wait(); err != nil {
+			if err := c.Wait(); err != nil {
 				hlog.PrintBaseError(err, "wait:")
 				t.Fatalf("wait: %v", err)
 			}
@@ -185,14 +185,14 @@ func e(root, target, vfsOptstr, fsType, source, fsOptstr string) *vfs.MountInfoE
 }
 
 func TestContainerString(t *testing.T) {
-	container := hakurei.New(t.Context(), "ldd", "/usr/bin/env")
-	container.SeccompFlags |= seccomp.AllowMultiarch
-	container.SeccompRules = seccomp.Preset(
+	c := container.New(t.Context(), "ldd", "/usr/bin/env")
+	c.SeccompFlags |= seccomp.AllowMultiarch
+	c.SeccompRules = seccomp.Preset(
 		seccomp.PresetExt|seccomp.PresetDenyNS|seccomp.PresetDenyTTY,
-		container.SeccompFlags)
-	container.SeccompPresets = seccomp.PresetStrict
+		c.SeccompFlags)
+	c.SeccompPresets = seccomp.PresetStrict
 	want := `argv: ["ldd" "/usr/bin/env"], filter: true, rules: 65, flags: 0x1, presets: 0xf`
-	if got := container.String(); got != want {
+	if got := c.String(); got != want {
 		t.Errorf("String: %s, want %s", got, want)
 	}
 }
@@ -201,8 +201,8 @@ func TestHelperInit(t *testing.T) {
 	if len(os.Args) != 5 || os.Args[4] != "init" {
 		return
 	}
-	hakurei.SetOutput(hlog.Output{})
-	hakurei.Init(hlog.Prepare, internal.InstallOutput)
+	container.SetOutput(hlog.Output{})
+	container.Init(hlog.Prepare, internal.InstallOutput)
 }
 
 func TestHelperCheckContainer(t *testing.T) {

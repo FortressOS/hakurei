@@ -9,7 +9,7 @@ import (
 	"slices"
 	"sync"
 
-	"git.gensokyo.uk/security/hakurei"
+	"git.gensokyo.uk/security/hakurei/container"
 	"git.gensokyo.uk/security/hakurei/helper/proc"
 )
 
@@ -20,13 +20,13 @@ func New(
 	wt io.WriterTo,
 	stat bool,
 	argF func(argsFd, statFd int) []string,
-	cmdF func(container *hakurei.Container),
+	cmdF func(z *container.Container),
 	extraFiles []*os.File,
 ) Helper {
 	var args []string
 	h := new(helperContainer)
 	h.helperFiles, args = newHelperFiles(ctx, wt, stat, argF, extraFiles)
-	h.Container = hakurei.New(ctx, name, args...)
+	h.Container = container.New(ctx, name, args...)
 	h.WaitDelay = WaitDelay
 	if cmdF != nil {
 		cmdF(h.Container)
@@ -40,7 +40,7 @@ type helperContainer struct {
 
 	mu sync.Mutex
 	*helperFiles
-	*hakurei.Container
+	*container.Container
 }
 
 func (h *helperContainer) Start() error {

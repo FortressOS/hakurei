@@ -11,10 +11,10 @@ import (
 	"strconv"
 	"syscall"
 
-	"git.gensokyo.uk/security/hakurei"
+	"git.gensokyo.uk/security/hakurei/container"
+	"git.gensokyo.uk/security/hakurei/container/seccomp"
 	"git.gensokyo.uk/security/hakurei/helper"
 	"git.gensokyo.uk/security/hakurei/ldd"
-	"git.gensokyo.uk/security/hakurei/seccomp"
 )
 
 // Start starts and configures a D-Bus proxy process.
@@ -65,22 +65,22 @@ func (p *Proxy) Start() error {
 		p.helper = helper.New(
 			ctx, toolPath,
 			p.final, true,
-			argF, func(container *hakurei.Container) {
-				container.SeccompFlags |= seccomp.AllowMultiarch
-				container.SeccompPresets |= seccomp.PresetStrict
-				container.Hostname = "hakurei-dbus"
-				container.CommandContext = p.CommandContext
+			argF, func(z *container.Container) {
+				z.SeccompFlags |= seccomp.AllowMultiarch
+				z.SeccompPresets |= seccomp.PresetStrict
+				z.Hostname = "hakurei-dbus"
+				z.CommandContext = p.CommandContext
 				if p.output != nil {
-					container.Stdout, container.Stderr = p.output, p.output
+					z.Stdout, z.Stderr = p.output, p.output
 				}
 
 				if p.CmdF != nil {
-					p.CmdF(container)
+					p.CmdF(z)
 				}
 
 				// these lib paths are unpredictable, so mount them first so they cannot cover anything
 				for _, name := range libPaths {
-					container.Bind(name, name, 0)
+					z.Bind(name, name, 0)
 				}
 
 				// upstream bus directories
@@ -101,7 +101,7 @@ func (p *Proxy) Start() error {
 				slices.Sort(upstreamPaths)
 				upstreamPaths = slices.Compact(upstreamPaths)
 				for _, name := range upstreamPaths {
-					container.Bind(name, name, 0)
+					z.Bind(name, name, 0)
 				}
 
 				// parent directories of bind paths
@@ -115,12 +115,12 @@ func (p *Proxy) Start() error {
 				slices.Sort(sockDirPaths)
 				sockDirPaths = slices.Compact(sockDirPaths)
 				for _, name := range sockDirPaths {
-					container.Bind(name, name, hakurei.BindWritable)
+					z.Bind(name, name, container.BindWritable)
 				}
 
 				// xdg-dbus-proxy bin path
 				binPath := path.Dir(toolPath)
-				container.Bind(binPath, binPath, 0)
+				z.Bind(binPath, binPath, 0)
 			}, nil)
 	}
 

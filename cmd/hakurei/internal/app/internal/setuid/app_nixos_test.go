@@ -1,10 +1,10 @@
 package setuid_test
 
 import (
-	"git.gensokyo.uk/security/hakurei"
 	"git.gensokyo.uk/security/hakurei/cmd/hakurei/internal/app"
+	"git.gensokyo.uk/security/hakurei/container"
+	"git.gensokyo.uk/security/hakurei/container/seccomp"
 	"git.gensokyo.uk/security/hakurei/hst"
-	"git.gensokyo.uk/security/hakurei/seccomp"
 	"git.gensokyo.uk/security/hakurei/system"
 	"git.gensokyo.uk/security/hakurei/system/acl"
 	"git.gensokyo.uk/security/hakurei/system/dbus"
@@ -94,7 +94,7 @@ var testCasesNixos = []sealTestCase{
 			}).
 			UpdatePerm("/tmp/hakurei.1971/8e2c76b066dabe574cf073bdb46eb5c1/bus", acl.Read, acl.Write).
 			UpdatePerm("/tmp/hakurei.1971/8e2c76b066dabe574cf073bdb46eb5c1/system_bus_socket", acl.Read, acl.Write),
-		&hakurei.Params{
+		&container.Params{
 			Uid:  1971,
 			Gid:  100,
 			Dir:  "/var/lib/persist/module/hakurei/0/1",
@@ -114,7 +114,7 @@ var testCasesNixos = []sealTestCase{
 				"XDG_SESSION_CLASS=user",
 				"XDG_SESSION_TYPE=tty",
 			},
-			Ops: new(hakurei.Ops).
+			Ops: new(container.Ops).
 				Proc("/proc").
 				Tmpfs(hst.Tmp, 4096, 0755).
 				Dev("/dev").Mqueue("/dev/mqueue").
@@ -122,18 +122,18 @@ var testCasesNixos = []sealTestCase{
 				Bind("/usr/bin", "/usr/bin", 0).
 				Bind("/nix/store", "/nix/store", 0).
 				Bind("/run/current-system", "/run/current-system", 0).
-				Bind("/sys/block", "/sys/block", hakurei.BindOptional).
-				Bind("/sys/bus", "/sys/bus", hakurei.BindOptional).
-				Bind("/sys/class", "/sys/class", hakurei.BindOptional).
-				Bind("/sys/dev", "/sys/dev", hakurei.BindOptional).
-				Bind("/sys/devices", "/sys/devices", hakurei.BindOptional).
+				Bind("/sys/block", "/sys/block", container.BindOptional).
+				Bind("/sys/bus", "/sys/bus", container.BindOptional).
+				Bind("/sys/class", "/sys/class", container.BindOptional).
+				Bind("/sys/dev", "/sys/dev", container.BindOptional).
+				Bind("/sys/devices", "/sys/devices", container.BindOptional).
 				Bind("/run/opengl-driver", "/run/opengl-driver", 0).
-				Bind("/dev/dri", "/dev/dri", hakurei.BindDevice|hakurei.BindWritable|hakurei.BindOptional).
+				Bind("/dev/dri", "/dev/dri", container.BindDevice|container.BindWritable|container.BindOptional).
 				Etc("/etc", "8e2c76b066dabe574cf073bdb46eb5c1").
 				Tmpfs("/run/user", 4096, 0755).
-				Bind("/tmp/hakurei.1971/runtime/1", "/run/user/1971", hakurei.BindWritable).
-				Bind("/tmp/hakurei.1971/tmpdir/1", "/tmp", hakurei.BindWritable).
-				Bind("/var/lib/persist/module/hakurei/0/1", "/var/lib/persist/module/hakurei/0/1", hakurei.BindWritable).
+				Bind("/tmp/hakurei.1971/runtime/1", "/run/user/1971", container.BindWritable).
+				Bind("/tmp/hakurei.1971/tmpdir/1", "/tmp", container.BindWritable).
+				Bind("/var/lib/persist/module/hakurei/0/1", "/var/lib/persist/module/hakurei/0/1", container.BindWritable).
 				Place("/etc/passwd", []byte("u0_a1:x:1971:100:Hakurei:/var/lib/persist/module/hakurei/0/1:/run/current-system/sw/bin/zsh\n")).
 				Place("/etc/group", []byte("hakurei:x:100:\n")).
 				Bind("/run/user/1971/wayland-0", "/run/user/1971/wayland-0", 0).

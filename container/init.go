@@ -1,4 +1,4 @@
-package hakurei
+package container
 
 import (
 	"errors"
@@ -13,7 +13,7 @@ import (
 	. "syscall"
 	"time"
 
-	"git.gensokyo.uk/security/hakurei/seccomp"
+	"git.gensokyo.uk/security/hakurei/container/seccomp"
 )
 
 const (

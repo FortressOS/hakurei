@@ -1,4 +1,4 @@
-package hakurei
+package container
 
 import (
 	"encoding/gob"
