@@ -20,8 +20,21 @@ const (
 	// time to wait for linger processes after death of initial process
 	residualProcessTimeout = 5 * time.Second
 
-	// intermediate tmpfs mount point
-	basePath = "/tmp"
+	/* intermediate tmpfs mount point
+
+	this path might seem like a weird choice, however there are many good reasons to use it:
+	- the contents of this path is never exposed to the container:
+	  the tmpfs root established here effectively becomes anonymous after pivot_root
+	- it is safe to assume this path exists and is a directory:
+	  this program will not work correctly without a proper /proc and neither will most others
+	- this path belongs to the container init:
+	  the container init is not any more privileged or trusted than the rest of the container
+	- this path is only accessible by init and root:
+	  the container init sets SUID_DUMP_DISABLE and terminates if that fails;
+
+	it should be noted that none of this should become relevant at any point since the resulting
+	intermediate root tmpfs should be effectively anonymous */
+	intermediateHostPath = "/proc/self/fd"
 
 	// setup params file descriptor
 	setupEnv = "HAKUREI_SETUP"
@@ -124,10 +137,10 @@ func Init(prepare func(prefix string), setVerbose func(verbose bool)) {
 		}
 	}
 
-	if err := Mount("rootfs", basePath, "tmpfs", MS_NODEV|MS_NOSUID, ""); err != nil {
+	if err := Mount("rootfs", intermediateHostPath, "tmpfs", MS_NODEV|MS_NOSUID, ""); err != nil {
 		log.Fatalf("cannot mount intermediate root: %v", err)
 	}
-	if err := os.Chdir(basePath); err != nil {
+	if err := os.Chdir(intermediateHostPath); err != nil {
 		log.Fatalf("cannot enter base path: %v", err)
 	}
 
@@ -141,8 +154,8 @@ func Init(prepare func(prefix string), setVerbose func(verbose bool)) {
 	if err := os.Mkdir(hostDir, 0755); err != nil {
 		log.Fatalf("%v", err)
 	}
-	// pivot_root uncovers basePath in hostDir
-	if err := PivotRoot(basePath, hostDir); err != nil {
+	// pivot_root uncovers intermediateHostPath in hostDir
+	if err := PivotRoot(intermediateHostPath, hostDir); err != nil {
 		log.Fatalf("cannot pivot into intermediate root: %v", err)
 	}
 	if err := os.Chdir("/"); err != nil {
