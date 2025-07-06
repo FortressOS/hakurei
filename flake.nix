@@ -185,17 +185,23 @@
               '';
             };
 
-          generateSyscallTable = pkgs.mkShell {
-            # this should be made cross-platform via nix
-            shellHook = "exec ${pkgs.writeShellScript "generate-syscall-table" ''
-              set -e
-              ${pkgs.perl}/bin/perl \
-                sandbox/seccomp/mksysnum_linux.pl \
-                ${pkgs.linuxHeaders}/include/asm/unistd_64.h | \
-                ${pkgs.go}/bin/gofmt > \
-                sandbox/seccomp/syscall_linux_amd64.go
-            ''}";
-          };
+          generateSyscallTable =
+            let
+              GOARCH = {
+                x86_64-linux = "amd64";
+                aarch64-linux = "arm64";
+              };
+            in
+            pkgs.mkShell {
+              shellHook = "exec ${pkgs.writeShellScript "generate-syscall-table" ''
+                set -e
+                ${pkgs.perl}/bin/perl \
+                  container/seccomp/mksysnum_linux.pl \
+                  ${pkgs.linuxHeaders}/include/asm/unistd_64.h | \
+                  ${pkgs.go}/bin/gofmt > \
+                  container/seccomp/syscall_linux_${GOARCH.${system}}.go
+              ''}";
+            };
         }
       );
     };
