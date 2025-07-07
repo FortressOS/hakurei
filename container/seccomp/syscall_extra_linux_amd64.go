@@ -4,14 +4,8 @@ package seccomp
 #cgo linux pkg-config: --static libseccomp
 
 #include <seccomp.h>
-#include <sys/personality.h>
 */
 import "C"
-
-const (
-	PER_LINUX   = C.PER_LINUX
-	PER_LINUX32 = C.PER_LINUX32
-)
 
 var syscallNumExtra = map[string]int{
 	"umount":          SYS_UMOUNT,
