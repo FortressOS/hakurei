@@ -1,3 +1,5 @@
+//go:build testtool
+
 package sandbox_test
 
 import (

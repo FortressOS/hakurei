@@ -17,6 +17,8 @@ buildGoModule rec {
   };
   vendorHash = null;
 
+  tags = [ "testtool" ];
+
   buildInputs = [ util-linux ];
   nativeBuildInputs = [ pkg-config ];
 

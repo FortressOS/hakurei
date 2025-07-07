@@ -1,3 +1,5 @@
+//go:build testtool
+
 /*
 Package sandbox provides utilities for checking sandbox outcome.
 
