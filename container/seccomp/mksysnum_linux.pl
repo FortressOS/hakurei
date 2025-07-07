@@ -4,8 +4,14 @@
 # license that can be found in the LICENSE file.
 
 use strict;
+use POSIX ();
 
 my $command = "mksysnum_linux.pl ". join(' ', @ARGV);
+my $uname_arch = (POSIX::uname)[4];
+my %syscall_cutoff_arch = (
+	"x86_64" => 302,
+	"aarch64" => 281,
+);
 
 print <<EOF;
 // $command
@@ -30,7 +36,7 @@ sub fmt {
 	}
 	(my $name_upper = $name) =~ y/a-z/A-Z/;
 	$num = $num + $offset;
-	if($num > 302){ # not wired in Go standard library
+	if($num > $syscall_cutoff_arch{$uname_arch}){ # not wired in Go standard library
 		if($state < 0){
 			print "	\"$name\": SYS_$name_upper,\n";
 		}
