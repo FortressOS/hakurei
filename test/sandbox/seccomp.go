@@ -18,7 +18,6 @@ func trySyscalls() error {
 		trap, a1, a2, a3, a4, a5, a6 uintptr
 	}{
 		{"syslog", syscall.EPERM, syscall.SYS_SYSLOG, 0, NULL, NULL, NULL, NULL, NULL},
-		{"uselib", syscall.EPERM, syscall.SYS_USELIB, 0, NULL, NULL, NULL, NULL, NULL},
 		{"acct", syscall.EPERM, syscall.SYS_ACCT, 0, NULL, NULL, NULL, NULL, NULL},
 		{"quotactl", syscall.EPERM, syscall.SYS_QUOTACTL, C.Q_GETQUOTA, NULL, uintptr(os.Getuid()), NULL, NULL, NULL},
 		{"add_key", syscall.EPERM, syscall.SYS_ADD_KEY, NULL, NULL, NULL, NULL, NULL, NULL},
