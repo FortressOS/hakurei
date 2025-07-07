@@ -211,7 +211,7 @@ func Init(prepare func(prefix string), setVerbose func(verbose bool)) {
 		}
 	}
 
-	if _, _, errno := Syscall(PR_SET_NO_NEW_PRIVS, 1, 0, 0); errno != 0 {
+	if _, _, errno := Syscall(SYS_PRCTL, PR_SET_NO_NEW_PRIVS, 1, 0); errno != 0 {
 		log.Fatalf("prctl(PR_SET_NO_NEW_PRIVS): %v", errno)
 	}
 
