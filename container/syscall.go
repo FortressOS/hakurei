@@ -6,10 +6,6 @@ import (
 )
 
 const (
-	O_PATH = 0x200000
-
-	PR_SET_NO_NEW_PRIVS = 0x26
-
 	CAP_SYS_ADMIN = 0x15
 	CAP_SETPCAP   = 0x8
 )
