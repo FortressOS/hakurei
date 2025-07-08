@@ -2,7 +2,22 @@
   fs,
   ent,
   ignore,
+  system,
 }:
+let
+  extraPaths = {
+    x86_64-linux = {
+      fd = "fd0";
+      sr = {
+        sr0 = fs "80001ff" null null;
+      };
+    };
+    aarch64-linux = {
+      fd = "mtdblock0";
+      sr = { };
+    };
+  };
+in
 {
   name = "device";
   tty = false;
@@ -14,6 +29,7 @@
   # 0, PresetStrict
   expectedFilter = {
     x86_64-linux = "e880298df2bd6751d0040fc21bc0ed4c00f95dc0d7ba506c244d8b8cf6866dba8ef4a33296f287b66cccc1d78e97026597f84cc7dec1573e148960fbd35cd735";
+    aarch64-linux = "79318538a3dc851314b6bd96f10d5861acb2aa7e13cb8de0619d0f6a76709d67f01ef3fd67e195862b02f9711e5b769bc4d1eb4fc0dfc41a723c89c968a93297";
   };
 
   want = {
@@ -119,19 +135,21 @@
         } null;
       } null;
       sys = fs "800001c0" {
-        block = fs "800001ed" {
-          fd0 = fs "80001ff" null null;
-          loop0 = fs "80001ff" null null;
-          loop1 = fs "80001ff" null null;
-          loop2 = fs "80001ff" null null;
-          loop3 = fs "80001ff" null null;
-          loop4 = fs "80001ff" null null;
-          loop5 = fs "80001ff" null null;
-          loop6 = fs "80001ff" null null;
-          loop7 = fs "80001ff" null null;
-          sr0 = fs "80001ff" null null;
-          vda = fs "80001ff" null null;
-        } null;
+        block = fs "800001ed" (
+          {
+            ${extraPaths.${system}.fd} = fs "80001ff" null null;
+            loop0 = fs "80001ff" null null;
+            loop1 = fs "80001ff" null null;
+            loop2 = fs "80001ff" null null;
+            loop3 = fs "80001ff" null null;
+            loop4 = fs "80001ff" null null;
+            loop5 = fs "80001ff" null null;
+            loop6 = fs "80001ff" null null;
+            loop7 = fs "80001ff" null null;
+            vda = fs "80001ff" null null;
+          }
+          // extraPaths.${system}.sr
+        ) null;
         bus = fs "800001ed" null null;
         class = fs "800001ed" null null;
         dev = fs "800001ed" {

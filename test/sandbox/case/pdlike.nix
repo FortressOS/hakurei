@@ -2,7 +2,31 @@
   fs,
   ent,
   ignore,
+  system,
 }:
+let
+  extraPaths = {
+    x86_64-linux = {
+      fd = "fd0";
+      "/dev/dri" = {
+        by-path = fs "800001ed" {
+          "pci-0000:00:09.0-card" = fs "80001ff" null null;
+          "pci-0000:00:09.0-render" = fs "80001ff" null null;
+        } null;
+        card0 = fs "42001b0" null null;
+        renderD128 = fs "42001b6" null null;
+      };
+      sr = {
+        sr0 = fs "80001ff" null null;
+      };
+    };
+    aarch64-linux = {
+      fd = "mtdblock0";
+      "/dev/dri" = null;
+      sr = { };
+    };
+  };
+in
 {
   name = "pdlike";
   tty = true;
@@ -14,6 +38,7 @@
   # 0, PresetExt | PresetDenyDevel
   expectedFilter = {
     x86_64-linux = "c698b081ff957afe17a6d94374537d37f2a63f6f9dd75da7546542407a9e32476ebda3312ba7785d7f618542bcfaf27ca27dcc2dddba852069d28bcfe8cad39a";
+    aarch64-linux = "433ce9b911282d6dcc8029319fb79b816b60d5a795ec8fc94344dd027614d68f023166a91bb881faaeeedd26e3d89474e141e5a69a97e93b8984ca8f14999980";
   };
 
   want = {
@@ -36,14 +61,7 @@
       dev = fs "800001ed" {
         console = fs "4200190" null null;
         core = fs "80001ff" null null;
-        dri = fs "800001ed" {
-          by-path = fs "800001ed" {
-            "pci-0000:00:09.0-card" = fs "80001ff" null null;
-            "pci-0000:00:09.0-render" = fs "80001ff" null null;
-          } null;
-          card0 = fs "42001b0" null null;
-          renderD128 = fs "42001b6" null null;
-        } null;
+        dri = fs "800001ed" extraPaths.${system}."/dev/dri" null;
         fd = fs "80001ff" null null;
         full = fs "42001b6" null null;
         mqueue = fs "801001ff" { } null;
@@ -144,19 +162,21 @@
         } null;
       } null;
       sys = fs "800001c0" {
-        block = fs "800001ed" {
-          fd0 = fs "80001ff" null null;
-          loop0 = fs "80001ff" null null;
-          loop1 = fs "80001ff" null null;
-          loop2 = fs "80001ff" null null;
-          loop3 = fs "80001ff" null null;
-          loop4 = fs "80001ff" null null;
-          loop5 = fs "80001ff" null null;
-          loop6 = fs "80001ff" null null;
-          loop7 = fs "80001ff" null null;
-          sr0 = fs "80001ff" null null;
-          vda = fs "80001ff" null null;
-        } null;
+        block = fs "800001ed" (
+          {
+            ${extraPaths.${system}.fd} = fs "80001ff" null null;
+            loop0 = fs "80001ff" null null;
+            loop1 = fs "80001ff" null null;
+            loop2 = fs "80001ff" null null;
+            loop3 = fs "80001ff" null null;
+            loop4 = fs "80001ff" null null;
+            loop5 = fs "80001ff" null null;
+            loop6 = fs "80001ff" null null;
+            loop7 = fs "80001ff" null null;
+            vda = fs "80001ff" null null;
+          }
+          // extraPaths.${system}.sr
+        ) null;
         bus = fs "800001ed" null null;
         class = fs "800001ed" null null;
         dev = fs "800001ed" {
