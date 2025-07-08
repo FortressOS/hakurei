@@ -19,4 +19,6 @@ var bpfExpected = bpfLookup{
 		"39871b93ffafc8b979fcedc0b0c37b9e03922f5b02748dc5c3c17c92527f6e022ede1f48bff59246ea452c0d1de54827808b1a6f84f32bbde1aa02ae30eedcfa"),
 	{0, PresetExt | PresetDenyDevel}: toHash(
 		"c698b081ff957afe17a6d94374537d37f2a63f6f9dd75da7546542407a9e32476ebda3312ba7785d7f618542bcfaf27ca27dcc2dddba852069d28bcfe8cad39a"),
+	{0, PresetExt | PresetDenyNS | PresetDenyDevel}: toHash(
+		"0b76007476c1c9e25dbf674c29fdf609a1656a70063e49327654e1b5360ad3da06e1a3e32bf80e961c5516ad83d4b9e7e9bde876a93797e27627d2555c25858b"),
 }

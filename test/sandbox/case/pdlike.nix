@@ -4,26 +4,26 @@
   ignore,
 }:
 {
-  name = "tty";
+  name = "pdlike";
   tty = true;
   device = false;
   mapRealUid = false;
-  useCommonPaths = true;
-  userns = false;
+  useCommonPaths = false;
+  userns = true;
 
-  # 0, PresetExt | PresetDenyNS | PresetDenyDevel
+  # 0, PresetExt | PresetDenyDevel
   expectedFilter = {
-    x86_64-linux = "0b76007476c1c9e25dbf674c29fdf609a1656a70063e49327654e1b5360ad3da06e1a3e32bf80e961c5516ad83d4b9e7e9bde876a93797e27627d2555c25858b";
+    x86_64-linux = "c698b081ff957afe17a6d94374537d37f2a63f6f9dd75da7546542407a9e32476ebda3312ba7785d7f618542bcfaf27ca27dcc2dddba852069d28bcfe8cad39a";
   };
 
   want = {
     env = [
       "DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/65534/bus"
-      "HOME=/var/lib/hakurei/u0/a2"
+      "HOME=/var/lib/hakurei/u0/a5"
       "PULSE_SERVER=unix:/run/user/65534/pulse/native"
       "SHELL=/run/current-system/sw/bin/bash"
       "TERM=linux"
-      "USER=u0_a2"
+      "USER=u0_a5"
       "WAYLAND_DISPLAY=wayland-0"
       "XDG_RUNTIME_DIR=/run/user/65534"
       "XDG_SESSION_CLASS=user"
@@ -101,7 +101,7 @@
         "os-release" = fs "80001ff" null null;
         "pam" = fs "80001ff" null null;
         "pam.d" = fs "80001ff" null null;
-        "passwd" = fs "180" null "u0_a2:x:65534:65534:Hakurei:/var/lib/hakurei/u0/a2:/run/current-system/sw/bin/bash\n";
+        "passwd" = fs "180" null "u0_a5:x:65534:65534:Hakurei:/var/lib/hakurei/u0/a5:/run/current-system/sw/bin/bash\n";
         "pipewire" = fs "80001ff" null null;
         "pki" = fs "80001ff" null null;
         "polkit-1" = fs "80001ff" null null;
@@ -171,7 +171,7 @@
         lib = fs "800001c0" {
           hakurei = fs "800001c0" {
             u0 = fs "800001c0" {
-              a2 = fs "800001c0" {
+              a5 = fs "800001c0" {
                 ".cache" = fs "800001ed" { ".keep" = fs "80001ff" null ""; } null;
                 ".config" = fs "800001ed" {
                   "environment.d" = fs "800001ed" { "10-home-manager.conf" = fs "80001ff" null null; } null;
@@ -210,15 +210,14 @@
           } null;
         } null;
         run = fs "800001ed" { nscd = fs "800001ed" { } null; } null;
-        cache = fs "800001ed" { private = fs "800001c0" null null; } null;
       } null;
     } null;
 
     mount = [
-      (ent "/sysroot" "/" "rw,nosuid,nodev,relatime" "tmpfs" "rootfs" "rw,uid=1000002,gid=1000002")
+      (ent "/sysroot" "/" "rw,nosuid,nodev,relatime" "tmpfs" "rootfs" "rw,uid=1000005,gid=1000005")
       (ent "/" "/proc" "rw,nosuid,nodev,noexec,relatime" "proc" "proc" "rw")
-      (ent "/" "/.hakurei" "rw,nosuid,nodev,relatime" "tmpfs" "tmpfs" "rw,size=4k,mode=755,uid=1000002,gid=1000002")
-      (ent "/" "/dev" "rw,nosuid,nodev,relatime" "tmpfs" "devtmpfs" "rw,mode=755,uid=1000002,gid=1000002")
+      (ent "/" "/.hakurei" "rw,nosuid,nodev,relatime" "tmpfs" "tmpfs" "rw,size=4k,mode=755,uid=1000005,gid=1000005")
+      (ent "/" "/dev" "rw,nosuid,nodev,relatime" "tmpfs" "devtmpfs" "rw,mode=755,uid=1000005,gid=1000005")
       (ent "/null" "/dev/null" "rw,nosuid" "devtmpfs" "devtmpfs" ignore)
       (ent "/zero" "/dev/zero" "rw,nosuid" "devtmpfs" "devtmpfs" ignore)
       (ent "/full" "/dev/full" "rw,nosuid" "devtmpfs" "devtmpfs" ignore)
@@ -237,18 +236,17 @@
       (ent "/dev" "/sys/dev" "ro,nosuid,nodev,noexec,relatime" "sysfs" "sysfs" "rw")
       (ent "/devices" "/sys/devices" "ro,nosuid,nodev,noexec,relatime" "sysfs" "sysfs" "rw")
       (ent "/dri" "/dev/dri" "rw,nosuid" "devtmpfs" "devtmpfs" ignore)
-      (ent "/var/cache" "/var/cache" "rw,nosuid,nodev,relatime" "ext4" "/dev/disk/by-label/nixos" "rw")
       (ent "/etc" ignore "ro,nosuid,nodev,relatime" "ext4" "/dev/disk/by-label/nixos" "rw")
-      (ent "/" "/run/user" "rw,nosuid,nodev,relatime" "tmpfs" "tmpfs" "rw,size=4k,mode=755,uid=1000002,gid=1000002")
-      (ent "/tmp/hakurei.1000/runtime/2" "/run/user/65534" "rw,nosuid,nodev,relatime" "ext4" "/dev/disk/by-label/nixos" "rw")
-      (ent "/tmp/hakurei.1000/tmpdir/2" "/tmp" "rw,nosuid,nodev,relatime" "ext4" "/dev/disk/by-label/nixos" "rw")
-      (ent "/var/lib/hakurei/u0/a2" "/var/lib/hakurei/u0/a2" "rw,nosuid,nodev,relatime" "ext4" "/dev/disk/by-label/nixos" "rw")
-      (ent ignore "/etc/passwd" "ro,nosuid,nodev,relatime" "tmpfs" "rootfs" "rw,uid=1000002,gid=1000002")
-      (ent ignore "/etc/group" "ro,nosuid,nodev,relatime" "tmpfs" "rootfs" "rw,uid=1000002,gid=1000002")
+      (ent "/" "/run/user" "rw,nosuid,nodev,relatime" "tmpfs" "tmpfs" "rw,size=4k,mode=755,uid=1000005,gid=1000005")
+      (ent "/tmp/hakurei.1000/runtime/5" "/run/user/65534" "rw,nosuid,nodev,relatime" "ext4" "/dev/disk/by-label/nixos" "rw")
+      (ent "/tmp/hakurei.1000/tmpdir/5" "/tmp" "rw,nosuid,nodev,relatime" "ext4" "/dev/disk/by-label/nixos" "rw")
+      (ent "/var/lib/hakurei/u0/a5" "/var/lib/hakurei/u0/a5" "rw,nosuid,nodev,relatime" "ext4" "/dev/disk/by-label/nixos" "rw")
+      (ent ignore "/etc/passwd" "ro,nosuid,nodev,relatime" "tmpfs" "rootfs" "rw,uid=1000005,gid=1000005")
+      (ent ignore "/etc/group" "ro,nosuid,nodev,relatime" "tmpfs" "rootfs" "rw,uid=1000005,gid=1000005")
       (ent ignore "/run/user/65534/wayland-0" "ro,nosuid,nodev,relatime" "ext4" "/dev/disk/by-label/nixos" "rw")
       (ent ignore "/run/user/65534/pulse/native" "ro,nosuid,nodev,relatime" "tmpfs" "tmpfs" ignore)
       (ent ignore "/run/user/65534/bus" "ro,nosuid,nodev,relatime" "ext4" "/dev/disk/by-label/nixos" "rw")
-      (ent "/" "/var/run/nscd" "rw,nosuid,nodev,relatime" "tmpfs" "tmpfs" "rw,size=8k,mode=755,uid=1000002,gid=1000002")
+      (ent "/" "/var/run/nscd" "rw,nosuid,nodev,relatime" "tmpfs" "tmpfs" "rw,size=8k,mode=755,uid=1000005,gid=1000005")
     ];
 
     seccomp = true;

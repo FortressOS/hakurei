@@ -28,6 +28,7 @@ func TestExport(t *testing.T) {
 		{"strict", 0, PresetStrict, false},
 		{"strict compat", 0, PresetDenyNS | PresetDenyTTY | PresetDenyDevel, false},
 		{"hakurei default", 0, PresetExt | PresetDenyDevel, false},
+		{"hakurei tty", 0, PresetExt | PresetDenyNS | PresetDenyDevel, false},
 	}
 
 	buf := make([]byte, 8)

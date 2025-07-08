@@ -25,6 +25,12 @@ def swaymsg(command: str = "", succeed=True, type="command"):
     return parsed
 
 
+def check_filter(check_offset, name, pname):
+    pid = int(machine.wait_until_succeeds(f"pgrep -U {1000000+check_offset} -x {pname}", timeout=15))
+    hash = machine.succeed(f"sudo -u alice -i XDG_RUNTIME_DIR=/run/user/1000 WAYLAND_DISPLAY=wayland-1 check-sandbox-{name} hash 2>/dev/null")
+    print(machine.succeed(f"hakurei-test -s {hash} filter {pid}"))
+
+
 start_all()
 machine.wait_for_unit("multi-user.target")
 
@@ -35,11 +41,9 @@ print(machine.succeed("sudo -u alice -i hakurei version"))
 machine.wait_for_file("/run/user/1000/wayland-1")
 machine.wait_for_file("/tmp/sway-ipc.sock")
 
-# Check seccomp outcome:
+# Check pd seccomp outcome:
 swaymsg("exec hakurei run cat")
-pid = int(machine.wait_until_succeeds("pgrep -U 1000000 -x cat", timeout=5))
-print(machine.succeed(f"hakurei-test filter {pid} c698b081ff957afe17a6d94374537d37f2a63f6f9dd75da7546542407a9e32476ebda3312ba7785d7f618542bcfaf27ca27dcc2dddba852069d28bcfe8cad39a &>/dev/stdout", timeout=5))
-machine.succeed(f"kill -TERM {pid}")
+check_filter(0, "pdlike", "cat")
 
 # Verify capabilities/securebits in user namespace:
 print(machine.succeed("sudo -u alice -i hakurei run capsh --print"))
@@ -57,12 +61,14 @@ def check_sandbox(name):
     check_offset += 1
     swaymsg(f"exec script /dev/null -E always -qec check-sandbox-{name}")
     machine.wait_for_file(f"/tmp/hakurei.1000/tmpdir/{check_offset}/sandbox-ok", timeout=15)
+    check_filter(check_offset, name, "hakurei-test")
 
 
 check_sandbox("preset")
 check_sandbox("tty")
 check_sandbox("mapuid")
 check_sandbox("device")
+check_sandbox("pdlike")
 
 # Exit Sway and verify process exit status 0:
 swaymsg("exit", succeed=False)

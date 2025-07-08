@@ -9,6 +9,12 @@
   device = true;
   mapRealUid = false;
   useCommonPaths = true;
+  userns = false;
+
+  # 0, PresetStrict
+  expectedFilter = {
+    x86_64-linux = "e880298df2bd6751d0040fc21bc0ed4c00f95dc0d7ba506c244d8b8cf6866dba8ef4a33296f287b66cccc1d78e97026597f84cc7dec1573e148960fbd35cd735";
+  };
 
   want = {
     env = [

@@ -17,7 +17,6 @@ import (
 	"log"
 	"os"
 	"syscall"
-	"time"
 )
 
 var (
@@ -42,13 +41,10 @@ type T struct {
 	MountsPath string
 }
 
-func (t *T) MustCheckFile(wantFilePath, markerPath string) {
+func (t *T) MustCheckFile(wantFilePath string) {
 	var want *TestCase
 	mustDecode(wantFilePath, &want)
 	t.MustCheck(want)
-	if _, err := os.Create(markerPath); err != nil {
-		fatalf("cannot create success marker: %v", err)
-	}
 }
 
 func (t *T) MustCheck(want *TestCase) {
@@ -167,31 +163,10 @@ func CheckFilter(pid int, want string) error {
 	}()
 
 	h := sha512.New()
-	{
-	getFilter:
-		buf, err := getFilter[[8]byte](pid, 0)
-		/* this is not how ESRCH should be handled: the manpage advises the
-		use of waitpid, however that is not applicable for attaching to an
-		arbitrary process, and spawning target process here is not easily
-		possible under the current testing framework;
 
-		despite checking for /proc/pid/status indicating state t (tracing stop),
-		it does not appear to be directly related to the internal state used to
-		determine whether a process is ready to accept ptrace operations, it also
-		introduces a TOCTOU that is irrelevant in the testing vm; this behaviour
-		is kept anyway as it reduces the average iterations required here;
-
-		since this code is only ever compiled into the test program, whatever
-		implications this ugliness might have should not hurt anyone */
-		if errors.Is(err, syscall.ESRCH) {
-			time.Sleep(100 * time.Millisecond)
-			goto getFilter
-		}
-
-		if err != nil {
-			return err
-		}
-
+	if buf, err := getFilter[[8]byte](pid, 0); err != nil {
+		return err
+	} else {
 		for _, b := range buf {
 			h.Write(b[:])
 		}

@@ -3,13 +3,9 @@
 package sandbox
 
 import (
-	"bufio"
+	"errors"
 	"fmt"
-	"io"
-	"os"
-	"strings"
 	"syscall"
-	"time"
 	"unsafe"
 )
 
@@ -41,49 +37,19 @@ func ptrace(op uintptr, pid, addr int, data unsafe.Pointer) (r uintptr, errno sy
 }
 
 func ptraceAttach(pid int) error {
-	const (
-		statePrefix = "State:"
-		stateSuffix = "t (tracing stop)"
-	)
-
-	var r io.ReadSeekCloser
-	if f, err := os.Open(fmt.Sprintf("/proc/%d/status", pid)); err != nil {
-		return err
-	} else {
-		r = f
-	}
-
 	if _, errno := ptrace(PTRACE_ATTACH, pid, 0, nil); errno != 0 {
 		return &ptraceError{"PTRACE_ATTACH", errno}
 	}
 
-	// ugly! but there does not appear to be another way
+	var status syscall.WaitStatus
 	for {
-		time.Sleep(10 * time.Millisecond)
-
-		if _, err := r.Seek(0, io.SeekStart); err != nil {
-			return err
-		}
-		s := bufio.NewScanner(r)
-
-		var found bool
-		for s.Scan() {
-			found = strings.HasPrefix(s.Text(), statePrefix)
-			if found {
-				break
+		if _, err := syscall.Wait4(pid, &status, syscall.WALL, nil); err != nil {
+			if errors.Is(err, syscall.EINTR) {
+				continue
 			}
+			fatalf("cannot waitpid: %v", err)
 		}
-		if err := s.Err(); err != nil {
-			return err
-		}
-
-		if !found {
-			return syscall.EBADE
-		}
-
-		if strings.HasSuffix(s.Text(), stateSuffix) {
-			break
-		}
+		break
 	}
 
 	return nil

@@ -3,39 +3,69 @@
 package main
 
 import (
+	"flag"
+	"fmt"
 	"log"
 	"os"
+	"os/signal"
 	"strconv"
 	"strings"
+	"syscall"
 
 	"hakurei.app/test/sandbox"
 )
 
+var (
+	flagTestCase string
+	flagBpfHash  string
+)
+
+func init() {
+	flag.StringVar(&flagTestCase, "t", "", "Nix store path to test case file")
+	flag.StringVar(&flagBpfHash, "s", "", "String representation of expected bpf sha512 hash")
+}
+
 func main() {
 	log.SetFlags(0)
 	log.SetPrefix("test: ")
+	flag.Parse()
 
-	if len(os.Args) < 2 {
-		log.Fatal("invalid argument")
+	args := flag.Args()
+	if len(args) < 1 {
+		s := make(chan os.Signal, 1)
+		signal.Notify(s, syscall.SIGINT)
+		go func() { <-s; log.Println("exiting on signal (likely from verifier)"); os.Exit(0) }()
+
+		(&sandbox.T{FS: os.DirFS("/")}).MustCheckFile(flagTestCase)
+		if _, err := os.Create("/tmp/sandbox-ok"); err != nil {
+			log.Fatalf("cannot create success marker: %v", err)
+		}
+		log.Println("blocking for seccomp check")
+		select {}
+		return
 	}
 
-	switch os.Args[1] {
+	switch args[0] {
 	case "filter":
-		if len(os.Args) != 4 {
+		if len(args) != 2 {
 			log.Fatal("invalid argument")
 		}
 
-		if pid, err := strconv.Atoi(strings.TrimSpace(os.Args[2])); err != nil {
+		if pid, err := strconv.Atoi(strings.TrimSpace(args[1])); err != nil {
 			log.Fatalf("%s", err)
 		} else if pid < 1 {
 			log.Fatalf("%d out of range", pid)
 		} else {
-			sandbox.MustCheckFilter(pid, os.Args[3])
-			return
+			sandbox.MustCheckFilter(pid, flagBpfHash)
+			if err = syscall.Kill(pid, syscall.SIGINT); err != nil {
+				log.Fatalf("cannot signal check process: %v", err)
+			}
 		}
 
+	case "hash": // this eases the pain of passing the hash to python
+		fmt.Print(flagBpfHash)
+
 	default:
-		(&sandbox.T{FS: os.DirFS("/")}).MustCheckFile(os.Args[1], "/tmp/sandbox-ok")
-		return
+		log.Fatal("invalid argument")
 	}
 }

@@ -1,4 +1,4 @@
-lib: testProgram:
+system: lib: testProgram:
 let
   fs = mode: dir: data: {
     mode = lib.fromHexString mode;
@@ -43,13 +43,17 @@ let
         device
         mapRealUid
         useCommonPaths
+        userns
         ;
       share = testProgram;
       packages = [ ];
       path = "${testProgram}/bin/hakurei-test";
       args = [
         "test"
+        "-t"
         (toString (builtins.toFile "hakurei-${tc.name}-want.json" (builtins.toJSON tc.want)))
+        "-s"
+        tc.expectedFilter.${system}
       ];
     };
 
@@ -60,4 +64,5 @@ in
   ${testCaseName "tty"} = callTestCase ./tty.nix 2;
   ${testCaseName "mapuid"} = callTestCase ./mapuid.nix 3;
   ${testCaseName "device"} = callTestCase ./device.nix 4;
+  ${testCaseName "pdlike"} = callTestCase ./pdlike.nix 5;
 }

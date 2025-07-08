@@ -75,6 +75,6 @@ in
       }
     ];
 
-    apps = import ./case lib testProgram;
+    apps = import ./case pkgs.system lib testProgram;
   };
 }
