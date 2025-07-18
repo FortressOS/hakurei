@@ -79,7 +79,7 @@ func TestExport(t *testing.T) {
 
 func BenchmarkExport(b *testing.B) {
 	buf := make([]byte, 8)
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		e := New(
 			Preset(PresetExt|PresetDenyNS|PresetDenyTTY|PresetDenyDevel|PresetLinux32,
 				AllowMultiarch|AllowCAN|AllowBluetooth),

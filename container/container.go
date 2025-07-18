@@ -17,6 +17,12 @@ import (
 	"hakurei.app/container/seccomp"
 )
 
+const (
+	// Nonexistent is a path that cannot exist.
+	// /proc is chosen because a system with covered /proc is unsupported by this package.
+	Nonexistent = "/proc/nonexistent"
+)
+
 type (
 	// Container represents a container environment being prepared or run.
 	// None of [Container] methods are safe for concurrent use.

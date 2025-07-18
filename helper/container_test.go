@@ -15,7 +15,7 @@ import (
 
 func TestContainer(t *testing.T) {
 	t.Run("start empty container", func(t *testing.T) {
-		h := helper.New(t.Context(), "/nonexistent", argsWt, false, argF, nil, nil)
+		h := helper.New(t.Context(), container.Nonexistent, argsWt, false, argF, nil, nil)
 
 		wantErr := "sandbox: starting an empty container"
 		if err := h.Start(); err == nil || err.Error() != wantErr {

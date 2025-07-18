@@ -8,12 +8,13 @@ import (
 	"os/exec"
 	"testing"
 
+	"hakurei.app/container"
 	"hakurei.app/helper"
 )
 
 func TestCmd(t *testing.T) {
 	t.Run("start non-existent helper path", func(t *testing.T) {
-		h := helper.NewDirect(t.Context(), "/proc/nonexistent", argsWt, false, argF, nil, nil)
+		h := helper.NewDirect(t.Context(), container.Nonexistent, argsWt, false, argF, nil, nil)
 
 		if err := h.Start(); !errors.Is(err, os.ErrNotExist) {
 			t.Errorf("Start: error = %v, wantErr %v",

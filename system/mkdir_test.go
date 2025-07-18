@@ -3,6 +3,8 @@ package system
 import (
 	"os"
 	"testing"
+
+	"hakurei.app/container"
 )
 
 func TestEnsure(t *testing.T) {
@@ -60,11 +62,11 @@ func TestMkdirString(t *testing.T) {
 		t.Run(tc.want, func(t *testing.T) {
 			m := &Mkdir{
 				et:        tc.et,
-				path:      "/nonexistent",
+				path:      container.Nonexistent,
 				perm:      0701,
 				ephemeral: tc.ephemeral,
 			}
-			want := "mode: " + os.FileMode(0701).String() + " type: " + tc.want + " path: \"/nonexistent\""
+			want := "mode: " + os.FileMode(0701).String() + " type: " + tc.want + ` path: "/proc/nonexistent"`
 			if got := m.String(); got != want {
 				t.Errorf("String() = %v, want %v", got, want)
 			}

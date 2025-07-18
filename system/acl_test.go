@@ -3,6 +3,7 @@ package system
 import (
 	"testing"
 
+	"hakurei.app/container"
 	"hakurei.app/system/acl"
 )
 
@@ -52,19 +53,19 @@ func TestACLString(t *testing.T) {
 		et    Enablement
 		perms []acl.Perm
 	}{
-		{`--- type: process path: "/nonexistent"`, Process, []acl.Perm{}},
-		{`r-- type: user path: "/nonexistent"`, User, []acl.Perm{acl.Read}},
-		{`-w- type: wayland path: "/nonexistent"`, EWayland, []acl.Perm{acl.Write}},
-		{`--x type: x11 path: "/nonexistent"`, EX11, []acl.Perm{acl.Execute}},
-		{`rw- type: dbus path: "/nonexistent"`, EDBus, []acl.Perm{acl.Read, acl.Write}},
-		{`r-x type: pulseaudio path: "/nonexistent"`, EPulse, []acl.Perm{acl.Read, acl.Execute}},
-		{`rwx type: user path: "/nonexistent"`, User, []acl.Perm{acl.Read, acl.Write, acl.Execute}},
-		{`rwx type: process path: "/nonexistent"`, Process, []acl.Perm{acl.Read, acl.Write, acl.Write, acl.Execute}},
+		{`--- type: process path: "/proc/nonexistent"`, Process, []acl.Perm{}},
+		{`r-- type: user path: "/proc/nonexistent"`, User, []acl.Perm{acl.Read}},
+		{`-w- type: wayland path: "/proc/nonexistent"`, EWayland, []acl.Perm{acl.Write}},
+		{`--x type: x11 path: "/proc/nonexistent"`, EX11, []acl.Perm{acl.Execute}},
+		{`rw- type: dbus path: "/proc/nonexistent"`, EDBus, []acl.Perm{acl.Read, acl.Write}},
+		{`r-x type: pulseaudio path: "/proc/nonexistent"`, EPulse, []acl.Perm{acl.Read, acl.Execute}},
+		{`rwx type: user path: "/proc/nonexistent"`, User, []acl.Perm{acl.Read, acl.Write, acl.Execute}},
+		{`rwx type: process path: "/proc/nonexistent"`, Process, []acl.Perm{acl.Read, acl.Write, acl.Write, acl.Execute}},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.want, func(t *testing.T) {
-			a := &ACL{et: tc.et, perms: tc.perms, path: "/nonexistent"}
+			a := &ACL{et: tc.et, perms: tc.perms, path: container.Nonexistent}
 			if got := a.String(); got != tc.want {
 				t.Errorf("String() = %v, want %v",
 					got, tc.want)
