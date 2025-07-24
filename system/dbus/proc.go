@@ -36,9 +36,6 @@ func (p *Proxy) Start() error {
 
 	if !p.useSandbox {
 		p.helper = helper.NewDirect(ctx, p.name, p.final, true, argF, func(cmd *exec.Cmd) {
-			if p.CmdF != nil {
-				p.CmdF(cmd)
-			}
 			if p.output != nil {
 				cmd.Stdout, cmd.Stderr = p.output, p.output
 			}
@@ -56,7 +53,7 @@ func (p *Proxy) Start() error {
 		}
 
 		var libPaths []string
-		if entries, err := ldd.ExecFilter(ctx, p.CommandContext, p.FilterF, toolPath); err != nil {
+		if entries, err := ldd.Exec(ctx, toolPath); err != nil {
 			return err
 		} else {
 			libPaths = ldd.Path(entries)
@@ -69,13 +66,8 @@ func (p *Proxy) Start() error {
 				z.SeccompFlags |= seccomp.AllowMultiarch
 				z.SeccompPresets |= seccomp.PresetStrict
 				z.Hostname = "hakurei-dbus"
-				z.CommandContext = p.CommandContext
 				if p.output != nil {
 					z.Stdout, z.Stderr = p.output, p.output
-				}
-
-				if p.CmdF != nil {
-					p.CmdF(z)
 				}
 
 				// these lib paths are unpredictable, so mount them first so they cannot cover anything

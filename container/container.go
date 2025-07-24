@@ -35,9 +35,6 @@ type (
 		// with behaviour identical to its [exec.Cmd] counterpart.
 		ExtraFiles []*os.File
 
-		// Custom [exec.Cmd] initialisation function.
-		CommandContext func(ctx context.Context) (cmd *exec.Cmd)
-
 		// param encoder for shim and init
 		setup *gob.Encoder
 		// cancels cmd
@@ -122,13 +119,8 @@ func (p *Container) Start() error {
 		p.SeccompPresets |= seccomp.PresetDenyTTY
 	}
 
-	if p.CommandContext != nil {
-		p.cmd = p.CommandContext(ctx)
-	} else {
-		p.cmd = exec.CommandContext(ctx, MustExecutable())
-		p.cmd.Args = []string{"init"}
-	}
-
+	p.cmd = exec.CommandContext(ctx, MustExecutable())
+	p.cmd.Args = []string{"init"}
 	p.cmd.Stdin, p.cmd.Stdout, p.cmd.Stderr = p.Stdin, p.Stdout, p.Stderr
 	p.cmd.WaitDelay = p.WaitDelay
 	if p.Cancel != nil {

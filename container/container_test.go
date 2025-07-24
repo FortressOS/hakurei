@@ -6,7 +6,6 @@ import (
 	"encoding/gob"
 	"log"
 	"os"
-	"os/exec"
 	"strings"
 	"syscall"
 	"testing"
@@ -25,6 +24,11 @@ const (
 	ignore  = "\x00"
 	ignoreV = -1
 )
+
+func TestMain(m *testing.M) {
+	container.TryArgv0(hlog.Output{}, hlog.Prepare, internal.InstallOutput)
+	os.Exit(m.Run())
+}
 
 func TestContainer(t *testing.T) {
 	{
@@ -96,7 +100,6 @@ func TestContainer(t *testing.T) {
 			c.Uid = 1000
 			c.Gid = 100
 			c.Hostname = tc.host
-			c.CommandContext = commandContext
 			c.Stdout, c.Stderr = os.Stdout, os.Stderr
 			c.Ops = tc.ops
 			c.SeccompRules = tc.rules
@@ -121,11 +124,7 @@ func TestContainer(t *testing.T) {
 				Place("/etc/hostname", []byte(c.Args[5]))
 			// in case test has cgo enabled
 			var libPaths []string
-			if entries, err := ldd.ExecFilter(ctx,
-				commandContext,
-				func(v []byte) []byte {
-					return bytes.SplitN(v, []byte("TestHelperInit\n"), 2)[1]
-				}, os.Args[0]); err != nil {
+			if entries, err := ldd.Exec(ctx, os.Args[0]); err != nil {
 				log.Fatalf("ldd: %v", err)
 			} else {
 				libPaths = ldd.Path(entries)
@@ -197,14 +196,6 @@ func TestContainerString(t *testing.T) {
 	}
 }
 
-func TestHelperInit(t *testing.T) {
-	if len(os.Args) != 5 || os.Args[4] != "init" {
-		return
-	}
-	container.SetOutput(hlog.Output{})
-	container.Init(hlog.Prepare, internal.InstallOutput)
-}
-
 func TestHelperCheckContainer(t *testing.T) {
 	if len(os.Args) != 6 || os.Args[4] != "check" {
 		return
@@ -273,9 +264,4 @@ func TestHelperCheckContainer(t *testing.T) {
 			t.Errorf("got %d entries, want %d", i, len(mnt))
 		}
 	})
-}
-
-func commandContext(ctx context.Context) *exec.Cmd {
-	return exec.CommandContext(ctx, os.Args[0], "-test.v",
-		"-test.run=TestHelperInit", "--", "init")
 }

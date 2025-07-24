@@ -1,22 +1,17 @@
 package dbus_test
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	"strings"
 	"syscall"
 	"testing"
 	"time"
 
-	"hakurei.app/container"
 	"hakurei.app/helper"
-	"hakurei.app/internal"
-	"hakurei.app/internal/hlog"
 	"hakurei.app/system/dbus"
 )
 
@@ -64,20 +59,23 @@ func TestFinalise(t *testing.T) {
 }
 
 func TestProxyStartWaitCloseString(t *testing.T) {
-	oldWaitDelay := helper.WaitDelay
-	helper.WaitDelay = 16 * time.Second
-	t.Cleanup(func() { helper.WaitDelay = oldWaitDelay })
-
-	t.Run("sandbox", func(t *testing.T) {
-		proxyName := dbus.ProxyName
-		dbus.ProxyName = os.Args[0]
-		t.Cleanup(func() { dbus.ProxyName = proxyName })
-		testProxyFinaliseStartWaitCloseString(t, true)
-	})
+	t.Run("sandbox", func(t *testing.T) { testProxyFinaliseStartWaitCloseString(t, true) })
 	t.Run("direct", func(t *testing.T) { testProxyFinaliseStartWaitCloseString(t, false) })
 }
 
 func testProxyFinaliseStartWaitCloseString(t *testing.T, useSandbox bool) {
+	{
+		oldWaitDelay := helper.WaitDelay
+		helper.WaitDelay = 16 * time.Second
+		t.Cleanup(func() { helper.WaitDelay = oldWaitDelay })
+	}
+
+	{
+		proxyName := dbus.ProxyName
+		dbus.ProxyName = os.Args[0]
+		t.Cleanup(func() { dbus.ProxyName = proxyName })
+	}
+
 	var p *dbus.Proxy
 
 	t.Run("string for nil proxy", func(t *testing.T) {
@@ -122,35 +120,12 @@ func testProxyFinaliseStartWaitCloseString(t *testing.T, useSandbox bool) {
 
 			ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 			defer cancel()
-			if !useSandbox {
-				p = dbus.NewDirect(ctx, final, nil)
-			} else {
-				p = dbus.New(ctx, final, nil)
-			}
-
-			p.CommandContext = func(ctx context.Context) (cmd *exec.Cmd) {
-				return exec.CommandContext(ctx, os.Args[0], "-test.v",
-					"-test.run=TestHelperInit", "--", "init")
-			}
-			p.CmdF = func(v any) {
-				if useSandbox {
-					z := v.(*container.Container)
-					if z.Args[0] != dbus.ProxyName {
-						panic(fmt.Sprintf("unexpected argv0 %q", os.Args[0]))
-					}
-					z.Args = append([]string{os.Args[0], "-test.run=TestHelperStub", "--"}, z.Args[1:]...)
-				} else {
-					cmd := v.(*exec.Cmd)
-					if cmd.Args[0] != dbus.ProxyName {
-						panic(fmt.Sprintf("unexpected argv0 %q", os.Args[0]))
-					}
-					cmd.Err = nil
-					cmd.Path = os.Args[0]
-					cmd.Args = append([]string{os.Args[0], "-test.run=TestHelperStub", "--"}, cmd.Args[1:]...)
-				}
-			}
-			p.FilterF = func(v []byte) []byte { return bytes.SplitN(v, []byte("TestHelperInit\n"), 2)[1] }
 			output := new(strings.Builder)
+			if !useSandbox {
+				p = dbus.NewDirect(ctx, final, output)
+			} else {
+				p = dbus.New(ctx, final, output)
+			}
 
 			t.Run("invalid wait", func(t *testing.T) {
 				wantErr := "dbus: not started"
@@ -176,9 +151,9 @@ func testProxyFinaliseStartWaitCloseString(t *testing.T, useSandbox bool) {
 				}
 
 				t.Run("string", func(t *testing.T) {
-					wantSubstr := fmt.Sprintf("%s -test.run=TestHelperStub -- --args=3 --fd=4", os.Args[0])
+					wantSubstr := fmt.Sprintf("%s --args=3 --fd=4", os.Args[0])
 					if useSandbox {
-						wantSubstr = fmt.Sprintf(`argv: ["%s" "-test.run=TestHelperStub" "--" "--args=3" "--fd=4"], filter: true, rules: 0, flags: 0x1, presets: 0xf`, os.Args[0])
+						wantSubstr = fmt.Sprintf(`argv: ["%s" "--args=3" "--fd=4"], filter: true, rules: 0, flags: 0x1, presets: 0xf`, os.Args[0])
 					}
 					if got := p.String(); !strings.Contains(got, wantSubstr) {
 						t.Errorf("String: %q, want %q",
@@ -202,12 +177,4 @@ func testProxyFinaliseStartWaitCloseString(t *testing.T, useSandbox bool) {
 			})
 		})
 	}
-}
-
-func TestHelperInit(t *testing.T) {
-	if len(os.Args) != 5 || os.Args[4] != "init" {
-		return
-	}
-	container.SetOutput(hlog.Output{})
-	container.Init(hlog.Prepare, internal.InstallOutput)
 }

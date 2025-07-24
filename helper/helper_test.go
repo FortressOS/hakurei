@@ -38,7 +38,6 @@ func argF(argsFd, statFd int) []string {
 
 func argFChecked(argsFd, statFd int) (args []string) {
 	args = make([]string, 0, 6)
-	args = append(args, "-test.run=TestHelperStub", "--")
 	if argsFd > -1 {
 		args = append(args, "--args", strconv.Itoa(argsFd))
 	}

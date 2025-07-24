@@ -5,7 +5,6 @@ import (
 	"context"
 	"io"
 	"os"
-	"os/exec"
 	"time"
 
 	"hakurei.app/container"
@@ -19,16 +18,10 @@ var (
 	msgStaticGlibc = []byte("not a dynamic executable")
 )
 
-func Exec(ctx context.Context, p string) ([]*Entry, error) { return ExecFilter(ctx, nil, nil, p) }
-
-func ExecFilter(ctx context.Context,
-	commandContext func(context.Context) *exec.Cmd,
-	f func([]byte) []byte,
-	p string) ([]*Entry, error) {
+func Exec(ctx context.Context, p string) ([]*Entry, error) {
 	c, cancel := context.WithTimeout(ctx, lddTimeout)
 	defer cancel()
 	z := container.New(c, "ldd", p)
-	z.CommandContext = commandContext
 	z.Hostname = "hakurei-ldd"
 	z.SeccompFlags |= seccomp.AllowMultiarch
 	z.SeccompPresets |= seccomp.PresetStrict
@@ -54,8 +47,5 @@ func ExecFilter(ctx context.Context,
 	}
 
 	v := stdout.Bytes()
-	if f != nil {
-		v = f(v)
-	}
 	return Parse(v)
 }

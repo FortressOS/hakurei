@@ -1,4 +1,4 @@
-package helper_test
+package dbus_test
 
 import (
 	"os"

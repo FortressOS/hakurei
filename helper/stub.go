@@ -25,7 +25,7 @@ func InternalHelperStub() {
 		sp = v
 	}
 
-	genericStub(flagRestoreFiles(3, ap, sp))
+	genericStub(flagRestoreFiles(1, ap, sp))
 
 	os.Exit(0)
 }

@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"os/exec"
 	"sync"
 	"syscall"
 
@@ -37,10 +36,6 @@ type Proxy struct {
 	useSandbox bool
 
 	name string
-	CmdF func(any)
-
-	CommandContext func(ctx context.Context) (cmd *exec.Cmd)
-	FilterF        func([]byte) []byte
 
 	mu, pmu sync.RWMutex
 }
