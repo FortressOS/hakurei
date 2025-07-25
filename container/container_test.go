@@ -4,13 +4,17 @@ import (
 	"bytes"
 	"context"
 	"encoding/gob"
+	"errors"
+	"fmt"
 	"log"
 	"os"
+	"strconv"
 	"strings"
 	"syscall"
 	"testing"
 	"time"
 
+	"hakurei.app/command"
 	"hakurei.app/container"
 	"hakurei.app/container/seccomp"
 	"hakurei.app/container/vfs"
@@ -23,11 +27,60 @@ import (
 const (
 	ignore  = "\x00"
 	ignoreV = -1
+
+	pathWantMnt = "/etc/hakurei/want-mnt"
 )
 
-func TestMain(m *testing.M) {
-	container.TryArgv0(hlog.Output{}, hlog.Prepare, internal.InstallOutput)
-	os.Exit(m.Run())
+var containerTestCases = []struct {
+	name    string
+	filter  bool
+	session bool
+	net     bool
+	ops     *container.Ops
+
+	mnt []*vfs.MountInfoEntry
+	uid int
+	gid int
+
+	rules   []seccomp.NativeRule
+	flags   seccomp.ExportFlag
+	presets seccomp.FilterPreset
+}{
+	{"minimal", true, false, false,
+		new(container.Ops), nil,
+		1000, 100, nil, 0, seccomp.PresetStrict},
+	{"allow", true, true, true,
+		new(container.Ops), nil,
+		1000, 100, nil, 0, seccomp.PresetExt | seccomp.PresetDenyDevel},
+	{"no filter", false, true, true,
+		new(container.Ops), nil,
+		1000, 100, nil, 0, seccomp.PresetExt},
+	{"custom rules", true, true, true,
+		new(container.Ops), nil,
+		1, 31, []seccomp.NativeRule{{seccomp.ScmpSyscall(syscall.SYS_SETUID), seccomp.ScmpErrno(syscall.EPERM), nil}}, 0, seccomp.PresetExt},
+	{"tmpfs", true, false, false,
+		new(container.Ops).
+			Tmpfs(hst.Tmp, 0, 0755),
+		[]*vfs.MountInfoEntry{
+			ent("/", hst.Tmp, "rw,nosuid,nodev,relatime", "tmpfs", "tmpfs", ignore),
+		},
+		9, 9, nil, 0, seccomp.PresetStrict},
+	{"dev", true, true /* go test output is not a tty */, false,
+		new(container.Ops).
+			Dev("/dev").
+			Mqueue("/dev/mqueue"),
+		[]*vfs.MountInfoEntry{
+			ent("/", "/dev", "rw,nosuid,nodev,relatime", "tmpfs", "devtmpfs", ignore),
+			ent("/null", "/dev/null", "rw,nosuid", "devtmpfs", "devtmpfs", ignore),
+			ent("/zero", "/dev/zero", "rw,nosuid", "devtmpfs", "devtmpfs", ignore),
+			ent("/full", "/dev/full", "rw,nosuid", "devtmpfs", "devtmpfs", ignore),
+			ent("/random", "/dev/random", "rw,nosuid", "devtmpfs", "devtmpfs", ignore),
+			ent("/urandom", "/dev/urandom", "rw,nosuid", "devtmpfs", "devtmpfs", ignore),
+			ent("/tty", "/dev/tty", "rw,nosuid", "devtmpfs", "devtmpfs", ignore),
+			ent("/", "/dev/pts", "rw,nosuid,noexec,relatime", "devpts", "devpts", "rw,mode=620,ptmxmode=666"),
+			ent("/", "/dev/mqueue", "rw,nosuid,nodev,noexec,relatime", "mqueue", "mqueue", "rw"),
+		},
+		1971, 100, nil, 0, seccomp.PresetStrict},
 }
 
 func TestContainer(t *testing.T) {
@@ -39,89 +92,30 @@ func TestContainer(t *testing.T) {
 		t.Cleanup(func() { container.SetOutput(oldOutput) })
 	}
 
-	testCases := []struct {
-		name    string
-		filter  bool
-		session bool
-		net     bool
-		ops     *container.Ops
-		mnt     []*vfs.MountInfoEntry
-		host    string
-		rules   []seccomp.NativeRule
-		flags   seccomp.ExportFlag
-		presets seccomp.FilterPreset
-	}{
-		{"minimal", true, false, false,
-			new(container.Ops), nil, "test-minimal",
-			nil, 0, seccomp.PresetStrict},
-		{"allow", true, true, true,
-			new(container.Ops), nil, "test-minimal",
-			nil, 0, seccomp.PresetExt | seccomp.PresetDenyDevel},
-		{"no filter", false, true, true,
-			new(container.Ops), nil, "test-no-filter",
-			nil, 0, seccomp.PresetExt},
-		{"custom rules", true, true, true,
-			new(container.Ops), nil, "test-no-filter",
-			[]seccomp.NativeRule{
-				{seccomp.ScmpSyscall(syscall.SYS_SETUID), seccomp.ScmpErrno(syscall.EPERM), nil},
-			}, 0, seccomp.PresetExt},
-		{"tmpfs", true, false, false,
-			new(container.Ops).
-				Tmpfs(hst.Tmp, 0, 0755),
-			[]*vfs.MountInfoEntry{
-				e("/", hst.Tmp, "rw,nosuid,nodev,relatime", "tmpfs", "tmpfs", ignore),
-			}, "test-tmpfs",
-			nil, 0, seccomp.PresetStrict},
-		{"dev", true, true /* go test output is not a tty */, false,
-			new(container.Ops).
-				Dev("/dev").
-				Mqueue("/dev/mqueue"),
-			[]*vfs.MountInfoEntry{
-				e("/", "/dev", "rw,nosuid,nodev,relatime", "tmpfs", "devtmpfs", ignore),
-				e("/null", "/dev/null", "rw,nosuid", "devtmpfs", "devtmpfs", ignore),
-				e("/zero", "/dev/zero", "rw,nosuid", "devtmpfs", "devtmpfs", ignore),
-				e("/full", "/dev/full", "rw,nosuid", "devtmpfs", "devtmpfs", ignore),
-				e("/random", "/dev/random", "rw,nosuid", "devtmpfs", "devtmpfs", ignore),
-				e("/urandom", "/dev/urandom", "rw,nosuid", "devtmpfs", "devtmpfs", ignore),
-				e("/tty", "/dev/tty", "rw,nosuid", "devtmpfs", "devtmpfs", ignore),
-				e("/", "/dev/pts", "rw,nosuid,noexec,relatime", "devpts", "devpts", "rw,mode=620,ptmxmode=666"),
-				e("/", "/dev/mqueue", "rw,nosuid,nodev,noexec,relatime", "mqueue", "mqueue", "rw"),
-			}, "",
-			nil, 0, seccomp.PresetStrict},
-	}
-
-	for _, tc := range testCases {
+	for i, tc := range containerTestCases {
 		t.Run(tc.name, func(t *testing.T) {
 			ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 			defer cancel()
 
-			c := container.New(ctx, "/usr/bin/sandbox.test", "-test.v",
-				"-test.run=TestHelperCheckContainer", "--", "check", tc.host)
-			c.Uid = 1000
-			c.Gid = 100
-			c.Hostname = tc.host
+			hostname := hostnameFromTestCase(tc.name)
+			c := container.New(ctx, os.Args[0], "container", strconv.Itoa(i))
+			prepareHelper(c)
+			c.Uid = tc.uid
+			c.Gid = tc.gid
+			c.Hostname = hostname
 			c.Stdout, c.Stderr = os.Stdout, os.Stderr
-			c.Ops = tc.ops
+			*c.Ops = append(*c.Ops, *tc.ops...)
 			c.SeccompRules = tc.rules
 			c.SeccompFlags = tc.flags | seccomp.AllowMultiarch
 			c.SeccompPresets = tc.presets
 			c.SeccompDisable = !tc.filter
 			c.RetainSession = tc.session
 			c.HostNet = tc.net
-			if c.Args[5] == "" {
-				if name, err := os.Hostname(); err != nil {
-					t.Fatalf("cannot get hostname: %v", err)
-				} else {
-					c.Args[5] = name
-				}
-			}
 
 			c.
 				Tmpfs("/tmp", 0, 0755).
 				Bind(os.Args[0], os.Args[0], 0).
-				Mkdir("/usr/bin", 0755).
-				Link(os.Args[0], "/usr/bin/sandbox.test").
-				Place("/etc/hostname", []byte(c.Args[5]))
+				Place("/etc/hostname", []byte(hostname))
 			// in case test has cgo enabled
 			var libPaths []string
 			if entries, err := ldd.Exec(ctx, os.Args[0]); err != nil {
@@ -135,23 +129,33 @@ func TestContainer(t *testing.T) {
 			// needs /proc to check mountinfo
 			c.Proc("/proc")
 
+			// mountinfo cannot be resolved directly by helper due to libPaths nondeterminism
 			mnt := make([]*vfs.MountInfoEntry, 0, 3+len(libPaths))
-			mnt = append(mnt, e("/sysroot", "/", "rw,nosuid,nodev,relatime", "tmpfs", "rootfs", ignore))
+			mnt = append(mnt, ent("/sysroot", "/", "rw,nosuid,nodev,relatime", "tmpfs", "rootfs", ignore))
 			mnt = append(mnt, tc.mnt...)
 			mnt = append(mnt,
-				e("/", "/tmp", "rw,nosuid,nodev,relatime", "tmpfs", "tmpfs", ignore),
-				e(ignore, os.Args[0], "ro,nosuid,nodev,relatime", ignore, ignore, ignore),
-				e(ignore, "/etc/hostname", "ro,nosuid,nodev,relatime", "tmpfs", "rootfs", ignore),
+				// Tmpfs("/tmp", 0, 0755)
+				ent("/", "/tmp", "rw,nosuid,nodev,relatime", "tmpfs", "tmpfs", ignore),
+				// Bind(os.Args[0], os.Args[0], 0)
+				ent(ignore, os.Args[0], "ro,nosuid,nodev,relatime", ignore, ignore, ignore),
+				// Place("/etc/hostname", []byte(hostname))
+				ent(ignore, "/etc/hostname", "ro,nosuid,nodev,relatime", "tmpfs", "rootfs", ignore),
 			)
 			for _, name := range libPaths {
-				mnt = append(mnt, e(ignore, name, "ro,nosuid,nodev,relatime", ignore, ignore, ignore))
+				// Bind(name, name, 0)
+				mnt = append(mnt, ent(ignore, name, "ro,nosuid,nodev,relatime", ignore, ignore, ignore))
 			}
-			mnt = append(mnt, e("/", "/proc", "rw,nosuid,nodev,noexec,relatime", "proc", "proc", "rw"))
+			mnt = append(mnt,
+				// Proc("/proc")
+				ent("/", "/proc", "rw,nosuid,nodev,noexec,relatime", "proc", "proc", "rw"),
+				// Place(pathWantMnt, want.Bytes())
+				ent(ignore, pathWantMnt, "ro,nosuid,nodev,relatime", "tmpfs", "rootfs", ignore),
+			)
 			want := new(bytes.Buffer)
 			if err := gob.NewEncoder(want).Encode(mnt); err != nil {
 				t.Fatalf("cannot serialise expected mount points: %v", err)
 			}
-			c.Stdin = want
+			c.Place(pathWantMnt, want.Bytes())
 
 			if err := c.Start(); err != nil {
 				hlog.PrintBaseError(err, "start:")
@@ -168,7 +172,7 @@ func TestContainer(t *testing.T) {
 	}
 }
 
-func e(root, target, vfsOptstr, fsType, source, fsOptstr string) *vfs.MountInfoEntry {
+func ent(root, target, vfsOptstr, fsType, source, fsOptstr string) *vfs.MountInfoEntry {
 	return &vfs.MountInfoEntry{
 		ID:        ignoreV,
 		Parent:    ignoreV,
@@ -181,6 +185,10 @@ func e(root, target, vfsOptstr, fsType, source, fsOptstr string) *vfs.MountInfoE
 		Source:    source,
 		FsOptstr:  fsOptstr,
 	}
+}
+
+func hostnameFromTestCase(name string) string {
+	return "test-" + strings.Join(strings.Fields(name), "-")
 }
 
 func TestContainerString(t *testing.T) {
@@ -196,72 +204,93 @@ func TestContainerString(t *testing.T) {
 	}
 }
 
-func TestHelperCheckContainer(t *testing.T) {
-	if len(os.Args) != 6 || os.Args[4] != "check" {
-		return
-	}
-
-	t.Run("user", func(t *testing.T) {
-		if uid := syscall.Getuid(); uid != 1000 {
-			t.Errorf("Getuid: %d, want 1000", uid)
-		}
-		if gid := syscall.Getgid(); gid != 100 {
-			t.Errorf("Getgid: %d, want 100", gid)
-		}
-	})
-	t.Run("hostname", func(t *testing.T) {
-		if name, err := os.Hostname(); err != nil {
-			t.Fatalf("cannot get hostname: %v", err)
-		} else if name != os.Args[5] {
-			t.Errorf("Hostname: %q, want %q", name, os.Args[5])
-		}
-
-		if p, err := os.ReadFile("/etc/hostname"); err != nil {
-			t.Fatalf("%v", err)
-		} else if string(p) != os.Args[5] {
-			t.Errorf("/etc/hostname: %q, want %q", string(p), os.Args[5])
-		}
-	})
-	t.Run("mount", func(t *testing.T) {
-		var mnt []*vfs.MountInfoEntry
-		if err := gob.NewDecoder(os.Stdin).Decode(&mnt); err != nil {
-			t.Fatalf("cannot receive expected mount points: %v", err)
-		}
-
-		var d *vfs.MountInfoDecoder
-		if f, err := os.Open("/proc/self/mountinfo"); err != nil {
-			t.Fatalf("cannot open mountinfo: %v", err)
-		} else {
-			d = vfs.NewMountInfoDecoder(f)
-		}
-
-		i := 0
-		for cur := range d.Entries() {
-			if i == len(mnt) {
-				t.Errorf("got more than %d entries", len(mnt))
-				break
+func init() {
+	helperCommands = append(helperCommands, func(c command.Command) {
+		c.Command("container", command.UsageInternal, func(args []string) error {
+			if len(args) != 1 {
+				return syscall.EINVAL
 			}
-
-			// ugly hack but should be reliable and is less likely to false negative than comparing by parsed flags
-			cur.VfsOptstr = strings.TrimSuffix(cur.VfsOptstr, ",relatime")
-			cur.VfsOptstr = strings.TrimSuffix(cur.VfsOptstr, ",noatime")
-			mnt[i].VfsOptstr = strings.TrimSuffix(mnt[i].VfsOptstr, ",relatime")
-			mnt[i].VfsOptstr = strings.TrimSuffix(mnt[i].VfsOptstr, ",noatime")
-
-			if !cur.EqualWithIgnore(mnt[i], "\x00") {
-				t.Errorf("[FAIL] %s", cur)
+			tc := containerTestCases[0]
+			if i, err := strconv.Atoi(args[0]); err != nil {
+				return fmt.Errorf("cannot parse test case index: %v", err)
 			} else {
-				t.Logf("[ OK ] %s", cur)
+				tc = containerTestCases[i]
 			}
 
-			i++
-		}
-		if err := d.Err(); err != nil {
-			t.Errorf("cannot parse mountinfo: %v", err)
-		}
+			if uid := syscall.Getuid(); uid != tc.uid {
+				return fmt.Errorf("uid: %d, want %d", uid, tc.uid)
+			}
+			if gid := syscall.Getgid(); gid != tc.gid {
+				return fmt.Errorf("gid: %d, want %d", gid, tc.gid)
+			}
 
-		if i != len(mnt) {
-			t.Errorf("got %d entries, want %d", i, len(mnt))
-		}
+			wantHost := hostnameFromTestCase(tc.name)
+			if host, err := os.Hostname(); err != nil {
+				return fmt.Errorf("cannot get hostname: %v", err)
+			} else if host != wantHost {
+				return fmt.Errorf("hostname: %q, want %q", host, wantHost)
+			}
+
+			if p, err := os.ReadFile("/etc/hostname"); err != nil {
+				return fmt.Errorf("cannot read /etc/hostname: %v", err)
+			} else if string(p) != wantHost {
+				return fmt.Errorf("/etc/hostname: %q, want %q", string(p), wantHost)
+			}
+
+			{
+				var fail bool
+
+				var mnt []*vfs.MountInfoEntry
+				if f, err := os.Open(pathWantMnt); err != nil {
+					return fmt.Errorf("cannot open expected mount points: %v", err)
+				} else if err = gob.NewDecoder(f).Decode(&mnt); err != nil {
+					return fmt.Errorf("cannot parse expected mount points: %v", err)
+				} else if err = f.Close(); err != nil {
+					return fmt.Errorf("cannot close expected mount points: %v", err)
+				}
+
+				var d *vfs.MountInfoDecoder
+				if f, err := os.Open("/proc/self/mountinfo"); err != nil {
+					return fmt.Errorf("cannot open mountinfo: %v", err)
+				} else {
+					d = vfs.NewMountInfoDecoder(f)
+				}
+
+				i := 0
+				for cur := range d.Entries() {
+					if i == len(mnt) {
+						return fmt.Errorf("got more than %d entries", len(mnt))
+					}
+
+					// ugly hack but should be reliable and is less likely to false negative than comparing by parsed flags
+					cur.VfsOptstr = strings.TrimSuffix(cur.VfsOptstr, ",relatime")
+					cur.VfsOptstr = strings.TrimSuffix(cur.VfsOptstr, ",noatime")
+					mnt[i].VfsOptstr = strings.TrimSuffix(mnt[i].VfsOptstr, ",relatime")
+					mnt[i].VfsOptstr = strings.TrimSuffix(mnt[i].VfsOptstr, ",noatime")
+
+					if !cur.EqualWithIgnore(mnt[i], "\x00") {
+						fail = true
+						log.Printf("[FAIL] %s", cur)
+					} else {
+						log.Printf("[ OK ] %s", cur)
+					}
+
+					i++
+				}
+				if err := d.Err(); err != nil {
+					return fmt.Errorf("cannot parse mountinfo: %v", err)
+				}
+
+				if i != len(mnt) {
+					return fmt.Errorf("got %d entries, want %d", i, len(mnt))
+				}
+
+				if fail {
+					return errors.New("one or more mountinfo entries do not match")
+				}
+			}
+
+			return nil
+		})
 	})
 }

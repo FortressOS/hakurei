@@ -270,6 +270,7 @@ func Init(prepare func(prefix string), setVerbose func(verbose bool)) {
 	cmd.ExtraFiles = extraFiles
 	cmd.Dir = params.Dir
 
+	msg.Verbosef("starting initial program %s", params.Path)
 	if err := cmd.Start(); err != nil {
 		log.Fatalf("%v", err)
 	}
