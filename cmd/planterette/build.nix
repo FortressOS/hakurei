@@ -215,15 +215,14 @@ stdenv.mkDerivation {
     # create binary cache
     closureInfo="${
       closureInfo {
-        rootPaths =
-          [
-            homeManagerConfiguration.activationPackage
-            launcher
-          ]
-          ++ optionals gpu [
-            mesaWrappers
-            nixGL
-          ];
+        rootPaths = [
+          homeManagerConfiguration.activationPackage
+          launcher
+        ]
+        ++ optionals gpu [
+          mesaWrappers
+          nixGL
+        ];
       }
     }"
     echo "copying application paths..."

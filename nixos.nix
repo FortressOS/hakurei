@@ -82,7 +82,8 @@ in
                     own = [
                       "${id}.*"
                       "org.mpris.MediaPlayer2.${id}.*"
-                    ] ++ ext.own;
+                    ]
+                    ++ ext.own;
 
                     inherit (ext) call broadcast;
                   };
@@ -175,27 +176,26 @@ in
                       auto_etc = true;
                       cover = [ "/var/run/nscd" ];
 
-                      symlink =
+                      symlink = [
+                        [
+                          "*/run/current-system"
+                          "/run/current-system"
+                        ]
+                      ]
+                      ++ optionals (isGraphical && config.hardware.graphics.enable) (
                         [
                           [
-                            "*/run/current-system"
-                            "/run/current-system"
+                            config.systemd.tmpfiles.settings.graphics-driver."/run/opengl-driver"."L+".argument
+                            "/run/opengl-driver"
                           ]
                         ]
-                        ++ optionals (isGraphical && config.hardware.graphics.enable) (
+                        ++ optionals (app.multiarch && config.hardware.graphics.enable32Bit) [
                           [
-                            [
-                              config.systemd.tmpfiles.settings.graphics-driver."/run/opengl-driver"."L+".argument
-                              "/run/opengl-driver"
-                            ]
+                            config.systemd.tmpfiles.settings.graphics-driver."/run/opengl-driver-32"."L+".argument
+                            /run/opengl-driver-32
                           ]
-                          ++ optionals (app.multiarch && config.hardware.graphics.enable32Bit) [
-                            [
-                              config.systemd.tmpfiles.settings.graphics-driver."/run/opengl-driver-32"."L+".argument
-                              /run/opengl-driver-32
-                            ]
-                          ]
-                        );
+                        ]
+                      );
                     };
 
                   };

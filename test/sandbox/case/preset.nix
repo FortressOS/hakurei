@@ -199,13 +199,6 @@ in
                   } null;
                 } null;
                 ".local" = fs "800001ed" {
-                  share = fs "800001ed" {
-                    dbus-1 = fs "800001ed" {
-                      services = fs "800001ed" {
-                        "ca.desrt.dconf.service" = fs "80001ff" null null;
-                      } null;
-                    } null;
-                  } null;
                   state = fs "800001ed" {
                     ".keep" = fs "80001ff" null "";
                     home-manager = fs "800001ed" { gcroots = fs "800001ed" { current-home = fs "80001ff" null null; } null; } null;

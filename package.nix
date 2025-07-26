@@ -83,18 +83,17 @@ buildGoModule rec {
   # nix build environment does not allow acls
   env.GO_TEST_SKIP_ACL = 1;
 
-  buildInputs =
-    [
-      libffi
-      libseccomp
-      acl
-      wayland
-    ]
-    ++ (with xorg; [
-      libxcb
-      libXau
-      libXdmcp
-    ]);
+  buildInputs = [
+    libffi
+    libseccomp
+    acl
+    wayland
+  ]
+  ++ (with xorg; [
+    libxcb
+    libXau
+    libXdmcp
+  ]);
 
   nativeBuildInputs = [
     pkg-config
@@ -130,17 +129,16 @@ buildGoModule rec {
         }
     '';
 
-  passthru.targetPkgs =
-    [
-      go
-      gcc
-      xorg.xorgproto
-      util-linux
+  passthru.targetPkgs = [
+    go
+    gcc
+    xorg.xorgproto
+    util-linux
 
-      # for go generate
-      wayland-protocols
-      wayland-scanner
-    ]
-    ++ buildInputs
-    ++ nativeBuildInputs;
+    # for go generate
+    wayland-protocols
+    wayland-scanner
+  ]
+  ++ buildInputs
+  ++ nativeBuildInputs;
 }
