@@ -15,7 +15,10 @@ import (
 
 type (
 	Ops []Op
-	Op  interface {
+
+	// Op is a generic setup step ran inside the container init.
+	// Implementations of this interface are sent as a stream of gobs.
+	Op interface {
 		// early is called in host root.
 		early(params *Params) error
 		// apply is called in intermediate root.
@@ -27,11 +30,17 @@ type (
 	}
 )
 
+// Grow grows the slice Ops points to using [slices.Grow].
 func (f *Ops) Grow(n int) { *f = slices.Grow(*f, n) }
 
 func init() { gob.Register(new(BindMountOp)) }
 
-// BindMountOp bind mounts host path Source on container path Target.
+// Bind appends an [Op] that bind mounts host path [BindMountOp.Source] on container path [BindMountOp.Target].
+func (f *Ops) Bind(source, target string, flags int) *Ops {
+	*f = append(*f, &BindMountOp{source, "", target, flags})
+	return f
+}
+
 type BindMountOp struct {
 	Source, SourceFinal, Target string
 
@@ -39,8 +48,11 @@ type BindMountOp struct {
 }
 
 const (
+	// BindOptional skips nonexistent host paths.
 	BindOptional = 1 << iota
+	// BindWritable mounts filesystem read-write.
 	BindWritable
+	// BindDevice allows access to devices (special files) on this filesystem.
 	BindDevice
 )
 
@@ -108,14 +120,15 @@ func (b *BindMountOp) String() string {
 	}
 	return fmt.Sprintf("%q on %q flags %#x", b.Source, b.Target, b.Flags&BindWritable)
 }
-func (f *Ops) Bind(source, target string, flags int) *Ops {
-	*f = append(*f, &BindMountOp{source, "", target, flags})
-	return f
-}
 
 func init() { gob.Register(new(MountProcOp)) }
 
-// MountProcOp mounts a private instance of proc.
+// Proc appends an [Op] that mounts a private instance of proc.
+func (f *Ops) Proc(dest string) *Ops {
+	*f = append(*f, MountProcOp(dest))
+	return f
+}
+
 type MountProcOp string
 
 func (p MountProcOp) early(*Params) error { return nil }
@@ -137,14 +150,15 @@ func (p MountProcOp) apply(params *Params) error {
 func (p MountProcOp) Is(op Op) bool  { vp, ok := op.(MountProcOp); return ok && p == vp }
 func (MountProcOp) prefix() string   { return "mounting" }
 func (p MountProcOp) String() string { return fmt.Sprintf("proc on %q", string(p)) }
-func (f *Ops) Proc(dest string) *Ops {
-	*f = append(*f, MountProcOp(dest))
-	return f
-}
 
 func init() { gob.Register(new(MountDevOp)) }
 
-// MountDevOp mounts part of host dev.
+// Dev appends an [Op] that mounts a subset of host /dev.
+func (f *Ops) Dev(dest string) *Ops {
+	*f = append(*f, MountDevOp(dest))
+	return f
+}
+
 type MountDevOp string
 
 func (d MountDevOp) early(*Params) error { return nil }
@@ -231,14 +245,15 @@ func (d MountDevOp) apply(params *Params) error {
 func (d MountDevOp) Is(op Op) bool  { vd, ok := op.(MountDevOp); return ok && d == vd }
 func (MountDevOp) prefix() string   { return "mounting" }
 func (d MountDevOp) String() string { return fmt.Sprintf("dev on %q", string(d)) }
-func (f *Ops) Dev(dest string) *Ops {
-	*f = append(*f, MountDevOp(dest))
-	return f
-}
 
 func init() { gob.Register(new(MountMqueueOp)) }
 
-// MountMqueueOp mounts a private mqueue instance on container Path.
+// Mqueue appends an [Op] that mounts a private instance of mqueue.
+func (f *Ops) Mqueue(dest string) *Ops {
+	*f = append(*f, MountMqueueOp(dest))
+	return f
+}
+
 type MountMqueueOp string
 
 func (m MountMqueueOp) early(*Params) error { return nil }
@@ -260,14 +275,15 @@ func (m MountMqueueOp) apply(params *Params) error {
 func (m MountMqueueOp) Is(op Op) bool  { vm, ok := op.(MountMqueueOp); return ok && m == vm }
 func (MountMqueueOp) prefix() string   { return "mounting" }
 func (m MountMqueueOp) String() string { return fmt.Sprintf("mqueue on %q", string(m)) }
-func (f *Ops) Mqueue(dest string) *Ops {
-	*f = append(*f, MountMqueueOp(dest))
-	return f
-}
 
 func init() { gob.Register(new(MountTmpfsOp)) }
 
-// MountTmpfsOp mounts tmpfs on container Path.
+// Tmpfs appends an [Op] that mounts tmpfs on container path [MountTmpfsOp.Path].
+func (f *Ops) Tmpfs(dest string, size int, perm os.FileMode) *Ops {
+	*f = append(*f, &MountTmpfsOp{dest, size, perm})
+	return f
+}
+
 type MountTmpfsOp struct {
 	Path string
 	Size int
@@ -288,14 +304,15 @@ func (t *MountTmpfsOp) apply(*Params) error {
 func (t *MountTmpfsOp) Is(op Op) bool  { vt, ok := op.(*MountTmpfsOp); return ok && *t == *vt }
 func (*MountTmpfsOp) prefix() string   { return "mounting" }
 func (t *MountTmpfsOp) String() string { return fmt.Sprintf("tmpfs on %q size %d", t.Path, t.Size) }
-func (f *Ops) Tmpfs(dest string, size int, perm os.FileMode) *Ops {
-	*f = append(*f, &MountTmpfsOp{dest, size, perm})
-	return f
-}
 
 func init() { gob.Register(new(SymlinkOp)) }
 
-// SymlinkOp creates a symlink in the container filesystem.
+// Link appends an [Op] that creates a symlink in the container filesystem.
+func (f *Ops) Link(target, linkName string) *Ops {
+	*f = append(*f, &SymlinkOp{target, linkName})
+	return f
+}
+
 type SymlinkOp [2]string
 
 func (l *SymlinkOp) early(*Params) error {
@@ -331,14 +348,15 @@ func (l *SymlinkOp) apply(params *Params) error {
 func (l *SymlinkOp) Is(op Op) bool  { vl, ok := op.(*SymlinkOp); return ok && *l == *vl }
 func (*SymlinkOp) prefix() string   { return "creating" }
 func (l *SymlinkOp) String() string { return fmt.Sprintf("symlink on %q target %q", l[1], l[0]) }
-func (f *Ops) Link(target, linkName string) *Ops {
-	*f = append(*f, &SymlinkOp{target, linkName})
-	return f
-}
 
 func init() { gob.Register(new(MkdirOp)) }
 
-// MkdirOp creates a directory in the container filesystem.
+// Mkdir appends an [Op] that creates a directory in the container filesystem.
+func (f *Ops) Mkdir(dest string, perm os.FileMode) *Ops {
+	*f = append(*f, &MkdirOp{dest, perm})
+	return f
+}
+
 type MkdirOp struct {
 	Path string
 	Perm os.FileMode
@@ -359,14 +377,21 @@ func (m *MkdirOp) apply(*Params) error {
 func (m *MkdirOp) Is(op Op) bool  { vm, ok := op.(*MkdirOp); return ok && m == vm }
 func (*MkdirOp) prefix() string   { return "creating" }
 func (m *MkdirOp) String() string { return fmt.Sprintf("directory %q perm %s", m.Path, m.Perm) }
-func (f *Ops) Mkdir(dest string, perm os.FileMode) *Ops {
-	*f = append(*f, &MkdirOp{dest, perm})
-	return f
-}
 
 func init() { gob.Register(new(TmpfileOp)) }
 
-// TmpfileOp places a file in container Path containing Data.
+// Place appends an [Op] that places a file in container path [TmpfileOp.Path] containing [TmpfileOp.Data].
+func (f *Ops) Place(name string, data []byte) *Ops { *f = append(*f, &TmpfileOp{name, data}); return f }
+
+// PlaceP is like Place but writes the address of [TmpfileOp.Data] to the pointer dataP points to.
+func (f *Ops) PlaceP(name string, dataP **[]byte) *Ops {
+	t := &TmpfileOp{Path: name}
+	*dataP = &t.Data
+
+	*f = append(*f, t)
+	return f
+}
+
 type TmpfileOp struct {
 	Path string
 	Data []byte
@@ -415,19 +440,19 @@ func (*TmpfileOp) prefix() string { return "placing" }
 func (t *TmpfileOp) String() string {
 	return fmt.Sprintf("tmpfile %q (%d bytes)", t.Path, len(t.Data))
 }
-func (f *Ops) Place(name string, data []byte) *Ops { *f = append(*f, &TmpfileOp{name, data}); return f }
-func (f *Ops) PlaceP(name string, dataP **[]byte) *Ops {
-	t := &TmpfileOp{Path: name}
-	*dataP = &t.Data
-
-	*f = append(*f, t)
-	return f
-}
 
 func init() { gob.Register(new(AutoEtcOp)) }
 
-// AutoEtcOp expands host /etc into a toplevel symlink mirror with /etc semantics.
+// Etc appends an [Op] that expands host /etc into a toplevel symlink mirror with /etc semantics.
 // This is not a generic setup op. It is implemented here to reduce ipc overhead.
+func (f *Ops) Etc(host, prefix string) *Ops {
+	e := &AutoEtcOp{prefix}
+	f.Mkdir("/etc", 0755)
+	f.Bind(host, e.hostPath(), 0)
+	*f = append(*f, e)
+	return f
+}
+
 type AutoEtcOp struct{ Prefix string }
 
 func (e *AutoEtcOp) early(*Params) error { return nil }
@@ -473,10 +498,3 @@ func (e *AutoEtcOp) Is(op Op) bool {
 }
 func (*AutoEtcOp) prefix() string   { return "setting up" }
 func (e *AutoEtcOp) String() string { return fmt.Sprintf("auto etc %s", e.Prefix) }
-func (f *Ops) Etc(host, prefix string) *Ops {
-	e := &AutoEtcOp{prefix}
-	f.Mkdir("/etc", 0755)
-	f.Bind(host, e.hostPath(), 0)
-	*f = append(*f, e)
-	return f
-}

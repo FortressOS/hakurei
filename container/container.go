@@ -91,12 +91,13 @@ type (
 	}
 )
 
+// Start starts the container init. The init process blocks until Serve is called.
 func (p *Container) Start() error {
 	if p.cmd != nil {
-		return errors.New("sandbox: already started")
+		return errors.New("container: already started")
 	}
 	if p.Ops == nil || len(*p.Ops) == 0 {
-		return errors.New("sandbox: starting an empty container")
+		return errors.New("container: starting an empty container")
 	}
 
 	ctx, cancel := context.WithCancel(p.ctx)
@@ -160,6 +161,8 @@ func (p *Container) Start() error {
 	return nil
 }
 
+// Serve serves [Container.Params] to the container init.
+// Serve must only be called once.
 func (p *Container) Serve() error {
 	if p.setup == nil {
 		panic("invalid serve")
@@ -213,6 +216,7 @@ func (p *Container) Serve() error {
 	return err
 }
 
+// Wait waits for the container init process to exit.
 func (p *Container) Wait() error { defer p.cancel(); return p.cmd.Wait() }
 
 func (p *Container) String() string {
