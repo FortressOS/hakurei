@@ -367,9 +367,11 @@ func Init(prepare func(prefix string), setVerbose func(verbose bool)) {
 	}
 }
 
+const initName = "init"
+
 // TryArgv0 calls [Init] if the last element of argv0 is "init".
 func TryArgv0(v Msg, prepare func(prefix string), setVerbose func(verbose bool)) {
-	if len(os.Args) > 0 && path.Base(os.Args[0]) == "init" {
+	if len(os.Args) > 0 && path.Base(os.Args[0]) == initName {
 		msg = v
 		Init(prepare, setVerbose)
 		msg.BeforeExit()

@@ -1,18 +1,24 @@
 package container_test
 
 import (
+	"context"
 	"log"
 	"os"
 	"testing"
+	"time"
 
 	"hakurei.app/command"
 	"hakurei.app/container"
 	"hakurei.app/internal"
 	"hakurei.app/internal/hlog"
+	"hakurei.app/ldd"
 )
 
 const (
 	envDoCheck = "HAKUREI_TEST_DO_CHECK"
+
+	helperDefaultTimeout = 5 * time.Second
+	helperInnerPath      = "/usr/bin/helper"
 )
 
 var helperCommands []func(c command.Command)
@@ -40,4 +46,24 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-func prepareHelper(c *container.Container) { c.Env = append(c.Env, envDoCheck+"=1") }
+func helperNewContainerLibPaths(ctx context.Context, libPaths *[]string, args ...string) (c *container.Container) {
+	c = container.New(ctx, helperInnerPath, args...)
+	c.Env = append(c.Env, envDoCheck+"=1")
+	c.Bind(os.Args[0], helperInnerPath, 0)
+
+	// in case test has cgo enabled
+	if entries, err := ldd.Exec(ctx, os.Args[0]); err != nil {
+		log.Fatalf("ldd: %v", err)
+	} else {
+		*libPaths = ldd.Path(entries)
+	}
+	for _, name := range *libPaths {
+		c.Bind(name, name, 0)
+	}
+
+	return
+}
+
+func helperNewContainer(ctx context.Context, args ...string) (c *container.Container) {
+	return helperNewContainerLibPaths(ctx, new([]string), args...)
+}

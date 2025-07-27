@@ -12,7 +12,6 @@ import (
 	"strings"
 	"syscall"
 	"testing"
-	"time"
 
 	"hakurei.app/command"
 	"hakurei.app/container"
@@ -21,7 +20,6 @@ import (
 	"hakurei.app/hst"
 	"hakurei.app/internal"
 	"hakurei.app/internal/hlog"
-	"hakurei.app/ldd"
 )
 
 const (
@@ -92,18 +90,54 @@ func TestContainer(t *testing.T) {
 		t.Cleanup(func() { container.SetOutput(oldOutput) })
 	}
 
+	t.Run("cancel", func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(t.Context(), helperDefaultTimeout)
+
+		c := helperNewContainer(ctx, "block")
+		c.Stdout, c.Stderr = os.Stdout, os.Stderr
+		c.WaitDelay = helperDefaultTimeout
+
+		ready := make(chan struct{})
+		if r, w, err := os.Pipe(); err != nil {
+			t.Fatalf("cannot pipe: %v", err)
+		} else {
+			c.ExtraFiles = append(c.ExtraFiles, w)
+			go func() {
+				defer close(ready)
+				if _, err = r.Read(make([]byte, 1)); err != nil {
+					panic(err.Error())
+				}
+			}()
+		}
+
+		if err := c.Start(); err != nil {
+			hlog.PrintBaseError(err, "start:")
+			t.Fatalf("cannot start container: %v", err)
+		} else if err = c.Serve(); err != nil {
+			hlog.PrintBaseError(err, "serve:")
+			t.Errorf("cannot serve setup params: %v", err)
+		}
+		<-ready
+		cancel()
+		wantErr := context.Canceled
+		if err := c.Wait(); !errors.Is(err, wantErr) {
+			hlog.PrintBaseError(err, "wait:")
+			t.Fatalf("Wait: error = %v, want %v", err, wantErr)
+		}
+	})
+
 	for i, tc := range containerTestCases {
 		t.Run(tc.name, func(t *testing.T) {
-			ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+			ctx, cancel := context.WithTimeout(t.Context(), helperDefaultTimeout)
 			defer cancel()
 
-			hostname := hostnameFromTestCase(tc.name)
-			c := container.New(ctx, os.Args[0], "container", strconv.Itoa(i))
-			prepareHelper(c)
+			var libPaths []string
+			c := helperNewContainerLibPaths(ctx, &libPaths, "container", strconv.Itoa(i))
 			c.Uid = tc.uid
 			c.Gid = tc.gid
-			c.Hostname = hostname
+			c.Hostname = hostnameFromTestCase(tc.name)
 			c.Stdout, c.Stderr = os.Stdout, os.Stderr
+			c.WaitDelay = helperDefaultTimeout
 			*c.Ops = append(*c.Ops, *tc.ops...)
 			c.SeccompRules = tc.rules
 			c.SeccompFlags = tc.flags | seccomp.AllowMultiarch
@@ -114,38 +148,27 @@ func TestContainer(t *testing.T) {
 
 			c.
 				Tmpfs("/tmp", 0, 0755).
-				Bind(os.Args[0], os.Args[0], 0).
-				Place("/etc/hostname", []byte(hostname))
-			// in case test has cgo enabled
-			var libPaths []string
-			if entries, err := ldd.Exec(ctx, os.Args[0]); err != nil {
-				log.Fatalf("ldd: %v", err)
-			} else {
-				libPaths = ldd.Path(entries)
-			}
-			for _, name := range libPaths {
-				c.Bind(name, name, 0)
-			}
+				Place("/etc/hostname", []byte(c.Hostname))
 			// needs /proc to check mountinfo
 			c.Proc("/proc")
 
 			// mountinfo cannot be resolved directly by helper due to libPaths nondeterminism
 			mnt := make([]*vfs.MountInfoEntry, 0, 3+len(libPaths))
-			mnt = append(mnt, ent("/sysroot", "/", "rw,nosuid,nodev,relatime", "tmpfs", "rootfs", ignore))
-			mnt = append(mnt, tc.mnt...)
 			mnt = append(mnt,
-				// Tmpfs("/tmp", 0, 0755)
-				ent("/", "/tmp", "rw,nosuid,nodev,relatime", "tmpfs", "tmpfs", ignore),
-				// Bind(os.Args[0], os.Args[0], 0)
-				ent(ignore, os.Args[0], "ro,nosuid,nodev,relatime", ignore, ignore, ignore),
-				// Place("/etc/hostname", []byte(hostname))
-				ent(ignore, "/etc/hostname", "ro,nosuid,nodev,relatime", "tmpfs", "rootfs", ignore),
+				ent("/sysroot", "/", "rw,nosuid,nodev,relatime", "tmpfs", "rootfs", ignore),
+				// Bind(os.Args[0], helperInnerPath, 0)
+				ent(ignore, helperInnerPath, "ro,nosuid,nodev,relatime", ignore, ignore, ignore),
 			)
 			for _, name := range libPaths {
 				// Bind(name, name, 0)
 				mnt = append(mnt, ent(ignore, name, "ro,nosuid,nodev,relatime", ignore, ignore, ignore))
 			}
+			mnt = append(mnt, tc.mnt...)
 			mnt = append(mnt,
+				// Tmpfs("/tmp", 0, 0755)
+				ent("/", "/tmp", "rw,nosuid,nodev,relatime", "tmpfs", "tmpfs", ignore),
+				// Place("/etc/hostname", []byte(hostname))
+				ent(ignore, "/etc/hostname", "ro,nosuid,nodev,relatime", "tmpfs", "rootfs", ignore),
 				// Proc("/proc")
 				ent("/", "/proc", "rw,nosuid,nodev,noexec,relatime", "proc", "proc", "rw"),
 				// Place(pathWantMnt, want.Bytes())
@@ -206,6 +229,13 @@ func TestContainerString(t *testing.T) {
 
 func init() {
 	helperCommands = append(helperCommands, func(c command.Command) {
+		c.Command("block", command.UsageInternal, func(args []string) error {
+			if _, err := os.NewFile(3, "sync").Write([]byte{0}); err != nil {
+				return fmt.Errorf("write to sync pipe: %v", err)
+			}
+			select {}
+		})
+
 		c.Command("container", command.UsageInternal, func(args []string) error {
 			if len(args) != 1 {
 				return syscall.EINVAL

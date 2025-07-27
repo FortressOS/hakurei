@@ -71,6 +71,7 @@ type (
 		Hostname string
 		// Sequential container setup ops.
 		*Ops
+
 		// Seccomp system call filter rules.
 		SeccompRules []seccomp.NativeRule
 		// Extra seccomp flags.
@@ -79,6 +80,7 @@ type (
 		SeccompPresets seccomp.FilterPreset
 		// Do not load seccomp program.
 		SeccompDisable bool
+
 		// Permission bits of newly created parent directories.
 		// The zero value is interpreted as 0755.
 		ParentPerm os.FileMode
@@ -121,7 +123,7 @@ func (p *Container) Start() error {
 	}
 
 	p.cmd = exec.CommandContext(ctx, MustExecutable())
-	p.cmd.Args = []string{"init"}
+	p.cmd.Args = []string{initName}
 	p.cmd.Stdin, p.cmd.Stdout, p.cmd.Stderr = p.Stdin, p.Stdout, p.Stderr
 	p.cmd.WaitDelay = p.WaitDelay
 	if p.Cancel != nil {
