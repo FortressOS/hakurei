@@ -277,7 +277,7 @@ func Init(prepare func(prefix string), setVerbose func(verbose bool)) {
 	msg.Suspend()
 
 	if err := closeSetup(); err != nil {
-		log.Println("cannot close setup pipe:", err)
+		log.Printf("cannot close setup pipe: %v", err)
 		// not fatal
 	}
 
@@ -311,7 +311,7 @@ func Init(prepare func(prefix string), setVerbose func(verbose bool)) {
 			}
 		}
 		if !errors.Is(err, ECHILD) {
-			log.Println("unexpected wait4 response:", err)
+			log.Printf("unexpected wait4 response: %v", err)
 		}
 
 		close(done)
@@ -319,7 +319,7 @@ func Init(prepare func(prefix string), setVerbose func(verbose bool)) {
 
 	// handle signals to dump withheld messages
 	sig := make(chan os.Signal, 2)
-	signal.Notify(sig, SIGINT, SIGTERM)
+	signal.Notify(sig, os.Interrupt, CancelSignal)
 
 	// closed after residualProcessTimeout has elapsed after initial process death
 	timeout := make(chan struct{})
@@ -329,9 +329,16 @@ func Init(prepare func(prefix string), setVerbose func(verbose bool)) {
 		select {
 		case s := <-sig:
 			if msg.Resume() {
-				msg.Verbosef("terminating on %s after process start", s.String())
+				msg.Verbosef("%s after process start", s.String())
 			} else {
-				msg.Verbosef("terminating on %s", s.String())
+				msg.Verbosef("got %s", s.String())
+			}
+			if s == CancelSignal && params.ForwardCancel && cmd.Process != nil {
+				msg.Verbose("forwarding context cancellation")
+				if err := cmd.Process.Signal(os.Interrupt); err != nil {
+					log.Printf("cannot forward cancellation: %v", err)
+				}
+				continue
 			}
 			os.Exit(0)
 		case w := <-info:
@@ -351,10 +358,7 @@ func Init(prepare func(prefix string), setVerbose func(verbose bool)) {
 					msg.Verbosef("initial process exited with status %#x", w.wstatus)
 				}
 
-				go func() {
-					time.Sleep(residualProcessTimeout)
-					close(timeout)
-				}()
+				go func() { time.Sleep(residualProcessTimeout); close(timeout) }()
 			}
 		case <-done:
 			msg.BeforeExit()

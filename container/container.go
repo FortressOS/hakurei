@@ -21,6 +21,10 @@ const (
 	// Nonexistent is a path that cannot exist.
 	// /proc is chosen because a system with covered /proc is unsupported by this package.
 	Nonexistent = "/proc/nonexistent"
+
+	// CancelSignal is the signal expected by container init on context cancel.
+	// A custom [Container.Cancel] function must eventually deliver this signal.
+	CancelSignal = SIGTERM
 )
 
 type (
@@ -62,6 +66,8 @@ type (
 		Path string
 		// Initial process argv.
 		Args []string
+		// Deliver SIGINT to the initial process on context cancellation.
+		ForwardCancel bool
 
 		// Mapped Uid in user namespace.
 		Uid int
@@ -129,7 +135,7 @@ func (p *Container) Start() error {
 	if p.Cancel != nil {
 		p.cmd.Cancel = func() error { return p.Cancel(p.cmd) }
 	} else {
-		p.cmd.Cancel = func() error { return p.cmd.Process.Signal(SIGTERM) }
+		p.cmd.Cancel = func() error { return p.cmd.Process.Signal(CancelSignal) }
 	}
 	p.cmd.Dir = "/"
 	p.cmd.SysProcAttr = &SysProcAttr{
@@ -224,6 +230,14 @@ func (p *Container) Wait() error { defer p.cancel(); return p.cmd.Wait() }
 func (p *Container) String() string {
 	return fmt.Sprintf("argv: %q, filter: %v, rules: %d, flags: %#x, presets: %#x",
 		p.Args, !p.SeccompDisable, len(p.SeccompRules), int(p.SeccompFlags), int(p.SeccompPresets))
+}
+
+// ProcessState returns the address to os.ProcessState held by the underlying [exec.Cmd].
+func (p *Container) ProcessState() *os.ProcessState {
+	if p.cmd == nil {
+		return nil
+	}
+	return p.cmd.ProcessState
 }
 
 func New(ctx context.Context, name string, args ...string) *Container {
