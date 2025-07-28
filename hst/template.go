@@ -57,18 +57,18 @@ func Template() *Config {
 		Groups:   []string{"video", "dialout", "plugdev"},
 
 		Container: &ContainerConfig{
-			Hostname:             "localhost",
-			Devel:                true,
-			Userns:               true,
-			Net:                  true,
-			Device:               true,
-			ImmediateTermination: true,
-			SeccompFlags:         seccomp.AllowMultiarch,
-			SeccompPresets:       seccomp.PresetExt,
-			SeccompCompat:        true,
-			Tty:                  true,
-			Multiarch:            true,
-			MapRealUID:           true,
+			Hostname:       "localhost",
+			Devel:          true,
+			Userns:         true,
+			Net:            true,
+			Device:         true,
+			WaitDelay:      -1,
+			SeccompFlags:   seccomp.AllowMultiarch,
+			SeccompPresets: seccomp.PresetExt,
+			SeccompCompat:  true,
+			Tty:            true,
+			Multiarch:      true,
+			MapRealUID:     true,
 			// example API credentials pulled from Google Chrome
 			// DO NOT USE THESE IN A REAL BROWSER
 			Env: map[string]string{

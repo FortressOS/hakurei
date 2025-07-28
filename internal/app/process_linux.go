@@ -123,7 +123,15 @@ func (seal *outcome) Run(rs *RunState) error {
 	// this prevents blocking forever on an early failure
 	waitErr, setupErr := make(chan error, 1), make(chan error, 1)
 	go func() { waitErr <- cmd.Wait(); cancel() }()
-	go func() { setupErr <- e.Encode(&shimParams{os.Getpid(), seal.container, seal.user.data, hlog.Load()}) }()
+	go func() {
+		setupErr <- e.Encode(&shimParams{
+			os.Getpid(),
+			seal.waitDelay,
+			seal.container,
+			seal.user.data,
+			hlog.Load(),
+		})
+	}()
 
 	select {
 	case err := <-setupErr:

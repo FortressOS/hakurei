@@ -128,7 +128,7 @@ in
 
                     container = {
                       inherit (app)
-                        immediate_termination
+                        wait_delay
                         devel
                         userns
                         net

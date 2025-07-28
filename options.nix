@@ -76,6 +76,7 @@ in
         type =
           let
             inherit (types)
+              int
               ints
               str
               bool
@@ -195,7 +196,16 @@ in
                 '';
               };
 
-              immediate_termination = mkEnableOption "immediate termination of the container on interrupt";
+              wait_delay = mkOption {
+                type = nullOr int;
+                default = null;
+                description = ''
+                  Duration to wait for after interrupting a container's initial process in nanoseconds.
+                  A negative value causes the container to be terminated immediately on cancellation.
+                  Setting this to null defaults to five seconds.
+                '';
+              };
+
               devel = mkEnableOption "debugging-related kernel interfaces";
               userns = mkEnableOption "user namespace creation";
               tty = mkEnableOption "access to the controlling terminal";

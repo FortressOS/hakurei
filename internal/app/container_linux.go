@@ -35,7 +35,7 @@ func newContainer(s *hst.ContainerConfig, os sys.State, uid, gid *int) (*contain
 
 		// the container is canceled when shim is requested to exit or receives an interrupt or termination signal;
 		// this behaviour is implemented in the shim
-		ForwardCancel: !s.ImmediateTermination,
+		ForwardCancel: s.WaitDelay >= 0,
 	}
 
 	{

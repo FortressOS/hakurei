@@ -28,6 +28,10 @@ type shimParams struct {
 	// monitor pid, checked against ppid in signal handler
 	Monitor int
 
+	// duration to wait for after interrupting a container's initial process before the container is killed;
+	// zero value defaults to [DefaultShimWaitDelay], values exceeding [MaxShimWaitDelay] becomes [MaxShimWaitDelay]
+	WaitDelay time.Duration
+
 	// finalised container params
 	Container *container.Params
 	// path to outer home directory
@@ -43,9 +47,8 @@ const (
 	// ShimExitOrphan is returned when the shim is orphaned before monitor delivers a signal.
 	ShimExitOrphan = 3
 
-	// ShimWaitDelay is the duration to wait after interrupting a container's initial process
-	// before the container is fully killed off.
-	ShimWaitDelay = 5 * time.Second
+	DefaultShimWaitDelay = 5 * time.Second
+	MaxShimWaitDelay     = 30 * time.Second
 )
 
 // ShimMain is the main function of the shim process and runs as the unconstrained target user.
@@ -163,7 +166,14 @@ func ShimMain() {
 	z := container.New(ctx, name)
 	z.Params = *params.Container
 	z.Stdin, z.Stdout, z.Stderr = os.Stdin, os.Stdout, os.Stderr
-	z.WaitDelay = ShimWaitDelay
+
+	z.WaitDelay = params.WaitDelay
+	if z.WaitDelay == 0 {
+		z.WaitDelay = DefaultShimWaitDelay
+	}
+	if z.WaitDelay > MaxShimWaitDelay {
+		z.WaitDelay = MaxShimWaitDelay
+	}
 
 	if err := z.Start(); err != nil {
 		hlog.PrintBaseError(err, "cannot start container:")

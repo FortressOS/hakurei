@@ -132,7 +132,7 @@
         identity = 1;
         shareUid = true;
         verbose = true;
-        immediate_termination = true;
+        wait_delay = -1;
         share = pkgs.foot;
         packages = [ ];
         command = "foot";

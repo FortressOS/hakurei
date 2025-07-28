@@ -15,6 +15,7 @@ import (
 	"strings"
 	"sync/atomic"
 	"syscall"
+	"time"
 
 	"hakurei.app/container"
 	"hakurei.app/hst"
@@ -79,6 +80,7 @@ type outcome struct {
 	sys  *system.I
 	ctx  context.Context
 
+	waitDelay time.Duration
 	container *container.Params
 	env       map[string]string
 	sync      *os.File
@@ -281,6 +283,7 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 		var uid, gid int
 		var err error
 		seal.container, seal.env, err = newContainer(config.Container, sys, &uid, &gid)
+		seal.waitDelay = config.Container.WaitDelay
 		if err != nil {
 			return hlog.WrapErrSuffix(err,
 				"cannot initialise container configuration:")

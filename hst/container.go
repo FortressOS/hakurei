@@ -1,6 +1,8 @@
 package hst
 
 import (
+	"time"
+
 	"hakurei.app/container/seccomp"
 )
 
@@ -10,8 +12,10 @@ type (
 		// container hostname
 		Hostname string `json:"hostname,omitempty"`
 
-		// do not interrupt and wait for initial process during termination
-		ImmediateTermination bool `json:"immediate_termination,omitempty"`
+		// duration to wait for after interrupting a container's initial process in nanoseconds;
+		// a negative value causes the container to be terminated immediately on cancellation
+		WaitDelay time.Duration `json:"wait_delay,omitempty"`
+
 		// extra seccomp flags
 		SeccompFlags seccomp.ExportFlag `json:"seccomp_flags"`
 		// extra seccomp presets
