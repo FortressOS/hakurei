@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"os/signal"
 	"runtime"
+	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -41,6 +42,10 @@ const (
 	ShimExitRequest = 254
 	// ShimExitOrphan is returned when the shim is orphaned before monitor delivers a signal.
 	ShimExitOrphan = 3
+
+	// ShimWaitDelay is the duration to wait after interrupting a container's initial process
+	// before the container is fully killed off.
+	ShimWaitDelay = 5 * time.Second
 )
 
 // ShimMain is the main function of the shim process and runs as the unconstrained target user.
@@ -86,6 +91,7 @@ func ShimMain() {
 	}
 
 	// signal handler outcome
+	var cancelContainer atomic.Pointer[context.CancelFunc]
 	go func() {
 		buf := make([]byte, 1)
 		for {
@@ -94,23 +100,30 @@ func ShimMain() {
 			}
 
 			switch buf[0] {
-			case 0:
+			case 0: // got SIGCONT from monitor: shim exit requested
+				if fp := cancelContainer.Load(); params.Container.ForwardCancel && fp != nil && *fp != nil {
+					(*fp)()
+					// shim now bound by ShimWaitDelay, implemented below
+					continue
+				}
+
+				// setup has not completed, terminate immediately
 				hlog.Resume()
 				os.Exit(ShimExitRequest)
 				return
 
-			case 1:
+			case 1: // got SIGCONT after adoption: monitor died before delivering signal
 				hlog.BeforeExit()
 				os.Exit(ShimExitOrphan)
 				return
 
-			case 2:
+			case 2: // unreachable
 				log.Println("sa_sigaction got invalid siginfo")
 
-			case 3:
+			case 3: // got SIGCONT from unexpected process: hopefully the terminal driver
 				log.Println("got SIGCONT from unexpected process")
 
-			default:
+			default: // unreachable
 				log.Fatalf("got invalid message %d from signal handler", buf[0])
 			}
 		}
@@ -146,12 +159,11 @@ func ShimMain() {
 		name = params.Container.Args[0]
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer stop() // unreachable
+	cancelContainer.Store(&stop)
 	z := container.New(ctx, name)
 	z.Params = *params.Container
 	z.Stdin, z.Stdout, z.Stderr = os.Stdin, os.Stdout, os.Stderr
-	z.Cancel = func(cmd *exec.Cmd) error { return cmd.Process.Signal(os.Interrupt) }
-	z.WaitDelay = 2 * time.Second
+	z.WaitDelay = ShimWaitDelay
 
 	if err := z.Start(); err != nil {
 		hlog.PrintBaseError(err, "cannot start container:")

@@ -10,6 +10,8 @@ type (
 		// container hostname
 		Hostname string `json:"hostname,omitempty"`
 
+		// do not interrupt and wait for initial process during termination
+		ImmediateTermination bool `json:"immediate_termination,omitempty"`
 		// extra seccomp flags
 		SeccompFlags seccomp.ExportFlag `json:"seccomp_flags"`
 		// extra seccomp presets

@@ -195,6 +195,7 @@ in
                 '';
               };
 
+              immediate_termination = mkEnableOption "immediate termination of the container on interrupt";
               devel = mkEnableOption "debugging-related kernel interfaces";
               userns = mkEnableOption "user namespace creation";
               tty = mkEnableOption "access to the controlling terminal";

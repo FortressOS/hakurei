@@ -144,6 +144,7 @@ var testCasesNixos = []sealTestCase{
 				Tmpfs("/var/run/nscd", 8192, 0755),
 			SeccompPresets: seccomp.PresetExt | seccomp.PresetDenyTTY | seccomp.PresetDenyDevel,
 			HostNet:        true,
+			ForwardCancel:  true,
 		},
 	},
 }

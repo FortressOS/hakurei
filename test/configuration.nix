@@ -127,6 +127,21 @@
         };
       };
 
+      "cat.gensokyo.extern.foot.noEnablements.immediate" = {
+        name = "ne-foot-immediate";
+        identity = 1;
+        shareUid = true;
+        verbose = true;
+        immediate_termination = true;
+        share = pkgs.foot;
+        packages = [ ];
+        command = "foot";
+        capability = {
+          dbus = false;
+          pulse = false;
+        };
+      };
+
       "cat.gensokyo.extern.foot.pulseaudio" = {
         name = "pa-foot";
         identity = 2;

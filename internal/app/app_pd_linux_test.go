@@ -71,6 +71,7 @@ var testCasesPd = []sealTestCase{
 			SeccompPresets: seccomp.PresetExt | seccomp.PresetDenyDevel,
 			HostNet:        true,
 			RetainSession:  true,
+			ForwardCancel:  true,
 		},
 	},
 	{
@@ -220,6 +221,7 @@ var testCasesPd = []sealTestCase{
 			SeccompPresets: seccomp.PresetExt | seccomp.PresetDenyDevel,
 			HostNet:        true,
 			RetainSession:  true,
+			ForwardCancel:  true,
 		},
 	},
 }

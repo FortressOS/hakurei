@@ -128,6 +128,7 @@ in
 
                     container = {
                       inherit (app)
+                        immediate_termination
                         devel
                         userns
                         net

@@ -178,6 +178,16 @@ machine.succeed("pkill -INT -f 'hakurei -v app '")
 machine.wait_until_fails("pgrep foot", timeout=5)
 machine.wait_for_file("/tmp/monitor-exit-code")
 interrupt_exit_code = int(machine.succeed("cat /tmp/monitor-exit-code"))
+if interrupt_exit_code != 230:
+    raise Exception(f"unexpected exit code {interrupt_exit_code}")
+
+# Check interrupt shim behaviour immediate termination:
+swaymsg("exec sh -c 'ne-foot-immediate; echo -n $? > /tmp/monitor-exit-code'")
+wait_for_window(f"u0_a{aid(0)}@machine")
+machine.succeed("pkill -INT -f 'hakurei -v app '")
+machine.wait_until_fails("pgrep foot", timeout=5)
+machine.wait_for_file("/tmp/monitor-exit-code")
+interrupt_exit_code = int(machine.succeed("cat /tmp/monitor-exit-code"))
 if interrupt_exit_code != 254:
     raise Exception(f"unexpected exit code {interrupt_exit_code}")
 
