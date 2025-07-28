@@ -181,6 +181,15 @@ interrupt_exit_code = int(machine.succeed("cat /tmp/monitor-exit-code"))
 if interrupt_exit_code != 254:
     raise Exception(f"unexpected exit code {interrupt_exit_code}")
 
+# Check shim SIGCONT from unexpected process behaviour:
+swaymsg("exec sh -c 'ne-foot &> /tmp/shim-cont-unexpected-pid'")
+wait_for_window(f"u0_a{aid(0)}@machine")
+machine.succeed("pkill -CONT -f 'hakurei shim'")
+machine.succeed("pkill -INT -f 'hakurei -v app '")
+machine.wait_until_fails("pgrep foot", timeout=5)
+machine.wait_for_file("/tmp/shim-cont-unexpected-pid")
+print(machine.succeed('grep "shim: got SIGCONT from unexpected process$" /tmp/shim-cont-unexpected-pid'))
+
 # Start app (foot) with Wayland enablement:
 swaymsg("exec ne-foot")
 wait_for_window(f"u0_a{aid(0)}@machine")

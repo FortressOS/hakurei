@@ -3,10 +3,12 @@ package app
 import (
 	"context"
 	"errors"
+	"io"
 	"log"
 	"os"
 	"os/exec"
 	"os/signal"
+	"runtime"
 	"syscall"
 	"time"
 
@@ -34,6 +36,13 @@ type shimParams struct {
 	Verbose bool
 }
 
+const (
+	// ShimExitRequest is returned when the monitor process requests shim exit.
+	ShimExitRequest = 254
+	// ShimExitOrphan is returned when the shim is orphaned before monitor delivers a signal.
+	ShimExitOrphan = 3
+)
+
 // ShimMain is the main function of the shim process and runs as the unconstrained target user.
 func ShimMain() {
 	hlog.Prepare("shim")
@@ -58,17 +67,54 @@ func ShimMain() {
 	} else {
 		internal.InstallOutput(params.Verbose)
 		closeSetup = f
-
-		// the Go runtime does not expose siginfo_t so SIGCONT is handled in C to check si_pid
-		if _, err = C.hakurei_shim_setup_cont_signal(C.pid_t(params.Monitor)); err != nil {
-			log.Fatalf("cannot install SIGCONT handler: %v", err)
-		}
-
-		// pdeath_signal delivery is checked as if the dying process called kill(2), see kernel/exit.c
-		if _, _, errno := syscall.Syscall(syscall.SYS_PRCTL, syscall.PR_SET_PDEATHSIG, uintptr(syscall.SIGCONT), 0); errno != 0 {
-			log.Fatalf("cannot set parent-death signal: %v", errno)
-		}
 	}
+
+	var signalPipe io.ReadCloser
+	// the Go runtime does not expose siginfo_t so SIGCONT is handled in C to check si_pid
+	if r, w, err := os.Pipe(); err != nil {
+		log.Fatalf("cannot pipe: %v", err)
+	} else if _, err = C.hakurei_shim_setup_cont_signal(C.pid_t(params.Monitor), C.int(w.Fd())); err != nil {
+		log.Fatalf("cannot install SIGCONT handler: %v", err)
+	} else {
+		defer runtime.KeepAlive(w)
+		signalPipe = r
+	}
+
+	// pdeath_signal delivery is checked as if the dying process called kill(2), see kernel/exit.c
+	if _, _, errno := syscall.Syscall(syscall.SYS_PRCTL, syscall.PR_SET_PDEATHSIG, uintptr(syscall.SIGCONT), 0); errno != 0 {
+		log.Fatalf("cannot set parent-death signal: %v", errno)
+	}
+
+	// signal handler outcome
+	go func() {
+		buf := make([]byte, 1)
+		for {
+			if _, err := signalPipe.Read(buf); err != nil {
+				log.Fatalf("cannot read from signal pipe: %v", err)
+			}
+
+			switch buf[0] {
+			case 0:
+				hlog.Resume()
+				os.Exit(ShimExitRequest)
+				return
+
+			case 1:
+				hlog.BeforeExit()
+				os.Exit(ShimExitOrphan)
+				return
+
+			case 2:
+				log.Println("sa_sigaction got invalid siginfo")
+
+			case 3:
+				log.Println("got SIGCONT from unexpected process")
+
+			default:
+				log.Fatalf("got invalid message %d from signal handler", buf[0])
+			}
+		}
+	}()
 
 	if params.Container == nil || params.Container.Ops == nil {
 		log.Fatal("invalid container params")
