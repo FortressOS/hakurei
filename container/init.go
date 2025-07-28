@@ -17,9 +17,6 @@ import (
 )
 
 const (
-	// time to wait for linger processes after death of initial process
-	residualProcessTimeout = 5 * time.Second
-
 	/* intermediate tmpfs mount point
 
 	this path might seem like a weird choice, however there are many good reasons to use it:
@@ -358,7 +355,7 @@ func Init(prepare func(prefix string), setVerbose func(verbose bool)) {
 					msg.Verbosef("initial process exited with status %#x", w.wstatus)
 				}
 
-				go func() { time.Sleep(residualProcessTimeout); close(timeout) }()
+				go func() { time.Sleep(params.AdoptWaitDelay); close(timeout) }()
 			}
 		case <-done:
 			msg.BeforeExit()

@@ -68,6 +68,8 @@ type (
 		Args []string
 		// Deliver SIGINT to the initial process on context cancellation.
 		ForwardCancel bool
+		// time to wait for linger processes after death of initial process
+		AdoptWaitDelay time.Duration
 
 		// Mapped Uid in user namespace.
 		Uid int
@@ -126,6 +128,14 @@ func (p *Container) Start() error {
 
 	if !p.RetainSession {
 		p.SeccompPresets |= seccomp.PresetDenyTTY
+	}
+
+	if p.AdoptWaitDelay == 0 {
+		p.AdoptWaitDelay = 5 * time.Second
+	}
+	// to allow disabling this behaviour
+	if p.AdoptWaitDelay < 0 {
+		p.AdoptWaitDelay = 0
 	}
 
 	p.cmd = exec.CommandContext(ctx, MustExecutable())
