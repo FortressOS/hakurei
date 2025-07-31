@@ -82,13 +82,18 @@
     jack.enable = true;
   };
 
-  virtualisation.qemu.options = [
-    # Need to switch to a different GPU driver than the default one (-vga std) so that Sway can launch:
-    "-vga none -device virtio-gpu-pci"
+  virtualisation = {
+    # Hopefully reduces spurious test failures:
+    memorySize = 4096;
 
-    # Increase Go test compiler performance:
-    "-smp 8"
-  ];
+    qemu.options = [
+      # Need to switch to a different GPU driver than the default one (-vga std) so that Sway can launch:
+      "-vga none -device virtio-gpu-pci"
+
+      # Increase Go test compiler performance:
+      "-smp 8"
+    ];
+  };
 
   environment.hakurei = {
     enable = true;
