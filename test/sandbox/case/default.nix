@@ -23,17 +23,21 @@ let
       ;
   };
 
+  importTestCase =
+    path:
+    import path {
+      inherit
+        fs
+        ent
+        ignore
+        system
+        ;
+    };
+
   callTestCase =
     path: identity:
     let
-      tc = import path {
-        inherit
-          fs
-          ent
-          ignore
-          system
-          ;
-      };
+      tc = importTestCase path;
     in
     {
       name = "check-sandbox-${tc.name}";
@@ -61,9 +65,13 @@ let
   testCaseName = name: "cat.gensokyo.hakurei.test." + name;
 in
 {
-  ${testCaseName "preset"} = callTestCase ./preset.nix 1;
-  ${testCaseName "tty"} = callTestCase ./tty.nix 2;
-  ${testCaseName "mapuid"} = callTestCase ./mapuid.nix 3;
-  ${testCaseName "device"} = callTestCase ./device.nix 4;
-  ${testCaseName "pdlike"} = callTestCase ./pdlike.nix 5;
+  apps = {
+    ${testCaseName "preset"} = callTestCase ./preset.nix 1;
+    ${testCaseName "tty"} = callTestCase ./tty.nix 2;
+    ${testCaseName "mapuid"} = callTestCase ./mapuid.nix 3;
+    ${testCaseName "device"} = callTestCase ./device.nix 4;
+    ${testCaseName "pdlike"} = callTestCase ./pdlike.nix 5;
+  };
+
+  pd = importTestCase ./pd.nix;
 }

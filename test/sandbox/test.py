@@ -58,12 +58,13 @@ print(machine.fail("sudo -u alice -i hakurei run umount -R /dev"))
 check_offset = 0
 def check_sandbox(name):
     global check_offset
-    check_offset += 1
     swaymsg(f"exec script /dev/null -E always -qec check-sandbox-{name}")
     machine.wait_for_file(f"/tmp/hakurei.1000/tmpdir/{check_offset}/sandbox-ok", timeout=15)
     check_filter(check_offset, name, "hakurei-test")
+    check_offset += 1
 
 
+check_sandbox("pd")
 check_sandbox("preset")
 check_sandbox("tty")
 check_sandbox("mapuid")

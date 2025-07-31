@@ -6,6 +6,7 @@
 }:
 let
   testProgram = pkgs.callPackage ./tool/package.nix { inherit (config.environment.hakurei.package) version; };
+  testCases = import ./case pkgs.system lib testProgram;
 in
 {
   users.users = {
@@ -26,6 +27,13 @@ in
     systemPackages = [
       # For checking seccomp outcome:
       testProgram
+
+      # For checking pd outcome:
+      (pkgs.writeShellScriptBin "check-sandbox-pd" ''
+        hakurei -v run hakurei-test \
+          -t ${toString (builtins.toFile "hakurei-pd-want.json" (builtins.toJSON testCases.pd.want))} \
+          -s ${testCases.pd.expectedFilter.${pkgs.system}} "$@"
+      '')
     ];
 
     variables = {
@@ -75,6 +83,6 @@ in
       }
     ];
 
-    apps = import ./case pkgs.system lib testProgram;
+    inherit (testCases) apps;
   };
 }
