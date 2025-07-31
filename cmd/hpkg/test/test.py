@@ -79,15 +79,15 @@ print(machine.succeed("sudo -u alice -i hakurei version"))
 machine.wait_for_file("/run/user/1000/wayland-1")
 machine.wait_for_file("/tmp/sway-ipc.sock")
 
-# Prepare planterette directory:
+# Prepare hpkg directory:
 machine.succeed("install -dm 0700 -o alice -g users /var/lib/hakurei/1000")
 
-# Install planterette app:
-swaymsg("exec planterette -v install /etc/foot.pkg && touch /tmp/planterette-install-ok")
-machine.wait_for_file("/tmp/planterette-install-ok")
+# Install hpkg app:
+swaymsg("exec hpkg -v install /etc/foot.pkg && touch /tmp/hpkg-install-ok")
+machine.wait_for_file("/tmp/hpkg-install-ok")
 
 # Start app (foot) with Wayland enablement:
-swaymsg("exec planterette -v start org.codeberg.dnkl.foot")
+swaymsg("exec hpkg -v start org.codeberg.dnkl.foot")
 wait_for_window("hakurei@machine-foot")
 machine.send_chars("clear; wayland-info && touch /tmp/success-client\n")
 machine.wait_for_file("/tmp/hakurei.1000/tmpdir/2/success-client")

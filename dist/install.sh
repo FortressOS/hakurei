@@ -2,7 +2,7 @@
 cd "$(dirname -- "$0")" || exit 1
 
 install -vDm0755 "bin/hakurei" "${HAKUREI_INSTALL_PREFIX}/usr/bin/hakurei"
-install -vDm0755 "bin/planterette" "${HAKUREI_INSTALL_PREFIX}/usr/bin/planterette"
+install -vDm0755 "bin/hpkg" "${HAKUREI_INSTALL_PREFIX}/usr/bin/hpkg"
 
 install -vDm6511 "bin/hsu" "${HAKUREI_INSTALL_PREFIX}/usr/bin/hsu"
 if [ ! -f "${HAKUREI_INSTALL_PREFIX}/etc/hsurc" ]; then

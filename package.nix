@@ -13,7 +13,7 @@
   wayland-scanner,
   xorg,
 
-  # for planterette
+  # for hpkg
   zstd,
   gnutar,
   coreutils,
@@ -116,7 +116,7 @@ buildGoModule rec {
       makeBinaryWrapper "$out/libexec/hakurei" "$out/bin/hakurei" \
         --inherit-argv0 --prefix PATH : ${lib.makeBinPath appPackages}
 
-      makeBinaryWrapper "$out/libexec/planterette" "$out/bin/planterette" \
+      makeBinaryWrapper "$out/libexec/hpkg" "$out/bin/hpkg" \
         --inherit-argv0 --prefix PATH : ${
           lib.makeBinPath (
             appPackages

@@ -16,7 +16,8 @@
 </p>
 
 Hakurei is a tool for running sandboxed graphical applications as dedicated subordinate users on the Linux kernel.
-It also implements [planterette (WIP)](cmd/planterette), a self-contained Android-like package manager with modern security features.
+It implements the application container of [planterette (WIP)](https://git.gensokyo.uk/security/planterette),
+a self-contained Android-like package manager with modern security features.
 
 ## NixOS Module usage
 

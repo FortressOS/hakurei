@@ -32,7 +32,7 @@
       buildPackage = forAllSystems (
         system:
         nixpkgsFor.${system}.callPackage (
-          import ./cmd/planterette/build.nix {
+          import ./cmd/hpkg/build.nix {
             inherit
               nixpkgsFor
               system
@@ -69,7 +69,7 @@
             withRace = true;
           };
 
-          planterette = callPackage ./cmd/planterette/test { inherit system self; };
+          hpkg = callPackage ./cmd/hpkg/test { inherit system self; };
 
           formatting = runCommandLocal "check-formatting" { nativeBuildInputs = [ nixfmt-rfc-style ]; } ''
             cd ${./.}
@@ -125,7 +125,7 @@
               glibc
               xdg-dbus-proxy
 
-              # planterette
+              # hpkg
               zstd
               gnutar
               coreutils

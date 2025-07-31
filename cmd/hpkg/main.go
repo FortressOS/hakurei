@@ -23,7 +23,7 @@ var (
 )
 
 func init() {
-	hlog.Prepare("planterette")
+	hlog.Prepare("hpkg")
 	if err := os.Setenv("SHELL", shellPath); err != nil {
 		log.Fatalf("cannot set $SHELL: %v", err)
 	}
@@ -42,7 +42,7 @@ func main() {
 		flagVerbose   bool
 		flagDropShell bool
 	)
-	c := command.New(os.Stderr, log.Printf, "planterette", func([]string) error { internal.InstallOutput(flagVerbose); return nil }).
+	c := command.New(os.Stderr, log.Printf, "hpkg", func([]string) error { internal.InstallOutput(flagVerbose); return nil }).
 		Flag(&flagVerbose, "v", command.BoolFlag(false), "Print debug messages to the console").
 		Flag(&flagDropShell, "s", command.BoolFlag(false), "Drop to a shell in place of next hakurei action")
 
@@ -66,7 +66,7 @@ func main() {
 			}
 
 			/*
-				Look up paths to programs started by planterette.
+				Look up paths to programs started by hpkg.
 				This is done here to ease error handling as cleanup is not yet required.
 			*/
 
@@ -82,7 +82,7 @@ func main() {
 			*/
 
 			var workDir string
-			if p, err := os.MkdirTemp("", "planterette.*"); err != nil {
+			if p, err := os.MkdirTemp("", "hpkg.*"); err != nil {
 				log.Printf("cannot create temporary directory: %v", err)
 				return err
 			} else {

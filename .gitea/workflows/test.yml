@@ -73,20 +73,20 @@ jobs:
           path: result/*
           retention-days: 1
 
-  planterette:
-    name: Planterette
+  hpkg:
+    name: Hpkg
     runs-on: nix
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Run NixOS test
-        run: nix build --out-link "result" --print-out-paths --print-build-logs .#checks.x86_64-linux.planterette
+        run: nix build --out-link "result" --print-out-paths --print-build-logs .#checks.x86_64-linux.hpkg
 
       - name: Upload test output
         uses: actions/upload-artifact@v3
         with:
-          name: "planterette-vm-output"
+          name: "hpkg-vm-output"
           path: result/*
           retention-days: 1
 
@@ -97,7 +97,7 @@ jobs:
       - race
       - sandbox
       - sandbox-race
-      - planterette
+      - hpkg
     runs-on: nix
     steps:
       - name: Checkout
