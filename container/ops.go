@@ -118,7 +118,7 @@ func (b *BindMountOp) String() string {
 	if b.Source == b.Target {
 		return fmt.Sprintf("%q flags %#x", b.Source, b.Flags)
 	}
-	return fmt.Sprintf("%q on %q flags %#x", b.Source, b.Target, b.Flags&BindWritable)
+	return fmt.Sprintf("%q on %q flags %#x", b.Source, b.Target, b.Flags)
 }
 
 func init() { gob.Register(new(MountProcOp)) }
