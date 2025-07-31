@@ -241,26 +241,9 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 			Net:     true,
 			Tty:     true,
 			AutoEtc: true,
-		}
-		// bind entries in /
-		if d, err := sys.ReadDir("/"); err != nil {
-			return err
-		} else {
-			b := make([]*hst.FilesystemConfig, 0, len(d))
-			for _, ent := range d {
-				p := "/" + ent.Name()
-				switch p {
-				case "/proc":
-				case "/dev":
-				case "/tmp":
-				case "/mnt":
-				case "/etc":
 
-				default:
-					b = append(b, &hst.FilesystemConfig{Src: p, Write: true, Must: true})
-				}
-			}
-			conf.Filesystem = append(conf.Filesystem, b...)
+			AutoRoot:  "/",
+			RootFlags: container.BindWritable,
 		}
 
 		// hide nscd from sandbox if present
@@ -282,7 +265,7 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 	{
 		var uid, gid int
 		var err error
-		seal.container, seal.env, err = newContainer(config.Container, sys, &uid, &gid)
+		seal.container, seal.env, err = newContainer(config.Container, sys, seal.id.String(), &uid, &gid)
 		seal.waitDelay = config.Container.WaitDelay
 		if err != nil {
 			return hlog.WrapErrSuffix(err,
@@ -303,18 +286,6 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 		if seal.env == nil {
 			seal.env = make(map[string]string, 1<<6)
 		}
-	}
-
-	if !config.Container.AutoEtc {
-		if config.Container.Etc != "" {
-			seal.container.Bind(config.Container.Etc, "/etc", 0)
-		}
-	} else {
-		etcPath := config.Container.Etc
-		if etcPath == "" {
-			etcPath = "/etc"
-		}
-		seal.container.Etc(etcPath, seal.id.String())
 	}
 
 	// inner XDG_RUNTIME_DIR default formatting of `/run/user/%d` as mapped uid

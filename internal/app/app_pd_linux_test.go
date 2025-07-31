@@ -42,21 +42,10 @@ var testCasesPd = []sealTestCase{
 				"XDG_SESSION_TYPE=tty",
 			},
 			Ops: new(container.Ops).
+				Root("/", "4a450b6596d7bc15bd01780eb9a607ac", container.BindWritable).
 				Proc("/proc").
 				Tmpfs(hst.Tmp, 4096, 0755).
 				Dev("/dev").Mqueue("/dev/mqueue").
-				Bind("/bin", "/bin", container.BindWritable).
-				Bind("/boot", "/boot", container.BindWritable).
-				Bind("/home", "/home", container.BindWritable).
-				Bind("/lib", "/lib", container.BindWritable).
-				Bind("/lib64", "/lib64", container.BindWritable).
-				Bind("/nix", "/nix", container.BindWritable).
-				Bind("/root", "/root", container.BindWritable).
-				Bind("/run", "/run", container.BindWritable).
-				Bind("/srv", "/srv", container.BindWritable).
-				Bind("/sys", "/sys", container.BindWritable).
-				Bind("/usr", "/usr", container.BindWritable).
-				Bind("/var", "/var", container.BindWritable).
 				Bind("/dev/kvm", "/dev/kvm", container.BindWritable|container.BindDevice|container.BindOptional).
 				Tmpfs("/run/user/1971", 8192, 0755).
 				Tmpfs("/run/dbus", 8192, 0755).
@@ -186,21 +175,10 @@ var testCasesPd = []sealTestCase{
 				"XDG_SESSION_TYPE=tty",
 			},
 			Ops: new(container.Ops).
+				Root("/", "ebf083d1b175911782d413369b64ce7c", container.BindWritable).
 				Proc("/proc").
 				Tmpfs(hst.Tmp, 4096, 0755).
 				Dev("/dev").Mqueue("/dev/mqueue").
-				Bind("/bin", "/bin", container.BindWritable).
-				Bind("/boot", "/boot", container.BindWritable).
-				Bind("/home", "/home", container.BindWritable).
-				Bind("/lib", "/lib", container.BindWritable).
-				Bind("/lib64", "/lib64", container.BindWritable).
-				Bind("/nix", "/nix", container.BindWritable).
-				Bind("/root", "/root", container.BindWritable).
-				Bind("/run", "/run", container.BindWritable).
-				Bind("/srv", "/srv", container.BindWritable).
-				Bind("/sys", "/sys", container.BindWritable).
-				Bind("/usr", "/usr", container.BindWritable).
-				Bind("/var", "/var", container.BindWritable).
 				Bind("/dev/dri", "/dev/dri", container.BindWritable|container.BindDevice|container.BindOptional).
 				Bind("/dev/kvm", "/dev/kvm", container.BindWritable|container.BindDevice|container.BindOptional).
 				Tmpfs("/run/user/1971", 8192, 0755).

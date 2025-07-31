@@ -302,6 +302,8 @@ App
           "/run/user/150"
         ]
       ],
+      "auto_root": "/var/lib/hakurei/base/org.debian",
+      "root_flags": 2,
       "etc": "/etc",
       "auto_etc": true,
       "cover": [
@@ -430,6 +432,8 @@ App
         "/run/user/150"
       ]
     ],
+    "auto_root": "/var/lib/hakurei/base/org.debian",
+    "root_flags": 2,
     "etc": "/etc",
     "auto_etc": true,
     "cover": [
@@ -612,6 +616,8 @@ func Test_printPs(t *testing.T) {
             "/run/user/150"
           ]
         ],
+        "auto_root": "/var/lib/hakurei/base/org.debian",
+        "root_flags": 2,
         "etc": "/etc",
         "auto_etc": true,
         "cover": [

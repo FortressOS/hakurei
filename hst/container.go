@@ -45,10 +45,17 @@ type (
 		// create symlinks inside container filesystem
 		Link [][2]string `json:"symlink"`
 
+		// automatically bind mount top-level directories to container root;
+		// the zero value disables this behaviour
+		AutoRoot string `json:"auto_root,omitempty"`
+		// extra flags for AutoRoot
+		RootFlags int `json:"root_flags,omitempty"`
+
 		// read-only /etc directory
 		Etc string `json:"etc,omitempty"`
 		// automatically set up /etc symlinks
 		AutoEtc bool `json:"auto_etc"`
+
 		// cover these paths or create them if they do not already exist
 		Cover []string `json:"cover"`
 	}

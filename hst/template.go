@@ -1,6 +1,7 @@
 package hst
 
 import (
+	"hakurei.app/container"
 	"hakurei.app/container/seccomp"
 	"hakurei.app/system"
 	"hakurei.app/system/dbus"
@@ -85,10 +86,12 @@ func Template() *Config {
 					Dst: "/data/data/org.chromium.Chromium", Write: true, Must: true},
 				{Src: "/dev/dri", Device: true},
 			},
-			Link:    [][2]string{{"/run/user/65534", "/run/user/150"}},
-			Etc:     "/etc",
-			AutoEtc: true,
-			Cover:   []string{"/var/run/nscd"},
+			Link:      [][2]string{{"/run/user/65534", "/run/user/150"}},
+			AutoRoot:  "/var/lib/hakurei/base/org.debian",
+			RootFlags: container.BindWritable,
+			Etc:       "/etc",
+			AutoEtc:   true,
+			Cover:     []string{"/var/run/nscd"},
 		},
 	}
 }

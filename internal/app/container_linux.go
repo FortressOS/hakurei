@@ -6,6 +6,7 @@ import (
 	"io/fs"
 	"maps"
 	"path"
+	"slices"
 	"syscall"
 
 	"hakurei.app/container"
@@ -21,7 +22,7 @@ const preallocateOpsCount = 1 << 5
 
 // newContainer initialises [container.Params] via [hst.ContainerConfig].
 // Note that remaining container setup must be queued by the caller.
-func newContainer(s *hst.ContainerConfig, os sys.State, uid, gid *int) (*container.Params, map[string]string, error) {
+func newContainer(s *hst.ContainerConfig, os sys.State, prefix string, uid, gid *int) (*container.Params, map[string]string, error) {
 	if s == nil {
 		return nil, nil, syscall.EBADE
 	}
@@ -72,6 +73,13 @@ func newContainer(s *hst.ContainerConfig, os sys.State, uid, gid *int) (*contain
 		*gid = container.OverflowGid()
 	}
 
+	if s.AutoRoot != "" {
+		if !path.IsAbs(s.AutoRoot) {
+			return nil, nil, fmt.Errorf("auto root target %q not absolute", s.AutoRoot)
+		}
+		params.Root(s.AutoRoot, prefix, s.RootFlags)
+	}
+
 	params.
 		Proc("/proc").
 		Tmpfs(hst.Tmp, 1<<12, 0755)
@@ -120,6 +128,28 @@ func newContainer(s *hst.ContainerConfig, os sys.State, uid, gid *int) (*contain
 			return nil, nil, err
 		}
 	}
+	// evaluated path, input path
+	hidePathSource := make([][2]string, 0, len(s.Filesystem))
+
+	// AutoRoot is a collection of many BindMountOp internally
+	if s.AutoRoot != "" {
+		if d, err := os.ReadDir(s.AutoRoot); err != nil {
+			return nil, nil, err
+		} else {
+			hidePathSource = slices.Grow(hidePathSource, len(d))
+			for _, ent := range d {
+				name := ent.Name()
+				if container.IsAutoRootBindable(name) {
+					name = path.Join(s.AutoRoot, name)
+					srcP := [2]string{name, name}
+					if err = evalSymlinks(os, &srcP[0]); err != nil {
+						return nil, nil, err
+					}
+					hidePathSource = append(hidePathSource, srcP)
+				}
+			}
+		}
+	}
 
 	for _, c := range s.Filesystem {
 		if c == nil {
@@ -137,24 +167,11 @@ func newContainer(s *hst.ContainerConfig, os sys.State, uid, gid *int) (*contain
 			return nil, nil, fmt.Errorf("dst path %q is not absolute", dest)
 		}
 
-		srcH := c.Src
-		if err := evalSymlinks(os, &srcH); err != nil {
+		p := [2]string{c.Src, c.Src}
+		if err := evalSymlinks(os, &p[0]); err != nil {
 			return nil, nil, err
 		}
-
-		for i := range hidePaths {
-			// skip matched entries
-			if hidePathMatch[i] {
-				continue
-			}
-
-			if ok, err := deepContainsH(srcH, hidePaths[i]); err != nil {
-				return nil, nil, err
-			} else if ok {
-				hidePathMatch[i] = true
-				os.Printf("hiding paths from %q", c.Src)
-			}
-		}
+		hidePathSource = append(hidePathSource, p)
 
 		var flags int
 		if c.Write {
@@ -169,6 +186,22 @@ func newContainer(s *hst.ContainerConfig, os sys.State, uid, gid *int) (*contain
 		params.Bind(c.Src, dest, flags)
 	}
 
+	for _, p := range hidePathSource {
+		for i := range hidePaths {
+			// skip matched entries
+			if hidePathMatch[i] {
+				continue
+			}
+
+			if ok, err := deepContainsH(p[0], hidePaths[i]); err != nil {
+				return nil, nil, err
+			} else if ok {
+				hidePathMatch[i] = true
+				os.Printf("hiding path %q from %q", hidePaths[i], p[1])
+			}
+		}
+	}
+
 	// cover matched paths
 	for i, ok := range hidePathMatch {
 		if ok {
@@ -178,6 +211,18 @@ func newContainer(s *hst.ContainerConfig, os sys.State, uid, gid *int) (*contain
 
 	for _, l := range s.Link {
 		params.Link(l[0], l[1])
+	}
+
+	if !s.AutoEtc {
+		if s.Etc != "" {
+			params.Bind(s.Etc, "/etc", 0)
+		}
+	} else {
+		etcPath := s.Etc
+		if etcPath == "" {
+			etcPath = "/etc"
+		}
+		params.Etc(etcPath, prefix)
 	}
 
 	return params, maps.Clone(s.Env), nil
