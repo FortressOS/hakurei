@@ -42,6 +42,7 @@ func Test_printShowInstance(t *testing.T) {
  Data:           /var/lib/hakurei/u0/org.chromium.Chromium
  Hostname:       localhost
  Flags:          userns devel net device tty mapuid autoetc
+ Root:           /var/lib/hakurei/base/org.debian (2)
  Etc:            /etc
  Cover:          /var/run/nscd
  Path:           /run/current-system/sw/bin/chromium
@@ -121,6 +122,7 @@ App
  Data:           /var/lib/hakurei/u0/org.chromium.Chromium
  Hostname:       localhost
  Flags:          userns devel net device tty mapuid autoetc
+ Root:           /var/lib/hakurei/base/org.debian (2)
  Etc:            /etc
  Cover:          /var/run/nscd
  Path:           /run/current-system/sw/bin/chromium

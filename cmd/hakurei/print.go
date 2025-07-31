@@ -104,6 +104,10 @@ func printShowInstance(
 		}
 		t.Printf(" Flags:\t%s\n", strings.Join(flags, " "))
 
+		if container.AutoRoot != "" {
+			t.Printf(" Root:\t%s (%d)\n", container.AutoRoot, container.RootFlags)
+		}
+
 		etc := container.Etc
 		if etc == "" {
 			etc = "/etc"
