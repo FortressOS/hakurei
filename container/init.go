@@ -121,6 +121,10 @@ func Init(prepare func(prefix string), setVerbose func(verbose bool)) {
 		log.Fatalf("cannot make / rslave: %v", err)
 	}
 
+	/* early is called right before pivot_root into intermediate root;
+	this step is mostly for gathering information that would otherwise be difficult to obtain
+	via library functions after pivot_root, and implementations are expected to avoid changing
+	the state of the mount namespace */
 	for i, op := range *params.Ops {
 		if op == nil {
 			log.Fatalf("invalid op %d", i)
@@ -159,6 +163,10 @@ func Init(prepare func(prefix string), setVerbose func(verbose bool)) {
 		log.Fatalf("%v", err)
 	}
 
+	/* apply is called right after pivot_root and entering the new root;
+	this step sets up the container filesystem, and implementations are expected to keep the host root
+	and sysroot mount points intact but otherwise can do whatever they need to;
+	chdir is allowed but discouraged */
 	for i, op := range *params.Ops {
 		// ops already checked during early setup
 		msg.Verbosef("%s %s", op.prefix(), op)
