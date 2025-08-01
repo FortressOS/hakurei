@@ -28,7 +28,9 @@ const (
 	ignore  = "\x00"
 	ignoreV = -1
 
-	pathWantMnt = "/etc/hakurei/want-mnt"
+	pathPrefix   = "/etc/hakurei/"
+	pathWantMnt  = pathPrefix + "want-mnt"
+	pathReadonly = pathPrefix + "readonly"
 )
 
 var containerTestCases = []struct {
@@ -62,7 +64,7 @@ var containerTestCases = []struct {
 		new(container.Ops).
 			Tmpfs(hst.Tmp, 0, 0755),
 		[]*vfs.MountInfoEntry{
-			ent("/", hst.Tmp, "rw,nosuid,nodev,relatime", "tmpfs", "tmpfs", ignore),
+			ent("/", hst.Tmp, "rw,nosuid,nodev,relatime", "tmpfs", "ephemeral", ignore),
 		},
 		9, 9, nil, 0, seccomp.PresetStrict},
 	{"dev", true, true /* go test output is not a tty */, false,
@@ -140,6 +142,7 @@ func TestContainer(t *testing.T) {
 			c.HostNet = tc.net
 
 			c.
+				Readonly(pathReadonly, 0755).
 				Tmpfs("/tmp", 0, 0755).
 				Place("/etc/hostname", []byte(c.Hostname))
 			// needs /proc to check mountinfo
@@ -158,8 +161,10 @@ func TestContainer(t *testing.T) {
 			}
 			mnt = append(mnt, tc.mnt...)
 			mnt = append(mnt,
+				// Readonly(pathReadonly, 0755)
+				ent("/", pathReadonly, "ro,nosuid,nodev", "tmpfs", "readonly", ignore),
 				// Tmpfs("/tmp", 0, 0755)
-				ent("/", "/tmp", "rw,nosuid,nodev,relatime", "tmpfs", "tmpfs", ignore),
+				ent("/", "/tmp", "rw,nosuid,nodev,relatime", "tmpfs", "ephemeral", ignore),
 				// Place("/etc/hostname", []byte(hostname))
 				ent(ignore, "/etc/hostname", "ro,nosuid,nodev,relatime", "tmpfs", "rootfs", ignore),
 				// Proc("/proc")
@@ -307,6 +312,10 @@ func init() {
 				return fmt.Errorf("cannot read /etc/hostname: %v", err)
 			} else if string(p) != wantHost {
 				return fmt.Errorf("/etc/hostname: %q, want %q", string(p), wantHost)
+			}
+
+			if _, err := os.Create(pathReadonly + "/nonexistent"); !errors.Is(err, syscall.EROFS) {
+				return err
 			}
 
 			{

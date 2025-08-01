@@ -170,7 +170,7 @@ func (d MountDevOp) apply(params *Params) error {
 	}
 	target := toSysroot(v)
 
-	if err := mountTmpfs("devtmpfs", v, 0, params.ParentPerm); err != nil {
+	if err := mountTmpfs("devtmpfs", v, MS_NOSUID|MS_NODEV, 0, params.ParentPerm); err != nil {
 		return err
 	}
 
@@ -280,14 +280,22 @@ func init() { gob.Register(new(MountTmpfsOp)) }
 
 // Tmpfs appends an [Op] that mounts tmpfs on container path [MountTmpfsOp.Path].
 func (f *Ops) Tmpfs(dest string, size int, perm os.FileMode) *Ops {
-	*f = append(*f, &MountTmpfsOp{dest, size, perm})
+	*f = append(*f, &MountTmpfsOp{"ephemeral", dest, MS_NOSUID | MS_NODEV, size, perm})
+	return f
+}
+
+// Readonly appends an [Op] that mounts read-only tmpfs on container path [MountTmpfsOp.Path].
+func (f *Ops) Readonly(dest string, perm os.FileMode) *Ops {
+	*f = append(*f, &MountTmpfsOp{"readonly", dest, MS_RDONLY | MS_NOSUID | MS_NODEV, 0, perm})
 	return f
 }
 
 type MountTmpfsOp struct {
-	Path string
-	Size int
-	Perm os.FileMode
+	FSName string
+	Path   string
+	Flags  uintptr
+	Size   int
+	Perm   os.FileMode
 }
 
 func (t *MountTmpfsOp) early(*Params) error { return nil }
@@ -298,7 +306,7 @@ func (t *MountTmpfsOp) apply(*Params) error {
 	if t.Size < 0 || t.Size > math.MaxUint>>1 {
 		return msg.WrapErr(EBADE, fmt.Sprintf("size %d out of bounds", t.Size))
 	}
-	return mountTmpfs("tmpfs", t.Path, t.Size, t.Perm)
+	return mountTmpfs(t.FSName, t.Path, t.Flags, t.Size, t.Perm)
 }
 
 func (t *MountTmpfsOp) Is(op Op) bool  { vt, ok := op.(*MountTmpfsOp); return ok && *t == *vt }

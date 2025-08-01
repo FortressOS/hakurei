@@ -229,7 +229,7 @@ in
     mount = [
       (ent "/sysroot" "/" "rw,nosuid,nodev,relatime" "tmpfs" "rootfs" "rw,uid=1000005,gid=1000005")
       (ent "/" "/proc" "rw,nosuid,nodev,noexec,relatime" "proc" "proc" "rw")
-      (ent "/" "/.hakurei" "rw,nosuid,nodev,relatime" "tmpfs" "tmpfs" "rw,size=4k,mode=755,uid=1000005,gid=1000005")
+      (ent "/" "/.hakurei" "rw,nosuid,nodev,relatime" "tmpfs" "ephemeral" "rw,size=4k,mode=755,uid=1000005,gid=1000005")
       (ent "/" "/dev" "rw,nosuid,nodev,relatime" "tmpfs" "devtmpfs" "rw,mode=755,uid=1000005,gid=1000005")
       (ent "/null" "/dev/null" "rw,nosuid" "devtmpfs" "devtmpfs" ignore)
       (ent "/zero" "/dev/zero" "rw,nosuid" "devtmpfs" "devtmpfs" ignore)
@@ -250,7 +250,7 @@ in
       (ent "/devices" "/sys/devices" "ro,nosuid,nodev,noexec,relatime" "sysfs" "sysfs" "rw")
       (ent "/dri" "/dev/dri" "rw,nosuid" "devtmpfs" "devtmpfs" ignore)
       (ent "/etc" ignore "ro,nosuid,nodev,relatime" "ext4" "/dev/disk/by-label/nixos" "rw")
-      (ent "/" "/run/user" "rw,nosuid,nodev,relatime" "tmpfs" "tmpfs" "rw,size=4k,mode=755,uid=1000005,gid=1000005")
+      (ent "/" "/run/user" "rw,nosuid,nodev,relatime" "tmpfs" "ephemeral" "rw,size=4k,mode=755,uid=1000005,gid=1000005")
       (ent "/tmp/hakurei.1000/runtime/5" "/run/user/65534" "rw,nosuid,nodev,relatime" "ext4" "/dev/disk/by-label/nixos" "rw")
       (ent "/tmp/hakurei.1000/tmpdir/5" "/tmp" "rw,nosuid,nodev,relatime" "ext4" "/dev/disk/by-label/nixos" "rw")
       (ent "/var/lib/hakurei/u0/a5" "/var/lib/hakurei/u0/a5" "rw,nosuid,nodev,relatime" "ext4" "/dev/disk/by-label/nixos" "rw")
@@ -259,7 +259,7 @@ in
       (ent ignore "/run/user/65534/wayland-0" "ro,nosuid,nodev,relatime" "ext4" "/dev/disk/by-label/nixos" "rw")
       (ent ignore "/run/user/65534/pulse/native" "ro,nosuid,nodev,relatime" "tmpfs" "tmpfs" ignore)
       (ent ignore "/run/user/65534/bus" "ro,nosuid,nodev,relatime" "ext4" "/dev/disk/by-label/nixos" "rw")
-      (ent "/" "/var/run/nscd" "rw,nosuid,nodev,relatime" "tmpfs" "tmpfs" "rw,size=8k,mode=755,uid=1000005,gid=1000005")
+      (ent "/" "/var/run/nscd" "rw,nosuid,nodev,relatime" "tmpfs" "ephemeral" "rw,size=8k,mode=755,uid=1000005,gid=1000005")
     ];
 
     seccomp = true;
