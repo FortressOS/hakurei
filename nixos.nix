@@ -175,7 +175,6 @@ in
                         ++ optionals app.useCommonPaths cfg.commonPaths
                         ++ app.extraPaths;
                       auto_etc = true;
-                      cover = [ "/var/run/nscd" ];
 
                       symlink = [
                         [

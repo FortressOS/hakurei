@@ -222,7 +222,6 @@ in
             } null;
           } null;
         } null;
-        run = fs "800001ed" { nscd = fs "800001ed" { } null; } null;
         cache = fs "800001ed" { private = fs "800001c0" null null; } null;
       } null;
     } null;
@@ -261,7 +260,6 @@ in
       (ent ignore "/run/user/65534/wayland-0" "ro,nosuid,nodev,relatime" "ext4" "/dev/disk/by-label/nixos" "rw")
       (ent ignore "/run/user/65534/pulse/native" "ro,nosuid,nodev,relatime" "tmpfs" "tmpfs" ignore)
       (ent ignore "/run/user/65534/bus" "ro,nosuid,nodev,relatime" "ext4" "/dev/disk/by-label/nixos" "rw")
-      (ent "/" "/var/run/nscd" "rw,nosuid,nodev,relatime" "tmpfs" "ephemeral" "rw,size=8k,mode=755,uid=1000002,gid=1000002")
     ];
 
     seccomp = true;
