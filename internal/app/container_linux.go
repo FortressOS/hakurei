@@ -156,6 +156,20 @@ func newContainer(s *hst.ContainerConfig, os sys.State, prefix string, uid, gid 
 			continue
 		}
 
+		// special filesystems
+		switch c.Src {
+		case hst.SourceTmpfs:
+			if !path.IsAbs(c.Dst) {
+				return nil, nil, fmt.Errorf("tmpfs dst %q is not absolute", c.Dst)
+			}
+			if c.Write {
+				params.Tmpfs(c.Dst, hst.TmpfsSize, hst.TmpfsPerm)
+			} else {
+				params.Readonly(c.Dst, hst.TmpfsPerm)
+			}
+			continue
+		}
+
 		if !path.IsAbs(c.Src) {
 			return nil, nil, fmt.Errorf("src path %q is not absolute", c.Src)
 		}

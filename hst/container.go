@@ -6,6 +6,20 @@ import (
 	"hakurei.app/container/seccomp"
 )
 
+const (
+	// SourceTmpfs causes tmpfs to be mounted on [FilesystemConfig.Dst]
+	// when assigned to [FilesystemConfig.Src].
+	SourceTmpfs = "tmpfs"
+
+	// TmpfsPerm is the permission bits for tmpfs mount points
+	// configured through [FilesystemConfig].
+	TmpfsPerm = 0755
+
+	// TmpfsSize is the size for tmpfs mount points
+	// configured through [FilesystemConfig].
+	TmpfsSize = 0
+)
+
 type (
 	// ContainerConfig describes the container configuration baseline to which the app implementation adds upon.
 	ContainerConfig struct {

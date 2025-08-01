@@ -47,6 +47,7 @@ var testCasesPd = []sealTestCase{
 				Tmpfs(hst.Tmp, 4096, 0755).
 				Dev("/dev").Mqueue("/dev/mqueue").
 				Bind("/dev/kvm", "/dev/kvm", container.BindWritable|container.BindDevice|container.BindOptional).
+				Readonly("/var/run/nscd", 0755).
 				Tmpfs("/run/user/1971", 8192, 0755).
 				Tmpfs("/run/dbus", 8192, 0755).
 				Etc("/etc", "4a450b6596d7bc15bd01780eb9a607ac").
@@ -55,8 +56,7 @@ var testCasesPd = []sealTestCase{
 				Bind("/tmp/hakurei.1971/tmpdir/0", "/tmp", container.BindWritable).
 				Bind("/home/chronos", "/home/chronos", container.BindWritable).
 				Place("/etc/passwd", []byte("chronos:x:65534:65534:Hakurei:/home/chronos:/run/current-system/sw/bin/zsh\n")).
-				Place("/etc/group", []byte("hakurei:x:65534:\n")).
-				Tmpfs("/var/run/nscd", 8192, 0755),
+				Place("/etc/group", []byte("hakurei:x:65534:\n")),
 			SeccompPresets: seccomp.PresetExt | seccomp.PresetDenyDevel,
 			HostNet:        true,
 			RetainSession:  true,
@@ -181,6 +181,7 @@ var testCasesPd = []sealTestCase{
 				Dev("/dev").Mqueue("/dev/mqueue").
 				Bind("/dev/dri", "/dev/dri", container.BindWritable|container.BindDevice|container.BindOptional).
 				Bind("/dev/kvm", "/dev/kvm", container.BindWritable|container.BindDevice|container.BindOptional).
+				Readonly("/var/run/nscd", 0755).
 				Tmpfs("/run/user/1971", 8192, 0755).
 				Tmpfs("/run/dbus", 8192, 0755).
 				Etc("/etc", "ebf083d1b175911782d413369b64ce7c").
@@ -194,8 +195,7 @@ var testCasesPd = []sealTestCase{
 				Bind("/run/user/1971/hakurei/ebf083d1b175911782d413369b64ce7c/pulse", "/run/user/65534/pulse/native", 0).
 				Place(hst.Tmp+"/pulse-cookie", nil).
 				Bind("/tmp/hakurei.1971/ebf083d1b175911782d413369b64ce7c/bus", "/run/user/65534/bus", 0).
-				Bind("/tmp/hakurei.1971/ebf083d1b175911782d413369b64ce7c/system_bus_socket", "/run/dbus/system_bus_socket", 0).
-				Tmpfs("/var/run/nscd", 8192, 0755),
+				Bind("/tmp/hakurei.1971/ebf083d1b175911782d413369b64ce7c/system_bus_socket", "/run/dbus/system_bus_socket", 0),
 			SeccompPresets: seccomp.PresetExt | seccomp.PresetDenyDevel,
 			HostNet:        true,
 			RetainSession:  true,

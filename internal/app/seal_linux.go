@@ -246,17 +246,18 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 			RootFlags: container.BindWritable,
 		}
 
-		// hide nscd from sandbox if present
-		nscd := "/var/run/nscd"
-		if _, err := sys.Stat(nscd); !errors.Is(err, fs.ErrNotExist) {
-			conf.Cover = append(conf.Cover, nscd)
-		}
 		// bind GPU stuff
 		if config.Enablements&(system.EX11|system.EWayland) != 0 {
 			conf.Filesystem = append(conf.Filesystem, &hst.FilesystemConfig{Src: "/dev/dri", Device: true})
 		}
 		// opportunistically bind kvm
 		conf.Filesystem = append(conf.Filesystem, &hst.FilesystemConfig{Src: "/dev/kvm", Device: true})
+
+		// hide nscd from container if present
+		const nscd = "/var/run/nscd"
+		if _, err := sys.Stat(nscd); !errors.Is(err, fs.ErrNotExist) {
+			conf.Filesystem = append(conf.Filesystem, &hst.FilesystemConfig{Dst: nscd, Src: hst.SourceTmpfs})
+		}
 
 		config.Container = conf
 	}
