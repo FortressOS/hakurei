@@ -38,6 +38,7 @@ var containerTestCases = []struct {
 	filter  bool
 	session bool
 	net     bool
+	ro      bool
 	ops     *container.Ops
 
 	mnt []*vfs.MountInfoEntry
@@ -48,26 +49,26 @@ var containerTestCases = []struct {
 	flags   seccomp.ExportFlag
 	presets seccomp.FilterPreset
 }{
-	{"minimal", true, false, false,
+	{"minimal", true, false, false, true,
 		new(container.Ops), nil,
 		1000, 100, nil, 0, seccomp.PresetStrict},
-	{"allow", true, true, true,
+	{"allow", true, true, true, false,
 		new(container.Ops), nil,
 		1000, 100, nil, 0, seccomp.PresetExt | seccomp.PresetDenyDevel},
-	{"no filter", false, true, true,
+	{"no filter", false, true, true, true,
 		new(container.Ops), nil,
 		1000, 100, nil, 0, seccomp.PresetExt},
-	{"custom rules", true, true, true,
+	{"custom rules", true, true, true, false,
 		new(container.Ops), nil,
 		1, 31, []seccomp.NativeRule{{seccomp.ScmpSyscall(syscall.SYS_SETUID), seccomp.ScmpErrno(syscall.EPERM), nil}}, 0, seccomp.PresetExt},
-	{"tmpfs", true, false, false,
+	{"tmpfs", true, false, false, true,
 		new(container.Ops).
 			Tmpfs(hst.Tmp, 0, 0755),
 		[]*vfs.MountInfoEntry{
 			ent("/", hst.Tmp, "rw,nosuid,nodev,relatime", "tmpfs", "ephemeral", ignore),
 		},
 		9, 9, nil, 0, seccomp.PresetStrict},
-	{"dev", true, true /* go test output is not a tty */, false,
+	{"dev", true, true /* go test output is not a tty */, false, false,
 		new(container.Ops).
 			Dev("/dev").
 			Mqueue("/dev/mqueue"),
@@ -177,6 +178,10 @@ func TestContainer(t *testing.T) {
 				t.Fatalf("cannot serialise expected mount points: %v", err)
 			}
 			c.Place(pathWantMnt, want.Bytes())
+
+			if tc.ro {
+				c.Remount("/", syscall.MS_RDONLY)
+			}
 
 			if err := c.Start(); err != nil {
 				hlog.PrintBaseError(err, "start:")
@@ -328,6 +333,11 @@ func init() {
 					return fmt.Errorf("cannot parse expected mount points: %v", err)
 				} else if err = f.Close(); err != nil {
 					return fmt.Errorf("cannot close expected mount points: %v", err)
+				}
+
+				if tc.ro && len(mnt) > 0 {
+					// Remount("/", syscall.MS_RDONLY)
+					mnt[0].VfsOptstr = "ro,nosuid,nodev"
 				}
 
 				var d *vfs.MountInfoDecoder

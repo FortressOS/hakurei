@@ -33,6 +33,32 @@ type (
 // Grow grows the slice Ops points to using [slices.Grow].
 func (f *Ops) Grow(n int) { *f = slices.Grow(*f, n) }
 
+func init() { gob.Register(new(RemountOp)) }
+
+// Remount appends an [Op] that applies [RemountOp.Flags] on container path [RemountOp.Target].
+func (f *Ops) Remount(target string, flags uintptr) *Ops {
+	*f = append(*f, &RemountOp{target, flags})
+	return f
+}
+
+type RemountOp struct {
+	Target string
+	Flags  uintptr
+}
+
+func (*RemountOp) early(*Params) error { return nil }
+func (r *RemountOp) apply(*Params) error {
+	if !path.IsAbs(r.Target) {
+		return msg.WrapErr(EBADE, fmt.Sprintf("path %q is not absolute", r.Target))
+	}
+	return wrapErrSuffix(hostProc.remount(toSysroot(r.Target), r.Flags),
+		fmt.Sprintf("cannot remount %q:", r.Target))
+}
+
+func (r *RemountOp) Is(op Op) bool  { vr, ok := op.(*RemountOp); return ok && *r == *vr }
+func (*RemountOp) prefix() string   { return "remounting" }
+func (r *RemountOp) String() string { return fmt.Sprintf("%q flags %#x", r.Target, r.Flags) }
+
 func init() { gob.Register(new(BindMountOp)) }
 
 // Bind appends an [Op] that bind mounts host path [BindMountOp.Source] on container path [BindMountOp.Target].
