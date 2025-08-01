@@ -10,6 +10,7 @@ import (
 	"hakurei.app/container/vfs"
 )
 
+// bindMount mounts source on target and recursively applies flags if MS_REC is set.
 func (p *procPaths) bindMount(source, target string, flags uintptr, eq bool) error {
 	if eq {
 		msg.Verbosef("resolved %q flags %#x", target, flags)
@@ -22,6 +23,11 @@ func (p *procPaths) bindMount(source, target string, flags uintptr, eq bool) err
 			fmt.Sprintf("cannot mount %q on %q:", source, target))
 	}
 
+	return p.remount(target, flags)
+}
+
+// remount applies flags on target, recursively if MS_REC is set.
+func (p *procPaths) remount(target string, flags uintptr) error {
 	var targetFinal string
 	if v, err := filepath.EvalSymlinks(target); err != nil {
 		return wrapErrSelf(err)
@@ -83,6 +89,7 @@ func (p *procPaths) bindMount(source, target string, flags uintptr, eq bool) err
 	})
 }
 
+// remountWithFlags remounts mount point described by [vfs.MountInfoNode].
 func remountWithFlags(n *vfs.MountInfoNode, mf uintptr) error {
 	kf, unmatched := n.Flags()
 	if len(unmatched) != 0 {
