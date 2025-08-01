@@ -200,7 +200,7 @@ in
     } null;
 
     mount = [
-      (ent "/sysroot" "/" "rw,nosuid,nodev,relatime" "tmpfs" "rootfs" "rw,uid=1000004,gid=1000004")
+      (ent "/sysroot" "/" "ro,nosuid,nodev,relatime" "tmpfs" "rootfs" "rw,uid=1000004,gid=1000004")
       (ent "/" "/proc" "rw,nosuid,nodev,noexec,relatime" "proc" "proc" "rw")
       (ent "/" "/.hakurei" "rw,nosuid,nodev,relatime" "tmpfs" "ephemeral" "rw,size=4k,mode=755,uid=1000004,gid=1000004")
       (ent "/" "/dev" "rw,nosuid" "devtmpfs" "devtmpfs" ignore)

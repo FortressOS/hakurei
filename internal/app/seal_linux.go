@@ -478,6 +478,9 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 		seal.container.Tmpfs(dest, 1<<13, 0755)
 	}
 
+	// mount root read-only as the final setup Op
+	seal.container.Remount("/", syscall.MS_RDONLY)
+
 	// append ExtraPerms last
 	for _, p := range config.ExtraPerms {
 		if p == nil {

@@ -138,7 +138,7 @@
     } null;
 
     mount = [
-      (ent "/sysroot" "/" "rw,nosuid,nodev,relatime" "tmpfs" "rootfs" "rw,uid=1000000,gid=1000000")
+      (ent "/sysroot" "/" "ro,nosuid,nodev,relatime" "tmpfs" "rootfs" "rw,uid=1000000,gid=1000000")
       (ent "/bin" "/bin" "rw,nosuid,nodev,relatime" "ext4" "/dev/disk/by-label/nixos" "rw")
       (ent "/home" "/home" "rw,nosuid,nodev,relatime" "ext4" "/dev/disk/by-label/nixos" "rw")
       (ent "/lib64" "/lib64" "rw,nosuid,nodev,relatime" "ext4" "/dev/disk/by-label/nixos" "rw")
