@@ -114,10 +114,6 @@ func printShowInstance(
 		}
 		t.Printf(" Etc:\t%s\n", etc)
 
-		if len(container.Cover) > 0 {
-			t.Printf(" Cover:\t%s\n", strings.Join(container.Cover, " "))
-		}
-
 		t.Printf(" Path:\t%s\n", config.Path)
 	}
 	if len(config.Args) > 0 {

@@ -40,7 +40,7 @@ func newContainer(s *hst.ContainerConfig, os sys.State, prefix string, uid, gid 
 	}
 
 	{
-		ops := make(container.Ops, 0, preallocateOpsCount+len(s.Filesystem)+len(s.Link)+len(s.Cover))
+		ops := make(container.Ops, 0, preallocateOpsCount+len(s.Filesystem)+len(s.Link))
 		params.Ops = &ops
 	}
 

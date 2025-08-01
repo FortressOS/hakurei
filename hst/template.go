@@ -78,6 +78,7 @@ func Template() *Config {
 				"GOOGLE_DEFAULT_CLIENT_SECRET": "OTJgUOQcT7lO7GsGZq2G4IlT",
 			},
 			Filesystem: []*FilesystemConfig{
+				{Dst: "/tmp", Src: SourceTmpfs, Write: true},
 				{Src: "/nix/store"},
 				{Src: "/run/current-system"},
 				{Src: "/run/opengl-driver"},
@@ -91,7 +92,6 @@ func Template() *Config {
 			RootFlags: container.BindWritable,
 			Etc:       "/etc",
 			AutoEtc:   true,
-			Cover:     []string{"/var/run/nscd"},
 		},
 	}
 }

@@ -44,11 +44,11 @@ func Test_printShowInstance(t *testing.T) {
  Flags:          userns devel net device tty mapuid autoetc
  Root:           /var/lib/hakurei/base/org.debian (2)
  Etc:            /etc
- Cover:          /var/run/nscd
  Path:           /run/current-system/sw/bin/chromium
  Arguments:      chromium --ignore-gpu-blocklist --disable-smooth-scrolling --enable-features=UseOzonePlatform --ozone-platform=wayland
 
 Filesystem
+ w+tmpfs:/tmp
  +/nix/store
  +/run/current-system
  +/run/opengl-driver
@@ -124,11 +124,11 @@ App
  Flags:          userns devel net device tty mapuid autoetc
  Root:           /var/lib/hakurei/base/org.debian (2)
  Etc:            /etc
- Cover:          /var/run/nscd
  Path:           /run/current-system/sw/bin/chromium
  Arguments:      chromium --ignore-gpu-blocklist --disable-smooth-scrolling --enable-features=UseOzonePlatform --ozone-platform=wayland
 
 Filesystem
+ w+tmpfs:/tmp
  +/nix/store
  +/run/current-system
  +/run/opengl-driver
@@ -276,6 +276,11 @@ App
       "device": true,
       "filesystem": [
         {
+          "dst": "/tmp",
+          "src": "tmpfs",
+          "write": true
+        },
+        {
           "src": "/nix/store"
         },
         {
@@ -307,10 +312,7 @@ App
       "auto_root": "/var/lib/hakurei/base/org.debian",
       "root_flags": 2,
       "etc": "/etc",
-      "auto_etc": true,
-      "cover": [
-        "/var/run/nscd"
-      ]
+      "auto_etc": true
     }
   },
   "time": "1970-01-01T00:00:00.000000009Z"
@@ -406,6 +408,11 @@ App
     "device": true,
     "filesystem": [
       {
+        "dst": "/tmp",
+        "src": "tmpfs",
+        "write": true
+      },
+      {
         "src": "/nix/store"
       },
       {
@@ -437,10 +444,7 @@ App
     "auto_root": "/var/lib/hakurei/base/org.debian",
     "root_flags": 2,
     "etc": "/etc",
-    "auto_etc": true,
-    "cover": [
-      "/var/run/nscd"
-    ]
+    "auto_etc": true
   }
 }
 `},
@@ -590,6 +594,11 @@ func Test_printPs(t *testing.T) {
         "device": true,
         "filesystem": [
           {
+            "dst": "/tmp",
+            "src": "tmpfs",
+            "write": true
+          },
+          {
             "src": "/nix/store"
           },
           {
@@ -621,10 +630,7 @@ func Test_printPs(t *testing.T) {
         "auto_root": "/var/lib/hakurei/base/org.debian",
         "root_flags": 2,
         "etc": "/etc",
-        "auto_etc": true,
-        "cover": [
-          "/var/run/nscd"
-        ]
+        "auto_etc": true
       }
     },
     "time": "1970-01-01T00:00:00.000000009Z"

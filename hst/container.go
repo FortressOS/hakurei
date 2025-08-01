@@ -69,9 +69,6 @@ type (
 		Etc string `json:"etc,omitempty"`
 		// automatically set up /etc symlinks
 		AutoEtc bool `json:"auto_etc"`
-
-		// cover these paths or create them if they do not already exist
-		Cover []string `json:"cover"`
 	}
 
 	// FilesystemConfig is an abstract representation of a bind mount.

@@ -28,7 +28,6 @@ var testCasesNixos = []sealTestCase{
 					{Src: "/sys/block"}, {Src: "/sys/bus"}, {Src: "/sys/class"}, {Src: "/sys/dev"}, {Src: "/sys/devices"},
 					{Src: "/run/opengl-driver", Must: true}, {Src: "/dev/dri", Device: true},
 				},
-				Cover: []string{"/var/run/nscd"},
 			},
 			SystemBus: &dbus.Config{
 				Talk:   []string{"org.bluez", "org.freedesktop.Avahi", "org.freedesktop.UPower"},
@@ -143,7 +142,6 @@ var testCasesNixos = []sealTestCase{
 				Place(hst.Tmp+"/pulse-cookie", nil).
 				Bind("/tmp/hakurei.1971/8e2c76b066dabe574cf073bdb46eb5c1/bus", "/run/user/1971/bus", 0).
 				Bind("/tmp/hakurei.1971/8e2c76b066dabe574cf073bdb46eb5c1/system_bus_socket", "/run/dbus/system_bus_socket", 0).
-				Tmpfs("/var/run/nscd", 8192, 0755).
 				Remount("/", syscall.MS_RDONLY),
 			SeccompPresets: seccomp.PresetExt | seccomp.PresetDenyTTY | seccomp.PresetDenyDevel,
 			HostNet:        true,

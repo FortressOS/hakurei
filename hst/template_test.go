@@ -98,6 +98,11 @@ func TestTemplate(t *testing.T) {
 		"device": true,
 		"filesystem": [
 			{
+				"dst": "/tmp",
+				"src": "tmpfs",
+				"write": true
+			},
+			{
 				"src": "/nix/store"
 			},
 			{
@@ -129,10 +134,7 @@ func TestTemplate(t *testing.T) {
 		"auto_root": "/var/lib/hakurei/base/org.debian",
 		"root_flags": 2,
 		"etc": "/etc",
-		"auto_etc": true,
-		"cover": [
-			"/var/run/nscd"
-		]
+		"auto_etc": true
 	}
 }`
 
