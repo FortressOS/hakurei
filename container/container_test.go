@@ -61,6 +61,7 @@ var containerTestCases = []struct {
 	{"custom rules", true, true, true, false,
 		new(container.Ops), nil,
 		1, 31, []seccomp.NativeRule{{seccomp.ScmpSyscall(syscall.SYS_SETUID), seccomp.ScmpErrno(syscall.EPERM), nil}}, 0, seccomp.PresetExt},
+
 	{"tmpfs", true, false, false, true,
 		new(container.Ops).
 			Tmpfs(hst.Tmp, 0, 0755),
@@ -68,6 +69,7 @@ var containerTestCases = []struct {
 			ent("/", hst.Tmp, "rw,nosuid,nodev,relatime", "tmpfs", "ephemeral", ignore),
 		},
 		9, 9, nil, 0, seccomp.PresetStrict},
+
 	{"dev", true, true /* go test output is not a tty */, false, false,
 		new(container.Ops).
 			Dev("/dev").

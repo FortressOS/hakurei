@@ -113,11 +113,6 @@ func (p *Container) Start() error {
 	ctx, cancel := context.WithCancel(p.ctx)
 	p.cancel = cancel
 
-	var cloneFlags uintptr = CLONE_NEWIPC | CLONE_NEWUTS | CLONE_NEWCGROUP
-	if !p.HostNet {
-		cloneFlags |= CLONE_NEWNET
-	}
-
 	// map to overflow id to work around ownership checks
 	if p.Uid < 1 {
 		p.Uid = OverflowUid()
@@ -149,9 +144,10 @@ func (p *Container) Start() error {
 	}
 	p.cmd.Dir = "/"
 	p.cmd.SysProcAttr = &SysProcAttr{
-		Setsid:     !p.RetainSession,
-		Pdeathsig:  SIGKILL,
-		Cloneflags: cloneFlags | CLONE_NEWUSER | CLONE_NEWPID | CLONE_NEWNS,
+		Setsid:    !p.RetainSession,
+		Pdeathsig: SIGKILL,
+		Cloneflags: CLONE_NEWUSER | CLONE_NEWPID | CLONE_NEWNS |
+			CLONE_NEWIPC | CLONE_NEWUTS | CLONE_NEWCGROUP,
 
 		// remain privileged for setup
 		AmbientCaps: []uintptr{CAP_SYS_ADMIN, CAP_SETPCAP},
@@ -160,6 +156,9 @@ func (p *Container) Start() error {
 	}
 	if p.cmd.SysProcAttr.UseCgroupFD {
 		p.cmd.SysProcAttr.CgroupFD = *p.Cgroup
+	}
+	if !p.HostNet {
+		p.cmd.SysProcAttr.Cloneflags |= CLONE_NEWNET
 	}
 
 	// place setup pipe before user supplied extra files, this is later restored by init
