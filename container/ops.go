@@ -169,7 +169,7 @@ func (p MountProcOp) apply(params *Params) error {
 	if err := os.MkdirAll(target, params.ParentPerm); err != nil {
 		return wrapErrSelf(err)
 	}
-	return wrapErrSuffix(Mount("proc", target, "proc", MS_NOSUID|MS_NOEXEC|MS_NODEV, ""),
+	return wrapErrSuffix(Mount(SourceProc, target, FstypeProc, MS_NOSUID|MS_NOEXEC|MS_NODEV, zeroString),
 		fmt.Sprintf("cannot mount proc on %q:", v))
 }
 
@@ -196,7 +196,7 @@ func (d MountDevOp) apply(params *Params) error {
 	}
 	target := toSysroot(v)
 
-	if err := mountTmpfs("devtmpfs", v, MS_NOSUID|MS_NODEV, 0, params.ParentPerm); err != nil {
+	if err := mountTmpfs(SourceTmpfsDevtmpfs, v, MS_NOSUID|MS_NODEV, 0, params.ParentPerm); err != nil {
 		return err
 	}
 
@@ -239,7 +239,7 @@ func (d MountDevOp) apply(params *Params) error {
 		}
 	}
 
-	if err := Mount("devpts", devPtsPath, "devpts", MS_NOSUID|MS_NOEXEC,
+	if err := Mount(SourceDevpts, devPtsPath, FstypeDevpts, MS_NOSUID|MS_NOEXEC,
 		"newinstance,ptmxmode=0666,mode=620"); err != nil {
 		return wrapErrSuffix(err,
 			fmt.Sprintf("cannot mount devpts on %q:", devPtsPath))
@@ -294,7 +294,7 @@ func (m MountMqueueOp) apply(params *Params) error {
 	if err := os.MkdirAll(target, params.ParentPerm); err != nil {
 		return wrapErrSelf(err)
 	}
-	return wrapErrSuffix(Mount("mqueue", target, "mqueue", MS_NOSUID|MS_NOEXEC|MS_NODEV, ""),
+	return wrapErrSuffix(Mount(SourceMqueue, target, FstypeMqueue, MS_NOSUID|MS_NOEXEC|MS_NODEV, zeroString),
 		fmt.Sprintf("cannot mount mqueue on %q:", v))
 }
 
@@ -306,13 +306,13 @@ func init() { gob.Register(new(MountTmpfsOp)) }
 
 // Tmpfs appends an [Op] that mounts tmpfs on container path [MountTmpfsOp.Path].
 func (f *Ops) Tmpfs(dest string, size int, perm os.FileMode) *Ops {
-	*f = append(*f, &MountTmpfsOp{"ephemeral", dest, MS_NOSUID | MS_NODEV, size, perm})
+	*f = append(*f, &MountTmpfsOp{SourceTmpfsEphemeral, dest, MS_NOSUID | MS_NODEV, size, perm})
 	return f
 }
 
 // Readonly appends an [Op] that mounts read-only tmpfs on container path [MountTmpfsOp.Path].
 func (f *Ops) Readonly(dest string, perm os.FileMode) *Ops {
-	*f = append(*f, &MountTmpfsOp{"readonly", dest, MS_RDONLY | MS_NOSUID | MS_NODEV, 0, perm})
+	*f = append(*f, &MountTmpfsOp{SourceTmpfsReadonly, dest, MS_RDONLY | MS_NOSUID | MS_NODEV, 0, perm})
 	return f
 }
 

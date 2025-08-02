@@ -10,6 +10,61 @@ import (
 	"hakurei.app/container/vfs"
 )
 
+/*
+Holding CAP_SYS_ADMIN within the user namespace that owns a process's mount namespace
+allows that process to create bind mounts and mount the following types of filesystems:
+- /proc (since Linux 3.8)
+- /sys (since Linux 3.8)
+- devpts (since Linux 3.9)
+- tmpfs(5) (since Linux 3.9)
+- ramfs (since Linux 3.9)
+- mqueue (since Linux 3.9)
+- bpf (since Linux 4.4)
+- overlayfs (since Linux 5.11)
+*/
+
+const (
+	// zeroString is a zero value string, it represents NULL when passed to mount.
+	zeroString = ""
+
+	// SourceNone is used when the source value is ignored,
+	// such as when remounting.
+	SourceNone = "none"
+	// SourceProc is used when mounting proc.
+	// Note that any source value is allowed when fstype is [FstypeProc].
+	SourceProc = "proc"
+	// SourceDevpts is used when mounting devpts.
+	// Note that any source value is allowed when fstype is [FstypeDevpts].
+	SourceDevpts = "devpts"
+	// SourceMqueue is used when mounting mqueue.
+	// Note that any source value is allowed when fstype is [FstypeMqueue].
+	SourceMqueue = "mqueue"
+
+	// SourceTmpfsDevtmpfs is used when mounting tmpfs representing a subset of host devtmpfs.
+	SourceTmpfsDevtmpfs = "devtmpfs"
+	// SourceTmpfsEphemeral is used when mounting a writable instance of tmpfs.
+	SourceTmpfsEphemeral = "ephemeral"
+	// SourceTmpfsReadonly is used when mounting a readonly instance of tmpfs.
+	SourceTmpfsReadonly = "readonly"
+
+	// FstypeNULL is used when the fstype value is ignored,
+	// such as when bind mounting or remounting.
+	FstypeNULL = zeroString
+	// FstypeProc represents the proc pseudo-filesystem.
+	// A fully visible instance of proc must be available in the mount namespace for proc to be mounted.
+	// This filesystem type is usually mounted on /proc.
+	FstypeProc = "proc"
+	// FstypeDevpts represents the devpts pseudo-filesystem.
+	// This type of filesystem is usually mounted on /dev/pts.
+	FstypeDevpts = "devpts"
+	// FstypeTmpfs represents the tmpfs filesystem.
+	// This filesystem type can be mounted anywhere in the container filesystem.
+	FstypeTmpfs = "tmpfs"
+	// FstypeMqueue represents the mqueue pseudo-filesystem.
+	// This filesystem type is usually mounted on /dev/mqueue.
+	FstypeMqueue = "mqueue"
+)
+
 // bindMount mounts source on target and recursively applies flags if MS_REC is set.
 func (p *procPaths) bindMount(source, target string, flags uintptr, eq bool) error {
 	if eq {
@@ -18,7 +73,7 @@ func (p *procPaths) bindMount(source, target string, flags uintptr, eq bool) err
 		msg.Verbosef("resolved %q on %q flags %#x", source, target, flags)
 	}
 
-	if err := Mount(source, target, "", MS_SILENT|MS_BIND|flags&MS_REC, ""); err != nil {
+	if err := Mount(source, target, FstypeNULL, MS_SILENT|MS_BIND|flags&MS_REC, zeroString); err != nil {
 		return wrapErrSuffix(err,
 			fmt.Sprintf("cannot mount %q on %q:", source, target))
 	}
@@ -98,7 +153,7 @@ func remountWithFlags(n *vfs.MountInfoNode, mf uintptr) error {
 
 	if kf&mf != mf {
 		return wrapErrSuffix(
-			Mount("none", n.Clean, "", MS_SILENT|MS_BIND|MS_REMOUNT|kf|mf, ""),
+			Mount(SourceNone, n.Clean, FstypeNULL, MS_SILENT|MS_BIND|MS_REMOUNT|kf|mf, zeroString),
 			fmt.Sprintf("cannot remount %q:", n.Clean))
 	}
 	return nil
@@ -114,7 +169,7 @@ func mountTmpfs(fsname, name string, flags uintptr, size int, perm os.FileMode) 
 		opt += fmt.Sprintf(",size=%d", size)
 	}
 	return wrapErrSuffix(
-		Mount(fsname, target, "tmpfs", flags, opt),
+		Mount(fsname, target, FstypeTmpfs, flags, opt),
 		fmt.Sprintf("cannot mount tmpfs on %q:", name))
 }
 
