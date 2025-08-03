@@ -190,13 +190,12 @@ type MountDevOp string
 func (d MountDevOp) early(*Params) error { return nil }
 func (d MountDevOp) apply(params *Params) error {
 	v := string(d)
-
 	if !path.IsAbs(v) {
 		return msg.WrapErr(EBADE, fmt.Sprintf("path %q is not absolute", v))
 	}
 	target := toSysroot(v)
 
-	if err := mountTmpfs(SourceTmpfsDevtmpfs, v, MS_NOSUID|MS_NODEV, 0, params.ParentPerm); err != nil {
+	if err := mountTmpfs(SourceTmpfsDevtmpfs, target, MS_NOSUID|MS_NODEV, 0, params.ParentPerm); err != nil {
 		return err
 	}
 
@@ -332,7 +331,7 @@ func (t *MountTmpfsOp) apply(*Params) error {
 	if t.Size < 0 || t.Size > math.MaxUint>>1 {
 		return msg.WrapErr(EBADE, fmt.Sprintf("size %d out of bounds", t.Size))
 	}
-	return mountTmpfs(t.FSName, t.Path, t.Flags, t.Size, t.Perm)
+	return mountTmpfs(t.FSName, toSysroot(t.Path), t.Flags, t.Size, t.Perm)
 }
 
 func (t *MountTmpfsOp) Is(op Op) bool  { vt, ok := op.(*MountTmpfsOp); return ok && *t == *vt }

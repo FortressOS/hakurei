@@ -160,8 +160,9 @@ func remountWithFlags(n *vfs.MountInfoNode, mf uintptr) error {
 	return nil
 }
 
-func mountTmpfs(fsname, name string, flags uintptr, size int, perm os.FileMode) error {
-	target := toSysroot(name)
+// mountTmpfs mounts tmpfs on target;
+// callers who wish to mount to sysroot must pass the return value of toSysroot.
+func mountTmpfs(fsname, target string, flags uintptr, size int, perm os.FileMode) error {
 	if err := os.MkdirAll(target, parentPerm(perm)); err != nil {
 		return wrapErrSelf(err)
 	}
@@ -171,7 +172,7 @@ func mountTmpfs(fsname, name string, flags uintptr, size int, perm os.FileMode) 
 	}
 	return wrapErrSuffix(
 		Mount(fsname, target, FstypeTmpfs, flags, opt),
-		fmt.Sprintf("cannot mount tmpfs on %q:", name))
+		fmt.Sprintf("cannot mount tmpfs on %q:", target))
 }
 
 func parentPerm(perm os.FileMode) os.FileMode {
