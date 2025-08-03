@@ -68,7 +68,7 @@ func (f *Ops) Bind(source, target string, flags int) *Ops {
 }
 
 type BindMountOp struct {
-	Source, SourceFinal, Target string
+	Source, sourceFinal, Target string
 
 	Flags int
 }
@@ -89,18 +89,18 @@ func (b *BindMountOp) early(*Params) error {
 
 	if v, err := filepath.EvalSymlinks(b.Source); err != nil {
 		if os.IsNotExist(err) && b.Flags&BindOptional != 0 {
-			b.SourceFinal = "\x00"
+			b.sourceFinal = "\x00"
 			return nil
 		}
 		return wrapErrSelf(err)
 	} else {
-		b.SourceFinal = v
+		b.sourceFinal = v
 		return nil
 	}
 }
 
 func (b *BindMountOp) apply(*Params) error {
-	if b.SourceFinal == "\x00" {
+	if b.sourceFinal == "\x00" {
 		if b.Flags&BindOptional == 0 {
 			// unreachable
 			return EBADE
@@ -108,11 +108,11 @@ func (b *BindMountOp) apply(*Params) error {
 		return nil
 	}
 
-	if !path.IsAbs(b.SourceFinal) || !path.IsAbs(b.Target) {
+	if !path.IsAbs(b.sourceFinal) || !path.IsAbs(b.Target) {
 		return msg.WrapErr(EBADE, "path is not absolute")
 	}
 
-	source := toHost(b.SourceFinal)
+	source := toHost(b.sourceFinal)
 	target := toSysroot(b.Target)
 
 	// this perm value emulates bwrap behaviour as it clears bits from 0755 based on
@@ -135,7 +135,7 @@ func (b *BindMountOp) apply(*Params) error {
 		flags |= MS_NODEV
 	}
 
-	return hostProc.bindMount(source, target, flags, b.SourceFinal == b.Target)
+	return hostProc.bindMount(source, target, flags, b.sourceFinal == b.Target)
 }
 
 func (b *BindMountOp) Is(op Op) bool { vb, ok := op.(*BindMountOp); return ok && *b == *vb }
