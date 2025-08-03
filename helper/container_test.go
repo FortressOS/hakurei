@@ -33,7 +33,7 @@ func TestContainer(t *testing.T) {
 		testHelper(t, func(ctx context.Context, setOutput func(stdoutP, stderrP *io.Writer), stat bool) helper.Helper {
 			return helper.New(ctx, os.Args[0], argsWt, stat, argF, func(z *container.Container) {
 				setOutput(&z.Stdout, &z.Stderr)
-				z.Bind("/", "/", 0).Proc("/proc").Dev("/dev")
+				z.Bind("/", "/", 0).Proc("/proc").Dev("/dev", true)
 			}, nil)
 		})
 	})

@@ -180,27 +180,29 @@ func (p MountProcOp) String() string { return fmt.Sprintf("proc on %q", string(p
 func init() { gob.Register(new(MountDevOp)) }
 
 // Dev appends an [Op] that mounts a subset of host /dev.
-func (f *Ops) Dev(dest string) *Ops {
-	*f = append(*f, MountDevOp(dest))
+func (f *Ops) Dev(dest string, mqueue bool) *Ops {
+	*f = append(*f, &MountDevOp{dest, mqueue})
 	return f
 }
 
-type MountDevOp string
+type MountDevOp struct {
+	Target string
+	Mqueue bool
+}
 
-func (d MountDevOp) early(*Params) error { return nil }
-func (d MountDevOp) apply(params *Params) error {
-	v := string(d)
-	if !path.IsAbs(v) {
-		return msg.WrapErr(EBADE, fmt.Sprintf("path %q is not absolute", v))
+func (d *MountDevOp) early(*Params) error { return nil }
+func (d *MountDevOp) apply(params *Params) error {
+	if !path.IsAbs(d.Target) {
+		return msg.WrapErr(EBADE, fmt.Sprintf("path %q is not absolute", d.Target))
 	}
-	target := toSysroot(v)
+	target := toSysroot(d.Target)
 
 	if err := mountTmpfs(SourceTmpfsDevtmpfs, target, MS_NOSUID|MS_NODEV, 0, params.ParentPerm); err != nil {
 		return err
 	}
 
 	for _, name := range []string{"null", "zero", "full", "random", "urandom", "tty"} {
-		targetPath := toSysroot(path.Join(v, name))
+		targetPath := path.Join(target, name)
 		if err := ensureFile(targetPath, 0444, params.ParentPerm); err != nil {
 			return err
 		}
@@ -247,7 +249,7 @@ func (d MountDevOp) apply(params *Params) error {
 	if params.RetainSession {
 		var buf [8]byte
 		if _, _, errno := Syscall(SYS_IOCTL, 1, TIOCGWINSZ, uintptr(unsafe.Pointer(&buf[0]))); errno == 0 {
-			consolePath := toSysroot(path.Join(v, "console"))
+			consolePath := path.Join(target, "console")
 			if err := ensureFile(consolePath, 0444, params.ParentPerm); err != nil {
 				return err
 			}
@@ -264,42 +266,26 @@ func (d MountDevOp) apply(params *Params) error {
 		}
 	}
 
+	if d.Mqueue {
+		mqueueTarget := path.Join(target, "mqueue")
+		if err := os.Mkdir(mqueueTarget, params.ParentPerm); err != nil {
+			return wrapErrSelf(err)
+		}
+		return wrapErrSuffix(Mount(SourceMqueue, mqueueTarget, FstypeMqueue, MS_NOSUID|MS_NOEXEC|MS_NODEV, zeroString),
+			"cannot mount mqueue:")
+	}
+
 	return nil
 }
 
-func (d MountDevOp) Is(op Op) bool  { vd, ok := op.(MountDevOp); return ok && d == vd }
-func (MountDevOp) prefix() string   { return "mounting" }
-func (d MountDevOp) String() string { return fmt.Sprintf("dev on %q", string(d)) }
-
-func init() { gob.Register(new(MountMqueueOp)) }
-
-// Mqueue appends an [Op] that mounts a private instance of mqueue.
-func (f *Ops) Mqueue(dest string) *Ops {
-	*f = append(*f, MountMqueueOp(dest))
-	return f
-}
-
-type MountMqueueOp string
-
-func (m MountMqueueOp) early(*Params) error { return nil }
-func (m MountMqueueOp) apply(params *Params) error {
-	v := string(m)
-
-	if !path.IsAbs(v) {
-		return msg.WrapErr(EBADE, fmt.Sprintf("path %q is not absolute", v))
+func (d *MountDevOp) Is(op Op) bool { vd, ok := op.(*MountDevOp); return ok && *d == *vd }
+func (*MountDevOp) prefix() string  { return "mounting" }
+func (d *MountDevOp) String() string {
+	if d.Mqueue {
+		return fmt.Sprintf("dev on %q with mqueue", d.Target)
 	}
-
-	target := toSysroot(v)
-	if err := os.MkdirAll(target, params.ParentPerm); err != nil {
-		return wrapErrSelf(err)
-	}
-	return wrapErrSuffix(Mount(SourceMqueue, target, FstypeMqueue, MS_NOSUID|MS_NOEXEC|MS_NODEV, zeroString),
-		fmt.Sprintf("cannot mount mqueue on %q:", v))
+	return fmt.Sprintf("dev on %q", d.Target)
 }
-
-func (m MountMqueueOp) Is(op Op) bool  { vm, ok := op.(MountMqueueOp); return ok && m == vm }
-func (MountMqueueOp) prefix() string   { return "mounting" }
-func (m MountMqueueOp) String() string { return fmt.Sprintf("mqueue on %q", string(m)) }
 
 func init() { gob.Register(new(MountTmpfsOp)) }
 

@@ -28,7 +28,7 @@ func Exec(ctx context.Context, p string) ([]*Entry, error) {
 	stdout, stderr := new(bytes.Buffer), new(bytes.Buffer)
 	z.Stdout = stdout
 	z.Stderr = stderr
-	z.Bind("/", "/", 0).Proc("/proc").Dev("/dev")
+	z.Bind("/", "/", 0).Proc("/proc").Dev("/dev", false)
 
 	if err := z.Start(); err != nil {
 		return nil, err

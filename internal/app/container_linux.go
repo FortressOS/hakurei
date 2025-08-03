@@ -85,7 +85,7 @@ func newContainer(s *hst.ContainerConfig, os sys.State, prefix string, uid, gid 
 		Tmpfs(hst.Tmp, 1<<12, 0755)
 
 	if !s.Device {
-		params.Dev("/dev").Mqueue("/dev/mqueue")
+		params.Dev("/dev", true)
 	} else {
 		params.Bind("/dev", "/dev", container.BindWritable|container.BindDevice)
 	}

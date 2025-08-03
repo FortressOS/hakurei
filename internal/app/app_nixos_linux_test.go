@@ -118,7 +118,7 @@ var testCasesNixos = []sealTestCase{
 			Ops: new(container.Ops).
 				Proc("/proc").
 				Tmpfs(hst.Tmp, 4096, 0755).
-				Dev("/dev").Mqueue("/dev/mqueue").
+				Dev("/dev", true).
 				Bind("/bin", "/bin", 0).
 				Bind("/usr/bin", "/usr/bin", 0).
 				Bind("/nix/store", "/nix/store", 0).

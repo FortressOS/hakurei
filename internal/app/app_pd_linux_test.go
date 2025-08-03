@@ -46,7 +46,7 @@ var testCasesPd = []sealTestCase{
 				Root("/", "4a450b6596d7bc15bd01780eb9a607ac", container.BindWritable).
 				Proc("/proc").
 				Tmpfs(hst.Tmp, 4096, 0755).
-				Dev("/dev").Mqueue("/dev/mqueue").
+				Dev("/dev", true).
 				Bind("/dev/kvm", "/dev/kvm", container.BindWritable|container.BindDevice|container.BindOptional).
 				Readonly("/var/run/nscd", 0755).
 				Tmpfs("/run/user/1971", 8192, 0755).
@@ -180,7 +180,7 @@ var testCasesPd = []sealTestCase{
 				Root("/", "ebf083d1b175911782d413369b64ce7c", container.BindWritable).
 				Proc("/proc").
 				Tmpfs(hst.Tmp, 4096, 0755).
-				Dev("/dev").Mqueue("/dev/mqueue").
+				Dev("/dev", true).
 				Bind("/dev/dri", "/dev/dri", container.BindWritable|container.BindDevice|container.BindOptional).
 				Bind("/dev/kvm", "/dev/kvm", container.BindWritable|container.BindDevice|container.BindOptional).
 				Readonly("/var/run/nscd", 0755).
