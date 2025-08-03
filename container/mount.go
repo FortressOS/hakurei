@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	. "syscall"
 
 	"hakurei.app/container/vfs"
@@ -182,4 +183,21 @@ func parentPerm(perm os.FileMode) os.FileMode {
 		pperm &= ^0005
 	}
 	return os.FileMode(pperm)
+}
+
+// escapeOverlayDataSegment escapes a string for formatting into the data argument of an overlay mount call.
+func escapeOverlayDataSegment(s string) string {
+	if s == zeroString {
+		return zeroString
+	}
+
+	if f := strings.SplitN(s, "\x00", 2); len(f) > 0 {
+		s = f[0]
+	}
+
+	return strings.NewReplacer(
+		`\`, `\\`,
+		`,`, `\,`,
+		`:`, `\:`,
+	).Replace(s)
 }
