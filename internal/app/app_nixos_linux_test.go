@@ -23,7 +23,7 @@ var testCasesNixos = []sealTestCase{
 			Container: &hst.ContainerConfig{
 				Userns: true, Net: true, MapRealUID: true, Env: nil, AutoEtc: true,
 				Filesystem: []*hst.FilesystemConfig{
-					{Src: "/bin", Must: true}, {Src: "/usr/bin", Must: true},
+					{Src: "/bin", Must: true}, {Src: "/usr/bin/", Must: true},
 					{Src: "/nix/store", Must: true}, {Src: "/run/current-system", Must: true},
 					{Src: "/sys/block"}, {Src: "/sys/bus"}, {Src: "/sys/class"}, {Src: "/sys/dev"}, {Src: "/sys/devices"},
 					{Src: "/run/opengl-driver", Must: true}, {Src: "/dev/dri", Device: true},
@@ -116,11 +116,11 @@ var testCasesNixos = []sealTestCase{
 				"XDG_SESSION_TYPE=tty",
 			},
 			Ops: new(container.Ops).
-				Proc("/proc").
+				Proc("/proc/").
 				Tmpfs(hst.Tmp, 4096, 0755).
-				DevWritable("/dev", true).
+				DevWritable("/dev/", true).
 				Bind("/bin", "/bin", 0).
-				Bind("/usr/bin", "/usr/bin", 0).
+				Bind("/usr/bin/", "/usr/bin/", 0).
 				Bind("/nix/store", "/nix/store", 0).
 				Bind("/run/current-system", "/run/current-system", 0).
 				Bind("/sys/block", "/sys/block", container.BindOptional).
@@ -130,11 +130,11 @@ var testCasesNixos = []sealTestCase{
 				Bind("/sys/devices", "/sys/devices", container.BindOptional).
 				Bind("/run/opengl-driver", "/run/opengl-driver", 0).
 				Bind("/dev/dri", "/dev/dri", container.BindDevice|container.BindWritable|container.BindOptional).
-				Etc("/etc", "8e2c76b066dabe574cf073bdb46eb5c1").
-				Remount("/dev", syscall.MS_RDONLY).
-				Tmpfs("/run/user", 4096, 0755).
+				Etc("/etc/", "8e2c76b066dabe574cf073bdb46eb5c1").
+				Remount("/dev/", syscall.MS_RDONLY).
+				Tmpfs("/run/user/", 4096, 0755).
 				Bind("/tmp/hakurei.1971/runtime/1", "/run/user/1971", container.BindWritable).
-				Bind("/tmp/hakurei.1971/tmpdir/1", "/tmp", container.BindWritable).
+				Bind("/tmp/hakurei.1971/tmpdir/1", "/tmp/", container.BindWritable).
 				Bind("/var/lib/persist/module/hakurei/0/1", "/var/lib/persist/module/hakurei/0/1", container.BindWritable).
 				Place("/etc/passwd", []byte("u0_a1:x:1971:100:Hakurei:/var/lib/persist/module/hakurei/0/1:/run/current-system/sw/bin/zsh\n")).
 				Place("/etc/group", []byte("hakurei:x:100:\n")).

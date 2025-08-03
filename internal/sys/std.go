@@ -86,7 +86,7 @@ func (s *Std) Uid(aid int) (int, error) {
 	cmd.Path = hsuPath
 	cmd.Stderr = os.Stderr // pass through fatal messages
 	cmd.Env = []string{"HAKUREI_APP_ID=" + strconv.Itoa(aid)}
-	cmd.Dir = "/"
+	cmd.Dir = container.FHSRoot
 	var (
 		p         []byte
 		exitError *exec.ExitError

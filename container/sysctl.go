@@ -17,9 +17,9 @@ var (
 )
 
 const (
-	kernelOverflowuidPath = "/proc/sys/kernel/overflowuid"
-	kernelOverflowgidPath = "/proc/sys/kernel/overflowgid"
-	kernelCapLastCapPath  = "/proc/sys/kernel/cap_last_cap"
+	kernelOverflowuidPath = FHSProcSys + "kernel/overflowuid"
+	kernelOverflowgidPath = FHSProcSys + "kernel/overflowgid"
+	kernelCapLastCapPath  = FHSProcSys + "kernel/cap_last_cap"
 )
 
 func mustReadSysctl() {

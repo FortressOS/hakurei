@@ -12,7 +12,7 @@ func init() { gob.Register(new(AutoEtcOp)) }
 // This is not a generic setup op. It is implemented here to reduce ipc overhead.
 func (f *Ops) Etc(host, prefix string) *Ops {
 	e := &AutoEtcOp{prefix}
-	f.Mkdir("/etc", 0755)
+	f.Mkdir(FHSEtc, 0755)
 	f.Bind(host, e.hostPath(), 0)
 	*f = append(*f, e)
 	return f
@@ -22,7 +22,7 @@ type AutoEtcOp struct{ Prefix string }
 
 func (e *AutoEtcOp) early(*Params) error { return nil }
 func (e *AutoEtcOp) apply(*Params) error {
-	const target = sysrootPath + "/etc/"
+	const target = sysrootPath + FHSEtc
 	rel := e.hostRel() + "/"
 
 	if err := os.MkdirAll(target, 0755); err != nil {
@@ -40,7 +40,7 @@ func (e *AutoEtcOp) apply(*Params) error {
 			case "group":
 
 			case "mtab":
-				if err = os.Symlink("/proc/mounts", target+n); err != nil {
+				if err = os.Symlink(FHSProc+"mounts", target+n); err != nil {
 					return wrapErrSelf(err)
 				}
 
@@ -54,7 +54,7 @@ func (e *AutoEtcOp) apply(*Params) error {
 
 	return nil
 }
-func (e *AutoEtcOp) hostPath() string { return "/etc/" + e.hostRel() }
+func (e *AutoEtcOp) hostPath() string { return FHSEtc + e.hostRel() }
 func (e *AutoEtcOp) hostRel() string  { return ".host/" + e.Prefix }
 
 func (e *AutoEtcOp) Is(op Op) bool {

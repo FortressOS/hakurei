@@ -31,7 +31,7 @@ const (
 
 	it should be noted that none of this should become relevant at any point since the resulting
 	intermediate root tmpfs should be effectively anonymous */
-	intermediateHostPath = "/proc/self/fd"
+	intermediateHostPath = FHSProc + "self/fd"
 
 	// setup params file descriptor
 	setupEnv = "HAKUREI_SETUP"
@@ -88,17 +88,17 @@ func Init(prepare func(prefix string), setVerbose func(verbose bool)) {
 	if err := SetDumpable(SUID_DUMP_USER); err != nil {
 		log.Fatalf("cannot set SUID_DUMP_USER: %s", err)
 	}
-	if err := os.WriteFile("/proc/self/uid_map",
+	if err := os.WriteFile(FHSProc+"self/uid_map",
 		append([]byte{}, strconv.Itoa(params.Uid)+" "+strconv.Itoa(params.HostUid)+" 1\n"...),
 		0); err != nil {
 		log.Fatalf("%v", err)
 	}
-	if err := os.WriteFile("/proc/self/setgroups",
+	if err := os.WriteFile(FHSProc+"self/setgroups",
 		[]byte("deny\n"),
 		0); err != nil && !os.IsNotExist(err) {
 		log.Fatalf("%v", err)
 	}
-	if err := os.WriteFile("/proc/self/gid_map",
+	if err := os.WriteFile(FHSProc+"self/gid_map",
 		append([]byte{}, strconv.Itoa(params.Gid)+" "+strconv.Itoa(params.HostGid)+" 1\n"...),
 		0); err != nil {
 		log.Fatalf("%v", err)
@@ -117,7 +117,7 @@ func Init(prepare func(prefix string), setVerbose func(verbose bool)) {
 	// cache sysctl before pivot_root
 	LastCap()
 
-	if err := Mount("", "/", "", MS_SILENT|MS_SLAVE|MS_REC, ""); err != nil {
+	if err := Mount("", FHSRoot, "", MS_SILENT|MS_SLAVE|MS_REC, ""); err != nil {
 		log.Fatalf("cannot make / rslave: %v", err)
 	}
 
@@ -159,7 +159,7 @@ func Init(prepare func(prefix string), setVerbose func(verbose bool)) {
 	if err := PivotRoot(intermediateHostPath, hostDir); err != nil {
 		log.Fatalf("cannot pivot into intermediate root: %v", err)
 	}
-	if err := os.Chdir("/"); err != nil {
+	if err := os.Chdir(FHSRoot); err != nil {
 		log.Fatalf("%v", err)
 	}
 
@@ -189,7 +189,7 @@ func Init(prepare func(prefix string), setVerbose func(verbose bool)) {
 	{
 		var fd int
 		if err := IgnoringEINTR(func() (err error) {
-			fd, err = Open("/", O_DIRECTORY|O_RDONLY, 0)
+			fd, err = Open(FHSRoot, O_DIRECTORY|O_RDONLY, 0)
 			return
 		}); err != nil {
 			log.Fatalf("cannot open intermediate root: %v", err)
@@ -207,7 +207,7 @@ func Init(prepare func(prefix string), setVerbose func(verbose bool)) {
 		if err := Unmount(".", MNT_DETACH); err != nil {
 			log.Fatalf("cannot unmount intemediate root: %v", err)
 		}
-		if err := os.Chdir("/"); err != nil {
+		if err := os.Chdir(FHSRoot); err != nil {
 			log.Fatalf("%v", err)
 		}
 

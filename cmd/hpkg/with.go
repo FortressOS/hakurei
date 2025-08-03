@@ -5,6 +5,7 @@ import (
 	"path"
 	"strings"
 
+	"hakurei.app/container"
 	"hakurei.app/container/seccomp"
 	"hakurei.app/hst"
 	"hakurei.app/internal"
@@ -52,9 +53,9 @@ func withNixDaemon(
 				{Src: pathSet.nixPath, Dst: "/nix", Write: true, Must: true},
 			},
 			Link: [][2]string{
-				{app.CurrentSystem, "/run/current-system"},
-				{"/run/current-system/sw/bin", "/bin"},
-				{"/run/current-system/sw/bin", "/usr/bin"},
+				{app.CurrentSystem, container.FHSRun + "current-system"},
+				{container.FHSRun + "current-system/sw/bin", "/bin"},
+				{container.FHSRun + "current-system/sw/bin", container.FHSUsrBin},
 			},
 			Etc:     path.Join(pathSet.cacheDir, "etc"),
 			AutoEtc: true,
@@ -93,11 +94,11 @@ func withCacheDir(
 				{Src: workDir, Dst: path.Join(hst.Tmp, "bundle"), Must: true},
 			},
 			Link: [][2]string{
-				{app.CurrentSystem, "/run/current-system"},
-				{"/run/current-system/sw/bin", "/bin"},
-				{"/run/current-system/sw/bin", "/usr/bin"},
+				{app.CurrentSystem, container.FHSRun + "current-system"},
+				{container.FHSRun + "current-system/sw/bin", "/bin"},
+				{container.FHSRun + "current-system/sw/bin", container.FHSUsrBin},
 			},
-			Etc:     path.Join(workDir, "etc"),
+			Etc:     path.Join(workDir, container.FHSEtc),
 			AutoEtc: true,
 		},
 	}, dropShell, beforeFail)

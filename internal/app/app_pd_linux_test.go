@@ -44,18 +44,18 @@ var testCasesPd = []sealTestCase{
 			},
 			Ops: new(container.Ops).
 				Root("/", "4a450b6596d7bc15bd01780eb9a607ac", container.BindWritable).
-				Proc("/proc").
+				Proc("/proc/").
 				Tmpfs(hst.Tmp, 4096, 0755).
-				DevWritable("/dev", true).
+				DevWritable("/dev/", true).
 				Bind("/dev/kvm", "/dev/kvm", container.BindWritable|container.BindDevice|container.BindOptional).
 				Readonly("/var/run/nscd", 0755).
 				Tmpfs("/run/user/1971", 8192, 0755).
 				Tmpfs("/run/dbus", 8192, 0755).
-				Etc("/etc", "4a450b6596d7bc15bd01780eb9a607ac").
-				Remount("/dev", syscall.MS_RDONLY).
-				Tmpfs("/run/user", 4096, 0755).
+				Etc("/etc/", "4a450b6596d7bc15bd01780eb9a607ac").
+				Remount("/dev/", syscall.MS_RDONLY).
+				Tmpfs("/run/user/", 4096, 0755).
 				Bind("/tmp/hakurei.1971/runtime/0", "/run/user/65534", container.BindWritable).
-				Bind("/tmp/hakurei.1971/tmpdir/0", "/tmp", container.BindWritable).
+				Bind("/tmp/hakurei.1971/tmpdir/0", "/tmp/", container.BindWritable).
 				Bind("/home/chronos", "/home/chronos", container.BindWritable).
 				Place("/etc/passwd", []byte("chronos:x:65534:65534:Hakurei:/home/chronos:/run/current-system/sw/bin/zsh\n")).
 				Place("/etc/group", []byte("hakurei:x:65534:\n")).
@@ -179,19 +179,19 @@ var testCasesPd = []sealTestCase{
 			},
 			Ops: new(container.Ops).
 				Root("/", "ebf083d1b175911782d413369b64ce7c", container.BindWritable).
-				Proc("/proc").
+				Proc("/proc/").
 				Tmpfs(hst.Tmp, 4096, 0755).
-				DevWritable("/dev", true).
+				DevWritable("/dev/", true).
 				Bind("/dev/dri", "/dev/dri", container.BindWritable|container.BindDevice|container.BindOptional).
 				Bind("/dev/kvm", "/dev/kvm", container.BindWritable|container.BindDevice|container.BindOptional).
 				Readonly("/var/run/nscd", 0755).
 				Tmpfs("/run/user/1971", 8192, 0755).
 				Tmpfs("/run/dbus", 8192, 0755).
-				Etc("/etc", "ebf083d1b175911782d413369b64ce7c").
-				Remount("/dev", syscall.MS_RDONLY).
-				Tmpfs("/run/user", 4096, 0755).
+				Etc("/etc/", "ebf083d1b175911782d413369b64ce7c").
+				Remount("/dev/", syscall.MS_RDONLY).
+				Tmpfs("/run/user/", 4096, 0755).
 				Bind("/tmp/hakurei.1971/runtime/9", "/run/user/65534", container.BindWritable).
-				Bind("/tmp/hakurei.1971/tmpdir/9", "/tmp", container.BindWritable).
+				Bind("/tmp/hakurei.1971/tmpdir/9", "/tmp/", container.BindWritable).
 				Bind("/home/chronos", "/home/chronos", container.BindWritable).
 				Place("/etc/passwd", []byte("chronos:x:65534:65534:Hakurei:/home/chronos:/run/current-system/sw/bin/zsh\n")).
 				Place("/etc/group", []byte("hakurei:x:65534:\n")).

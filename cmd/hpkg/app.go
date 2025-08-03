@@ -6,6 +6,7 @@ import (
 	"os"
 	"path"
 
+	"hakurei.app/container"
 	"hakurei.app/container/seccomp"
 	"hakurei.app/hst"
 	"hakurei.app/system"
@@ -94,17 +95,17 @@ func (app *appInfo) toFst(pathSet *appPathSet, argv []string, flagDropShell bool
 			Filesystem: []*hst.FilesystemConfig{
 				{Src: path.Join(pathSet.nixPath, "store"), Dst: "/nix/store", Must: true},
 				{Src: pathSet.metaPath, Dst: path.Join(hst.Tmp, "app"), Must: true},
-				{Src: "/etc/resolv.conf"},
-				{Src: "/sys/block"},
-				{Src: "/sys/bus"},
-				{Src: "/sys/class"},
-				{Src: "/sys/dev"},
-				{Src: "/sys/devices"},
+				{Src: container.FHSEtc + "resolv.conf"},
+				{Src: container.FHSSys + "block"},
+				{Src: container.FHSSys + "bus"},
+				{Src: container.FHSSys + "class"},
+				{Src: container.FHSSys + "dev"},
+				{Src: container.FHSSys + "devices"},
 			},
 			Link: [][2]string{
-				{app.CurrentSystem, "/run/current-system"},
-				{"/run/current-system/sw/bin", "/bin"},
-				{"/run/current-system/sw/bin", "/usr/bin"},
+				{app.CurrentSystem, container.FHSRun + "current-system"},
+				{container.FHSRun + "current-system/sw/bin", "/bin"},
+				{container.FHSRun + "current-system/sw/bin", container.FHSUsrBin},
 			},
 			Etc:     path.Join(pathSet.cacheDir, "etc"),
 			AutoEtc: true,

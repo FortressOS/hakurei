@@ -12,7 +12,7 @@ func Template() *Config {
 	return &Config{
 		ID: "org.chromium.Chromium",
 
-		Path: "/run/current-system/sw/bin/chromium",
+		Path: container.FHSRun + "current-system/sw/bin/chromium",
 		Args: []string{
 			"chromium",
 			"--ignore-gpu-blocklist",
@@ -46,12 +46,12 @@ func Template() *Config {
 		DirectWayland: false,
 
 		Username: "chronos",
-		Shell:    "/run/current-system/sw/bin/zsh",
-		Data:     "/var/lib/hakurei/u0/org.chromium.Chromium",
+		Shell:    container.FHSRun + "current-system/sw/bin/zsh",
+		Data:     container.FHSVarLib + "hakurei/u0/org.chromium.Chromium",
 		Dir:      "/data/data/org.chromium.Chromium",
 		ExtraPerms: []*ExtraPermConfig{
-			{Path: "/var/lib/hakurei/u0", Ensure: true, Execute: true},
-			{Path: "/var/lib/hakurei/u0/org.chromium.Chromium", Read: true, Write: true, Execute: true},
+			{Path: container.FHSVarLib + "hakurei/u0", Ensure: true, Execute: true},
+			{Path: container.FHSVarLib + "hakurei/u0/org.chromium.Chromium", Read: true, Write: true, Execute: true},
 		},
 
 		Identity: 9,
@@ -78,19 +78,19 @@ func Template() *Config {
 				"GOOGLE_DEFAULT_CLIENT_SECRET": "OTJgUOQcT7lO7GsGZq2G4IlT",
 			},
 			Filesystem: []*FilesystemConfig{
-				{Dst: "/tmp", Src: SourceTmpfs, Write: true},
+				{Dst: container.FHSTmp, Src: SourceTmpfs, Write: true},
 				{Src: "/nix/store"},
-				{Src: "/run/current-system"},
-				{Src: "/run/opengl-driver"},
-				{Src: "/var/db/nix-channels"},
-				{Src: "/var/lib/hakurei/u0/org.chromium.Chromium",
+				{Src: container.FHSRun + "current-system"},
+				{Src: container.FHSRun + "opengl-driver"},
+				{Src: container.FHSVar + "db/nix-channels"},
+				{Src: container.FHSVarLib + "hakurei/u0/org.chromium.Chromium",
 					Dst: "/data/data/org.chromium.Chromium", Write: true, Must: true},
-				{Src: "/dev/dri", Device: true},
+				{Src: container.FHSDev + "dri", Device: true},
 			},
-			Link:      [][2]string{{"/run/user/65534", "/run/user/150"}},
-			AutoRoot:  "/var/lib/hakurei/base/org.debian",
+			Link:      [][2]string{{container.FHSRunUser + "65534", container.FHSRunUser + "150"}},
+			AutoRoot:  container.FHSVarLib + "hakurei/base/org.debian",
 			RootFlags: container.BindWritable,
-			Etc:       "/etc",
+			Etc:       container.FHSEtc,
 			AutoEtc:   true,
 		},
 	}

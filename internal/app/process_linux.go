@@ -88,7 +88,7 @@ func (seal *outcome) Run(rs *RunState) error {
 	defer cancel()
 	cmd := exec.CommandContext(ctx, hsuPath)
 	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
-	cmd.Dir = "/" // container init enters final working directory
+	cmd.Dir = container.FHSRoot // container init enters final working directory
 	// shim runs in the same session as monitor; see shim.go for behaviour
 	cmd.Cancel = func() error { return cmd.Process.Signal(syscall.SIGCONT) }
 

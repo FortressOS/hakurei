@@ -11,6 +11,7 @@ import (
 	"syscall"
 
 	"hakurei.app/command"
+	"hakurei.app/container"
 	"hakurei.app/hst"
 	"hakurei.app/internal"
 	"hakurei.app/internal/hlog"
@@ -275,12 +276,12 @@ func main() {
 						"path:" + a.NixGL + "#nixVulkanNvidia",
 				}, true, func(config *hst.Config) *hst.Config {
 					config.Container.Filesystem = append(config.Container.Filesystem, []*hst.FilesystemConfig{
-						{Src: "/etc/resolv.conf"},
-						{Src: "/sys/block"},
-						{Src: "/sys/bus"},
-						{Src: "/sys/class"},
-						{Src: "/sys/dev"},
-						{Src: "/sys/devices"},
+						{Src: container.FHSEtc + "resolv.conf"},
+						{Src: container.FHSSys + "block"},
+						{Src: container.FHSSys + "bus"},
+						{Src: container.FHSSys + "class"},
+						{Src: container.FHSSys + "dev"},
+						{Src: container.FHSSys + "devices"},
 					}...)
 					appendGPUFilesystem(config)
 					return config

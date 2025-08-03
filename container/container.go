@@ -18,10 +18,6 @@ import (
 )
 
 const (
-	// Nonexistent is a path that cannot exist.
-	// /proc is chosen because a system with covered /proc is unsupported by this package.
-	Nonexistent = "/proc/nonexistent"
-
 	// CancelSignal is the signal expected by container init on context cancel.
 	// A custom [Container.Cancel] function must eventually deliver this signal.
 	CancelSignal = SIGTERM
@@ -142,7 +138,7 @@ func (p *Container) Start() error {
 	} else {
 		p.cmd.Cancel = func() error { return p.cmd.Process.Signal(CancelSignal) }
 	}
-	p.cmd.Dir = "/"
+	p.cmd.Dir = FHSRoot
 	p.cmd.SysProcAttr = &SysProcAttr{
 		Setsid:    !p.RetainSession,
 		Pdeathsig: SIGKILL,
@@ -251,6 +247,6 @@ func (p *Container) ProcessState() *os.ProcessState {
 
 func New(ctx context.Context, name string, args ...string) *Container {
 	return &Container{name: name, ctx: ctx,
-		Params: Params{Args: append([]string{name}, args...), Dir: "/", Ops: new(Ops)},
+		Params: Params{Args: append([]string{name}, args...), Dir: FHSRoot, Ops: new(Ops)},
 	}
 }

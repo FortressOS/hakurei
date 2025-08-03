@@ -242,19 +242,19 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 			Tty:     true,
 			AutoEtc: true,
 
-			AutoRoot:  "/",
+			AutoRoot:  container.FHSRoot,
 			RootFlags: container.BindWritable,
 		}
 
 		// bind GPU stuff
 		if config.Enablements&(system.EX11|system.EWayland) != 0 {
-			conf.Filesystem = append(conf.Filesystem, &hst.FilesystemConfig{Src: "/dev/dri", Device: true})
+			conf.Filesystem = append(conf.Filesystem, &hst.FilesystemConfig{Src: container.FHSDev + "dri", Device: true})
 		}
 		// opportunistically bind kvm
-		conf.Filesystem = append(conf.Filesystem, &hst.FilesystemConfig{Src: "/dev/kvm", Device: true})
+		conf.Filesystem = append(conf.Filesystem, &hst.FilesystemConfig{Src: container.FHSDev + "kvm", Device: true})
 
 		// hide nscd from container if present
-		const nscd = "/var/run/nscd"
+		const nscd = container.FHSVar + "run/nscd"
 		if _, err := sys.Stat(nscd); !errors.Is(err, fs.ErrNotExist) {
 			conf.Filesystem = append(conf.Filesystem, &hst.FilesystemConfig{Dst: nscd, Src: hst.SourceTmpfs})
 		}
@@ -290,7 +290,7 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 	}
 
 	// inner XDG_RUNTIME_DIR default formatting of `/run/user/%d` as mapped uid
-	innerRuntimeDir := path.Join("/run/user", mapuid.String())
+	innerRuntimeDir := path.Join(container.FHSRunUser, mapuid.String())
 	seal.env[xdgRuntimeDir] = innerRuntimeDir
 	seal.env[xdgSessionClass] = "user"
 	seal.env[xdgSessionType] = "tty"
@@ -307,7 +307,7 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 		runtimeDirInst := path.Join(runtimeDir, seal.user.aid.String())
 		seal.sys.Ensure(runtimeDirInst, 0700)
 		seal.sys.UpdatePermType(system.User, runtimeDirInst, acl.Read, acl.Write, acl.Execute)
-		seal.container.Tmpfs("/run/user", 1<<12, 0755)
+		seal.container.Tmpfs(container.FHSRunUser, 1<<12, 0755)
 		seal.container.Bind(runtimeDirInst, innerRuntimeDir, container.BindWritable)
 	}
 
@@ -319,11 +319,11 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 		seal.sys.Ensure(tmpdirInst, 01700)
 		seal.sys.UpdatePermType(system.User, tmpdirInst, acl.Read, acl.Write, acl.Execute)
 		// mount inner /tmp from share so it shares persistence and storage behaviour of host /tmp
-		seal.container.Bind(tmpdirInst, "/tmp", container.BindWritable)
+		seal.container.Bind(tmpdirInst, container.FHSTmp, container.BindWritable)
 	}
 
 	{
-		homeDir := "/var/empty"
+		homeDir := container.FHSVarEmpty
 		if seal.user.home != "" {
 			homeDir = seal.user.home
 		}
@@ -337,9 +337,9 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 		seal.env["USER"] = username
 		seal.env[shell] = config.Shell
 
-		seal.container.Place("/etc/passwd",
+		seal.container.Place(container.FHSEtc+"passwd",
 			[]byte(username+":x:"+mapuid.String()+":"+mapgid.String()+":Hakurei:"+homeDir+":"+config.Shell+"\n"))
-		seal.container.Place("/etc/group",
+		seal.container.Place(container.FHSEtc+"group",
 			[]byte("hakurei:x:"+mapgid.String()+":\n"))
 	}
 
@@ -388,7 +388,7 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 		} else {
 			seal.sys.ChangeHosts("#" + seal.user.uid.String())
 			seal.env[display] = d
-			seal.container.Bind("/tmp/.X11-unix", "/tmp/.X11-unix", 0)
+			seal.container.Bind(container.FHSTmp+".X11-unix", container.FHSTmp+".X11-unix", 0)
 		}
 	}
 
@@ -467,7 +467,7 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 		seal.container.Bind(sessionPath, sessionInner, 0)
 		seal.sys.UpdatePerm(sessionPath, acl.Read, acl.Write)
 		if config.SystemBus != nil {
-			systemInner := "/run/dbus/system_bus_socket"
+			systemInner := container.FHSRun + "dbus/system_bus_socket"
 			seal.env[dbusSystemBusAddress] = "unix:path=" + systemInner
 			seal.container.Bind(systemPath, systemInner, 0)
 			seal.sys.UpdatePerm(systemPath, acl.Read, acl.Write)
@@ -475,7 +475,7 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 	}
 
 	// mount root read-only as the final setup Op
-	seal.container.Remount("/", syscall.MS_RDONLY)
+	seal.container.Remount(container.FHSRoot, syscall.MS_RDONLY)
 
 	// append ExtraPerms last
 	for _, p := range config.ExtraPerms {

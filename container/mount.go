@@ -53,7 +53,7 @@ const (
 	FstypeNULL = zeroString
 	// FstypeProc represents the proc pseudo-filesystem.
 	// A fully visible instance of proc must be available in the mount namespace for proc to be mounted.
-	// This filesystem type is usually mounted on /proc.
+	// This filesystem type is usually mounted on [FHSProc].
 	FstypeProc = "proc"
 	// FstypeDevpts represents the devpts pseudo-filesystem.
 	// This type of filesystem is usually mounted on /dev/pts.

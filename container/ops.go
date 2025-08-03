@@ -215,7 +215,7 @@ func (d *MountDevOp) apply(params *Params) error {
 			return err
 		}
 		if err := hostProc.bindMount(
-			toHost("/dev/"+name),
+			toHost(FHSDev+name),
 			targetPath,
 			0,
 			true,
@@ -225,15 +225,15 @@ func (d *MountDevOp) apply(params *Params) error {
 	}
 	for i, name := range []string{"stdin", "stdout", "stderr"} {
 		if err := os.Symlink(
-			"/proc/self/fd/"+string(rune(i+'0')),
+			FHSProc+"self/fd/"+string(rune(i+'0')),
 			path.Join(target, name),
 		); err != nil {
 			return wrapErrSelf(err)
 		}
 	}
 	for _, pair := range [][2]string{
-		{"/proc/self/fd", "fd"},
-		{"/proc/kcore", "core"},
+		{FHSProc + "self/fd", "fd"},
+		{FHSProc + "kcore", "core"},
 		{"pts/ptmx", "ptmx"},
 	} {
 		if err := os.Symlink(pair[0], path.Join(target, pair[1])); err != nil {
@@ -436,7 +436,7 @@ func (t *TmpfileOp) apply(params *Params) error {
 	}
 
 	var tmpPath string
-	if f, err := os.CreateTemp("/", "tmp.*"); err != nil {
+	if f, err := os.CreateTemp(FHSRoot, "tmp.*"); err != nil {
 		return wrapErrSelf(err)
 	} else if _, err = f.Write(t.Data); err != nil {
 		return wrapErrSuffix(err,

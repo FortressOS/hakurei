@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"hakurei.app/command"
+	"hakurei.app/container"
 	"hakurei.app/hst"
 	"hakurei.app/internal"
 	"hakurei.app/internal/app"
@@ -94,7 +95,7 @@ func buildCommand(out io.Writer) command.Command {
 							Gid:      us,
 							Username: "chronos",
 							Name:     "Hakurei Permissive Default",
-							HomeDir:  "/var/empty",
+							HomeDir:  container.FHSVarEmpty,
 						}
 					} else {
 						passwd = u

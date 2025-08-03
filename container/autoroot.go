@@ -42,7 +42,7 @@ func (r *AutoRootOp) early(params *Params) error {
 			if IsAutoRootBindable(name) {
 				op := &BindMountOp{
 					Source: path.Join(r.Host, name),
-					Target: "/" + name,
+					Target: FHSRoot + name,
 					Flags:  r.Flags,
 				}
 				if err = op.early(params); err != nil {

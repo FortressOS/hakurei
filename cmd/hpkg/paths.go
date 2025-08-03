@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"sync/atomic"
 
+	"hakurei.app/container"
 	"hakurei.app/hst"
 	"hakurei.app/internal/hlog"
 )
@@ -21,7 +22,7 @@ func init() {
 	if p, ok := os.LookupEnv("HAKUREI_DATA_HOME"); ok {
 		dataHome = p
 	} else {
-		dataHome = "/var/lib/hakurei/" + strconv.Itoa(os.Getuid())
+		dataHome = container.FHSVarLib + "hakurei/" + strconv.Itoa(os.Getuid())
 	}
 }
 

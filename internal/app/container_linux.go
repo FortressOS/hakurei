@@ -81,13 +81,13 @@ func newContainer(s *hst.ContainerConfig, os sys.State, prefix string, uid, gid 
 	}
 
 	params.
-		Proc("/proc").
+		Proc(container.FHSProc).
 		Tmpfs(hst.Tmp, 1<<12, 0755)
 
 	if !s.Device {
-		params.DevWritable("/dev", true)
+		params.DevWritable(container.FHSDev, true)
 	} else {
-		params.Bind("/dev", "/dev", container.BindWritable|container.BindDevice)
+		params.Bind(container.FHSDev, container.FHSDev, container.BindWritable|container.BindDevice)
 	}
 
 	/* retrieve paths and hide them if they're made available in the sandbox;
@@ -111,7 +111,7 @@ func newContainer(s *hst.ContainerConfig, os sys.State, prefix string, uid, gid 
 					if path.IsAbs(pair[1]) {
 						// get parent dir of socket
 						dir := path.Dir(pair[1])
-						if dir == "." || dir == "/" {
+						if dir == "." || dir == container.FHSRoot {
 							os.Printf("dbus socket %q is in an unusual location", pair[1])
 						}
 						hidePaths = append(hidePaths, dir)
@@ -229,19 +229,19 @@ func newContainer(s *hst.ContainerConfig, os sys.State, prefix string, uid, gid 
 
 	if !s.AutoEtc {
 		if s.Etc != "" {
-			params.Bind(s.Etc, "/etc", 0)
+			params.Bind(s.Etc, container.FHSEtc, 0)
 		}
 	} else {
 		etcPath := s.Etc
 		if etcPath == "" {
-			etcPath = "/etc"
+			etcPath = container.FHSEtc
 		}
 		params.Etc(etcPath, prefix)
 	}
 
 	// no more ContainerConfig paths beyond this point
 	if !s.Device {
-		params.Remount("/dev", syscall.MS_RDONLY)
+		params.Remount(container.FHSDev, syscall.MS_RDONLY)
 	}
 
 	return params, maps.Clone(s.Env), nil

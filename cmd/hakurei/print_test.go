@@ -43,12 +43,12 @@ func Test_printShowInstance(t *testing.T) {
  Hostname:       localhost
  Flags:          userns devel net device tty mapuid autoetc
  Root:           /var/lib/hakurei/base/org.debian (2)
- Etc:            /etc
+ Etc:            /etc/
  Path:           /run/current-system/sw/bin/chromium
  Arguments:      chromium --ignore-gpu-blocklist --disable-smooth-scrolling --enable-features=UseOzonePlatform --ozone-platform=wayland
 
 Filesystem
- w+tmpfs:/tmp
+ w+tmpfs:/tmp/
  +/nix/store
  +/run/current-system
  +/run/opengl-driver
@@ -123,12 +123,12 @@ App
  Hostname:       localhost
  Flags:          userns devel net device tty mapuid autoetc
  Root:           /var/lib/hakurei/base/org.debian (2)
- Etc:            /etc
+ Etc:            /etc/
  Path:           /run/current-system/sw/bin/chromium
  Arguments:      chromium --ignore-gpu-blocklist --disable-smooth-scrolling --enable-features=UseOzonePlatform --ozone-platform=wayland
 
 Filesystem
- w+tmpfs:/tmp
+ w+tmpfs:/tmp/
  +/nix/store
  +/run/current-system
  +/run/opengl-driver
@@ -276,7 +276,7 @@ App
       "device": true,
       "filesystem": [
         {
-          "dst": "/tmp",
+          "dst": "/tmp/",
           "src": "tmpfs",
           "write": true
         },
@@ -311,7 +311,7 @@ App
       ],
       "auto_root": "/var/lib/hakurei/base/org.debian",
       "root_flags": 2,
-      "etc": "/etc",
+      "etc": "/etc/",
       "auto_etc": true
     }
   },
@@ -408,7 +408,7 @@ App
     "device": true,
     "filesystem": [
       {
-        "dst": "/tmp",
+        "dst": "/tmp/",
         "src": "tmpfs",
         "write": true
       },
@@ -443,7 +443,7 @@ App
     ],
     "auto_root": "/var/lib/hakurei/base/org.debian",
     "root_flags": 2,
-    "etc": "/etc",
+    "etc": "/etc/",
     "auto_etc": true
   }
 }
@@ -594,7 +594,7 @@ func Test_printPs(t *testing.T) {
         "device": true,
         "filesystem": [
           {
-            "dst": "/tmp",
+            "dst": "/tmp/",
             "src": "tmpfs",
             "write": true
           },
@@ -629,7 +629,7 @@ func Test_printPs(t *testing.T) {
         ],
         "auto_root": "/var/lib/hakurei/base/org.debian",
         "root_flags": 2,
-        "etc": "/etc",
+        "etc": "/etc/",
         "auto_etc": true
       }
     },
