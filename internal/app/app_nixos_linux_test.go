@@ -118,7 +118,7 @@ var testCasesNixos = []sealTestCase{
 			Ops: new(container.Ops).
 				Proc("/proc").
 				Tmpfs(hst.Tmp, 4096, 0755).
-				Dev("/dev", true).
+				DevWritable("/dev", true).
 				Bind("/bin", "/bin", 0).
 				Bind("/usr/bin", "/usr/bin", 0).
 				Bind("/nix/store", "/nix/store", 0).
@@ -131,6 +131,7 @@ var testCasesNixos = []sealTestCase{
 				Bind("/run/opengl-driver", "/run/opengl-driver", 0).
 				Bind("/dev/dri", "/dev/dri", container.BindDevice|container.BindWritable|container.BindOptional).
 				Etc("/etc", "8e2c76b066dabe574cf073bdb46eb5c1").
+				Remount("/dev", syscall.MS_RDONLY).
 				Tmpfs("/run/user", 4096, 0755).
 				Bind("/tmp/hakurei.1971/runtime/1", "/run/user/1971", container.BindWritable).
 				Bind("/tmp/hakurei.1971/tmpdir/1", "/tmp", container.BindWritable).

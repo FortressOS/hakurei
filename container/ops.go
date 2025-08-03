@@ -181,13 +181,21 @@ func init() { gob.Register(new(MountDevOp)) }
 
 // Dev appends an [Op] that mounts a subset of host /dev.
 func (f *Ops) Dev(dest string, mqueue bool) *Ops {
-	*f = append(*f, &MountDevOp{dest, mqueue})
+	*f = append(*f, &MountDevOp{dest, mqueue, false})
+	return f
+}
+
+// DevWritable appends an [Op] that mounts a writable subset of host /dev.
+// There is usually no good reason to write to /dev, so this should always be followed by a [RemountOp].
+func (f *Ops) DevWritable(dest string, mqueue bool) *Ops {
+	*f = append(*f, &MountDevOp{dest, mqueue, true})
 	return f
 }
 
 type MountDevOp struct {
 	Target string
 	Mqueue bool
+	Write  bool
 }
 
 func (d *MountDevOp) early(*Params) error { return nil }
@@ -271,11 +279,16 @@ func (d *MountDevOp) apply(params *Params) error {
 		if err := os.Mkdir(mqueueTarget, params.ParentPerm); err != nil {
 			return wrapErrSelf(err)
 		}
-		return wrapErrSuffix(Mount(SourceMqueue, mqueueTarget, FstypeMqueue, MS_NOSUID|MS_NOEXEC|MS_NODEV, zeroString),
-			"cannot mount mqueue:")
+		if err := Mount(SourceMqueue, mqueueTarget, FstypeMqueue, MS_NOSUID|MS_NOEXEC|MS_NODEV, zeroString); err != nil {
+			return wrapErrSuffix(err, "cannot mount mqueue:")
+		}
 	}
 
-	return nil
+	if d.Write {
+		return nil
+	}
+	return wrapErrSuffix(hostProc.remount(target, MS_RDONLY),
+		fmt.Sprintf("cannot remount %q:", target))
 }
 
 func (d *MountDevOp) Is(op Op) bool { vd, ok := op.(*MountDevOp); return ok && *d == *vd }

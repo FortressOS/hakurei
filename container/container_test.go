@@ -74,7 +74,7 @@ var containerTestCases = []struct {
 		new(container.Ops).
 			Dev("/dev", true),
 		[]*vfs.MountInfoEntry{
-			ent("/", "/dev", "rw,nosuid,nodev,relatime", "tmpfs", "devtmpfs", ignore),
+			ent("/", "/dev", "ro,nosuid,nodev,relatime", "tmpfs", "devtmpfs", ignore),
 			ent("/null", "/dev/null", "rw,nosuid", "devtmpfs", "devtmpfs", ignore),
 			ent("/zero", "/dev/zero", "rw,nosuid", "devtmpfs", "devtmpfs", ignore),
 			ent("/full", "/dev/full", "rw,nosuid", "devtmpfs", "devtmpfs", ignore),
@@ -90,7 +90,7 @@ var containerTestCases = []struct {
 		new(container.Ops).
 			Dev("/dev", false),
 		[]*vfs.MountInfoEntry{
-			ent("/", "/dev", "rw,nosuid,nodev,relatime", "tmpfs", "devtmpfs", ignore),
+			ent("/", "/dev", "ro,nosuid,nodev,relatime", "tmpfs", "devtmpfs", ignore),
 			ent("/null", "/dev/null", "rw,nosuid", "devtmpfs", "devtmpfs", ignore),
 			ent("/zero", "/dev/zero", "rw,nosuid", "devtmpfs", "devtmpfs", ignore),
 			ent("/full", "/dev/full", "rw,nosuid", "devtmpfs", "devtmpfs", ignore),

@@ -170,7 +170,7 @@
       (ent "/var" "/var" "rw,nosuid,nodev,relatime" "ext4" "/dev/disk/by-label/nixos" "rw")
       (ent "/" "/proc" "rw,nosuid,nodev,noexec,relatime" "proc" "proc" "rw")
       (ent "/" "/.hakurei" "rw,nosuid,nodev,relatime" "tmpfs" "ephemeral" "rw,size=4k,mode=755,uid=1000000,gid=1000000")
-      (ent "/" "/dev" "rw,nosuid,nodev,relatime" "tmpfs" "devtmpfs" "rw,mode=755,uid=1000000,gid=1000000")
+      (ent "/" "/dev" "ro,nosuid,nodev,relatime" "tmpfs" "devtmpfs" "rw,mode=755,uid=1000000,gid=1000000")
       (ent "/null" "/dev/null" "rw,nosuid" "devtmpfs" "devtmpfs" ignore)
       (ent "/zero" "/dev/zero" "rw,nosuid" "devtmpfs" "devtmpfs" ignore)
       (ent "/full" "/dev/full" "rw,nosuid" "devtmpfs" "devtmpfs" ignore)

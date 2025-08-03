@@ -85,7 +85,7 @@ func newContainer(s *hst.ContainerConfig, os sys.State, prefix string, uid, gid 
 		Tmpfs(hst.Tmp, 1<<12, 0755)
 
 	if !s.Device {
-		params.Dev("/dev", true)
+		params.DevWritable("/dev", true)
 	} else {
 		params.Bind("/dev", "/dev", container.BindWritable|container.BindDevice)
 	}
@@ -237,6 +237,11 @@ func newContainer(s *hst.ContainerConfig, os sys.State, prefix string, uid, gid 
 			etcPath = "/etc"
 		}
 		params.Etc(etcPath, prefix)
+	}
+
+	// no more ContainerConfig paths beyond this point
+	if !s.Device {
+		params.Remount("/dev", syscall.MS_RDONLY)
 	}
 
 	return params, maps.Clone(s.Env), nil
