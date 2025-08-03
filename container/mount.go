@@ -41,6 +41,8 @@ const (
 	// Note that any source value is allowed when fstype is [FstypeMqueue].
 	SourceMqueue = "mqueue"
 
+	// SourceTmpfsRootfs is used when mounting the tmpfs instance backing the intermediate root.
+	SourceTmpfsRootfs = "rootfs"
 	// SourceTmpfsDevtmpfs is used when mounting tmpfs representing a subset of host devtmpfs.
 	SourceTmpfsDevtmpfs = "devtmpfs"
 	// SourceTmpfsEphemeral is used when mounting a writable instance of tmpfs.

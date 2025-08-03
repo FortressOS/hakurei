@@ -117,7 +117,7 @@ func Init(prepare func(prefix string), setVerbose func(verbose bool)) {
 	// cache sysctl before pivot_root
 	LastCap()
 
-	if err := Mount("", FHSRoot, "", MS_SILENT|MS_SLAVE|MS_REC, ""); err != nil {
+	if err := Mount(zeroString, FHSRoot, zeroString, MS_SILENT|MS_SLAVE|MS_REC, zeroString); err != nil {
 		log.Fatalf("cannot make / rslave: %v", err)
 	}
 
@@ -138,7 +138,7 @@ func Init(prepare func(prefix string), setVerbose func(verbose bool)) {
 		}
 	}
 
-	if err := Mount("rootfs", intermediateHostPath, "tmpfs", MS_NODEV|MS_NOSUID, ""); err != nil {
+	if err := Mount(SourceTmpfsRootfs, intermediateHostPath, FstypeTmpfs, MS_NODEV|MS_NOSUID, zeroString); err != nil {
 		log.Fatalf("cannot mount intermediate root: %v", err)
 	}
 	if err := os.Chdir(intermediateHostPath); err != nil {
@@ -148,7 +148,7 @@ func Init(prepare func(prefix string), setVerbose func(verbose bool)) {
 	if err := os.Mkdir(sysrootDir, 0755); err != nil {
 		log.Fatalf("%v", err)
 	}
-	if err := Mount(sysrootDir, sysrootDir, "", MS_SILENT|MS_MGC_VAL|MS_BIND|MS_REC, ""); err != nil {
+	if err := Mount(sysrootDir, sysrootDir, zeroString, MS_SILENT|MS_BIND|MS_REC, zeroString); err != nil {
 		log.Fatalf("cannot bind sysroot: %v", err)
 	}
 
@@ -179,7 +179,7 @@ func Init(prepare func(prefix string), setVerbose func(verbose bool)) {
 	}
 
 	// setup requiring host root complete at this point
-	if err := Mount(hostDir, hostDir, "", MS_SILENT|MS_REC|MS_PRIVATE, ""); err != nil {
+	if err := Mount(hostDir, hostDir, zeroString, MS_SILENT|MS_REC|MS_PRIVATE, zeroString); err != nil {
 		log.Fatalf("cannot make host root rprivate: %v", err)
 	}
 	if err := Unmount(hostDir, MNT_DETACH); err != nil {
