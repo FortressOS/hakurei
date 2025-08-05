@@ -159,6 +159,53 @@
           default = pkgs.mkShell { buildInputs = hakurei.targetPkgs; };
           withPackage = pkgs.mkShell { buildInputs = [ hakurei ] ++ hakurei.targetPkgs; };
 
+          vm =
+            let
+              nixos = nixpkgs.lib.nixosSystem {
+                inherit system;
+                modules = [
+                  {
+                    environment = {
+                      systemPackages = [
+                        (pkgs.buildFHSEnv {
+                          pname = "hakurei-fhs";
+                          inherit (hakurei) version;
+                          targetPkgs = _: hakurei.targetPkgs;
+                          extraOutputsToInstall = [ "dev" ];
+                          profile = ''
+                            export PKG_CONFIG_PATH="/usr/share/pkgconfig:$PKG_CONFIG_PATH"
+                          '';
+                        })
+                      ];
+
+                      hakurei =
+                        let
+                          # this is used for interactive vm testing during development, where tests might be broken
+                          package = self.packages.${pkgs.system}.hakurei.override {
+                            buildGoModule = previousArgs: pkgs.pkgsStatic.buildGoModule (previousArgs // { doCheck = false; });
+                          };
+                        in
+                        {
+                          inherit package;
+                          hsuPackage = self.packages.${pkgs.system}.hsu.override { hakurei = package; };
+                        };
+                    };
+                  }
+
+                  ./test/interactive/configuration.nix
+                  ./test/interactive/vm.nix
+                  ./test/interactive/hakurei.nix
+
+                  self.nixosModules.hakurei
+                  self.inputs.home-manager.nixosModules.home-manager
+                ];
+              };
+            in
+            pkgs.mkShell {
+              buildInputs = [ nixos.config.system.build.vm ];
+              shellHook = "exec run-nixos-vm $@";
+            };
+
           generateDoc =
             let
               inherit (pkgs) lib;

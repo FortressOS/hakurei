@@ -30,3 +30,6 @@ go.work.sum
 
 # release
 /dist/hakurei-*
+
+# interactive nixos vm
+nixos.qcow2
