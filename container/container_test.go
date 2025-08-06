@@ -20,7 +20,6 @@ import (
 	"hakurei.app/container/seccomp"
 	"hakurei.app/container/vfs"
 	"hakurei.app/hst"
-	"hakurei.app/internal"
 	"hakurei.app/internal/hlog"
 )
 
@@ -106,7 +105,8 @@ func TestContainer(t *testing.T) {
 	{
 		oldVerbose := hlog.Load()
 		oldOutput := container.GetOutput()
-		internal.InstallOutput(true)
+		hlog.Store(testing.Verbose())
+		container.SetOutput(hlog.Output{})
 		t.Cleanup(func() { hlog.Store(oldVerbose) })
 		t.Cleanup(func() { container.SetOutput(oldOutput) })
 	}
