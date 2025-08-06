@@ -148,7 +148,8 @@ func TestContainer(t *testing.T) {
 			c.Uid = tc.uid
 			c.Gid = tc.gid
 			c.Hostname = hostnameFromTestCase(tc.name)
-			c.Stdout, c.Stderr = os.Stdout, os.Stderr
+			output := new(bytes.Buffer)
+			c.Stdout, c.Stderr = output, output
 			c.WaitDelay = helperDefaultTimeout
 			*c.Ops = append(*c.Ops, *tc.ops...)
 			c.SeccompRules = tc.rules
@@ -191,6 +192,7 @@ func TestContainer(t *testing.T) {
 			)
 			want := new(bytes.Buffer)
 			if err := gob.NewEncoder(want).Encode(mnt); err != nil {
+				_, _ = output.WriteTo(os.Stdout)
 				t.Fatalf("cannot serialise expected mount points: %v", err)
 			}
 			c.Place(pathWantMnt, want.Bytes())
@@ -200,13 +202,16 @@ func TestContainer(t *testing.T) {
 			}
 
 			if err := c.Start(); err != nil {
+				_, _ = output.WriteTo(os.Stdout)
 				hlog.PrintBaseError(err, "start:")
 				t.Fatalf("cannot start container: %v", err)
 			} else if err = c.Serve(); err != nil {
+				_, _ = output.WriteTo(os.Stdout)
 				hlog.PrintBaseError(err, "serve:")
 				t.Errorf("cannot serve setup params: %v", err)
 			}
 			if err := c.Wait(); err != nil {
+				_, _ = output.WriteTo(os.Stdout)
 				hlog.PrintBaseError(err, "wait:")
 				t.Fatalf("wait: %v", err)
 			}
