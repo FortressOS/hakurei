@@ -40,6 +40,9 @@ const (
 	// SourceMqueue is used when mounting mqueue.
 	// Note that any source value is allowed when fstype is [FstypeMqueue].
 	SourceMqueue = "mqueue"
+	// SourceOverlay is used when mounting overlay.
+	// Note that any source value is allowed when fstype is [FstypeOverlay].
+	SourceOverlay = "overlay"
 
 	// SourceTmpfsRootfs is used when mounting the tmpfs instance backing the intermediate root.
 	SourceTmpfsRootfs = "rootfs"
@@ -66,6 +69,29 @@ const (
 	// FstypeMqueue represents the mqueue pseudo-filesystem.
 	// This filesystem type is usually mounted on /dev/mqueue.
 	FstypeMqueue = "mqueue"
+	// FstypeOverlay represents the overlay pseudo-filesystem.
+	// This filesystem type can be mounted anywhere in the container filesystem.
+	FstypeOverlay = "overlay"
+
+	// OptionOverlayLowerdir represents the lowerdir option of the overlay pseudo-filesystem.
+	// Any filesystem, does not need to be on a writable filesystem.
+	OptionOverlayLowerdir = "lowerdir"
+	// OptionOverlayUpperdir represents the upperdir option of the overlay pseudo-filesystem.
+	// The upperdir is normally on a writable filesystem.
+	OptionOverlayUpperdir = "upperdir"
+	// OptionOverlayWorkdir represents the workdir option of the overlay pseudo-filesystem.
+	// The workdir needs to be an empty directory on the same filesystem as upperdir.
+	OptionOverlayWorkdir = "workdir"
+	// OptionOverlayUserxattr represents the userxattr option of the overlay pseudo-filesystem.
+	// Use the "user.overlay." xattr namespace instead of "trusted.overlay.".
+	OptionOverlayUserxattr = "userxattr"
+
+	// SpecialOverlayEscape is the escape string for overlay mount options.
+	SpecialOverlayEscape = `\`
+	// SpecialOverlayOption is the separator string between overlay mount options.
+	SpecialOverlayOption = ","
+	// SpecialOverlayPath is the separator string between overlay paths.
+	SpecialOverlayPath = ":"
 )
 
 // bindMount mounts source on target and recursively applies flags if MS_REC is set.
@@ -199,8 +225,8 @@ func escapeOverlayDataSegment(s string) string {
 	}
 
 	return strings.NewReplacer(
-		`\`, `\\`,
-		`,`, `\,`,
-		`:`, `\:`,
+		SpecialOverlayEscape, SpecialOverlayEscape+SpecialOverlayEscape,
+		SpecialOverlayOption, SpecialOverlayEscape+SpecialOverlayOption,
+		SpecialOverlayPath, SpecialOverlayEscape+SpecialOverlayPath,
 	).Replace(s)
 }

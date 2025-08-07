@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"path"
 	"strconv"
 	"strings"
 	"syscall"
@@ -115,6 +116,95 @@ var containerTestCases = []struct {
 			ent("/", "/dev/pts", "rw,nosuid,noexec,relatime", "devpts", "devpts", "rw,mode=620,ptmxmode=666"),
 		),
 		1971, 100, nil, 0, seccomp.PresetStrict},
+
+	{"overlay", true, false, false, true,
+		func(t *testing.T) (*container.Ops, context.Context) {
+			tempDir := t.TempDir()
+			lower0, lower1, upper, work :=
+				path.Join(tempDir, "lower0"),
+				path.Join(tempDir, "lower1"),
+				path.Join(tempDir, "upper"),
+				path.Join(tempDir, "work")
+			for _, name := range []string{lower0, lower1, upper, work} {
+				if err := os.Mkdir(name, 0755); err != nil {
+					t.Fatalf("Mkdir: error = %v", err)
+				}
+			}
+
+			return new(container.Ops).
+					Overlay(hst.Tmp, upper, work, lower0, lower1),
+				context.WithValue(context.WithValue(context.WithValue(context.WithValue(t.Context(),
+					testVal("lower1"), lower1),
+					testVal("lower0"), lower0),
+					testVal("work"), work),
+					testVal("upper"), upper)
+		},
+		func(t *testing.T, ctx context.Context) []*vfs.MountInfoEntry {
+			return []*vfs.MountInfoEntry{
+				ent("/", hst.Tmp, "rw", "overlay", "overlay",
+					"rw,lowerdir="+
+						container.InternalToHostOvlEscape(ctx.Value(testVal("lower0")).(string))+":"+
+						container.InternalToHostOvlEscape(ctx.Value(testVal("lower1")).(string))+
+						",upperdir="+
+						container.InternalToHostOvlEscape(ctx.Value(testVal("upper")).(string))+
+						",workdir="+
+						container.InternalToHostOvlEscape(ctx.Value(testVal("work")).(string))+
+						",redirect_dir=nofollow,uuid=on,userxattr"),
+			}
+		},
+		1 << 3, 1 << 14, nil, 0, seccomp.PresetStrict},
+
+	{"overlay ephemeral", true, false, false, true,
+		func(t *testing.T) (*container.Ops, context.Context) {
+			tempDir := t.TempDir()
+			lower0, lower1 :=
+				path.Join(tempDir, "lower0"),
+				path.Join(tempDir, "lower1")
+			for _, name := range []string{lower0, lower1} {
+				if err := os.Mkdir(name, 0755); err != nil {
+					t.Fatalf("Mkdir: error = %v", err)
+				}
+			}
+
+			return new(container.Ops).
+					OverlayEphemeral(hst.Tmp, lower0, lower1),
+				t.Context()
+		},
+		func(t *testing.T, ctx context.Context) []*vfs.MountInfoEntry {
+			return []*vfs.MountInfoEntry{
+				// contains random suffix
+				ent("/", hst.Tmp, "rw", "overlay", "overlay", ignore),
+			}
+		},
+		1 << 3, 1 << 14, nil, 0, seccomp.PresetStrict},
+
+	{"overlay readonly", true, false, false, true,
+		func(t *testing.T) (*container.Ops, context.Context) {
+			tempDir := t.TempDir()
+			lower0, lower1 :=
+				path.Join(tempDir, "lower0"),
+				path.Join(tempDir, "lower1")
+			for _, name := range []string{lower0, lower1} {
+				if err := os.Mkdir(name, 0755); err != nil {
+					t.Fatalf("Mkdir: error = %v", err)
+				}
+			}
+			return new(container.Ops).
+					OverlayReadonly(hst.Tmp, lower0, lower1),
+				context.WithValue(context.WithValue(t.Context(),
+					testVal("lower1"), lower1),
+					testVal("lower0"), lower0)
+		},
+		func(t *testing.T, ctx context.Context) []*vfs.MountInfoEntry {
+			return []*vfs.MountInfoEntry{
+				ent("/", hst.Tmp, "rw", "overlay", "overlay",
+					"ro,lowerdir="+
+						container.InternalToHostOvlEscape(ctx.Value(testVal("lower0")).(string))+":"+
+						container.InternalToHostOvlEscape(ctx.Value(testVal("lower1")).(string))+
+						",redirect_dir=nofollow,userxattr"),
+			}
+		},
+		1 << 3, 1 << 14, nil, 0, seccomp.PresetStrict},
 }
 
 func TestContainer(t *testing.T) {

@@ -13,6 +13,17 @@ import (
 	"unsafe"
 )
 
+const (
+	// intermediate root file name pattern for [MountOverlayOp.Upper];
+	// remains after apply returns
+	intermediatePatternOverlayUpper = "overlay.upper.*"
+	// intermediate root file name pattern for [MountOverlayOp.Work];
+	// remains after apply returns
+	intermediatePatternOverlayWork = "overlay.work.*"
+	// intermediate root file name pattern for [TmpfileOp]
+	intermediatePatternTmpfile = "tmp.*"
+)
+
 type (
 	Ops []Op
 
@@ -337,6 +348,160 @@ func (t *MountTmpfsOp) Is(op Op) bool  { vt, ok := op.(*MountTmpfsOp); return ok
 func (*MountTmpfsOp) prefix() string   { return "mounting" }
 func (t *MountTmpfsOp) String() string { return fmt.Sprintf("tmpfs on %q size %d", t.Path, t.Size) }
 
+func init() { gob.Register(new(MountOverlayOp)) }
+
+// Overlay appends an [Op] that mounts the overlay pseudo filesystem on [MountOverlayOp.Target].
+func (f *Ops) Overlay(target, state, work string, layers ...string) *Ops {
+	*f = append(*f, &MountOverlayOp{
+		Target: target,
+		Lower:  layers,
+		Upper:  state,
+		Work:   work,
+	})
+	return f
+}
+
+// OverlayEphemeral appends an [Op] that mounts the overlay pseudo filesystem on [MountOverlayOp.Target]
+// with an ephemeral upperdir and workdir.
+func (f *Ops) OverlayEphemeral(target string, layers ...string) *Ops {
+	return f.Overlay(target, SourceTmpfsEphemeral, zeroString, layers...)
+}
+
+// OverlayReadonly appends an [Op] that mounts the overlay pseudo filesystem readonly on [MountOverlayOp.Target]
+func (f *Ops) OverlayReadonly(target string, layers ...string) *Ops {
+	return f.Overlay(target, zeroString, zeroString, layers...)
+}
+
+type MountOverlayOp struct {
+	Target string
+
+	// formatted for [OptionOverlayLowerdir], resolved, prefixed and escaped during early;
+	Lower []string
+	// formatted for [OptionOverlayUpperdir], resolved, prefixed and escaped during early;
+	//
+	// If Work is an empty string and Upper holds the special value [SourceTmpfsEphemeral],
+	// an ephemeral upperdir and workdir will be set up.
+	//
+	// If both Work and Upper are empty strings, upperdir and workdir is omitted and the overlay is mounted readonly.
+	Upper string
+	// formatted for [OptionOverlayWorkdir], resolved, prefixed and escaped during early;
+	Work string
+
+	ephemeral bool
+}
+
+func (o *MountOverlayOp) early(*Params) error {
+	if o.Work == zeroString {
+		switch o.Upper {
+		case SourceTmpfsEphemeral: // ephemeral
+			o.ephemeral = true // intermediate root not yet available
+
+		case zeroString: // readonly
+
+		default:
+			return msg.WrapErr(EINVAL, fmt.Sprintf("upperdir has unexpected value %q", o.Upper))
+		}
+	}
+
+	if !o.ephemeral {
+		if o.Upper != o.Work && (o.Upper == zeroString || o.Work == zeroString) {
+			// unreachable
+			return msg.WrapErr(ENOTRECOVERABLE, "impossible overlay state reached")
+		}
+
+		if o.Upper != zeroString {
+			if !path.IsAbs(o.Upper) {
+				return msg.WrapErr(EBADE, fmt.Sprintf("upperdir %q is not absolute", o.Upper))
+			}
+			if v, err := filepath.EvalSymlinks(o.Upper); err != nil {
+				return wrapErrSelf(err)
+			} else {
+				o.Upper = escapeOverlayDataSegment(toHost(v))
+			}
+		}
+
+		if o.Work != zeroString {
+			if !path.IsAbs(o.Work) {
+				return msg.WrapErr(EBADE, fmt.Sprintf("workdir %q is not absolute", o.Work))
+			}
+			if v, err := filepath.EvalSymlinks(o.Work); err != nil {
+				return wrapErrSelf(err)
+			} else {
+				o.Work = escapeOverlayDataSegment(toHost(v))
+			}
+		}
+	}
+
+	for i := range o.Lower {
+		if !path.IsAbs(o.Lower[i]) {
+			return msg.WrapErr(EBADE, fmt.Sprintf("lowerdir %q is not absolute", o.Lower[i]))
+		}
+
+		if v, err := filepath.EvalSymlinks(o.Lower[i]); err != nil {
+			return wrapErrSelf(err)
+		} else {
+			o.Lower[i] = escapeOverlayDataSegment(toHost(v))
+		}
+	}
+	return nil
+}
+
+func (o *MountOverlayOp) apply(params *Params) error {
+	if !path.IsAbs(o.Target) {
+		return msg.WrapErr(EBADE, fmt.Sprintf("path %q is not absolute", o.Target))
+	}
+	target := toSysroot(o.Target)
+	if err := os.MkdirAll(target, params.ParentPerm); err != nil {
+		return wrapErrSelf(err)
+	}
+
+	if o.ephemeral {
+		var err error
+		// these directories are created internally, therefore early (absolute, symlink, prefix, escape) is bypassed
+		if o.Upper, err = os.MkdirTemp(FHSRoot, intermediatePatternOverlayUpper); err != nil {
+			return wrapErrSelf(err)
+		}
+		if o.Work, err = os.MkdirTemp(FHSRoot, intermediatePatternOverlayWork); err != nil {
+			return wrapErrSelf(err)
+		}
+	}
+
+	options := make([]string, 0, 4)
+
+	if o.Upper == zeroString && o.Work == zeroString { // readonly
+		if len(o.Lower) < 2 {
+			return msg.WrapErr(EINVAL, "readonly overlay requires at least two lowerdir")
+		}
+		// "upperdir=" and "workdir=" may be omitted. In that case the overlay will be read-only
+	} else {
+		if len(o.Lower) == 0 {
+			return msg.WrapErr(EINVAL, "overlay requires at least one lowerdir")
+		}
+		options = append(options,
+			OptionOverlayUpperdir+"="+o.Upper,
+			OptionOverlayWorkdir+"="+o.Work)
+	}
+	options = append(options,
+		OptionOverlayLowerdir+"="+strings.Join(o.Lower, SpecialOverlayPath),
+		OptionOverlayUserxattr)
+
+	return wrapErrSuffix(Mount(SourceOverlay, target, FstypeOverlay, 0, strings.Join(options, SpecialOverlayOption)),
+		fmt.Sprintf("cannot mount overlay on %q:", o.Target))
+}
+
+func (o *MountOverlayOp) Is(op Op) bool {
+	vo, ok := op.(*MountOverlayOp)
+	return ok &&
+		o.Target == vo.Target &&
+		slices.Equal(o.Lower, vo.Lower) &&
+		o.Upper == vo.Upper &&
+		o.Work == vo.Work
+}
+func (*MountOverlayOp) prefix() string { return "mounting" }
+func (o *MountOverlayOp) String() string {
+	return fmt.Sprintf("overlay on %q with %d layers", o.Target, len(o.Lower))
+}
+
 func init() { gob.Register(new(SymlinkOp)) }
 
 // Link appends an [Op] that creates a symlink in the container filesystem.
@@ -436,7 +601,7 @@ func (t *TmpfileOp) apply(params *Params) error {
 	}
 
 	var tmpPath string
-	if f, err := os.CreateTemp(FHSRoot, "tmp.*"); err != nil {
+	if f, err := os.CreateTemp(FHSRoot, intermediatePatternTmpfile); err != nil {
 		return wrapErrSelf(err)
 	} else if _, err = f.Write(t.Data); err != nil {
 		return wrapErrSuffix(err,
