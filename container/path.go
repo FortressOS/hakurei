@@ -103,9 +103,9 @@ func ensureFile(name string, perm, pperm os.FileMode) error {
 	return err
 }
 
-var hostProc = newProcPats(hostPath)
+var hostProc = newProcPaths(hostPath)
 
-func newProcPats(prefix string) *procPaths {
+func newProcPaths(prefix string) *procPaths {
 	return &procPaths{prefix + "/proc", prefix + "/proc/self"}
 }
 
