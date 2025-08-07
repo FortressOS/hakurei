@@ -145,8 +145,14 @@ func (p *Container) Start() error {
 		Cloneflags: CLONE_NEWUSER | CLONE_NEWPID | CLONE_NEWNS |
 			CLONE_NEWIPC | CLONE_NEWUTS | CLONE_NEWCGROUP,
 
-		// remain privileged for setup
-		AmbientCaps: []uintptr{CAP_SYS_ADMIN, CAP_SETPCAP, CAP_DAC_OVERRIDE},
+		AmbientCaps: []uintptr{
+			// general container setup
+			CAP_SYS_ADMIN,
+			// drop capabilities
+			CAP_SETPCAP,
+			// overlay access to upperdir and workdir
+			CAP_DAC_OVERRIDE,
+		},
 
 		UseCgroupFD: p.Cgroup != nil,
 	}
