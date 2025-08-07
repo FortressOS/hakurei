@@ -146,7 +146,7 @@ func (p *Container) Start() error {
 			CLONE_NEWIPC | CLONE_NEWUTS | CLONE_NEWCGROUP,
 
 		// remain privileged for setup
-		AmbientCaps: []uintptr{CAP_SYS_ADMIN, CAP_SETPCAP},
+		AmbientCaps: []uintptr{CAP_SYS_ADMIN, CAP_SETPCAP, CAP_DAC_OVERRIDE},
 
 		UseCgroupFD: p.Cgroup != nil,
 	}
