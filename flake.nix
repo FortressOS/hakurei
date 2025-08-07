@@ -195,6 +195,7 @@
                   ./test/interactive/configuration.nix
                   ./test/interactive/vm.nix
                   ./test/interactive/hakurei.nix
+                  ./test/interactive/trace.nix
 
                   self.nixosModules.hakurei
                   self.inputs.home-manager.nixosModules.home-manager
