@@ -49,6 +49,7 @@
       };
       script = ''
         chown -R alice:users /mnt/src/
+        chmod -R +w /mnt/src/
       '';
     };
   };
