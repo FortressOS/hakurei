@@ -32,15 +32,28 @@ const (
 	pathReadonly = pathPrefix + "readonly"
 )
 
+type testVal any
+
+func emptyOps(t *testing.T) (*container.Ops, context.Context) { return new(container.Ops), t.Context() }
+func earlyOps(ops *container.Ops) func(t *testing.T) (*container.Ops, context.Context) {
+	return func(t *testing.T) (*container.Ops, context.Context) { return ops, t.Context() }
+}
+
+func emptyMnt(*testing.T, context.Context) []*vfs.MountInfoEntry { return nil }
+func earlyMnt(mnt ...*vfs.MountInfoEntry) func(*testing.T, context.Context) []*vfs.MountInfoEntry {
+	return func(*testing.T, context.Context) []*vfs.MountInfoEntry { return mnt }
+}
+
 var containerTestCases = []struct {
 	name    string
 	filter  bool
 	session bool
 	net     bool
 	ro      bool
-	ops     *container.Ops
 
-	mnt []*vfs.MountInfoEntry
+	ops func(t *testing.T) (*container.Ops, context.Context)
+	mnt func(t *testing.T, ctx context.Context) []*vfs.MountInfoEntry
+
 	uid int
 	gid int
 
@@ -49,30 +62,32 @@ var containerTestCases = []struct {
 	presets seccomp.FilterPreset
 }{
 	{"minimal", true, false, false, true,
-		new(container.Ops), nil,
+		emptyOps, emptyMnt,
 		1000, 100, nil, 0, seccomp.PresetStrict},
 	{"allow", true, true, true, false,
-		new(container.Ops), nil,
+		emptyOps, emptyMnt,
 		1000, 100, nil, 0, seccomp.PresetExt | seccomp.PresetDenyDevel},
 	{"no filter", false, true, true, true,
-		new(container.Ops), nil,
+		emptyOps, emptyMnt,
 		1000, 100, nil, 0, seccomp.PresetExt},
 	{"custom rules", true, true, true, false,
-		new(container.Ops), nil,
+		emptyOps, emptyMnt,
 		1, 31, []seccomp.NativeRule{{seccomp.ScmpSyscall(syscall.SYS_SETUID), seccomp.ScmpErrno(syscall.EPERM), nil}}, 0, seccomp.PresetExt},
 
 	{"tmpfs", true, false, false, true,
-		new(container.Ops).
+		earlyOps(new(container.Ops).
 			Tmpfs(hst.Tmp, 0, 0755),
-		[]*vfs.MountInfoEntry{
+		),
+		earlyMnt(
 			ent("/", hst.Tmp, "rw,nosuid,nodev,relatime", "tmpfs", "ephemeral", ignore),
-		},
+		),
 		9, 9, nil, 0, seccomp.PresetStrict},
 
 	{"dev", true, true /* go test output is not a tty */, false, false,
-		new(container.Ops).
+		earlyOps(new(container.Ops).
 			Dev("/dev", true),
-		[]*vfs.MountInfoEntry{
+		),
+		earlyMnt(
 			ent("/", "/dev", "ro,nosuid,nodev,relatime", "tmpfs", "devtmpfs", ignore),
 			ent("/null", "/dev/null", "rw,nosuid", "devtmpfs", "devtmpfs", ignore),
 			ent("/zero", "/dev/zero", "rw,nosuid", "devtmpfs", "devtmpfs", ignore),
@@ -82,13 +97,14 @@ var containerTestCases = []struct {
 			ent("/tty", "/dev/tty", "rw,nosuid", "devtmpfs", "devtmpfs", ignore),
 			ent("/", "/dev/pts", "rw,nosuid,noexec,relatime", "devpts", "devpts", "rw,mode=620,ptmxmode=666"),
 			ent("/", "/dev/mqueue", "rw,nosuid,nodev,noexec,relatime", "mqueue", "mqueue", "rw"),
-		},
+		),
 		1971, 100, nil, 0, seccomp.PresetStrict},
 
 	{"dev no mqueue", true, true /* go test output is not a tty */, false, false,
-		new(container.Ops).
+		earlyOps(new(container.Ops).
 			Dev("/dev", false),
-		[]*vfs.MountInfoEntry{
+		),
+		earlyMnt(
 			ent("/", "/dev", "ro,nosuid,nodev,relatime", "tmpfs", "devtmpfs", ignore),
 			ent("/null", "/dev/null", "rw,nosuid", "devtmpfs", "devtmpfs", ignore),
 			ent("/zero", "/dev/zero", "rw,nosuid", "devtmpfs", "devtmpfs", ignore),
@@ -97,7 +113,7 @@ var containerTestCases = []struct {
 			ent("/urandom", "/dev/urandom", "rw,nosuid", "devtmpfs", "devtmpfs", ignore),
 			ent("/tty", "/dev/tty", "rw,nosuid", "devtmpfs", "devtmpfs", ignore),
 			ent("/", "/dev/pts", "rw,nosuid,noexec,relatime", "devpts", "devpts", "rw,mode=620,ptmxmode=666"),
-		},
+		),
 		1971, 100, nil, 0, seccomp.PresetStrict},
 }
 
@@ -140,6 +156,9 @@ func TestContainer(t *testing.T) {
 
 	for i, tc := range containerTestCases {
 		t.Run(tc.name, func(t *testing.T) {
+			wantOps, wantOpsCtx := tc.ops(t)
+			wantMnt := tc.mnt(t, wantOpsCtx)
+
 			ctx, cancel := context.WithTimeout(t.Context(), helperDefaultTimeout)
 			defer cancel()
 
@@ -155,7 +174,7 @@ func TestContainer(t *testing.T) {
 				c.Stdout, c.Stderr = os.Stdout, os.Stderr
 			}
 			c.WaitDelay = helperDefaultTimeout
-			*c.Ops = append(*c.Ops, *tc.ops...)
+			*c.Ops = append(*c.Ops, *wantOps...)
 			c.SeccompRules = tc.rules
 			c.SeccompFlags = tc.flags | seccomp.AllowMultiarch
 			c.SeccompPresets = tc.presets
@@ -181,7 +200,7 @@ func TestContainer(t *testing.T) {
 				// Bind(name, name, 0)
 				mnt = append(mnt, ent(ignore, name, "ro,nosuid,nodev,relatime", ignore, ignore, ignore))
 			}
-			mnt = append(mnt, tc.mnt...)
+			mnt = append(mnt, wantMnt...)
 			mnt = append(mnt,
 				// Readonly(pathReadonly, 0755)
 				ent("/", pathReadonly, "ro,nosuid,nodev", "tmpfs", "readonly", ignore),
