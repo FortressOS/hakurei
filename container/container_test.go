@@ -149,7 +149,11 @@ func TestContainer(t *testing.T) {
 			c.Gid = tc.gid
 			c.Hostname = hostnameFromTestCase(tc.name)
 			output := new(bytes.Buffer)
-			c.Stdout, c.Stderr = output, output
+			if !testing.Verbose() {
+				c.Stdout, c.Stderr = output, output
+			} else {
+				c.Stdout, c.Stderr = os.Stdout, os.Stderr
+			}
 			c.WaitDelay = helperDefaultTimeout
 			*c.Ops = append(*c.Ops, *tc.ops...)
 			c.SeccompRules = tc.rules
