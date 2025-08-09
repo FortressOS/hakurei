@@ -27,8 +27,6 @@ type (
 	// Container represents a container environment being prepared or run.
 	// None of [Container] methods are safe for concurrent use.
 	Container struct {
-		// Name of initial process in the container.
-		name string
 		// Cgroup fd, nil to disable.
 		Cgroup *int
 		// ExtraFiles passed through to initial process in the container,
@@ -190,29 +188,10 @@ func (p *Container) Serve() error {
 	setup := p.setup
 	p.setup = nil
 
-	if p.Path != "" && !path.IsAbs(p.Path) {
+	if !path.IsAbs(p.Path) {
 		p.cancel()
 		return msg.WrapErr(EINVAL,
 			fmt.Sprintf("invalid executable path %q", p.Path))
-	}
-
-	if p.Path == "" {
-		if p.name == "" {
-			p.Path = os.Getenv("SHELL")
-			if !path.IsAbs(p.Path) {
-				p.cancel()
-				return msg.WrapErr(EBADE,
-					"no command specified and $SHELL is invalid")
-			}
-			p.name = path.Base(p.Path)
-		} else if path.IsAbs(p.name) {
-			p.Path = p.name
-		} else if v, err := exec.LookPath(p.name); err != nil {
-			p.cancel()
-			return msg.WrapErr(err, err.Error())
-		} else {
-			p.Path = v
-		}
 	}
 
 	if p.SeccompRules == nil {
@@ -251,8 +230,15 @@ func (p *Container) ProcessState() *os.ProcessState {
 	return p.cmd.ProcessState
 }
 
-func New(ctx context.Context, name string, args ...string) *Container {
-	return &Container{name: name, ctx: ctx,
-		Params: Params{Args: append([]string{name}, args...), Dir: FHSRoot, Ops: new(Ops)},
-	}
+// New returns the address to a new instance of [Container] that requires further initialisation before use.
+func New(ctx context.Context) *Container {
+	return &Container{ctx: ctx, Params: Params{Dir: FHSRoot, Ops: new(Ops)}}
+}
+
+// NewCommand calls [New] and initialises the [Params.Path] and [Params.Args] fields.
+func NewCommand(ctx context.Context, pathname, name string, args ...string) *Container {
+	z := New(ctx)
+	z.Path = pathname
+	z.Args = append([]string{name}, args...)
+	return z
 }

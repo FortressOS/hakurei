@@ -153,7 +153,7 @@ func testProxyFinaliseStartWaitCloseString(t *testing.T, useSandbox bool) {
 				t.Run("string", func(t *testing.T) {
 					wantSubstr := fmt.Sprintf("%s --args=3 --fd=4", os.Args[0])
 					if useSandbox {
-						wantSubstr = fmt.Sprintf(`argv: ["%s" "--args=3" "--fd=4"], filter: true, rules: 0, flags: 0x1, presets: 0xf`, os.Args[0])
+						wantSubstr = `argv: ["xdg-dbus-proxy" "--args=3" "--fd=4"], filter: true, rules: 0, flags: 0x1, presets: 0xf`
 					}
 					if got := p.String(); !strings.Contains(got, wantSubstr) {
 						t.Errorf("String: %q, want %q",

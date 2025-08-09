@@ -392,7 +392,7 @@ func testContainerCancel(
 }
 
 func TestContainerString(t *testing.T) {
-	c := container.New(t.Context(), "ldd", "/usr/bin/env")
+	c := container.NewCommand(t.Context(), "/run/current-system/sw/bin/ldd", "ldd", "/usr/bin/env")
 	c.SeccompFlags |= seccomp.AllowMultiarch
 	c.SeccompRules = seccomp.Preset(
 		seccomp.PresetExt|seccomp.PresetDenyNS|seccomp.PresetDenyTTY,

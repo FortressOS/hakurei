@@ -157,13 +157,9 @@ func ShimMain() {
 		log.Fatalf("path %q is not a directory", params.Home)
 	}
 
-	var name string
-	if len(params.Container.Args) > 0 {
-		name = params.Container.Args[0]
-	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	cancelContainer.Store(&stop)
-	z := container.New(ctx, name)
+	z := container.New(ctx)
 	z.Params = *params.Container
 	z.Stdin, z.Stdout, z.Stderr = os.Stdin, os.Stdout, os.Stderr
 

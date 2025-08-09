@@ -5,13 +5,17 @@ import (
 	"context"
 	"io"
 	"os"
+	"os/exec"
 	"time"
 
 	"hakurei.app/container"
 	"hakurei.app/container/seccomp"
 )
 
-const lddTimeout = 2 * time.Second
+const (
+	lddName    = "ldd"
+	lddTimeout = 2 * time.Second
+)
 
 var (
 	msgStatic      = []byte("Not a valid dynamic program")
@@ -21,8 +25,16 @@ var (
 func Exec(ctx context.Context, p string) ([]*Entry, error) {
 	c, cancel := context.WithTimeout(ctx, lddTimeout)
 	defer cancel()
-	z := container.New(c, "ldd", p)
-	z.Hostname = "hakurei-ldd"
+
+	var toolPath *container.Absolute
+	if s, err := exec.LookPath(lddName); err != nil {
+		return nil, err
+	} else if toolPath, err = container.NewAbsolute(s); err != nil {
+		return nil, err
+	}
+
+	z := container.NewCommand(c, toolPath.String(), lddName, p)
+	z.Hostname = "hakurei-" + lddName
 	z.SeccompFlags |= seccomp.AllowMultiarch
 	z.SeccompPresets |= seccomp.PresetStrict
 	stdout, stderr := new(bytes.Buffer), new(bytes.Buffer)

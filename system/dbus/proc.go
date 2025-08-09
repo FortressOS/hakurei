@@ -6,7 +6,6 @@ import (
 	"os"
 	"os/exec"
 	"path"
-	"path/filepath"
 	"slices"
 	"strconv"
 	"syscall"
@@ -43,24 +42,26 @@ func (p *Proxy) Start() error {
 			cmd.Env = make([]string, 0)
 		}, nil)
 	} else {
-		toolPath := p.name
-		if filepath.Base(p.name) == p.name {
-			if s, err := exec.LookPath(p.name); err != nil {
+		var toolPath *container.Absolute
+		if a, err := container.NewAbsolute(p.name); err != nil {
+			if p.name, err = exec.LookPath(p.name); err != nil {
 				return err
-			} else {
-				toolPath = s
+			} else if toolPath, err = container.NewAbsolute(p.name); err != nil {
+				return err
 			}
+		} else {
+			toolPath = a
 		}
 
 		var libPaths []string
-		if entries, err := ldd.Exec(ctx, toolPath); err != nil {
+		if entries, err := ldd.Exec(ctx, toolPath.String()); err != nil {
 			return err
 		} else {
 			libPaths = ldd.Path(entries)
 		}
 
 		p.helper = helper.New(
-			ctx, toolPath,
+			ctx, toolPath, "xdg-dbus-proxy",
 			p.final, true,
 			argF, func(z *container.Container) {
 				z.SeccompFlags |= seccomp.AllowMultiarch
@@ -111,7 +112,7 @@ func (p *Proxy) Start() error {
 				}
 
 				// xdg-dbus-proxy bin path
-				binPath := path.Dir(toolPath)
+				binPath := path.Dir(toolPath.String())
 				z.Bind(binPath, binPath, 0)
 			}, nil)
 	}

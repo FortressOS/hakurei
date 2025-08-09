@@ -47,7 +47,7 @@ func TestMain(m *testing.M) {
 }
 
 func helperNewContainerLibPaths(ctx context.Context, libPaths *[]string, args ...string) (c *container.Container) {
-	c = container.New(ctx, helperInnerPath, args...)
+	c = container.NewCommand(ctx, helperInnerPath, "helper", args...)
 	c.Env = append(c.Env, envDoCheck+"=1")
 	c.Bind(os.Args[0], helperInnerPath, 0)
 
