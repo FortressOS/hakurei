@@ -64,7 +64,7 @@ func ShimMain() {
 		closeSetup func() error
 	)
 	if f, err := container.Receive(shimEnv, &params, nil); err != nil {
-		if errors.Is(err, container.ErrInvalid) {
+		if errors.Is(err, syscall.EBADF) {
 			log.Fatal("invalid config descriptor")
 		}
 		if errors.Is(err, container.ErrNotSet) {

@@ -5,11 +5,11 @@ import (
 	"errors"
 	"os"
 	"strconv"
+	"syscall"
 )
 
 var (
-	ErrNotSet  = errors.New("environment variable not set")
-	ErrInvalid = errors.New("bad file descriptor")
+	ErrNotSet = errors.New("environment variable not set")
 )
 
 // Setup appends the read end of a pipe for setup params transmission and returns its fd.
@@ -35,7 +35,7 @@ func Receive(key string, e any, v **os.File) (func() error, error) {
 		} else {
 			setup = os.NewFile(uintptr(fd), "setup")
 			if setup == nil {
-				return nil, ErrInvalid
+				return nil, syscall.EBADF
 			}
 			if v != nil {
 				*v = setup

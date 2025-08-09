@@ -62,7 +62,7 @@ func Init(prepare func(prefix string), setVerbose func(verbose bool)) {
 		offsetSetup int
 	)
 	if f, err := Receive(setupEnv, &params, &setupFile); err != nil {
-		if errors.Is(err, ErrInvalid) {
+		if errors.Is(err, EBADF) {
 			log.Fatal("invalid setup descriptor")
 		}
 		if errors.Is(err, ErrNotSet) {
