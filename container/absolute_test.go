@@ -39,7 +39,7 @@ func TestAbsoluteError(t *testing.T) {
 	})
 }
 
-func TestNewAbsolute(t *testing.T) {
+func TestNewAbs(t *testing.T) {
 	testCases := []struct {
 		name string
 
@@ -54,12 +54,12 @@ func TestNewAbsolute(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			got, err := NewAbsolute(tc.pathname)
+			got, err := NewAbs(tc.pathname)
 			if !reflect.DeepEqual(got, tc.want) {
-				t.Errorf("NewAbsolute: %#v, want %#v", got, tc.want)
+				t.Errorf("NewAbs: %#v, want %#v", got, tc.want)
 			}
 			if !errors.Is(err, tc.wantErr) {
-				t.Errorf("NewAbsolute: error = %v, want %v", err, tc.wantErr)
+				t.Errorf("NewAbs: error = %v, want %v", err, tc.wantErr)
 			}
 		})
 	}
@@ -279,6 +279,38 @@ func TestCodecAbsolute(t *testing.T) {
 		wantErr := "invalid character ':' looking for beginning of value"
 		if err := new(Absolute).UnmarshalJSON([]byte(":3")); err == nil || err.Error() != wantErr {
 			t.Errorf("UnmarshalJSON: error = %v, want %s", err, wantErr)
+		}
+	})
+}
+
+func TestAbsoluteWrap(t *testing.T) {
+	t.Run("join", func(t *testing.T) {
+		want := "/etc/nix/nix.conf"
+		if got := MustAbs("/etc").Append("nix", "nix.conf"); got.String() != want {
+			t.Errorf("Append: %q, want %q", got, want)
+		}
+	})
+
+	t.Run("dir", func(t *testing.T) {
+		want := "/"
+		if got := MustAbs("/etc").Dir(); got.String() != want {
+			t.Errorf("Dir: %q, want %q", got, want)
+		}
+	})
+
+	t.Run("sort", func(t *testing.T) {
+		want := []*Absolute{MustAbs("/etc"), MustAbs("/proc"), MustAbs("/sys")}
+		got := []*Absolute{MustAbs("/proc"), MustAbs("/sys"), MustAbs("/etc")}
+		SortAbs(got)
+		if !reflect.DeepEqual(got, want) {
+			t.Errorf("SortAbs: %#v, want %#v", got, want)
+		}
+	})
+
+	t.Run("compact", func(t *testing.T) {
+		want := []*Absolute{MustAbs("/etc"), MustAbs("/proc"), MustAbs("/sys")}
+		if got := CompactAbs([]*Absolute{MustAbs("/etc"), MustAbs("/proc"), MustAbs("/proc"), MustAbs("/sys")}); !reflect.DeepEqual(got, want) {
+			t.Errorf("CompactAbs: %#v, want %#v", got, want)
 		}
 	})
 }

@@ -43,10 +43,10 @@ func (p *Proxy) Start() error {
 		}, nil)
 	} else {
 		var toolPath *container.Absolute
-		if a, err := container.NewAbsolute(p.name); err != nil {
+		if a, err := container.NewAbs(p.name); err != nil {
 			if p.name, err = exec.LookPath(p.name); err != nil {
 				return err
-			} else if toolPath, err = container.NewAbsolute(p.name); err != nil {
+			} else if toolPath, err = container.NewAbs(p.name); err != nil {
 				return err
 			}
 		} else {

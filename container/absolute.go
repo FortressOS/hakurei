@@ -5,10 +5,12 @@ import (
 	"errors"
 	"fmt"
 	"path"
+	"slices"
+	"strings"
 	"syscall"
 )
 
-// AbsoluteError is returned by [NewAbsolute] and holds the invalid pathname.
+// AbsoluteError is returned by [NewAbs] and holds the invalid pathname.
 type AbsoluteError struct {
 	Pathname string
 }
@@ -37,22 +39,30 @@ func (a *Absolute) String() string {
 	return a.pathname
 }
 
-// NewAbsolute checks pathname and returns a new [Absolute] if pathname is absolute.
-func NewAbsolute(pathname string) (*Absolute, error) {
+// NewAbs checks pathname and returns a new [Absolute] if pathname is absolute.
+func NewAbs(pathname string) (*Absolute, error) {
 	if !isAbs(pathname) {
 		return nil, &AbsoluteError{pathname}
 	}
 	return &Absolute{pathname}, nil
 }
 
-// MustAbs calls [NewAbsolute] and panics on error.
+// MustAbs calls [NewAbs] and panics on error.
 func MustAbs(pathname string) *Absolute {
-	if a, err := NewAbsolute(pathname); err != nil {
+	if a, err := NewAbs(pathname); err != nil {
 		panic(err.Error())
 	} else {
 		return a
 	}
 }
+
+// Append calls [path.Join] with [Absolute] as the first element.
+func (a *Absolute) Append(elem ...string) *Absolute {
+	return &Absolute{path.Join(append([]string{a.String()}, elem...)...)}
+}
+
+// Dir calls [path.Dir] with [Absolute] as its argument.
+func (a *Absolute) Dir() *Absolute { return &Absolute{path.Dir(a.String())} }
 
 func (a *Absolute) GobEncode() ([]byte, error) { return []byte(a.String()), nil }
 func (a *Absolute) GobDecode(data []byte) error {
@@ -75,4 +85,14 @@ func (a *Absolute) UnmarshalJSON(data []byte) error {
 	}
 	a.pathname = pathname
 	return nil
+}
+
+// SortAbs calls [slices.SortFunc] for a slice of [Absolute].
+func SortAbs(x []*Absolute) {
+	slices.SortFunc(x, func(a, b *Absolute) int { return strings.Compare(a.String(), b.String()) })
+}
+
+// CompactAbs calls [slices.CompactFunc] for a slice of [Absolute].
+func CompactAbs(s []*Absolute) []*Absolute {
+	return slices.CompactFunc(s, func(a *Absolute, b *Absolute) bool { return a.String() == b.String() })
 }

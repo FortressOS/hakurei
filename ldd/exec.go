@@ -29,7 +29,7 @@ func Exec(ctx context.Context, p string) ([]*Entry, error) {
 	var toolPath *container.Absolute
 	if s, err := exec.LookPath(lddName); err != nil {
 		return nil, err
-	} else if toolPath, err = container.NewAbsolute(s); err != nil {
+	} else if toolPath, err = container.NewAbs(s); err != nil {
 		return nil, err
 	}
 
