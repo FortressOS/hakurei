@@ -39,7 +39,7 @@ func (seal *outcome) Run(rs *RunState) error {
 	if err := seal.sys.Commit(seal.ctx); err != nil {
 		return err
 	}
-	store := state.NewMulti(seal.runDirPath)
+	store := state.NewMulti(seal.runDirPath.String())
 	deferredStoreFunc := func(c state.Cursor) error { return nil } // noop until state in store
 	defer func() {
 		var revertErr error
@@ -128,7 +128,7 @@ func (seal *outcome) Run(rs *RunState) error {
 			os.Getpid(),
 			seal.waitDelay,
 			seal.container,
-			seal.user.data,
+			seal.user.data.String(),
 			hlog.Load(),
 		})
 	}()

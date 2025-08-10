@@ -9,7 +9,6 @@ import (
 	"io"
 	"os"
 	"os/exec"
-	"path"
 	"strconv"
 	. "syscall"
 	"time"
@@ -53,11 +52,11 @@ type (
 	// Params holds container configuration and is safe to serialise.
 	Params struct {
 		// Working directory in the container.
-		Dir string
+		Dir *Absolute
 		// Initial process environment.
 		Env []string
-		// Absolute path of initial process in the container. Overrides name.
-		Path string
+		// Pathname of initial process in the container.
+		Path *Absolute
 		// Initial process argv.
 		Args []string
 		// Deliver SIGINT to the initial process on context cancellation.
@@ -188,14 +187,16 @@ func (p *Container) Serve() error {
 	setup := p.setup
 	p.setup = nil
 
-	if !path.IsAbs(p.Path) {
+	if p.Path == nil {
 		p.cancel()
-		return msg.WrapErr(EINVAL,
-			fmt.Sprintf("invalid executable path %q", p.Path))
+		return msg.WrapErr(EINVAL, "invalid executable pathname")
 	}
 
+	// do not transmit nil
+	if p.Dir == nil {
+		p.Dir = AbsFHSRoot
+	}
 	if p.SeccompRules == nil {
-		// do not transmit nil
 		p.SeccompRules = make([]seccomp.NativeRule, 0)
 	}
 
@@ -232,11 +233,11 @@ func (p *Container) ProcessState() *os.ProcessState {
 
 // New returns the address to a new instance of [Container] that requires further initialisation before use.
 func New(ctx context.Context) *Container {
-	return &Container{ctx: ctx, Params: Params{Dir: FHSRoot, Ops: new(Ops)}}
+	return &Container{ctx: ctx, Params: Params{Ops: new(Ops)}}
 }
 
 // NewCommand calls [New] and initialises the [Params.Path] and [Params.Args] fields.
-func NewCommand(ctx context.Context, pathname, name string, args ...string) *Container {
+func NewCommand(ctx context.Context, pathname *Absolute, name string, args ...string) *Container {
 	z := New(ctx)
 	z.Path = pathname
 	z.Args = append([]string{name}, args...)

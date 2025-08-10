@@ -47,22 +47,22 @@ func (f *Ops) Grow(n int) { *f = slices.Grow(*f, n) }
 func init() { gob.Register(new(RemountOp)) }
 
 // Remount appends an [Op] that applies [RemountOp.Flags] on container path [RemountOp.Target].
-func (f *Ops) Remount(target string, flags uintptr) *Ops {
+func (f *Ops) Remount(target *Absolute, flags uintptr) *Ops {
 	*f = append(*f, &RemountOp{target, flags})
 	return f
 }
 
 type RemountOp struct {
-	Target string
+	Target *Absolute
 	Flags  uintptr
 }
 
 func (*RemountOp) early(*Params) error { return nil }
 func (r *RemountOp) apply(*Params) error {
-	if !path.IsAbs(r.Target) {
-		return msg.WrapErr(EBADE, fmt.Sprintf("path %q is not absolute", r.Target))
+	if r.Target == nil {
+		return EBADE
 	}
-	return wrapErrSuffix(hostProc.remount(toSysroot(r.Target), r.Flags),
+	return wrapErrSuffix(hostProc.remount(toSysroot(r.Target.String()), r.Flags),
 		fmt.Sprintf("cannot remount %q:", r.Target))
 }
 
@@ -73,13 +73,13 @@ func (r *RemountOp) String() string { return fmt.Sprintf("%q flags %#x", r.Targe
 func init() { gob.Register(new(BindMountOp)) }
 
 // Bind appends an [Op] that bind mounts host path [BindMountOp.Source] on container path [BindMountOp.Target].
-func (f *Ops) Bind(source, target string, flags int) *Ops {
-	*f = append(*f, &BindMountOp{source, "", target, flags})
+func (f *Ops) Bind(source, target *Absolute, flags int) *Ops {
+	*f = append(*f, &BindMountOp{nil, source, target, flags})
 	return f
 }
 
 type BindMountOp struct {
-	Source, sourceFinal, Target string
+	sourceFinal, Source, Target *Absolute
 
 	Flags int
 }
@@ -94,24 +94,24 @@ const (
 )
 
 func (b *BindMountOp) early(*Params) error {
-	if !path.IsAbs(b.Source) {
-		return msg.WrapErr(EBADE, fmt.Sprintf("path %q is not absolute", b.Source))
+	if b.Source == nil || b.Target == nil {
+		return EBADE
 	}
 
-	if v, err := filepath.EvalSymlinks(b.Source); err != nil {
+	if pathname, err := filepath.EvalSymlinks(b.Source.String()); err != nil {
 		if os.IsNotExist(err) && b.Flags&BindOptional != 0 {
-			b.sourceFinal = "\x00"
+			// leave sourceFinal as nil
 			return nil
 		}
 		return wrapErrSelf(err)
 	} else {
-		b.sourceFinal = v
-		return nil
+		b.sourceFinal, err = NewAbs(pathname)
+		return err
 	}
 }
 
 func (b *BindMountOp) apply(*Params) error {
-	if b.sourceFinal == "\x00" {
+	if b.sourceFinal == nil {
 		if b.Flags&BindOptional == 0 {
 			// unreachable
 			return EBADE
@@ -119,12 +119,8 @@ func (b *BindMountOp) apply(*Params) error {
 		return nil
 	}
 
-	if !path.IsAbs(b.sourceFinal) || !path.IsAbs(b.Target) {
-		return msg.WrapErr(EBADE, "path is not absolute")
-	}
-
-	source := toHost(b.sourceFinal)
-	target := toSysroot(b.Target)
+	source := toHost(b.sourceFinal.String())
+	target := toSysroot(b.Target.String())
 
 	// this perm value emulates bwrap behaviour as it clears bits from 0755 based on
 	// op->perms which is never set for any bind setup op so always results in 0700
@@ -161,60 +157,62 @@ func (b *BindMountOp) String() string {
 func init() { gob.Register(new(MountProcOp)) }
 
 // Proc appends an [Op] that mounts a private instance of proc.
-func (f *Ops) Proc(dest string) *Ops {
-	*f = append(*f, MountProcOp(dest))
+func (f *Ops) Proc(target *Absolute) *Ops {
+	*f = append(*f, &MountProcOp{target})
 	return f
 }
 
-type MountProcOp string
+type MountProcOp struct {
+	Target *Absolute
+}
 
-func (p MountProcOp) early(*Params) error { return nil }
-func (p MountProcOp) apply(params *Params) error {
-	v := string(p)
-
-	if !path.IsAbs(v) {
-		return msg.WrapErr(EBADE, fmt.Sprintf("path %q is not absolute", v))
+func (p *MountProcOp) early(*Params) error { return nil }
+func (p *MountProcOp) apply(params *Params) error {
+	if p.Target == nil {
+		return EBADE
 	}
-
-	target := toSysroot(v)
+	target := toSysroot(p.Target.String())
 	if err := os.MkdirAll(target, params.ParentPerm); err != nil {
 		return wrapErrSelf(err)
 	}
 	return wrapErrSuffix(Mount(SourceProc, target, FstypeProc, MS_NOSUID|MS_NOEXEC|MS_NODEV, zeroString),
-		fmt.Sprintf("cannot mount proc on %q:", v))
+		fmt.Sprintf("cannot mount proc on %q:", p.Target.String()))
 }
 
-func (p MountProcOp) Is(op Op) bool  { vp, ok := op.(MountProcOp); return ok && p == vp }
-func (MountProcOp) prefix() string   { return "mounting" }
-func (p MountProcOp) String() string { return fmt.Sprintf("proc on %q", string(p)) }
+func (p *MountProcOp) Is(op Op) bool {
+	vp, ok := op.(*MountProcOp)
+	return ok && ((p == nil && vp == nil) || p == vp)
+}
+func (*MountProcOp) prefix() string   { return "mounting" }
+func (p *MountProcOp) String() string { return fmt.Sprintf("proc on %q", p.Target) }
 
 func init() { gob.Register(new(MountDevOp)) }
 
 // Dev appends an [Op] that mounts a subset of host /dev.
-func (f *Ops) Dev(dest string, mqueue bool) *Ops {
-	*f = append(*f, &MountDevOp{dest, mqueue, false})
+func (f *Ops) Dev(target *Absolute, mqueue bool) *Ops {
+	*f = append(*f, &MountDevOp{target, mqueue, false})
 	return f
 }
 
 // DevWritable appends an [Op] that mounts a writable subset of host /dev.
 // There is usually no good reason to write to /dev, so this should always be followed by a [RemountOp].
-func (f *Ops) DevWritable(dest string, mqueue bool) *Ops {
-	*f = append(*f, &MountDevOp{dest, mqueue, true})
+func (f *Ops) DevWritable(target *Absolute, mqueue bool) *Ops {
+	*f = append(*f, &MountDevOp{target, mqueue, true})
 	return f
 }
 
 type MountDevOp struct {
-	Target string
+	Target *Absolute
 	Mqueue bool
 	Write  bool
 }
 
 func (d *MountDevOp) early(*Params) error { return nil }
 func (d *MountDevOp) apply(params *Params) error {
-	if !path.IsAbs(d.Target) {
-		return msg.WrapErr(EBADE, fmt.Sprintf("path %q is not absolute", d.Target))
+	if d.Target == nil {
+		return EBADE
 	}
-	target := toSysroot(d.Target)
+	target := toSysroot(d.Target.String())
 
 	if err := mountTmpfs(SourceTmpfsDevtmpfs, target, MS_NOSUID|MS_NODEV, 0, params.ParentPerm); err != nil {
 		return err
@@ -314,20 +312,20 @@ func (d *MountDevOp) String() string {
 func init() { gob.Register(new(MountTmpfsOp)) }
 
 // Tmpfs appends an [Op] that mounts tmpfs on container path [MountTmpfsOp.Path].
-func (f *Ops) Tmpfs(dest string, size int, perm os.FileMode) *Ops {
-	*f = append(*f, &MountTmpfsOp{SourceTmpfsEphemeral, dest, MS_NOSUID | MS_NODEV, size, perm})
+func (f *Ops) Tmpfs(target *Absolute, size int, perm os.FileMode) *Ops {
+	*f = append(*f, &MountTmpfsOp{SourceTmpfsEphemeral, target, MS_NOSUID | MS_NODEV, size, perm})
 	return f
 }
 
 // Readonly appends an [Op] that mounts read-only tmpfs on container path [MountTmpfsOp.Path].
-func (f *Ops) Readonly(dest string, perm os.FileMode) *Ops {
-	*f = append(*f, &MountTmpfsOp{SourceTmpfsReadonly, dest, MS_RDONLY | MS_NOSUID | MS_NODEV, 0, perm})
+func (f *Ops) Readonly(target *Absolute, perm os.FileMode) *Ops {
+	*f = append(*f, &MountTmpfsOp{SourceTmpfsReadonly, target, MS_RDONLY | MS_NOSUID | MS_NODEV, 0, perm})
 	return f
 }
 
 type MountTmpfsOp struct {
 	FSName string
-	Path   string
+	Path   *Absolute
 	Flags  uintptr
 	Size   int
 	Perm   os.FileMode
@@ -335,13 +333,13 @@ type MountTmpfsOp struct {
 
 func (t *MountTmpfsOp) early(*Params) error { return nil }
 func (t *MountTmpfsOp) apply(*Params) error {
-	if !path.IsAbs(t.Path) {
-		return msg.WrapErr(EBADE, fmt.Sprintf("path %q is not absolute", t.Path))
+	if t.Path == nil {
+		return EBADE
 	}
 	if t.Size < 0 || t.Size > math.MaxUint>>1 {
 		return msg.WrapErr(EBADE, fmt.Sprintf("size %d out of bounds", t.Size))
 	}
-	return mountTmpfs(t.FSName, toSysroot(t.Path), t.Flags, t.Size, t.Perm)
+	return mountTmpfs(t.FSName, toSysroot(t.Path.String()), t.Flags, t.Size, t.Perm)
 }
 
 func (t *MountTmpfsOp) Is(op Op) bool  { vt, ok := op.(*MountTmpfsOp); return ok && *t == *vt }
@@ -351,7 +349,7 @@ func (t *MountTmpfsOp) String() string { return fmt.Sprintf("tmpfs on %q size %d
 func init() { gob.Register(new(MountOverlayOp)) }
 
 // Overlay appends an [Op] that mounts the overlay pseudo filesystem on [MountOverlayOp.Target].
-func (f *Ops) Overlay(target, state, work string, layers ...string) *Ops {
+func (f *Ops) Overlay(target, state, work *Absolute, layers ...*Absolute) *Ops {
 	*f = append(*f, &MountOverlayOp{
 		Target: target,
 		Lower:  layers,
@@ -363,94 +361,94 @@ func (f *Ops) Overlay(target, state, work string, layers ...string) *Ops {
 
 // OverlayEphemeral appends an [Op] that mounts the overlay pseudo filesystem on [MountOverlayOp.Target]
 // with an ephemeral upperdir and workdir.
-func (f *Ops) OverlayEphemeral(target string, layers ...string) *Ops {
-	return f.Overlay(target, SourceTmpfsEphemeral, zeroString, layers...)
+func (f *Ops) OverlayEphemeral(target *Absolute, layers ...*Absolute) *Ops {
+	return f.Overlay(target, AbsFHSRoot, nil, layers...)
 }
 
 // OverlayReadonly appends an [Op] that mounts the overlay pseudo filesystem readonly on [MountOverlayOp.Target]
-func (f *Ops) OverlayReadonly(target string, layers ...string) *Ops {
-	return f.Overlay(target, zeroString, zeroString, layers...)
+func (f *Ops) OverlayReadonly(target *Absolute, layers ...*Absolute) *Ops {
+	return f.Overlay(target, nil, nil, layers...)
 }
 
 type MountOverlayOp struct {
-	Target string
+	Target *Absolute
 
-	// formatted for [OptionOverlayLowerdir], resolved, prefixed and escaped during early;
-	Lower []string
-	// formatted for [OptionOverlayUpperdir], resolved, prefixed and escaped during early;
+	// Any filesystem, does not need to be on a writable filesystem.
+	Lower []*Absolute
+	// formatted for [OptionOverlayLowerdir], resolved, prefixed and escaped during early
+	lower []string
+	// The upperdir is normally on a writable filesystem.
 	//
-	// If Work is an empty string and Upper holds the special value [SourceTmpfsEphemeral],
+	// If Work is nil and Upper holds the special value [FHSRoot],
 	// an ephemeral upperdir and workdir will be set up.
 	//
 	// If both Work and Upper are empty strings, upperdir and workdir is omitted and the overlay is mounted readonly.
-	Upper string
-	// formatted for [OptionOverlayWorkdir], resolved, prefixed and escaped during early;
-	Work string
+	Upper *Absolute
+	// formatted for [OptionOverlayUpperdir], resolved, prefixed and escaped during early
+	upper string
+	// The workdir needs to be an empty directory on the same filesystem as upperdir.
+	Work *Absolute
+	// formatted for [OptionOverlayWorkdir], resolved, prefixed and escaped during early
+	work string
 
 	ephemeral bool
 }
 
 func (o *MountOverlayOp) early(*Params) error {
-	if o.Work == zeroString {
-		switch o.Upper {
-		case SourceTmpfsEphemeral: // ephemeral
+	if o.Work == nil && o.Upper != nil {
+		switch o.Upper.String() {
+		case FHSRoot: // ephemeral
 			o.ephemeral = true // intermediate root not yet available
-
-		case zeroString: // readonly
 
 		default:
 			return msg.WrapErr(EINVAL, fmt.Sprintf("upperdir has unexpected value %q", o.Upper))
 		}
 	}
+	// readonly handled in apply
 
 	if !o.ephemeral {
-		if o.Upper != o.Work && (o.Upper == zeroString || o.Work == zeroString) {
+		if o.Upper != o.Work && (o.Upper == nil || o.Work == nil) {
 			// unreachable
 			return msg.WrapErr(ENOTRECOVERABLE, "impossible overlay state reached")
 		}
 
-		if o.Upper != zeroString {
-			if !path.IsAbs(o.Upper) {
-				return msg.WrapErr(EBADE, fmt.Sprintf("upperdir %q is not absolute", o.Upper))
-			}
-			if v, err := filepath.EvalSymlinks(o.Upper); err != nil {
+		if o.Upper != nil {
+			if v, err := filepath.EvalSymlinks(o.Upper.String()); err != nil {
 				return wrapErrSelf(err)
 			} else {
-				o.Upper = escapeOverlayDataSegment(toHost(v))
+				o.upper = escapeOverlayDataSegment(toHost(v))
 			}
 		}
 
-		if o.Work != zeroString {
-			if !path.IsAbs(o.Work) {
-				return msg.WrapErr(EBADE, fmt.Sprintf("workdir %q is not absolute", o.Work))
-			}
-			if v, err := filepath.EvalSymlinks(o.Work); err != nil {
+		if o.Work != nil {
+			if v, err := filepath.EvalSymlinks(o.Work.String()); err != nil {
 				return wrapErrSelf(err)
 			} else {
-				o.Work = escapeOverlayDataSegment(toHost(v))
+				o.work = escapeOverlayDataSegment(toHost(v))
 			}
 		}
 	}
 
-	for i := range o.Lower {
-		if !path.IsAbs(o.Lower[i]) {
-			return msg.WrapErr(EBADE, fmt.Sprintf("lowerdir %q is not absolute", o.Lower[i]))
+	o.lower = make([]string, len(o.Lower))
+	for i, a := range o.Lower {
+		if a == nil {
+			return EBADE
 		}
 
-		if v, err := filepath.EvalSymlinks(o.Lower[i]); err != nil {
+		if v, err := filepath.EvalSymlinks(a.String()); err != nil {
 			return wrapErrSelf(err)
 		} else {
-			o.Lower[i] = escapeOverlayDataSegment(toHost(v))
+			o.lower[i] = escapeOverlayDataSegment(toHost(v))
 		}
 	}
 	return nil
 }
 
 func (o *MountOverlayOp) apply(params *Params) error {
-	if !path.IsAbs(o.Target) {
-		return msg.WrapErr(EBADE, fmt.Sprintf("path %q is not absolute", o.Target))
+	if o.Target == nil {
+		return EBADE
 	}
-	target := toSysroot(o.Target)
+	target := toSysroot(o.Target.String())
 	if err := os.MkdirAll(target, params.ParentPerm); err != nil {
 		return wrapErrSelf(err)
 	}
@@ -458,17 +456,17 @@ func (o *MountOverlayOp) apply(params *Params) error {
 	if o.ephemeral {
 		var err error
 		// these directories are created internally, therefore early (absolute, symlink, prefix, escape) is bypassed
-		if o.Upper, err = os.MkdirTemp(FHSRoot, intermediatePatternOverlayUpper); err != nil {
+		if o.upper, err = os.MkdirTemp(FHSRoot, intermediatePatternOverlayUpper); err != nil {
 			return wrapErrSelf(err)
 		}
-		if o.Work, err = os.MkdirTemp(FHSRoot, intermediatePatternOverlayWork); err != nil {
+		if o.work, err = os.MkdirTemp(FHSRoot, intermediatePatternOverlayWork); err != nil {
 			return wrapErrSelf(err)
 		}
 	}
 
 	options := make([]string, 0, 4)
 
-	if o.Upper == zeroString && o.Work == zeroString { // readonly
+	if o.upper == zeroString && o.work == zeroString { // readonly
 		if len(o.Lower) < 2 {
 			return msg.WrapErr(EINVAL, "readonly overlay requires at least two lowerdir")
 		}
@@ -478,11 +476,11 @@ func (o *MountOverlayOp) apply(params *Params) error {
 			return msg.WrapErr(EINVAL, "overlay requires at least one lowerdir")
 		}
 		options = append(options,
-			OptionOverlayUpperdir+"="+o.Upper,
-			OptionOverlayWorkdir+"="+o.Work)
+			OptionOverlayUpperdir+"="+o.upper,
+			OptionOverlayWorkdir+"="+o.work)
 	}
 	options = append(options,
-		OptionOverlayLowerdir+"="+strings.Join(o.Lower, SpecialOverlayPath),
+		OptionOverlayLowerdir+"="+strings.Join(o.lower, SpecialOverlayPath),
 		OptionOverlayUserxattr)
 
 	return wrapErrSuffix(Mount(SourceOverlay, target, FstypeOverlay, 0, strings.Join(options, SpecialOverlayOption)),
@@ -505,70 +503,73 @@ func (o *MountOverlayOp) String() string {
 func init() { gob.Register(new(SymlinkOp)) }
 
 // Link appends an [Op] that creates a symlink in the container filesystem.
-func (f *Ops) Link(target, linkName string) *Ops {
-	*f = append(*f, &SymlinkOp{target, linkName})
+func (f *Ops) Link(target *Absolute, linkName string, dereference bool) *Ops {
+	*f = append(*f, &SymlinkOp{target, linkName, dereference})
 	return f
 }
 
-type SymlinkOp [2]string
+type SymlinkOp struct {
+	Target *Absolute
+	// LinkName is an arbitrary uninterpreted pathname.
+	LinkName string
+
+	// Dereference causes LinkName to be dereferenced during early.
+	Dereference bool
+}
 
 func (l *SymlinkOp) early(*Params) error {
-	if strings.HasPrefix(l[0], "*") {
-		l[0] = l[0][1:]
-		if !path.IsAbs(l[0]) {
-			return msg.WrapErr(EBADE, fmt.Sprintf("path %q is not absolute", l[0]))
+	if l.Dereference {
+		if !isAbs(l.LinkName) {
+			return msg.WrapErr(EBADE, fmt.Sprintf("path %q is not absolute", l.LinkName))
 		}
-		if name, err := os.Readlink(l[0]); err != nil {
+		if name, err := os.Readlink(l.LinkName); err != nil {
 			return wrapErrSelf(err)
 		} else {
-			l[0] = name
+			l.LinkName = name
 		}
 	}
 	return nil
 }
-func (l *SymlinkOp) apply(params *Params) error {
-	// symlink target is an arbitrary path value, so only validate link name here
-	if !path.IsAbs(l[1]) {
-		return msg.WrapErr(EBADE, fmt.Sprintf("path %q is not absolute", l[1]))
-	}
 
-	target := toSysroot(l[1])
+func (l *SymlinkOp) apply(params *Params) error {
+	if l.Target == nil {
+		return EBADE
+	}
+	target := toSysroot(l.Target.String())
 	if err := os.MkdirAll(path.Dir(target), params.ParentPerm); err != nil {
 		return wrapErrSelf(err)
 	}
-	if err := os.Symlink(l[0], target); err != nil {
+	if err := os.Symlink(l.LinkName, target); err != nil {
 		return wrapErrSelf(err)
 	}
 	return nil
 }
 
-func (l *SymlinkOp) Is(op Op) bool  { vl, ok := op.(*SymlinkOp); return ok && *l == *vl }
-func (*SymlinkOp) prefix() string   { return "creating" }
-func (l *SymlinkOp) String() string { return fmt.Sprintf("symlink on %q target %q", l[1], l[0]) }
+func (l *SymlinkOp) Is(op Op) bool { vl, ok := op.(*SymlinkOp); return ok && *l == *vl }
+func (*SymlinkOp) prefix() string  { return "creating" }
+func (l *SymlinkOp) String() string {
+	return fmt.Sprintf("symlink on %q linkname %q", l.Target, l.LinkName)
+}
 
 func init() { gob.Register(new(MkdirOp)) }
 
 // Mkdir appends an [Op] that creates a directory in the container filesystem.
-func (f *Ops) Mkdir(dest string, perm os.FileMode) *Ops {
-	*f = append(*f, &MkdirOp{dest, perm})
+func (f *Ops) Mkdir(name *Absolute, perm os.FileMode) *Ops {
+	*f = append(*f, &MkdirOp{name, perm})
 	return f
 }
 
 type MkdirOp struct {
-	Path string
+	Path *Absolute
 	Perm os.FileMode
 }
 
 func (m *MkdirOp) early(*Params) error { return nil }
 func (m *MkdirOp) apply(*Params) error {
-	if !path.IsAbs(m.Path) {
-		return msg.WrapErr(EBADE, fmt.Sprintf("path %q is not absolute", m.Path))
+	if m.Path == nil {
+		return EBADE
 	}
-
-	if err := os.MkdirAll(toSysroot(m.Path), m.Perm); err != nil {
-		return wrapErrSelf(err)
-	}
-	return nil
+	return wrapErrSelf(os.MkdirAll(toSysroot(m.Path.String()), m.Perm))
 }
 
 func (m *MkdirOp) Is(op Op) bool  { vm, ok := op.(*MkdirOp); return ok && m == vm }
@@ -578,10 +579,13 @@ func (m *MkdirOp) String() string { return fmt.Sprintf("directory %q perm %s", m
 func init() { gob.Register(new(TmpfileOp)) }
 
 // Place appends an [Op] that places a file in container path [TmpfileOp.Path] containing [TmpfileOp.Data].
-func (f *Ops) Place(name string, data []byte) *Ops { *f = append(*f, &TmpfileOp{name, data}); return f }
+func (f *Ops) Place(name *Absolute, data []byte) *Ops {
+	*f = append(*f, &TmpfileOp{name, data})
+	return f
+}
 
 // PlaceP is like Place but writes the address of [TmpfileOp.Data] to the pointer dataP points to.
-func (f *Ops) PlaceP(name string, dataP **[]byte) *Ops {
+func (f *Ops) PlaceP(name *Absolute, dataP **[]byte) *Ops {
 	t := &TmpfileOp{Path: name}
 	*dataP = &t.Data
 
@@ -590,14 +594,14 @@ func (f *Ops) PlaceP(name string, dataP **[]byte) *Ops {
 }
 
 type TmpfileOp struct {
-	Path string
+	Path *Absolute
 	Data []byte
 }
 
 func (t *TmpfileOp) early(*Params) error { return nil }
 func (t *TmpfileOp) apply(params *Params) error {
-	if !path.IsAbs(t.Path) {
-		return msg.WrapErr(EBADE, fmt.Sprintf("path %q is not absolute", t.Path))
+	if t.Path == nil {
+		return EBADE
 	}
 
 	var tmpPath string
@@ -613,7 +617,7 @@ func (t *TmpfileOp) apply(params *Params) error {
 		tmpPath = f.Name()
 	}
 
-	target := toSysroot(t.Path)
+	target := toSysroot(t.Path.String())
 	if err := ensureFile(target, 0444, params.ParentPerm); err != nil {
 		return err
 	} else if err = hostProc.bindMount(

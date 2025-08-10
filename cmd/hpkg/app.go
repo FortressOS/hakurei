@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"log"
 	"os"
-	"path"
 
 	"hakurei.app/container"
 	"hakurei.app/container/seccomp"
@@ -56,18 +55,18 @@ type appInfo struct {
 	// store path to nixGL source
 	NixGL string `json:"nix_gl,omitempty"`
 	// store path to activate-and-exec script
-	Launcher string `json:"launcher"`
+	Launcher *container.Absolute `json:"launcher"`
 	// store path to /run/current-system
-	CurrentSystem string `json:"current_system"`
+	CurrentSystem *container.Absolute `json:"current_system"`
 	// store path to home-manager activation package
 	ActivationPackage string `json:"activation_package"`
 }
 
-func (app *appInfo) toFst(pathSet *appPathSet, argv []string, flagDropShell bool) *hst.Config {
+func (app *appInfo) toHst(pathSet *appPathSet, pathname *container.Absolute, argv []string, flagDropShell bool) *hst.Config {
 	config := &hst.Config{
 		ID: app.ID,
 
-		Path: argv[0],
+		Path: pathname,
 		Args: argv,
 
 		Enablements: app.Enablements,
@@ -77,9 +76,9 @@ func (app *appInfo) toFst(pathSet *appPathSet, argv []string, flagDropShell bool
 		DirectWayland: app.DirectWayland,
 
 		Username: "hakurei",
-		Shell:    shellPath,
+		Shell:    pathShell,
 		Data:     pathSet.homeDir,
-		Dir:      path.Join("/data/data", app.ID),
+		Dir:      pathDataData.Append(app.ID),
 
 		Identity: app.Identity,
 		Groups:   app.Groups,
@@ -92,22 +91,22 @@ func (app *appInfo) toFst(pathSet *appPathSet, argv []string, flagDropShell bool
 			Device:     app.Device,
 			Tty:        app.Tty || flagDropShell,
 			MapRealUID: app.MapRealUID,
-			Filesystem: []*hst.FilesystemConfig{
-				{Src: path.Join(pathSet.nixPath, "store"), Dst: "/nix/store", Must: true},
-				{Src: pathSet.metaPath, Dst: path.Join(hst.Tmp, "app"), Must: true},
-				{Src: container.FHSEtc + "resolv.conf"},
-				{Src: container.FHSSys + "block"},
-				{Src: container.FHSSys + "bus"},
-				{Src: container.FHSSys + "class"},
-				{Src: container.FHSSys + "dev"},
-				{Src: container.FHSSys + "devices"},
+			Filesystem: []hst.FilesystemConfig{
+				{Src: pathSet.nixPath.Append("store"), Dst: pathNixStore, Must: true},
+				{Src: pathSet.metaPath, Dst: hst.AbsTmp.Append("app"), Must: true},
+				{Src: container.AbsFHSEtc.Append("resolv.conf")},
+				{Src: container.AbsFHSSys.Append("block")},
+				{Src: container.AbsFHSSys.Append("bus")},
+				{Src: container.AbsFHSSys.Append("class")},
+				{Src: container.AbsFHSSys.Append("dev")},
+				{Src: container.AbsFHSSys.Append("devices")},
 			},
-			Link: [][2]string{
-				{app.CurrentSystem, container.FHSRun + "current-system"},
-				{container.FHSRun + "current-system/sw/bin", "/bin"},
-				{container.FHSRun + "current-system/sw/bin", container.FHSUsrBin},
+			Link: []hst.LinkConfig{
+				{pathCurrentSystem, app.CurrentSystem.String()},
+				{pathBin, pathSwBin.String()},
+				{container.AbsFHSUsrBin, pathSwBin.String()},
 			},
-			Etc:     path.Join(pathSet.cacheDir, "etc"),
+			Etc:     pathSet.cacheDir.Append("etc"),
 			AutoEtc: true,
 		},
 		ExtraPerms: []*hst.ExtraPermConfig{
@@ -140,6 +139,14 @@ func loadAppInfo(name string, beforeFail func()) *appInfo {
 	if bundle.ID == "" {
 		beforeFail()
 		log.Fatal("application identifier must not be empty")
+	}
+	if bundle.Launcher == nil {
+		beforeFail()
+		log.Fatal("launcher must not be empty")
+	}
+	if bundle.CurrentSystem == nil {
+		beforeFail()
+		log.Fatal("current-system must not be empty")
 	}
 
 	return bundle

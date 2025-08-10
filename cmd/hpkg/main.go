@@ -17,15 +17,13 @@ import (
 	"hakurei.app/internal/hlog"
 )
 
-const shellPath = "/run/current-system/sw/bin/bash"
-
 var (
 	errSuccess = errors.New("success")
 )
 
 func init() {
 	hlog.Prepare("hpkg")
-	if err := os.Setenv("SHELL", shellPath); err != nil {
+	if err := os.Setenv("SHELL", pathShell.String()); err != nil {
 		log.Fatalf("cannot set $SHELL: %v", err)
 	}
 }
@@ -82,31 +80,32 @@ func main() {
 				Extract package and set up for cleanup.
 			*/
 
-			var workDir string
+			var workDir *container.Absolute
 			if p, err := os.MkdirTemp("", "hpkg.*"); err != nil {
 				log.Printf("cannot create temporary directory: %v", err)
 				return err
-			} else {
-				workDir = p
+			} else if workDir, err = container.NewAbs(p); err != nil {
+				log.Printf("invalid temporary directory: %v", err)
+				return err
 			}
 			cleanup := func() {
 				// should be faster than a native implementation
-				mustRun(chmod, "-R", "+w", workDir)
-				mustRun(rm, "-rf", workDir)
+				mustRun(chmod, "-R", "+w", workDir.String())
+				mustRun(rm, "-rf", workDir.String())
 			}
 			beforeRunFail.Store(&cleanup)
 
-			mustRun(tar, "-C", workDir, "-xf", pkgPath)
+			mustRun(tar, "-C", workDir.String(), "-xf", pkgPath)
 
 			/*
 				Parse bundle and app metadata, do pre-install checks.
 			*/
 
-			bundle := loadAppInfo(path.Join(workDir, "bundle.json"), cleanup)
+			bundle := loadAppInfo(path.Join(workDir.String(), "bundle.json"), cleanup)
 			pathSet := pathSetByApp(bundle.ID)
 
 			a := bundle
-			if s, err := os.Stat(pathSet.metaPath); err != nil {
+			if s, err := os.Stat(pathSet.metaPath.String()); err != nil {
 				if !os.IsNotExist(err) {
 					cleanup()
 					log.Printf("cannot access %q: %v", pathSet.metaPath, err)
@@ -118,7 +117,7 @@ func main() {
 				log.Printf("metadata path %q is not a file", pathSet.metaPath)
 				return syscall.EBADMSG
 			} else {
-				a = loadAppInfo(pathSet.metaPath, cleanup)
+				a = loadAppInfo(pathSet.metaPath.String(), cleanup)
 				if a.ID != bundle.ID {
 					cleanup()
 					log.Printf("app %q claims to have identifier %q",
@@ -209,7 +208,7 @@ func main() {
 			*/
 
 			// serialise metadata to ensure consistency
-			if f, err := os.OpenFile(pathSet.metaPath+"~", os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644); err != nil {
+			if f, err := os.OpenFile(pathSet.metaPath.String()+"~", os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644); err != nil {
 				cleanup()
 				log.Printf("cannot create metadata file: %v", err)
 				return err
@@ -222,7 +221,7 @@ func main() {
 				// not fatal
 			}
 
-			if err := os.Rename(pathSet.metaPath+"~", pathSet.metaPath); err != nil {
+			if err := os.Rename(pathSet.metaPath.String()+"~", pathSet.metaPath.String()); err != nil {
 				cleanup()
 				log.Printf("cannot rename metadata file: %v", err)
 				return err
@@ -251,7 +250,7 @@ func main() {
 
 			id := args[0]
 			pathSet := pathSetByApp(id)
-			a := loadAppInfo(pathSet.metaPath, func() {})
+			a := loadAppInfo(pathSet.metaPath.String(), func() {})
 			if a.ID != id {
 				log.Printf("app %q claims to have identifier %q", id, a.ID)
 				return syscall.EBADE
@@ -275,13 +274,13 @@ func main() {
 						"--override-input nixpkgs path:/etc/nixpkgs " +
 						"path:" + a.NixGL + "#nixVulkanNvidia",
 				}, true, func(config *hst.Config) *hst.Config {
-					config.Container.Filesystem = append(config.Container.Filesystem, []*hst.FilesystemConfig{
-						{Src: container.FHSEtc + "resolv.conf"},
-						{Src: container.FHSSys + "block"},
-						{Src: container.FHSSys + "bus"},
-						{Src: container.FHSSys + "class"},
-						{Src: container.FHSSys + "dev"},
-						{Src: container.FHSSys + "devices"},
+					config.Container.Filesystem = append(config.Container.Filesystem, []hst.FilesystemConfig{
+						{Src: container.AbsFHSEtc.Append("resolv.conf")},
+						{Src: container.AbsFHSSys.Append("block")},
+						{Src: container.AbsFHSSys.Append("bus")},
+						{Src: container.AbsFHSSys.Append("class")},
+						{Src: container.AbsFHSSys.Append("dev")},
+						{Src: container.AbsFHSSys.Append("devices")},
 					}...)
 					appendGPUFilesystem(config)
 					return config
@@ -292,15 +291,16 @@ func main() {
 				Create app configuration.
 			*/
 
+			pathname := a.Launcher
 			argv := make([]string, 1, len(args))
-			if !flagDropShell {
-				argv[0] = a.Launcher
+			if flagDropShell {
+				pathname = pathShell
+				argv[0] = bash
 			} else {
-				argv[0] = shellPath
+				argv[0] = a.Launcher.String()
 			}
 			argv = append(argv, args[1:]...)
-
-			config := a.toFst(pathSet, argv, flagDropShell)
+			config := a.toHst(pathSet, pathname, argv, flagDropShell)
 
 			/*
 				Expose GPU devices.
@@ -308,7 +308,7 @@ func main() {
 
 			if a.GPU {
 				config.Container.Filesystem = append(config.Container.Filesystem,
-					&hst.FilesystemConfig{Src: path.Join(pathSet.nixPath, ".nixGL"), Dst: path.Join(hst.Tmp, "nixGL")})
+					hst.FilesystemConfig{Src: pathSet.nixPath.Append(".nixGL"), Dst: hst.AbsTmp.Append("nixGL")})
 				appendGPUFilesystem(config)
 			}
 

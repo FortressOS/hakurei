@@ -7,7 +7,6 @@ import (
 
 	"hakurei.app/hst"
 	"hakurei.app/internal/app/state"
-	"hakurei.app/internal/hlog"
 	"hakurei.app/internal/sys"
 )
 
@@ -58,10 +57,6 @@ func (a *app) Seal(config *hst.Config) (SealedApp, error) {
 
 	if a.outcome != nil {
 		panic("app sealed twice")
-	}
-	if config == nil {
-		return nil, hlog.WrapErr(ErrConfig,
-			"attempted to seal app with nil config")
 	}
 
 	seal := new(outcome)

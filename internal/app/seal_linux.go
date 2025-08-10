@@ -49,10 +49,8 @@ const (
 )
 
 var (
-	ErrConfig = errors.New("no configuration to seal")
-	ErrUser   = errors.New("invalid aid")
-	ErrHome   = errors.New("invalid home directory")
-	ErrName   = errors.New("invalid username")
+	ErrIdent = errors.New("invalid identity")
+	ErrName  = errors.New("invalid username")
 
 	ErrXDisplay = errors.New(display + " unset")
 
@@ -67,8 +65,8 @@ var posixUsername = regexp.MustCompilePOSIX("^[a-z_]([A-Za-z0-9_-]{0,31}|[A-Za-z
 type outcome struct {
 	// copied from initialising [app]
 	id *stringPair[state.ID]
-	// copied from [sys.State] response
-	runDirPath string
+	// copied from [sys.State]
+	runDirPath *container.Absolute
 
 	// initial [hst.Config] gob stream for state data;
 	// this is prepared ahead of time as config is clobbered during seal creation
@@ -93,9 +91,9 @@ type shareHost struct {
 	// whether XDG_RUNTIME_DIR is used post hsu
 	useRuntimeDir bool
 	// process-specific directory in tmpdir, empty if unused
-	sharePath string
+	sharePath *container.Absolute
 	// process-specific directory in XDG_RUNTIME_DIR, empty if unused
-	runtimeSharePath string
+	runtimeSharePath *container.Absolute
 
 	seal *outcome
 	sc   hst.Paths
@@ -107,48 +105,48 @@ func (share *shareHost) ensureRuntimeDir() {
 		return
 	}
 	share.useRuntimeDir = true
-	share.seal.sys.Ensure(share.sc.RunDirPath, 0700)
-	share.seal.sys.UpdatePermType(system.User, share.sc.RunDirPath, acl.Execute)
-	share.seal.sys.Ensure(share.sc.RuntimePath, 0700) // ensure this dir in case XDG_RUNTIME_DIR is unset
-	share.seal.sys.UpdatePermType(system.User, share.sc.RuntimePath, acl.Execute)
+	share.seal.sys.Ensure(share.sc.RunDirPath.String(), 0700)
+	share.seal.sys.UpdatePermType(system.User, share.sc.RunDirPath.String(), acl.Execute)
+	share.seal.sys.Ensure(share.sc.RuntimePath.String(), 0700) // ensure this dir in case XDG_RUNTIME_DIR is unset
+	share.seal.sys.UpdatePermType(system.User, share.sc.RuntimePath.String(), acl.Execute)
 }
 
 // instance returns a process-specific share path within tmpdir
-func (share *shareHost) instance() string {
-	if share.sharePath != "" {
+func (share *shareHost) instance() *container.Absolute {
+	if share.sharePath != nil {
 		return share.sharePath
 	}
-	share.sharePath = path.Join(share.sc.SharePath, share.seal.id.String())
-	share.seal.sys.Ephemeral(system.Process, share.sharePath, 0711)
+	share.sharePath = share.sc.SharePath.Append(share.seal.id.String())
+	share.seal.sys.Ephemeral(system.Process, share.sharePath.String(), 0711)
 	return share.sharePath
 }
 
 // runtime returns a process-specific share path within XDG_RUNTIME_DIR
-func (share *shareHost) runtime() string {
-	if share.runtimeSharePath != "" {
+func (share *shareHost) runtime() *container.Absolute {
+	if share.runtimeSharePath != nil {
 		return share.runtimeSharePath
 	}
 	share.ensureRuntimeDir()
-	share.runtimeSharePath = path.Join(share.sc.RunDirPath, share.seal.id.String())
-	share.seal.sys.Ephemeral(system.Process, share.runtimeSharePath, 0700)
-	share.seal.sys.UpdatePerm(share.runtimeSharePath, acl.Execute)
+	share.runtimeSharePath = share.sc.RunDirPath.Append(share.seal.id.String())
+	share.seal.sys.Ephemeral(system.Process, share.runtimeSharePath.String(), 0700)
+	share.seal.sys.UpdatePerm(share.runtimeSharePath.String(), acl.Execute)
 	return share.runtimeSharePath
 }
 
 // hsuUser stores post-hsu credentials and metadata
 type hsuUser struct {
-	// application id
+	// identity
 	aid *stringPair[int]
-	// target uid resolved by fid:aid
+	// target uid resolved by hid:aid
 	uid *stringPair[int]
 
 	// supplementary group ids
 	supp []string
 
 	// home directory host path
-	data string
+	data *container.Absolute
 	// app user home directory
-	home string
+	home *container.Absolute
 	// passwd database username
 	username string
 }
@@ -158,6 +156,13 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 		panic("finalise called twice")
 	}
 	seal.ctx = ctx
+
+	if config == nil {
+		return hlog.WrapErr(syscall.EINVAL, syscall.EINVAL.Error())
+	}
+	if config.Data == nil {
+		return hlog.WrapErr(os.ErrInvalid, "invalid data directory")
+	}
 
 	{
 		// encode initial configuration for state tracking
@@ -171,7 +176,7 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 
 	// allowed aid range 0 to 9999, this is checked again in hsu
 	if config.Identity < 0 || config.Identity > 9999 {
-		return hlog.WrapErr(ErrUser,
+		return hlog.WrapErr(ErrIdent,
 			fmt.Sprintf("identity %d out of range", config.Identity))
 	}
 
@@ -188,11 +193,7 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 		return hlog.WrapErr(ErrName,
 			fmt.Sprintf("invalid user name %q", seal.user.username))
 	}
-	if seal.user.data == "" || !path.IsAbs(seal.user.data) {
-		return hlog.WrapErr(ErrHome,
-			fmt.Sprintf("invalid home directory %q", seal.user.data))
-	}
-	if seal.user.home == "" {
+	if seal.user.home == nil {
 		seal.user.home = seal.user.data
 	}
 	if u, err := sys.Uid(seal.user.aid.unwrap()); err != nil {
@@ -210,26 +211,25 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 		}
 	}
 
-	// this also falls back to host path if encountering an invalid path
-	if !path.IsAbs(config.Shell) {
-		config.Shell = "/bin/sh"
-		if s, ok := sys.LookupEnv(shell); ok && path.IsAbs(s) {
-			config.Shell = s
-		}
-	}
-	// do not use the value of shell before this point
-
 	// permissive defaults
 	if config.Container == nil {
 		hlog.Verbose("container configuration not supplied, PROCEED WITH CAUTION")
 
+		if config.Shell == nil {
+			config.Shell = container.AbsFHSRoot.Append("bin", "sh")
+			s, _ := sys.LookupEnv(shell)
+			if a, err := container.NewAbs(s); err == nil {
+				config.Shell = a
+			}
+		}
+
 		// hsu clears the environment so resolve paths early
-		if !path.IsAbs(config.Path) {
+		if config.Path == nil {
 			if len(config.Args) > 0 {
 				if p, err := sys.LookPath(config.Args[0]); err != nil {
 					return hlog.WrapErr(err, err.Error())
-				} else {
-					config.Path = p
+				} else if config.Path, err = container.NewAbs(p); err != nil {
+					return hlog.WrapErr(err, err.Error())
 				}
 			} else {
 				config.Path = config.Shell
@@ -242,24 +242,32 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 			Tty:     true,
 			AutoEtc: true,
 
-			AutoRoot:  container.FHSRoot,
+			AutoRoot:  container.AbsFHSRoot,
 			RootFlags: container.BindWritable,
 		}
 
 		// bind GPU stuff
 		if config.Enablements&(system.EX11|system.EWayland) != 0 {
-			conf.Filesystem = append(conf.Filesystem, &hst.FilesystemConfig{Src: container.FHSDev + "dri", Device: true})
+			conf.Filesystem = append(conf.Filesystem, hst.FilesystemConfig{Src: container.AbsFHSDev.Append("dri"), Device: true})
 		}
 		// opportunistically bind kvm
-		conf.Filesystem = append(conf.Filesystem, &hst.FilesystemConfig{Src: container.FHSDev + "kvm", Device: true})
+		conf.Filesystem = append(conf.Filesystem, hst.FilesystemConfig{Src: container.AbsFHSDev.Append("kvm"), Device: true})
 
 		// hide nscd from container if present
-		const nscd = container.FHSVar + "run/nscd"
-		if _, err := sys.Stat(nscd); !errors.Is(err, fs.ErrNotExist) {
-			conf.Filesystem = append(conf.Filesystem, &hst.FilesystemConfig{Dst: nscd, Src: hst.SourceTmpfs})
+		nscd := container.AbsFHSVar.Append("run/nscd")
+		if _, err := sys.Stat(nscd.String()); !errors.Is(err, fs.ErrNotExist) {
+			conf.Filesystem = append(conf.Filesystem, hst.FilesystemConfig{Dst: nscd, Src: container.AbsNonexistent})
 		}
 
 		config.Container = conf
+	}
+
+	// late nil checks for pd behaviour
+	if config.Shell == nil {
+		return hlog.WrapErr(syscall.EINVAL, "invalid shell path")
+	}
+	if config.Path == nil {
+		return hlog.WrapErr(syscall.EINVAL, "invalid program path")
 	}
 
 	var mapuid, mapgid *stringPair[int]
@@ -272,12 +280,8 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 			return hlog.WrapErrSuffix(err,
 				"cannot initialise container configuration:")
 		}
-		if !path.IsAbs(config.Path) {
-			return hlog.WrapErr(syscall.EINVAL,
-				"invalid program path")
-		}
 		if len(config.Args) == 0 {
-			config.Args = []string{config.Path}
+			config.Args = []string{config.Path.String()}
 		}
 		seal.container.Path = config.Path
 		seal.container.Args = config.Args
@@ -290,56 +294,52 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 	}
 
 	// inner XDG_RUNTIME_DIR default formatting of `/run/user/%d` as mapped uid
-	innerRuntimeDir := path.Join(container.FHSRunUser, mapuid.String())
-	seal.env[xdgRuntimeDir] = innerRuntimeDir
+	innerRuntimeDir := container.AbsFHSRunUser.Append(mapuid.String())
+	seal.env[xdgRuntimeDir] = innerRuntimeDir.String()
 	seal.env[xdgSessionClass] = "user"
 	seal.env[xdgSessionType] = "tty"
 
 	share := &shareHost{seal: seal, sc: sys.Paths()}
 	seal.runDirPath = share.sc.RunDirPath
 	seal.sys = system.New(seal.user.uid.unwrap())
-	seal.sys.Ensure(share.sc.SharePath, 0711)
+	seal.sys.Ensure(share.sc.SharePath.String(), 0711)
 
 	{
-		runtimeDir := path.Join(share.sc.SharePath, "runtime")
-		seal.sys.Ensure(runtimeDir, 0700)
-		seal.sys.UpdatePermType(system.User, runtimeDir, acl.Execute)
-		runtimeDirInst := path.Join(runtimeDir, seal.user.aid.String())
-		seal.sys.Ensure(runtimeDirInst, 0700)
-		seal.sys.UpdatePermType(system.User, runtimeDirInst, acl.Read, acl.Write, acl.Execute)
-		seal.container.Tmpfs(container.FHSRunUser, 1<<12, 0755)
+		runtimeDir := share.sc.SharePath.Append("runtime")
+		seal.sys.Ensure(runtimeDir.String(), 0700)
+		seal.sys.UpdatePermType(system.User, runtimeDir.String(), acl.Execute)
+		runtimeDirInst := runtimeDir.Append(seal.user.aid.String())
+		seal.sys.Ensure(runtimeDirInst.String(), 0700)
+		seal.sys.UpdatePermType(system.User, runtimeDirInst.String(), acl.Read, acl.Write, acl.Execute)
+		seal.container.Tmpfs(container.AbsFHSRunUser, 1<<12, 0755)
 		seal.container.Bind(runtimeDirInst, innerRuntimeDir, container.BindWritable)
 	}
 
 	{
-		tmpdir := path.Join(share.sc.SharePath, "tmpdir")
-		seal.sys.Ensure(tmpdir, 0700)
-		seal.sys.UpdatePermType(system.User, tmpdir, acl.Execute)
-		tmpdirInst := path.Join(tmpdir, seal.user.aid.String())
-		seal.sys.Ensure(tmpdirInst, 01700)
-		seal.sys.UpdatePermType(system.User, tmpdirInst, acl.Read, acl.Write, acl.Execute)
+		tmpdir := share.sc.SharePath.Append("tmpdir")
+		seal.sys.Ensure(tmpdir.String(), 0700)
+		seal.sys.UpdatePermType(system.User, tmpdir.String(), acl.Execute)
+		tmpdirInst := tmpdir.Append(seal.user.aid.String())
+		seal.sys.Ensure(tmpdirInst.String(), 01700)
+		seal.sys.UpdatePermType(system.User, tmpdirInst.String(), acl.Read, acl.Write, acl.Execute)
 		// mount inner /tmp from share so it shares persistence and storage behaviour of host /tmp
-		seal.container.Bind(tmpdirInst, container.FHSTmp, container.BindWritable)
+		seal.container.Bind(tmpdirInst, container.AbsFHSTmp, container.BindWritable)
 	}
 
 	{
-		homeDir := container.FHSVarEmpty
-		if seal.user.home != "" {
-			homeDir = seal.user.home
-		}
 		username := "chronos"
 		if seal.user.username != "" {
 			username = seal.user.username
 		}
-		seal.container.Bind(seal.user.data, homeDir, container.BindWritable)
-		seal.container.Dir = homeDir
-		seal.env["HOME"] = homeDir
+		seal.container.Bind(seal.user.data, seal.user.home, container.BindWritable)
+		seal.container.Dir = seal.user.home
+		seal.env["HOME"] = seal.user.home.String()
 		seal.env["USER"] = username
-		seal.env[shell] = config.Shell
+		seal.env[shell] = config.Shell.String()
 
-		seal.container.Place(container.FHSEtc+"passwd",
-			[]byte(username+":x:"+mapuid.String()+":"+mapgid.String()+":Hakurei:"+homeDir+":"+config.Shell+"\n"))
-		seal.container.Place(container.FHSEtc+"group",
+		seal.container.Place(container.AbsFHSEtc.Append("passwd"),
+			[]byte(username+":x:"+mapuid.String()+":"+mapgid.String()+":Hakurei:"+seal.user.home.String()+":"+config.Shell.String()+"\n"))
+		seal.container.Place(container.AbsFHSEtc.Append("group"),
 			[]byte("hakurei:x:"+mapgid.String()+":\n"))
 	}
 
@@ -350,17 +350,17 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 
 	if config.Enablements&system.EWayland != 0 {
 		// outer wayland socket (usually `/run/user/%d/wayland-%d`)
-		var socketPath string
+		var socketPath *container.Absolute
 		if name, ok := sys.LookupEnv(wayland.WaylandDisplay); !ok {
 			hlog.Verbose(wayland.WaylandDisplay + " is not set, assuming " + wayland.FallbackName)
-			socketPath = path.Join(share.sc.RuntimePath, wayland.FallbackName)
-		} else if !path.IsAbs(name) {
-			socketPath = path.Join(share.sc.RuntimePath, name)
+			socketPath = share.sc.RuntimePath.Append(wayland.FallbackName)
+		} else if a, err := container.NewAbs(name); err != nil {
+			socketPath = share.sc.RuntimePath.Append(name)
 		} else {
-			socketPath = name
+			socketPath = a
 		}
 
-		innerPath := path.Join(innerRuntimeDir, wayland.FallbackName)
+		innerPath := innerRuntimeDir.Append(wayland.FallbackName)
 		seal.env[wayland.WaylandDisplay] = wayland.FallbackName
 
 		if !config.DirectWayland { // set up security-context-v1
@@ -370,14 +370,14 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 				appID = "app.hakurei." + seal.id.String()
 			}
 			// downstream socket paths
-			outerPath := path.Join(share.instance(), "wayland")
-			seal.sys.Wayland(&seal.sync, outerPath, socketPath, appID, seal.id.String())
+			outerPath := share.instance().Append("wayland")
+			seal.sys.Wayland(&seal.sync, outerPath.String(), socketPath.String(), appID, seal.id.String())
 			seal.container.Bind(outerPath, innerPath, 0)
 		} else { // bind mount wayland socket (insecure)
 			hlog.Verbose("direct wayland access, PROCEED WITH CAUTION")
 			share.ensureRuntimeDir()
 			seal.container.Bind(socketPath, innerPath, 0)
-			seal.sys.UpdatePermType(system.EWayland, socketPath, acl.Read, acl.Write, acl.Execute)
+			seal.sys.UpdatePermType(system.EWayland, socketPath.String(), acl.Read, acl.Write, acl.Execute)
 		}
 	}
 
@@ -388,17 +388,18 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 		} else {
 			seal.sys.ChangeHosts("#" + seal.user.uid.String())
 			seal.env[display] = d
-			seal.container.Bind(container.FHSTmp+".X11-unix", container.FHSTmp+".X11-unix", 0)
+			socketDir := container.AbsFHSTmp.Append(".X11-unix")
+			seal.container.Bind(socketDir, socketDir, 0)
 		}
 	}
 
 	if config.Enablements&system.EPulse != 0 {
 		// PulseAudio runtime directory (usually `/run/user/%d/pulse`)
-		pulseRuntimeDir := path.Join(share.sc.RuntimePath, "pulse")
+		pulseRuntimeDir := share.sc.RuntimePath.Append("pulse")
 		// PulseAudio socket (usually `/run/user/%d/pulse/native`)
-		pulseSocket := path.Join(pulseRuntimeDir, "native")
+		pulseSocket := pulseRuntimeDir.Append("native")
 
-		if _, err := sys.Stat(pulseRuntimeDir); err != nil {
+		if _, err := sys.Stat(pulseRuntimeDir.String()); err != nil {
 			if !errors.Is(err, fs.ErrNotExist) {
 				return hlog.WrapErrSuffix(err,
 					fmt.Sprintf("cannot access PulseAudio directory %q:", pulseRuntimeDir))
@@ -407,7 +408,7 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 				fmt.Sprintf("PulseAudio directory %q not found", pulseRuntimeDir))
 		}
 
-		if s, err := sys.Stat(pulseSocket); err != nil {
+		if s, err := sys.Stat(pulseSocket.String()); err != nil {
 			if !errors.Is(err, fs.ErrNotExist) {
 				return hlog.WrapErrSuffix(err,
 					fmt.Sprintf("cannot access PulseAudio socket %q:", pulseSocket))
@@ -422,19 +423,19 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 		}
 
 		// hard link pulse socket into target-executable share
-		innerPulseRuntimeDir := path.Join(share.runtime(), "pulse")
-		innerPulseSocket := path.Join(innerRuntimeDir, "pulse", "native")
-		seal.sys.Link(pulseSocket, innerPulseRuntimeDir)
+		innerPulseRuntimeDir := share.runtime().Append("pulse")
+		innerPulseSocket := innerRuntimeDir.Append("pulse", "native")
+		seal.sys.Link(pulseSocket.String(), innerPulseRuntimeDir.String())
 		seal.container.Bind(innerPulseRuntimeDir, innerPulseSocket, 0)
-		seal.env[pulseServer] = "unix:" + innerPulseSocket
+		seal.env[pulseServer] = "unix:" + innerPulseSocket.String()
 
 		// publish current user's pulse cookie for target user
 		if src, err := discoverPulseCookie(sys); err != nil {
 			// not fatal
 			hlog.Verbose(strings.TrimSpace(err.(*hlog.BaseError).Message()))
 		} else {
-			innerDst := hst.Tmp + "/pulse-cookie"
-			seal.env[pulseCookie] = innerDst
+			innerDst := hst.AbsTmp.Append("/pulse-cookie")
+			seal.env[pulseCookie] = innerDst.String()
 			var payload *[]byte
 			seal.container.PlaceP(innerDst, &payload)
 			seal.sys.CopyFile(payload, src, 256, 256)
@@ -448,13 +449,12 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 		}
 
 		// downstream socket paths
-		sharePath := share.instance()
-		sessionPath, systemPath := path.Join(sharePath, "bus"), path.Join(sharePath, "system_bus_socket")
+		sessionPath, systemPath := share.instance().Append("bus"), share.instance().Append("system_bus_socket")
 
 		// configure dbus proxy
 		if f, err := seal.sys.ProxyDBus(
 			config.SessionBus, config.SystemBus,
-			sessionPath, systemPath,
+			sessionPath.String(), systemPath.String(),
 		); err != nil {
 			return err
 		} else {
@@ -462,20 +462,20 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 		}
 
 		// share proxy sockets
-		sessionInner := path.Join(innerRuntimeDir, "bus")
-		seal.env[dbusSessionBusAddress] = "unix:path=" + sessionInner
+		sessionInner := innerRuntimeDir.Append("bus")
+		seal.env[dbusSessionBusAddress] = "unix:path=" + sessionInner.String()
 		seal.container.Bind(sessionPath, sessionInner, 0)
-		seal.sys.UpdatePerm(sessionPath, acl.Read, acl.Write)
+		seal.sys.UpdatePerm(sessionPath.String(), acl.Read, acl.Write)
 		if config.SystemBus != nil {
-			systemInner := container.FHSRun + "dbus/system_bus_socket"
-			seal.env[dbusSystemBusAddress] = "unix:path=" + systemInner
+			systemInner := container.AbsFHSRun.Append("dbus/system_bus_socket")
+			seal.env[dbusSystemBusAddress] = "unix:path=" + systemInner.String()
 			seal.container.Bind(systemPath, systemInner, 0)
-			seal.sys.UpdatePerm(systemPath, acl.Read, acl.Write)
+			seal.sys.UpdatePerm(systemPath.String(), acl.Read, acl.Write)
 		}
 	}
 
 	// mount root read-only as the final setup Op
-	seal.container.Remount(container.FHSRoot, syscall.MS_RDONLY)
+	seal.container.Remount(container.AbsFHSRoot, syscall.MS_RDONLY)
 
 	// append ExtraPerms last
 	for _, p := range config.ExtraPerms {
@@ -484,7 +484,7 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 		}
 
 		if p.Ensure {
-			seal.sys.Ensure(p.Path, 0700)
+			seal.sys.Ensure(p.Path.String(), 0700)
 		}
 
 		perms := make(acl.Perms, 0, 3)
@@ -497,7 +497,7 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 		if p.Execute {
 			perms = append(perms, acl.Execute)
 		}
-		seal.sys.UpdatePermType(system.User, p.Path, perms...)
+		seal.sys.UpdatePermType(system.User, p.Path.String(), perms...)
 	}
 
 	// flatten and sort env for deterministic behaviour

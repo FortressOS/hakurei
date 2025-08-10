@@ -12,6 +12,7 @@ import (
 	"text/tabwriter"
 	"time"
 
+	"hakurei.app/container"
 	"hakurei.app/hst"
 	"hakurei.app/internal/app/state"
 	"hakurei.app/internal/hlog"
@@ -77,13 +78,13 @@ func printShowInstance(
 	if len(config.Groups) > 0 {
 		t.Printf(" Groups:\t%s\n", strings.Join(config.Groups, ", "))
 	}
-	if config.Data != "" {
+	if config.Data != nil {
 		t.Printf(" Data:\t%s\n", config.Data)
 	}
 	if config.Container != nil {
-		container := config.Container
-		if container.Hostname != "" {
-			t.Printf(" Hostname:\t%s\n", container.Hostname)
+		params := config.Container
+		if params.Hostname != "" {
+			t.Printf(" Hostname:\t%s\n", params.Hostname)
 		}
 		flags := make([]string, 0, 7)
 		writeFlag := func(name string, value bool) {
@@ -91,30 +92,32 @@ func printShowInstance(
 				flags = append(flags, name)
 			}
 		}
-		writeFlag("userns", container.Userns)
-		writeFlag("devel", container.Devel)
-		writeFlag("net", container.Net)
-		writeFlag("device", container.Device)
-		writeFlag("tty", container.Tty)
-		writeFlag("mapuid", container.MapRealUID)
+		writeFlag("userns", params.Userns)
+		writeFlag("devel", params.Devel)
+		writeFlag("net", params.Net)
+		writeFlag("device", params.Device)
+		writeFlag("tty", params.Tty)
+		writeFlag("mapuid", params.MapRealUID)
 		writeFlag("directwl", config.DirectWayland)
-		writeFlag("autoetc", container.AutoEtc)
+		writeFlag("autoetc", params.AutoEtc)
 		if len(flags) == 0 {
 			flags = append(flags, "none")
 		}
 		t.Printf(" Flags:\t%s\n", strings.Join(flags, " "))
 
-		if container.AutoRoot != "" {
-			t.Printf(" Root:\t%s (%d)\n", container.AutoRoot, container.RootFlags)
+		if params.AutoRoot != nil {
+			t.Printf(" Root:\t%s (%d)\n", params.AutoRoot, params.RootFlags)
 		}
 
-		etc := container.Etc
-		if etc == "" {
-			etc = "/etc"
+		etc := params.Etc
+		if etc == nil {
+			etc = container.AbsFHSEtc
 		}
 		t.Printf(" Etc:\t%s\n", etc)
 
-		t.Printf(" Path:\t%s\n", config.Path)
+		if config.Path != nil {
+			t.Printf(" Path:\t%s\n", config.Path)
+		}
 	}
 	if len(config.Args) > 0 {
 		t.Printf(" Arguments:\t%s\n", strings.Join(config.Args, " "))
@@ -125,12 +128,19 @@ func printShowInstance(
 		if config.Container != nil && len(config.Container.Filesystem) > 0 {
 			t.Printf("Filesystem\n")
 			for _, f := range config.Container.Filesystem {
-				if f == nil {
+				g := 4
+				if f.Src == nil {
+					t.Println(" <invalid>")
 					continue
+				} else {
+					g += len(f.Src.String())
+				}
+				if f.Dst != nil {
+					g += len(f.Dst.String())
 				}
 
 				expr := new(strings.Builder)
-				expr.Grow(3 + len(f.Src) + 1 + len(f.Dst))
+				expr.Grow(g)
 
 				if f.Device {
 					expr.WriteString(" d")
@@ -144,9 +154,14 @@ func printShowInstance(
 				} else {
 					expr.WriteString("+")
 				}
-				expr.WriteString(f.Src)
-				if f.Dst != "" {
-					expr.WriteString(":" + f.Dst)
+				src := f.Src.String()
+				if src != container.Nonexistent {
+					expr.WriteString(src)
+				} else {
+					expr.WriteString("tmpfs")
+				}
+				if f.Dst != nil {
+					expr.WriteString(":" + f.Dst.String())
 				}
 				t.Printf("%s\n", expr.String())
 			}

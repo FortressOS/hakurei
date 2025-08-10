@@ -26,7 +26,7 @@ func New(
 	var args []string
 	h := new(helperContainer)
 	h.helperFiles, args = newHelperFiles(ctx, wt, stat, argF, extraFiles)
-	h.Container = container.NewCommand(ctx, pathname.String(), name, args...)
+	h.Container = container.NewCommand(ctx, pathname, name, args...)
 	h.WaitDelay = WaitDelay
 	if cmdF != nil {
 		cmdF(h.Container)

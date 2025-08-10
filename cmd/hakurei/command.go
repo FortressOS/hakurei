@@ -115,8 +115,14 @@ func buildCommand(out io.Writer) command.Command {
 
 			config.Identity = aid
 			config.Groups = groups
-			config.Data = homeDir
 			config.Username = userName
+
+			if a, err := container.NewAbs(homeDir); err != nil {
+				log.Fatal(err.Error())
+				return err
+			} else {
+				config.Data = a
+			}
 
 			if wayland {
 				config.Enablements |= system.EWayland
@@ -213,7 +219,7 @@ func buildCommand(out io.Writer) command.Command {
 
 	var psFlagShort bool
 	c.NewCommand("ps", "List active instances", func(args []string) error {
-		printPs(os.Stdout, time.Now().UTC(), state.NewMulti(std.Paths().RunDirPath), psFlagShort, flagJSON)
+		printPs(os.Stdout, time.Now().UTC(), state.NewMulti(std.Paths().RunDirPath.String()), psFlagShort, flagJSON)
 		return errSuccess
 	}).Flag(&psFlagShort, "short", command.BoolFlag(false), "Print instance id")
 

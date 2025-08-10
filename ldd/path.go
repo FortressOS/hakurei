@@ -1,21 +1,20 @@
 package ldd
 
 import (
-	"path"
-	"slices"
+	"hakurei.app/container"
 )
 
 // Path returns a deterministic, deduplicated slice of absolute directory paths in entries.
-func Path(entries []*Entry) []string {
-	p := make([]string, 0, len(entries)*2)
+func Path(entries []*Entry) []*container.Absolute {
+	p := make([]*container.Absolute, 0, len(entries)*2)
 	for _, entry := range entries {
-		if path.IsAbs(entry.Path) {
-			p = append(p, path.Dir(entry.Path))
+		if a, err := container.NewAbs(entry.Path); err == nil {
+			p = append(p, a.Dir())
 		}
-		if path.IsAbs(entry.Name) {
-			p = append(p, path.Dir(entry.Name))
+		if a, err := container.NewAbs(entry.Name); err == nil {
+			p = append(p, a.Dir())
 		}
 	}
-	slices.Sort(p)
-	return slices.Compact(p)
+	container.SortAbs(p)
+	return container.CompactAbs(p)
 }

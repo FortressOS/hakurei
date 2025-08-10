@@ -99,7 +99,7 @@ func TestTemplate(t *testing.T) {
 		"filesystem": [
 			{
 				"dst": "/tmp/",
-				"src": "tmpfs",
+				"src": "/proc/nonexistent",
 				"write": true
 			},
 			{
@@ -126,10 +126,10 @@ func TestTemplate(t *testing.T) {
 			}
 		],
 		"symlink": [
-			[
-				"/run/user/65534",
-				"/run/user/150"
-			]
+			{
+				"target": "/run/user/65534",
+				"linkname": "/run/user/150"
+			}
 		],
 		"auto_root": "/var/lib/hakurei/base/org.debian",
 		"root_flags": 2,

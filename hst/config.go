@@ -2,11 +2,14 @@
 package hst
 
 import (
+	"hakurei.app/container"
 	"hakurei.app/system"
 	"hakurei.app/system/dbus"
 )
 
 const Tmp = "/.hakurei"
+
+var AbsTmp = container.MustAbs(Tmp)
 
 // Config is used to seal an app implementation.
 type Config struct {
@@ -16,7 +19,7 @@ type Config struct {
 	ID string `json:"id"`
 
 	// absolute path to executable file
-	Path string `json:"path,omitempty"`
+	Path *container.Absolute `json:"path,omitempty"`
 	// final args passed to container init
 	Args []string `json:"args"`
 
@@ -35,12 +38,12 @@ type Config struct {
 
 	// passwd username in container, defaults to passwd name of target uid or chronos
 	Username string `json:"username,omitempty"`
-	// absolute path to shell, empty for host shell
-	Shell string `json:"shell,omitempty"`
+	// absolute path to shell
+	Shell *container.Absolute `json:"shell"`
 	// absolute path to home directory in the init mount namespace
-	Data string `json:"data"`
-	// directory to enter and use as home in the container mount namespace, empty for Data
-	Dir string `json:"dir"`
+	Data *container.Absolute `json:"data"`
+	// directory to enter and use as home in the container mount namespace, nil for Data
+	Dir *container.Absolute `json:"dir,omitempty"`
 	// extra acl ops, dispatches before container init
 	ExtraPerms []*ExtraPermConfig `json:"extra_perms,omitempty"`
 
@@ -55,21 +58,24 @@ type Config struct {
 
 // ExtraPermConfig describes an acl update op.
 type ExtraPermConfig struct {
-	Ensure  bool   `json:"ensure,omitempty"`
-	Path    string `json:"path"`
-	Read    bool   `json:"r,omitempty"`
-	Write   bool   `json:"w,omitempty"`
-	Execute bool   `json:"x,omitempty"`
+	Ensure  bool                `json:"ensure,omitempty"`
+	Path    *container.Absolute `json:"path"`
+	Read    bool                `json:"r,omitempty"`
+	Write   bool                `json:"w,omitempty"`
+	Execute bool                `json:"x,omitempty"`
 }
 
 func (e *ExtraPermConfig) String() string {
-	buf := make([]byte, 0, 5+len(e.Path))
+	if e.Path == nil {
+		return "<invalid>"
+	}
+	buf := make([]byte, 0, 5+len(e.Path.String()))
 	buf = append(buf, '-', '-', '-')
 	if e.Ensure {
 		buf = append(buf, '+')
 	}
 	buf = append(buf, ':')
-	buf = append(buf, []byte(e.Path)...)
+	buf = append(buf, []byte(e.Path.String())...)
 	if e.Read {
 		buf[0] = 'r'
 	}

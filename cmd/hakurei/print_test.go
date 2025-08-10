@@ -83,18 +83,17 @@ App
  Identity:       0
  Enablements:    (no enablements)
  Flags:          none
- Etc:            /etc
- Path:           
+ Etc:            /etc/
 
 `},
-		{"config nil entries", nil, &hst.Config{Container: &hst.ContainerConfig{Filesystem: make([]*hst.FilesystemConfig, 1)}, ExtraPerms: make([]*hst.ExtraPermConfig, 1)}, false, false, `App
+		{"config nil entries", nil, &hst.Config{Container: &hst.ContainerConfig{Filesystem: make([]hst.FilesystemConfig, 1)}, ExtraPerms: make([]*hst.ExtraPermConfig, 1)}, false, false, `App
  Identity:       0
  Enablements:    (no enablements)
  Flags:          none
- Etc:            /etc
- Path:           
+ Etc:            /etc/
 
 Filesystem
+ <invalid>
 
 Extra ACL
 
@@ -277,7 +276,7 @@ App
       "filesystem": [
         {
           "dst": "/tmp/",
-          "src": "tmpfs",
+          "src": "/proc/nonexistent",
           "write": true
         },
         {
@@ -304,10 +303,10 @@ App
         }
       ],
       "symlink": [
-        [
-          "/run/user/65534",
-          "/run/user/150"
-        ]
+        {
+          "target": "/run/user/65534",
+          "linkname": "/run/user/150"
+        }
       ],
       "auto_root": "/var/lib/hakurei/base/org.debian",
       "root_flags": 2,
@@ -409,7 +408,7 @@ App
     "filesystem": [
       {
         "dst": "/tmp/",
-        "src": "tmpfs",
+        "src": "/proc/nonexistent",
         "write": true
       },
       {
@@ -436,10 +435,10 @@ App
       }
     ],
     "symlink": [
-      [
-        "/run/user/65534",
-        "/run/user/150"
-      ]
+      {
+        "target": "/run/user/65534",
+        "linkname": "/run/user/150"
+      }
     ],
     "auto_root": "/var/lib/hakurei/base/org.debian",
     "root_flags": 2,
@@ -595,7 +594,7 @@ func Test_printPs(t *testing.T) {
         "filesystem": [
           {
             "dst": "/tmp/",
-            "src": "tmpfs",
+            "src": "/proc/nonexistent",
             "write": true
           },
           {
@@ -622,10 +621,10 @@ func Test_printPs(t *testing.T) {
           }
         ],
         "symlink": [
-          [
-            "/run/user/65534",
-            "/run/user/150"
-          ]
+          {
+            "target": "/run/user/65534",
+            "linkname": "/run/user/150"
+          }
         ],
         "auto_root": "/var/lib/hakurei/base/org.debian",
         "root_flags": 2,

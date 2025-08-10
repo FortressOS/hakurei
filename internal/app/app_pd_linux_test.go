@@ -16,7 +16,7 @@ import (
 var testCasesPd = []sealTestCase{
 	{
 		"nixos permissive defaults no enablements", new(stubNixOS),
-		&hst.Config{Username: "chronos", Data: "/home/chronos"},
+		&hst.Config{Username: "chronos", Data: m("/home/chronos")},
 		state.ID{
 			0x4a, 0x45, 0x0b, 0x65,
 			0x96, 0xd7, 0xbc, 0x15,
@@ -30,8 +30,8 @@ var testCasesPd = []sealTestCase{
 			Ensure("/tmp/hakurei.1971/tmpdir", 0700).UpdatePermType(system.User, "/tmp/hakurei.1971/tmpdir", acl.Execute).
 			Ensure("/tmp/hakurei.1971/tmpdir/0", 01700).UpdatePermType(system.User, "/tmp/hakurei.1971/tmpdir/0", acl.Read, acl.Write, acl.Execute),
 		&container.Params{
-			Dir:  "/home/chronos",
-			Path: "/run/current-system/sw/bin/zsh",
+			Dir:  m("/home/chronos"),
+			Path: m("/run/current-system/sw/bin/zsh"),
 			Args: []string{"/run/current-system/sw/bin/zsh"},
 			Env: []string{
 				"HOME=/home/chronos",
@@ -43,23 +43,23 @@ var testCasesPd = []sealTestCase{
 				"XDG_SESSION_TYPE=tty",
 			},
 			Ops: new(container.Ops).
-				Root("/", "4a450b6596d7bc15bd01780eb9a607ac", container.BindWritable).
-				Proc("/proc/").
-				Tmpfs(hst.Tmp, 4096, 0755).
-				DevWritable("/dev/", true).
-				Bind("/dev/kvm", "/dev/kvm", container.BindWritable|container.BindDevice|container.BindOptional).
-				Readonly("/var/run/nscd", 0755).
-				Tmpfs("/run/user/1971", 8192, 0755).
-				Tmpfs("/run/dbus", 8192, 0755).
-				Etc("/etc/", "4a450b6596d7bc15bd01780eb9a607ac").
-				Remount("/dev/", syscall.MS_RDONLY).
-				Tmpfs("/run/user/", 4096, 0755).
-				Bind("/tmp/hakurei.1971/runtime/0", "/run/user/65534", container.BindWritable).
-				Bind("/tmp/hakurei.1971/tmpdir/0", "/tmp/", container.BindWritable).
-				Bind("/home/chronos", "/home/chronos", container.BindWritable).
-				Place("/etc/passwd", []byte("chronos:x:65534:65534:Hakurei:/home/chronos:/run/current-system/sw/bin/zsh\n")).
-				Place("/etc/group", []byte("hakurei:x:65534:\n")).
-				Remount("/", syscall.MS_RDONLY),
+				Root(m("/"), "4a450b6596d7bc15bd01780eb9a607ac", container.BindWritable).
+				Proc(m("/proc/")).
+				Tmpfs(hst.AbsTmp, 4096, 0755).
+				DevWritable(m("/dev/"), true).
+				Bind(m("/dev/kvm"), m("/dev/kvm"), container.BindWritable|container.BindDevice|container.BindOptional).
+				Readonly(m("/var/run/nscd"), 0755).
+				Tmpfs(m("/run/user/1971"), 8192, 0755).
+				Tmpfs(m("/run/dbus"), 8192, 0755).
+				Etc(m("/etc/"), "4a450b6596d7bc15bd01780eb9a607ac").
+				Remount(m("/dev/"), syscall.MS_RDONLY).
+				Tmpfs(m("/run/user/"), 4096, 0755).
+				Bind(m("/tmp/hakurei.1971/runtime/0"), m("/run/user/65534"), container.BindWritable).
+				Bind(m("/tmp/hakurei.1971/tmpdir/0"), m("/tmp/"), container.BindWritable).
+				Bind(m("/home/chronos"), m("/home/chronos"), container.BindWritable).
+				Place(m("/etc/passwd"), []byte("chronos:x:65534:65534:Hakurei:/home/chronos:/run/current-system/sw/bin/zsh\n")).
+				Place(m("/etc/group"), []byte("hakurei:x:65534:\n")).
+				Remount(m("/"), syscall.MS_RDONLY),
 			SeccompPresets: seccomp.PresetExt | seccomp.PresetDenyDevel,
 			HostNet:        true,
 			RetainSession:  true,
@@ -74,7 +74,7 @@ var testCasesPd = []sealTestCase{
 			Identity: 9,
 			Groups:   []string{"video"},
 			Username: "chronos",
-			Data:     "/home/chronos",
+			Data:     m("/home/chronos"),
 			SessionBus: &dbus.Config{
 				Talk: []string{
 					"org.freedesktop.Notifications",
@@ -160,8 +160,8 @@ var testCasesPd = []sealTestCase{
 			UpdatePerm("/tmp/hakurei.1971/ebf083d1b175911782d413369b64ce7c/bus", acl.Read, acl.Write).
 			UpdatePerm("/tmp/hakurei.1971/ebf083d1b175911782d413369b64ce7c/system_bus_socket", acl.Read, acl.Write),
 		&container.Params{
-			Dir:  "/home/chronos",
-			Path: "/run/current-system/sw/bin/zsh",
+			Dir:  m("/home/chronos"),
+			Path: m("/run/current-system/sw/bin/zsh"),
 			Args: []string{"zsh", "-c", "exec chromium "},
 			Env: []string{
 				"DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/65534/bus",
@@ -178,29 +178,29 @@ var testCasesPd = []sealTestCase{
 				"XDG_SESSION_TYPE=tty",
 			},
 			Ops: new(container.Ops).
-				Root("/", "ebf083d1b175911782d413369b64ce7c", container.BindWritable).
-				Proc("/proc/").
-				Tmpfs(hst.Tmp, 4096, 0755).
-				DevWritable("/dev/", true).
-				Bind("/dev/dri", "/dev/dri", container.BindWritable|container.BindDevice|container.BindOptional).
-				Bind("/dev/kvm", "/dev/kvm", container.BindWritable|container.BindDevice|container.BindOptional).
-				Readonly("/var/run/nscd", 0755).
-				Tmpfs("/run/user/1971", 8192, 0755).
-				Tmpfs("/run/dbus", 8192, 0755).
-				Etc("/etc/", "ebf083d1b175911782d413369b64ce7c").
-				Remount("/dev/", syscall.MS_RDONLY).
-				Tmpfs("/run/user/", 4096, 0755).
-				Bind("/tmp/hakurei.1971/runtime/9", "/run/user/65534", container.BindWritable).
-				Bind("/tmp/hakurei.1971/tmpdir/9", "/tmp/", container.BindWritable).
-				Bind("/home/chronos", "/home/chronos", container.BindWritable).
-				Place("/etc/passwd", []byte("chronos:x:65534:65534:Hakurei:/home/chronos:/run/current-system/sw/bin/zsh\n")).
-				Place("/etc/group", []byte("hakurei:x:65534:\n")).
-				Bind("/tmp/hakurei.1971/ebf083d1b175911782d413369b64ce7c/wayland", "/run/user/65534/wayland-0", 0).
-				Bind("/run/user/1971/hakurei/ebf083d1b175911782d413369b64ce7c/pulse", "/run/user/65534/pulse/native", 0).
-				Place(hst.Tmp+"/pulse-cookie", nil).
-				Bind("/tmp/hakurei.1971/ebf083d1b175911782d413369b64ce7c/bus", "/run/user/65534/bus", 0).
-				Bind("/tmp/hakurei.1971/ebf083d1b175911782d413369b64ce7c/system_bus_socket", "/run/dbus/system_bus_socket", 0).
-				Remount("/", syscall.MS_RDONLY),
+				Root(m("/"), "ebf083d1b175911782d413369b64ce7c", container.BindWritable).
+				Proc(m("/proc/")).
+				Tmpfs(hst.AbsTmp, 4096, 0755).
+				DevWritable(m("/dev/"), true).
+				Bind(m("/dev/dri"), m("/dev/dri"), container.BindWritable|container.BindDevice|container.BindOptional).
+				Bind(m("/dev/kvm"), m("/dev/kvm"), container.BindWritable|container.BindDevice|container.BindOptional).
+				Readonly(m("/var/run/nscd"), 0755).
+				Tmpfs(m("/run/user/1971"), 8192, 0755).
+				Tmpfs(m("/run/dbus"), 8192, 0755).
+				Etc(m("/etc/"), "ebf083d1b175911782d413369b64ce7c").
+				Remount(m("/dev/"), syscall.MS_RDONLY).
+				Tmpfs(m("/run/user/"), 4096, 0755).
+				Bind(m("/tmp/hakurei.1971/runtime/9"), m("/run/user/65534"), container.BindWritable).
+				Bind(m("/tmp/hakurei.1971/tmpdir/9"), m("/tmp/"), container.BindWritable).
+				Bind(m("/home/chronos"), m("/home/chronos"), container.BindWritable).
+				Place(m("/etc/passwd"), []byte("chronos:x:65534:65534:Hakurei:/home/chronos:/run/current-system/sw/bin/zsh\n")).
+				Place(m("/etc/group"), []byte("hakurei:x:65534:\n")).
+				Bind(m("/tmp/hakurei.1971/ebf083d1b175911782d413369b64ce7c/wayland"), m("/run/user/65534/wayland-0"), 0).
+				Bind(m("/run/user/1971/hakurei/ebf083d1b175911782d413369b64ce7c/pulse"), m("/run/user/65534/pulse/native"), 0).
+				Place(m(hst.Tmp+"/pulse-cookie"), nil).
+				Bind(m("/tmp/hakurei.1971/ebf083d1b175911782d413369b64ce7c/bus"), m("/run/user/65534/bus"), 0).
+				Bind(m("/tmp/hakurei.1971/ebf083d1b175911782d413369b64ce7c/system_bus_socket"), m("/run/dbus/system_bus_socket"), 0).
+				Remount(m("/"), syscall.MS_RDONLY),
 			SeccompPresets: seccomp.PresetExt | seccomp.PresetDenyDevel,
 			HostNet:        true,
 			RetainSession:  true,

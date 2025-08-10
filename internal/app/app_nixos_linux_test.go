@@ -12,21 +12,24 @@ import (
 	"hakurei.app/system/dbus"
 )
 
+func m(pathname string) *container.Absolute { return container.MustAbs(pathname) }
+
 var testCasesNixos = []sealTestCase{
 	{
 		"nixos chromium direct wayland", new(stubNixOS),
 		&hst.Config{
 			ID:          "org.chromium.Chromium",
-			Path:        "/nix/store/yqivzpzzn7z5x0lq9hmbzygh45d8rhqd-chromium-start",
+			Path:        m("/nix/store/yqivzpzzn7z5x0lq9hmbzygh45d8rhqd-chromium-start"),
 			Enablements: system.EWayland | system.EDBus | system.EPulse,
+			Shell:       m("/run/current-system/sw/bin/zsh"),
 
 			Container: &hst.ContainerConfig{
 				Userns: true, Net: true, MapRealUID: true, Env: nil, AutoEtc: true,
-				Filesystem: []*hst.FilesystemConfig{
-					{Src: "/bin", Must: true}, {Src: "/usr/bin/", Must: true},
-					{Src: "/nix/store", Must: true}, {Src: "/run/current-system", Must: true},
-					{Src: "/sys/block"}, {Src: "/sys/bus"}, {Src: "/sys/class"}, {Src: "/sys/dev"}, {Src: "/sys/devices"},
-					{Src: "/run/opengl-driver", Must: true}, {Src: "/dev/dri", Device: true},
+				Filesystem: []hst.FilesystemConfig{
+					{Src: m("/bin"), Must: true}, {Src: m("/usr/bin/"), Must: true},
+					{Src: m("/nix/store"), Must: true}, {Src: m("/run/current-system"), Must: true},
+					{Src: m("/sys/block")}, {Src: m("/sys/bus")}, {Src: m("/sys/class")}, {Src: m("/sys/dev")}, {Src: m("/sys/devices")},
+					{Src: m("/run/opengl-driver"), Must: true}, {Src: m("/dev/dri"), Device: true},
 				},
 			},
 			SystemBus: &dbus.Config{
@@ -50,7 +53,7 @@ var testCasesNixos = []sealTestCase{
 			DirectWayland: true,
 
 			Username: "u0_a1",
-			Data:     "/var/lib/persist/module/hakurei/0/1",
+			Data:     m("/var/lib/persist/module/hakurei/0/1"),
 			Identity: 1, Groups: []string{},
 		},
 		state.ID{
@@ -98,8 +101,8 @@ var testCasesNixos = []sealTestCase{
 		&container.Params{
 			Uid:  1971,
 			Gid:  100,
-			Dir:  "/var/lib/persist/module/hakurei/0/1",
-			Path: "/nix/store/yqivzpzzn7z5x0lq9hmbzygh45d8rhqd-chromium-start",
+			Dir:  m("/var/lib/persist/module/hakurei/0/1"),
+			Path: m("/nix/store/yqivzpzzn7z5x0lq9hmbzygh45d8rhqd-chromium-start"),
 			Args: []string{"/nix/store/yqivzpzzn7z5x0lq9hmbzygh45d8rhqd-chromium-start"},
 			Env: []string{
 				"DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1971/bus",
@@ -116,34 +119,34 @@ var testCasesNixos = []sealTestCase{
 				"XDG_SESSION_TYPE=tty",
 			},
 			Ops: new(container.Ops).
-				Proc("/proc/").
-				Tmpfs(hst.Tmp, 4096, 0755).
-				DevWritable("/dev/", true).
-				Bind("/bin", "/bin", 0).
-				Bind("/usr/bin/", "/usr/bin/", 0).
-				Bind("/nix/store", "/nix/store", 0).
-				Bind("/run/current-system", "/run/current-system", 0).
-				Bind("/sys/block", "/sys/block", container.BindOptional).
-				Bind("/sys/bus", "/sys/bus", container.BindOptional).
-				Bind("/sys/class", "/sys/class", container.BindOptional).
-				Bind("/sys/dev", "/sys/dev", container.BindOptional).
-				Bind("/sys/devices", "/sys/devices", container.BindOptional).
-				Bind("/run/opengl-driver", "/run/opengl-driver", 0).
-				Bind("/dev/dri", "/dev/dri", container.BindDevice|container.BindWritable|container.BindOptional).
-				Etc("/etc/", "8e2c76b066dabe574cf073bdb46eb5c1").
-				Remount("/dev/", syscall.MS_RDONLY).
-				Tmpfs("/run/user/", 4096, 0755).
-				Bind("/tmp/hakurei.1971/runtime/1", "/run/user/1971", container.BindWritable).
-				Bind("/tmp/hakurei.1971/tmpdir/1", "/tmp/", container.BindWritable).
-				Bind("/var/lib/persist/module/hakurei/0/1", "/var/lib/persist/module/hakurei/0/1", container.BindWritable).
-				Place("/etc/passwd", []byte("u0_a1:x:1971:100:Hakurei:/var/lib/persist/module/hakurei/0/1:/run/current-system/sw/bin/zsh\n")).
-				Place("/etc/group", []byte("hakurei:x:100:\n")).
-				Bind("/run/user/1971/wayland-0", "/run/user/1971/wayland-0", 0).
-				Bind("/run/user/1971/hakurei/8e2c76b066dabe574cf073bdb46eb5c1/pulse", "/run/user/1971/pulse/native", 0).
-				Place(hst.Tmp+"/pulse-cookie", nil).
-				Bind("/tmp/hakurei.1971/8e2c76b066dabe574cf073bdb46eb5c1/bus", "/run/user/1971/bus", 0).
-				Bind("/tmp/hakurei.1971/8e2c76b066dabe574cf073bdb46eb5c1/system_bus_socket", "/run/dbus/system_bus_socket", 0).
-				Remount("/", syscall.MS_RDONLY),
+				Proc(m("/proc/")).
+				Tmpfs(hst.AbsTmp, 4096, 0755).
+				DevWritable(m("/dev/"), true).
+				Bind(m("/bin"), m("/bin"), 0).
+				Bind(m("/usr/bin/"), m("/usr/bin/"), 0).
+				Bind(m("/nix/store"), m("/nix/store"), 0).
+				Bind(m("/run/current-system"), m("/run/current-system"), 0).
+				Bind(m("/sys/block"), m("/sys/block"), container.BindOptional).
+				Bind(m("/sys/bus"), m("/sys/bus"), container.BindOptional).
+				Bind(m("/sys/class"), m("/sys/class"), container.BindOptional).
+				Bind(m("/sys/dev"), m("/sys/dev"), container.BindOptional).
+				Bind(m("/sys/devices"), m("/sys/devices"), container.BindOptional).
+				Bind(m("/run/opengl-driver"), m("/run/opengl-driver"), 0).
+				Bind(m("/dev/dri"), m("/dev/dri"), container.BindDevice|container.BindWritable|container.BindOptional).
+				Etc(m("/etc/"), "8e2c76b066dabe574cf073bdb46eb5c1").
+				Remount(m("/dev/"), syscall.MS_RDONLY).
+				Tmpfs(m("/run/user/"), 4096, 0755).
+				Bind(m("/tmp/hakurei.1971/runtime/1"), m("/run/user/1971"), container.BindWritable).
+				Bind(m("/tmp/hakurei.1971/tmpdir/1"), m("/tmp/"), container.BindWritable).
+				Bind(m("/var/lib/persist/module/hakurei/0/1"), m("/var/lib/persist/module/hakurei/0/1"), container.BindWritable).
+				Place(m("/etc/passwd"), []byte("u0_a1:x:1971:100:Hakurei:/var/lib/persist/module/hakurei/0/1:/run/current-system/sw/bin/zsh\n")).
+				Place(m("/etc/group"), []byte("hakurei:x:100:\n")).
+				Bind(m("/run/user/1971/wayland-0"), m("/run/user/1971/wayland-0"), 0).
+				Bind(m("/run/user/1971/hakurei/8e2c76b066dabe574cf073bdb46eb5c1/pulse"), m("/run/user/1971/pulse/native"), 0).
+				Place(m(hst.Tmp+"/pulse-cookie"), nil).
+				Bind(m("/tmp/hakurei.1971/8e2c76b066dabe574cf073bdb46eb5c1/bus"), m("/run/user/1971/bus"), 0).
+				Bind(m("/tmp/hakurei.1971/8e2c76b066dabe574cf073bdb46eb5c1/system_bus_socket"), m("/run/dbus/system_bus_socket"), 0).
+				Remount(m("/"), syscall.MS_RDONLY),
 			SeccompPresets: seccomp.PresetExt | seccomp.PresetDenyTTY | seccomp.PresetDenyDevel,
 			HostNet:        true,
 			ForwardCancel:  true,

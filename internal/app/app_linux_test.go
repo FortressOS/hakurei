@@ -11,6 +11,7 @@ import (
 	"hakurei.app/hst"
 	"hakurei.app/internal/app"
 	"hakurei.app/internal/app/state"
+	"hakurei.app/internal/hlog"
 	"hakurei.app/internal/sys"
 	"hakurei.app/system"
 )
@@ -36,6 +37,7 @@ func TestApp(t *testing.T) {
 			)
 			if !t.Run("seal", func(t *testing.T) {
 				if sa, err := a.Seal(tc.config); err != nil {
+					hlog.PrintBaseError(err, "got generic error:")
 					t.Errorf("Seal: error = %v", err)
 					return
 				} else {

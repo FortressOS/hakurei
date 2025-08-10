@@ -268,12 +268,12 @@ func Init(prepare func(prefix string), setVerbose func(verbose bool)) {
 	}
 	Umask(oldmask)
 
-	cmd := exec.Command(params.Path)
+	cmd := exec.Command(params.Path.String())
 	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
 	cmd.Args = params.Args
 	cmd.Env = params.Env
 	cmd.ExtraFiles = extraFiles
-	cmd.Dir = params.Dir
+	cmd.Dir = params.Dir.String()
 
 	msg.Verbosef("starting initial program %s", params.Path)
 	if err := cmd.Start(); err != nil {

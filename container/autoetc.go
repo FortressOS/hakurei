@@ -10,9 +10,9 @@ func init() { gob.Register(new(AutoEtcOp)) }
 
 // Etc appends an [Op] that expands host /etc into a toplevel symlink mirror with /etc semantics.
 // This is not a generic setup op. It is implemented here to reduce ipc overhead.
-func (f *Ops) Etc(host, prefix string) *Ops {
+func (f *Ops) Etc(host *Absolute, prefix string) *Ops {
 	e := &AutoEtcOp{prefix}
-	f.Mkdir(FHSEtc, 0755)
+	f.Mkdir(AbsFHSEtc, 0755)
 	f.Bind(host, e.hostPath(), 0)
 	*f = append(*f, e)
 	return f
@@ -28,7 +28,7 @@ func (e *AutoEtcOp) apply(*Params) error {
 	if err := os.MkdirAll(target, 0755); err != nil {
 		return wrapErrSelf(err)
 	}
-	if d, err := os.ReadDir(toSysroot(e.hostPath())); err != nil {
+	if d, err := os.ReadDir(toSysroot(e.hostPath().String())); err != nil {
 		return wrapErrSelf(err)
 	} else {
 		for _, ent := range d {
@@ -54,8 +54,10 @@ func (e *AutoEtcOp) apply(*Params) error {
 
 	return nil
 }
-func (e *AutoEtcOp) hostPath() string { return FHSEtc + e.hostRel() }
-func (e *AutoEtcOp) hostRel() string  { return ".host/" + e.Prefix }
+
+// bypasses abs check, use with caution!
+func (e *AutoEtcOp) hostPath() *Absolute { return &Absolute{FHSEtc + e.hostRel()} }
+func (e *AutoEtcOp) hostRel() string     { return ".host/" + e.Prefix }
 
 func (e *AutoEtcOp) Is(op Op) bool {
 	ve, ok := op.(*AutoEtcOp)

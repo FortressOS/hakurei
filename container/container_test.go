@@ -10,7 +10,6 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
-	"path"
 	"strconv"
 	"strings"
 	"syscall"
@@ -77,7 +76,7 @@ var containerTestCases = []struct {
 
 	{"tmpfs", true, false, false, true,
 		earlyOps(new(container.Ops).
-			Tmpfs(hst.Tmp, 0, 0755),
+			Tmpfs(hst.AbsTmp, 0, 0755),
 		),
 		earlyMnt(
 			ent("/", hst.Tmp, "rw,nosuid,nodev,relatime", "tmpfs", "ephemeral", ignore),
@@ -86,7 +85,7 @@ var containerTestCases = []struct {
 
 	{"dev", true, true /* go test output is not a tty */, false, false,
 		earlyOps(new(container.Ops).
-			Dev("/dev", true),
+			Dev(container.MustAbs("/dev"), true),
 		),
 		earlyMnt(
 			ent("/", "/dev", "ro,nosuid,nodev,relatime", "tmpfs", "devtmpfs", ignore),
@@ -103,7 +102,7 @@ var containerTestCases = []struct {
 
 	{"dev no mqueue", true, true /* go test output is not a tty */, false, false,
 		earlyOps(new(container.Ops).
-			Dev("/dev", false),
+			Dev(container.MustAbs("/dev"), false),
 		),
 		earlyMnt(
 			ent("/", "/dev", "ro,nosuid,nodev,relatime", "tmpfs", "devtmpfs", ignore),
@@ -119,20 +118,20 @@ var containerTestCases = []struct {
 
 	{"overlay", true, false, false, true,
 		func(t *testing.T) (*container.Ops, context.Context) {
-			tempDir := t.TempDir()
+			tempDir := container.MustAbs(t.TempDir())
 			lower0, lower1, upper, work :=
-				path.Join(tempDir, "lower0"),
-				path.Join(tempDir, "lower1"),
-				path.Join(tempDir, "upper"),
-				path.Join(tempDir, "work")
-			for _, name := range []string{lower0, lower1, upper, work} {
-				if err := os.Mkdir(name, 0755); err != nil {
+				tempDir.Append("lower0"),
+				tempDir.Append("lower1"),
+				tempDir.Append("upper"),
+				tempDir.Append("work")
+			for _, a := range []*container.Absolute{lower0, lower1, upper, work} {
+				if err := os.Mkdir(a.String(), 0755); err != nil {
 					t.Fatalf("Mkdir: error = %v", err)
 				}
 			}
 
 			return new(container.Ops).
-					Overlay(hst.Tmp, upper, work, lower0, lower1),
+					Overlay(hst.AbsTmp, upper, work, lower0, lower1),
 				context.WithValue(context.WithValue(context.WithValue(context.WithValue(t.Context(),
 					testVal("lower1"), lower1),
 					testVal("lower0"), lower0),
@@ -143,12 +142,12 @@ var containerTestCases = []struct {
 			return []*vfs.MountInfoEntry{
 				ent("/", hst.Tmp, "rw", "overlay", "overlay",
 					"rw,lowerdir="+
-						container.InternalToHostOvlEscape(ctx.Value(testVal("lower0")).(string))+":"+
-						container.InternalToHostOvlEscape(ctx.Value(testVal("lower1")).(string))+
+						container.InternalToHostOvlEscape(ctx.Value(testVal("lower0")).(*container.Absolute).String())+":"+
+						container.InternalToHostOvlEscape(ctx.Value(testVal("lower1")).(*container.Absolute).String())+
 						",upperdir="+
-						container.InternalToHostOvlEscape(ctx.Value(testVal("upper")).(string))+
+						container.InternalToHostOvlEscape(ctx.Value(testVal("upper")).(*container.Absolute).String())+
 						",workdir="+
-						container.InternalToHostOvlEscape(ctx.Value(testVal("work")).(string))+
+						container.InternalToHostOvlEscape(ctx.Value(testVal("work")).(*container.Absolute).String())+
 						",redirect_dir=nofollow,uuid=on,userxattr"),
 			}
 		},
@@ -156,18 +155,18 @@ var containerTestCases = []struct {
 
 	{"overlay ephemeral", true, false, false, true,
 		func(t *testing.T) (*container.Ops, context.Context) {
-			tempDir := t.TempDir()
+			tempDir := container.MustAbs(t.TempDir())
 			lower0, lower1 :=
-				path.Join(tempDir, "lower0"),
-				path.Join(tempDir, "lower1")
-			for _, name := range []string{lower0, lower1} {
-				if err := os.Mkdir(name, 0755); err != nil {
+				tempDir.Append("lower0"),
+				tempDir.Append("lower1")
+			for _, a := range []*container.Absolute{lower0, lower1} {
+				if err := os.Mkdir(a.String(), 0755); err != nil {
 					t.Fatalf("Mkdir: error = %v", err)
 				}
 			}
 
 			return new(container.Ops).
-					OverlayEphemeral(hst.Tmp, lower0, lower1),
+					OverlayEphemeral(hst.AbsTmp, lower0, lower1),
 				t.Context()
 		},
 		func(t *testing.T, ctx context.Context) []*vfs.MountInfoEntry {
@@ -180,17 +179,17 @@ var containerTestCases = []struct {
 
 	{"overlay readonly", true, false, false, true,
 		func(t *testing.T) (*container.Ops, context.Context) {
-			tempDir := t.TempDir()
+			tempDir := container.MustAbs(t.TempDir())
 			lower0, lower1 :=
-				path.Join(tempDir, "lower0"),
-				path.Join(tempDir, "lower1")
-			for _, name := range []string{lower0, lower1} {
-				if err := os.Mkdir(name, 0755); err != nil {
+				tempDir.Append("lower0"),
+				tempDir.Append("lower1")
+			for _, a := range []*container.Absolute{lower0, lower1} {
+				if err := os.Mkdir(a.String(), 0755); err != nil {
 					t.Fatalf("Mkdir: error = %v", err)
 				}
 			}
 			return new(container.Ops).
-					OverlayReadonly(hst.Tmp, lower0, lower1),
+					OverlayReadonly(hst.AbsTmp, lower0, lower1),
 				context.WithValue(context.WithValue(t.Context(),
 					testVal("lower1"), lower1),
 					testVal("lower0"), lower0)
@@ -199,8 +198,8 @@ var containerTestCases = []struct {
 			return []*vfs.MountInfoEntry{
 				ent("/", hst.Tmp, "rw", "overlay", "overlay",
 					"ro,lowerdir="+
-						container.InternalToHostOvlEscape(ctx.Value(testVal("lower0")).(string))+":"+
-						container.InternalToHostOvlEscape(ctx.Value(testVal("lower1")).(string))+
+						container.InternalToHostOvlEscape(ctx.Value(testVal("lower0")).(*container.Absolute).String())+":"+
+						container.InternalToHostOvlEscape(ctx.Value(testVal("lower1")).(*container.Absolute).String())+
 						",redirect_dir=nofollow,userxattr"),
 			}
 		},
@@ -252,7 +251,7 @@ func TestContainer(t *testing.T) {
 			ctx, cancel := context.WithTimeout(t.Context(), helperDefaultTimeout)
 			defer cancel()
 
-			var libPaths []string
+			var libPaths []*container.Absolute
 			c := helperNewContainerLibPaths(ctx, &libPaths, "container", strconv.Itoa(i))
 			c.Uid = tc.uid
 			c.Gid = tc.gid
@@ -273,11 +272,11 @@ func TestContainer(t *testing.T) {
 			c.HostNet = tc.net
 
 			c.
-				Readonly(pathReadonly, 0755).
-				Tmpfs("/tmp", 0, 0755).
-				Place("/etc/hostname", []byte(c.Hostname))
+				Readonly(container.MustAbs(pathReadonly), 0755).
+				Tmpfs(container.MustAbs("/tmp"), 0, 0755).
+				Place(container.MustAbs("/etc/hostname"), []byte(c.Hostname))
 			// needs /proc to check mountinfo
-			c.Proc("/proc")
+			c.Proc(container.MustAbs("/proc"))
 
 			// mountinfo cannot be resolved directly by helper due to libPaths nondeterminism
 			mnt := make([]*vfs.MountInfoEntry, 0, 3+len(libPaths))
@@ -286,9 +285,9 @@ func TestContainer(t *testing.T) {
 				// Bind(os.Args[0], helperInnerPath, 0)
 				ent(ignore, helperInnerPath, "ro,nosuid,nodev,relatime", ignore, ignore, ignore),
 			)
-			for _, name := range libPaths {
+			for _, a := range libPaths {
 				// Bind(name, name, 0)
-				mnt = append(mnt, ent(ignore, name, "ro,nosuid,nodev,relatime", ignore, ignore, ignore))
+				mnt = append(mnt, ent(ignore, a.String(), "ro,nosuid,nodev,relatime", ignore, ignore, ignore))
 			}
 			mnt = append(mnt, wantMnt...)
 			mnt = append(mnt,
@@ -308,10 +307,10 @@ func TestContainer(t *testing.T) {
 				_, _ = output.WriteTo(os.Stdout)
 				t.Fatalf("cannot serialise expected mount points: %v", err)
 			}
-			c.Place(pathWantMnt, want.Bytes())
+			c.Place(container.MustAbs(pathWantMnt), want.Bytes())
 
 			if tc.ro {
-				c.Remount("/", syscall.MS_RDONLY)
+				c.Remount(container.MustAbs("/"), syscall.MS_RDONLY)
 			}
 
 			if err := c.Start(); err != nil {
@@ -392,7 +391,7 @@ func testContainerCancel(
 }
 
 func TestContainerString(t *testing.T) {
-	c := container.NewCommand(t.Context(), "/run/current-system/sw/bin/ldd", "ldd", "/usr/bin/env")
+	c := container.NewCommand(t.Context(), container.MustAbs("/run/current-system/sw/bin/ldd"), "ldd", "/usr/bin/env")
 	c.SeccompFlags |= seccomp.AllowMultiarch
 	c.SeccompRules = seccomp.Preset(
 		seccomp.PresetExt|seccomp.PresetDenyNS|seccomp.PresetDenyTTY,

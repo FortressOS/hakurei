@@ -4,7 +4,6 @@ import (
 	"log"
 	"os"
 	"os/exec"
-	"path"
 	"strconv"
 	"sync/atomic"
 
@@ -13,18 +12,33 @@ import (
 	"hakurei.app/internal/hlog"
 )
 
+const bash = "bash"
+
 var (
-	dataHome string
+	dataHome *container.Absolute
 )
 
 func init() {
 	// dataHome
-	if p, ok := os.LookupEnv("HAKUREI_DATA_HOME"); ok {
-		dataHome = p
+	if a, err := container.NewAbs(os.Getenv("HAKUREI_DATA_HOME")); err == nil {
+		dataHome = a
 	} else {
-		dataHome = container.FHSVarLib + "hakurei/" + strconv.Itoa(os.Getuid())
+		dataHome = container.AbsFHSVarLib.Append("hakurei/" + strconv.Itoa(os.Getuid()))
 	}
 }
+
+var (
+	pathBin = container.AbsFHSRoot.Append("bin")
+
+	pathNix           = container.MustAbs("/nix/")
+	pathNixStore      = pathNix.Append("store/")
+	pathCurrentSystem = container.AbsFHSRun.Append("current-system")
+	pathSwBin         = pathCurrentSystem.Append("sw/bin/")
+	pathShell         = pathSwBin.Append(bash)
+
+	pathData     = container.MustAbs("/data")
+	pathDataData = pathData.Append("data")
+)
 
 func lookPath(file string) string {
 	if p, err := exec.LookPath(file); err != nil {
@@ -51,52 +65,52 @@ func mustRun(name string, arg ...string) {
 
 type appPathSet struct {
 	// ${dataHome}/${id}
-	baseDir string
+	baseDir *container.Absolute
 	// ${baseDir}/app
-	metaPath string
+	metaPath *container.Absolute
 	// ${baseDir}/files
-	homeDir string
+	homeDir *container.Absolute
 	// ${baseDir}/cache
-	cacheDir string
+	cacheDir *container.Absolute
 	// ${baseDir}/cache/nix
-	nixPath string
+	nixPath *container.Absolute
 }
 
 func pathSetByApp(id string) *appPathSet {
 	pathSet := new(appPathSet)
-	pathSet.baseDir = path.Join(dataHome, id)
-	pathSet.metaPath = path.Join(pathSet.baseDir, "app")
-	pathSet.homeDir = path.Join(pathSet.baseDir, "files")
-	pathSet.cacheDir = path.Join(pathSet.baseDir, "cache")
-	pathSet.nixPath = path.Join(pathSet.cacheDir, "nix")
+	pathSet.baseDir = dataHome.Append(id)
+	pathSet.metaPath = pathSet.baseDir.Append("app")
+	pathSet.homeDir = pathSet.baseDir.Append("files")
+	pathSet.cacheDir = pathSet.baseDir.Append("cache")
+	pathSet.nixPath = pathSet.cacheDir.Append("nix")
 	return pathSet
 }
 
 func appendGPUFilesystem(config *hst.Config) {
-	config.Container.Filesystem = append(config.Container.Filesystem, []*hst.FilesystemConfig{
+	config.Container.Filesystem = append(config.Container.Filesystem, []hst.FilesystemConfig{
 		// flatpak commit 763a686d874dd668f0236f911de00b80766ffe79
-		{Src: "/dev/dri", Device: true},
+		{Src: container.AbsFHSDev.Append("dri"), Device: true},
 		// mali
-		{Src: "/dev/mali", Device: true},
-		{Src: "/dev/mali0", Device: true},
-		{Src: "/dev/umplock", Device: true},
+		{Src: container.AbsFHSDev.Append("mali"), Device: true},
+		{Src: container.AbsFHSDev.Append("mali0"), Device: true},
+		{Src: container.AbsFHSDev.Append("umplock"), Device: true},
 		// nvidia
-		{Src: "/dev/nvidiactl", Device: true},
-		{Src: "/dev/nvidia-modeset", Device: true},
+		{Src: container.AbsFHSDev.Append("nvidiactl"), Device: true},
+		{Src: container.AbsFHSDev.Append("nvidia-modeset"), Device: true},
 		// nvidia OpenCL/CUDA
-		{Src: "/dev/nvidia-uvm", Device: true},
-		{Src: "/dev/nvidia-uvm-tools", Device: true},
+		{Src: container.AbsFHSDev.Append("nvidia-uvm"), Device: true},
+		{Src: container.AbsFHSDev.Append("nvidia-uvm-tools"), Device: true},
 
 		// flatpak commit d2dff2875bb3b7e2cd92d8204088d743fd07f3ff
-		{Src: "/dev/nvidia0", Device: true}, {Src: "/dev/nvidia1", Device: true},
-		{Src: "/dev/nvidia2", Device: true}, {Src: "/dev/nvidia3", Device: true},
-		{Src: "/dev/nvidia4", Device: true}, {Src: "/dev/nvidia5", Device: true},
-		{Src: "/dev/nvidia6", Device: true}, {Src: "/dev/nvidia7", Device: true},
-		{Src: "/dev/nvidia8", Device: true}, {Src: "/dev/nvidia9", Device: true},
-		{Src: "/dev/nvidia10", Device: true}, {Src: "/dev/nvidia11", Device: true},
-		{Src: "/dev/nvidia12", Device: true}, {Src: "/dev/nvidia13", Device: true},
-		{Src: "/dev/nvidia14", Device: true}, {Src: "/dev/nvidia15", Device: true},
-		{Src: "/dev/nvidia16", Device: true}, {Src: "/dev/nvidia17", Device: true},
-		{Src: "/dev/nvidia18", Device: true}, {Src: "/dev/nvidia19", Device: true},
+		{Src: container.AbsFHSDev.Append("nvidia0"), Device: true}, {Src: container.AbsFHSDev.Append("nvidia1"), Device: true},
+		{Src: container.AbsFHSDev.Append("nvidia2"), Device: true}, {Src: container.AbsFHSDev.Append("nvidia3"), Device: true},
+		{Src: container.AbsFHSDev.Append("nvidia4"), Device: true}, {Src: container.AbsFHSDev.Append("nvidia5"), Device: true},
+		{Src: container.AbsFHSDev.Append("nvidia6"), Device: true}, {Src: container.AbsFHSDev.Append("nvidia7"), Device: true},
+		{Src: container.AbsFHSDev.Append("nvidia8"), Device: true}, {Src: container.AbsFHSDev.Append("nvidia9"), Device: true},
+		{Src: container.AbsFHSDev.Append("nvidia10"), Device: true}, {Src: container.AbsFHSDev.Append("nvidia11"), Device: true},
+		{Src: container.AbsFHSDev.Append("nvidia12"), Device: true}, {Src: container.AbsFHSDev.Append("nvidia13"), Device: true},
+		{Src: container.AbsFHSDev.Append("nvidia14"), Device: true}, {Src: container.AbsFHSDev.Append("nvidia15"), Device: true},
+		{Src: container.AbsFHSDev.Append("nvidia16"), Device: true}, {Src: container.AbsFHSDev.Append("nvidia17"), Device: true},
+		{Src: container.AbsFHSDev.Append("nvidia18"), Device: true}, {Src: container.AbsFHSDev.Append("nvidia19"), Device: true},
 	}...)
 }

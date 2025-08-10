@@ -13,6 +13,8 @@ import (
 	"hakurei.app/container/vfs"
 )
 
+/* constants in this file bypass abs check, be extremely careful when changing them! */
+
 const (
 	// FHSRoot points to the file system root.
 	FHSRoot = "/"
@@ -47,6 +49,38 @@ const (
 	FHSProcSys = FHSProc + "sys/"
 	// FHSSys points to a virtual kernel file system exposing discovered devices and other functionality.
 	FHSSys = "/sys/"
+)
+
+var (
+	// AbsFHSRoot is [FHSRoot] as [Absolute].
+	AbsFHSRoot = &Absolute{FHSRoot}
+	// AbsFHSEtc is [FHSEtc] as [Absolute].
+	AbsFHSEtc = &Absolute{FHSEtc}
+	// AbsFHSTmp is [FHSTmp] as [Absolute].
+	AbsFHSTmp = &Absolute{FHSTmp}
+
+	// AbsFHSRun is [FHSRun] as [Absolute].
+	AbsFHSRun = &Absolute{FHSRun}
+	// AbsFHSRunUser is [FHSRunUser] as [Absolute].
+	AbsFHSRunUser = &Absolute{FHSRunUser}
+
+	// AbsFHSUsrBin is [FHSUsrBin] as [Absolute].
+	AbsFHSUsrBin = &Absolute{FHSUsrBin}
+
+	// AbsFHSVar is [FHSVar] as [Absolute].
+	AbsFHSVar = &Absolute{FHSVar}
+	// AbsFHSVarLib is [FHSVarLib] as [Absolute].
+	AbsFHSVarLib = &Absolute{FHSVarLib}
+
+	// AbsFHSDev is [FHSDev] as [Absolute].
+	AbsFHSDev = &Absolute{FHSDev}
+	// AbsFHSProc is [FHSProc] as [Absolute].
+	AbsFHSProc = &Absolute{FHSProc}
+	// AbsFHSSys is [FHSSys] as [Absolute].
+	AbsFHSSys = &Absolute{FHSSys}
+
+	// AbsNonexistent is [Nonexistent] as [Absolute].
+	AbsNonexistent = &Absolute{Nonexistent}
 )
 
 const (

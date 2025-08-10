@@ -21,6 +21,10 @@ const (
 	helperInnerPath      = "/usr/bin/helper"
 )
 
+var (
+	absHelperInnerPath = container.MustAbs(helperInnerPath)
+)
+
 var helperCommands []func(c command.Command)
 
 func TestMain(m *testing.M) {
@@ -46,10 +50,10 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-func helperNewContainerLibPaths(ctx context.Context, libPaths *[]string, args ...string) (c *container.Container) {
-	c = container.NewCommand(ctx, helperInnerPath, "helper", args...)
+func helperNewContainerLibPaths(ctx context.Context, libPaths *[]*container.Absolute, args ...string) (c *container.Container) {
+	c = container.NewCommand(ctx, absHelperInnerPath, "helper", args...)
 	c.Env = append(c.Env, envDoCheck+"=1")
-	c.Bind(os.Args[0], helperInnerPath, 0)
+	c.Bind(container.MustAbs(os.Args[0]), absHelperInnerPath, 0)
 
 	// in case test has cgo enabled
 	if entries, err := ldd.Exec(ctx, os.Args[0]); err != nil {
@@ -65,5 +69,5 @@ func helperNewContainerLibPaths(ctx context.Context, libPaths *[]string, args ..
 }
 
 func helperNewContainer(ctx context.Context, args ...string) (c *container.Container) {
-	return helperNewContainerLibPaths(ctx, new([]string), args...)
+	return helperNewContainerLibPaths(ctx, new([]*container.Absolute), args...)
 }

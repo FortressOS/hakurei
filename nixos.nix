@@ -124,6 +124,7 @@ in
                     username = getsubname fid app.identity;
                     data = getsubhome fid app.identity;
 
+                    inherit (cfg) shell;
                     inherit (app) identity groups;
 
                     container = {
@@ -177,23 +178,23 @@ in
                       auto_etc = true;
 
                       symlink = [
-                        [
-                          "*/run/current-system"
-                          "/run/current-system"
-                        ]
+                        {
+                          target = "/run/current-system";
+                          linkname = "*/run/current-system";
+                        }
                       ]
                       ++ optionals (isGraphical && config.hardware.graphics.enable) (
                         [
-                          [
-                            config.systemd.tmpfiles.settings.graphics-driver."/run/opengl-driver"."L+".argument
-                            "/run/opengl-driver"
-                          ]
+                          {
+                            target = "/run/opengl-driver";
+                            linkname = config.systemd.tmpfiles.settings.graphics-driver."/run/opengl-driver"."L+".argument;
+                          }
                         ]
                         ++ optionals (app.multiarch && config.hardware.graphics.enable32Bit) [
-                          [
-                            config.systemd.tmpfiles.settings.graphics-driver."/run/opengl-driver-32"."L+".argument
-                            /run/opengl-driver-32
-                          ]
+                          {
+                            target = "/run/opengl-driver-32";
+                            linkname = config.systemd.tmpfiles.settings.graphics-driver."/run/opengl-driver-32"."L+".argument;
+                          }
                         ]
                       );
                     };

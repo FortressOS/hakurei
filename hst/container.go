@@ -3,14 +3,11 @@ package hst
 import (
 	"time"
 
+	"hakurei.app/container"
 	"hakurei.app/container/seccomp"
 )
 
 const (
-	// SourceTmpfs causes tmpfs to be mounted on [FilesystemConfig.Dst]
-	// when assigned to [FilesystemConfig.Src].
-	SourceTmpfs = "tmpfs"
-
 	// TmpfsPerm is the permission bits for tmpfs mount points
 	// configured through [FilesystemConfig].
 	TmpfsPerm = 0755
@@ -55,18 +52,18 @@ type (
 		// pass through all devices
 		Device bool `json:"device,omitempty"`
 		// container host filesystem bind mounts
-		Filesystem []*FilesystemConfig `json:"filesystem"`
+		Filesystem []FilesystemConfig `json:"filesystem"`
 		// create symlinks inside container filesystem
-		Link [][2]string `json:"symlink"`
+		Link []LinkConfig `json:"symlink"`
 
 		// automatically bind mount top-level directories to container root;
 		// the zero value disables this behaviour
-		AutoRoot string `json:"auto_root,omitempty"`
+		AutoRoot *container.Absolute `json:"auto_root,omitempty"`
 		// extra flags for AutoRoot
 		RootFlags int `json:"root_flags,omitempty"`
 
 		// read-only /etc directory
-		Etc string `json:"etc,omitempty"`
+		Etc *container.Absolute `json:"etc,omitempty"`
 		// automatically set up /etc symlinks
 		AutoEtc bool `json:"auto_etc"`
 	}
@@ -74,14 +71,22 @@ type (
 	// FilesystemConfig is an abstract representation of a bind mount.
 	FilesystemConfig struct {
 		// mount point in container, same as src if empty
-		Dst string `json:"dst,omitempty"`
+		Dst *container.Absolute `json:"dst,omitempty"`
 		// host filesystem path to make available to the container
-		Src string `json:"src"`
+		Src *container.Absolute `json:"src"`
 		// do not mount filesystem read-only
 		Write bool `json:"write,omitempty"`
 		// do not disable device files
 		Device bool `json:"dev,omitempty"`
 		// fail if the bind mount cannot be established for any reason
 		Must bool `json:"require,omitempty"`
+	}
+
+	LinkConfig struct {
+		// symlink target in container
+		Target *container.Absolute `json:"target"`
+		// linkname the symlink points to;
+		// prepend '*' to dereference an absolute pathname on host
+		Linkname string `json:"linkname"`
 	}
 )

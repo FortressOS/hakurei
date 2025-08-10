@@ -3,10 +3,11 @@ package sys
 
 import (
 	"io/fs"
+	"log"
 	"os/user"
-	"path"
 	"strconv"
 
+	"hakurei.app/container"
 	"hakurei.app/hst"
 	"hakurei.app/internal/hlog"
 )
@@ -50,18 +51,23 @@ type State interface {
 
 // CopyPaths is a generic implementation of [hst.Paths].
 func CopyPaths(os State, v *hst.Paths) {
-	v.SharePath = path.Join(os.TempDir(), "hakurei."+strconv.Itoa(os.Getuid()))
-
-	hlog.Verbosef("process share directory at %q", v.SharePath)
-
-	if r, ok := os.LookupEnv(xdgRuntimeDir); !ok || r == "" || !path.IsAbs(r) {
-		// fall back to path in share since hakurei has no hard XDG dependency
-		v.RunDirPath = path.Join(v.SharePath, "run")
-		v.RuntimePath = path.Join(v.RunDirPath, "compat")
+	if tempDir, err := container.NewAbs(os.TempDir()); err != nil {
+		log.Fatalf("invalid TMPDIR: %v", err)
 	} else {
-		v.RuntimePath = r
-		v.RunDirPath = path.Join(v.RuntimePath, "hakurei")
+		v.TempDir = tempDir
 	}
 
+	v.SharePath = v.TempDir.Append("hakurei." + strconv.Itoa(os.Getuid()))
+	hlog.Verbosef("process share directory at %q", v.SharePath)
+
+	r, _ := os.LookupEnv(xdgRuntimeDir)
+	if a, err := container.NewAbs(r); err != nil {
+		// fall back to path in share since hakurei has no hard XDG dependency
+		v.RunDirPath = v.SharePath.Append("run")
+		v.RuntimePath = v.RunDirPath.Append("compat")
+	} else {
+		v.RuntimePath = a
+		v.RunDirPath = v.RuntimePath.Append("hakurei")
+	}
 	hlog.Verbosef("runtime directory at %q", v.RunDirPath)
 }

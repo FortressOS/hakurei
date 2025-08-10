@@ -5,8 +5,6 @@ import (
 	"errors"
 	"os"
 	"os/exec"
-	"path"
-	"slices"
 	"strconv"
 	"syscall"
 
@@ -53,7 +51,7 @@ func (p *Proxy) Start() error {
 			toolPath = a
 		}
 
-		var libPaths []string
+		var libPaths []*container.Absolute
 		if entries, err := ldd.Exec(ctx, toolPath.String()); err != nil {
 			return err
 		} else {
@@ -77,42 +75,46 @@ func (p *Proxy) Start() error {
 				}
 
 				// upstream bus directories
-				upstreamPaths := make([]string, 0, 2)
+				upstreamPaths := make([]*container.Absolute, 0, 2)
 				for _, addr := range [][]AddrEntry{p.final.SessionUpstream, p.final.SystemUpstream} {
 					for _, ent := range addr {
 						if ent.Method != "unix" {
 							continue
 						}
 						for _, pair := range ent.Values {
-							if pair[0] != "path" || !path.IsAbs(pair[1]) {
+							if pair[0] != "path" {
 								continue
 							}
-							upstreamPaths = append(upstreamPaths, path.Dir(pair[1]))
+							if a, err := container.NewAbs(pair[1]); err != nil {
+								continue
+							} else {
+								upstreamPaths = append(upstreamPaths, a.Dir())
+							}
 						}
 					}
 				}
-				slices.Sort(upstreamPaths)
-				upstreamPaths = slices.Compact(upstreamPaths)
+				container.SortAbs(upstreamPaths)
+				upstreamPaths = container.CompactAbs(upstreamPaths)
 				for _, name := range upstreamPaths {
 					z.Bind(name, name, 0)
 				}
 
 				// parent directories of bind paths
-				sockDirPaths := make([]string, 0, 2)
-				if d := path.Dir(p.final.Session[1]); path.IsAbs(d) {
-					sockDirPaths = append(sockDirPaths, d)
+				sockDirPaths := make([]*container.Absolute, 0, 2)
+				if a, err := container.NewAbs(p.final.Session[1]); err == nil {
+					sockDirPaths = append(sockDirPaths, a.Dir())
 				}
-				if d := path.Dir(p.final.System[1]); path.IsAbs(d) {
-					sockDirPaths = append(sockDirPaths, d)
+				if a, err := container.NewAbs(p.final.System[1]); err == nil {
+					sockDirPaths = append(sockDirPaths, a.Dir())
 				}
-				slices.Sort(sockDirPaths)
-				sockDirPaths = slices.Compact(sockDirPaths)
+				container.SortAbs(sockDirPaths)
+				sockDirPaths = container.CompactAbs(sockDirPaths)
 				for _, name := range sockDirPaths {
 					z.Bind(name, name, container.BindWritable)
 				}
 
 				// xdg-dbus-proxy bin path
-				binPath := path.Dir(toolPath.String())
+				binPath := toolPath.Dir()
 				z.Bind(binPath, binPath, 0)
 			}, nil)
 	}

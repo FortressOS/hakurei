@@ -33,7 +33,10 @@ func TestContainer(t *testing.T) {
 		testHelper(t, func(ctx context.Context, setOutput func(stdoutP, stderrP *io.Writer), stat bool) helper.Helper {
 			return helper.New(ctx, container.MustAbs(os.Args[0]), "helper", argsWt, stat, argF, func(z *container.Container) {
 				setOutput(&z.Stdout, &z.Stderr)
-				z.Bind("/", "/", 0).Proc("/proc").Dev("/dev", true)
+				z.
+					Bind(container.AbsFHSRoot, container.AbsFHSRoot, 0).
+					Proc(container.AbsFHSProc).
+					Dev(container.AbsFHSDev, true)
 			}, nil)
 		})
 	})

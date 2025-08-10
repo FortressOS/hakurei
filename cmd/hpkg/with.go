@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"path"
 	"strings"
 
 	"hakurei.app/container"
@@ -19,8 +18,8 @@ func withNixDaemon(
 	mustRunAppDropShell(ctx, updateConfig(&hst.Config{
 		ID: app.ID,
 
-		Path: shellPath,
-		Args: []string{shellPath, "-lc", "rm -f /nix/var/nix/daemon-socket/socket && " +
+		Path: pathShell,
+		Args: []string{bash, "-lc", "rm -f /nix/var/nix/daemon-socket/socket && " +
 			// start nix-daemon
 			"nix-daemon --store / & " +
 			// wait for socket to appear
@@ -33,9 +32,9 @@ func withNixDaemon(
 		},
 
 		Username: "hakurei",
-		Shell:    shellPath,
+		Shell:    pathShell,
 		Data:     pathSet.homeDir,
-		Dir:      path.Join("/data/data", app.ID),
+		Dir:      pathDataData.Append(app.ID),
 		ExtraPerms: []*hst.ExtraPermConfig{
 			{Path: dataHome, Execute: true},
 			{Ensure: true, Path: pathSet.baseDir, Read: true, Write: true, Execute: true},
@@ -49,15 +48,15 @@ func withNixDaemon(
 			Net:          net,
 			SeccompFlags: seccomp.AllowMultiarch,
 			Tty:          dropShell,
-			Filesystem: []*hst.FilesystemConfig{
-				{Src: pathSet.nixPath, Dst: "/nix", Write: true, Must: true},
+			Filesystem: []hst.FilesystemConfig{
+				{Src: pathSet.nixPath, Dst: pathNix, Write: true, Must: true},
 			},
-			Link: [][2]string{
-				{app.CurrentSystem, container.FHSRun + "current-system"},
-				{container.FHSRun + "current-system/sw/bin", "/bin"},
-				{container.FHSRun + "current-system/sw/bin", container.FHSUsrBin},
+			Link: []hst.LinkConfig{
+				{pathCurrentSystem, app.CurrentSystem.String()},
+				{pathBin, pathSwBin.String()},
+				{container.AbsFHSUsrBin, pathSwBin.String()},
 			},
-			Etc:     path.Join(pathSet.cacheDir, "etc"),
+			Etc:     pathSet.cacheDir.Append("etc"),
 			AutoEtc: true,
 		},
 	}), dropShell, beforeFail)
@@ -65,18 +64,18 @@ func withNixDaemon(
 
 func withCacheDir(
 	ctx context.Context,
-	action string, command []string, workDir string,
+	action string, command []string, workDir *container.Absolute,
 	app *appInfo, pathSet *appPathSet, dropShell bool, beforeFail func()) {
 	mustRunAppDropShell(ctx, &hst.Config{
 		ID: app.ID,
 
-		Path: shellPath,
-		Args: []string{shellPath, "-lc", strings.Join(command, " && ")},
+		Path: pathShell,
+		Args: []string{bash, "-lc", strings.Join(command, " && ")},
 
 		Username: "nixos",
-		Shell:    shellPath,
+		Shell:    pathShell,
 		Data:     pathSet.cacheDir, // this also ensures cacheDir via shim
-		Dir:      path.Join("/data/data", app.ID, "cache"),
+		Dir:      pathDataData.Append(app.ID, "cache"),
 		ExtraPerms: []*hst.ExtraPermConfig{
 			{Path: dataHome, Execute: true},
 			{Ensure: true, Path: pathSet.baseDir, Read: true, Write: true, Execute: true},
@@ -89,16 +88,16 @@ func withCacheDir(
 			Hostname:     formatHostname(app.Name) + "-" + action,
 			SeccompFlags: seccomp.AllowMultiarch,
 			Tty:          dropShell,
-			Filesystem: []*hst.FilesystemConfig{
-				{Src: path.Join(workDir, "nix"), Dst: "/nix", Must: true},
-				{Src: workDir, Dst: path.Join(hst.Tmp, "bundle"), Must: true},
+			Filesystem: []hst.FilesystemConfig{
+				{Src: workDir.Append("nix"), Dst: pathNix, Must: true},
+				{Src: workDir, Dst: hst.AbsTmp.Append("bundle"), Must: true},
 			},
-			Link: [][2]string{
-				{app.CurrentSystem, container.FHSRun + "current-system"},
-				{container.FHSRun + "current-system/sw/bin", "/bin"},
-				{container.FHSRun + "current-system/sw/bin", container.FHSUsrBin},
+			Link: []hst.LinkConfig{
+				{pathCurrentSystem, app.CurrentSystem.String()},
+				{pathBin, pathSwBin.String()},
+				{container.AbsFHSUsrBin, pathSwBin.String()},
 			},
-			Etc:     path.Join(workDir, container.FHSEtc),
+			Etc:     workDir.Append(container.FHSEtc),
 			AutoEtc: true,
 		},
 	}, dropShell, beforeFail)
@@ -106,7 +105,7 @@ func withCacheDir(
 
 func mustRunAppDropShell(ctx context.Context, config *hst.Config, dropShell bool, beforeFail func()) {
 	if dropShell {
-		config.Args = []string{shellPath, "-l"}
+		config.Args = []string{bash, "-l"}
 		mustRunApp(ctx, config, beforeFail)
 		beforeFail()
 		internal.Exit(0)

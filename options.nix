@@ -299,6 +299,14 @@ in
         '';
       };
 
+      shell = mkOption {
+        type = types.str;
+        default = "/run/current-system/sw/bin/bash";
+        description = ''
+          Absolute path to preferred shell.
+        '';
+      };
+
       stateDir = mkOption {
         type = types.str;
         description = ''

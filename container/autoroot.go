@@ -4,21 +4,21 @@ import (
 	"encoding/gob"
 	"fmt"
 	"os"
-	"path"
-	. "syscall"
+	"syscall"
 )
 
 func init() { gob.Register(new(AutoRootOp)) }
 
 // Root appends an [Op] that expands a directory into a toplevel bind mount mirror on container root.
 // This is not a generic setup op. It is implemented here to reduce ipc overhead.
-func (f *Ops) Root(host, prefix string, flags int) *Ops {
+func (f *Ops) Root(host *Absolute, prefix string, flags int) *Ops {
 	*f = append(*f, &AutoRootOp{host, prefix, flags, nil})
 	return f
 }
 
 type AutoRootOp struct {
-	Host, Prefix string
+	Host   *Absolute
+	Prefix string
 	// passed through to bindMount
 	Flags int
 
@@ -29,11 +29,11 @@ type AutoRootOp struct {
 }
 
 func (r *AutoRootOp) early(params *Params) error {
-	if !path.IsAbs(r.Host) {
-		return msg.WrapErr(EBADE, fmt.Sprintf("path %q is not absolute", r.Host))
+	if r.Host == nil {
+		return syscall.EBADE
 	}
 
-	if d, err := os.ReadDir(r.Host); err != nil {
+	if d, err := os.ReadDir(r.Host.String()); err != nil {
 		return wrapErrSelf(err)
 	} else {
 		r.resolved = make([]Op, 0, len(d))
@@ -41,8 +41,8 @@ func (r *AutoRootOp) early(params *Params) error {
 			name := ent.Name()
 			if IsAutoRootBindable(name) {
 				op := &BindMountOp{
-					Source: path.Join(r.Host, name),
-					Target: FHSRoot + name,
+					Source: r.Host.Append(name),
+					Target: AbsFHSRoot.Append(name),
 					Flags:  r.Flags,
 				}
 				if err = op.early(params); err != nil {

@@ -127,8 +127,8 @@ func (s *stubNixOS) Open(name string) (fs.File, error) {
 
 func (s *stubNixOS) Paths() hst.Paths {
 	return hst.Paths{
-		SharePath:   "/tmp/hakurei.1971",
-		RuntimePath: "/run/user/1971",
-		RunDirPath:  "/run/user/1971/hakurei",
+		SharePath:   m("/tmp/hakurei.1971"),
+		RuntimePath: m("/run/user/1971"),
+		RunDirPath:  m("/run/user/1971/hakurei"),
 	}
 }

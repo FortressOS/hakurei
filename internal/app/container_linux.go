@@ -12,6 +12,7 @@ import (
 	"hakurei.app/container"
 	"hakurei.app/container/seccomp"
 	"hakurei.app/hst"
+	"hakurei.app/internal/hlog"
 	"hakurei.app/internal/sys"
 	"hakurei.app/system/dbus"
 )
@@ -24,7 +25,7 @@ const preallocateOpsCount = 1 << 5
 // Note that remaining container setup must be queued by the caller.
 func newContainer(s *hst.ContainerConfig, os sys.State, prefix string, uid, gid *int) (*container.Params, map[string]string, error) {
 	if s == nil {
-		return nil, nil, syscall.EBADE
+		return nil, nil, hlog.WrapErr(syscall.EBADE, "invalid container configuration")
 	}
 
 	params := &container.Params{
@@ -73,21 +74,18 @@ func newContainer(s *hst.ContainerConfig, os sys.State, prefix string, uid, gid 
 		*gid = container.OverflowGid()
 	}
 
-	if s.AutoRoot != "" {
-		if !path.IsAbs(s.AutoRoot) {
-			return nil, nil, fmt.Errorf("auto root target %q not absolute", s.AutoRoot)
-		}
+	if s.AutoRoot != nil {
 		params.Root(s.AutoRoot, prefix, s.RootFlags)
 	}
 
 	params.
-		Proc(container.FHSProc).
-		Tmpfs(hst.Tmp, 1<<12, 0755)
+		Proc(container.AbsFHSProc).
+		Tmpfs(hst.AbsTmp, 1<<12, 0755)
 
 	if !s.Device {
-		params.DevWritable(container.FHSDev, true)
+		params.DevWritable(container.AbsFHSDev, true)
 	} else {
-		params.Bind(container.FHSDev, container.FHSDev, container.BindWritable|container.BindDevice)
+		params.Bind(container.AbsFHSDev, container.AbsFHSDev, container.BindWritable|container.BindDevice)
 	}
 
 	/* retrieve paths and hide them if they're made available in the sandbox;
@@ -96,7 +94,7 @@ func newContainer(s *hst.ContainerConfig, os sys.State, prefix string, uid, gid 
 	and should not be treated as such, ALWAYS be careful with what you bind */
 	var hidePaths []string
 	sc := os.Paths()
-	hidePaths = append(hidePaths, sc.RuntimePath, sc.SharePath)
+	hidePaths = append(hidePaths, sc.RuntimePath.String(), sc.SharePath.String())
 	_, systemBusAddr := dbus.Address()
 	if entries, err := dbus.Parse([]byte(systemBusAddr)); err != nil {
 		return nil, nil, err
@@ -132,15 +130,15 @@ func newContainer(s *hst.ContainerConfig, os sys.State, prefix string, uid, gid 
 	hidePathSource := make([][2]string, 0, len(s.Filesystem))
 
 	// AutoRoot is a collection of many BindMountOp internally
-	if s.AutoRoot != "" {
-		if d, err := os.ReadDir(s.AutoRoot); err != nil {
+	if s.AutoRoot != nil {
+		if d, err := os.ReadDir(s.AutoRoot.String()); err != nil {
 			return nil, nil, err
 		} else {
 			hidePathSource = slices.Grow(hidePathSource, len(d))
 			for _, ent := range d {
 				name := ent.Name()
 				if container.IsAutoRootBindable(name) {
-					name = path.Join(s.AutoRoot, name)
+					name = path.Join(s.AutoRoot.String(), name)
 					srcP := [2]string{name, name}
 					if err = evalSymlinks(os, &srcP[0]); err != nil {
 						return nil, nil, err
@@ -151,16 +149,16 @@ func newContainer(s *hst.ContainerConfig, os sys.State, prefix string, uid, gid 
 		}
 	}
 
-	for _, c := range s.Filesystem {
-		if c == nil {
-			continue
+	for i, c := range s.Filesystem {
+		if c.Src == nil {
+			return nil, nil, fmt.Errorf("invalid filesystem at index %d", i)
 		}
 
 		// special filesystems
-		switch c.Src {
-		case hst.SourceTmpfs:
-			if !path.IsAbs(c.Dst) {
-				return nil, nil, fmt.Errorf("tmpfs dst %q is not absolute", c.Dst)
+		switch c.Src.String() {
+		case container.Nonexistent:
+			if c.Dst == nil {
+				return nil, nil, errors.New("tmpfs dst must not be nil")
 			}
 			if c.Write {
 				params.Tmpfs(c.Dst, hst.TmpfsSize, hst.TmpfsPerm)
@@ -170,18 +168,12 @@ func newContainer(s *hst.ContainerConfig, os sys.State, prefix string, uid, gid 
 			continue
 		}
 
-		if !path.IsAbs(c.Src) {
-			return nil, nil, fmt.Errorf("src path %q is not absolute", c.Src)
+		dst := c.Dst
+		if dst == nil {
+			dst = c.Src
 		}
 
-		dest := c.Dst
-		if c.Dst == "" {
-			dest = c.Src
-		} else if !path.IsAbs(dest) {
-			return nil, nil, fmt.Errorf("dst path %q is not absolute", dest)
-		}
-
-		p := [2]string{c.Src, c.Src}
+		p := [2]string{c.Src.String(), c.Src.String()}
 		if err := evalSymlinks(os, &p[0]); err != nil {
 			return nil, nil, err
 		}
@@ -197,7 +189,7 @@ func newContainer(s *hst.ContainerConfig, os sys.State, prefix string, uid, gid 
 		if !c.Must {
 			flags |= container.BindOptional
 		}
-		params.Bind(c.Src, dest, flags)
+		params.Bind(c.Src, dst, flags)
 	}
 
 	for _, p := range hidePathSource {
@@ -219,29 +211,49 @@ func newContainer(s *hst.ContainerConfig, os sys.State, prefix string, uid, gid 
 	// cover matched paths
 	for i, ok := range hidePathMatch {
 		if ok {
-			params.Tmpfs(hidePaths[i], 1<<13, 0755)
+			if a, err := container.NewAbs(hidePaths[i]); err != nil {
+				var absoluteError *container.AbsoluteError
+				if !errors.As(err, &absoluteError) {
+					return nil, nil, err
+				}
+				if absoluteError == nil {
+					return nil, nil, syscall.ENOTRECOVERABLE
+				}
+				return nil, nil, fmt.Errorf("invalid path hiding candidate %q", absoluteError.Pathname)
+			} else {
+				params.Tmpfs(a, 1<<13, 0755)
+			}
 		}
 	}
 
-	for _, l := range s.Link {
-		params.Link(l[0], l[1])
+	for i, l := range s.Link {
+		if l.Target == nil || l.Linkname == "" {
+			return nil, nil, fmt.Errorf("invalid link at index %d", i)
+		}
+		linkname := l.Linkname
+		var dereference bool
+		if linkname[0] == '*' && path.IsAbs(linkname[1:]) {
+			linkname = linkname[1:]
+			dereference = true
+		}
+		params.Link(l.Target, linkname, dereference)
 	}
 
 	if !s.AutoEtc {
-		if s.Etc != "" {
-			params.Bind(s.Etc, container.FHSEtc, 0)
+		if s.Etc != nil {
+			params.Bind(s.Etc, container.AbsFHSEtc, 0)
 		}
 	} else {
-		etcPath := s.Etc
-		if etcPath == "" {
-			etcPath = container.FHSEtc
+		if s.Etc == nil {
+			params.Etc(container.AbsFHSEtc, prefix)
+		} else {
+			params.Etc(s.Etc, prefix)
 		}
-		params.Etc(etcPath, prefix)
 	}
 
 	// no more ContainerConfig paths beyond this point
 	if !s.Device {
-		params.Remount(container.FHSDev, syscall.MS_RDONLY)
+		params.Remount(container.AbsFHSDev, syscall.MS_RDONLY)
 	}
 
 	return params, maps.Clone(s.Env), nil
