@@ -248,15 +248,15 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 
 		// bind GPU stuff
 		if config.Enablements&(system.EX11|system.EWayland) != 0 {
-			conf.Filesystem = append(conf.Filesystem, hst.FilesystemConfig{Src: container.AbsFHSDev.Append("dri"), Device: true})
+			conf.Filesystem = append(conf.Filesystem, hst.FilesystemConfigJSON{FilesystemConfig: &hst.FSBind{Src: container.AbsFHSDev.Append("dri"), Device: true, Optional: true}})
 		}
 		// opportunistically bind kvm
-		conf.Filesystem = append(conf.Filesystem, hst.FilesystemConfig{Src: container.AbsFHSDev.Append("kvm"), Device: true})
+		conf.Filesystem = append(conf.Filesystem, hst.FilesystemConfigJSON{FilesystemConfig: &hst.FSBind{Src: container.AbsFHSDev.Append("kvm"), Device: true, Optional: true}})
 
 		// hide nscd from container if present
 		nscd := container.AbsFHSVar.Append("run/nscd")
 		if _, err := sys.Stat(nscd.String()); !errors.Is(err, fs.ErrNotExist) {
-			conf.Filesystem = append(conf.Filesystem, hst.FilesystemConfig{Dst: nscd, Src: container.AbsNonexistent})
+			conf.Filesystem = append(conf.Filesystem, hst.FilesystemConfigJSON{FilesystemConfig: &hst.FSEphemeral{Dst: nscd}})
 		}
 
 		config.Container = conf

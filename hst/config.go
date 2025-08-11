@@ -66,7 +66,7 @@ type ExtraPermConfig struct {
 }
 
 func (e *ExtraPermConfig) String() string {
-	if e.Path == nil {
+	if e == nil || e.Path == nil {
 		return "<invalid>"
 	}
 	buf := make([]byte, 0, 5+len(e.Path.String()))

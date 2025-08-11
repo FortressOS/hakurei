@@ -7,6 +7,7 @@ let
   mountPoint =
     let
       inherit (types)
+        enum
         str
         submodule
         nullOr
@@ -15,6 +16,14 @@ let
     in
     listOf (submodule {
       options = {
+        type = mkOption {
+          type = enum [ "bind" ];
+          default = "bind";
+          description = ''
+            Type of the mount point;
+          '';
+        };
+
         dst = mkOption {
           type = nullOr str;
           default = null;
@@ -32,7 +41,7 @@ let
 
         write = mkEnableOption "mounting path as writable";
         dev = mkEnableOption "use of device files";
-        require = mkEnableOption "start failure if the bind mount cannot be established for any reason";
+        optional = mkEnableOption "ignore nonexistent source path";
       };
     });
 in

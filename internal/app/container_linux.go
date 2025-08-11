@@ -6,7 +6,6 @@ import (
 	"io/fs"
 	"maps"
 	"path"
-	"slices"
 	"syscall"
 
 	"hakurei.app/container"
@@ -126,73 +125,63 @@ func newContainer(s *hst.ContainerConfig, os sys.State, prefix string, uid, gid 
 			return nil, nil, err
 		}
 	}
-	// evaluated path, input path
-	hidePathSource := make([][2]string, 0, len(s.Filesystem))
+
+	var hidePathSourceCount int
+	for i, c := range s.Filesystem {
+		if !c.Valid() {
+			return nil, nil, fmt.Errorf("invalid filesystem at index %d", i)
+		}
+		c.Apply(params.Ops)
+
+		// fs counter
+		hidePathSourceCount += len(c.Host())
+	}
 
 	// AutoRoot is a collection of many BindMountOp internally
+	var autoRootEntries []fs.DirEntry
 	if s.AutoRoot != nil {
 		if d, err := os.ReadDir(s.AutoRoot.String()); err != nil {
 			return nil, nil, err
 		} else {
-			hidePathSource = slices.Grow(hidePathSource, len(d))
-			for _, ent := range d {
-				name := ent.Name()
-				if container.IsAutoRootBindable(name) {
-					name = path.Join(s.AutoRoot.String(), name)
-					srcP := [2]string{name, name}
-					if err = evalSymlinks(os, &srcP[0]); err != nil {
-						return nil, nil, err
-					}
-					hidePathSource = append(hidePathSource, srcP)
-				}
+			// autoroot counter
+			hidePathSourceCount += len(d)
+			autoRootEntries = d
+		}
+	}
+
+	hidePathSource := make([]*container.Absolute, 0, hidePathSourceCount)
+
+	// fs append
+	for _, c := range s.Filesystem {
+		// all entries already checked above
+		hidePathSource = append(hidePathSource, c.Host()...)
+	}
+
+	// autoroot append
+	if s.AutoRoot != nil {
+		for _, ent := range autoRootEntries {
+			name := ent.Name()
+			if container.IsAutoRootBindable(name) {
+				hidePathSource = append(hidePathSource, s.AutoRoot.Append(name))
 			}
 		}
 	}
 
-	for i, c := range s.Filesystem {
-		if c.Src == nil {
-			return nil, nil, fmt.Errorf("invalid filesystem at index %d", i)
+	// evaluated path, input path
+	hidePathSourceEval := make([][2]string, len(hidePathSource))
+	for i, a := range hidePathSource {
+		if a == nil {
+			// unreachable
+			return nil, nil, syscall.ENOTRECOVERABLE
 		}
 
-		// special filesystems
-		switch c.Src.String() {
-		case container.Nonexistent:
-			if c.Dst == nil {
-				return nil, nil, errors.New("tmpfs dst must not be nil")
-			}
-			if c.Write {
-				params.Tmpfs(c.Dst, hst.TmpfsSize, hst.TmpfsPerm)
-			} else {
-				params.Readonly(c.Dst, hst.TmpfsPerm)
-			}
-			continue
-		}
-
-		dst := c.Dst
-		if dst == nil {
-			dst = c.Src
-		}
-
-		p := [2]string{c.Src.String(), c.Src.String()}
-		if err := evalSymlinks(os, &p[0]); err != nil {
+		hidePathSourceEval[i] = [2]string{a.String(), a.String()}
+		if err := evalSymlinks(os, &hidePathSourceEval[i][0]); err != nil {
 			return nil, nil, err
 		}
-		hidePathSource = append(hidePathSource, p)
-
-		var flags int
-		if c.Write {
-			flags |= container.BindWritable
-		}
-		if c.Device {
-			flags |= container.BindDevice | container.BindWritable
-		}
-		if !c.Must {
-			flags |= container.BindOptional
-		}
-		params.Bind(c.Src, dst, flags)
 	}
 
-	for _, p := range hidePathSource {
+	for _, p := range hidePathSourceEval {
 		for i := range hidePaths {
 			// skip matched entries
 			if hidePathMatch[i] {

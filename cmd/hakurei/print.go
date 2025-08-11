@@ -128,42 +128,11 @@ func printShowInstance(
 		if config.Container != nil && len(config.Container.Filesystem) > 0 {
 			t.Printf("Filesystem\n")
 			for _, f := range config.Container.Filesystem {
-				g := 4
-				if f.Src == nil {
+				if !f.Valid() {
 					t.Println(" <invalid>")
 					continue
-				} else {
-					g += len(f.Src.String())
 				}
-				if f.Dst != nil {
-					g += len(f.Dst.String())
-				}
-
-				expr := new(strings.Builder)
-				expr.Grow(g)
-
-				if f.Device {
-					expr.WriteString(" d")
-				} else if f.Write {
-					expr.WriteString(" w")
-				} else {
-					expr.WriteString(" ")
-				}
-				if f.Must {
-					expr.WriteString("*")
-				} else {
-					expr.WriteString("+")
-				}
-				src := f.Src.String()
-				if src != container.Nonexistent {
-					expr.WriteString(src)
-				} else {
-					expr.WriteString("tmpfs")
-				}
-				if f.Dst != nil {
-					expr.WriteString(":" + f.Dst.String())
-				}
-				t.Printf("%s\n", expr.String())
+				t.Printf(" %s\n", f)
 			}
 			t.Printf("\n")
 		}

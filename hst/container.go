@@ -51,8 +51,8 @@ type (
 
 		// pass through all devices
 		Device bool `json:"device,omitempty"`
-		// container host filesystem bind mounts
-		Filesystem []FilesystemConfig `json:"filesystem"`
+		// container mount points
+		Filesystem []FilesystemConfigJSON `json:"filesystem"`
 		// create symlinks inside container filesystem
 		Link []LinkConfig `json:"symlink"`
 
@@ -66,20 +66,6 @@ type (
 		Etc *container.Absolute `json:"etc,omitempty"`
 		// automatically set up /etc symlinks
 		AutoEtc bool `json:"auto_etc"`
-	}
-
-	// FilesystemConfig is an abstract representation of a bind mount.
-	FilesystemConfig struct {
-		// mount point in container, same as src if empty
-		Dst *container.Absolute `json:"dst,omitempty"`
-		// host filesystem path to make available to the container
-		Src *container.Absolute `json:"src"`
-		// do not mount filesystem read-only
-		Write bool `json:"write,omitempty"`
-		// do not disable device files
-		Device bool `json:"dev,omitempty"`
-		// fail if the bind mount cannot be established for any reason
-		Must bool `json:"require,omitempty"`
 	}
 
 	LinkConfig struct {

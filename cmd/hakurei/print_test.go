@@ -48,11 +48,10 @@ func Test_printShowInstance(t *testing.T) {
  Arguments:      chromium --ignore-gpu-blocklist --disable-smooth-scrolling --enable-features=UseOzonePlatform --ozone-platform=wayland
 
 Filesystem
- w+tmpfs:/tmp/
- +/nix/store
- +/run/current-system
- +/run/opengl-driver
- +/var/db/nix-channels
+ w+ephemeral(-rwxr-xr-x):/tmp/
+ */nix/store
+ */run/current-system
+ */run/opengl-driver
  w*/var/lib/hakurei/u0/org.chromium.Chromium:/data/data/org.chromium.Chromium
  d+/dev/dri
 
@@ -86,7 +85,7 @@ App
  Etc:            /etc/
 
 `},
-		{"config nil entries", nil, &hst.Config{Container: &hst.ContainerConfig{Filesystem: make([]hst.FilesystemConfig, 1)}, ExtraPerms: make([]*hst.ExtraPermConfig, 1)}, false, false, `App
+		{"config nil entries", nil, &hst.Config{Container: &hst.ContainerConfig{Filesystem: make([]hst.FilesystemConfigJSON, 1)}, ExtraPerms: make([]*hst.ExtraPermConfig, 1)}, false, false, `App
  Identity:       0
  Enablements:    (no enablements)
  Flags:          none
@@ -127,11 +126,10 @@ App
  Arguments:      chromium --ignore-gpu-blocklist --disable-smooth-scrolling --enable-features=UseOzonePlatform --ozone-platform=wayland
 
 Filesystem
- w+tmpfs:/tmp/
- +/nix/store
- +/run/current-system
- +/run/opengl-driver
- +/var/db/nix-channels
+ w+ephemeral(-rwxr-xr-x):/tmp/
+ */nix/store
+ */run/current-system
+ */run/opengl-driver
  w*/var/lib/hakurei/u0/org.chromium.Chromium:/data/data/org.chromium.Chromium
  d+/dev/dri
 
@@ -275,31 +273,34 @@ App
       "device": true,
       "filesystem": [
         {
+          "type": "ephemeral",
           "dst": "/tmp/",
-          "src": "/proc/nonexistent",
-          "write": true
+          "write": true,
+          "perm": 493
         },
         {
+          "type": "bind",
           "src": "/nix/store"
         },
         {
+          "type": "bind",
           "src": "/run/current-system"
         },
         {
+          "type": "bind",
           "src": "/run/opengl-driver"
         },
         {
-          "src": "/var/db/nix-channels"
-        },
-        {
+          "type": "bind",
           "dst": "/data/data/org.chromium.Chromium",
           "src": "/var/lib/hakurei/u0/org.chromium.Chromium",
-          "write": true,
-          "require": true
+          "write": true
         },
         {
+          "type": "bind",
           "src": "/dev/dri",
-          "dev": true
+          "dev": true,
+          "optional": true
         }
       ],
       "symlink": [
@@ -407,31 +408,34 @@ App
     "device": true,
     "filesystem": [
       {
+        "type": "ephemeral",
         "dst": "/tmp/",
-        "src": "/proc/nonexistent",
-        "write": true
+        "write": true,
+        "perm": 493
       },
       {
+        "type": "bind",
         "src": "/nix/store"
       },
       {
+        "type": "bind",
         "src": "/run/current-system"
       },
       {
+        "type": "bind",
         "src": "/run/opengl-driver"
       },
       {
-        "src": "/var/db/nix-channels"
-      },
-      {
+        "type": "bind",
         "dst": "/data/data/org.chromium.Chromium",
         "src": "/var/lib/hakurei/u0/org.chromium.Chromium",
-        "write": true,
-        "require": true
+        "write": true
       },
       {
+        "type": "bind",
         "src": "/dev/dri",
-        "dev": true
+        "dev": true,
+        "optional": true
       }
     ],
     "symlink": [
@@ -593,31 +597,34 @@ func Test_printPs(t *testing.T) {
         "device": true,
         "filesystem": [
           {
+            "type": "ephemeral",
             "dst": "/tmp/",
-            "src": "/proc/nonexistent",
-            "write": true
+            "write": true,
+            "perm": 493
           },
           {
+            "type": "bind",
             "src": "/nix/store"
           },
           {
+            "type": "bind",
             "src": "/run/current-system"
           },
           {
+            "type": "bind",
             "src": "/run/opengl-driver"
           },
           {
-            "src": "/var/db/nix-channels"
-          },
-          {
+            "type": "bind",
             "dst": "/data/data/org.chromium.Chromium",
             "src": "/var/lib/hakurei/u0/org.chromium.Chromium",
-            "write": true,
-            "require": true
+            "write": true
           },
           {
+            "type": "bind",
             "src": "/dev/dri",
-            "dev": true
+            "dev": true,
+            "optional": true
           }
         ],
         "symlink": [

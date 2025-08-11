@@ -98,31 +98,34 @@ func TestTemplate(t *testing.T) {
 		"device": true,
 		"filesystem": [
 			{
+				"type": "ephemeral",
 				"dst": "/tmp/",
-				"src": "/proc/nonexistent",
-				"write": true
+				"write": true,
+				"perm": 493
 			},
 			{
+				"type": "bind",
 				"src": "/nix/store"
 			},
 			{
+				"type": "bind",
 				"src": "/run/current-system"
 			},
 			{
+				"type": "bind",
 				"src": "/run/opengl-driver"
 			},
 			{
-				"src": "/var/db/nix-channels"
-			},
-			{
+				"type": "bind",
 				"dst": "/data/data/org.chromium.Chromium",
 				"src": "/var/lib/hakurei/u0/org.chromium.Chromium",
-				"write": true,
-				"require": true
+				"write": true
 			},
 			{
+				"type": "bind",
 				"src": "/dev/dri",
-				"dev": true
+				"dev": true,
+				"optional": true
 			}
 		],
 		"symlink": [

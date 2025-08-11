@@ -48,8 +48,8 @@ func withNixDaemon(
 			Net:          net,
 			SeccompFlags: seccomp.AllowMultiarch,
 			Tty:          dropShell,
-			Filesystem: []hst.FilesystemConfig{
-				{Src: pathSet.nixPath, Dst: pathNix, Write: true, Must: true},
+			Filesystem: []hst.FilesystemConfigJSON{
+				{FilesystemConfig: &hst.FSBind{Src: pathSet.nixPath, Dst: pathNix, Write: true}},
 			},
 			Link: []hst.LinkConfig{
 				{pathCurrentSystem, app.CurrentSystem.String()},
@@ -88,9 +88,9 @@ func withCacheDir(
 			Hostname:     formatHostname(app.Name) + "-" + action,
 			SeccompFlags: seccomp.AllowMultiarch,
 			Tty:          dropShell,
-			Filesystem: []hst.FilesystemConfig{
-				{Src: workDir.Append("nix"), Dst: pathNix, Must: true},
-				{Src: workDir, Dst: hst.AbsTmp.Append("bundle"), Must: true},
+			Filesystem: []hst.FilesystemConfigJSON{
+				{FilesystemConfig: &hst.FSBind{Src: workDir.Append("nix"), Dst: pathNix}},
+				{FilesystemConfig: &hst.FSBind{Src: workDir, Dst: hst.AbsTmp.Append("bundle")}},
 			},
 			Link: []hst.LinkConfig{
 				{pathCurrentSystem, app.CurrentSystem.String()},

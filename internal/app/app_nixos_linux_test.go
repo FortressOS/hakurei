@@ -13,6 +13,9 @@ import (
 )
 
 func m(pathname string) *container.Absolute { return container.MustAbs(pathname) }
+func f(c hst.FilesystemConfig) hst.FilesystemConfigJSON {
+	return hst.FilesystemConfigJSON{FilesystemConfig: c}
+}
 
 var testCasesNixos = []sealTestCase{
 	{
@@ -25,11 +28,18 @@ var testCasesNixos = []sealTestCase{
 
 			Container: &hst.ContainerConfig{
 				Userns: true, Net: true, MapRealUID: true, Env: nil, AutoEtc: true,
-				Filesystem: []hst.FilesystemConfig{
-					{Src: m("/bin"), Must: true}, {Src: m("/usr/bin/"), Must: true},
-					{Src: m("/nix/store"), Must: true}, {Src: m("/run/current-system"), Must: true},
-					{Src: m("/sys/block")}, {Src: m("/sys/bus")}, {Src: m("/sys/class")}, {Src: m("/sys/dev")}, {Src: m("/sys/devices")},
-					{Src: m("/run/opengl-driver"), Must: true}, {Src: m("/dev/dri"), Device: true},
+				Filesystem: []hst.FilesystemConfigJSON{
+					f(&hst.FSBind{Src: m("/bin")}),
+					f(&hst.FSBind{Src: m("/usr/bin/")}),
+					f(&hst.FSBind{Src: m("/nix/store")}),
+					f(&hst.FSBind{Src: m("/run/current-system")}),
+					f(&hst.FSBind{Src: m("/sys/block"), Optional: true}),
+					f(&hst.FSBind{Src: m("/sys/bus"), Optional: true}),
+					f(&hst.FSBind{Src: m("/sys/class"), Optional: true}),
+					f(&hst.FSBind{Src: m("/sys/dev"), Optional: true}),
+					f(&hst.FSBind{Src: m("/sys/devices"), Optional: true}),
+					f(&hst.FSBind{Src: m("/run/opengl-driver")}),
+					f(&hst.FSBind{Src: m("/dev/dri"), Device: true, Optional: true}),
 				},
 			},
 			SystemBus: &dbus.Config{

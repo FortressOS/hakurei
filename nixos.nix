@@ -142,36 +142,42 @@ in
 
                       filesystem =
                         let
-                          bind = src: { inherit src; };
-                          mustBind = src: {
+                          bind = src: {
+                            type = "bind";
                             inherit src;
-                            require = true;
                           };
-                          devBind = src: {
+                          optBind = src: {
+                            type = "bind";
+                            inherit src;
+                            optional = true;
+                          };
+                          optDevBind = src: {
+                            type = "bind";
                             inherit src;
                             dev = true;
+                            optional = true;
                           };
                         in
                         [
-                          (mustBind "/bin")
-                          (mustBind "/usr/bin")
-                          (mustBind "/nix/store")
-                          (bind "/sys/block")
-                          (bind "/sys/bus")
-                          (bind "/sys/class")
-                          (bind "/sys/dev")
-                          (bind "/sys/devices")
+                          (bind "/bin")
+                          (bind "/usr/bin")
+                          (bind "/nix/store")
+                          (optBind "/sys/block")
+                          (optBind "/sys/bus")
+                          (optBind "/sys/class")
+                          (optBind "/sys/dev")
+                          (optBind "/sys/devices")
                         ]
                         ++ optionals app.nix [
-                          (mustBind "/nix/var")
+                          (bind "/nix/var")
                         ]
                         ++ optionals isGraphical [
-                          (devBind "/dev/dri")
-                          (devBind "/dev/nvidiactl")
-                          (devBind "/dev/nvidia-modeset")
-                          (devBind "/dev/nvidia-uvm")
-                          (devBind "/dev/nvidia-uvm-tools")
-                          (devBind "/dev/nvidia0")
+                          (optDevBind "/dev/dri")
+                          (optDevBind "/dev/nvidiactl")
+                          (optDevBind "/dev/nvidia-modeset")
+                          (optDevBind "/dev/nvidia-uvm")
+                          (optDevBind "/dev/nvidia-uvm-tools")
+                          (optDevBind "/dev/nvidia0")
                         ]
                         ++ optionals app.useCommonPaths cfg.commonPaths
                         ++ app.extraPaths;

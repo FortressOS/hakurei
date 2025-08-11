@@ -1,0 +1,50 @@
+package hst_test
+
+import (
+	"syscall"
+	"testing"
+
+	"hakurei.app/container"
+	"hakurei.app/hst"
+)
+
+func TestFSEphemeral(t *testing.T) {
+	checkFs(t, "ephemeral", []fsTestCase{
+		{"nil", (*hst.FSEphemeral)(nil), nil, nil, nil, "<invalid>"},
+
+		{"full", &hst.FSEphemeral{
+			Dst:   m("/run/user/65534"),
+			Write: true,
+			Size:  1 << 10,
+			Perm:  0700,
+		}, container.Ops{&container.MountTmpfsOp{
+			FSName: "ephemeral",
+			Path:   m("/run/user/65534"),
+			Flags:  syscall.MS_NOSUID | syscall.MS_NODEV,
+			Size:   1 << 10,
+			Perm:   0700,
+		}}, m("/run/user/65534"), nil,
+			"w+ephemeral(-rwx------):/run/user/65534"},
+
+		{"cover ro", &hst.FSEphemeral{Dst: m("/run/nscd")},
+			container.Ops{&container.MountTmpfsOp{
+				FSName: "readonly",
+				Path:   m("/run/nscd"),
+				Flags:  syscall.MS_NOSUID | syscall.MS_NODEV | syscall.MS_RDONLY,
+				Perm:   0755,
+			}}, m("/run/nscd"), nil,
+			"+ephemeral(-rwxr-xr-x):/run/nscd"},
+
+		{"negative size", &hst.FSEphemeral{
+			Dst:   hst.AbsTmp,
+			Write: true,
+			Size:  -1,
+		}, container.Ops{&container.MountTmpfsOp{
+			FSName: "ephemeral",
+			Path:   hst.AbsTmp,
+			Flags:  syscall.MS_NOSUID | syscall.MS_NODEV,
+			Perm:   0755,
+		}}, hst.AbsTmp, nil,
+			"w+ephemeral(-rwxr-xr-x):/.hakurei"},
+	})
+}
