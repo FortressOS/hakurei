@@ -113,6 +113,10 @@ func TestCodecAbsolute(t *testing.T) {
 		gob, sGob   string
 		json, sJson string
 	}{
+		{"nil", nil, nil,
+			"\x00", "\x00",
+			`null`, `{"val":null,"magic":3236757504}`},
+
 		{"good", MustAbs("/etc"),
 			nil,
 			"\t\x7f\x05\x01\x02\xff\x82\x00\x00\x00\b\xff\x80\x00\x04/etc",
@@ -135,6 +139,11 @@ func TestCodecAbsolute(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Run("gob", func(t *testing.T) {
+				if tc.gob == "\x00" && tc.sGob == "\x00" {
+					// these values mark the current test to skip gob
+					return
+				}
+
 				t.Run("encode", func(t *testing.T) {
 					// encode is unchecked
 					if errors.Is(tc.wantErr, syscall.EINVAL) {

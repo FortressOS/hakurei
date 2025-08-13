@@ -78,9 +78,6 @@ var (
 	AbsFHSProc = &Absolute{FHSProc}
 	// AbsFHSSys is [FHSSys] as [Absolute].
 	AbsFHSSys = &Absolute{FHSSys}
-
-	// AbsNonexistent is [Nonexistent] as [Absolute].
-	AbsNonexistent = &Absolute{Nonexistent}
 )
 
 const (
