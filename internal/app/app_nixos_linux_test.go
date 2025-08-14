@@ -23,7 +23,7 @@ var testCasesNixos = []sealTestCase{
 		&hst.Config{
 			ID:          "org.chromium.Chromium",
 			Path:        m("/nix/store/yqivzpzzn7z5x0lq9hmbzygh45d8rhqd-chromium-start"),
-			Enablements: system.EWayland | system.EDBus | system.EPulse,
+			Enablements: hst.NewEnablements(system.EWayland | system.EDBus | system.EPulse),
 			Shell:       m("/run/current-system/sw/bin/zsh"),
 
 			Container: &hst.ContainerConfig{

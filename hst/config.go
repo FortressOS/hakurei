@@ -3,7 +3,6 @@ package hst
 
 import (
 	"hakurei.app/container"
-	"hakurei.app/system"
 	"hakurei.app/system/dbus"
 )
 
@@ -24,7 +23,7 @@ type Config struct {
 	Args []string `json:"args"`
 
 	// system services to make available in the container
-	Enablements system.Enablement `json:"enablements"`
+	Enablements *Enablements `json:"enablements,omitempty"`
 
 	// session D-Bus proxy configuration;
 	// nil makes session bus proxy assume built-in defaults

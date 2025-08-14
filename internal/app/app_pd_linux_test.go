@@ -106,7 +106,7 @@ var testCasesPd = []sealTestCase{
 				},
 				Filter: true,
 			},
-			Enablements: system.EWayland | system.EDBus | system.EPulse,
+			Enablements: hst.NewEnablements(system.EWayland | system.EDBus | system.EPulse),
 		},
 		state.ID{
 			0xeb, 0xf0, 0x83, 0xd1,

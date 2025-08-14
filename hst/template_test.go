@@ -18,7 +18,11 @@ func TestTemplate(t *testing.T) {
 		"--enable-features=UseOzonePlatform",
 		"--ozone-platform=wayland"
 	],
-	"enablements": 13,
+	"enablements": {
+		"wayland": true,
+		"dbus": true,
+		"pulse": true
+	},
 	"session_bus": {
 		"see": null,
 		"talk": [

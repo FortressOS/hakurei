@@ -102,8 +102,7 @@ in
                     };
                   command = if app.command == null then app.name else app.command;
                   script = if app.script == null then ("exec " + command + " $@") else app.script;
-                  enablements = with app.capability; (if wayland then 1 else 0) + (if x11 then 2 else 0) + (if dbus then 4 else 0) + (if pulse then 8 else 0);
-                  isGraphical = if app.gpu != null then app.gpu else app.capability.wayland || app.capability.x11;
+                  isGraphical = if app.gpu != null then app.gpu else app.enablements.wayland || app.enablements.x11;
 
                   conf = {
                     path =
@@ -116,7 +115,7 @@ in
                         app.path;
                     args = if app.args == null then [ "${app.name}-start" ] else app.args;
 
-                    inherit id enablements;
+                    inherit id;
 
                     inherit (dbusConfig) session_bus system_bus;
                     direct_wayland = app.insecureWayland;
@@ -125,7 +124,7 @@ in
                     data = getsubhome fid app.identity;
 
                     inherit (cfg) shell;
-                    inherit (app) identity groups;
+                    inherit (app) identity groups enablements;
 
                     container = {
                       inherit (app)
@@ -226,7 +225,7 @@ in
                 pkg = if app.share != null then app.share else pkgs.${app.name};
                 copy = source: "[ -d '${source}' ] && cp -Lrv '${source}' $out/share || true";
               in
-              optional (app.capability.wayland || app.capability.x11) (
+              optional (app.enablements.wayland || app.enablements.x11) (
                 pkgs.runCommand "${app.name}-share" { } ''
                   mkdir -p $out/share
                   ${copy "${pkg}/share/applications"}

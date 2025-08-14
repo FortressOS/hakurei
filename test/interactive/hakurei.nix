@@ -13,7 +13,7 @@
         share = pkgs.foot;
         packages = [ pkgs.foot ];
         command = "foot";
-        capability = {
+        enablements = {
           dbus = false;
           pulse = false;
         };

@@ -78,7 +78,7 @@ func printShowInstance(
 	} else {
 		t.Printf(" Identity:\t%d\n", config.Identity)
 	}
-	t.Printf(" Enablements:\t%s\n", config.Enablements.String())
+	t.Printf(" Enablements:\t%s\n", config.Enablements.Unwrap().String())
 	if len(config.Groups) > 0 {
 		t.Printf(" Groups:\t%s\n", strings.Join(config.Groups, ", "))
 	}

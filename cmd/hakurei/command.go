@@ -124,18 +124,20 @@ func buildCommand(out io.Writer) command.Command {
 				config.Data = a
 			}
 
+			var e system.Enablement
 			if wayland {
-				config.Enablements |= system.EWayland
+				e |= system.EWayland
 			}
 			if x11 {
-				config.Enablements |= system.EX11
+				e |= system.EX11
 			}
 			if dBus {
-				config.Enablements |= system.EDBus
+				e |= system.EDBus
 			}
 			if pulse {
-				config.Enablements |= system.EPulse
+				e |= system.EPulse
 			}
+			config.Enablements = hst.NewEnablements(e)
 
 			// parse D-Bus config file from flags if applicable
 			if dBus {

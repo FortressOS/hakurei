@@ -8,7 +8,6 @@ import (
 	"hakurei.app/container"
 	"hakurei.app/container/seccomp"
 	"hakurei.app/hst"
-	"hakurei.app/system"
 	"hakurei.app/system/dbus"
 )
 
@@ -41,7 +40,7 @@ type appInfo struct {
 	// passed through to [hst.Config]
 	SessionBus *dbus.Config `json:"session_bus,omitempty"`
 	// passed through to [hst.Config]
-	Enablements system.Enablement `json:"enablements"`
+	Enablements *hst.Enablements `json:"enablements,omitempty"`
 
 	// passed through to [hst.Config]
 	Multiarch bool `json:"multiarch,omitempty"`

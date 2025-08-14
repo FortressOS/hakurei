@@ -247,7 +247,7 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 		}
 
 		// bind GPU stuff
-		if config.Enablements&(system.EX11|system.EWayland) != 0 {
+		if config.Enablements.Unwrap()&(system.EX11|system.EWayland) != 0 {
 			conf.Filesystem = append(conf.Filesystem, hst.FilesystemConfigJSON{FilesystemConfig: &hst.FSBind{Src: container.AbsFHSDev.Append("dri"), Device: true, Optional: true}})
 		}
 		// opportunistically bind kvm
@@ -348,7 +348,7 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 		seal.env[term] = t
 	}
 
-	if config.Enablements&system.EWayland != 0 {
+	if config.Enablements.Unwrap()&system.EWayland != 0 {
 		// outer wayland socket (usually `/run/user/%d/wayland-%d`)
 		var socketPath *container.Absolute
 		if name, ok := sys.LookupEnv(wayland.WaylandDisplay); !ok {
@@ -381,7 +381,7 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 		}
 	}
 
-	if config.Enablements&system.EX11 != 0 {
+	if config.Enablements.Unwrap()&system.EX11 != 0 {
 		if d, ok := sys.LookupEnv(display); !ok {
 			return hlog.WrapErr(ErrXDisplay,
 				"DISPLAY is not set")
@@ -393,7 +393,7 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 		}
 	}
 
-	if config.Enablements&system.EPulse != 0 {
+	if config.Enablements.Unwrap()&system.EPulse != 0 {
 		// PulseAudio runtime directory (usually `/run/user/%d/pulse`)
 		pulseRuntimeDir := share.sc.RuntimePath.Append("pulse")
 		// PulseAudio socket (usually `/run/user/%d/pulse/native`)
@@ -442,7 +442,7 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 		}
 	}
 
-	if config.Enablements&system.EDBus != 0 {
+	if config.Enablements.Unwrap()&system.EDBus != 0 {
 		// ensure dbus session bus defaults
 		if config.SessionBus == nil {
 			config.SessionBus = dbus.NewConfig(config.ID, true, true)

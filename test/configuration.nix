@@ -126,7 +126,7 @@
           wayland-utils
         ];
         command = "foot";
-        capability = {
+        enablements = {
           dbus = false;
           pulse = false;
         };
@@ -141,7 +141,7 @@
         share = pkgs.foot;
         packages = [ ];
         command = "foot";
-        capability = {
+        enablements = {
           dbus = false;
           pulse = false;
         };
@@ -154,7 +154,7 @@
         share = pkgs.foot;
         packages = [ pkgs.foot ];
         command = "foot";
-        capability.dbus = false;
+        enablements.dbus = false;
       };
 
       "cat.gensokyo.extern.Alacritty.x11" = {
@@ -171,7 +171,7 @@
           mesa-demos
         ];
         command = "alacritty";
-        capability = {
+        enablements = {
           wayland = false;
           x11 = true;
           dbus = false;
@@ -192,7 +192,7 @@
           wayland-utils
         ];
         command = "foot";
-        capability = {
+        enablements = {
           dbus = false;
           pulse = false;
         };
@@ -204,7 +204,7 @@
         verbose = true;
         share = pkgs.strace;
         command = "strace true";
-        capability = {
+        enablements = {
           wayland = false;
           x11 = false;
           dbus = false;

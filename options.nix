@@ -209,9 +209,9 @@ in
                 '';
               };
 
-              capability = {
+              enablements = {
                 wayland = mkOption {
-                  type = bool;
+                  type = nullOr bool;
                   default = true;
                   description = ''
                     Whether to share the Wayland socket.
@@ -219,7 +219,7 @@ in
                 };
 
                 x11 = mkOption {
-                  type = bool;
+                  type = nullOr bool;
                   default = false;
                   description = ''
                     Whether to share the X11 socket and allow connection.
@@ -227,7 +227,7 @@ in
                 };
 
                 dbus = mkOption {
-                  type = bool;
+                  type = nullOr bool;
                   default = true;
                   description = ''
                     Whether to proxy D-Bus.
@@ -235,7 +235,7 @@ in
                 };
 
                 pulse = mkOption {
-                  type = bool;
+                  type = nullOr bool;
                   default = true;
                   description = ''
                     Whether to share the PulseAudio socket and cookie.

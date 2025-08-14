@@ -21,7 +21,7 @@ func Template() *Config {
 			"--ozone-platform=wayland",
 		},
 
-		Enablements: system.EWayland | system.EDBus | system.EPulse,
+		Enablements: NewEnablements(system.EWayland | system.EDBus | system.EPulse),
 
 		SessionBus: &dbus.Config{
 			See: nil,

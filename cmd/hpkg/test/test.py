@@ -92,7 +92,7 @@ wait_for_window("hakurei@machine-foot")
 machine.send_chars("clear; wayland-info && touch /tmp/success-client\n")
 machine.wait_for_file("/tmp/hakurei.1000/tmpdir/2/success-client")
 collect_state_ui("app_wayland")
-check_state("foot", 13)
+check_state("foot", {"wayland": True, "dbus": True, "pulse": True})
 # Verify acl on XDG_RUNTIME_DIR:
 print(machine.succeed("getfacl --absolute-names --omit-header --numeric /run/user/1000 | grep 1000002"))
 machine.send_chars("exit\n")

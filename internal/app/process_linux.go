@@ -64,7 +64,7 @@ func (seal *outcome) Run(rs *RunState) error {
 					// accumulate enablements of remaining launchers
 					for i, s := range states {
 						if s.Config != nil {
-							rt |= s.Config.Enablements
+							rt |= s.Config.Enablements.Unwrap()
 						} else {
 							log.Printf("state entry %d does not contain config", i)
 						}
