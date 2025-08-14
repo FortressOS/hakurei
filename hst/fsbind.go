@@ -27,9 +27,10 @@ type FSBind struct {
 }
 
 func (b *FSBind) Type() string { return FilesystemBind }
+func (b *FSBind) Valid() bool  { return b != nil && b.Src != nil }
 
 func (b *FSBind) Target() *container.Absolute {
-	if b == nil || b.Src == nil {
+	if !b.Valid() {
 		return nil
 	}
 	if b.Dst == nil {
@@ -39,14 +40,14 @@ func (b *FSBind) Target() *container.Absolute {
 }
 
 func (b *FSBind) Host() []*container.Absolute {
-	if b == nil || b.Src == nil {
+	if !b.Valid() {
 		return nil
 	}
 	return []*container.Absolute{b.Src}
 }
 
 func (b *FSBind) Apply(ops *container.Ops) {
-	if b == nil || b.Src == nil {
+	if !b.Valid() {
 		return
 	}
 
@@ -69,7 +70,7 @@ func (b *FSBind) Apply(ops *container.Ops) {
 
 func (b *FSBind) String() string {
 	g := 4
-	if b == nil || b.Src == nil {
+	if !b.Valid() {
 		return "<invalid>"
 	}
 

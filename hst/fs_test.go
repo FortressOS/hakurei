@@ -144,7 +144,7 @@ func TestFilesystemConfigJSON(t *testing.T) {
 			t.Errorf("Valid: %v, want false", got)
 		}
 
-		if got := (&hst.FilesystemConfigJSON{FilesystemConfig: new(hst.FSBind)}).Valid(); !got {
+		if got := (&hst.FilesystemConfigJSON{FilesystemConfig: &hst.FSBind{Src: m("/etc")}}).Valid(); !got {
 			t.Errorf("Valid: %v, want true", got)
 		}
 	})
@@ -192,6 +192,7 @@ type stubFS struct {
 }
 
 func (s stubFS) Type() string                { return s.typeName }
+func (s stubFS) Valid() bool                 { return false }
 func (s stubFS) Target() *container.Absolute { panic("unreachable") }
 func (s stubFS) Host() []*container.Absolute { panic("unreachable") }
 func (s stubFS) Apply(*container.Ops)        { panic("unreachable") }
@@ -205,6 +206,7 @@ type sCheck struct {
 type fsTestCase struct {
 	name   string
 	fs     hst.FilesystemConfig
+	valid  bool
 	ops    container.Ops
 	target *container.Absolute
 	host   []*container.Absolute
@@ -214,9 +216,17 @@ type fsTestCase struct {
 func checkFs(t *testing.T, fstype string, testCases []fsTestCase) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			if got := tc.fs.Type(); got != fstype {
-				t.Errorf("Type: %q, want %q", got, fstype)
-			}
+			t.Run("type", func(t *testing.T) {
+				if got := tc.fs.Type(); got != fstype {
+					t.Errorf("Type: %q, want %q", got, fstype)
+				}
+			})
+
+			t.Run("valid", func(t *testing.T) {
+				if got := tc.fs.Valid(); got != tc.valid {
+					t.Errorf("Valid: %v, want %v", got, tc.valid)
+				}
+			})
 
 			t.Run("ops", func(t *testing.T) {
 				ops := new(container.Ops)

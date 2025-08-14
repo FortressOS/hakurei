@@ -9,14 +9,14 @@ import (
 
 func TestFSBind(t *testing.T) {
 	checkFs(t, "bind", []fsTestCase{
-		{"nil", (*hst.FSBind)(nil), nil, nil, nil, "<invalid>"},
+		{"nil", (*hst.FSBind)(nil), false, nil, nil, nil, "<invalid>"},
 
 		{"full", &hst.FSBind{
 			Dst:      m("/dev"),
 			Src:      m("/mnt/dev"),
 			Optional: true,
 			Device:   true,
-		}, container.Ops{&container.BindMountOp{
+		}, true, container.Ops{&container.BindMountOp{
 			Source: m("/mnt/dev"),
 			Target: m("/dev"),
 			Flags:  container.BindWritable | container.BindDevice | container.BindOptional,
@@ -28,7 +28,7 @@ func TestFSBind(t *testing.T) {
 			Src:    m("/mnt/dev"),
 			Write:  true,
 			Device: true,
-		}, container.Ops{&container.BindMountOp{
+		}, true, container.Ops{&container.BindMountOp{
 			Source: m("/mnt/dev"),
 			Target: m("/dev"),
 			Flags:  container.BindWritable | container.BindDevice,
@@ -39,7 +39,7 @@ func TestFSBind(t *testing.T) {
 			Dst:   m("/tmp"),
 			Src:   m("/mnt/tmp"),
 			Write: true,
-		}, container.Ops{&container.BindMountOp{
+		}, true, container.Ops{&container.BindMountOp{
 			Source: m("/mnt/tmp"),
 			Target: m("/tmp"),
 			Flags:  container.BindWritable,
@@ -49,7 +49,7 @@ func TestFSBind(t *testing.T) {
 		{"full no flags", &hst.FSBind{
 			Dst: m("/etc"),
 			Src: m("/mnt/etc"),
-		}, container.Ops{&container.BindMountOp{
+		}, true, container.Ops{&container.BindMountOp{
 			Source: m("/mnt/etc"),
 			Target: m("/etc"),
 		}}, m("/etc"), ms("/mnt/etc"),
@@ -57,7 +57,7 @@ func TestFSBind(t *testing.T) {
 
 		{"nil dst", &hst.FSBind{
 			Src: m("/"),
-		}, container.Ops{&container.BindMountOp{
+		}, true, container.Ops{&container.BindMountOp{
 			Source: m("/"),
 			Target: m("/"),
 		}}, m("/"), ms("/"),

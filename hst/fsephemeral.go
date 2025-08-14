@@ -26,9 +26,10 @@ type FSEphemeral struct {
 }
 
 func (e *FSEphemeral) Type() string { return FilesystemEphemeral }
+func (e *FSEphemeral) Valid() bool  { return e != nil && e.Dst != nil }
 
 func (e *FSEphemeral) Target() *container.Absolute {
-	if e == nil {
+	if !e.Valid() {
 		return nil
 	}
 	return e.Dst
@@ -39,7 +40,7 @@ func (e *FSEphemeral) Host() []*container.Absolute { return nil }
 const fsEphemeralDefaultPerm = os.FileMode(0755)
 
 func (e *FSEphemeral) Apply(ops *container.Ops) {
-	if e == nil || e.Dst == nil {
+	if !e.Valid() {
 		return
 	}
 
@@ -61,7 +62,7 @@ func (e *FSEphemeral) Apply(ops *container.Ops) {
 }
 
 func (e *FSEphemeral) String() string {
-	if e == nil || e.Dst == nil {
+	if !e.Valid() {
 		return "<invalid>"
 	}
 

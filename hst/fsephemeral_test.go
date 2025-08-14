@@ -10,14 +10,14 @@ import (
 
 func TestFSEphemeral(t *testing.T) {
 	checkFs(t, "ephemeral", []fsTestCase{
-		{"nil", (*hst.FSEphemeral)(nil), nil, nil, nil, "<invalid>"},
+		{"nil", (*hst.FSEphemeral)(nil), false, nil, nil, nil, "<invalid>"},
 
 		{"full", &hst.FSEphemeral{
 			Dst:   m("/run/user/65534"),
 			Write: true,
 			Size:  1 << 10,
 			Perm:  0700,
-		}, container.Ops{&container.MountTmpfsOp{
+		}, true, container.Ops{&container.MountTmpfsOp{
 			FSName: "ephemeral",
 			Path:   m("/run/user/65534"),
 			Flags:  syscall.MS_NOSUID | syscall.MS_NODEV,
@@ -26,7 +26,7 @@ func TestFSEphemeral(t *testing.T) {
 		}}, m("/run/user/65534"), nil,
 			"w+ephemeral(-rwx------):/run/user/65534"},
 
-		{"cover ro", &hst.FSEphemeral{Dst: m("/run/nscd")},
+		{"cover ro", &hst.FSEphemeral{Dst: m("/run/nscd")}, true,
 			container.Ops{&container.MountTmpfsOp{
 				FSName: "readonly",
 				Path:   m("/run/nscd"),
@@ -39,7 +39,7 @@ func TestFSEphemeral(t *testing.T) {
 			Dst:   hst.AbsTmp,
 			Write: true,
 			Size:  -1,
-		}, container.Ops{&container.MountTmpfsOp{
+		}, true, container.Ops{&container.MountTmpfsOp{
 			FSName: "ephemeral",
 			Path:   hst.AbsTmp,
 			Flags:  syscall.MS_NOSUID | syscall.MS_NODEV,

@@ -13,6 +13,8 @@ import (
 type FilesystemConfig interface {
 	// Type returns the type of this mount point.
 	Type() string
+	// Valid returns whether the configuration is valid.
+	Valid() bool
 	// Target returns the pathname of the mount point in the container.
 	Target() *container.Absolute
 	// Host returns a slice of all host paths used by this mount point.
@@ -60,7 +62,9 @@ type FilesystemConfigJSON struct {
 }
 
 // Valid returns whether the [FilesystemConfigJSON] is valid.
-func (f *FilesystemConfigJSON) Valid() bool { return f != nil && f.FilesystemConfig != nil }
+func (f *FilesystemConfigJSON) Valid() bool {
+	return f != nil && f.FilesystemConfig != nil && f.FilesystemConfig.Valid()
+}
 
 func (f *FilesystemConfigJSON) MarshalJSON() ([]byte, error) {
 	if f == nil || f.FilesystemConfig == nil {
