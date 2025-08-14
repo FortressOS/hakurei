@@ -104,6 +104,15 @@ func TestTemplate(t *testing.T) {
 				"perm": 493
 			},
 			{
+				"type": "overlay",
+				"dst": "/nix/store",
+				"lower": [
+					"/mnt-root/nix/.ro-store"
+				],
+				"upper": "/mnt-root/nix/.rw-store/upper",
+				"work": "/mnt-root/nix/.rw-store/work"
+			},
+			{
 				"type": "bind",
 				"src": "/nix/store"
 			},

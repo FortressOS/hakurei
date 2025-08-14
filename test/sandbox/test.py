@@ -55,6 +55,7 @@ print(machine.fail("sudo -u alice -i hakurei run capsh --has-p=CAP_SYS_ADMIN"))
 print(machine.fail("sudo -u alice -i hakurei run umount -R /dev"))
 
 # Check sandbox outcome:
+machine.succeed("install -dm0777 /tmp/.hakurei-store-rw/{upper,work}")
 check_offset = 0
 def check_sandbox(name):
     global check_offset

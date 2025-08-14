@@ -56,7 +56,10 @@ in
     ];
 
     fs = fs "dead" {
-      ".hakurei" = fs "800001ed" { } null;
+      ".hakurei" = fs "800001ed" {
+        ".ro-store" = fs "801001fd" null null;
+        store = fs "800001ff" null null;
+      } null;
       bin = fs "800001ed" { sh = fs "80001ff" null null; } null;
       dev = fs "800001ed" {
         core = fs "80001ff" null null;
@@ -248,6 +251,8 @@ in
       (ent "/devices" "/sys/devices" "ro,nosuid,nodev,noexec,relatime" "sysfs" "sysfs" "rw")
       (ent "/dri" "/dev/dri" "rw,nosuid" "devtmpfs" "devtmpfs" ignore)
       (ent "/var/cache" "/var/cache" "rw,nosuid,nodev,relatime" "ext4" "/dev/disk/by-label/nixos" "rw")
+      (ent "/" "/.hakurei/.ro-store" "rw,relatime" "overlay" "overlay" "ro,lowerdir=/host/nix/.ro-store:/host/nix/.rw-store/upper,redirect_dir=nofollow,userxattr")
+      (ent "/" "/.hakurei/store" "rw,relatime" "overlay" "overlay" "rw,lowerdir=/host/nix/.ro-store:/host/nix/.rw-store/upper,upperdir=/host/tmp/.hakurei-store-rw/upper,workdir=/host/tmp/.hakurei-store-rw/work,redirect_dir=nofollow,userxattr")
       (ent "/etc" ignore "ro,nosuid,nodev,relatime" "ext4" "/dev/disk/by-label/nixos" "rw")
       (ent "/" "/run/user" "rw,nosuid,nodev,relatime" "tmpfs" "ephemeral" "rw,size=4k,mode=755,uid=1000003,gid=1000003")
       (ent "/tmp/hakurei.1000/runtime/3" "/run/user/1000" "rw,nosuid,nodev,relatime" "ext4" "/dev/disk/by-label/nixos" "rw")

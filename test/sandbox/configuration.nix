@@ -82,6 +82,24 @@ in
         src = "/var/cache";
         write = true;
       }
+      {
+        type = "overlay";
+        dst = "/.hakurei/.ro-store";
+        lower = [
+          "/nix/.ro-store"
+          "/nix/.rw-store/upper"
+        ];
+      }
+      {
+        type = "overlay";
+        dst = "/.hakurei/store";
+        lower = [
+          "/nix/.ro-store"
+          "/nix/.rw-store/upper"
+        ];
+        upper = "/tmp/.hakurei-store-rw/upper";
+        work = "/tmp/.hakurei-store-rw/work";
+      }
     ];
 
     inherit (testCases) apps;

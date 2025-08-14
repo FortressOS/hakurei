@@ -49,6 +49,7 @@ func Test_printShowInstance(t *testing.T) {
 
 Filesystem
  w+ephemeral(-rwxr-xr-x):/tmp/
+ w*/nix/store:/mnt-root/nix/.rw-store/upper:/mnt-root/nix/.rw-store/work:/mnt-root/nix/.ro-store
  */nix/store
  */run/current-system
  */run/opengl-driver
@@ -127,6 +128,7 @@ App
 
 Filesystem
  w+ephemeral(-rwxr-xr-x):/tmp/
+ w*/nix/store:/mnt-root/nix/.rw-store/upper:/mnt-root/nix/.rw-store/work:/mnt-root/nix/.ro-store
  */nix/store
  */run/current-system
  */run/opengl-driver
@@ -279,6 +281,15 @@ App
           "perm": 493
         },
         {
+          "type": "overlay",
+          "dst": "/nix/store",
+          "lower": [
+            "/mnt-root/nix/.ro-store"
+          ],
+          "upper": "/mnt-root/nix/.rw-store/upper",
+          "work": "/mnt-root/nix/.rw-store/work"
+        },
+        {
           "type": "bind",
           "src": "/nix/store"
         },
@@ -412,6 +423,15 @@ App
         "dst": "/tmp/",
         "write": true,
         "perm": 493
+      },
+      {
+        "type": "overlay",
+        "dst": "/nix/store",
+        "lower": [
+          "/mnt-root/nix/.ro-store"
+        ],
+        "upper": "/mnt-root/nix/.rw-store/upper",
+        "work": "/mnt-root/nix/.rw-store/work"
       },
       {
         "type": "bind",
@@ -601,6 +621,15 @@ func Test_printPs(t *testing.T) {
             "dst": "/tmp/",
             "write": true,
             "perm": 493
+          },
+          {
+            "type": "overlay",
+            "dst": "/nix/store",
+            "lower": [
+              "/mnt-root/nix/.ro-store"
+            ],
+            "upper": "/mnt-root/nix/.rw-store/upper",
+            "work": "/mnt-root/nix/.rw-store/work"
           },
           {
             "type": "bind",

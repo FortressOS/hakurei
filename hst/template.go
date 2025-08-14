@@ -79,6 +79,12 @@ func Template() *Config {
 			},
 			Filesystem: []FilesystemConfigJSON{
 				{&FSEphemeral{Dst: container.AbsFHSTmp, Write: true, Perm: 0755}},
+				{&FSOverlay{
+					Dst:   container.MustAbs("/nix/store"),
+					Lower: []*container.Absolute{container.MustAbs("/mnt-root/nix/.ro-store")},
+					Upper: container.MustAbs("/mnt-root/nix/.rw-store/upper"),
+					Work:  container.MustAbs("/mnt-root/nix/.rw-store/work"),
+				}},
 				{&FSBind{Src: container.MustAbs("/nix/store")}},
 				{&FSBind{Src: container.AbsFHSRun.Append("current-system")}},
 				{&FSBind{Src: container.AbsFHSRun.Append("opengl-driver")}},

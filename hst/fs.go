@@ -81,6 +81,12 @@ func (f *FilesystemConfigJSON) MarshalJSON() ([]byte, error) {
 			*FSEphemeral
 		}{fsType{FilesystemEphemeral}, cv}
 
+	case *FSOverlay:
+		v = &struct {
+			fsType
+			*FSOverlay
+		}{fsType{FilesystemOverlay}, cv}
+
 	default:
 		return nil, FSImplError{f.FilesystemConfig}
 	}
@@ -102,6 +108,9 @@ func (f *FilesystemConfigJSON) UnmarshalJSON(data []byte) error {
 
 	case FilesystemEphemeral:
 		*f = FilesystemConfigJSON{new(FSEphemeral)}
+
+	case FilesystemOverlay:
+		*f = FilesystemConfigJSON{new(FSOverlay)}
 
 	default:
 		return FSTypeError(t.Type)

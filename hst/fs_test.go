@@ -35,6 +35,10 @@ func TestFilesystemConfigJSON(t *testing.T) {
 			hst.FSImplError{Value: stubFS{"ephemeral"}},
 			"\x00", "\x00"},
 
+		{"bad impl overlay", hst.FilesystemConfigJSON{FilesystemConfig: stubFS{"overlay"}},
+			hst.FSImplError{Value: stubFS{"overlay"}},
+			"\x00", "\x00"},
+
 		{"bind", hst.FilesystemConfigJSON{
 			FilesystemConfig: &hst.FSBind{
 				Dst:      m("/etc"),
@@ -55,6 +59,17 @@ func TestFilesystemConfigJSON(t *testing.T) {
 		}, nil,
 			`{"type":"ephemeral","dst":"/run/user/65534","write":true,"size":1024,"perm":448}`,
 			`{"fs":{"type":"ephemeral","dst":"/run/user/65534","write":true,"size":1024,"perm":448},"magic":3236757504}`},
+
+		{"overlay", hst.FilesystemConfigJSON{
+			FilesystemConfig: &hst.FSOverlay{
+				Dst:   m("/nix/store"),
+				Lower: ms("/mnt-root/nix/.ro-store"),
+				Upper: m("/mnt-root/nix/.rw-store/upper"),
+				Work:  m("/mnt-root/nix/.rw-store/work"),
+			},
+		}, nil,
+			`{"type":"overlay","dst":"/nix/store","lower":["/mnt-root/nix/.ro-store"],"upper":"/mnt-root/nix/.rw-store/upper","work":"/mnt-root/nix/.rw-store/work"}`,
+			`{"fs":{"type":"overlay","dst":"/nix/store","lower":["/mnt-root/nix/.ro-store"],"upper":"/mnt-root/nix/.rw-store/upper","work":"/mnt-root/nix/.rw-store/work"},"magic":3236757504}`},
 	}
 
 	for _, tc := range testCases {
