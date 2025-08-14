@@ -41,7 +41,7 @@ func TestEscapeOverlayDataSegment(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			if got := escapeOverlayDataSegment(tc.s); got != tc.want {
+			if got := EscapeOverlayDataSegment(tc.s); got != tc.want {
 				t.Errorf("escapeOverlayDataSegment: %s, want %s", got, tc.want)
 			}
 		})

@@ -214,8 +214,8 @@ func parentPerm(perm os.FileMode) os.FileMode {
 	return os.FileMode(pperm)
 }
 
-// escapeOverlayDataSegment escapes a string for formatting into the data argument of an overlay mount call.
-func escapeOverlayDataSegment(s string) string {
+// EscapeOverlayDataSegment escapes a string for formatting into the data argument of an overlay mount call.
+func EscapeOverlayDataSegment(s string) string {
 	if s == zeroString {
 		return zeroString
 	}

@@ -416,7 +416,7 @@ func (o *MountOverlayOp) early(*Params) error {
 			if v, err := filepath.EvalSymlinks(o.Upper.String()); err != nil {
 				return wrapErrSelf(err)
 			} else {
-				o.upper = escapeOverlayDataSegment(toHost(v))
+				o.upper = EscapeOverlayDataSegment(toHost(v))
 			}
 		}
 
@@ -424,7 +424,7 @@ func (o *MountOverlayOp) early(*Params) error {
 			if v, err := filepath.EvalSymlinks(o.Work.String()); err != nil {
 				return wrapErrSelf(err)
 			} else {
-				o.work = escapeOverlayDataSegment(toHost(v))
+				o.work = EscapeOverlayDataSegment(toHost(v))
 			}
 		}
 	}
@@ -438,7 +438,7 @@ func (o *MountOverlayOp) early(*Params) error {
 		if v, err := filepath.EvalSymlinks(a.String()); err != nil {
 			return wrapErrSelf(err)
 		} else {
-			o.lower[i] = escapeOverlayDataSegment(toHost(v))
+			o.lower[i] = EscapeOverlayDataSegment(toHost(v))
 		}
 	}
 	return nil

@@ -38,5 +38,5 @@ func TestToHost(t *testing.T) {
 	}
 }
 
-// InternalToHostOvlEscape exports toHost passed to escapeOverlayDataSegment.
-func InternalToHostOvlEscape(s string) string { return escapeOverlayDataSegment(toHost(s)) }
+// InternalToHostOvlEscape exports toHost passed to EscapeOverlayDataSegment.
+func InternalToHostOvlEscape(s string) string { return EscapeOverlayDataSegment(toHost(s)) }
