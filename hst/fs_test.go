@@ -28,17 +28,11 @@ func TestFilesystemConfigJSON(t *testing.T) {
 			`{"type":"cat","meow":true}`, `{"fs":{"type":"cat","meow":true},"magic":3236757504}`},
 
 		{"bad impl bind", hst.FilesystemConfigJSON{FilesystemConfig: stubFS{"bind"}},
-			hst.FSImplError{
-				Type:  "bind",
-				Value: stubFS{"bind"},
-			},
+			hst.FSImplError{Value: stubFS{"bind"}},
 			"\x00", "\x00"},
 
 		{"bad impl ephemeral", hst.FilesystemConfigJSON{FilesystemConfig: stubFS{"ephemeral"}},
-			hst.FSImplError{
-				Type:  "ephemeral",
-				Value: stubFS{"ephemeral"},
-			},
+			hst.FSImplError{Value: stubFS{"ephemeral"}},
 			"\x00", "\x00"},
 
 		{"bind", hst.FilesystemConfigJSON{
@@ -66,12 +60,18 @@ func TestFilesystemConfigJSON(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Run("marshal", func(t *testing.T) {
+				wantErr := tc.wantErr
+				if errors.As(wantErr, new(hst.FSTypeError)) {
+					// for unsupported implementation tc
+					wantErr = hst.FSImplError{Value: stubFS{"cat"}}
+				}
+
 				{
 					d, err := json.Marshal(&tc.want)
-					if !errors.Is(err, tc.wantErr) {
-						t.Errorf("Marshal: error = %v, want %v", err, tc.wantErr)
+					if !errors.Is(err, wantErr) {
+						t.Errorf("Marshal: error = %v, want %v", err, wantErr)
 					}
-					if tc.wantErr != nil {
+					if wantErr != nil {
 						goto checkSMarshal
 					}
 					if string(d) != tc.data {
@@ -82,10 +82,10 @@ func TestFilesystemConfigJSON(t *testing.T) {
 			checkSMarshal:
 				{
 					d, err := json.Marshal(&sCheck{tc.want, syscall.MS_MGC_VAL})
-					if !errors.Is(err, tc.wantErr) {
-						t.Errorf("Marshal: error = %v, want %v", err, tc.wantErr)
+					if !errors.Is(err, wantErr) {
+						t.Errorf("Marshal: error = %v, want %v", err, wantErr)
 					}
-					if tc.wantErr != nil {
+					if wantErr != nil {
 						return
 					}
 					if string(d) != tc.sData {
@@ -170,15 +170,15 @@ func TestFSErrors(t *testing.T) {
 			val  hst.FilesystemConfig
 			want string
 		}{
-			{"nil", nil, "implementation nil is not cat"},
-			{"stub", stubFS{"cat"}, "implementation stubFS is not cat"},
-			{"*stub", &stubFS{"cat"}, "implementation *stubFS is not cat"},
-			{"(*stub)(nil)", (*stubFS)(nil), "implementation *stubFS is not cat"},
+			{"nil", nil, "implementation nil not supported"},
+			{"stub", stubFS{"cat"}, "implementation stubFS not supported"},
+			{"*stub", &stubFS{"cat"}, "implementation *stubFS not supported"},
+			{"(*stub)(nil)", (*stubFS)(nil), "implementation *stubFS not supported"},
 		}
 
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
-				err := hst.FSImplError{Type: "cat", Value: tc.val}
+				err := hst.FSImplError{Value: tc.val}
 				if got := err.Error(); got != tc.want {
 					t.Errorf("Error: %q, want %q", got, tc.want)
 				}
@@ -191,7 +191,6 @@ type stubFS struct {
 	typeName string
 }
 
-func (s stubFS) Type() string                { return s.typeName }
 func (s stubFS) Valid() bool                 { return false }
 func (s stubFS) Target() *container.Absolute { panic("unreachable") }
 func (s stubFS) Host() []*container.Absolute { panic("unreachable") }
@@ -213,15 +212,9 @@ type fsTestCase struct {
 	str    string
 }
 
-func checkFs(t *testing.T, fstype string, testCases []fsTestCase) {
+func checkFs(t *testing.T, testCases []fsTestCase) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			t.Run("type", func(t *testing.T) {
-				if got := tc.fs.Type(); got != fstype {
-					t.Errorf("Type: %q, want %q", got, fstype)
-				}
-			})
-
 			t.Run("valid", func(t *testing.T) {
 				if got := tc.fs.Valid(); got != tc.valid {
 					t.Errorf("Valid: %v, want %v", got, tc.valid)

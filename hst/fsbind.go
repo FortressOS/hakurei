@@ -26,8 +26,7 @@ type FSBind struct {
 	Optional bool `json:"optional,omitempty"`
 }
 
-func (b *FSBind) Type() string { return FilesystemBind }
-func (b *FSBind) Valid() bool  { return b != nil && b.Src != nil }
+func (b *FSBind) Valid() bool { return b != nil && b.Src != nil }
 
 func (b *FSBind) Target() *container.Absolute {
 	if !b.Valid() {

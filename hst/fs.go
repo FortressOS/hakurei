@@ -11,8 +11,6 @@ import (
 
 // FilesystemConfig is an abstract representation of a mount point.
 type FilesystemConfig interface {
-	// Type returns the type of this mount point.
-	Type() string
 	// Valid returns whether the configuration is valid.
 	Valid() bool
 	// Target returns the pathname of the mount point in the container.
@@ -34,12 +32,8 @@ type FSTypeError string
 
 func (f FSTypeError) Error() string { return fmt.Sprintf("invalid filesystem type %q", string(f)) }
 
-// FSImplError is returned when the underlying struct of [FilesystemConfig] does not match
-// what [FilesystemConfig.Type] claims to be.
-type FSImplError struct {
-	Type  string
-	Value FilesystemConfig
-}
+// FSImplError is returned for unsupported implementations of [FilesystemConfig].
+type FSImplError struct{ Value FilesystemConfig }
 
 func (f FSImplError) Error() string {
 	implType := reflect.TypeOf(f.Value)
@@ -53,17 +47,20 @@ func (f FSImplError) Error() string {
 	} else {
 		name += "nil"
 	}
-	return fmt.Sprintf("implementation %s is not %s", name, f.Type)
+	return fmt.Sprintf("implementation %s not supported", name)
 }
 
 // FilesystemConfigJSON is the [json] adapter for [FilesystemConfig].
-type FilesystemConfigJSON struct {
-	FilesystemConfig
-}
+type FilesystemConfigJSON struct{ FilesystemConfig }
 
 // Valid returns whether the [FilesystemConfigJSON] is valid.
 func (f *FilesystemConfigJSON) Valid() bool {
 	return f != nil && f.FilesystemConfig != nil && f.FilesystemConfig.Valid()
+}
+
+// fsType holds the string representation of a [FilesystemConfig]'s concrete type.
+type fsType struct {
+	Type string `json:"type"`
 }
 
 func (f *FilesystemConfigJSON) MarshalJSON() ([]byte, error) {
@@ -71,39 +68,28 @@ func (f *FilesystemConfigJSON) MarshalJSON() ([]byte, error) {
 		return nil, ErrFSNull
 	}
 	var v any
-	t := f.Type()
-	switch t {
-	case FilesystemBind:
-		if ct, ok := f.FilesystemConfig.(*FSBind); !ok {
-			return nil, FSImplError{t, f.FilesystemConfig}
-		} else {
-			v = &struct {
-				Type string `json:"type"`
-				*FSBind
-			}{FilesystemBind, ct}
-		}
+	switch cv := f.FilesystemConfig.(type) {
+	case *FSBind:
+		v = &struct {
+			fsType
+			*FSBind
+		}{fsType{FilesystemBind}, cv}
 
-	case FilesystemEphemeral:
-		if ct, ok := f.FilesystemConfig.(*FSEphemeral); !ok {
-			return nil, FSImplError{t, f.FilesystemConfig}
-		} else {
-			v = &struct {
-				Type string `json:"type"`
-				*FSEphemeral
-			}{FilesystemEphemeral, ct}
-		}
+	case *FSEphemeral:
+		v = &struct {
+			fsType
+			*FSEphemeral
+		}{fsType{FilesystemEphemeral}, cv}
 
 	default:
-		return nil, FSTypeError(t)
+		return nil, FSImplError{f.FilesystemConfig}
 	}
 
 	return json.Marshal(v)
 }
 
 func (f *FilesystemConfigJSON) UnmarshalJSON(data []byte) error {
-	t := new(struct {
-		Type string `json:"type"`
-	})
+	t := new(fsType)
 	if err := json.Unmarshal(data, &t); err != nil {
 		return err
 	}

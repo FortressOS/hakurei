@@ -9,7 +9,7 @@ import (
 )
 
 func TestFSEphemeral(t *testing.T) {
-	checkFs(t, "ephemeral", []fsTestCase{
+	checkFs(t, []fsTestCase{
 		{"nil", (*hst.FSEphemeral)(nil), false, nil, nil, nil, "<invalid>"},
 
 		{"full", &hst.FSEphemeral{

@@ -25,8 +25,7 @@ type FSEphemeral struct {
 	Perm os.FileMode `json:"perm,omitempty"`
 }
 
-func (e *FSEphemeral) Type() string { return FilesystemEphemeral }
-func (e *FSEphemeral) Valid() bool  { return e != nil && e.Dst != nil }
+func (e *FSEphemeral) Valid() bool { return e != nil && e.Dst != nil }
 
 func (e *FSEphemeral) Target() *container.Absolute {
 	if !e.Valid() {
