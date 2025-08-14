@@ -23,9 +23,9 @@ func printShowSystem(output io.Writer, short, flagJSON bool) {
 	t := newPrinter(output)
 	defer t.MustFlush()
 
-	info := new(hst.Info)
+	info := &hst.Info{Paths: std.Paths()}
 
-	// get fid by querying uid of aid 0
+	// get hid by querying uid of identity 0
 	if uid, err := std.Uid(0); err != nil {
 		hlog.PrintBaseError(err, "cannot obtain uid from setuid wrapper:")
 		os.Exit(1)
@@ -39,6 +39,10 @@ func printShowSystem(output io.Writer, short, flagJSON bool) {
 	}
 
 	t.Printf("User:\t%d\n", info.User)
+	t.Printf("TempDir:\t%s\n", info.TempDir)
+	t.Printf("SharePath:\t%s\n", info.SharePath)
+	t.Printf("RuntimePath:\t%s\n", info.RuntimePath)
+	t.Printf("RunDirPath:\t%s\n", info.RunDirPath)
 }
 
 func printShowInstance(
