@@ -3,47 +3,6 @@ packages:
 
 let
   inherit (lib) types mkOption mkEnableOption;
-
-  mountPoint =
-    let
-      inherit (types)
-        enum
-        str
-        submodule
-        nullOr
-        listOf
-        ;
-    in
-    listOf (submodule {
-      options = {
-        type = mkOption {
-          type = enum [ "bind" ];
-          default = "bind";
-          description = ''
-            Type of the mount point;
-          '';
-        };
-
-        dst = mkOption {
-          type = nullOr str;
-          default = null;
-          description = ''
-            Mount point in container, same as src if null.
-          '';
-        };
-
-        src = mkOption {
-          type = str;
-          description = ''
-            Host filesystem path to make available to the container.
-          '';
-        };
-
-        write = mkEnableOption "mounting path as writable";
-        dev = mkEnableOption "use of device files";
-        optional = mkEnableOption "ignore nonexistent source path";
-      };
-    });
 in
 
 {
@@ -243,7 +202,7 @@ in
               };
 
               extraPaths = mkOption {
-                type = mountPoint;
+                type = anything;
                 default = [ ];
                 description = ''
                   Extra paths to make available to the container.
@@ -301,7 +260,7 @@ in
       };
 
       commonPaths = mkOption {
-        type = mountPoint;
+        type = types.anything;
         default = [ ];
         description = ''
           Common extra paths to make available to the container.

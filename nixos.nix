@@ -204,11 +204,20 @@ in
                         ]
                       );
                     };
-
                   };
+
+                  checkedConfig =
+                    name: value:
+                    let
+                      file = pkgs.writeText name (builtins.toJSON value);
+                    in
+                    pkgs.runCommand "checked-${name}" { nativeBuildInputs = [ cfg.package ]; } ''
+                      ln -vs ${file} "$out"
+                      hakurei show ${file}
+                    '';
                 in
                 pkgs.writeShellScriptBin app.name ''
-                  exec hakurei${if app.verbose then " -v" else ""} app ${pkgs.writeText "hakurei-app-${app.name}.json" (builtins.toJSON conf)} $@
+                  exec hakurei${if app.verbose then " -v" else ""} app ${checkedConfig "hakurei-app-${app.name}.json" conf} $@
                 ''
               )
             ]
