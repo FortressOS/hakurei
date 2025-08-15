@@ -479,7 +479,7 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 
 	// append ExtraPerms last
 	for _, p := range config.ExtraPerms {
-		if p == nil {
+		if p == nil || p.Path == nil {
 			continue
 		}
 
