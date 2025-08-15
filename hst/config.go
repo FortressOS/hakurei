@@ -1,4 +1,3 @@
-// Package hst exports shared types for invoking hakurei.
 package hst
 
 import (
