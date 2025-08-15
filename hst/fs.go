@@ -13,11 +13,11 @@ import (
 type FilesystemConfig interface {
 	// Valid returns whether the configuration is valid.
 	Valid() bool
-	// Target returns the pathname of the mount point in the container.
-	Target() *container.Absolute
-	// Host returns a slice of all host paths used by this mount point.
+	// Path returns the target path in the container.
+	Path() *container.Absolute
+	// Host returns a slice of all host paths used by this operation.
 	Host() []*container.Absolute
-	// Apply appends the [container.Op] implementing this mount point.
+	// Apply appends the [container.Op] implementing this operation.
 	Apply(ops *container.Ops)
 
 	fmt.Stringer

@@ -10,16 +10,16 @@ import (
 func TestFSOverlay(t *testing.T) {
 	checkFs(t, []fsTestCase{
 		{"nil", (*hst.FSOverlay)(nil), false, nil, nil, nil, "<invalid>"},
-		{"nil lower", &hst.FSOverlay{Dst: m("/etc"), Lower: []*container.Absolute{nil}}, false, nil, nil, nil, "<invalid>"},
-		{"zero lower", &hst.FSOverlay{Dst: m("/etc"), Upper: m("/"), Work: m("/")}, false, nil, nil, nil, "<invalid>"},
-		{"zero lower ro", &hst.FSOverlay{Dst: m("/etc")}, false, nil, nil, nil, "<invalid>"},
-		{"short lower", &hst.FSOverlay{Dst: m("/etc"), Lower: ms("/etc")}, false, nil, nil, nil, "<invalid>"},
+		{"nil lower", &hst.FSOverlay{Target: m("/etc"), Lower: []*container.Absolute{nil}}, false, nil, nil, nil, "<invalid>"},
+		{"zero lower", &hst.FSOverlay{Target: m("/etc"), Upper: m("/"), Work: m("/")}, false, nil, nil, nil, "<invalid>"},
+		{"zero lower ro", &hst.FSOverlay{Target: m("/etc")}, false, nil, nil, nil, "<invalid>"},
+		{"short lower", &hst.FSOverlay{Target: m("/etc"), Lower: ms("/etc")}, false, nil, nil, nil, "<invalid>"},
 
 		{"full", &hst.FSOverlay{
-			Dst:   m("/nix/store"),
-			Lower: ms("/mnt-root/nix/.ro-store"),
-			Upper: m("/mnt-root/nix/.rw-store/upper"),
-			Work:  m("/mnt-root/nix/.rw-store/work"),
+			Target: m("/nix/store"),
+			Lower:  ms("/mnt-root/nix/.ro-store"),
+			Upper:  m("/mnt-root/nix/.rw-store/upper"),
+			Work:   m("/mnt-root/nix/.rw-store/work"),
 		}, true, container.Ops{&container.MountOverlayOp{
 			Target: m("/nix/store"),
 			Lower:  ms("/mnt-root/nix/.ro-store"),
@@ -29,8 +29,8 @@ func TestFSOverlay(t *testing.T) {
 			"w*/nix/store:/mnt-root/nix/.rw-store/upper:/mnt-root/nix/.rw-store/work:/mnt-root/nix/.ro-store"},
 
 		{"ro", &hst.FSOverlay{
-			Dst:   m("/mnt/src"),
-			Lower: ms("/tmp/.src0", "/tmp/.src1"),
+			Target: m("/mnt/src"),
+			Lower:  ms("/tmp/.src0", "/tmp/.src1"),
 		}, true, container.Ops{&container.MountOverlayOp{
 			Target: m("/mnt/src"),
 			Lower:  ms("/tmp/.src0", "/tmp/.src1"),
@@ -38,9 +38,9 @@ func TestFSOverlay(t *testing.T) {
 			"*/mnt/src:/tmp/.src0:/tmp/.src1"},
 
 		{"ro work", &hst.FSOverlay{
-			Dst:   m("/mnt/src"),
-			Lower: ms("/tmp/.src0", "/tmp/.src1"),
-			Work:  m("/tmp"),
+			Target: m("/mnt/src"),
+			Lower:  ms("/tmp/.src0", "/tmp/.src1"),
+			Work:   m("/tmp"),
 		}, true, container.Ops{&container.MountOverlayOp{
 			Target: m("/mnt/src"),
 			Lower:  ms("/tmp/.src0", "/tmp/.src1"),

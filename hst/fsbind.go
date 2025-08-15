@@ -15,9 +15,9 @@ const FilesystemBind = "bind"
 // FSBind represents a host to container bind mount.
 type FSBind struct {
 	// mount point in container, same as src if empty
-	Dst *container.Absolute `json:"dst,omitempty"`
+	Target *container.Absolute `json:"dst,omitempty"`
 	// host filesystem path to make available to the container
-	Src *container.Absolute `json:"src"`
+	Source *container.Absolute `json:"src"`
 	// do not mount filesystem read-only
 	Write bool `json:"write,omitempty"`
 	// do not disable device files, implies Write
@@ -26,23 +26,23 @@ type FSBind struct {
 	Optional bool `json:"optional,omitempty"`
 }
 
-func (b *FSBind) Valid() bool { return b != nil && b.Src != nil }
+func (b *FSBind) Valid() bool { return b != nil && b.Source != nil }
 
-func (b *FSBind) Target() *container.Absolute {
+func (b *FSBind) Path() *container.Absolute {
 	if !b.Valid() {
 		return nil
 	}
-	if b.Dst == nil {
-		return b.Src
+	if b.Target == nil {
+		return b.Source
 	}
-	return b.Dst
+	return b.Target
 }
 
 func (b *FSBind) Host() []*container.Absolute {
 	if !b.Valid() {
 		return nil
 	}
-	return []*container.Absolute{b.Src}
+	return []*container.Absolute{b.Source}
 }
 
 func (b *FSBind) Apply(ops *container.Ops) {
@@ -50,9 +50,9 @@ func (b *FSBind) Apply(ops *container.Ops) {
 		return
 	}
 
-	dst := b.Dst
-	if dst == nil {
-		dst = b.Src
+	target := b.Target
+	if target == nil {
+		target = b.Source
 	}
 	var flags int
 	if b.Write {
@@ -64,7 +64,7 @@ func (b *FSBind) Apply(ops *container.Ops) {
 	if b.Optional {
 		flags |= container.BindOptional
 	}
-	ops.Bind(b.Src, dst, flags)
+	ops.Bind(b.Source, target, flags)
 }
 
 func (b *FSBind) String() string {
@@ -73,9 +73,9 @@ func (b *FSBind) String() string {
 		return "<invalid>"
 	}
 
-	g += len(b.Src.String())
-	if b.Dst != nil {
-		g += len(b.Dst.String())
+	g += len(b.Source.String())
+	if b.Target != nil {
+		g += len(b.Target.String())
 	}
 
 	expr := new(strings.Builder)
@@ -93,9 +93,9 @@ func (b *FSBind) String() string {
 		expr.WriteString("+")
 	}
 
-	expr.WriteString(b.Src.String())
-	if b.Dst != nil {
-		expr.WriteString(":" + b.Dst.String())
+	expr.WriteString(b.Source.String())
+	if b.Target != nil {
+		expr.WriteString(":" + b.Target.String())
 	}
 
 	return expr.String()

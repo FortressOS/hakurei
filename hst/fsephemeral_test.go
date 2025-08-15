@@ -13,10 +13,10 @@ func TestFSEphemeral(t *testing.T) {
 		{"nil", (*hst.FSEphemeral)(nil), false, nil, nil, nil, "<invalid>"},
 
 		{"full", &hst.FSEphemeral{
-			Dst:   m("/run/user/65534"),
-			Write: true,
-			Size:  1 << 10,
-			Perm:  0700,
+			Target: m("/run/user/65534"),
+			Write:  true,
+			Size:   1 << 10,
+			Perm:   0700,
 		}, true, container.Ops{&container.MountTmpfsOp{
 			FSName: "ephemeral",
 			Path:   m("/run/user/65534"),
@@ -26,7 +26,7 @@ func TestFSEphemeral(t *testing.T) {
 		}}, m("/run/user/65534"), nil,
 			"w+ephemeral(-rwx------):/run/user/65534"},
 
-		{"cover ro", &hst.FSEphemeral{Dst: m("/run/nscd")}, true,
+		{"cover ro", &hst.FSEphemeral{Target: m("/run/nscd")}, true,
 			container.Ops{&container.MountTmpfsOp{
 				FSName: "readonly",
 				Path:   m("/run/nscd"),
@@ -36,9 +36,9 @@ func TestFSEphemeral(t *testing.T) {
 			"+ephemeral(-rwxr-xr-x):/run/nscd"},
 
 		{"negative size", &hst.FSEphemeral{
-			Dst:   hst.AbsTmp,
-			Write: true,
-			Size:  -1,
+			Target: hst.AbsTmp,
+			Write:  true,
+			Size:   -1,
 		}, true, container.Ops{&container.MountTmpfsOp{
 			FSName: "ephemeral",
 			Path:   hst.AbsTmp,

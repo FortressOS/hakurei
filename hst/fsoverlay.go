@@ -15,7 +15,7 @@ const FilesystemOverlay = "overlay"
 // FSOverlay represents an overlay mount point.
 type FSOverlay struct {
 	// mount point in container
-	Dst *container.Absolute `json:"dst"`
+	Target *container.Absolute `json:"dst"`
 
 	// any filesystem, does not need to be on a writable filesystem, must not be nil
 	Lower []*container.Absolute `json:"lower"`
@@ -26,7 +26,7 @@ type FSOverlay struct {
 }
 
 func (o *FSOverlay) Valid() bool {
-	if o == nil || o.Dst == nil {
+	if o == nil || o.Target == nil {
 		return false
 	}
 
@@ -43,11 +43,11 @@ func (o *FSOverlay) Valid() bool {
 	}
 }
 
-func (o *FSOverlay) Target() *container.Absolute {
+func (o *FSOverlay) Path() *container.Absolute {
 	if !o.Valid() {
 		return nil
 	}
-	return o.Dst
+	return o.Target
 }
 
 func (o *FSOverlay) Host() []*container.Absolute {
@@ -68,9 +68,9 @@ func (o *FSOverlay) Apply(op *container.Ops) {
 	}
 
 	if o.Upper != nil && o.Work != nil { // rw
-		op.Overlay(o.Dst, o.Upper, o.Work, o.Lower...)
+		op.Overlay(o.Target, o.Upper, o.Work, o.Lower...)
 	} else { // ro
-		op.OverlayReadonly(o.Dst, o.Lower...)
+		op.OverlayReadonly(o.Target, o.Lower...)
 	}
 }
 
@@ -86,13 +86,13 @@ func (o *FSOverlay) String() string {
 
 	if o.Upper != nil && o.Work != nil {
 		return "w*" + strings.Join(append([]string{
-			container.EscapeOverlayDataSegment(o.Dst.String()),
+			container.EscapeOverlayDataSegment(o.Target.String()),
 			container.EscapeOverlayDataSegment(o.Upper.String()),
 			container.EscapeOverlayDataSegment(o.Work.String())},
 			lower...), container.SpecialOverlayPath)
 	} else {
 		return "*" + strings.Join(append([]string{
-			container.EscapeOverlayDataSegment(o.Dst.String())},
+			container.EscapeOverlayDataSegment(o.Target.String())},
 			lower...), container.SpecialOverlayPath)
 	}
 }

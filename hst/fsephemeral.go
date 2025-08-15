@@ -16,7 +16,7 @@ const FilesystemEphemeral = "ephemeral"
 // FSEphemeral represents an ephemeral container mount point.
 type FSEphemeral struct {
 	// mount point in container
-	Dst *container.Absolute `json:"dst,omitempty"`
+	Target *container.Absolute `json:"dst,omitempty"`
 	// do not mount filesystem read-only
 	Write bool `json:"write,omitempty"`
 	// upper limit on the size of the filesystem
@@ -25,13 +25,13 @@ type FSEphemeral struct {
 	Perm os.FileMode `json:"perm,omitempty"`
 }
 
-func (e *FSEphemeral) Valid() bool { return e != nil && e.Dst != nil }
+func (e *FSEphemeral) Valid() bool { return e != nil && e.Target != nil }
 
-func (e *FSEphemeral) Target() *container.Absolute {
+func (e *FSEphemeral) Path() *container.Absolute {
 	if !e.Valid() {
 		return nil
 	}
-	return e.Dst
+	return e.Target
 }
 
 func (e *FSEphemeral) Host() []*container.Absolute { return nil }
@@ -54,9 +54,9 @@ func (e *FSEphemeral) Apply(ops *container.Ops) {
 	}
 
 	if e.Write {
-		ops.Tmpfs(e.Dst, size, perm)
+		ops.Tmpfs(e.Target, size, perm)
 	} else {
-		ops.Readonly(e.Dst, perm)
+		ops.Readonly(e.Target, perm)
 	}
 }
 
@@ -66,7 +66,7 @@ func (e *FSEphemeral) String() string {
 	}
 
 	expr := new(strings.Builder)
-	expr.Grow(15 + len(FilesystemEphemeral) + len(e.Dst.String()))
+	expr.Grow(15 + len(FilesystemEphemeral) + len(e.Target.String()))
 
 	if e.Write {
 		expr.WriteString("w")
@@ -77,7 +77,7 @@ func (e *FSEphemeral) String() string {
 	} else {
 		expr.WriteString(fsEphemeralDefaultPerm.String())
 	}
-	expr.WriteString("):" + e.Dst.String())
+	expr.WriteString("):" + e.Target.String())
 
 	return expr.String()
 }

@@ -41,8 +41,8 @@ func TestFilesystemConfigJSON(t *testing.T) {
 
 		{"bind", hst.FilesystemConfigJSON{
 			FilesystemConfig: &hst.FSBind{
-				Dst:      m("/etc"),
-				Src:      m("/mnt/etc"),
+				Target:   m("/etc"),
+				Source:   m("/mnt/etc"),
 				Optional: true,
 			},
 		}, nil,
@@ -51,10 +51,10 @@ func TestFilesystemConfigJSON(t *testing.T) {
 
 		{"ephemeral", hst.FilesystemConfigJSON{
 			FilesystemConfig: &hst.FSEphemeral{
-				Dst:   m("/run/user/65534"),
-				Write: true,
-				Size:  1 << 10,
-				Perm:  0700,
+				Target: m("/run/user/65534"),
+				Write:  true,
+				Size:   1 << 10,
+				Perm:   0700,
 			},
 		}, nil,
 			`{"type":"ephemeral","dst":"/run/user/65534","write":true,"size":1024,"perm":448}`,
@@ -62,10 +62,10 @@ func TestFilesystemConfigJSON(t *testing.T) {
 
 		{"overlay", hst.FilesystemConfigJSON{
 			FilesystemConfig: &hst.FSOverlay{
-				Dst:   m("/nix/store"),
-				Lower: ms("/mnt-root/nix/.ro-store"),
-				Upper: m("/mnt-root/nix/.rw-store/upper"),
-				Work:  m("/mnt-root/nix/.rw-store/work"),
+				Target: m("/nix/store"),
+				Lower:  ms("/mnt-root/nix/.ro-store"),
+				Upper:  m("/mnt-root/nix/.rw-store/upper"),
+				Work:   m("/mnt-root/nix/.rw-store/work"),
 			},
 		}, nil,
 			`{"type":"overlay","dst":"/nix/store","lower":["/mnt-root/nix/.ro-store"],"upper":"/mnt-root/nix/.rw-store/upper","work":"/mnt-root/nix/.rw-store/work"}`,
@@ -159,7 +159,7 @@ func TestFilesystemConfigJSON(t *testing.T) {
 			t.Errorf("Valid: %v, want false", got)
 		}
 
-		if got := (&hst.FilesystemConfigJSON{FilesystemConfig: &hst.FSBind{Src: m("/etc")}}).Valid(); !got {
+		if got := (&hst.FilesystemConfigJSON{FilesystemConfig: &hst.FSBind{Source: m("/etc")}}).Valid(); !got {
 			t.Errorf("Valid: %v, want true", got)
 		}
 	})
@@ -207,7 +207,7 @@ type stubFS struct {
 }
 
 func (s stubFS) Valid() bool                 { return false }
-func (s stubFS) Target() *container.Absolute { panic("unreachable") }
+func (s stubFS) Path() *container.Absolute   { panic("unreachable") }
 func (s stubFS) Host() []*container.Absolute { panic("unreachable") }
 func (s stubFS) Apply(*container.Ops)        { panic("unreachable") }
 func (s stubFS) String() string              { return "<invalid " + s.typeName + ">" }
@@ -218,13 +218,13 @@ type sCheck struct {
 }
 
 type fsTestCase struct {
-	name   string
-	fs     hst.FilesystemConfig
-	valid  bool
-	ops    container.Ops
-	target *container.Absolute
-	host   []*container.Absolute
-	str    string
+	name  string
+	fs    hst.FilesystemConfig
+	valid bool
+	ops   container.Ops
+	path  *container.Absolute
+	host  []*container.Absolute
+	str   string
 }
 
 func checkFs(t *testing.T, testCases []fsTestCase) {
@@ -252,9 +252,9 @@ func checkFs(t *testing.T, testCases []fsTestCase) {
 				}
 			})
 
-			t.Run("target", func(t *testing.T) {
-				if got := tc.fs.Target(); !reflect.DeepEqual(got, tc.target) {
-					t.Errorf("Target: %q, want %q", got, tc.target)
+			t.Run("path", func(t *testing.T) {
+				if got := tc.fs.Path(); !reflect.DeepEqual(got, tc.path) {
+					t.Errorf("Target: %q, want %q", got, tc.path)
 				}
 			})
 

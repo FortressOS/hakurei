@@ -275,12 +275,12 @@ func main() {
 						"path:" + a.NixGL + "#nixVulkanNvidia",
 				}, true, func(config *hst.Config) *hst.Config {
 					config.Container.Filesystem = append(config.Container.Filesystem, []hst.FilesystemConfigJSON{
-						{FilesystemConfig: &hst.FSBind{Src: container.AbsFHSEtc.Append("resolv.conf"), Optional: true}},
-						{FilesystemConfig: &hst.FSBind{Src: container.AbsFHSSys.Append("block"), Optional: true}},
-						{FilesystemConfig: &hst.FSBind{Src: container.AbsFHSSys.Append("bus"), Optional: true}},
-						{FilesystemConfig: &hst.FSBind{Src: container.AbsFHSSys.Append("class"), Optional: true}},
-						{FilesystemConfig: &hst.FSBind{Src: container.AbsFHSSys.Append("dev"), Optional: true}},
-						{FilesystemConfig: &hst.FSBind{Src: container.AbsFHSSys.Append("devices"), Optional: true}},
+						{FilesystemConfig: &hst.FSBind{Source: container.AbsFHSEtc.Append("resolv.conf"), Optional: true}},
+						{FilesystemConfig: &hst.FSBind{Source: container.AbsFHSSys.Append("block"), Optional: true}},
+						{FilesystemConfig: &hst.FSBind{Source: container.AbsFHSSys.Append("bus"), Optional: true}},
+						{FilesystemConfig: &hst.FSBind{Source: container.AbsFHSSys.Append("class"), Optional: true}},
+						{FilesystemConfig: &hst.FSBind{Source: container.AbsFHSSys.Append("dev"), Optional: true}},
+						{FilesystemConfig: &hst.FSBind{Source: container.AbsFHSSys.Append("devices"), Optional: true}},
 					}...)
 					appendGPUFilesystem(config)
 					return config
@@ -308,7 +308,7 @@ func main() {
 
 			if a.GPU {
 				config.Container.Filesystem = append(config.Container.Filesystem,
-					hst.FilesystemConfigJSON{FilesystemConfig: &hst.FSBind{Src: pathSet.nixPath.Append(".nixGL"), Dst: hst.AbsTmp.Append("nixGL")}})
+					hst.FilesystemConfigJSON{FilesystemConfig: &hst.FSBind{Source: pathSet.nixPath.Append(".nixGL"), Target: hst.AbsTmp.Append("nixGL")}})
 				appendGPUFilesystem(config)
 			}
 
