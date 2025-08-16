@@ -31,13 +31,17 @@ type (
 	// Implementations of this interface are sent as a stream of gobs.
 	Op interface {
 		// early is called in host root.
-		early(params *Params) error
+		early(state *setupState) error
 		// apply is called in intermediate root.
-		apply(params *Params) error
+		apply(state *setupState) error
 
 		prefix() string
 		Is(op Op) bool
 		fmt.Stringer
+	}
+
+	setupState struct {
+		*Params
 	}
 )
 
@@ -57,8 +61,8 @@ type RemountOp struct {
 	Flags  uintptr
 }
 
-func (*RemountOp) early(*Params) error { return nil }
-func (r *RemountOp) apply(*Params) error {
+func (*RemountOp) early(*setupState) error { return nil }
+func (r *RemountOp) apply(*setupState) error {
 	if r.Target == nil {
 		return EBADE
 	}
@@ -93,7 +97,7 @@ const (
 	BindDevice
 )
 
-func (b *BindMountOp) early(*Params) error {
+func (b *BindMountOp) early(*setupState) error {
 	if b.Source == nil || b.Target == nil {
 		return EBADE
 	}
@@ -110,7 +114,7 @@ func (b *BindMountOp) early(*Params) error {
 	}
 }
 
-func (b *BindMountOp) apply(*Params) error {
+func (b *BindMountOp) apply(*setupState) error {
 	if b.sourceFinal == nil {
 		if b.Flags&BindOptional == 0 {
 			// unreachable
@@ -166,13 +170,13 @@ type MountProcOp struct {
 	Target *Absolute
 }
 
-func (p *MountProcOp) early(*Params) error { return nil }
-func (p *MountProcOp) apply(params *Params) error {
+func (p *MountProcOp) early(*setupState) error { return nil }
+func (p *MountProcOp) apply(state *setupState) error {
 	if p.Target == nil {
 		return EBADE
 	}
 	target := toSysroot(p.Target.String())
-	if err := os.MkdirAll(target, params.ParentPerm); err != nil {
+	if err := os.MkdirAll(target, state.ParentPerm); err != nil {
 		return wrapErrSelf(err)
 	}
 	return wrapErrSuffix(Mount(SourceProc, target, FstypeProc, MS_NOSUID|MS_NOEXEC|MS_NODEV, zeroString),
@@ -207,20 +211,20 @@ type MountDevOp struct {
 	Write  bool
 }
 
-func (d *MountDevOp) early(*Params) error { return nil }
-func (d *MountDevOp) apply(params *Params) error {
+func (d *MountDevOp) early(*setupState) error { return nil }
+func (d *MountDevOp) apply(state *setupState) error {
 	if d.Target == nil {
 		return EBADE
 	}
 	target := toSysroot(d.Target.String())
 
-	if err := mountTmpfs(SourceTmpfsDevtmpfs, target, MS_NOSUID|MS_NODEV, 0, params.ParentPerm); err != nil {
+	if err := mountTmpfs(SourceTmpfsDevtmpfs, target, MS_NOSUID|MS_NODEV, 0, state.ParentPerm); err != nil {
 		return err
 	}
 
 	for _, name := range []string{"null", "zero", "full", "random", "urandom", "tty"} {
 		targetPath := path.Join(target, name)
-		if err := ensureFile(targetPath, 0444, params.ParentPerm); err != nil {
+		if err := ensureFile(targetPath, 0444, state.ParentPerm); err != nil {
 			return err
 		}
 		if err := hostProc.bindMount(
@@ -252,7 +256,7 @@ func (d *MountDevOp) apply(params *Params) error {
 
 	devPtsPath := path.Join(target, "pts")
 	for _, name := range []string{path.Join(target, "shm"), devPtsPath} {
-		if err := os.Mkdir(name, params.ParentPerm); err != nil {
+		if err := os.Mkdir(name, state.ParentPerm); err != nil {
 			return wrapErrSelf(err)
 		}
 	}
@@ -263,11 +267,11 @@ func (d *MountDevOp) apply(params *Params) error {
 			fmt.Sprintf("cannot mount devpts on %q:", devPtsPath))
 	}
 
-	if params.RetainSession {
+	if state.RetainSession {
 		var buf [8]byte
 		if _, _, errno := Syscall(SYS_IOCTL, 1, TIOCGWINSZ, uintptr(unsafe.Pointer(&buf[0]))); errno == 0 {
 			consolePath := path.Join(target, "console")
-			if err := ensureFile(consolePath, 0444, params.ParentPerm); err != nil {
+			if err := ensureFile(consolePath, 0444, state.ParentPerm); err != nil {
 				return err
 			}
 			if name, err := os.Readlink(hostProc.stdout()); err != nil {
@@ -285,7 +289,7 @@ func (d *MountDevOp) apply(params *Params) error {
 
 	if d.Mqueue {
 		mqueueTarget := path.Join(target, "mqueue")
-		if err := os.Mkdir(mqueueTarget, params.ParentPerm); err != nil {
+		if err := os.Mkdir(mqueueTarget, state.ParentPerm); err != nil {
 			return wrapErrSelf(err)
 		}
 		if err := Mount(SourceMqueue, mqueueTarget, FstypeMqueue, MS_NOSUID|MS_NOEXEC|MS_NODEV, zeroString); err != nil {
@@ -331,8 +335,8 @@ type MountTmpfsOp struct {
 	Perm   os.FileMode
 }
 
-func (t *MountTmpfsOp) early(*Params) error { return nil }
-func (t *MountTmpfsOp) apply(*Params) error {
+func (t *MountTmpfsOp) early(*setupState) error { return nil }
+func (t *MountTmpfsOp) apply(*setupState) error {
 	if t.Path == nil {
 		return EBADE
 	}
@@ -394,7 +398,7 @@ type MountOverlayOp struct {
 	ephemeral bool
 }
 
-func (o *MountOverlayOp) early(*Params) error {
+func (o *MountOverlayOp) early(*setupState) error {
 	if o.Work == nil && o.Upper != nil {
 		switch o.Upper.String() {
 		case FHSRoot: // ephemeral
@@ -444,12 +448,12 @@ func (o *MountOverlayOp) early(*Params) error {
 	return nil
 }
 
-func (o *MountOverlayOp) apply(params *Params) error {
+func (o *MountOverlayOp) apply(state *setupState) error {
 	if o.Target == nil {
 		return EBADE
 	}
 	target := toSysroot(o.Target.String())
-	if err := os.MkdirAll(target, params.ParentPerm); err != nil {
+	if err := os.MkdirAll(target, state.ParentPerm); err != nil {
 		return wrapErrSelf(err)
 	}
 
@@ -517,7 +521,7 @@ type SymlinkOp struct {
 	Dereference bool
 }
 
-func (l *SymlinkOp) early(*Params) error {
+func (l *SymlinkOp) early(*setupState) error {
 	if l.Dereference {
 		if !isAbs(l.LinkName) {
 			return msg.WrapErr(EBADE, fmt.Sprintf("path %q is not absolute", l.LinkName))
@@ -531,12 +535,12 @@ func (l *SymlinkOp) early(*Params) error {
 	return nil
 }
 
-func (l *SymlinkOp) apply(params *Params) error {
+func (l *SymlinkOp) apply(state *setupState) error {
 	if l.Target == nil {
 		return EBADE
 	}
 	target := toSysroot(l.Target.String())
-	if err := os.MkdirAll(path.Dir(target), params.ParentPerm); err != nil {
+	if err := os.MkdirAll(path.Dir(target), state.ParentPerm); err != nil {
 		return wrapErrSelf(err)
 	}
 	if err := os.Symlink(l.LinkName, target); err != nil {
@@ -564,8 +568,8 @@ type MkdirOp struct {
 	Perm os.FileMode
 }
 
-func (m *MkdirOp) early(*Params) error { return nil }
-func (m *MkdirOp) apply(*Params) error {
+func (m *MkdirOp) early(*setupState) error { return nil }
+func (m *MkdirOp) apply(*setupState) error {
 	if m.Path == nil {
 		return EBADE
 	}
@@ -598,8 +602,8 @@ type TmpfileOp struct {
 	Data []byte
 }
 
-func (t *TmpfileOp) early(*Params) error { return nil }
-func (t *TmpfileOp) apply(params *Params) error {
+func (t *TmpfileOp) early(*setupState) error { return nil }
+func (t *TmpfileOp) apply(state *setupState) error {
 	if t.Path == nil {
 		return EBADE
 	}
@@ -618,7 +622,7 @@ func (t *TmpfileOp) apply(params *Params) error {
 	}
 
 	target := toSysroot(t.Path.String())
-	if err := ensureFile(target, 0444, params.ParentPerm); err != nil {
+	if err := ensureFile(target, 0444, state.ParentPerm); err != nil {
 		return err
 	} else if err = hostProc.bindMount(
 		tmpPath,

@@ -28,7 +28,7 @@ type AutoRootOp struct {
 	resolved []Op
 }
 
-func (r *AutoRootOp) early(params *Params) error {
+func (r *AutoRootOp) early(state *setupState) error {
 	if r.Host == nil {
 		return syscall.EBADE
 	}
@@ -45,7 +45,7 @@ func (r *AutoRootOp) early(params *Params) error {
 					Target: AbsFHSRoot.Append(name),
 					Flags:  r.Flags,
 				}
-				if err = op.early(params); err != nil {
+				if err = op.early(state); err != nil {
 					return err
 				}
 				r.resolved = append(r.resolved, op)
@@ -55,10 +55,10 @@ func (r *AutoRootOp) early(params *Params) error {
 	}
 }
 
-func (r *AutoRootOp) apply(params *Params) error {
+func (r *AutoRootOp) apply(state *setupState) error {
 	for _, op := range r.resolved {
 		msg.Verbosef("%s %s", op.prefix(), op)
-		if err := op.apply(params); err != nil {
+		if err := op.apply(state); err != nil {
 			return err
 		}
 	}

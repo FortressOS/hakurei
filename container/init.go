@@ -121,6 +121,8 @@ func Init(prepare func(prefix string), setVerbose func(verbose bool)) {
 		log.Fatalf("cannot make / rslave: %v", err)
 	}
 
+	state := &setupState{Params: &params.Params}
+
 	/* early is called right before pivot_root into intermediate root;
 	this step is mostly for gathering information that would otherwise be difficult to obtain
 	via library functions after pivot_root, and implementations are expected to avoid changing
@@ -130,7 +132,7 @@ func Init(prepare func(prefix string), setVerbose func(verbose bool)) {
 			log.Fatalf("invalid op %d", i)
 		}
 
-		if err := op.early(&params.Params); err != nil {
+		if err := op.early(state); err != nil {
 			msg.PrintBaseErr(err,
 				fmt.Sprintf("cannot prepare op %d:", i))
 			msg.BeforeExit()
@@ -170,7 +172,7 @@ func Init(prepare func(prefix string), setVerbose func(verbose bool)) {
 	for i, op := range *params.Ops {
 		// ops already checked during early setup
 		msg.Verbosef("%s %s", op.prefix(), op)
-		if err := op.apply(&params.Params); err != nil {
+		if err := op.apply(state); err != nil {
 			msg.PrintBaseErr(err,
 				fmt.Sprintf("cannot apply op %d:", i))
 			msg.BeforeExit()

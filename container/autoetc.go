@@ -20,8 +20,8 @@ func (f *Ops) Etc(host *Absolute, prefix string) *Ops {
 
 type AutoEtcOp struct{ Prefix string }
 
-func (e *AutoEtcOp) early(*Params) error { return nil }
-func (e *AutoEtcOp) apply(*Params) error {
+func (e *AutoEtcOp) early(*setupState) error { return nil }
+func (e *AutoEtcOp) apply(*setupState) error {
 	const target = sysrootPath + FHSEtc
 	rel := e.hostRel() + "/"
 
