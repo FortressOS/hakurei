@@ -20,7 +20,6 @@ import (
 	"hakurei.app/container/seccomp"
 	"hakurei.app/container/vfs"
 	"hakurei.app/hst"
-	"hakurei.app/internal/hlog"
 )
 
 const (
@@ -207,20 +206,13 @@ var containerTestCases = []struct {
 }
 
 func TestContainer(t *testing.T) {
-	{
-		oldVerbose := hlog.Load()
-		oldOutput := container.GetOutput()
-		hlog.Store(testing.Verbose())
-		container.SetOutput(hlog.Output{})
-		t.Cleanup(func() { hlog.Store(oldVerbose) })
-		t.Cleanup(func() { container.SetOutput(oldOutput) })
-	}
+	replaceOutput(t)
 
 	t.Run("cancel", testContainerCancel(nil, func(t *testing.T, c *container.Container) {
 		wantErr := context.Canceled
 		wantExitCode := 0
 		if err := c.Wait(); !errors.Is(err, wantErr) {
-			hlog.PrintBaseError(err, "wait:")
+			container.GetOutput().PrintBaseErr(err, "wait:")
 			t.Errorf("Wait: error = %v, want %v", err, wantErr)
 		}
 		if ps := c.ProcessState(); ps == nil {
@@ -235,7 +227,7 @@ func TestContainer(t *testing.T) {
 	}, func(t *testing.T, c *container.Container) {
 		var exitError *exec.ExitError
 		if err := c.Wait(); !errors.As(err, &exitError) {
-			hlog.PrintBaseError(err, "wait:")
+			container.GetOutput().PrintBaseErr(err, "wait:")
 			t.Errorf("Wait: error = %v", err)
 		}
 		if code := exitError.ExitCode(); code != blockExitCodeInterrupt {
@@ -315,16 +307,16 @@ func TestContainer(t *testing.T) {
 
 			if err := c.Start(); err != nil {
 				_, _ = output.WriteTo(os.Stdout)
-				hlog.PrintBaseError(err, "start:")
+				container.GetOutput().PrintBaseErr(err, "start:")
 				t.Fatalf("cannot start container: %v", err)
 			} else if err = c.Serve(); err != nil {
 				_, _ = output.WriteTo(os.Stdout)
-				hlog.PrintBaseError(err, "serve:")
+				container.GetOutput().PrintBaseErr(err, "serve:")
 				t.Errorf("cannot serve setup params: %v", err)
 			}
 			if err := c.Wait(); err != nil {
 				_, _ = output.WriteTo(os.Stdout)
-				hlog.PrintBaseError(err, "wait:")
+				container.GetOutput().PrintBaseErr(err, "wait:")
 				t.Fatalf("wait: %v", err)
 			}
 		})
@@ -378,10 +370,10 @@ func testContainerCancel(
 		}
 
 		if err := c.Start(); err != nil {
-			hlog.PrintBaseError(err, "start:")
+			container.GetOutput().PrintBaseErr(err, "start:")
 			t.Fatalf("cannot start container: %v", err)
 		} else if err = c.Serve(); err != nil {
-			hlog.PrintBaseError(err, "serve:")
+			container.GetOutput().PrintBaseErr(err, "serve:")
 			t.Errorf("cannot serve setup params: %v", err)
 		}
 		<-ready
