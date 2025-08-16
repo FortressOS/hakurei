@@ -4,6 +4,7 @@ import (
 	"encoding/gob"
 	"fmt"
 	"os"
+	"syscall"
 )
 
 func init() { gob.Register(new(AutoEtcOp)) }
@@ -21,7 +22,12 @@ func (f *Ops) Etc(host *Absolute, prefix string) *Ops {
 type AutoEtcOp struct{ Prefix string }
 
 func (e *AutoEtcOp) early(*setupState) error { return nil }
-func (e *AutoEtcOp) apply(*setupState) error {
+func (e *AutoEtcOp) apply(state *setupState) error {
+	if state.nonrepeatable&nrAutoEtc != 0 {
+		return msg.WrapErr(syscall.EINVAL, "autoetc is not repeatable")
+	}
+	state.nonrepeatable |= nrAutoEtc
+
 	const target = sysrootPath + FHSEtc
 	rel := e.hostRel() + "/"
 

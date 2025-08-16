@@ -56,6 +56,11 @@ func (r *AutoRootOp) early(state *setupState) error {
 }
 
 func (r *AutoRootOp) apply(state *setupState) error {
+	if state.nonrepeatable&nrAutoRoot != 0 {
+		return msg.WrapErr(syscall.EINVAL, "autoroot is not repeatable")
+	}
+	state.nonrepeatable |= nrAutoRoot
+
 	for _, op := range r.resolved {
 		msg.Verbosef("%s %s", op.prefix(), op)
 		if err := op.apply(state); err != nil {

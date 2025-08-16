@@ -24,6 +24,11 @@ const (
 	intermediatePatternTmpfile = "tmp.*"
 )
 
+const (
+	nrAutoEtc = 1 << iota
+	nrAutoRoot
+)
+
 type (
 	Ops []Op
 
@@ -41,6 +46,7 @@ type (
 	}
 
 	setupState struct {
+		nonrepeatable uintptr
 		*Params
 	}
 )
