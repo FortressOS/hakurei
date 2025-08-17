@@ -9,6 +9,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"runtime"
 	"strconv"
 	. "syscall"
 	"time"
@@ -36,6 +37,8 @@ type (
 		setup *gob.Encoder
 		// cancels cmd
 		cancel context.CancelFunc
+		// closed after Wait returns
+		wait chan struct{}
 
 		Stdin  io.Reader
 		Stdout io.Writer
@@ -170,11 +173,23 @@ func (p *Container) Start() error {
 	}
 	p.cmd.ExtraFiles = append(p.cmd.ExtraFiles, p.ExtraFiles...)
 
-	msg.Verbose("starting container init")
-	if err := p.cmd.Start(); err != nil {
-		return msg.WrapErr(err, err.Error())
-	}
-	return nil
+	done := make(chan error, 1)
+	go func() {
+		runtime.LockOSThread()
+		p.wait = make(chan struct{})
+
+		done <- func() error { // setup depending on per-thread state must happen here
+			msg.Verbose("starting container init")
+			if err := p.cmd.Start(); err != nil {
+				return msg.WrapErr(err, err.Error())
+			}
+			return nil
+		}()
+
+		// keep this thread alive until Wait returns for cancel
+		<-p.wait
+	}()
+	return <-done
 }
 
 // Serve serves [Container.Params] to the container init.
@@ -215,8 +230,19 @@ func (p *Container) Serve() error {
 	return err
 }
 
-// Wait waits for the container init process to exit.
-func (p *Container) Wait() error { defer p.cancel(); return p.cmd.Wait() }
+// Wait waits for the container init process to exit and releases any resources associated with the [Container].
+func (p *Container) Wait() error {
+	if p.cmd == nil {
+		return EINVAL
+	}
+
+	err := p.cmd.Wait()
+	p.cancel()
+	if p.wait != nil && err == nil {
+		close(p.wait)
+	}
+	return err
+}
 
 func (p *Container) String() string {
 	return fmt.Sprintf("argv: %q, filter: %v, rules: %d, flags: %#x, presets: %#x",
