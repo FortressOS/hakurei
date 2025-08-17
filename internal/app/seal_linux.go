@@ -12,6 +12,7 @@ import (
 	"path"
 	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 	"sync/atomic"
 	"syscall"
@@ -386,9 +387,34 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 			return hlog.WrapErr(ErrXDisplay,
 				"DISPLAY is not set")
 		} else {
+			socketDir := container.AbsFHSTmp.Append(".X11-unix")
+
+			// the socket file at `/tmp/.X11-unix/X%d` is typically owned by the priv user
+			// and not accessible by the target user
+			var socketPath *container.Absolute
+			if len(d) > 1 && d[0] == ':' { // `:%d`
+				if n, err := strconv.Atoi(d[1:]); err == nil && n >= 0 {
+					socketPath = socketDir.Append("X" + strconv.Itoa(n))
+				}
+			} else if len(d) > 5 && strings.HasPrefix(d, "unix:") { // `unix:%s`
+				if a, err := container.NewAbs(d[5:]); err == nil {
+					socketPath = a
+				}
+			}
+			if socketPath != nil {
+				if _, err := sys.Stat(socketPath.String()); err != nil {
+					if !errors.Is(err, fs.ErrNotExist) {
+						return hlog.WrapErrSuffix(err,
+							fmt.Sprintf("cannot access X11 socket %q:", socketPath))
+					}
+				} else {
+					seal.sys.UpdatePermType(system.EX11, socketPath.String(), acl.Read, acl.Write, acl.Execute)
+					d = "unix:" + socketPath.String()
+				}
+			}
+
 			seal.sys.ChangeHosts("#" + seal.user.uid.String())
 			seal.env[display] = d
-			socketDir := container.AbsFHSTmp.Append(".X11-unix")
 			seal.container.Bind(socketDir, socketDir, 0)
 		}
 	}

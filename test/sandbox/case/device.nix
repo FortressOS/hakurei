@@ -25,6 +25,7 @@ in
   mapRealUid = false;
   useCommonPaths = true;
   userns = false;
+  x11 = true;
 
   # 0, PresetStrict
   expectedFilter = {
@@ -35,6 +36,7 @@ in
   want = {
     env = [
       "DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/65534/bus"
+      "DISPLAY=unix:/tmp/.X11-unix/X0"
       "HOME=/var/lib/hakurei/u0/a4"
       "PULSE_SERVER=unix:/run/user/65534/pulse/native"
       "SHELL=/run/current-system/sw/bin/bash"
@@ -161,7 +163,9 @@ in
         } null;
         devices = fs "800001ed" null null;
       } null;
-      tmp = fs "800001f8" { } null;
+      tmp = fs "800001f8" {
+        ".X11-unix" = fs "801001ff" { X0 = fs "10001fd" null null; } null;
+      } null;
       usr = fs "800001c0" { bin = fs "800001ed" { env = fs "80001ff" null null; } null; } null;
       var = fs "800001c0" {
         lib = fs "800001c0" {
@@ -231,10 +235,15 @@ in
       (ent ignore "/etc/passwd" "ro,nosuid,nodev,relatime" "tmpfs" "rootfs" "rw,uid=1000004,gid=1000004")
       (ent ignore "/etc/group" "ro,nosuid,nodev,relatime" "tmpfs" "rootfs" "rw,uid=1000004,gid=1000004")
       (ent ignore "/run/user/65534/wayland-0" "ro,nosuid,nodev,relatime" "ext4" "/dev/disk/by-label/nixos" "rw")
+      (ent "/tmp/.X11-unix" "/tmp/.X11-unix" "ro,nosuid,nodev,relatime" "ext4" "/dev/disk/by-label/nixos" "rw")
       (ent ignore "/run/user/65534/pulse/native" "ro,nosuid,nodev,relatime" "tmpfs" "tmpfs" ignore)
       (ent ignore "/run/user/65534/bus" "ro,nosuid,nodev,relatime" "ext4" "/dev/disk/by-label/nixos" "rw")
     ];
 
     seccomp = true;
+
+    try_socket = "/tmp/.X11-unix/X0";
+    socket_abstract = true;
+    socket_pathname = true;
   };
 }

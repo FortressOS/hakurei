@@ -50,6 +50,9 @@ let
         useCommonPaths
         userns
         ;
+      enablements = {
+        inherit (tc) x11;
+      };
       share = testProgram;
       packages = [ ];
       path = "${testProgram}/bin/hakurei-test";

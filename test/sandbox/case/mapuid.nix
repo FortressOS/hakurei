@@ -34,6 +34,7 @@ in
   mapRealUid = true;
   useCommonPaths = true;
   userns = false;
+  x11 = false;
 
   # 0, PresetStrict
   expectedFilter = {
@@ -266,5 +267,9 @@ in
     ];
 
     seccomp = true;
+
+    try_socket = "/tmp/.X11-unix/X0";
+    socket_abstract = true;
+    socket_pathname = false;
   };
 }

@@ -34,6 +34,7 @@ in
   mapRealUid = false;
   useCommonPaths = false;
   userns = true;
+  x11 = false;
 
   # 0, PresetExt | PresetDenyDevel
   expectedFilter = {
@@ -261,5 +262,9 @@ in
     ];
 
     seccomp = true;
+
+    try_socket = "/tmp/.X11-unix/X0";
+    socket_abstract = true;
+    socket_pathname = false;
   };
 }

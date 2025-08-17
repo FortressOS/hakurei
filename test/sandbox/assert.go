@@ -15,6 +15,7 @@ import (
 	"errors"
 	"io/fs"
 	"log"
+	"net"
 	"os"
 	"syscall"
 )
@@ -33,6 +34,10 @@ type TestCase struct {
 	FS      *FS               `json:"fs"`
 	Mount   []*MountinfoEntry `json:"mount"`
 	Seccomp bool              `json:"seccomp"`
+
+	TrySocket      string `json:"try_socket,omitempty"`
+	SocketAbstract bool   `json:"socket_abstract,omitempty"`
+	SocketPathname bool   `json:"socket_pathname,omitempty"`
 }
 
 type T struct {
@@ -124,6 +129,47 @@ func (t *T) MustCheck(want *TestCase) {
 		}
 	} else {
 		printf("[SKIP] skipping seccomp check")
+	}
+
+	if want.TrySocket != "" {
+		abstractConn, abstractErr := net.Dial("unix", "@"+want.TrySocket)
+		pathnameConn, pathnameErr := net.Dial("unix", want.TrySocket)
+		ok := true
+
+		if abstractErr == nil {
+			if err := abstractConn.Close(); err != nil {
+				ok = false
+				log.Printf("Close: %v", err)
+			}
+		}
+		if pathnameErr == nil {
+			if err := pathnameConn.Close(); err != nil {
+				ok = false
+				log.Printf("Close: %v", err)
+			}
+		}
+
+		abstractWantErr := error(syscall.EPERM)
+		pathnameWantErr := error(syscall.ENOENT)
+		if want.SocketAbstract {
+			abstractWantErr = nil
+		}
+		if want.SocketPathname {
+			pathnameWantErr = nil
+		}
+
+		if !errors.Is(abstractErr, abstractWantErr) {
+			ok = false
+			log.Printf("abstractErr: %v, want %v", abstractErr, abstractWantErr)
+		}
+		if !errors.Is(pathnameErr, pathnameWantErr) {
+			ok = false
+			log.Printf("pathnameErr: %v, want %v", pathnameErr, pathnameWantErr)
+		}
+
+		if !ok {
+			os.Exit(1)
+		}
 	}
 }
 
