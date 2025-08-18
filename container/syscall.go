@@ -18,6 +18,14 @@ func SetDumpable(dumpable uintptr) error {
 	return nil
 }
 
+func SetNoNewPrivs() error {
+	_, _, errno := syscall.Syscall(syscall.SYS_PRCTL, PR_SET_NO_NEW_PRIVS, 1, 0)
+	if errno == 0 {
+		return nil
+	}
+	return errno
+}
+
 // IgnoringEINTR makes a function call and repeats it if it returns an
 // EINTR error. This appears to be required even though we install all
 // signal handlers with SA_RESTART: see #22838, #38033, #38836, #40846.

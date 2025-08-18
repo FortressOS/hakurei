@@ -218,10 +218,6 @@ func Init(prepare func(prefix string), setVerbose func(verbose bool)) {
 		}
 	}
 
-	if _, _, errno := Syscall(SYS_PRCTL, PR_SET_NO_NEW_PRIVS, 1, 0); errno != 0 {
-		log.Fatalf("prctl(PR_SET_NO_NEW_PRIVS): %v", errno)
-	}
-
 	if _, _, errno := Syscall(SYS_PRCTL, PR_CAP_AMBIENT, PR_CAP_AMBIENT_CLEAR_ALL, 0); errno != 0 {
 		log.Fatalf("cannot clear the ambient capability set: %v", errno)
 	}
@@ -256,6 +252,7 @@ func Init(prepare func(prefix string), setVerbose func(verbose bool)) {
 			rules = seccomp.Preset(params.SeccompPresets, params.SeccompFlags)
 		}
 		if err := seccomp.Load(rules, params.SeccompFlags); err != nil {
+			// this also indirectly asserts PR_SET_NO_NEW_PRIVS
 			log.Fatalf("cannot load syscall filter: %v", err)
 		}
 		msg.Verbosef("%d filter rules loaded", len(rules))

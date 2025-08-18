@@ -179,6 +179,12 @@ func (p *Container) Start() error {
 		p.wait = make(chan struct{})
 
 		done <- func() error { // setup depending on per-thread state must happen here
+			// PR_SET_NO_NEW_PRIVS: depends on per-thread state but acts on all processes created from that thread
+			if err := SetNoNewPrivs(); err != nil {
+				return wrapErrSuffix(err,
+					"prctl(PR_SET_NO_NEW_PRIVS):")
+			}
+
 			msg.Verbose("starting container init")
 			if err := p.cmd.Start(); err != nil {
 				return msg.WrapErr(err, err.Error())
