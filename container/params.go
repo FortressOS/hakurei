@@ -9,7 +9,8 @@ import (
 )
 
 var (
-	ErrNotSet = errors.New("environment variable not set")
+	ErrNotSet   = errors.New("environment variable not set")
+	ErrFdFormat = errors.New("bad file descriptor representation")
 )
 
 // Setup appends the read end of a pipe for setup params transmission and returns its fd.
@@ -31,7 +32,7 @@ func Receive(key string, e any, v **os.File) (func() error, error) {
 		return nil, ErrNotSet
 	} else {
 		if fd, err := strconv.Atoi(s); err != nil {
-			return nil, err
+			return nil, ErrFdFormat
 		} else {
 			setup = os.NewFile(uintptr(fd), "setup")
 			if setup == nil {
