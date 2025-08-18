@@ -45,7 +45,7 @@ func withNixDaemon(
 		Container: &hst.ContainerConfig{
 			Hostname:     formatHostname(app.Name) + "-" + action,
 			Userns:       true, // nix sandbox requires userns
-			Net:          net,
+			HostNet:      net,
 			SeccompFlags: seccomp.AllowMultiarch,
 			Tty:          dropShell,
 			Filesystem: []hst.FilesystemConfigJSON{

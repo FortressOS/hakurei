@@ -90,7 +90,8 @@ func TestTemplate(t *testing.T) {
 		"seccomp_compat": true,
 		"devel": true,
 		"userns": true,
-		"net": true,
+		"host_net": true,
+		"host_abstract": true,
 		"tty": true,
 		"multiarch": true,
 		"env": {

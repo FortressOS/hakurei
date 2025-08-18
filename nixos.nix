@@ -131,14 +131,14 @@ in
                         wait_delay
                         devel
                         userns
-                        net
-                        abstract
                         device
                         tty
                         multiarch
                         env
                         ;
                       map_real_uid = app.mapRealUid;
+                      host_net = app.hostNet;
+                      host_abstract = app.hostAbstract;
 
                       filesystem =
                         let

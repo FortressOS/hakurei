@@ -78,9 +78,9 @@ type (
 		// allow userns creation in container
 		Userns bool `json:"userns,omitempty"`
 		// share host net namespace
-		Net bool `json:"net,omitempty"`
+		HostNet bool `json:"host_net,omitempty"`
 		// share abstract unix socket scope
-		Abstract bool `json:"abstract,omitempty"`
+		HostAbstract bool `json:"host_abstract,omitempty"`
 		// allow dangerous terminal I/O
 		Tty bool `json:"tty,omitempty"`
 		// allow multiarch

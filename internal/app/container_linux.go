@@ -32,8 +32,8 @@ func newContainer(s *hst.ContainerConfig, os sys.State, prefix string, uid, gid 
 		SeccompFlags:   s.SeccompFlags,
 		SeccompPresets: s.SeccompPresets,
 		RetainSession:  s.Tty,
-		HostNet:        s.Net,
-		HostAbstract:   s.Abstract,
+		HostNet:        s.HostNet,
+		HostAbstract:   s.HostAbstract,
 
 		// the container is canceled when shim is requested to exit or receives an interrupt or termination signal;
 		// this behaviour is implemented in the shim

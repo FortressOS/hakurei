@@ -27,7 +27,7 @@ var testCasesNixos = []sealTestCase{
 			Shell:       m("/run/current-system/sw/bin/zsh"),
 
 			Container: &hst.ContainerConfig{
-				Userns: true, Net: true, MapRealUID: true, Env: nil, AutoEtc: true,
+				Userns: true, HostNet: true, MapRealUID: true, Env: nil, AutoEtc: true,
 				Filesystem: []hst.FilesystemConfigJSON{
 					f(&hst.FSBind{Source: m("/bin")}),
 					f(&hst.FSBind{Source: m("/usr/bin/")}),

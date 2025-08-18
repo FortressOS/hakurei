@@ -26,9 +26,9 @@ type appInfo struct {
 	// passed through to [hst.Config]
 	Userns bool `json:"userns,omitempty"`
 	// passed through to [hst.Config]
-	Net bool `json:"net,omitempty"`
+	HostNet bool `json:"net,omitempty"`
 	// passed through to [hst.Config]
-	Abstract bool `json:"abstract,omitempty"`
+	HostAbstract bool `json:"abstract,omitempty"`
 	// passed through to [hst.Config]
 	Device bool `json:"dev,omitempty"`
 	// passed through to [hst.Config]
@@ -85,14 +85,14 @@ func (app *appInfo) toHst(pathSet *appPathSet, pathname *container.Absolute, arg
 		Groups:   app.Groups,
 
 		Container: &hst.ContainerConfig{
-			Hostname:   formatHostname(app.Name),
-			Devel:      app.Devel,
-			Userns:     app.Userns,
-			Net:        app.Net,
-			Abstract:   app.Abstract,
-			Device:     app.Device,
-			Tty:        app.Tty || flagDropShell,
-			MapRealUID: app.MapRealUID,
+			Hostname:     formatHostname(app.Name),
+			Devel:        app.Devel,
+			Userns:       app.Userns,
+			HostNet:      app.HostNet,
+			HostAbstract: app.HostAbstract,
+			Device:       app.Device,
+			Tty:          app.Tty || flagDropShell,
+			MapRealUID:   app.MapRealUID,
 			Filesystem: []hst.FilesystemConfigJSON{
 				{FilesystemConfig: &hst.FSBind{Source: pathSet.nixPath.Append("store"), Target: pathNixStore}},
 				{FilesystemConfig: &hst.FSBind{Source: pathSet.metaPath, Target: hst.AbsTmp.Append("app")}},

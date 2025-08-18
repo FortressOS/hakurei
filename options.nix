@@ -179,10 +179,10 @@ in
               tty = mkEnableOption "access to the controlling terminal";
               multiarch = mkEnableOption "multiarch kernel-level support";
 
-              net = mkEnableOption "network access" // {
+              hostNet = mkEnableOption "share host net namespace" // {
                 default = true;
               };
-              abstract = mkEnableOption "abstract unix domain socket access";
+              hostAbstract = mkEnableOption "share abstract unix socket scope";
 
               nix = mkEnableOption "nix daemon access";
               mapRealUid = mkEnableOption "mapping to priv-user uid";

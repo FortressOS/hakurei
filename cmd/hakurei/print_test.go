@@ -41,7 +41,7 @@ func Test_printShowInstance(t *testing.T) {
  Groups:         video, dialout, plugdev
  Data:           /var/lib/hakurei/u0/org.chromium.Chromium
  Hostname:       localhost
- Flags:          userns devel net device tty mapuid autoetc
+ Flags:          userns devel net abstract device tty mapuid autoetc
  Root:           /var/lib/hakurei/base/org.debian (2)
  Etc:            /etc/
  Path:           /run/current-system/sw/bin/chromium
@@ -120,7 +120,7 @@ App
  Groups:         video, dialout, plugdev
  Data:           /var/lib/hakurei/u0/org.chromium.Chromium
  Hostname:       localhost
- Flags:          userns devel net device tty mapuid autoetc
+ Flags:          userns devel net abstract device tty mapuid autoetc
  Root:           /var/lib/hakurei/base/org.debian (2)
  Etc:            /etc/
  Path:           /run/current-system/sw/bin/chromium
@@ -267,7 +267,8 @@ App
       "seccomp_compat": true,
       "devel": true,
       "userns": true,
-      "net": true,
+      "host_net": true,
+      "host_abstract": true,
       "tty": true,
       "multiarch": true,
       "env": {
@@ -415,7 +416,8 @@ App
     "seccomp_compat": true,
     "devel": true,
     "userns": true,
-    "net": true,
+    "host_net": true,
+    "host_abstract": true,
     "tty": true,
     "multiarch": true,
     "env": {
@@ -617,7 +619,8 @@ func Test_printPs(t *testing.T) {
         "seccomp_compat": true,
         "devel": true,
         "userns": true,
-        "net": true,
+        "host_net": true,
+        "host_abstract": true,
         "tty": true,
         "multiarch": true,
         "env": {

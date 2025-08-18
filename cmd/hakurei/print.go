@@ -98,7 +98,8 @@ func printShowInstance(
 		}
 		writeFlag("userns", params.Userns)
 		writeFlag("devel", params.Devel)
-		writeFlag("net", params.Net)
+		writeFlag("net", params.HostNet)
+		writeFlag("abstract", params.HostAbstract)
 		writeFlag("device", params.Device)
 		writeFlag("tty", params.Tty)
 		writeFlag("mapuid", params.MapRealUID)
