@@ -27,7 +27,7 @@ def swaymsg(command: str = "", succeed=True, type="command"):
 
 def check_filter(check_offset, name, pname):
     pid = int(machine.wait_until_succeeds(f"pgrep -U {1000000+check_offset} -x {pname}", timeout=15))
-    hash = machine.succeed(f"sudo -u alice -i XDG_RUNTIME_DIR=/run/user/1000 WAYLAND_DISPLAY=wayland-1 check-sandbox-{name} hash 2>/dev/null")
+    hash = machine.succeed(f"sudo -u alice -i XDG_RUNTIME_DIR=/run/user/1000 WAYLAND_DISPLAY=wayland-1 check-sandbox-{name} hash")
     print(machine.succeed(f"hakurei-test -s {hash} filter {pid}"))
 
 
