@@ -79,6 +79,8 @@ type (
 		Userns bool `json:"userns,omitempty"`
 		// share host net namespace
 		Net bool `json:"net,omitempty"`
+		// share abstract unix socket scope
+		Abstract bool `json:"abstract,omitempty"`
 		// allow dangerous terminal I/O
 		Tty bool `json:"tty,omitempty"`
 		// allow multiarch

@@ -238,10 +238,11 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 		}
 
 		conf := &hst.ContainerConfig{
-			Userns:  true,
-			Net:     true,
-			Tty:     true,
-			AutoEtc: true,
+			Userns:   true,
+			Net:      true,
+			Abstract: true,
+			Tty:      true,
+			AutoEtc:  true,
 
 			AutoRoot:  container.AbsFHSRoot,
 			RootFlags: container.BindWritable,

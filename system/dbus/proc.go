@@ -64,6 +64,10 @@ func (p *Proxy) Start() error {
 			argF, func(z *container.Container) {
 				z.SeccompFlags |= seccomp.AllowMultiarch
 				z.SeccompPresets |= seccomp.PresetStrict
+
+				// xdg-dbus-proxy fails with scoped abstract unix sockets despite pathname socket being available
+				z.HostAbstract = true
+
 				z.Hostname = "hakurei-dbus"
 				if p.output != nil {
 					z.Stdout, z.Stderr = p.output, p.output

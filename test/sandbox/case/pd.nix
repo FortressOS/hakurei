@@ -194,5 +194,9 @@
     ];
 
     seccomp = true;
+
+    try_socket = "/tmp/.X11-unix/X0";
+    socket_abstract = true;
+    socket_pathname = false;
   };
 }

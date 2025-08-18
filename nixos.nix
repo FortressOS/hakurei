@@ -132,6 +132,7 @@ in
                         devel
                         userns
                         net
+                        abstract
                         device
                         tty
                         multiarch

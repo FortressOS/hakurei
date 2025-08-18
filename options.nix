@@ -182,6 +182,7 @@ in
               net = mkEnableOption "network access" // {
                 default = true;
               };
+              abstract = mkEnableOption "abstract unix domain socket access";
 
               nix = mkEnableOption "nix daemon access";
               mapRealUid = mkEnableOption "mapping to priv-user uid";

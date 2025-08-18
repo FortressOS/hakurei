@@ -28,6 +28,8 @@ type appInfo struct {
 	// passed through to [hst.Config]
 	Net bool `json:"net,omitempty"`
 	// passed through to [hst.Config]
+	Abstract bool `json:"abstract,omitempty"`
+	// passed through to [hst.Config]
 	Device bool `json:"dev,omitempty"`
 	// passed through to [hst.Config]
 	Tty bool `json:"tty,omitempty"`
@@ -87,6 +89,7 @@ func (app *appInfo) toHst(pathSet *appPathSet, pathname *container.Absolute, arg
 			Devel:      app.Devel,
 			Userns:     app.Userns,
 			Net:        app.Net,
+			Abstract:   app.Abstract,
 			Device:     app.Device,
 			Tty:        app.Tty || flagDropShell,
 			MapRealUID: app.MapRealUID,

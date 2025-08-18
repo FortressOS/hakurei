@@ -92,6 +92,8 @@ type (
 		RetainSession bool
 		// Do not [syscall.CLONE_NEWNET].
 		HostNet bool
+		// Do not [LANDLOCK_SCOPE_ABSTRACT_UNIX_SOCKET].
+		HostAbstract bool
 		// Retain CAP_SYS_ADMIN.
 		Privileged bool
 	}
@@ -183,6 +185,51 @@ func (p *Container) Start() error {
 			if err := SetNoNewPrivs(); err != nil {
 				return wrapErrSuffix(err,
 					"prctl(PR_SET_NO_NEW_PRIVS):")
+			}
+
+			// landlock: depends on per-thread state but acts on a process group
+			{
+				rulesetAttr := &RulesetAttr{Scoped: LANDLOCK_SCOPE_SIGNAL}
+				if !p.HostAbstract {
+					rulesetAttr.Scoped |= LANDLOCK_SCOPE_ABSTRACT_UNIX_SOCKET
+				}
+
+				if abi, err := LandlockGetABI(); err != nil {
+					if p.HostAbstract {
+						// landlock can be skipped here as it restricts access to resources
+						// already covered by namespaces (pid)
+						goto landlockOut
+					}
+					return wrapErrSuffix(err,
+						"landlock does not appear to be enabled:")
+				} else if abi < 6 {
+					if p.HostAbstract {
+						// see above comment
+						goto landlockOut
+					}
+					return msg.WrapErr(ENOSYS,
+						"kernel version too old for LANDLOCK_SCOPE_ABSTRACT_UNIX_SOCKET")
+				} else {
+					msg.Verbosef("landlock abi version %d", abi)
+				}
+
+				if rulesetFd, err := rulesetAttr.Create(0); err != nil {
+					return wrapErrSuffix(err,
+						"cannot create landlock ruleset:")
+				} else {
+					msg.Verbosef("enforcing landlock ruleset %s", rulesetAttr)
+					if err = LandlockRestrictSelf(rulesetFd, 0); err != nil {
+						_ = Close(rulesetFd)
+						return wrapErrSuffix(err,
+							"cannot enforce landlock ruleset:")
+					}
+					if err = Close(rulesetFd); err != nil {
+						msg.Verbosef("cannot close landlock ruleset: %v", err)
+						// not fatal
+					}
+				}
+
+			landlockOut:
 			}
 
 			msg.Verbose("starting container init")
