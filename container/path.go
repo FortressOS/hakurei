@@ -111,18 +111,15 @@ func createFile(name string, perm, pperm os.FileMode, content []byte) error {
 	}
 	if content != nil {
 		_, err = f.Write(content)
-		if err != nil {
-			err = wrapErrSelf(err)
-		}
 	}
-	return errors.Join(f.Close(), err)
+	return errors.Join(f.Close(), wrapErrSelf(err))
 }
 
 func ensureFile(name string, perm, pperm os.FileMode) error {
 	fi, err := os.Stat(name)
 	if err != nil {
 		if !os.IsNotExist(err) {
-			return err
+			return wrapErrSelf(err)
 		}
 		return createFile(name, perm, pperm, nil)
 	}
