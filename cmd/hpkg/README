@@ -1,0 +1,7 @@
+This program is a proof of concept and is now deprecated. It is only kept
+around for API demonstration purposes and to make the most out of the test
+suite.
+
+This program is replaced by planterette, which can be found at
+https://git.gensokyo.uk/security/planterette. Development effort should be
+focused there instead.
