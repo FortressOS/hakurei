@@ -24,36 +24,6 @@ const (
 	intermediatePatternTmpfile = "tmp.*"
 )
 
-const (
-	nrAutoEtc = 1 << iota
-	nrAutoRoot
-)
-
-type (
-	Ops []Op
-
-	// Op is a generic setup step ran inside the container init.
-	// Implementations of this interface are sent as a stream of gobs.
-	Op interface {
-		// early is called in host root.
-		early(state *setupState) error
-		// apply is called in intermediate root.
-		apply(state *setupState) error
-
-		prefix() string
-		Is(op Op) bool
-		fmt.Stringer
-	}
-
-	setupState struct {
-		nonrepeatable uintptr
-		*Params
-	}
-)
-
-// Grow grows the slice Ops points to using [slices.Grow].
-func (f *Ops) Grow(n int) { *f = slices.Grow(*f, n) }
-
 func init() { gob.Register(new(RemountOp)) }
 
 // Remount appends an [Op] that applies [RemountOp.Flags] on container path [RemountOp.Target].
