@@ -55,6 +55,11 @@ func Init(prepare func(prefix string), setVerbose func(verbose bool)) {
 		log.Fatal("this process must run as pid 1")
 	}
 
+	if err := SetPtracer(0); err != nil {
+		msg.Verbosef("cannot enable ptrace protection via Yama LSM: %v", err)
+		// not fatal: this program has no additional privileges at initial program start
+	}
+
 	var (
 		params      initParams
 		closeSetup  func() error

@@ -9,6 +9,14 @@ const (
 	SUID_DUMP_USER
 )
 
+func SetPtracer(pid uintptr) error {
+	_, _, errno := syscall.Syscall(syscall.SYS_PRCTL, syscall.PR_SET_PTRACER, pid, 0)
+	if errno == 0 {
+		return nil
+	}
+	return errno
+}
+
 func SetDumpable(dumpable uintptr) error {
 	// linux/sched/coredump.h
 	if _, _, errno := syscall.Syscall(syscall.SYS_PRCTL, syscall.PR_SET_DUMPABLE, dumpable, 0); errno != 0 {

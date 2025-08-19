@@ -30,6 +30,11 @@ func main() {
 	// early init path, skips root check and duplicate PR_SET_DUMPABLE
 	container.TryArgv0(hlog.Output{}, hlog.Prepare, internal.InstallOutput)
 
+	if err := container.SetPtracer(0); err != nil {
+		hlog.Verbosef("cannot enable ptrace protection via Yama LSM: %v", err)
+		// not fatal: this program runs as the privileged user
+	}
+
 	if err := container.SetDumpable(container.SUID_DUMP_DISABLE); err != nil {
 		log.Printf("cannot set SUID_DUMP_DISABLE: %s", err)
 		// not fatal: this program runs as the privileged user
