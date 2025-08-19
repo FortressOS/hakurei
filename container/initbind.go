@@ -85,10 +85,21 @@ func (b *BindMountOp) apply(*setupState) error {
 	return hostProc.bindMount(source, target, flags, b.sourceFinal == b.Target)
 }
 
-func (b *BindMountOp) Is(op Op) bool { vb, ok := op.(*BindMountOp); return ok && *b == *vb }
-func (*BindMountOp) prefix() string  { return "mounting" }
+func (b *BindMountOp) Is(op Op) bool {
+	vb, ok := op.(*BindMountOp)
+	return ok && ((b == nil && vb == nil) || (b != nil && vb != nil &&
+		b.Source != nil && vb.Source != nil &&
+		b.Source.String() == vb.Source.String() &&
+		b.Target != nil && vb.Target != nil &&
+		b.Target.String() == vb.Target.String() &&
+		b.Flags == vb.Flags))
+}
+func (*BindMountOp) prefix() string { return "mounting" }
 func (b *BindMountOp) String() string {
-	if b.Source == b.Target {
+	if b.Source == nil || b.Target == nil {
+		return "<invalid>"
+	}
+	if b.Source.String() == b.Target.String() {
 		return fmt.Sprintf("%q flags %#x", b.Source, b.Flags)
 	}
 	return fmt.Sprintf("%q on %q flags %#x", b.Source, b.Target, b.Flags)
