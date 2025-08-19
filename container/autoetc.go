@@ -61,8 +61,7 @@ func (e *AutoEtcOp) apply(state *setupState) error {
 	return nil
 }
 
-// bypasses abs check, use with caution!
-func (e *AutoEtcOp) hostPath() *Absolute { return &Absolute{FHSEtc + e.hostRel()} }
+func (e *AutoEtcOp) hostPath() *Absolute { return AbsFHSEtc.Append(e.hostRel()) }
 func (e *AutoEtcOp) hostRel() string     { return ".host/" + e.Prefix }
 
 func (e *AutoEtcOp) Is(op Op) bool {
