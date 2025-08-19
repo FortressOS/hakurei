@@ -126,8 +126,14 @@ func (d *MountDevOp) apply(state *setupState) error {
 		fmt.Sprintf("cannot remount %q:", target))
 }
 
-func (d *MountDevOp) Is(op Op) bool { vd, ok := op.(*MountDevOp); return ok && *d == *vd }
-func (*MountDevOp) prefix() string  { return "mounting" }
+func (d *MountDevOp) Is(op Op) bool {
+	vd, ok := op.(*MountDevOp)
+	return ok && ((d == nil && vd == nil) || (d != nil && vd != nil &&
+		d.Target != nil && vd.Target != nil &&
+		d.Target.String() == vd.Target.String() &&
+		d.Mqueue == vd.Mqueue && d.Write == vd.Write))
+}
+func (*MountDevOp) prefix() string { return "mounting" }
 func (d *MountDevOp) String() string {
 	if d.Mqueue {
 		return fmt.Sprintf("dev on %q with mqueue", d.Target)
