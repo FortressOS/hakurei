@@ -89,6 +89,8 @@ func IsAutoRootBindable(name string) bool {
 	case "mnt":
 	case "etc":
 
+	case "": // guard against accidentally binding /
+
 	default:
 		return true
 	}
