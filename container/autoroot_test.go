@@ -2,6 +2,61 @@ package container
 
 import "testing"
 
+func TestAutoRootOp(t *testing.T) {
+	checkOpsBuilder(t, []opsBuilderTestCase{
+		{"pd", new(Ops).Root(MustAbs("/"), "048090b6ed8f9ebb10e275ff5d8c0659", BindWritable), Ops{
+			&AutoRootOp{
+				Host:   MustAbs("/"),
+				Prefix: "048090b6ed8f9ebb10e275ff5d8c0659",
+				Flags:  BindWritable,
+			},
+		}},
+	})
+
+	checkOpIs(t, []opIsTestCase{
+		{"zero", new(AutoRootOp), new(AutoRootOp), false},
+
+		{"internal ne", &AutoRootOp{
+			Host:   MustAbs("/"),
+			Prefix: ":3",
+			Flags:  BindWritable,
+		}, &AutoRootOp{
+			Host:     MustAbs("/"),
+			Prefix:   ":3",
+			Flags:    BindWritable,
+			resolved: []Op{new(BindMountOp)},
+		}, true},
+
+		{"differs", &AutoRootOp{
+			Host:   MustAbs("/"),
+			Prefix: "\x00",
+			Flags:  BindWritable,
+		}, &AutoRootOp{
+			Host:   MustAbs("/"),
+			Prefix: ":3",
+			Flags:  BindWritable,
+		}, false},
+
+		{"equals", &AutoRootOp{
+			Host:   MustAbs("/"),
+			Prefix: ":3",
+			Flags:  BindWritable,
+		}, &AutoRootOp{
+			Host:   MustAbs("/"),
+			Prefix: ":3",
+			Flags:  BindWritable,
+		}, true},
+	})
+
+	checkOpMeta(t, []opMetaTestCase{
+		{"root", &AutoRootOp{
+			Host:   MustAbs("/"),
+			Prefix: ":3",
+			Flags:  BindWritable,
+		}, "setting up", `auto root "/" prefix :3 flags 0x2`},
+	})
+}
+
 func TestIsAutoRootBindable(t *testing.T) {
 	testCases := []struct {
 		name string
