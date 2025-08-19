@@ -64,10 +64,6 @@ func (p *Proxy) Start() error {
 			argF, func(z *container.Container) {
 				z.SeccompFlags |= seccomp.AllowMultiarch
 				z.SeccompPresets |= seccomp.PresetStrict
-
-				// xdg-dbus-proxy fails with scoped abstract unix sockets despite pathname socket being available
-				z.HostAbstract = true
-
 				z.Hostname = "hakurei-dbus"
 				if p.output != nil {
 					z.Stdout, z.Stderr = p.output, p.output
@@ -101,6 +97,9 @@ func (p *Proxy) Start() error {
 				upstreamPaths = container.CompactAbs(upstreamPaths)
 				for _, name := range upstreamPaths {
 					z.Bind(name, name, 0)
+				}
+				if len(upstreamPaths) == 0 {
+					z.HostAbstract = true
 				}
 
 				// parent directories of bind paths
