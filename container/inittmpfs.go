@@ -42,6 +42,11 @@ func (t *MountTmpfsOp) apply(*setupState) error {
 	return mountTmpfs(t.FSName, toSysroot(t.Path.String()), t.Flags, t.Size, t.Perm)
 }
 
-func (t *MountTmpfsOp) Is(op Op) bool  { vt, ok := op.(*MountTmpfsOp); return ok && *t == *vt }
+func (t *MountTmpfsOp) Is(op Op) bool {
+	vt, ok := op.(*MountTmpfsOp)
+	return ok && ((t == nil && vt == nil) ||
+		(t.Path != nil && vt.Path != nil && t.Path.Is(vt.Path)) &&
+			t.FSName == vt.FSName && t.Flags == vt.Flags && t.Size == vt.Size && t.Perm == vt.Perm)
+}
 func (*MountTmpfsOp) prefix() string   { return "mounting" }
 func (t *MountTmpfsOp) String() string { return fmt.Sprintf("tmpfs on %q size %d", t.Path, t.Size) }
