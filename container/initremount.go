@@ -29,6 +29,11 @@ func (r *RemountOp) apply(*setupState) error {
 		fmt.Sprintf("cannot remount %q:", r.Target))
 }
 
-func (r *RemountOp) Is(op Op) bool  { vr, ok := op.(*RemountOp); return ok && *r == *vr }
+func (r *RemountOp) Is(op Op) bool {
+	vr, ok := op.(*RemountOp)
+	return ok && ((r == nil && vr == nil) ||
+		(r.Target != nil && vr.Target != nil && r.Target.Is(vr.Target)) &&
+			r.Flags == vr.Flags)
+}
 func (*RemountOp) prefix() string   { return "remounting" }
 func (r *RemountOp) String() string { return fmt.Sprintf("%q flags %#x", r.Target, r.Flags) }
