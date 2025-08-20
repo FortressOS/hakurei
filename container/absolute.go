@@ -39,6 +39,15 @@ func (a *Absolute) String() string {
 	return a.pathname
 }
 
+func (a *Absolute) Is(v *Absolute) bool {
+	if a == nil && v == nil {
+		return true
+	}
+	return a != nil && v != nil &&
+		a.pathname != zeroString && v.pathname != zeroString &&
+		a.pathname == v.pathname
+}
+
 // NewAbs checks pathname and returns a new [Absolute] if pathname is absolute.
 func NewAbs(pathname string) (*Absolute, error) {
 	if !isAbs(pathname) {

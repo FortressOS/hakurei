@@ -69,7 +69,7 @@ func TestNewAbs(t *testing.T) {
 			wantPanic := `path "etc" is not absolute`
 
 			if r := recover(); r != wantPanic {
-				t.Errorf("MustAbsolute: panic = %v; want %v", r, wantPanic)
+				t.Errorf("MustAbs: panic = %v; want %v", r, wantPanic)
 			}
 		}()
 
@@ -96,6 +96,29 @@ func TestAbsoluteString(t *testing.T) {
 
 		panic(new(Absolute).String())
 	})
+}
+
+func TestAbsoluteIs(t *testing.T) {
+	testCases := []struct {
+		name string
+		a, v *Absolute
+		want bool
+	}{
+		{"nil", (*Absolute)(nil), (*Absolute)(nil), true},
+		{"nil a", (*Absolute)(nil), MustAbs("/"), false},
+		{"nil v", MustAbs("/"), (*Absolute)(nil), false},
+		{"zero", new(Absolute), new(Absolute), false},
+		{"zero a", new(Absolute), MustAbs("/"), false},
+		{"zero v", MustAbs("/"), new(Absolute), false},
+		{"equals", MustAbs("/"), MustAbs("/"), true},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := tc.a.Is(tc.v); got != tc.want {
+				t.Errorf("Is: %v, want %v", got, tc.want)
+			}
+		})
+	}
 }
 
 type sCheck struct {
