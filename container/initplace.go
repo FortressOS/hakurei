@@ -4,7 +4,6 @@ import (
 	"encoding/gob"
 	"fmt"
 	"os"
-	"slices"
 	. "syscall"
 )
 
@@ -73,7 +72,8 @@ func (t *TmpfileOp) apply(state *setupState) error {
 
 func (t *TmpfileOp) Is(op Op) bool {
 	vt, ok := op.(*TmpfileOp)
-	return ok && t.Path == vt.Path && slices.Equal(t.Data, vt.Data)
+	return ok && t.Path != nil && vt.Path != nil && t.Path.Is(vt.Path) &&
+		string(t.Data) == string(vt.Data)
 }
 func (*TmpfileOp) prefix() string { return "placing" }
 func (t *TmpfileOp) String() string {
