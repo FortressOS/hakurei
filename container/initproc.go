@@ -35,7 +35,8 @@ func (p *MountProcOp) apply(state *setupState) error {
 
 func (p *MountProcOp) Is(op Op) bool {
 	vp, ok := op.(*MountProcOp)
-	return ok && ((p == nil && vp == nil) || p == vp)
+	return ok && ((p == nil && vp == nil) ||
+		(p.Target != nil && vp.Target != nil && p.Target.Is(vp.Target)))
 }
 func (*MountProcOp) prefix() string   { return "mounting" }
 func (p *MountProcOp) String() string { return fmt.Sprintf("proc on %q", p.Target) }
