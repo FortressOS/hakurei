@@ -163,11 +163,10 @@ func (o *MountOverlayOp) apply(state *setupState) error {
 
 func (o *MountOverlayOp) Is(op Op) bool {
 	vo, ok := op.(*MountOverlayOp)
-	return ok &&
-		o.Target == vo.Target &&
-		slices.Equal(o.Lower, vo.Lower) &&
-		o.Upper == vo.Upper &&
-		o.Work == vo.Work
+	return ok && ((o == nil && vo == nil) || (o != nil && vo != nil &&
+		o.Target != nil && vo.Target != nil && o.Target.Is(vo.Target) &&
+		slices.EqualFunc(o.Lower, vo.Lower, func(a *Absolute, v *Absolute) bool { return a.Is(v) }) &&
+		o.Upper.Is(vo.Upper) && o.Work.Is(vo.Work)))
 }
 func (*MountOverlayOp) prefix() string { return "mounting" }
 func (o *MountOverlayOp) String() string {
