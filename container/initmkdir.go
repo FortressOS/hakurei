@@ -32,8 +32,7 @@ func (m *MkdirOp) apply(*setupState) error {
 func (m *MkdirOp) Is(op Op) bool {
 	vm, ok := op.(*MkdirOp)
 	return ok && ((m == nil && vm == nil) || (m != nil && vm != nil &&
-		m.Path != nil && vm.Path != nil &&
-		m.Path.String() == vm.Path.String() &&
+		m.Path != nil && vm.Path != nil && m.Path.Is(vm.Path) &&
 		m.Perm == vm.Perm))
 }
 func (*MkdirOp) prefix() string   { return "creating" }

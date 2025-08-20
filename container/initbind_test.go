@@ -28,13 +28,29 @@ func TestBindMountOp(t *testing.T) {
 			sourceFinal: MustAbs("/etc/"),
 		}, true},
 
-		{"differs", &BindMountOp{
+		{"flags differs", &BindMountOp{
 			Source: MustAbs("/etc/"),
 			Target: MustAbs("/etc/.host/048090b6ed8f9ebb10e275ff5d8c0659"),
 		}, &BindMountOp{
 			Source: MustAbs("/etc/"),
 			Target: MustAbs("/etc/.host/048090b6ed8f9ebb10e275ff5d8c0659"),
 			Flags:  BindOptional,
+		}, false},
+
+		{"source differs", &BindMountOp{
+			Source: MustAbs("/.hakurei/etc/"),
+			Target: MustAbs("/etc/.host/048090b6ed8f9ebb10e275ff5d8c0659"),
+		}, &BindMountOp{
+			Source: MustAbs("/etc/"),
+			Target: MustAbs("/etc/.host/048090b6ed8f9ebb10e275ff5d8c0659"),
+		}, false},
+
+		{"target differs", &BindMountOp{
+			Source: MustAbs("/etc/"),
+			Target: MustAbs("/etc/.host/048090b6ed8f9ebb10e275ff5d8c0659"),
+		}, &BindMountOp{
+			Source: MustAbs("/etc/"),
+			Target: MustAbs("/etc/"),
 		}, false},
 
 		{"equals", &BindMountOp{

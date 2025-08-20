@@ -73,8 +73,7 @@ func (r *AutoRootOp) apply(state *setupState) error {
 func (r *AutoRootOp) Is(op Op) bool {
 	vr, ok := op.(*AutoRootOp)
 	return ok && ((r == nil && vr == nil) || (r != nil && vr != nil &&
-		r.Host != nil && vr.Host != nil &&
-		r.Host.String() == vr.Host.String() &&
+		r.Host != nil && vr.Host != nil && r.Host.Is(vr.Host) &&
 		r.Prefix == vr.Prefix && r.Flags == vr.Flags))
 }
 func (*AutoRootOp) prefix() string { return "setting up" }

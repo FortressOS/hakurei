@@ -88,10 +88,8 @@ func (b *BindMountOp) apply(*setupState) error {
 func (b *BindMountOp) Is(op Op) bool {
 	vb, ok := op.(*BindMountOp)
 	return ok && ((b == nil && vb == nil) || (b != nil && vb != nil &&
-		b.Source != nil && vb.Source != nil &&
-		b.Source.String() == vb.Source.String() &&
-		b.Target != nil && vb.Target != nil &&
-		b.Target.String() == vb.Target.String() &&
+		b.Source != nil && vb.Source != nil && b.Source.Is(vb.Source) &&
+		b.Target != nil && vb.Target != nil && b.Target.Is(vb.Target) &&
 		b.Flags == vb.Flags))
 }
 func (*BindMountOp) prefix() string { return "mounting" }

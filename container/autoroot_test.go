@@ -27,9 +27,29 @@ func TestAutoRootOp(t *testing.T) {
 			resolved: []Op{new(BindMountOp)},
 		}, true},
 
-		{"differs", &AutoRootOp{
+		{"prefix differs", &AutoRootOp{
 			Host:   MustAbs("/"),
 			Prefix: "\x00",
+			Flags:  BindWritable,
+		}, &AutoRootOp{
+			Host:   MustAbs("/"),
+			Prefix: ":3",
+			Flags:  BindWritable,
+		}, false},
+
+		{"flags differs", &AutoRootOp{
+			Host:   MustAbs("/"),
+			Prefix: ":3",
+			Flags:  BindWritable | BindDevice,
+		}, &AutoRootOp{
+			Host:   MustAbs("/"),
+			Prefix: ":3",
+			Flags:  BindWritable,
+		}, false},
+
+		{"host differs", &AutoRootOp{
+			Host:   MustAbs("/tmp/"),
+			Prefix: ":3",
 			Flags:  BindWritable,
 		}, &AutoRootOp{
 			Host:   MustAbs("/"),

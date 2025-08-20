@@ -11,7 +11,8 @@ func TestMkdirOp(t *testing.T) {
 
 	checkOpIs(t, []opIsTestCase{
 		{"zero", new(MkdirOp), new(MkdirOp), false},
-		{"differs", &MkdirOp{Path: MustAbs("/"), Perm: 0755}, &MkdirOp{Path: MustAbs("/etc/"), Perm: 0755}, false},
+		{"path differs", &MkdirOp{Path: MustAbs("/"), Perm: 0755}, &MkdirOp{Path: MustAbs("/etc/"), Perm: 0755}, false},
+		{"perm differs", &MkdirOp{Path: MustAbs("/")}, &MkdirOp{Path: MustAbs("/"), Perm: 0755}, false},
 		{"equals", &MkdirOp{Path: MustAbs("/")}, &MkdirOp{Path: MustAbs("/")}, true},
 	})
 

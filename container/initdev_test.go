@@ -22,15 +22,7 @@ func TestMountDevOp(t *testing.T) {
 	checkOpIs(t, []opIsTestCase{
 		{"zero", new(MountDevOp), new(MountDevOp), false},
 
-		{"equals", &MountDevOp{
-			Target: MustAbs("/dev/"),
-			Mqueue: true,
-		}, &MountDevOp{
-			Target: MustAbs("/dev/"),
-			Mqueue: true,
-		}, true},
-
-		{"differs", &MountDevOp{
+		{"write differs", &MountDevOp{
 			Target: MustAbs("/dev/"),
 			Mqueue: true,
 		}, &MountDevOp{
@@ -39,13 +31,28 @@ func TestMountDevOp(t *testing.T) {
 			Write:  true,
 		}, false},
 
-		{"differs path", &MountDevOp{
+		{"mqueue differs", &MountDevOp{
+			Target: MustAbs("/dev/"),
+		}, &MountDevOp{
+			Target: MustAbs("/dev/"),
+			Mqueue: true,
+		}, false},
+
+		{"target differs", &MountDevOp{
 			Target: MustAbs("/"),
 			Mqueue: true,
 		}, &MountDevOp{
 			Target: MustAbs("/dev/"),
 			Mqueue: true,
 		}, false},
+
+		{"equals", &MountDevOp{
+			Target: MustAbs("/dev/"),
+			Mqueue: true,
+		}, &MountDevOp{
+			Target: MustAbs("/dev/"),
+			Mqueue: true,
+		}, true},
 	})
 
 	checkOpMeta(t, []opMetaTestCase{

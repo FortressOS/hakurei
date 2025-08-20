@@ -129,8 +129,7 @@ func (d *MountDevOp) apply(state *setupState) error {
 func (d *MountDevOp) Is(op Op) bool {
 	vd, ok := op.(*MountDevOp)
 	return ok && ((d == nil && vd == nil) || (d != nil && vd != nil &&
-		d.Target != nil && vd.Target != nil &&
-		d.Target.String() == vd.Target.String() &&
+		d.Target != nil && vd.Target != nil && d.Target.Is(vd.Target) &&
 		d.Mqueue == vd.Mqueue && d.Write == vd.Write))
 }
 func (*MountDevOp) prefix() string { return "mounting" }
