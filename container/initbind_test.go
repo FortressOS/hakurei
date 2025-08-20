@@ -3,6 +3,14 @@ package container
 import "testing"
 
 func TestBindMountOp(t *testing.T) {
+	checkOpsValid(t, []opValidTestCase{
+		{"nil", (*BindMountOp)(nil), false},
+		{"zero", new(BindMountOp), false},
+		{"nil source", &BindMountOp{Target: MustAbs("/")}, false},
+		{"nil target", &BindMountOp{Source: MustAbs("/")}, false},
+		{"valid", &BindMountOp{Source: MustAbs("/"), Target: MustAbs("/")}, true},
+	})
+
 	checkOpsBuilder(t, []opsBuilderTestCase{
 		{"autoetc", new(Ops).Bind(
 			MustAbs("/etc/"),

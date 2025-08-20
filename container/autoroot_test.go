@@ -3,6 +3,12 @@ package container
 import "testing"
 
 func TestAutoRootOp(t *testing.T) {
+	checkOpsValid(t, []opValidTestCase{
+		{"nil", (*AutoRootOp)(nil), false},
+		{"zero", new(AutoRootOp), false},
+		{"valid", &AutoRootOp{Host: MustAbs("/")}, true},
+	})
+
 	checkOpsBuilder(t, []opsBuilderTestCase{
 		{"pd", new(Ops).Root(MustAbs("/"), "048090b6ed8f9ebb10e275ff5d8c0659", BindWritable), Ops{
 			&AutoRootOp{

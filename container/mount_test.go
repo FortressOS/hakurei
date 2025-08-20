@@ -49,6 +49,24 @@ func TestEscapeOverlayDataSegment(t *testing.T) {
 	}
 }
 
+type opValidTestCase struct {
+	name string
+	op   Op
+	want bool
+}
+
+func checkOpsValid(t *testing.T, testCases []opValidTestCase) {
+	t.Run("valid", func(t *testing.T) {
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				if got := tc.op.Valid(); got != tc.want {
+					t.Errorf("Valid: %v, want %v", got, tc.want)
+				}
+			})
+		}
+	})
+}
+
 type opsBuilderTestCase struct {
 	name string
 	ops  *Ops

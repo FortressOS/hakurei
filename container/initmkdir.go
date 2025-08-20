@@ -4,7 +4,6 @@ import (
 	"encoding/gob"
 	"fmt"
 	"os"
-	"syscall"
 )
 
 func init() { gob.Register(new(MkdirOp)) }
@@ -21,19 +20,17 @@ type MkdirOp struct {
 	Perm os.FileMode
 }
 
+func (m *MkdirOp) Valid() bool             { return m != nil && m.Path != nil }
 func (m *MkdirOp) early(*setupState) error { return nil }
 func (m *MkdirOp) apply(*setupState) error {
-	if m.Path == nil {
-		return syscall.EBADE
-	}
 	return wrapErrSelf(os.MkdirAll(toSysroot(m.Path.String()), m.Perm))
 }
 
 func (m *MkdirOp) Is(op Op) bool {
 	vm, ok := op.(*MkdirOp)
-	return ok && ((m == nil && vm == nil) || (m != nil && vm != nil &&
-		m.Path != nil && vm.Path != nil && m.Path.Is(vm.Path) &&
-		m.Perm == vm.Perm))
+	return ok && m.Valid() && vm.Valid() &&
+		m.Path.Is(vm.Path) &&
+		m.Perm == vm.Perm
 }
 func (*MkdirOp) prefix() string   { return "creating" }
 func (m *MkdirOp) String() string { return fmt.Sprintf("directory %q perm %s", m.Path, m.Perm) }

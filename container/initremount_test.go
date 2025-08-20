@@ -6,6 +6,12 @@ import (
 )
 
 func TestRemountOp(t *testing.T) {
+	checkOpsValid(t, []opValidTestCase{
+		{"nil", (*RemountOp)(nil), false},
+		{"zero", new(RemountOp), false},
+		{"valid", &RemountOp{Target: MustAbs("/"), Flags: syscall.MS_RDONLY}, true},
+	})
+
 	checkOpsBuilder(t, []opsBuilderTestCase{
 		{"root", new(Ops).Remount(MustAbs("/"), syscall.MS_RDONLY), Ops{
 			&RemountOp{

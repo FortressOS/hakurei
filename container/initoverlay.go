@@ -53,10 +53,10 @@ type MountOverlayOp struct {
 	lower []string
 	// The upperdir is normally on a writable filesystem.
 	//
-	// If Work is nil and Upper holds the special value [FHSRoot],
+	// If Work is nil and Upper holds the special value [AbsFHSRoot],
 	// an ephemeral upperdir and workdir will be set up.
 	//
-	// If both Work and Upper are empty strings, upperdir and workdir is omitted and the overlay is mounted readonly.
+	// If both Work and Upper are nil, upperdir and workdir is omitted and the overlay is mounted readonly.
 	Upper *Absolute
 	// formatted for [OptionOverlayUpperdir], resolved, prefixed and escaped during early
 	upper string
@@ -66,6 +66,19 @@ type MountOverlayOp struct {
 	work string
 
 	ephemeral bool
+}
+
+func (o *MountOverlayOp) Valid() bool {
+	if o == nil {
+		return false
+	}
+	if o.Work != nil && o.Upper == nil {
+		return false
+	}
+	if slices.Contains(o.Lower, nil) {
+		return false
+	}
+	return o.Target != nil
 }
 
 func (o *MountOverlayOp) early(*setupState) error {
@@ -104,11 +117,7 @@ func (o *MountOverlayOp) early(*setupState) error {
 	}
 
 	o.lower = make([]string, len(o.Lower))
-	for i, a := range o.Lower {
-		if a == nil {
-			return EBADE
-		}
-
+	for i, a := range o.Lower { // nil checked in Valid
 		if v, err := filepath.EvalSymlinks(a.String()); err != nil {
 			return wrapErrSelf(err)
 		} else {
@@ -119,9 +128,6 @@ func (o *MountOverlayOp) early(*setupState) error {
 }
 
 func (o *MountOverlayOp) apply(state *setupState) error {
-	if o.Target == nil {
-		return EBADE
-	}
 	target := toSysroot(o.Target.String())
 	if err := os.MkdirAll(target, state.ParentPerm); err != nil {
 		return wrapErrSelf(err)
@@ -163,10 +169,10 @@ func (o *MountOverlayOp) apply(state *setupState) error {
 
 func (o *MountOverlayOp) Is(op Op) bool {
 	vo, ok := op.(*MountOverlayOp)
-	return ok && ((o == nil && vo == nil) || (o != nil && vo != nil &&
-		o.Target != nil && vo.Target != nil && o.Target.Is(vo.Target) &&
+	return ok && o.Valid() && vo.Valid() &&
+		o.Target.Is(vo.Target) &&
 		slices.EqualFunc(o.Lower, vo.Lower, func(a *Absolute, v *Absolute) bool { return a.Is(v) }) &&
-		o.Upper.Is(vo.Upper) && o.Work.Is(vo.Work)))
+		o.Upper.Is(vo.Upper) && o.Work.Is(vo.Work)
 }
 func (*MountOverlayOp) prefix() string { return "mounting" }
 func (o *MountOverlayOp) String() string {

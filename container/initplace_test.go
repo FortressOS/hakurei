@@ -3,6 +3,12 @@ package container
 import "testing"
 
 func TestTmpfileOp(t *testing.T) {
+	checkOpsValid(t, []opValidTestCase{
+		{"nil", (*TmpfileOp)(nil), false},
+		{"zero", new(TmpfileOp), false},
+		{"valid", &TmpfileOp{Path: MustAbs("/etc/passwd")}, true},
+	})
+
 	checkOpsBuilder(t, []opsBuilderTestCase{
 		{"noref", new(Ops).Place(MustAbs("/etc/passwd"), []byte(`chronos:x:65534:65534:Hakurei:/var/empty:/bin/zsh`)), Ops{
 			&TmpfileOp{

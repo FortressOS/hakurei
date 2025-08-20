@@ -6,6 +6,14 @@ import (
 )
 
 func TestMountTmpfsOp(t *testing.T) {
+	checkOpsValid(t, []opValidTestCase{
+		{"nil", (*MountTmpfsOp)(nil), false},
+		{"zero", new(MountTmpfsOp), false},
+		{"nil path", &MountTmpfsOp{FSName: "tmpfs"}, false},
+		{"zero fsname", &MountTmpfsOp{Path: MustAbs("/tmp/")}, false},
+		{"valid", &MountTmpfsOp{FSName: "tmpfs", Path: MustAbs("/tmp/")}, true},
+	})
+
 	checkOpsBuilder(t, []opsBuilderTestCase{
 		{"runtime", new(Ops).Tmpfs(
 			MustAbs("/run/user"),

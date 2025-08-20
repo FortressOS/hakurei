@@ -26,6 +26,8 @@ type SymlinkOp struct {
 	Dereference bool
 }
 
+func (l *SymlinkOp) Valid() bool { return l != nil && l.Target != nil && l.LinkName != zeroString }
+
 func (l *SymlinkOp) early(*setupState) error {
 	if l.Dereference {
 		if !isAbs(l.LinkName) {
@@ -41,9 +43,6 @@ func (l *SymlinkOp) early(*setupState) error {
 }
 
 func (l *SymlinkOp) apply(state *setupState) error {
-	if l.Target == nil {
-		return syscall.EBADE
-	}
 	target := toSysroot(l.Target.String())
 	if err := os.MkdirAll(path.Dir(target), state.ParentPerm); err != nil {
 		return wrapErrSelf(err)
@@ -56,9 +55,10 @@ func (l *SymlinkOp) apply(state *setupState) error {
 
 func (l *SymlinkOp) Is(op Op) bool {
 	vl, ok := op.(*SymlinkOp)
-	return ok && ((l == nil && vl == nil) ||
-		(l.Target != nil && vl.Target != nil && l.Target.Is(vl.Target)) &&
-			l.LinkName == vl.LinkName && l.Dereference == vl.Dereference)
+	return ok && l.Valid() && vl.Valid() &&
+		l.Target.Is(vl.Target) &&
+		l.LinkName == vl.LinkName &&
+		l.Dereference == vl.Dereference
 }
 func (*SymlinkOp) prefix() string { return "creating" }
 func (l *SymlinkOp) String() string {

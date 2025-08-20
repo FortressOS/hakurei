@@ -3,7 +3,6 @@ package container
 import (
 	"encoding/gob"
 	"fmt"
-	"syscall"
 )
 
 func init() { gob.Register(new(RemountOp)) }
@@ -20,20 +19,18 @@ type RemountOp struct {
 	Flags  uintptr
 }
 
+func (r *RemountOp) Valid() bool           { return r != nil && r.Target != nil }
 func (*RemountOp) early(*setupState) error { return nil }
 func (r *RemountOp) apply(*setupState) error {
-	if r.Target == nil {
-		return syscall.EBADE
-	}
 	return wrapErrSuffix(hostProc.remount(toSysroot(r.Target.String()), r.Flags),
 		fmt.Sprintf("cannot remount %q:", r.Target))
 }
 
 func (r *RemountOp) Is(op Op) bool {
 	vr, ok := op.(*RemountOp)
-	return ok && ((r == nil && vr == nil) ||
-		(r.Target != nil && vr.Target != nil && r.Target.Is(vr.Target)) &&
-			r.Flags == vr.Flags)
+	return ok && r.Valid() && vr.Valid() &&
+		r.Target.Is(vr.Target) &&
+		r.Flags == vr.Flags
 }
 func (*RemountOp) prefix() string   { return "remounting" }
 func (r *RemountOp) String() string { return fmt.Sprintf("%q flags %#x", r.Target, r.Flags) }

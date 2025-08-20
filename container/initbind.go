@@ -24,6 +24,8 @@ type BindMountOp struct {
 	Flags int
 }
 
+func (b *BindMountOp) Valid() bool { return b != nil && b.Source != nil && b.Target != nil }
+
 const (
 	// BindOptional skips nonexistent host paths.
 	BindOptional = 1 << iota
@@ -34,10 +36,6 @@ const (
 )
 
 func (b *BindMountOp) early(*setupState) error {
-	if b.Source == nil || b.Target == nil {
-		return EBADE
-	}
-
 	if pathname, err := filepath.EvalSymlinks(b.Source.String()); err != nil {
 		if os.IsNotExist(err) && b.Flags&BindOptional != 0 {
 			// leave sourceFinal as nil
@@ -87,10 +85,10 @@ func (b *BindMountOp) apply(*setupState) error {
 
 func (b *BindMountOp) Is(op Op) bool {
 	vb, ok := op.(*BindMountOp)
-	return ok && ((b == nil && vb == nil) || (b != nil && vb != nil &&
-		b.Source != nil && vb.Source != nil && b.Source.Is(vb.Source) &&
-		b.Target != nil && vb.Target != nil && b.Target.Is(vb.Target) &&
-		b.Flags == vb.Flags))
+	return ok && b.Valid() && vb.Valid() &&
+		b.Source.Is(vb.Source) &&
+		b.Target.Is(vb.Target) &&
+		b.Flags == vb.Flags
 }
 func (*BindMountOp) prefix() string { return "mounting" }
 func (b *BindMountOp) String() string {

@@ -3,6 +3,12 @@ package container
 import "testing"
 
 func TestMkdirOp(t *testing.T) {
+	checkOpsValid(t, []opValidTestCase{
+		{"nil", (*MkdirOp)(nil), false},
+		{"zero", new(MkdirOp), false},
+		{"valid", &MkdirOp{Path: MustAbs("/.hakurei")}, true},
+	})
+
 	checkOpsBuilder(t, []opsBuilderTestCase{
 		{"etc", new(Ops).Mkdir(MustAbs("/etc/"), 0), Ops{
 			&MkdirOp{Path: MustAbs("/etc/")},

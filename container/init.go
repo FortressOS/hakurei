@@ -52,6 +52,7 @@ type (
 
 		prefix() string
 		Is(op Op) bool
+		Valid() bool
 		fmt.Stringer
 	}
 
@@ -167,8 +168,8 @@ func Init(prepare func(prefix string), setVerbose func(verbose bool)) {
 	via library functions after pivot_root, and implementations are expected to avoid changing
 	the state of the mount namespace */
 	for i, op := range *params.Ops {
-		if op == nil {
-			log.Fatalf("invalid op %d", i)
+		if op == nil || !op.Valid() {
+			log.Fatalf("invalid op at index %d", i)
 		}
 
 		if err := op.early(state); err != nil {

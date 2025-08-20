@@ -33,11 +33,9 @@ type MountDevOp struct {
 	Write  bool
 }
 
+func (d *MountDevOp) Valid() bool             { return d != nil && d.Target != nil }
 func (d *MountDevOp) early(*setupState) error { return nil }
 func (d *MountDevOp) apply(state *setupState) error {
-	if d.Target == nil {
-		return EBADE
-	}
 	target := toSysroot(d.Target.String())
 
 	if err := mountTmpfs(SourceTmpfsDevtmpfs, target, MS_NOSUID|MS_NODEV, 0, state.ParentPerm); err != nil {
@@ -128,9 +126,10 @@ func (d *MountDevOp) apply(state *setupState) error {
 
 func (d *MountDevOp) Is(op Op) bool {
 	vd, ok := op.(*MountDevOp)
-	return ok && ((d == nil && vd == nil) || (d != nil && vd != nil &&
-		d.Target != nil && vd.Target != nil && d.Target.Is(vd.Target) &&
-		d.Mqueue == vd.Mqueue && d.Write == vd.Write))
+	return ok && d.Valid() && vd.Valid() &&
+		d.Target.Is(vd.Target) &&
+		d.Mqueue == vd.Mqueue &&
+		d.Write == vd.Write
 }
 func (*MountDevOp) prefix() string { return "mounting" }
 func (d *MountDevOp) String() string {

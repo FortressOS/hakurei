@@ -31,11 +31,9 @@ type MountTmpfsOp struct {
 	Perm   os.FileMode
 }
 
+func (t *MountTmpfsOp) Valid() bool             { return t != nil && t.Path != nil && t.FSName != zeroString }
 func (t *MountTmpfsOp) early(*setupState) error { return nil }
 func (t *MountTmpfsOp) apply(*setupState) error {
-	if t.Path == nil {
-		return EBADE
-	}
 	if t.Size < 0 || t.Size > math.MaxUint>>1 {
 		return msg.WrapErr(EBADE, fmt.Sprintf("size %d out of bounds", t.Size))
 	}
@@ -44,9 +42,12 @@ func (t *MountTmpfsOp) apply(*setupState) error {
 
 func (t *MountTmpfsOp) Is(op Op) bool {
 	vt, ok := op.(*MountTmpfsOp)
-	return ok && ((t == nil && vt == nil) ||
-		(t.Path != nil && vt.Path != nil && t.Path.Is(vt.Path)) &&
-			t.FSName == vt.FSName && t.Flags == vt.Flags && t.Size == vt.Size && t.Perm == vt.Perm)
+	return ok && t.Valid() && vt.Valid() &&
+		t.FSName == vt.FSName &&
+		t.Path.Is(vt.Path) &&
+		t.Flags == vt.Flags &&
+		t.Size == vt.Size &&
+		t.Perm == vt.Perm
 }
 func (*MountTmpfsOp) prefix() string   { return "mounting" }
 func (t *MountTmpfsOp) String() string { return fmt.Sprintf("tmpfs on %q size %d", t.Path, t.Size) }

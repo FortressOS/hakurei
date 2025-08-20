@@ -3,6 +3,15 @@ package container
 import "testing"
 
 func TestMountOverlayOp(t *testing.T) {
+	checkOpsValid(t, []opValidTestCase{
+		{"nil", (*MountOverlayOp)(nil), false},
+		{"zero", new(MountOverlayOp), false},
+		{"nil lower", &MountOverlayOp{Target: MustAbs("/"), Lower: []*Absolute{nil}}, false},
+		{"ro", &MountOverlayOp{Target: MustAbs("/"), Lower: []*Absolute{MustAbs("/")}}, true},
+		{"ro work", &MountOverlayOp{Target: MustAbs("/"), Work: MustAbs("/tmp/")}, false},
+		{"rw", &MountOverlayOp{Target: MustAbs("/"), Lower: []*Absolute{MustAbs("/")}, Upper: MustAbs("/"), Work: MustAbs("/")}, true},
+	})
+
 	checkOpsBuilder(t, []opsBuilderTestCase{
 		{"full", new(Ops).Overlay(
 			MustAbs("/nix/store"),

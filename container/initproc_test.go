@@ -3,6 +3,12 @@ package container
 import "testing"
 
 func TestMountProcOp(t *testing.T) {
+	checkOpsValid(t, []opValidTestCase{
+		{"nil", (*MountProcOp)(nil), false},
+		{"zero", new(MountProcOp), false},
+		{"valid", &MountProcOp{Target: MustAbs("/proc/")}, true},
+	})
+
 	checkOpsBuilder(t, []opsBuilderTestCase{
 		{"proc", new(Ops).Proc(MustAbs("/proc/")), Ops{
 			&MountProcOp{Target: MustAbs("/proc/")},

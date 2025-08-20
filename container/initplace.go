@@ -35,12 +35,9 @@ type TmpfileOp struct {
 	Data []byte
 }
 
+func (t *TmpfileOp) Valid() bool             { return t != nil && t.Path != nil }
 func (t *TmpfileOp) early(*setupState) error { return nil }
 func (t *TmpfileOp) apply(state *setupState) error {
-	if t.Path == nil {
-		return EBADE
-	}
-
 	var tmpPath string
 	if f, err := os.CreateTemp(FHSRoot, intermediatePatternTmpfile); err != nil {
 		return wrapErrSelf(err)
@@ -72,7 +69,8 @@ func (t *TmpfileOp) apply(state *setupState) error {
 
 func (t *TmpfileOp) Is(op Op) bool {
 	vt, ok := op.(*TmpfileOp)
-	return ok && t.Path != nil && vt.Path != nil && t.Path.Is(vt.Path) &&
+	return ok && t.Valid() && vt.Valid() &&
+		t.Path.Is(vt.Path) &&
 		string(t.Data) == string(vt.Data)
 }
 func (*TmpfileOp) prefix() string { return "placing" }

@@ -3,6 +3,12 @@ package container
 import "testing"
 
 func TestMountDevOp(t *testing.T) {
+	checkOpsValid(t, []opValidTestCase{
+		{"nil", (*MountDevOp)(nil), false},
+		{"zero", new(MountDevOp), false},
+		{"valid", &MountDevOp{Target: MustAbs("/dev/")}, true},
+	})
+
 	checkOpsBuilder(t, []opsBuilderTestCase{
 		{"dev", new(Ops).Dev(MustAbs("/dev/"), true), Ops{
 			&MountDevOp{

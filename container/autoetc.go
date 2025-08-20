@@ -21,6 +21,7 @@ func (f *Ops) Etc(host *Absolute, prefix string) *Ops {
 
 type AutoEtcOp struct{ Prefix string }
 
+func (e *AutoEtcOp) Valid() bool             { return e != nil }
 func (e *AutoEtcOp) early(*setupState) error { return nil }
 func (e *AutoEtcOp) apply(state *setupState) error {
 	if state.nonrepeatable&nrAutoEtc != 0 {
@@ -66,7 +67,7 @@ func (e *AutoEtcOp) hostRel() string     { return ".host/" + e.Prefix }
 
 func (e *AutoEtcOp) Is(op Op) bool {
 	ve, ok := op.(*AutoEtcOp)
-	return ok && ((e == nil && ve == nil) || (e != nil && ve != nil && *e == *ve))
+	return ok && e.Valid() && ve.Valid() && *e == *ve
 }
 func (*AutoEtcOp) prefix() string   { return "setting up" }
 func (e *AutoEtcOp) String() string { return fmt.Sprintf("auto etc %s", e.Prefix) }

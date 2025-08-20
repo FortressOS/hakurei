@@ -28,11 +28,9 @@ type AutoRootOp struct {
 	resolved []Op
 }
 
-func (r *AutoRootOp) early(state *setupState) error {
-	if r.Host == nil {
-		return syscall.EBADE
-	}
+func (r *AutoRootOp) Valid() bool { return r != nil && r.Host != nil }
 
+func (r *AutoRootOp) early(state *setupState) error {
 	if d, err := os.ReadDir(r.Host.String()); err != nil {
 		return wrapErrSelf(err)
 	} else {
@@ -72,9 +70,10 @@ func (r *AutoRootOp) apply(state *setupState) error {
 
 func (r *AutoRootOp) Is(op Op) bool {
 	vr, ok := op.(*AutoRootOp)
-	return ok && ((r == nil && vr == nil) || (r != nil && vr != nil &&
-		r.Host != nil && vr.Host != nil && r.Host.Is(vr.Host) &&
-		r.Prefix == vr.Prefix && r.Flags == vr.Flags))
+	return ok && r.Valid() && vr.Valid() &&
+		r.Host.Is(vr.Host) &&
+		r.Prefix == vr.Prefix &&
+		r.Flags == vr.Flags
 }
 func (*AutoRootOp) prefix() string { return "setting up" }
 func (r *AutoRootOp) String() string {

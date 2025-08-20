@@ -3,6 +3,12 @@ package container
 import "testing"
 
 func TestAutoEtcOp(t *testing.T) {
+	checkOpsValid(t, []opValidTestCase{
+		{"nil", (*AutoEtcOp)(nil), false},
+		{"zero", new(AutoEtcOp), true},
+		{"populated", &AutoEtcOp{Prefix: ":3"}, true},
+	})
+
 	checkOpsBuilder(t, []opsBuilderTestCase{
 		{"pd", new(Ops).Etc(MustAbs("/etc/"), "048090b6ed8f9ebb10e275ff5d8c0659"), Ops{
 			&MkdirOp{Path: MustAbs("/etc/"), Perm: 0755},
