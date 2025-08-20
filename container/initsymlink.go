@@ -54,8 +54,13 @@ func (l *SymlinkOp) apply(state *setupState) error {
 	return nil
 }
 
-func (l *SymlinkOp) Is(op Op) bool { vl, ok := op.(*SymlinkOp); return ok && *l == *vl }
-func (*SymlinkOp) prefix() string  { return "creating" }
+func (l *SymlinkOp) Is(op Op) bool {
+	vl, ok := op.(*SymlinkOp)
+	return ok && ((l == nil && vl == nil) ||
+		(l.Target != nil && vl.Target != nil && l.Target.Is(vl.Target)) &&
+			l.LinkName == vl.LinkName && l.Dereference == vl.Dereference)
+}
+func (*SymlinkOp) prefix() string { return "creating" }
 func (l *SymlinkOp) String() string {
 	return fmt.Sprintf("symlink on %q linkname %q", l.Target, l.LinkName)
 }
