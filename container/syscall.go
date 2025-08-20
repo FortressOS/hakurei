@@ -4,11 +4,7 @@ import (
 	"syscall"
 )
 
-const (
-	SUID_DUMP_DISABLE = iota
-	SUID_DUMP_USER
-)
-
+// SetPtracer allows processes to ptrace(2) the calling process.
 func SetPtracer(pid uintptr) error {
 	_, _, errno := syscall.Syscall(syscall.SYS_PRCTL, syscall.PR_SET_PTRACER, pid, 0)
 	if errno == 0 {
@@ -17,6 +13,12 @@ func SetPtracer(pid uintptr) error {
 	return errno
 }
 
+const (
+	SUID_DUMP_DISABLE = iota
+	SUID_DUMP_USER
+)
+
+// SetDumpable sets the "dumpable" attribute of the calling process.
 func SetDumpable(dumpable uintptr) error {
 	// linux/sched/coredump.h
 	if _, _, errno := syscall.Syscall(syscall.SYS_PRCTL, syscall.PR_SET_DUMPABLE, dumpable, 0); errno != 0 {
@@ -26,6 +28,7 @@ func SetDumpable(dumpable uintptr) error {
 	return nil
 }
 
+// SetNoNewPrivs sets the calling thread's no_new_privs attribute.
 func SetNoNewPrivs() error {
 	_, _, errno := syscall.Syscall(syscall.SYS_PRCTL, PR_SET_NO_NEW_PRIVS, 1, 0)
 	if errno == 0 {
