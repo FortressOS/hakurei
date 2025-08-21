@@ -98,9 +98,8 @@ func (p *Proxy) Start() error {
 				for _, name := range upstreamPaths {
 					z.Bind(name, name, 0)
 				}
-				if len(upstreamPaths) == 0 {
-					z.HostAbstract = true
-				}
+				z.HostNet = len(upstreamPaths) == 0
+				z.HostAbstract = z.HostNet
 
 				// parent directories of bind paths
 				sockDirPaths := make([]*container.Absolute, 0, 2)
