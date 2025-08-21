@@ -37,9 +37,52 @@ func capToIndex(cap uintptr) uintptr { return cap >> 5 }
 func capToMask(cap uintptr) uint32 { return 1 << uint(cap&31) }
 
 func capset(hdrp *capHeader, datap *[2]capData) error {
-	if _, _, errno := syscall.Syscall(syscall.SYS_CAPSET,
+	r, _, errno := syscall.Syscall(
+		syscall.SYS_CAPSET,
 		uintptr(unsafe.Pointer(hdrp)),
-		uintptr(unsafe.Pointer(&datap[0])), 0); errno != 0 {
+		uintptr(unsafe.Pointer(&datap[0])), 0,
+	)
+	if r != 0 {
+		return errno
+	}
+	return nil
+}
+
+// capBoundingSetDrop drops a capability from the calling thread's capability bounding set.
+func capBoundingSetDrop(cap uintptr) error {
+	r, _, errno := syscall.Syscall(
+		syscall.SYS_PRCTL,
+		syscall.PR_CAPBSET_DROP,
+		cap, 0,
+	)
+	if r != 0 {
+		return errno
+	}
+	return nil
+}
+
+// capAmbientClearAll clears the ambient capability set of the calling thread.
+func capAmbientClearAll() error {
+	r, _, errno := syscall.Syscall(
+		syscall.SYS_PRCTL,
+		PR_CAP_AMBIENT,
+		PR_CAP_AMBIENT_CLEAR_ALL, 0,
+	)
+	if r != 0 {
+		return errno
+	}
+	return nil
+}
+
+// capAmbientRaise adds to the ambient capability set of the calling thread.
+func capAmbientRaise(cap uintptr) error {
+	r, _, errno := syscall.Syscall(
+		syscall.SYS_PRCTL,
+		PR_CAP_AMBIENT,
+		PR_CAP_AMBIENT_RAISE,
+		cap,
+	)
+	if r != 0 {
 		return errno
 	}
 	return nil

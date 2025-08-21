@@ -4,8 +4,7 @@ import (
 	"encoding/gob"
 	"fmt"
 	"os"
-	"path/filepath"
-	. "syscall"
+	"syscall"
 )
 
 func init() { gob.Register(new(BindMountOp)) }
@@ -35,8 +34,8 @@ const (
 	BindDevice
 )
 
-func (b *BindMountOp) early(*setupState) error {
-	if pathname, err := filepath.EvalSymlinks(b.Source.String()); err != nil {
+func (b *BindMountOp) early(_ *setupState, k syscallDispatcher) error {
+	if pathname, err := k.evalSymlinks(b.Source.String()); err != nil {
 		if os.IsNotExist(err) && b.Flags&BindOptional != 0 {
 			// leave sourceFinal as nil
 			return nil
@@ -48,11 +47,11 @@ func (b *BindMountOp) early(*setupState) error {
 	}
 }
 
-func (b *BindMountOp) apply(*setupState) error {
+func (b *BindMountOp) apply(_ *setupState, k syscallDispatcher) error {
 	if b.sourceFinal == nil {
 		if b.Flags&BindOptional == 0 {
 			// unreachable
-			return EBADE
+			return msg.WrapErr(os.ErrClosed, "impossible bind state reached")
 		}
 		return nil
 	}
@@ -62,25 +61,25 @@ func (b *BindMountOp) apply(*setupState) error {
 
 	// this perm value emulates bwrap behaviour as it clears bits from 0755 based on
 	// op->perms which is never set for any bind setup op so always results in 0700
-	if fi, err := os.Stat(source); err != nil {
+	if fi, err := k.stat(source); err != nil {
 		return wrapErrSelf(err)
 	} else if fi.IsDir() {
-		if err = os.MkdirAll(target, 0700); err != nil {
+		if err = k.mkdirAll(target, 0700); err != nil {
 			return wrapErrSelf(err)
 		}
-	} else if err = ensureFile(target, 0444, 0700); err != nil {
+	} else if err = k.ensureFile(target, 0444, 0700); err != nil {
 		return err
 	}
 
-	var flags uintptr = MS_REC
+	var flags uintptr = syscall.MS_REC
 	if b.Flags&BindWritable == 0 {
-		flags |= MS_RDONLY
+		flags |= syscall.MS_RDONLY
 	}
 	if b.Flags&BindDevice == 0 {
-		flags |= MS_NODEV
+		flags |= syscall.MS_NODEV
 	}
 
-	return hostProc.bindMount(source, target, flags, b.sourceFinal == b.Target)
+	return k.bindMount(source, target, flags, b.sourceFinal == b.Target)
 }
 
 func (b *BindMountOp) Is(op Op) bool {

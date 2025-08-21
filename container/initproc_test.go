@@ -1,8 +1,28 @@
 package container
 
-import "testing"
+import (
+	"os"
+	"testing"
+)
 
 func TestMountProcOp(t *testing.T) {
+	checkOpBehaviour(t, []opBehaviourTestCase{
+		{"mkdir", &Params{ParentPerm: 0755},
+			&MountProcOp{
+				Target: MustAbs("/proc/"),
+			}, nil, nil, []kexpect{
+				{"mkdirAll", expectArgs{"/sysroot/proc", os.FileMode(0755)}, nil, errUnique},
+			}, wrapErrSelf(errUnique)},
+
+		{"success", &Params{ParentPerm: 0700},
+			&MountProcOp{
+				Target: MustAbs("/proc/"),
+			}, nil, nil, []kexpect{
+				{"mkdirAll", expectArgs{"/sysroot/proc", os.FileMode(0700)}, nil, nil},
+				{"mount", expectArgs{"proc", "/sysroot/proc", "proc", uintptr(0xe), ""}, nil, nil},
+			}, nil},
+	})
+
 	checkOpsValid(t, []opValidTestCase{
 		{"nil", (*MountProcOp)(nil), false},
 		{"zero", new(MountProcOp), false},

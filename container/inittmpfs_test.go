@@ -1,11 +1,34 @@
 package container
 
 import (
+	"io/fs"
+	"os"
 	"syscall"
 	"testing"
 )
 
 func TestMountTmpfsOp(t *testing.T) {
+	checkOpBehaviour(t, []opBehaviourTestCase{
+		{"size oob", new(Params), &MountTmpfsOp{
+			Size: -1,
+		}, nil, nil, nil, msg.WrapErr(fs.ErrInvalid, "size -1 out of bounds")},
+
+		{"success", new(Params), &MountTmpfsOp{
+			FSName: "ephemeral",
+			Path:   MustAbs("/run/user/1000/"),
+			Size:   1 << 10,
+			Perm:   0700,
+		}, nil, nil, []kexpect{
+			{"mountTmpfs", expectArgs{
+				"ephemeral",              // fsname
+				"/sysroot/run/user/1000", // target
+				uintptr(0),               // flags
+				0x400,                    // size
+				os.FileMode(0700),        // perm
+			}, nil, nil},
+		}, nil},
+	})
+
 	checkOpsValid(t, []opValidTestCase{
 		{"nil", (*MountTmpfsOp)(nil), false},
 		{"zero", new(MountTmpfsOp), false},

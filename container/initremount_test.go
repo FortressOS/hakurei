@@ -6,6 +6,15 @@ import (
 )
 
 func TestRemountOp(t *testing.T) {
+	checkOpBehaviour(t, []opBehaviourTestCase{
+		{"success", new(Params), &RemountOp{
+			Target: MustAbs("/"),
+			Flags:  syscall.MS_RDONLY,
+		}, nil, nil, []kexpect{
+			{"remount", expectArgs{"/sysroot", uintptr(1)}, nil, nil},
+		}, nil},
+	})
+
 	checkOpsValid(t, []opValidTestCase{
 		{"nil", (*RemountOp)(nil), false},
 		{"zero", new(RemountOp), false},

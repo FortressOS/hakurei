@@ -3,8 +3,7 @@ package container
 import (
 	"encoding/gob"
 	"fmt"
-	"os"
-	. "syscall"
+	"syscall"
 )
 
 const (
@@ -35,11 +34,11 @@ type TmpfileOp struct {
 	Data []byte
 }
 
-func (t *TmpfileOp) Valid() bool             { return t != nil && t.Path != nil }
-func (t *TmpfileOp) early(*setupState) error { return nil }
-func (t *TmpfileOp) apply(state *setupState) error {
+func (t *TmpfileOp) Valid() bool                                { return t != nil && t.Path != nil }
+func (t *TmpfileOp) early(*setupState, syscallDispatcher) error { return nil }
+func (t *TmpfileOp) apply(state *setupState, k syscallDispatcher) error {
 	var tmpPath string
-	if f, err := os.CreateTemp(FHSRoot, intermediatePatternTmpfile); err != nil {
+	if f, err := k.createTemp(FHSRoot, intermediatePatternTmpfile); err != nil {
 		return wrapErrSelf(err)
 	} else if _, err = f.Write(t.Data); err != nil {
 		return wrapErrSuffix(err,
@@ -52,16 +51,16 @@ func (t *TmpfileOp) apply(state *setupState) error {
 	}
 
 	target := toSysroot(t.Path.String())
-	if err := ensureFile(target, 0444, state.ParentPerm); err != nil {
+	if err := k.ensureFile(target, 0444, state.ParentPerm); err != nil {
 		return err
-	} else if err = hostProc.bindMount(
+	} else if err = k.bindMount(
 		tmpPath,
 		target,
-		MS_RDONLY|MS_NODEV,
+		syscall.MS_RDONLY|syscall.MS_NODEV,
 		false,
 	); err != nil {
 		return err
-	} else if err = os.Remove(tmpPath); err != nil {
+	} else if err = k.remove(tmpPath); err != nil {
 		return wrapErrSelf(err)
 	}
 	return nil

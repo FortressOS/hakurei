@@ -3,8 +3,7 @@ package container
 import (
 	"encoding/gob"
 	"fmt"
-	"os"
-	"syscall"
+	"io/fs"
 )
 
 func init() { gob.Register(new(AutoRootOp)) }
@@ -30,8 +29,8 @@ type AutoRootOp struct {
 
 func (r *AutoRootOp) Valid() bool { return r != nil && r.Host != nil }
 
-func (r *AutoRootOp) early(state *setupState) error {
-	if d, err := os.ReadDir(r.Host.String()); err != nil {
+func (r *AutoRootOp) early(state *setupState, k syscallDispatcher) error {
+	if d, err := k.readdir(r.Host.String()); err != nil {
 		return wrapErrSelf(err)
 	} else {
 		r.resolved = make([]Op, 0, len(d))
@@ -43,7 +42,7 @@ func (r *AutoRootOp) early(state *setupState) error {
 					Target: AbsFHSRoot.Append(name),
 					Flags:  r.Flags,
 				}
-				if err = op.early(state); err != nil {
+				if err = op.early(state, k); err != nil {
 					return err
 				}
 				r.resolved = append(r.resolved, op)
@@ -53,15 +52,15 @@ func (r *AutoRootOp) early(state *setupState) error {
 	}
 }
 
-func (r *AutoRootOp) apply(state *setupState) error {
+func (r *AutoRootOp) apply(state *setupState, k syscallDispatcher) error {
 	if state.nonrepeatable&nrAutoRoot != 0 {
-		return msg.WrapErr(syscall.EINVAL, "autoroot is not repeatable")
+		return msg.WrapErr(fs.ErrInvalid, "autoroot is not repeatable")
 	}
 	state.nonrepeatable |= nrAutoRoot
 
 	for _, op := range r.resolved {
-		msg.Verbosef("%s %s", op.prefix(), op)
-		if err := op.apply(state); err != nil {
+		k.verbosef("%s %s", op.prefix(), op)
+		if err := op.apply(state, k); err != nil {
 			return err
 		}
 	}
@@ -83,13 +82,11 @@ func (r *AutoRootOp) String() string {
 // IsAutoRootBindable returns whether a dir entry name is selected for AutoRoot.
 func IsAutoRootBindable(name string) bool {
 	switch name {
-	case "proc":
-	case "dev":
-	case "tmp":
-	case "mnt":
-	case "etc":
+	case "proc", "dev", "tmp", "mnt", "etc":
 
 	case "": // guard against accidentally binding /
+		// should be unreachable
+		msg.Verbose("got unexpected root entry")
 
 	default:
 		return true

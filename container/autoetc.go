@@ -3,8 +3,7 @@ package container
 import (
 	"encoding/gob"
 	"fmt"
-	"os"
-	"syscall"
+	"io/fs"
 )
 
 func init() { gob.Register(new(AutoEtcOp)) }
@@ -21,38 +20,35 @@ func (f *Ops) Etc(host *Absolute, prefix string) *Ops {
 
 type AutoEtcOp struct{ Prefix string }
 
-func (e *AutoEtcOp) Valid() bool             { return e != nil }
-func (e *AutoEtcOp) early(*setupState) error { return nil }
-func (e *AutoEtcOp) apply(state *setupState) error {
+func (e *AutoEtcOp) Valid() bool                                { return e != nil }
+func (e *AutoEtcOp) early(*setupState, syscallDispatcher) error { return nil }
+func (e *AutoEtcOp) apply(state *setupState, k syscallDispatcher) error {
 	if state.nonrepeatable&nrAutoEtc != 0 {
-		return msg.WrapErr(syscall.EINVAL, "autoetc is not repeatable")
+		return msg.WrapErr(fs.ErrInvalid, "autoetc is not repeatable")
 	}
 	state.nonrepeatable |= nrAutoEtc
 
 	const target = sysrootPath + FHSEtc
 	rel := e.hostRel() + "/"
 
-	if err := os.MkdirAll(target, 0755); err != nil {
+	if err := k.mkdirAll(target, 0755); err != nil {
 		return wrapErrSelf(err)
 	}
-	if d, err := os.ReadDir(toSysroot(e.hostPath().String())); err != nil {
+	if d, err := k.readdir(toSysroot(e.hostPath().String())); err != nil {
 		return wrapErrSelf(err)
 	} else {
 		for _, ent := range d {
 			n := ent.Name()
 			switch n {
-			case ".host":
-
-			case "passwd":
-			case "group":
+			case ".host", "passwd", "group":
 
 			case "mtab":
-				if err = os.Symlink(FHSProc+"mounts", target+n); err != nil {
+				if err = k.symlink(FHSProc+"mounts", target+n); err != nil {
 					return wrapErrSelf(err)
 				}
 
 			default:
-				if err = os.Symlink(rel+n, target+n); err != nil {
+				if err = k.symlink(rel+n, target+n); err != nil {
 					return wrapErrSelf(err)
 				}
 			}

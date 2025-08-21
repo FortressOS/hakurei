@@ -1,6 +1,7 @@
 package container_test
 
 import (
+	"errors"
 	"log"
 	"strings"
 	"sync/atomic"
@@ -12,6 +13,9 @@ import (
 )
 
 func TestDefaultMsg(t *testing.T) {
+	// bypass WrapErr testing behaviour
+	t.Setenv("GOPATH", container.Nonexistent)
+
 	{
 		w := log.Writer()
 		f := log.Flags()
@@ -79,6 +83,25 @@ func TestDefaultMsg(t *testing.T) {
 
 	// the function is a noop
 	t.Run("beforeExit", func(t *testing.T) { msg.BeforeExit() })
+
+	t.Run("checkedWrappedErr", func(t *testing.T) {
+		// temporarily re-enable testing behaviour
+		t.Setenv("GOPATH", "")
+		wrappedErr := msg.WrapErr(syscall.ENOTRECOVERABLE, "cannot cuddle cat:", syscall.ENOTRECOVERABLE)
+
+		t.Run("string", func(t *testing.T) {
+			want := "state not recoverable, a = [cannot cuddle cat: state not recoverable]"
+			if got := wrappedErr.Error(); got != want {
+				t.Errorf("Error: %q, want %q", got, want)
+			}
+		})
+
+		t.Run("bad concrete type", func(t *testing.T) {
+			if errors.Is(wrappedErr, syscall.ENOTRECOVERABLE) {
+				t.Error("incorrect type assertion")
+			}
+		})
+	})
 }
 
 type panicWriter struct{}

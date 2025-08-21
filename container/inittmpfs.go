@@ -3,6 +3,7 @@ package container
 import (
 	"encoding/gob"
 	"fmt"
+	"io/fs"
 	"math"
 	"os"
 	. "syscall"
@@ -31,13 +32,13 @@ type MountTmpfsOp struct {
 	Perm   os.FileMode
 }
 
-func (t *MountTmpfsOp) Valid() bool             { return t != nil && t.Path != nil && t.FSName != zeroString }
-func (t *MountTmpfsOp) early(*setupState) error { return nil }
-func (t *MountTmpfsOp) apply(*setupState) error {
+func (t *MountTmpfsOp) Valid() bool                                { return t != nil && t.Path != nil && t.FSName != zeroString }
+func (t *MountTmpfsOp) early(*setupState, syscallDispatcher) error { return nil }
+func (t *MountTmpfsOp) apply(_ *setupState, k syscallDispatcher) error {
 	if t.Size < 0 || t.Size > math.MaxUint>>1 {
-		return msg.WrapErr(EBADE, fmt.Sprintf("size %d out of bounds", t.Size))
+		return msg.WrapErr(fs.ErrInvalid, fmt.Sprintf("size %d out of bounds", t.Size))
 	}
-	return mountTmpfs(t.FSName, toSysroot(t.Path.String()), t.Flags, t.Size, t.Perm)
+	return k.mountTmpfs(t.FSName, toSysroot(t.Path.String()), t.Flags, t.Size, t.Perm)
 }
 
 func (t *MountTmpfsOp) Is(op Op) bool {

@@ -1,8 +1,13 @@
 package container
 
 import (
+	"errors"
+	"fmt"
 	"log"
+	"os"
+	"reflect"
 	"sync/atomic"
+	"testing"
 )
 
 type Msg interface {
@@ -32,7 +37,27 @@ func (msg *DefaultMsg) Verbosef(format string, v ...any) {
 	}
 }
 
+// checkedWrappedErr implements error with strict checks for wrapped values.
+type checkedWrappedErr struct {
+	err error
+	a   []any
+}
+
+func (c *checkedWrappedErr) Error() string { return fmt.Sprintf("%v, a = %s", c.err, c.a) }
+func (c *checkedWrappedErr) Is(err error) bool {
+	var concreteErr *checkedWrappedErr
+	if !errors.As(err, &concreteErr) {
+		return false
+	}
+	return reflect.DeepEqual(c, concreteErr)
+}
+
 func (msg *DefaultMsg) WrapErr(err error, a ...any) error {
+	// provide a mostly bulletproof path to bypass this behaviour in tests
+	if testing.Testing() && os.Getenv("GOPATH") != Nonexistent {
+		return &checkedWrappedErr{err, a}
+	}
+
 	log.Println(a...)
 	return err
 }

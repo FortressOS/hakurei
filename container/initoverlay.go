@@ -3,11 +3,9 @@ package container
 import (
 	"encoding/gob"
 	"fmt"
-	"os"
-	"path/filepath"
+	"io/fs"
 	"slices"
 	"strings"
-	. "syscall"
 )
 
 const (
@@ -81,14 +79,14 @@ func (o *MountOverlayOp) Valid() bool {
 	return o.Target != nil
 }
 
-func (o *MountOverlayOp) early(*setupState) error {
+func (o *MountOverlayOp) early(_ *setupState, k syscallDispatcher) error {
 	if o.Work == nil && o.Upper != nil {
 		switch o.Upper.String() {
 		case FHSRoot: // ephemeral
 			o.ephemeral = true // intermediate root not yet available
 
 		default:
-			return msg.WrapErr(EINVAL, fmt.Sprintf("upperdir has unexpected value %q", o.Upper))
+			return msg.WrapErr(fs.ErrInvalid, fmt.Sprintf("upperdir has unexpected value %q", o.Upper))
 		}
 	}
 	// readonly handled in apply
@@ -96,11 +94,11 @@ func (o *MountOverlayOp) early(*setupState) error {
 	if !o.ephemeral {
 		if o.Upper != o.Work && (o.Upper == nil || o.Work == nil) {
 			// unreachable
-			return msg.WrapErr(ENOTRECOVERABLE, "impossible overlay state reached")
+			return msg.WrapErr(fs.ErrClosed, "impossible overlay state reached")
 		}
 
 		if o.Upper != nil {
-			if v, err := filepath.EvalSymlinks(o.Upper.String()); err != nil {
+			if v, err := k.evalSymlinks(o.Upper.String()); err != nil {
 				return wrapErrSelf(err)
 			} else {
 				o.upper = EscapeOverlayDataSegment(toHost(v))
@@ -108,7 +106,7 @@ func (o *MountOverlayOp) early(*setupState) error {
 		}
 
 		if o.Work != nil {
-			if v, err := filepath.EvalSymlinks(o.Work.String()); err != nil {
+			if v, err := k.evalSymlinks(o.Work.String()); err != nil {
 				return wrapErrSelf(err)
 			} else {
 				o.work = EscapeOverlayDataSegment(toHost(v))
@@ -118,7 +116,7 @@ func (o *MountOverlayOp) early(*setupState) error {
 
 	o.lower = make([]string, len(o.Lower))
 	for i, a := range o.Lower { // nil checked in Valid
-		if v, err := filepath.EvalSymlinks(a.String()); err != nil {
+		if v, err := k.evalSymlinks(a.String()); err != nil {
 			return wrapErrSelf(err)
 		} else {
 			o.lower[i] = EscapeOverlayDataSegment(toHost(v))
@@ -127,19 +125,19 @@ func (o *MountOverlayOp) early(*setupState) error {
 	return nil
 }
 
-func (o *MountOverlayOp) apply(state *setupState) error {
+func (o *MountOverlayOp) apply(state *setupState, k syscallDispatcher) error {
 	target := toSysroot(o.Target.String())
-	if err := os.MkdirAll(target, state.ParentPerm); err != nil {
+	if err := k.mkdirAll(target, state.ParentPerm); err != nil {
 		return wrapErrSelf(err)
 	}
 
 	if o.ephemeral {
 		var err error
 		// these directories are created internally, therefore early (absolute, symlink, prefix, escape) is bypassed
-		if o.upper, err = os.MkdirTemp(FHSRoot, intermediatePatternOverlayUpper); err != nil {
+		if o.upper, err = k.mkdirTemp(FHSRoot, intermediatePatternOverlayUpper); err != nil {
 			return wrapErrSelf(err)
 		}
-		if o.work, err = os.MkdirTemp(FHSRoot, intermediatePatternOverlayWork); err != nil {
+		if o.work, err = k.mkdirTemp(FHSRoot, intermediatePatternOverlayWork); err != nil {
 			return wrapErrSelf(err)
 		}
 	}
@@ -148,12 +146,12 @@ func (o *MountOverlayOp) apply(state *setupState) error {
 
 	if o.upper == zeroString && o.work == zeroString { // readonly
 		if len(o.Lower) < 2 {
-			return msg.WrapErr(EINVAL, "readonly overlay requires at least two lowerdir")
+			return msg.WrapErr(fs.ErrInvalid, "readonly overlay requires at least two lowerdir")
 		}
 		// "upperdir=" and "workdir=" may be omitted. In that case the overlay will be read-only
 	} else {
 		if len(o.Lower) == 0 {
-			return msg.WrapErr(EINVAL, "overlay requires at least one lowerdir")
+			return msg.WrapErr(fs.ErrInvalid, "overlay requires at least one lowerdir")
 		}
 		options = append(options,
 			OptionOverlayUpperdir+"="+o.upper,
@@ -163,7 +161,7 @@ func (o *MountOverlayOp) apply(state *setupState) error {
 		OptionOverlayLowerdir+"="+strings.Join(o.lower, SpecialOverlayPath),
 		OptionOverlayUserxattr)
 
-	return wrapErrSuffix(Mount(SourceOverlay, target, FstypeOverlay, 0, strings.Join(options, SpecialOverlayOption)),
+	return wrapErrSuffix(k.mount(SourceOverlay, target, FstypeOverlay, 0, strings.Join(options, SpecialOverlayOption)),
 		fmt.Sprintf("cannot mount overlay on %q:", o.Target))
 }
 

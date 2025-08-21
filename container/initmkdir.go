@@ -20,10 +20,10 @@ type MkdirOp struct {
 	Perm os.FileMode
 }
 
-func (m *MkdirOp) Valid() bool             { return m != nil && m.Path != nil }
-func (m *MkdirOp) early(*setupState) error { return nil }
-func (m *MkdirOp) apply(*setupState) error {
-	return wrapErrSelf(os.MkdirAll(toSysroot(m.Path.String()), m.Perm))
+func (m *MkdirOp) Valid() bool                                { return m != nil && m.Path != nil }
+func (m *MkdirOp) early(*setupState, syscallDispatcher) error { return nil }
+func (m *MkdirOp) apply(_ *setupState, k syscallDispatcher) error {
+	return wrapErrSelf(k.mkdirAll(toSysroot(m.Path.String()), m.Perm))
 }
 
 func (m *MkdirOp) Is(op Op) bool {

@@ -3,9 +3,8 @@ package container
 import (
 	"encoding/gob"
 	"fmt"
-	"os"
+	"io/fs"
 	"path"
-	"syscall"
 )
 
 func init() { gob.Register(new(SymlinkOp)) }
@@ -28,12 +27,12 @@ type SymlinkOp struct {
 
 func (l *SymlinkOp) Valid() bool { return l != nil && l.Target != nil && l.LinkName != zeroString }
 
-func (l *SymlinkOp) early(*setupState) error {
+func (l *SymlinkOp) early(_ *setupState, k syscallDispatcher) error {
 	if l.Dereference {
 		if !isAbs(l.LinkName) {
-			return msg.WrapErr(syscall.EBADE, fmt.Sprintf("path %q is not absolute", l.LinkName))
+			return msg.WrapErr(fs.ErrInvalid, fmt.Sprintf("path %q is not absolute", l.LinkName))
 		}
-		if name, err := os.Readlink(l.LinkName); err != nil {
+		if name, err := k.readlink(l.LinkName); err != nil {
 			return wrapErrSelf(err)
 		} else {
 			l.LinkName = name
@@ -42,15 +41,12 @@ func (l *SymlinkOp) early(*setupState) error {
 	return nil
 }
 
-func (l *SymlinkOp) apply(state *setupState) error {
+func (l *SymlinkOp) apply(state *setupState, k syscallDispatcher) error {
 	target := toSysroot(l.Target.String())
-	if err := os.MkdirAll(path.Dir(target), state.ParentPerm); err != nil {
+	if err := k.mkdirAll(path.Dir(target), state.ParentPerm); err != nil {
 		return wrapErrSelf(err)
 	}
-	if err := os.Symlink(l.LinkName, target); err != nil {
-		return wrapErrSelf(err)
-	}
-	return nil
+	return wrapErrSelf(k.symlink(l.LinkName, target))
 }
 
 func (l *SymlinkOp) Is(op Op) bool {

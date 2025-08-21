@@ -2,6 +2,7 @@ package container
 
 import (
 	"syscall"
+	"unsafe"
 )
 
 // SetPtracer allows processes to ptrace(2) the calling process.
@@ -35,6 +36,18 @@ func SetNoNewPrivs() error {
 		return nil
 	}
 	return errno
+}
+
+// Isatty tests whether a file descriptor refers to a terminal.
+func Isatty(fd int) bool {
+	var buf [8]byte
+	r, _, _ := syscall.Syscall(
+		syscall.SYS_IOCTL,
+		uintptr(fd),
+		syscall.TIOCGWINSZ,
+		uintptr(unsafe.Pointer(&buf[0])),
+	)
+	return r == 0
 }
 
 // IgnoringEINTR makes a function call and repeats it if it returns an

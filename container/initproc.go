@@ -3,7 +3,6 @@ package container
 import (
 	"encoding/gob"
 	"fmt"
-	"os"
 	. "syscall"
 )
 
@@ -18,14 +17,14 @@ func (f *Ops) Proc(target *Absolute) *Ops {
 // MountProcOp mounts a new instance of [FstypeProc] on container path Target.
 type MountProcOp struct{ Target *Absolute }
 
-func (p *MountProcOp) Valid() bool             { return p != nil && p.Target != nil }
-func (p *MountProcOp) early(*setupState) error { return nil }
-func (p *MountProcOp) apply(state *setupState) error {
+func (p *MountProcOp) Valid() bool                                { return p != nil && p.Target != nil }
+func (p *MountProcOp) early(*setupState, syscallDispatcher) error { return nil }
+func (p *MountProcOp) apply(state *setupState, k syscallDispatcher) error {
 	target := toSysroot(p.Target.String())
-	if err := os.MkdirAll(target, state.ParentPerm); err != nil {
+	if err := k.mkdirAll(target, state.ParentPerm); err != nil {
 		return wrapErrSelf(err)
 	}
-	return wrapErrSuffix(Mount(SourceProc, target, FstypeProc, MS_NOSUID|MS_NOEXEC|MS_NODEV, zeroString),
+	return wrapErrSuffix(k.mount(SourceProc, target, FstypeProc, MS_NOSUID|MS_NOEXEC|MS_NODEV, zeroString),
 		fmt.Sprintf("cannot mount proc on %q:", p.Target.String()))
 }
 

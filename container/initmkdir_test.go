@@ -1,8 +1,20 @@
 package container
 
-import "testing"
+import (
+	"os"
+	"testing"
+)
 
 func TestMkdirOp(t *testing.T) {
+	checkOpBehaviour(t, []opBehaviourTestCase{
+		{"success", new(Params), &MkdirOp{
+			Path: MustAbs("/.hakurei"),
+			Perm: 0500,
+		}, nil, nil, []kexpect{
+			{"mkdirAll", expectArgs{"/sysroot/.hakurei", os.FileMode(0500)}, nil, nil},
+		}, nil},
+	})
+
 	checkOpsValid(t, []opValidTestCase{
 		{"nil", (*MkdirOp)(nil), false},
 		{"zero", new(MkdirOp), false},

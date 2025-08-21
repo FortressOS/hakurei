@@ -3,10 +3,8 @@ package container
 import (
 	"errors"
 	"fmt"
-	"log"
 	"os"
 	"os/exec"
-	"os/signal"
 	"path"
 	"runtime"
 	"slices"
@@ -46,9 +44,9 @@ type (
 	// Implementations of this interface are sent as a stream of gobs.
 	Op interface {
 		// early is called in host root.
-		early(state *setupState) error
+		early(state *setupState, k syscallDispatcher) error
 		// apply is called in intermediate root.
-		apply(state *setupState) error
+		apply(state *setupState, k syscallDispatcher) error
 
 		prefix() string
 		Is(op Op) bool
@@ -82,16 +80,20 @@ type initParams struct {
 	Verbose bool
 }
 
-func Init(prepare func(prefix string), setVerbose func(verbose bool)) {
-	runtime.LockOSThread()
-	prepare("init")
+func Init(prepareLogger func(prefix string), setVerbose func(verbose bool)) {
+	initEntrypoint(prepareLogger, setVerbose, direct{})
+}
 
-	if os.Getpid() != 1 {
-		log.Fatal("this process must run as pid 1")
+func initEntrypoint(prepareLogger func(prefix string), setVerbose func(verbose bool), k syscallDispatcher) {
+	runtime.LockOSThread()
+	prepareLogger("init")
+
+	if k.getpid() != 1 {
+		k.fatal("this process must run as pid 1")
 	}
 
-	if err := SetPtracer(0); err != nil {
-		msg.Verbosef("cannot enable ptrace protection via Yama LSM: %v", err)
+	if err := k.setPtracer(0); err != nil {
+		k.verbosef("cannot enable ptrace protection via Yama LSM: %v", err)
 		// not fatal: this program has no additional privileges at initial program start
 	}
 
@@ -101,64 +103,64 @@ func Init(prepare func(prefix string), setVerbose func(verbose bool)) {
 		setupFile   *os.File
 		offsetSetup int
 	)
-	if f, err := Receive(setupEnv, &params, &setupFile); err != nil {
+	if f, err := k.receive(setupEnv, &params, &setupFile); err != nil {
 		if errors.Is(err, EBADF) {
-			log.Fatal("invalid setup descriptor")
+			k.fatal("invalid setup descriptor")
 		}
 		if errors.Is(err, ErrNotSet) {
-			log.Fatal("HAKUREI_SETUP not set")
+			k.fatal("HAKUREI_SETUP not set")
 		}
 
-		log.Fatalf("cannot decode init setup payload: %v", err)
+		k.fatalf("cannot decode init setup payload: %v", err)
 	} else {
 		if params.Ops == nil {
-			log.Fatal("invalid setup parameters")
+			k.fatal("invalid setup parameters")
 		}
 		if params.ParentPerm == 0 {
 			params.ParentPerm = 0755
 		}
 
 		setVerbose(params.Verbose)
-		msg.Verbose("received setup parameters")
+		k.verbose("received setup parameters")
 		closeSetup = f
 		offsetSetup = int(setupFile.Fd() + 1)
 	}
 
 	// write uid/gid map here so parent does not need to set dumpable
-	if err := SetDumpable(SUID_DUMP_USER); err != nil {
-		log.Fatalf("cannot set SUID_DUMP_USER: %s", err)
+	if err := k.setDumpable(SUID_DUMP_USER); err != nil {
+		k.fatalf("cannot set SUID_DUMP_USER: %s", err)
 	}
-	if err := os.WriteFile(FHSProc+"self/uid_map",
+	if err := k.writeFile(FHSProc+"self/uid_map",
 		append([]byte{}, strconv.Itoa(params.Uid)+" "+strconv.Itoa(params.HostUid)+" 1\n"...),
 		0); err != nil {
-		log.Fatalf("%v", err)
+		k.fatalf("%v", err)
 	}
-	if err := os.WriteFile(FHSProc+"self/setgroups",
+	if err := k.writeFile(FHSProc+"self/setgroups",
 		[]byte("deny\n"),
 		0); err != nil && !os.IsNotExist(err) {
-		log.Fatalf("%v", err)
+		k.fatalf("%v", err)
 	}
-	if err := os.WriteFile(FHSProc+"self/gid_map",
+	if err := k.writeFile(FHSProc+"self/gid_map",
 		append([]byte{}, strconv.Itoa(params.Gid)+" "+strconv.Itoa(params.HostGid)+" 1\n"...),
 		0); err != nil {
-		log.Fatalf("%v", err)
+		k.fatalf("%v", err)
 	}
-	if err := SetDumpable(SUID_DUMP_DISABLE); err != nil {
-		log.Fatalf("cannot set SUID_DUMP_DISABLE: %s", err)
+	if err := k.setDumpable(SUID_DUMP_DISABLE); err != nil {
+		k.fatalf("cannot set SUID_DUMP_DISABLE: %s", err)
 	}
 
-	oldmask := Umask(0)
+	oldmask := k.umask(0)
 	if params.Hostname != "" {
-		if err := Sethostname([]byte(params.Hostname)); err != nil {
-			log.Fatalf("cannot set hostname: %v", err)
+		if err := k.sethostname([]byte(params.Hostname)); err != nil {
+			k.fatalf("cannot set hostname: %v", err)
 		}
 	}
 
 	// cache sysctl before pivot_root
-	LastCap()
+	k.lastcap()
 
-	if err := Mount(zeroString, FHSRoot, zeroString, MS_SILENT|MS_SLAVE|MS_REC, zeroString); err != nil {
-		log.Fatalf("cannot make / rslave: %v", err)
+	if err := k.mount(zeroString, FHSRoot, zeroString, MS_SILENT|MS_SLAVE|MS_REC, zeroString); err != nil {
+		k.fatalf("cannot make / rslave: %v", err)
 	}
 
 	state := &setupState{Params: &params.Params}
@@ -169,40 +171,40 @@ func Init(prepare func(prefix string), setVerbose func(verbose bool)) {
 	the state of the mount namespace */
 	for i, op := range *params.Ops {
 		if op == nil || !op.Valid() {
-			log.Fatalf("invalid op at index %d", i)
+			k.fatalf("invalid op at index %d", i)
 		}
 
-		if err := op.early(state); err != nil {
-			msg.PrintBaseErr(err,
-				fmt.Sprintf("cannot prepare op %d:", i))
-			msg.BeforeExit()
-			os.Exit(1)
+		if err := op.early(state, k); err != nil {
+			k.printBaseErr(err,
+				fmt.Sprintf("cannot prepare op at index %d:", i))
+			k.beforeExit()
+			k.exit(1)
 		}
 	}
 
-	if err := Mount(SourceTmpfsRootfs, intermediateHostPath, FstypeTmpfs, MS_NODEV|MS_NOSUID, zeroString); err != nil {
-		log.Fatalf("cannot mount intermediate root: %v", err)
+	if err := k.mount(SourceTmpfsRootfs, intermediateHostPath, FstypeTmpfs, MS_NODEV|MS_NOSUID, zeroString); err != nil {
+		k.fatalf("cannot mount intermediate root: %v", err)
 	}
-	if err := os.Chdir(intermediateHostPath); err != nil {
-		log.Fatalf("cannot enter base path: %v", err)
-	}
-
-	if err := os.Mkdir(sysrootDir, 0755); err != nil {
-		log.Fatalf("%v", err)
-	}
-	if err := Mount(sysrootDir, sysrootDir, zeroString, MS_SILENT|MS_BIND|MS_REC, zeroString); err != nil {
-		log.Fatalf("cannot bind sysroot: %v", err)
+	if err := k.chdir(intermediateHostPath); err != nil {
+		k.fatalf("cannot enter intermediate host path: %v", err)
 	}
 
-	if err := os.Mkdir(hostDir, 0755); err != nil {
-		log.Fatalf("%v", err)
+	if err := k.mkdir(sysrootDir, 0755); err != nil {
+		k.fatalf("%v", err)
+	}
+	if err := k.mount(sysrootDir, sysrootDir, zeroString, MS_SILENT|MS_BIND|MS_REC, zeroString); err != nil {
+		k.fatalf("cannot bind sysroot: %v", err)
+	}
+
+	if err := k.mkdir(hostDir, 0755); err != nil {
+		k.fatalf("%v", err)
 	}
 	// pivot_root uncovers intermediateHostPath in hostDir
-	if err := PivotRoot(intermediateHostPath, hostDir); err != nil {
-		log.Fatalf("cannot pivot into intermediate root: %v", err)
+	if err := k.pivotRoot(intermediateHostPath, hostDir); err != nil {
+		k.fatalf("cannot pivot into intermediate root: %v", err)
 	}
-	if err := os.Chdir(FHSRoot); err != nil {
-		log.Fatalf("%v", err)
+	if err := k.chdir(FHSRoot); err != nil {
+		k.fatalf("cannot enter intermediate root: %v", err)
 	}
 
 	/* apply is called right after pivot_root and entering the new root;
@@ -211,62 +213,62 @@ func Init(prepare func(prefix string), setVerbose func(verbose bool)) {
 	chdir is allowed but discouraged */
 	for i, op := range *params.Ops {
 		// ops already checked during early setup
-		msg.Verbosef("%s %s", op.prefix(), op)
-		if err := op.apply(state); err != nil {
-			msg.PrintBaseErr(err,
-				fmt.Sprintf("cannot apply op %d:", i))
-			msg.BeforeExit()
-			os.Exit(1)
+		k.verbosef("%s %s", op.prefix(), op)
+		if err := op.apply(state, k); err != nil {
+			k.printBaseErr(err,
+				fmt.Sprintf("cannot apply op at index %d:", i))
+			k.beforeExit()
+			k.exit(1)
 		}
 	}
 
 	// setup requiring host root complete at this point
-	if err := Mount(hostDir, hostDir, zeroString, MS_SILENT|MS_REC|MS_PRIVATE, zeroString); err != nil {
-		log.Fatalf("cannot make host root rprivate: %v", err)
+	if err := k.mount(hostDir, hostDir, zeroString, MS_SILENT|MS_REC|MS_PRIVATE, zeroString); err != nil {
+		k.fatalf("cannot make host root rprivate: %v", err)
 	}
-	if err := Unmount(hostDir, MNT_DETACH); err != nil {
-		log.Fatalf("cannot unmount host root: %v", err)
+	if err := k.unmount(hostDir, MNT_DETACH); err != nil {
+		k.fatalf("cannot unmount host root: %v", err)
 	}
 
 	{
 		var fd int
 		if err := IgnoringEINTR(func() (err error) {
-			fd, err = Open(FHSRoot, O_DIRECTORY|O_RDONLY, 0)
+			fd, err = k.open(FHSRoot, O_DIRECTORY|O_RDONLY, 0)
 			return
 		}); err != nil {
-			log.Fatalf("cannot open intermediate root: %v", err)
+			k.fatalf("cannot open intermediate root: %v", err)
 		}
-		if err := os.Chdir(sysrootPath); err != nil {
-			log.Fatalf("%v", err)
-		}
-
-		if err := PivotRoot(".", "."); err != nil {
-			log.Fatalf("cannot pivot into sysroot: %v", err)
-		}
-		if err := Fchdir(fd); err != nil {
-			log.Fatalf("cannot re-enter intermediate root: %v", err)
-		}
-		if err := Unmount(".", MNT_DETACH); err != nil {
-			log.Fatalf("cannot unmount intemediate root: %v", err)
-		}
-		if err := os.Chdir(FHSRoot); err != nil {
-			log.Fatalf("%v", err)
+		if err := k.chdir(sysrootPath); err != nil {
+			k.fatalf("cannot enter sysroot: %v", err)
 		}
 
-		if err := Close(fd); err != nil {
-			log.Fatalf("cannot close intermediate root: %v", err)
+		if err := k.pivotRoot(".", "."); err != nil {
+			k.fatalf("cannot pivot into sysroot: %v", err)
+		}
+		if err := k.fchdir(fd); err != nil {
+			k.fatalf("cannot re-enter intermediate root: %v", err)
+		}
+		if err := k.unmount(".", MNT_DETACH); err != nil {
+			k.fatalf("cannot unmount intemediate root: %v", err)
+		}
+		if err := k.chdir(FHSRoot); err != nil {
+			k.fatalf("cannot enter root: %v", err)
+		}
+
+		if err := k.close(fd); err != nil {
+			k.fatalf("cannot close intermediate root: %v", err)
 		}
 	}
 
-	if _, _, errno := Syscall(SYS_PRCTL, PR_CAP_AMBIENT, PR_CAP_AMBIENT_CLEAR_ALL, 0); errno != 0 {
-		log.Fatalf("cannot clear the ambient capability set: %v", errno)
+	if err := k.capAmbientClearAll(); err != nil {
+		k.fatalf("cannot clear the ambient capability set: %v", err)
 	}
-	for i := uintptr(0); i <= LastCap(); i++ {
+	for i := uintptr(0); i <= k.lastcap(); i++ {
 		if params.Privileged && i == CAP_SYS_ADMIN {
 			continue
 		}
-		if _, _, errno := Syscall(SYS_PRCTL, PR_CAPBSET_DROP, i, 0); errno != 0 {
-			log.Fatalf("cannot drop capability from bonding set: %v", errno)
+		if err := k.capBoundingSetDrop(i); err != nil {
+			k.fatalf("cannot drop capability from bounding set: %v", err)
 		}
 	}
 
@@ -274,38 +276,38 @@ func Init(prepare func(prefix string), setVerbose func(verbose bool)) {
 	if params.Privileged {
 		keep[capToIndex(CAP_SYS_ADMIN)] |= capToMask(CAP_SYS_ADMIN)
 
-		if _, _, errno := Syscall(SYS_PRCTL, PR_CAP_AMBIENT, PR_CAP_AMBIENT_RAISE, CAP_SYS_ADMIN); errno != 0 {
-			log.Fatalf("cannot raise CAP_SYS_ADMIN: %v", errno)
+		if err := k.capAmbientRaise(CAP_SYS_ADMIN); err != nil {
+			k.fatalf("cannot raise CAP_SYS_ADMIN: %v", err)
 		}
 	}
-	if err := capset(
+	if err := k.capset(
 		&capHeader{_LINUX_CAPABILITY_VERSION_3, 0},
 		&[2]capData{{0, keep[0], keep[0]}, {0, keep[1], keep[1]}},
 	); err != nil {
-		log.Fatalf("cannot capset: %v", err)
+		k.fatalf("cannot capset: %v", err)
 	}
 
 	if !params.SeccompDisable {
 		rules := params.SeccompRules
 		if len(rules) == 0 { // non-empty rules slice always overrides presets
-			msg.Verbosef("resolving presets %#x", params.SeccompPresets)
+			k.verbosef("resolving presets %#x", params.SeccompPresets)
 			rules = seccomp.Preset(params.SeccompPresets, params.SeccompFlags)
 		}
-		if err := seccomp.Load(rules, params.SeccompFlags); err != nil {
+		if err := k.seccompLoad(rules, params.SeccompFlags); err != nil {
 			// this also indirectly asserts PR_SET_NO_NEW_PRIVS
-			log.Fatalf("cannot load syscall filter: %v", err)
+			k.fatalf("cannot load syscall filter: %v", err)
 		}
-		msg.Verbosef("%d filter rules loaded", len(rules))
+		k.verbosef("%d filter rules loaded", len(rules))
 	} else {
-		msg.Verbose("syscall filter not configured")
+		k.verbose("syscall filter not configured")
 	}
 
 	extraFiles := make([]*os.File, params.Count)
 	for i := range extraFiles {
 		// setup fd is placed before all extra files
-		extraFiles[i] = os.NewFile(uintptr(offsetSetup+i), "extra file "+strconv.Itoa(i))
+		extraFiles[i] = k.newFile(uintptr(offsetSetup+i), "extra file "+strconv.Itoa(i))
 	}
-	Umask(oldmask)
+	k.umask(oldmask)
 
 	cmd := exec.Command(params.Path.String())
 	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
@@ -314,14 +316,14 @@ func Init(prepare func(prefix string), setVerbose func(verbose bool)) {
 	cmd.ExtraFiles = extraFiles
 	cmd.Dir = params.Dir.String()
 
-	msg.Verbosef("starting initial program %s", params.Path)
-	if err := cmd.Start(); err != nil {
-		log.Fatalf("%v", err)
+	k.verbosef("starting initial program %s", params.Path)
+	if err := k.start(cmd); err != nil {
+		k.fatalf("%v", err)
 	}
-	msg.Suspend()
+	k.suspend()
 
 	if err := closeSetup(); err != nil {
-		log.Printf("cannot close setup pipe: %v", err)
+		k.printf("cannot close setup pipe: %v", err)
 		// not fatal
 	}
 
@@ -351,11 +353,11 @@ func Init(prepare func(prefix string), setVerbose func(verbose bool)) {
 
 			err = EINTR
 			for errors.Is(err, EINTR) {
-				wpid, err = Wait4(-1, &wstatus, 0, nil)
+				wpid, err = k.wait4(-1, &wstatus, 0, nil)
 			}
 		}
 		if !errors.Is(err, ECHILD) {
-			log.Printf("unexpected wait4 response: %v", err)
+			k.printf("unexpected wait4 response: %v", err)
 		}
 
 		close(done)
@@ -363,7 +365,7 @@ func Init(prepare func(prefix string), setVerbose func(verbose bool)) {
 
 	// handle signals to dump withheld messages
 	sig := make(chan os.Signal, 2)
-	signal.Notify(sig, os.Interrupt, CancelSignal)
+	k.notify(sig, os.Interrupt, CancelSignal)
 
 	// closed after residualProcessTimeout has elapsed after initial process death
 	timeout := make(chan struct{})
@@ -372,45 +374,48 @@ func Init(prepare func(prefix string), setVerbose func(verbose bool)) {
 	for {
 		select {
 		case s := <-sig:
-			if msg.Resume() {
-				msg.Verbosef("%s after process start", s.String())
+			if k.resume() {
+				k.verbosef("%s after process start", s.String())
 			} else {
-				msg.Verbosef("got %s", s.String())
+				k.verbosef("got %s", s.String())
 			}
 			if s == CancelSignal && params.ForwardCancel && cmd.Process != nil {
-				msg.Verbose("forwarding context cancellation")
-				if err := cmd.Process.Signal(os.Interrupt); err != nil {
-					log.Printf("cannot forward cancellation: %v", err)
+				k.verbose("forwarding context cancellation")
+				if err := k.signal(cmd, os.Interrupt); err != nil {
+					k.printf("cannot forward cancellation: %v", err)
 				}
 				continue
 			}
-			os.Exit(0)
+			k.exit(0)
+
 		case w := <-info:
 			if w.wpid == cmd.Process.Pid {
 				// initial process exited, output is most likely available again
-				msg.Resume()
+				k.resume()
 
 				switch {
 				case w.wstatus.Exited():
 					r = w.wstatus.ExitStatus()
-					msg.Verbosef("initial process exited with code %d", w.wstatus.ExitStatus())
+					k.verbosef("initial process exited with code %d", w.wstatus.ExitStatus())
 				case w.wstatus.Signaled():
 					r = 128 + int(w.wstatus.Signal())
-					msg.Verbosef("initial process exited with signal %s", w.wstatus.Signal())
+					k.verbosef("initial process exited with signal %s", w.wstatus.Signal())
 				default:
 					r = 255
-					msg.Verbosef("initial process exited with status %#x", w.wstatus)
+					k.verbosef("initial process exited with status %#x", w.wstatus)
 				}
 
 				go func() { time.Sleep(params.AdoptWaitDelay); close(timeout) }()
 			}
+
 		case <-done:
-			msg.BeforeExit()
-			os.Exit(r)
+			k.beforeExit()
+			k.exit(r)
+
 		case <-timeout:
-			log.Println("timeout exceeded waiting for lingering processes")
-			msg.BeforeExit()
-			os.Exit(r)
+			k.printf("timeout exceeded waiting for lingering processes")
+			k.beforeExit()
+			k.exit(r)
 		}
 	}
 }

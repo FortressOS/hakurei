@@ -151,8 +151,7 @@ func (p *procPaths) mountinfo(f func(d *vfs.MountInfoDecoder) error) error {
 		d := vfs.NewMountInfoDecoder(r)
 		err0 := f(d)
 		if err = r.Close(); err != nil {
-			return wrapErrSuffix(err,
-				"cannot close mountinfo:")
+			return wrapErrSelf(err)
 		} else if err = d.Err(); err != nil {
 			return wrapErrSuffix(err,
 				"cannot parse mountinfo:")

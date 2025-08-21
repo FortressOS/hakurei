@@ -1,8 +1,134 @@
 package container
 
-import "testing"
+import (
+	"errors"
+	"os"
+	"syscall"
+	"testing"
+)
 
 func TestBindMountOp(t *testing.T) {
+	checkOpBehaviour(t, []opBehaviourTestCase{
+		{"ENOENT not optional", new(Params), &BindMountOp{
+			Source: MustAbs("/bin/"),
+			Target: MustAbs("/bin/"),
+		}, []kexpect{
+			{"evalSymlinks", expectArgs{"/bin/"}, "", syscall.ENOENT},
+		}, wrapErrSelf(syscall.ENOENT), nil, nil},
+
+		{"skip optional", new(Params), &BindMountOp{
+			Source: MustAbs("/bin/"),
+			Target: MustAbs("/bin/"),
+			Flags:  BindOptional,
+		}, []kexpect{
+			{"evalSymlinks", expectArgs{"/bin/"}, "", syscall.ENOENT},
+		}, nil, nil, nil},
+
+		{"success optional", new(Params), &BindMountOp{
+			Source: MustAbs("/bin/"),
+			Target: MustAbs("/bin/"),
+			Flags:  BindOptional,
+		}, []kexpect{
+			{"evalSymlinks", expectArgs{"/bin/"}, "/usr/bin", nil},
+		}, nil, []kexpect{
+			{"stat", expectArgs{"/host/usr/bin"}, isDirFi(true), nil},
+			{"mkdirAll", expectArgs{"/sysroot/bin", os.FileMode(0700)}, nil, nil},
+			{"bindMount", expectArgs{"/host/usr/bin", "/sysroot/bin", uintptr(0x4005), false}, nil, nil},
+		}, nil},
+
+		{"ensureFile device", new(Params), &BindMountOp{
+			Source: MustAbs("/dev/null"),
+			Target: MustAbs("/dev/null"),
+			Flags:  BindWritable | BindDevice,
+		}, []kexpect{
+			{"evalSymlinks", expectArgs{"/dev/null"}, "/dev/null", nil},
+		}, nil, []kexpect{
+			{"stat", expectArgs{"/host/dev/null"}, isDirFi(false), nil},
+			{"ensureFile", expectArgs{"/sysroot/dev/null", os.FileMode(0444), os.FileMode(0700)}, nil, errUnique},
+		}, errUnique},
+
+		{"success device ro", new(Params), &BindMountOp{
+			Source: MustAbs("/dev/null"),
+			Target: MustAbs("/dev/null"),
+			Flags:  BindDevice,
+		}, []kexpect{
+			{"evalSymlinks", expectArgs{"/dev/null"}, "/dev/null", nil},
+		}, nil, []kexpect{
+			{"stat", expectArgs{"/host/dev/null"}, isDirFi(false), nil},
+			{"ensureFile", expectArgs{"/sysroot/dev/null", os.FileMode(0444), os.FileMode(0700)}, nil, nil},
+			{"bindMount", expectArgs{"/host/dev/null", "/sysroot/dev/null", uintptr(0x4001), false}, nil, nil},
+		}, nil},
+
+		{"success device", new(Params), &BindMountOp{
+			Source: MustAbs("/dev/null"),
+			Target: MustAbs("/dev/null"),
+			Flags:  BindWritable | BindDevice,
+		}, []kexpect{
+			{"evalSymlinks", expectArgs{"/dev/null"}, "/dev/null", nil},
+		}, nil, []kexpect{
+			{"stat", expectArgs{"/host/dev/null"}, isDirFi(false), nil},
+			{"ensureFile", expectArgs{"/sysroot/dev/null", os.FileMode(0444), os.FileMode(0700)}, nil, nil},
+			{"bindMount", expectArgs{"/host/dev/null", "/sysroot/dev/null", uintptr(0x4000), false}, nil, nil},
+		}, nil},
+
+		{"evalSymlinks", new(Params), &BindMountOp{
+			Source: MustAbs("/bin/"),
+			Target: MustAbs("/bin/"),
+		}, []kexpect{
+			{"evalSymlinks", expectArgs{"/bin/"}, "/usr/bin", errUnique},
+		}, wrapErrSelf(errUnique), nil, nil},
+
+		{"stat", new(Params), &BindMountOp{
+			Source: MustAbs("/bin/"),
+			Target: MustAbs("/bin/"),
+		}, []kexpect{
+			{"evalSymlinks", expectArgs{"/bin/"}, "/usr/bin", nil},
+		}, nil, []kexpect{
+			{"stat", expectArgs{"/host/usr/bin"}, isDirFi(true), errUnique},
+		}, wrapErrSelf(errUnique)},
+
+		{"mkdirAll", new(Params), &BindMountOp{
+			Source: MustAbs("/bin/"),
+			Target: MustAbs("/bin/"),
+		}, []kexpect{
+			{"evalSymlinks", expectArgs{"/bin/"}, "/usr/bin", nil},
+		}, nil, []kexpect{
+			{"stat", expectArgs{"/host/usr/bin"}, isDirFi(true), nil},
+			{"mkdirAll", expectArgs{"/sysroot/bin", os.FileMode(0700)}, nil, errUnique},
+		}, wrapErrSelf(errUnique)},
+
+		{"bindMount", new(Params), &BindMountOp{
+			Source: MustAbs("/bin/"),
+			Target: MustAbs("/bin/"),
+		}, []kexpect{
+			{"evalSymlinks", expectArgs{"/bin/"}, "/usr/bin", nil},
+		}, nil, []kexpect{
+			{"stat", expectArgs{"/host/usr/bin"}, isDirFi(true), nil},
+			{"mkdirAll", expectArgs{"/sysroot/bin", os.FileMode(0700)}, nil, nil},
+			{"bindMount", expectArgs{"/host/usr/bin", "/sysroot/bin", uintptr(0x4005), false}, nil, errUnique},
+		}, errUnique},
+
+		{"success", new(Params), &BindMountOp{
+			Source: MustAbs("/bin/"),
+			Target: MustAbs("/bin/"),
+		}, []kexpect{
+			{"evalSymlinks", expectArgs{"/bin/"}, "/usr/bin", nil},
+		}, nil, []kexpect{
+			{"stat", expectArgs{"/host/usr/bin"}, isDirFi(true), nil},
+			{"mkdirAll", expectArgs{"/sysroot/bin", os.FileMode(0700)}, nil, nil},
+			{"bindMount", expectArgs{"/host/usr/bin", "/sysroot/bin", uintptr(0x4005), false}, nil, nil},
+		}, nil},
+	})
+
+	t.Run("unreachable", func(t *testing.T) {
+		t.Run("nil sourceFinal not optional", func(t *testing.T) {
+			wantErr := msg.WrapErr(os.ErrClosed, "impossible bind state reached")
+			if err := new(BindMountOp).apply(nil, nil); !errors.Is(err, wantErr) {
+				t.Errorf("apply: error = %v, want %v", err, wantErr)
+			}
+		})
+	})
+
 	checkOpsValid(t, []opValidTestCase{
 		{"nil", (*BindMountOp)(nil), false},
 		{"zero", new(BindMountOp), false},

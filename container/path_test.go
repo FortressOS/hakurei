@@ -2,6 +2,7 @@ package container
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"math"
 	"os"
@@ -55,10 +56,18 @@ func InternalToHostOvlEscape(s string) string { return EscapeOverlayDataSegment(
 
 func TestCreateFile(t *testing.T) {
 	t.Run("nonexistent", func(t *testing.T) {
-		if err := createFile(path.Join(Nonexistent, ":3"), 0644, 0755, nil); !os.IsNotExist(err) {
+		if err := createFile(path.Join(Nonexistent, ":3"), 0644, 0755, nil); !errors.Is(err, wrapErrSelf(&os.PathError{
+			Op:   "mkdir",
+			Path: "/proc/nonexistent",
+			Err:  syscall.ENOENT,
+		})) {
 			t.Errorf("createFile: error = %v", err)
 		}
-		if err := createFile(path.Join(Nonexistent), 0644, 0755, nil); !os.IsNotExist(err) {
+		if err := createFile(path.Join(Nonexistent), 0644, 0755, nil); !errors.Is(err, wrapErrSelf(&os.PathError{
+			Op:   "open",
+			Path: "/proc/nonexistent",
+			Err:  syscall.ENOENT,
+		})) {
 			t.Errorf("createFile: error = %v", err)
 		}
 	})
@@ -110,17 +119,26 @@ func TestEnsureFile(t *testing.T) {
 			if err := os.Chmod(tempDir, 0); err != nil {
 				t.Fatalf("Chmod: error = %v", err)
 			}
-			if err := ensureFile(pathname, 0644, 0755); !errors.Is(err, syscall.EACCES) {
-				t.Errorf("ensureFile: error = %v, want %v", err, syscall.EACCES)
+
+			wantErr := wrapErrSelf(&os.PathError{
+				Op:   "stat",
+				Path: pathname,
+				Err:  syscall.EACCES,
+			})
+			if err := ensureFile(pathname, 0644, 0755); !errors.Is(err, wantErr) {
+				t.Errorf("ensureFile: error = %v, want %v", err, wantErr)
 			}
+
 			if err := os.Chmod(tempDir, 0755); err != nil {
 				t.Fatalf("Chmod: error = %v", err)
 			}
 		})
 
 		t.Run("directory", func(t *testing.T) {
-			if err := ensureFile(t.TempDir(), 0644, 0755); !errors.Is(err, syscall.EISDIR) {
-				t.Errorf("ensureFile: error = %v, want %v", err, syscall.EISDIR)
+			pathname := t.TempDir()
+			wantErr := msg.WrapErr(syscall.EISDIR, fmt.Sprintf("path %q is a directory", pathname))
+			if err := ensureFile(pathname, 0644, 0755); !errors.Is(err, wantErr) {
+				t.Errorf("ensureFile: error = %v, want %v", err, wantErr)
 			}
 		})
 
@@ -159,8 +177,13 @@ func TestProcPaths(t *testing.T) {
 	t.Run("mountinfo", func(t *testing.T) {
 		t.Run("nonexistent", func(t *testing.T) {
 			nonexistentProc := newProcPaths(t.TempDir())
-			if err := nonexistentProc.mountinfo(func(*vfs.MountInfoDecoder) error { return syscall.EINVAL }); !os.IsNotExist(err) {
-				t.Errorf("mountinfo: error = %v", err)
+			wantErr := wrapErrSelf(&os.PathError{
+				Op:   "open",
+				Path: nonexistentProc.self + "/mountinfo",
+				Err:  syscall.ENOENT,
+			})
+			if err := nonexistentProc.mountinfo(func(*vfs.MountInfoDecoder) error { return syscall.EINVAL }); !errors.Is(err, wantErr) {
+				t.Errorf("mountinfo: error = %v, want %v", err, wantErr)
 			}
 		})
 
@@ -193,7 +216,13 @@ func TestProcPaths(t *testing.T) {
 			})
 
 			t.Run("closed", func(t *testing.T) {
-				if err := newProcPaths(tempDir).mountinfo(func(d *vfs.MountInfoDecoder) error {
+				p := newProcPaths(tempDir)
+				wantErr := wrapErrSelf(&os.PathError{
+					Op:   "close",
+					Path: p.self + "/mountinfo",
+					Err:  os.ErrClosed,
+				})
+				if err := p.mountinfo(func(d *vfs.MountInfoDecoder) error {
 					v := reflect.ValueOf(d).Elem().FieldByName("s").Elem().FieldByName("r")
 					v = reflect.NewAt(v.Type(), unsafe.Pointer(v.UnsafeAddr()))
 					if f, ok := v.Elem().Interface().(io.ReadCloser); !ok {
@@ -202,8 +231,8 @@ func TestProcPaths(t *testing.T) {
 					} else {
 						return f.Close()
 					}
-				}); !errors.Is(err, os.ErrClosed) {
-					t.Errorf("mountinfo: error = %v, want %v", err, os.ErrClosed)
+				}); !errors.Is(err, wantErr) {
+					t.Errorf("mountinfo: error = %v, want %v", err, wantErr)
 				}
 			})
 
@@ -213,8 +242,9 @@ func TestProcPaths(t *testing.T) {
 					t.Fatalf("WriteFile: error = %v", err)
 				}
 
-				if err := newProcPaths(tempDir).mountinfo(func(d *vfs.MountInfoDecoder) error { return d.Decode(new(*vfs.MountInfo)) }); !errors.Is(err, vfs.ErrMountInfoFields) {
-					t.Fatalf("mountinfo: error = %v, want %v", err, vfs.ErrMountInfoFields)
+				wantErr := wrapErrSuffix(vfs.ErrMountInfoFields, "cannot parse mountinfo:")
+				if err := newProcPaths(tempDir).mountinfo(func(d *vfs.MountInfoDecoder) error { return d.Decode(new(*vfs.MountInfo)) }); !errors.Is(err, wantErr) {
+					t.Fatalf("mountinfo: error = %v, want %v", err, wantErr)
 				}
 			})
 		})

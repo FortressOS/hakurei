@@ -19,10 +19,10 @@ type RemountOp struct {
 	Flags  uintptr
 }
 
-func (r *RemountOp) Valid() bool           { return r != nil && r.Target != nil }
-func (*RemountOp) early(*setupState) error { return nil }
-func (r *RemountOp) apply(*setupState) error {
-	return wrapErrSuffix(hostProc.remount(toSysroot(r.Target.String()), r.Flags),
+func (r *RemountOp) Valid() bool                              { return r != nil && r.Target != nil }
+func (*RemountOp) early(*setupState, syscallDispatcher) error { return nil }
+func (r *RemountOp) apply(_ *setupState, k syscallDispatcher) error {
+	return wrapErrSuffix(k.remount(toSysroot(r.Target.String()), r.Flags),
 		fmt.Sprintf("cannot remount %q:", r.Target))
 }
 
