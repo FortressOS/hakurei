@@ -131,13 +131,14 @@ func ensureFile(name string, perm, pperm os.FileMode) error {
 	return err
 }
 
-var hostProc = newProcPaths(hostPath)
+var hostProc = newProcPaths(direct{}, hostPath)
 
-func newProcPaths(prefix string) *procPaths {
-	return &procPaths{prefix + "/proc", prefix + "/proc/self"}
+func newProcPaths(k syscallDispatcher, prefix string) *procPaths {
+	return &procPaths{k, prefix + "/proc", prefix + "/proc/self"}
 }
 
 type procPaths struct {
+	k      syscallDispatcher
 	prefix string
 	self   string
 }
@@ -145,7 +146,7 @@ type procPaths struct {
 func (p *procPaths) stdout() string   { return p.self + "/fd/1" }
 func (p *procPaths) fd(fd int) string { return p.self + "/fd/" + strconv.Itoa(fd) }
 func (p *procPaths) mountinfo(f func(d *vfs.MountInfoDecoder) error) error {
-	if r, err := os.Open(p.self + "/mountinfo"); err != nil {
+	if r, err := p.k.openNew(p.self + "/mountinfo"); err != nil {
 		return wrapErrSelf(err)
 	} else {
 		d := vfs.NewMountInfoDecoder(r)

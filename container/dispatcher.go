@@ -77,6 +77,8 @@ type syscallDispatcher interface {
 	mkdirAll(path string, perm os.FileMode) error
 	// readdir provides [os.ReadDir].
 	readdir(name string) ([]os.DirEntry, error)
+	// openNew provides [os.Open].
+	openNew(name string) (osFile, error)
 	// writeFile provides [os.WriteFile].
 	writeFile(name string, data []byte, perm os.FileMode) error
 	// createTemp provides [os.CreateTemp].
@@ -154,8 +156,8 @@ func (direct) bindMount(source, target string, flags uintptr, eq bool) error {
 func (direct) remount(target string, flags uintptr) error {
 	return hostProc.remount(target, flags)
 }
-func (direct) mountTmpfs(fsname, target string, flags uintptr, size int, perm os.FileMode) error {
-	return mountTmpfs(fsname, target, flags, size, perm)
+func (k direct) mountTmpfs(fsname, target string, flags uintptr, size int, perm os.FileMode) error {
+	return mountTmpfs(k, fsname, target, flags, size, perm)
 }
 func (direct) ensureFile(name string, perm, pperm os.FileMode) error {
 	return ensureFile(name, perm, pperm)
@@ -176,6 +178,7 @@ func (direct) mkdir(name string, perm os.FileMode) error     { return os.Mkdir(n
 func (direct) mkdirTemp(dir, pattern string) (string, error) { return os.MkdirTemp(dir, pattern) }
 func (direct) mkdirAll(path string, perm os.FileMode) error  { return os.MkdirAll(path, perm) }
 func (direct) readdir(name string) ([]os.DirEntry, error)    { return os.ReadDir(name) }
+func (direct) openNew(name string) (osFile, error)           { return os.Open(name) }
 func (direct) writeFile(name string, data []byte, perm os.FileMode) error {
 	return os.WriteFile(name, data, perm)
 }

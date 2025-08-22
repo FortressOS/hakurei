@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 	. "syscall"
 
@@ -96,29 +95,33 @@ const (
 
 // bindMount mounts source on target and recursively applies flags if MS_REC is set.
 func (p *procPaths) bindMount(source, target string, flags uintptr, eq bool) error {
+	// syscallDispatcher.bindMount and procPaths.remount must not be called from this function
+
 	if eq {
-		msg.Verbosef("resolved %q flags %#x", target, flags)
+		p.k.verbosef("resolved %q flags %#x", target, flags)
 	} else {
-		msg.Verbosef("resolved %q on %q flags %#x", source, target, flags)
+		p.k.verbosef("resolved %q on %q flags %#x", source, target, flags)
 	}
 
-	if err := Mount(source, target, FstypeNULL, MS_SILENT|MS_BIND|flags&MS_REC, zeroString); err != nil {
+	if err := p.k.mount(source, target, FstypeNULL, MS_SILENT|MS_BIND|flags&MS_REC, zeroString); err != nil {
 		return wrapErrSuffix(err,
 			fmt.Sprintf("cannot mount %q on %q:", source, target))
 	}
 
-	return p.remount(target, flags)
+	return p.k.remount(target, flags)
 }
 
 // remount applies flags on target, recursively if MS_REC is set.
 func (p *procPaths) remount(target string, flags uintptr) error {
+	// syscallDispatcher methods bindMount, remount must not be called from this function
+
 	var targetFinal string
-	if v, err := filepath.EvalSymlinks(target); err != nil {
+	if v, err := p.k.evalSymlinks(target); err != nil {
 		return wrapErrSelf(err)
 	} else {
 		targetFinal = v
 		if targetFinal != target {
-			msg.Verbosef("target resolves to %q", targetFinal)
+			p.k.verbosef("target resolves to %q", targetFinal)
 		}
 	}
 
@@ -127,15 +130,15 @@ func (p *procPaths) remount(target string, flags uintptr) error {
 	{
 		var destFd int
 		if err := IgnoringEINTR(func() (err error) {
-			destFd, err = Open(targetFinal, O_PATH|O_CLOEXEC, 0)
+			destFd, err = p.k.open(targetFinal, O_PATH|O_CLOEXEC, 0)
 			return
 		}); err != nil {
 			return wrapErrSuffix(err,
 				fmt.Sprintf("cannot open %q:", targetFinal))
 		}
-		if v, err := os.Readlink(p.fd(destFd)); err != nil {
+		if v, err := p.k.readlink(p.fd(destFd)); err != nil {
 			return wrapErrSelf(err)
-		} else if err = Close(destFd); err != nil {
+		} else if err = p.k.close(destFd); err != nil {
 			return wrapErrSuffix(err,
 				fmt.Sprintf("cannot close %q:", targetFinal))
 		} else {
@@ -144,7 +147,7 @@ func (p *procPaths) remount(target string, flags uintptr) error {
 	}
 
 	mf := MS_NOSUID | flags&MS_NODEV | flags&MS_RDONLY
-	return hostProc.mountinfo(func(d *vfs.MountInfoDecoder) error {
+	return p.mountinfo(func(d *vfs.MountInfoDecoder) error {
 		n, err := d.Unfold(targetKFinal)
 		if err != nil {
 			if errors.Is(err, ESTALE) {
@@ -155,17 +158,25 @@ func (p *procPaths) remount(target string, flags uintptr) error {
 				"cannot unfold mount hierarchy:")
 		}
 
-		if err = remountWithFlags(n, mf); err != nil {
-			return err
+		if err = remountWithFlags(p.k, n, mf); err != nil {
+			return wrapErrSuffix(err,
+				fmt.Sprintf("cannot remount %q:", n.Clean))
 		}
 		if flags&MS_REC == 0 {
 			return nil
 		}
 
 		for cur := range n.Collective() {
-			err = remountWithFlags(cur, mf)
+			// avoid remounting twice
+			if cur == n {
+				continue
+			}
+
+			err = remountWithFlags(p.k, cur, mf)
+
 			if err != nil && !errors.Is(err, EACCES) {
-				return err
+				return wrapErrSuffix(err,
+					fmt.Sprintf("cannot propagate flags to %q:", cur.Clean))
 			}
 		}
 
@@ -174,24 +185,26 @@ func (p *procPaths) remount(target string, flags uintptr) error {
 }
 
 // remountWithFlags remounts mount point described by [vfs.MountInfoNode].
-func remountWithFlags(n *vfs.MountInfoNode, mf uintptr) error {
+func remountWithFlags(k syscallDispatcher, n *vfs.MountInfoNode, mf uintptr) error {
+	// syscallDispatcher methods bindMount, remount must not be called from this function
+
 	kf, unmatched := n.Flags()
 	if len(unmatched) != 0 {
-		msg.Verbosef("unmatched vfs options: %q", unmatched)
+		k.verbosef("unmatched vfs options: %q", unmatched)
 	}
 
 	if kf&mf != mf {
-		return wrapErrSuffix(
-			Mount(SourceNone, n.Clean, FstypeNULL, MS_SILENT|MS_BIND|MS_REMOUNT|kf|mf, zeroString),
-			fmt.Sprintf("cannot remount %q:", n.Clean))
+		return k.mount(SourceNone, n.Clean, FstypeNULL, MS_SILENT|MS_BIND|MS_REMOUNT|kf|mf, zeroString)
 	}
 	return nil
 }
 
 // mountTmpfs mounts tmpfs on target;
 // callers who wish to mount to sysroot must pass the return value of toSysroot.
-func mountTmpfs(fsname, target string, flags uintptr, size int, perm os.FileMode) error {
-	if err := os.MkdirAll(target, parentPerm(perm)); err != nil {
+func mountTmpfs(k syscallDispatcher, fsname, target string, flags uintptr, size int, perm os.FileMode) error {
+	// syscallDispatcher.mountTmpfs must not be called from this function
+
+	if err := k.mkdirAll(target, parentPerm(perm)); err != nil {
 		return wrapErrSelf(err)
 	}
 	opt := fmt.Sprintf("mode=%#o", perm)
@@ -199,7 +212,7 @@ func mountTmpfs(fsname, target string, flags uintptr, size int, perm os.FileMode
 		opt += fmt.Sprintf(",size=%d", size)
 	}
 	return wrapErrSuffix(
-		Mount(fsname, target, FstypeTmpfs, flags, opt),
+		k.mount(fsname, target, FstypeTmpfs, flags, opt),
 		fmt.Sprintf("cannot mount tmpfs on %q:", target))
 }
 

@@ -176,7 +176,7 @@ func TestProcPaths(t *testing.T) {
 
 	t.Run("mountinfo", func(t *testing.T) {
 		t.Run("nonexistent", func(t *testing.T) {
-			nonexistentProc := newProcPaths(t.TempDir())
+			nonexistentProc := newProcPaths(direct{}, t.TempDir())
 			wantErr := wrapErrSelf(&os.PathError{
 				Op:   "open",
 				Path: nonexistentProc.self + "/mountinfo",
@@ -201,7 +201,7 @@ func TestProcPaths(t *testing.T) {
 				}
 
 				var mountInfo *vfs.MountInfo
-				if err := newProcPaths(tempDir).mountinfo(func(d *vfs.MountInfoDecoder) error { return d.Decode(&mountInfo) }); err != nil {
+				if err := newProcPaths(direct{}, tempDir).mountinfo(func(d *vfs.MountInfoDecoder) error { return d.Decode(&mountInfo) }); err != nil {
 					t.Fatalf("mountinfo: error = %v", err)
 				}
 
@@ -216,7 +216,7 @@ func TestProcPaths(t *testing.T) {
 			})
 
 			t.Run("closed", func(t *testing.T) {
-				p := newProcPaths(tempDir)
+				p := newProcPaths(direct{}, tempDir)
 				wantErr := wrapErrSelf(&os.PathError{
 					Op:   "close",
 					Path: p.self + "/mountinfo",
@@ -243,7 +243,7 @@ func TestProcPaths(t *testing.T) {
 				}
 
 				wantErr := wrapErrSuffix(vfs.ErrMountInfoFields, "cannot parse mountinfo:")
-				if err := newProcPaths(tempDir).mountinfo(func(d *vfs.MountInfoDecoder) error { return d.Decode(new(*vfs.MountInfo)) }); !errors.Is(err, wantErr) {
+				if err := newProcPaths(direct{}, tempDir).mountinfo(func(d *vfs.MountInfoDecoder) error { return d.Decode(new(*vfs.MountInfo)) }); !errors.Is(err, wantErr) {
 					t.Fatalf("mountinfo: error = %v, want %v", err, wantErr)
 				}
 			})

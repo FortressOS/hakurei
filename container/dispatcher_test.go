@@ -4,12 +4,14 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	"os/exec"
 	"reflect"
 	"runtime"
 	"slices"
+	"strings"
 	"syscall"
 	"testing"
 	"time"
@@ -101,6 +103,27 @@ func checkOpMeta(t *testing.T, testCases []opMetaTestCase) {
 	})
 }
 
+type simpleTestCase struct {
+	name    string
+	f       func(k syscallDispatcher) error
+	want    []kexpect
+	wantErr error
+}
+
+func checkSimple(t *testing.T, fname string, testCases []simpleTestCase) {
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			k := &kstub{t: t, want: tc.want}
+			if err := tc.f(k); !errors.Is(err, tc.wantErr) {
+				t.Errorf("%s: error = %v, want %v", fname, err, tc.wantErr)
+			}
+			if len(k.want) != k.pos {
+				t.Errorf("%s: %d calls, want %d", fname, k.pos, len(k.want))
+			}
+		})
+	}
+}
+
 type opBehaviourTestCase struct {
 	name   string
 	params *Params
@@ -171,6 +194,24 @@ func (f *checkedOsFile) Close() error {
 		return syscall.ENOTRECOVERABLE
 	}
 	return f.closeErr
+}
+
+func newConstFile(s string) osFile { return &readerOsFile{Reader: strings.NewReader(s)} }
+
+type readerOsFile struct {
+	closed bool
+	io.Reader
+}
+
+func (*readerOsFile) Name() string               { panic("unreachable") }
+func (*readerOsFile) Write([]byte) (int, error)  { panic("unreachable") }
+func (*readerOsFile) Stat() (fs.FileInfo, error) { panic("unreachable") }
+func (r *readerOsFile) Close() error {
+	if r.closed {
+		return os.ErrClosed
+	}
+	r.closed = true
+	return nil
 }
 
 type writeErrOsFile struct{ err error }
@@ -434,6 +475,12 @@ func (k *kstub) mkdirAll(path string, perm os.FileMode) error {
 func (k *kstub) readdir(name string) ([]os.DirEntry, error) {
 	expect := k.expect("readdir")
 	return expect.ret.([]os.DirEntry), expect.error(
+		checkArg(k, "name", name, 0))
+}
+
+func (k *kstub) openNew(name string) (osFile, error) {
+	expect := k.expect("openNew")
+	return expect.ret.(osFile), expect.error(
 		checkArg(k, "name", name, 0))
 }
 
