@@ -45,7 +45,7 @@ type syscallDispatcher interface {
 	// isatty provides [Isatty].
 	isatty(fd int) bool
 	// receive provides [Receive].
-	receive(key string, e any, v **os.File) (closeFunc func() error, err error)
+	receive(key string, e any, fdp *uintptr) (closeFunc func() error, err error)
 
 	// bindMount provides procPaths.bindMount.
 	bindMount(source, target string, flags uintptr, eq bool) error
@@ -152,8 +152,8 @@ func (direct) capBoundingSetDrop(cap uintptr) error            { return capBound
 func (direct) capAmbientClearAll() error                       { return capAmbientClearAll() }
 func (direct) capAmbientRaise(cap uintptr) error               { return capAmbientRaise(cap) }
 func (direct) isatty(fd int) bool                              { return Isatty(fd) }
-func (direct) receive(key string, e any, v **os.File) (func() error, error) {
-	return Receive(key, e, v)
+func (direct) receive(key string, e any, fdp *uintptr) (func() error, error) {
+	return Receive(key, e, fdp)
 }
 
 func (direct) bindMount(source, target string, flags uintptr, eq bool) error {

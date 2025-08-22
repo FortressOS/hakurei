@@ -99,10 +99,10 @@ func initEntrypoint(k syscallDispatcher, prepareLogger func(prefix string), setV
 	var (
 		params      initParams
 		closeSetup  func() error
-		setupFile   *os.File
+		setupFd     uintptr
 		offsetSetup int
 	)
-	if f, err := k.receive(setupEnv, &params, &setupFile); err != nil {
+	if f, err := k.receive(setupEnv, &params, &setupFd); err != nil {
 		if errors.Is(err, EBADF) {
 			k.fatal("invalid setup descriptor")
 		}
@@ -122,7 +122,7 @@ func initEntrypoint(k syscallDispatcher, prepareLogger func(prefix string), setV
 		setVerbose(params.Verbose)
 		k.verbose("received setup parameters")
 		closeSetup = f
-		offsetSetup = int(setupFile.Fd() + 1)
+		offsetSetup = int(setupFd + 1)
 	}
 
 	// write uid/gid map here so parent does not need to set dumpable

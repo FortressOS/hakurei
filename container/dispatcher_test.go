@@ -356,12 +356,12 @@ func (k *kstub) isatty(fd int) bool {
 	return expect.ret.(bool)
 }
 
-func (k *kstub) receive(key string, e any, v **os.File) (closeFunc func() error, err error) {
+func (k *kstub) receive(key string, e any, fdp *uintptr) (closeFunc func() error, err error) {
 	expect := k.expect("receive")
 	return expect.ret.(func() error), expect.error(
 		checkArg(k, "key", key, 0),
 		checkArgReflect(k, "e", e, 1),
-		checkArg(k, "v", v, 2))
+		checkArg(k, "fdp", fdp, 2))
 }
 
 func (k *kstub) bindMount(source, target string, flags uintptr, eq bool) error {

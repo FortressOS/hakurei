@@ -53,7 +53,7 @@ func TestSetupReceive(t *testing.T) {
 	})
 
 	t.Run("setup receive", func(t *testing.T) {
-		check := func(t *testing.T, useNilFp bool) {
+		check := func(t *testing.T, useNilFdp bool) {
 			const key = "TEST_SETUP_RECEIVE"
 			payload := []int{syscall.MS_MGC_VAL, syscall.MS_MGC_MSK, syscall.MS_ASYNC, syscall.MS_ACTIVE}
 
@@ -82,13 +82,13 @@ func TestSetupReceive(t *testing.T) {
 
 			var (
 				gotPayload []int
-				fp         **os.File
+				fdp        *uintptr
 			)
-			if !useNilFp {
-				fp = new(*os.File)
+			if !useNilFdp {
+				fdp = new(uintptr)
 			}
 			var closeFile func() error
-			if f, err := container.Receive(key, &gotPayload, fp); err != nil {
+			if f, err := container.Receive(key, &gotPayload, fdp); err != nil {
 				t.Fatalf("Receive: error = %v", err)
 			} else {
 				closeFile = f
@@ -97,12 +97,9 @@ func TestSetupReceive(t *testing.T) {
 					t.Errorf("Receive: %#v, want %#v", gotPayload, payload)
 				}
 			}
-			if !useNilFp {
-				if name := (*fp).Name(); name != "setup" {
-					t.Errorf("Name: %s, want setup", name)
-				}
-				if fd := int((*fp).Fd()); fd != dupFd {
-					t.Errorf("Fd: %d, want %d", fd, dupFd)
+			if !useNilFdp {
+				if int(*fdp) != dupFd {
+					t.Errorf("Fd: %d, want %d", *fdp, dupFd)
 				}
 			}
 

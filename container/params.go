@@ -25,7 +25,7 @@ func Setup(extraFiles *[]*os.File) (int, *gob.Encoder, error) {
 }
 
 // Receive retrieves setup fd from the environment and receives params.
-func Receive(key string, e any, v **os.File) (func() error, error) {
+func Receive(key string, e any, fdp *uintptr) (func() error, error) {
 	var setup *os.File
 
 	if s, ok := os.LookupEnv(key); !ok {
@@ -38,8 +38,8 @@ func Receive(key string, e any, v **os.File) (func() error, error) {
 			if setup == nil {
 				return nil, syscall.EBADF
 			}
-			if v != nil {
-				*v = setup
+			if fdp != nil {
+				*fdp = setup.Fd()
 			}
 		}
 	}
