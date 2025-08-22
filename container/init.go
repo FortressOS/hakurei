@@ -6,7 +6,6 @@ import (
 	"os"
 	"os/exec"
 	"path"
-	"runtime"
 	"slices"
 	"strconv"
 	. "syscall"
@@ -81,11 +80,11 @@ type initParams struct {
 }
 
 func Init(prepareLogger func(prefix string), setVerbose func(verbose bool)) {
-	initEntrypoint(prepareLogger, setVerbose, direct{})
+	initEntrypoint(direct{}, prepareLogger, setVerbose)
 }
 
-func initEntrypoint(prepareLogger func(prefix string), setVerbose func(verbose bool), k syscallDispatcher) {
-	runtime.LockOSThread()
+func initEntrypoint(k syscallDispatcher, prepareLogger func(prefix string), setVerbose func(verbose bool)) {
+	k.lockOSThread()
 	prepareLogger("init")
 
 	if k.getpid() != 1 {

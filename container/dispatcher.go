@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"os/signal"
 	"path/filepath"
+	"runtime"
 	"syscall"
 
 	"hakurei.app/container/seccomp"
@@ -21,6 +22,9 @@ type osFile interface {
 
 // syscallDispatcher provides methods that make state-dependent system calls as part of their behaviour.
 type syscallDispatcher interface {
+	// lockOSThread provides [runtime.LockOSThread].
+	lockOSThread()
+
 	// setPtracer provides [SetPtracer].
 	setPtracer(pid uintptr) error
 	// setDumpable provides [SetDumpable].
@@ -135,6 +139,8 @@ type syscallDispatcher interface {
 
 // direct implements syscallDispatcher on the current kernel.
 type direct struct{}
+
+func (direct) lockOSThread() { runtime.LockOSThread() }
 
 func (direct) setPtracer(pid uintptr) error       { return SetPtracer(pid) }
 func (direct) setDumpable(dumpable uintptr) error { return SetDumpable(dumpable) }

@@ -315,6 +315,8 @@ func checkArgReflect(k *kstub, arg string, got any, n int) bool {
 	return true
 }
 
+func (k *kstub) lockOSThread() { k.expect("lockOSThread") }
+
 func (k *kstub) setPtracer(pid uintptr) error {
 	return k.expect("setPtracer").error(
 		checkArg(k, "pid", pid, 0))
