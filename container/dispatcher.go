@@ -22,10 +22,10 @@ type osFile interface {
 
 // syscallDispatcher provides methods that make state-dependent system calls as part of their behaviour.
 type syscallDispatcher interface {
-	// new returns a new instance of syscallDispatcher for use in another goroutine.
+	// new starts a goroutine with a new instance of syscallDispatcher.
 	// A syscallDispatcher must never be used in any goroutine other than the one owning it,
 	// just synchronising access is not enough, as this is for test instrumentation.
-	new() syscallDispatcher
+	new(f func(k syscallDispatcher))
 
 	// lockOSThread provides [runtime.LockOSThread].
 	lockOSThread()
@@ -145,7 +145,7 @@ type syscallDispatcher interface {
 // direct implements syscallDispatcher on the current kernel.
 type direct struct{}
 
-func (k direct) new() syscallDispatcher { return k }
+func (k direct) new(f func(k syscallDispatcher)) { go f(k) }
 
 func (direct) lockOSThread() { runtime.LockOSThread() }
 

@@ -12,6 +12,7 @@ import (
 	"runtime"
 	"slices"
 	"strings"
+	"sync"
 	"syscall"
 	"testing"
 	"time"
@@ -113,7 +114,7 @@ type simpleTestCase struct {
 func checkSimple(t *testing.T, fname string, testCases []simpleTestCase) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			k := &kstub{t: t, want: tc.want}
+			k := &kstub{t: t, want: tc.want, wg: new(sync.WaitGroup)}
 			if err := tc.f(k); !errors.Is(err, tc.wantErr) {
 				t.Errorf("%s: error = %v, want %v", fname, err, tc.wantErr)
 			}
@@ -141,7 +142,7 @@ func checkOpBehaviour(t *testing.T, testCases []opBehaviourTestCase) {
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
 				state := &setupState{Params: tc.params}
-				k := &kstub{t: t, want: [][]kexpect{slices.Concat(tc.early, []kexpect{{name: "\x00"}}, tc.apply)}}
+				k := &kstub{t: t, want: [][]kexpect{slices.Concat(tc.early, []kexpect{{name: "\x00"}}, tc.apply)}, wg: new(sync.WaitGroup)}
 				errEarly := tc.op.early(state, k)
 				k.expect("\x00")
 				if !errors.Is(errEarly, tc.wantErrEarly) {
@@ -272,10 +273,14 @@ type kstub struct {
 	track int
 	// sub stores addresses of kstub created by new.
 	sub []*kstub
+	// wg waits for all descendants to complete.
+	wg *sync.WaitGroup
 }
 
 // handleIncomplete calls f on an incomplete k and all its descendants.
 func (k *kstub) handleIncomplete(f func(k *kstub)) {
+	k.wg.Wait()
+
 	if k.want != nil && len(k.want[k.track]) != k.pos {
 		f(k)
 	}
@@ -331,13 +336,15 @@ func checkArgReflect(k *kstub, arg string, got any, n int) bool {
 	return true
 }
 
-func (k *kstub) new() syscallDispatcher {
+func (k *kstub) new(f func(k syscallDispatcher)) {
 	k.expect("new")
 	if len(k.want) <= k.track+1 {
 		k.t.Fatalf("new: track overrun")
 	}
-	k.sub = append(k.sub, &kstub{t: k.t, want: k.want, track: k.track + 1})
-	return k.sub[len(k.sub)-1]
+	sk := &kstub{t: k.t, want: k.want, track: len(k.sub) + 1, wg: k.wg}
+	k.sub = append(k.sub, sk)
+	k.wg.Add(1)
+	go func() { defer k.wg.Done(); f(sk) }()
 }
 
 func (k *kstub) lockOSThread() { k.expect("lockOSThread") }

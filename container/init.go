@@ -178,6 +178,7 @@ func initEntrypoint(k syscallDispatcher, prepareLogger func(prefix string), setV
 				fmt.Sprintf("cannot prepare op at index %d:", i))
 			k.beforeExit()
 			k.exit(1)
+			return
 		}
 	}
 
@@ -218,6 +219,7 @@ func initEntrypoint(k syscallDispatcher, prepareLogger func(prefix string), setV
 				fmt.Sprintf("cannot apply op at index %d:", i))
 			k.beforeExit()
 			k.exit(1)
+			return
 		}
 	}
 
@@ -333,7 +335,7 @@ func initEntrypoint(k syscallDispatcher, prepareLogger func(prefix string), setV
 	info := make(chan winfo, 1)
 	done := make(chan struct{})
 
-	go func(k syscallDispatcher) {
+	k.new(func(k syscallDispatcher) {
 		var (
 			err     error
 			wpid    = -2
@@ -360,7 +362,7 @@ func initEntrypoint(k syscallDispatcher, prepareLogger func(prefix string), setV
 		}
 
 		close(done)
-	}(k.new())
+	})
 
 	// handle signals to dump withheld messages
 	sig := make(chan os.Signal, 2)
@@ -385,7 +387,9 @@ func initEntrypoint(k syscallDispatcher, prepareLogger func(prefix string), setV
 				}
 				continue
 			}
+			k.beforeExit()
 			k.exit(0)
+			return
 
 		case w := <-info:
 			if w.wpid == cmd.Process.Pid {
@@ -396,9 +400,11 @@ func initEntrypoint(k syscallDispatcher, prepareLogger func(prefix string), setV
 				case w.wstatus.Exited():
 					r = w.wstatus.ExitStatus()
 					k.verbosef("initial process exited with code %d", w.wstatus.ExitStatus())
+
 				case w.wstatus.Signaled():
 					r = 128 + int(w.wstatus.Signal())
 					k.verbosef("initial process exited with signal %s", w.wstatus.Signal())
+
 				default:
 					r = 255
 					k.verbosef("initial process exited with status %#x", w.wstatus)
@@ -410,11 +416,13 @@ func initEntrypoint(k syscallDispatcher, prepareLogger func(prefix string), setV
 		case <-done:
 			k.beforeExit()
 			k.exit(r)
+			return
 
 		case <-timeout:
 			k.printf("timeout exceeded waiting for lingering processes")
 			k.beforeExit()
 			k.exit(r)
+			return
 		}
 	}
 }
