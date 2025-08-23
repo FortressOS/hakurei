@@ -3,7 +3,6 @@ package container
 import (
 	"bytes"
 	"errors"
-	"fmt"
 	"io"
 	"io/fs"
 	"os"
@@ -114,6 +113,7 @@ type simpleTestCase struct {
 func checkSimple(t *testing.T, fname string, testCases []simpleTestCase) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			defer handleExitStub(t, "check")
 			k := &kstub{t: t, want: tc.want, wg: new(sync.WaitGroup)}
 			if err := tc.f(k); !errors.Is(err, tc.wantErr) {
 				t.Errorf("%s: error = %v, want %v", fname, err, tc.wantErr)
@@ -169,6 +169,8 @@ func checkOpBehaviour(t *testing.T, testCases []opBehaviourTestCase) {
 		}
 	})
 }
+
+func sliceAddr[S any](s []S) *[]S { return &s }
 
 func newCheckedFile(t *testing.T, name, wantData string, closeErr error) osFile {
 	f := &checkedOsFile{t: t, name: name, want: wantData, closeErr: closeErr}
@@ -263,6 +265,17 @@ func (k *kexpect) error(ok ...bool) error {
 	return syscall.ENOTRECOVERABLE
 }
 
+func handleExitStub(t *testing.T, prefix string) {
+	r := recover()
+	if r == 0xdeadbeef {
+		t.Log(prefix + " terminated on an exit stub")
+		return
+	}
+	if r != nil {
+		panic(r)
+	}
+}
+
 type kstub struct {
 	t *testing.T
 
@@ -344,7 +357,11 @@ func (k *kstub) new(f func(k syscallDispatcher)) {
 	sk := &kstub{t: k.t, want: k.want, track: len(k.sub) + 1, wg: k.wg}
 	k.sub = append(k.sub, sk)
 	k.wg.Add(1)
-	go func() { defer k.wg.Done(); f(sk) }()
+	go func() {
+		defer k.wg.Done()
+		defer handleExitStub(k.t, "goroutine")
+		f(sk)
+	}()
 }
 
 func (k *kstub) lockOSThread() { k.expect("lockOSThread") }
@@ -390,10 +407,45 @@ func (k *kstub) isatty(fd int) bool {
 
 func (k *kstub) receive(key string, e any, fdp *uintptr) (closeFunc func() error, err error) {
 	expect := k.expect("receive")
-	return expect.ret.(func() error), expect.error(
+
+	var closed bool
+	closeFunc = func() error {
+		if closed {
+			k.t.Error("closeFunc called more than once")
+			return os.ErrClosed
+		}
+		closed = true
+
+		if expect.ret != nil {
+			// use return stored in kexpect for closeFunc instead
+			return expect.ret.(error)
+		}
+		return nil
+	}
+	err = expect.error(
 		checkArg(k, "key", key, 0),
 		checkArgReflect(k, "e", e, 1),
-		checkArg(k, "fdp", fdp, 2))
+		checkArgReflect(k, "fdp", fdp, 2))
+
+	// 3 is unused so stores params
+	if expect.args[3] != nil {
+		if v, ok := expect.args[3].(*initParams); ok && v != nil {
+			if p, ok0 := e.(*initParams); ok0 && p != nil {
+				*p = *v
+			}
+		}
+	}
+
+	// 4 is unused so stores fd
+	if expect.args[4] != nil {
+		if v, ok := expect.args[4].(uintptr); ok && v >= 3 {
+			if fdp != nil {
+				*fdp = v
+			}
+		}
+	}
+
+	return
 }
 
 func (k *kstub) bindMount(source, target string, flags uintptr, eq bool) error {
@@ -441,20 +493,23 @@ func (k *kstub) notify(c chan<- os.Signal, sig ...os.Signal) {
 	}
 
 	// export channel for external instrumentation
-	if chanp, ok := expect.args[0].(*chan<- os.Signal); ok && chanp != nil {
-		if *chanp != nil {
-			panic(fmt.Sprintf("attempting reuse of %p", chanp))
-		}
-		*chanp = c
+	if chanf, ok := expect.args[0].(func(c chan<- os.Signal)); ok && chanf != nil {
+		chanf(c)
 	}
 }
 
 func (k *kstub) start(c *exec.Cmd) error {
-	return k.expect("start").error(
+	expect := k.expect("start")
+	err := expect.error(
 		checkArg(k, "c.Path", c.Path, 0),
 		checkArgReflect(k, "c.Args", c.Args, 1),
 		checkArgReflect(k, "c.Env", c.Env, 2),
 		checkArg(k, "c.Dir", c.Dir, 3))
+
+	if process, ok := expect.ret.(*os.Process); ok && process != nil {
+		c.Process = process
+	}
+	return err
 }
 
 func (k *kstub) signal(c *exec.Cmd, sig os.Signal) error {
@@ -477,6 +532,7 @@ func (k *kstub) exit(code int) {
 	if !checkArg(k, "code", code, 0) {
 		k.t.FailNow()
 	}
+	panic(0xdeadbeef)
 }
 
 func (k *kstub) getpid() int { return k.expect("getpid").ret.(int) }
@@ -618,11 +674,25 @@ func (k *kstub) unmount(target string, flags int) (err error) {
 
 func (k *kstub) wait4(pid int, wstatus *syscall.WaitStatus, options int, rusage *syscall.Rusage) (wpid int, err error) {
 	expect := k.expect("wait4")
-	return expect.ret.(int), expect.error(
+	// special case to prevent leaking the wait4 goroutine when testing initEntrypoint
+	if v, ok := expect.args[4].(int); ok && v == 0xdeadbeef {
+		k.t.Log("terminating current goroutine as requested by kexpect")
+		panic(0xdeadbeef)
+	}
+
+	wpid = expect.ret.(int)
+	err = expect.error(
 		checkArg(k, "pid", pid, 0),
-		checkArg(k, "wstatus", wstatus, 1),
-		checkArg(k, "options", options, 2),
-		checkArg(k, "rusage", rusage, 3))
+		checkArg(k, "options", options, 2))
+
+	if wstatusV, ok := expect.args[1].(syscall.WaitStatus); wstatus != nil && ok {
+		*wstatus = wstatusV
+	}
+	if rusageV, ok := expect.args[3].(syscall.Rusage); rusage != nil && ok {
+		*rusage = rusageV
+	}
+
+	return
 }
 
 func (k *kstub) printf(format string, v ...any) {
@@ -638,6 +708,7 @@ func (k *kstub) fatal(v ...any) {
 		checkArgReflect(k, "v", v, 0)) != nil {
 		k.t.FailNow()
 	}
+	panic(0xdeadbeef)
 }
 
 func (k *kstub) fatalf(format string, v ...any) {
@@ -646,6 +717,7 @@ func (k *kstub) fatalf(format string, v ...any) {
 		checkArgReflect(k, "v", v, 1)) != nil {
 		k.t.FailNow()
 	}
+	panic(0xdeadbeef)
 }
 
 func (k *kstub) verbose(v ...any) {

@@ -127,7 +127,7 @@ func initEntrypoint(k syscallDispatcher, prepareLogger func(prefix string), setV
 
 	// write uid/gid map here so parent does not need to set dumpable
 	if err := k.setDumpable(SUID_DUMP_USER); err != nil {
-		k.fatalf("cannot set SUID_DUMP_USER: %s", err)
+		k.fatalf("cannot set SUID_DUMP_USER: %v", err)
 	}
 	if err := k.writeFile(FHSProc+"self/uid_map",
 		append([]byte{}, strconv.Itoa(params.Uid)+" "+strconv.Itoa(params.HostUid)+" 1\n"...),
@@ -145,7 +145,7 @@ func initEntrypoint(k syscallDispatcher, prepareLogger func(prefix string), setV
 		k.fatalf("%v", err)
 	}
 	if err := k.setDumpable(SUID_DUMP_DISABLE); err != nil {
-		k.fatalf("cannot set SUID_DUMP_DISABLE: %s", err)
+		k.fatalf("cannot set SUID_DUMP_DISABLE: %v", err)
 	}
 
 	oldmask := k.umask(0)
@@ -178,7 +178,6 @@ func initEntrypoint(k syscallDispatcher, prepareLogger func(prefix string), setV
 				fmt.Sprintf("cannot prepare op at index %d:", i))
 			k.beforeExit()
 			k.exit(1)
-			return
 		}
 	}
 
@@ -219,7 +218,6 @@ func initEntrypoint(k syscallDispatcher, prepareLogger func(prefix string), setV
 				fmt.Sprintf("cannot apply op at index %d:", i))
 			k.beforeExit()
 			k.exit(1)
-			return
 		}
 	}
 
@@ -250,7 +248,7 @@ func initEntrypoint(k syscallDispatcher, prepareLogger func(prefix string), setV
 			k.fatalf("cannot re-enter intermediate root: %v", err)
 		}
 		if err := k.unmount(".", MNT_DETACH); err != nil {
-			k.fatalf("cannot unmount intemediate root: %v", err)
+			k.fatalf("cannot unmount intermediate root: %v", err)
 		}
 		if err := k.chdir(FHSRoot); err != nil {
 			k.fatalf("cannot enter root: %v", err)
@@ -389,7 +387,6 @@ func initEntrypoint(k syscallDispatcher, prepareLogger func(prefix string), setV
 			}
 			k.beforeExit()
 			k.exit(0)
-			return
 
 		case w := <-info:
 			if w.wpid == cmd.Process.Pid {
@@ -416,13 +413,11 @@ func initEntrypoint(k syscallDispatcher, prepareLogger func(prefix string), setV
 		case <-done:
 			k.beforeExit()
 			k.exit(r)
-			return
 
 		case <-timeout:
 			k.printf("timeout exceeded waiting for lingering processes")
 			k.beforeExit()
 			k.exit(r)
-			return
 		}
 	}
 }
