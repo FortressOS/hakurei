@@ -156,7 +156,7 @@ func initEntrypoint(k syscallDispatcher, prepareLogger func(prefix string), setV
 	}
 
 	// cache sysctl before pivot_root
-	k.lastcap()
+	lastcap := k.lastcap()
 
 	if err := k.mount(zeroString, FHSRoot, zeroString, MS_SILENT|MS_SLAVE|MS_REC, zeroString); err != nil {
 		k.fatalf("cannot make / rslave: %v", err)
@@ -262,7 +262,7 @@ func initEntrypoint(k syscallDispatcher, prepareLogger func(prefix string), setV
 	if err := k.capAmbientClearAll(); err != nil {
 		k.fatalf("cannot clear the ambient capability set: %v", err)
 	}
-	for i := uintptr(0); i <= k.lastcap(); i++ {
+	for i := uintptr(0); i <= lastcap; i++ {
 		if params.Privileged && i == CAP_SYS_ADMIN {
 			continue
 		}
