@@ -106,7 +106,7 @@ func checkOpMeta(t *testing.T, testCases []opMetaTestCase) {
 type simpleTestCase struct {
 	name    string
 	f       func(k syscallDispatcher) error
-	want    []kexpect
+	want    [][]kexpect
 	wantErr error
 }
 
@@ -117,9 +117,9 @@ func checkSimple(t *testing.T, fname string, testCases []simpleTestCase) {
 			if err := tc.f(k); !errors.Is(err, tc.wantErr) {
 				t.Errorf("%s: error = %v, want %v", fname, err, tc.wantErr)
 			}
-			if len(k.want) != k.pos {
-				t.Errorf("%s: %d calls, want %d", fname, k.pos, len(k.want))
-			}
+			k.handleIncomplete(func(k *kstub) {
+				t.Errorf("%s: %d calls, want %d (track %d)", fname, k.pos, len(k.want[k.track]), k.track)
+			})
 		})
 	}
 }
@@ -141,7 +141,7 @@ func checkOpBehaviour(t *testing.T, testCases []opBehaviourTestCase) {
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
 				state := &setupState{Params: tc.params}
-				k := &kstub{t: t, want: slices.Concat(tc.early, []kexpect{{name: "\x00"}}, tc.apply)}
+				k := &kstub{t: t, want: [][]kexpect{slices.Concat(tc.early, []kexpect{{name: "\x00"}}, tc.apply)}}
 				errEarly := tc.op.early(state, k)
 				k.expect("\x00")
 				if !errors.Is(errEarly, tc.wantErrEarly) {
@@ -156,14 +156,14 @@ func checkOpBehaviour(t *testing.T, testCases []opBehaviourTestCase) {
 				}
 
 			out:
-				if len(k.want) != k.pos {
+				k.handleIncomplete(func(k *kstub) {
 					count := k.pos - 1 // separator
 					if count < len(tc.early) {
 						t.Errorf("early: %d calls, want %d", count, len(tc.early))
 					} else {
 						t.Errorf("apply: %d calls, want %d", count-len(tc.early), len(tc.apply))
 					}
-				}
+				})
 			})
 		}
 	})
@@ -263,17 +263,33 @@ func (k *kexpect) error(ok ...bool) error {
 }
 
 type kstub struct {
-	t    *testing.T
-	want []kexpect
-	pos  int
+	t *testing.T
+
+	want [][]kexpect
+	// pos is the current position in want[track].
+	pos int
+	// track is the current active want.
+	track int
+	// sub stores addresses of kstub created by new.
+	sub []*kstub
+}
+
+// handleIncomplete calls f on an incomplete k and all its descendants.
+func (k *kstub) handleIncomplete(f func(k *kstub)) {
+	if k.want != nil && len(k.want[k.track]) != k.pos {
+		f(k)
+	}
+	for _, sk := range k.sub {
+		sk.handleIncomplete(f)
+	}
 }
 
 // expect checks name and returns the current kexpect and advances pos.
 func (k *kstub) expect(name string) (expect *kexpect) {
-	if len(k.want) == k.pos {
+	if len(k.want[k.track]) == k.pos {
 		k.t.Fatal("expect: want too short")
 	}
-	expect = &k.want[k.pos]
+	expect = &k.want[k.track][k.pos]
 	if name != expect.name {
 		if expect.name == "\x00" {
 			k.t.Fatalf("expect: func = %s, separator overrun", name)
@@ -292,7 +308,7 @@ func checkArg[T comparable](k *kstub, arg string, got T, n int) bool {
 	if k.pos == 0 {
 		panic("invalid call to checkArg")
 	}
-	expect := k.want[k.pos-1]
+	expect := k.want[k.track][k.pos-1]
 	want, ok := expect.args[n].(T)
 	if !ok || got != want {
 		k.t.Errorf("%s: %s = %#v, want %#v (%d)", expect.name, arg, got, want, k.pos-1)
@@ -306,13 +322,22 @@ func checkArgReflect(k *kstub, arg string, got any, n int) bool {
 	if k.pos == 0 {
 		panic("invalid call to checkArgReflect")
 	}
-	expect := k.want[k.pos-1]
+	expect := k.want[k.track][k.pos-1]
 	want := expect.args[n]
 	if !reflect.DeepEqual(got, want) {
 		k.t.Errorf("%s: %s = %#v, want %#v (%d)", expect.name, arg, got, want, k.pos-1)
 		return false
 	}
 	return true
+}
+
+func (k *kstub) new() syscallDispatcher {
+	k.expect("new")
+	if len(k.want) <= k.track+1 {
+		k.t.Fatalf("new: track overrun")
+	}
+	k.sub = append(k.sub, &kstub{t: k.t, want: k.want, track: k.track + 1})
+	return k.sub[len(k.sub)-1]
 }
 
 func (k *kstub) lockOSThread() { k.expect("lockOSThread") }
@@ -328,7 +353,7 @@ func (k *kstub) setDumpable(dumpable uintptr) error {
 }
 
 func (k *kstub) setNoNewPrivs() error { return k.expect("setNoNewPrivs").err }
-func (k *kstub) lastcap() uintptr     { return k.expect("setNoNewPrivs").ret.(uintptr) }
+func (k *kstub) lastcap() uintptr     { return k.expect("lastcap").ret.(uintptr) }
 
 func (k *kstub) capset(hdrp *capHeader, datap *[2]capData) error {
 	return k.expect("capset").error(

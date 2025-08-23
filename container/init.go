@@ -333,7 +333,7 @@ func initEntrypoint(k syscallDispatcher, prepareLogger func(prefix string), setV
 	info := make(chan winfo, 1)
 	done := make(chan struct{})
 
-	go func() {
+	go func(k syscallDispatcher) {
 		var (
 			err     error
 			wpid    = -2
@@ -360,7 +360,7 @@ func initEntrypoint(k syscallDispatcher, prepareLogger func(prefix string), setV
 		}
 
 		close(done)
-	}()
+	}(k.new())
 
 	// handle signals to dump withheld messages
 	sig := make(chan os.Signal, 2)
