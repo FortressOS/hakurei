@@ -10,24 +10,22 @@ import (
 func TestAutoRootOp(t *testing.T) {
 	t.Run("nonrepeatable", func(t *testing.T) {
 		wantErr := msg.WrapErr(fs.ErrInvalid, "autoroot is not repeatable")
-		if err := (&AutoRootOp{Prefix: "81ceabb30d37bbdb3868004629cb84e9"}).apply(&setupState{nonrepeatable: nrAutoRoot}, nil); !errors.Is(err, wantErr) {
+		if err := new(AutoRootOp).apply(&setupState{nonrepeatable: nrAutoRoot}, nil); !errors.Is(err, wantErr) {
 			t.Errorf("apply: error = %v, want %v", err, wantErr)
 		}
 	})
 
 	checkOpBehaviour(t, []opBehaviourTestCase{
 		{"readdir", &Params{ParentPerm: 0750}, &AutoRootOp{
-			Host:   MustAbs("/"),
-			Prefix: "81ceabb30d37bbdb3868004629cb84e9",
-			Flags:  BindWritable,
+			Host:  MustAbs("/"),
+			Flags: BindWritable,
 		}, []kexpect{
 			{"readdir", expectArgs{"/"}, stubDir(), errUnique},
 		}, wrapErrSelf(errUnique), nil, nil},
 
 		{"early", &Params{ParentPerm: 0750}, &AutoRootOp{
-			Host:   MustAbs("/"),
-			Prefix: "81ceabb30d37bbdb3868004629cb84e9",
-			Flags:  BindWritable,
+			Host:  MustAbs("/"),
+			Flags: BindWritable,
 		}, []kexpect{
 			{"readdir", expectArgs{"/"}, stubDir("bin", "dev", "etc", "home", "lib64",
 				"lost+found", "mnt", "nix", "proc", "root", "run", "srv", "sys", "tmp", "usr", "var"), nil},
@@ -35,9 +33,8 @@ func TestAutoRootOp(t *testing.T) {
 		}, wrapErrSelf(errUnique), nil, nil},
 
 		{"apply", &Params{ParentPerm: 0750}, &AutoRootOp{
-			Host:   MustAbs("/"),
-			Prefix: "81ceabb30d37bbdb3868004629cb84e9",
-			Flags:  BindWritable,
+			Host:  MustAbs("/"),
+			Flags: BindWritable,
 		}, []kexpect{
 			{"readdir", expectArgs{"/"}, stubDir("bin", "dev", "etc", "home", "lib64",
 				"lost+found", "mnt", "nix", "proc", "root", "run", "srv", "sys", "tmp", "usr", "var"), nil},
@@ -58,9 +55,8 @@ func TestAutoRootOp(t *testing.T) {
 		}, wrapErrSelf(errUnique)},
 
 		{"success pd", &Params{ParentPerm: 0750}, &AutoRootOp{
-			Host:   MustAbs("/"),
-			Prefix: "81ceabb30d37bbdb3868004629cb84e9",
-			Flags:  BindWritable,
+			Host:  MustAbs("/"),
+			Flags: BindWritable,
 		}, []kexpect{
 			{"readdir", expectArgs{"/"}, stubDir("bin", "dev", "etc", "home", "lib64",
 				"lost+found", "mnt", "nix", "proc", "root", "run", "srv", "sys", "tmp", "usr", "var"), nil},
@@ -90,8 +86,7 @@ func TestAutoRootOp(t *testing.T) {
 		}, nil},
 
 		{"success", &Params{ParentPerm: 0750}, &AutoRootOp{
-			Host:   MustAbs("/var/lib/planterette/base/debian:f92c9052"),
-			Prefix: "81ceabb30d37bbdb3868004629cb84e9",
+			Host: MustAbs("/var/lib/planterette/base/debian:f92c9052"),
 		}, []kexpect{
 			{"readdir", expectArgs{"/var/lib/planterette/base/debian:f92c9052"}, stubDir("bin", "dev", "etc", "home", "lib64",
 				"lost+found", "mnt", "nix", "proc", "root", "run", "srv", "sys", "tmp", "usr", "var"), nil},
@@ -128,11 +123,10 @@ func TestAutoRootOp(t *testing.T) {
 	})
 
 	checkOpsBuilder(t, []opsBuilderTestCase{
-		{"pd", new(Ops).Root(MustAbs("/"), "048090b6ed8f9ebb10e275ff5d8c0659", BindWritable), Ops{
+		{"pd", new(Ops).Root(MustAbs("/"), BindWritable), Ops{
 			&AutoRootOp{
-				Host:   MustAbs("/"),
-				Prefix: "048090b6ed8f9ebb10e275ff5d8c0659",
-				Flags:  BindWritable,
+				Host:  MustAbs("/"),
+				Flags: BindWritable,
 			},
 		}},
 	})
@@ -141,63 +135,44 @@ func TestAutoRootOp(t *testing.T) {
 		{"zero", new(AutoRootOp), new(AutoRootOp), false},
 
 		{"internal ne", &AutoRootOp{
-			Host:   MustAbs("/"),
-			Prefix: ":3",
-			Flags:  BindWritable,
+			Host:  MustAbs("/"),
+			Flags: BindWritable,
 		}, &AutoRootOp{
 			Host:     MustAbs("/"),
-			Prefix:   ":3",
 			Flags:    BindWritable,
 			resolved: []Op{new(BindMountOp)},
 		}, true},
 
-		{"prefix differs", &AutoRootOp{
-			Host:   MustAbs("/"),
-			Prefix: "\x00",
-			Flags:  BindWritable,
-		}, &AutoRootOp{
-			Host:   MustAbs("/"),
-			Prefix: ":3",
-			Flags:  BindWritable,
-		}, false},
-
 		{"flags differs", &AutoRootOp{
-			Host:   MustAbs("/"),
-			Prefix: ":3",
-			Flags:  BindWritable | BindDevice,
+			Host:  MustAbs("/"),
+			Flags: BindWritable | BindDevice,
 		}, &AutoRootOp{
-			Host:   MustAbs("/"),
-			Prefix: ":3",
-			Flags:  BindWritable,
+			Host:  MustAbs("/"),
+			Flags: BindWritable,
 		}, false},
 
 		{"host differs", &AutoRootOp{
-			Host:   MustAbs("/tmp/"),
-			Prefix: ":3",
-			Flags:  BindWritable,
+			Host:  MustAbs("/tmp/"),
+			Flags: BindWritable,
 		}, &AutoRootOp{
-			Host:   MustAbs("/"),
-			Prefix: ":3",
-			Flags:  BindWritable,
+			Host:  MustAbs("/"),
+			Flags: BindWritable,
 		}, false},
 
 		{"equals", &AutoRootOp{
-			Host:   MustAbs("/"),
-			Prefix: ":3",
-			Flags:  BindWritable,
+			Host:  MustAbs("/"),
+			Flags: BindWritable,
 		}, &AutoRootOp{
-			Host:   MustAbs("/"),
-			Prefix: ":3",
-			Flags:  BindWritable,
+			Host:  MustAbs("/"),
+			Flags: BindWritable,
 		}, true},
 	})
 
 	checkOpMeta(t, []opMetaTestCase{
 		{"root", &AutoRootOp{
-			Host:   MustAbs("/"),
-			Prefix: ":3",
-			Flags:  BindWritable,
-		}, "setting up", `auto root "/" prefix :3 flags 0x2`},
+			Host:  MustAbs("/"),
+			Flags: BindWritable,
+		}, "setting up", `auto root "/" flags 0x2`},
 	})
 }
 

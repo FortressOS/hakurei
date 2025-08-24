@@ -75,7 +75,7 @@ func newContainer(s *hst.ContainerConfig, os sys.State, prefix string, uid, gid 
 	}
 
 	if s.AutoRoot != nil {
-		params.Root(s.AutoRoot, prefix, s.RootFlags)
+		params.Root(s.AutoRoot, s.RootFlags)
 	}
 
 	params.

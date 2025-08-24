@@ -43,7 +43,7 @@ var testCasesPd = []sealTestCase{
 				"XDG_SESSION_TYPE=tty",
 			},
 			Ops: new(container.Ops).
-				Root(m("/"), "4a450b6596d7bc15bd01780eb9a607ac", container.BindWritable).
+				Root(m("/"), container.BindWritable).
 				Proc(m("/proc/")).
 				Tmpfs(hst.AbsTmp, 4096, 0755).
 				DevWritable(m("/dev/"), true).
@@ -179,7 +179,7 @@ var testCasesPd = []sealTestCase{
 				"XDG_SESSION_TYPE=tty",
 			},
 			Ops: new(container.Ops).
-				Root(m("/"), "ebf083d1b175911782d413369b64ce7c", container.BindWritable).
+				Root(m("/"), container.BindWritable).
 				Proc(m("/proc/")).
 				Tmpfs(hst.AbsTmp, 4096, 0755).
 				DevWritable(m("/dev/"), true).

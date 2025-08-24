@@ -10,14 +10,13 @@ func init() { gob.Register(new(AutoRootOp)) }
 
 // Root appends an [Op] that expands a directory into a toplevel bind mount mirror on container root.
 // This is not a generic setup op. It is implemented here to reduce ipc overhead.
-func (f *Ops) Root(host *Absolute, prefix string, flags int) *Ops {
-	*f = append(*f, &AutoRootOp{host, prefix, flags, nil})
+func (f *Ops) Root(host *Absolute, flags int) *Ops {
+	*f = append(*f, &AutoRootOp{host, flags, nil})
 	return f
 }
 
 type AutoRootOp struct {
-	Host   *Absolute
-	Prefix string
+	Host *Absolute
 	// passed through to bindMount
 	Flags int
 
@@ -71,12 +70,11 @@ func (r *AutoRootOp) Is(op Op) bool {
 	vr, ok := op.(*AutoRootOp)
 	return ok && r.Valid() && vr.Valid() &&
 		r.Host.Is(vr.Host) &&
-		r.Prefix == vr.Prefix &&
 		r.Flags == vr.Flags
 }
 func (*AutoRootOp) prefix() string { return "setting up" }
 func (r *AutoRootOp) String() string {
-	return fmt.Sprintf("auto root %q prefix %s flags %#x", r.Host, r.Prefix, r.Flags)
+	return fmt.Sprintf("auto root %q flags %#x", r.Host, r.Flags)
 }
 
 // IsAutoRootBindable returns whether a dir entry name is selected for AutoRoot.
