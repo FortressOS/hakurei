@@ -83,6 +83,25 @@ func TestMountOverlayOp(t *testing.T) {
 			{"mkdirAll", expectArgs{"/sysroot/nix/store", os.FileMode(0755)}, nil, nil},
 		}, msg.WrapErr(fs.ErrInvalid, "readonly overlay requires at least two lowerdir")},
 
+		{"success ro noPrefix", &Params{ParentPerm: 0755}, &MountOverlayOp{
+			Target: MustAbs("/nix/store"),
+			Lower: []*Absolute{
+				MustAbs("/mnt-root/nix/.ro-store"),
+				MustAbs("/mnt-root/nix/.ro-store0"),
+			},
+			noPrefix: true,
+		}, []kexpect{
+			{"evalSymlinks", expectArgs{"/mnt-root/nix/.ro-store"}, "/mnt-root/nix/.ro-store", nil},
+			{"evalSymlinks", expectArgs{"/mnt-root/nix/.ro-store0"}, "/mnt-root/nix/.ro-store0", nil},
+		}, nil, []kexpect{
+			{"mkdirAll", expectArgs{"/nix/store", os.FileMode(0755)}, nil, nil},
+			{"mount", expectArgs{"overlay", "/nix/store", "overlay", uintptr(0), "" +
+				"lowerdir=" +
+				"/host/mnt-root/nix/.ro-store:" +
+				"/host/mnt-root/nix/.ro-store0," +
+				"userxattr"}, nil, nil},
+		}, nil},
+
 		{"success ro", &Params{ParentPerm: 0755}, &MountOverlayOp{
 			Target: MustAbs("/nix/store"),
 			Lower: []*Absolute{

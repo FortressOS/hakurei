@@ -64,6 +64,9 @@ type MountOverlayOp struct {
 	work string
 
 	ephemeral bool
+
+	// used internally for mounting to the intermediate root
+	noPrefix bool
 }
 
 func (o *MountOverlayOp) Valid() bool {
@@ -126,7 +129,10 @@ func (o *MountOverlayOp) early(_ *setupState, k syscallDispatcher) error {
 }
 
 func (o *MountOverlayOp) apply(state *setupState, k syscallDispatcher) error {
-	target := toSysroot(o.Target.String())
+	target := o.Target.String()
+	if !o.noPrefix {
+		target = toSysroot(target)
+	}
 	if err := k.mkdirAll(target, state.ParentPerm); err != nil {
 		return wrapErrSelf(err)
 	}
