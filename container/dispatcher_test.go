@@ -113,7 +113,7 @@ type simpleTestCase struct {
 func checkSimple(t *testing.T, fname string, testCases []simpleTestCase) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			defer handleExitStub(t, "check")
+			defer handleExitStub()
 			k := &kstub{t: t, want: tc.want, wg: new(sync.WaitGroup)}
 			if err := tc.f(k); !errors.Is(err, tc.wantErr) {
 				t.Errorf("%s: error = %v, want %v", fname, err, tc.wantErr)
@@ -141,6 +141,7 @@ func checkOpBehaviour(t *testing.T, testCases []opBehaviourTestCase) {
 	t.Run("behaviour", func(t *testing.T) {
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
+				defer handleExitStub()
 				state := &setupState{Params: tc.params}
 				k := &kstub{t: t, want: [][]kexpect{slices.Concat(tc.early, []kexpect{{name: "\x00"}}, tc.apply)}, wg: new(sync.WaitGroup)}
 				errEarly := tc.op.early(state, k)
@@ -265,10 +266,9 @@ func (k *kexpect) error(ok ...bool) error {
 	return syscall.ENOTRECOVERABLE
 }
 
-func handleExitStub(t *testing.T, prefix string) {
+func handleExitStub() {
 	r := recover()
 	if r == 0xdeadbeef {
-		t.Log(prefix + " terminated on an exit stub")
 		return
 	}
 	if r != nil {
@@ -359,7 +359,7 @@ func (k *kstub) new(f func(k syscallDispatcher)) {
 	k.wg.Add(1)
 	go func() {
 		defer k.wg.Done()
-		defer handleExitStub(k.t, "goroutine")
+		defer handleExitStub()
 		f(sk)
 	}()
 }
