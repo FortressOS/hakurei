@@ -12,16 +12,18 @@ import (
 type Paths struct {
 	// temporary directory returned by [os.TempDir] (usually `/tmp`)
 	TempDir *container.Absolute `json:"temp_dir"`
-	// path to shared directory (usually `/tmp/hakurei.%d`)
+	// path to shared directory (usually `/tmp/hakurei.%d`, [Info.User])
 	SharePath *container.Absolute `json:"share_path"`
-	// XDG_RUNTIME_DIR value (usually `/run/user/%d`)
+	// XDG_RUNTIME_DIR value (usually `/run/user/%d`, uid)
 	RuntimePath *container.Absolute `json:"runtime_path"`
 	// application runtime directory (usually `/run/user/%d/hakurei`)
 	RunDirPath *container.Absolute `json:"run_dir_path"`
 }
 
 type Info struct {
+	// User is the userid according to hsu.
 	User int `json:"user"`
+
 	Paths
 }
 

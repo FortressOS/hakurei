@@ -22,9 +22,9 @@ type State interface {
 	LookupEnv(key string) (string, bool)
 	// TempDir provides [os.TempDir].
 	TempDir() string
-	// LookPath provides [exec.LookPath].
+	// LookPath provides exec.LookPath.
 	LookPath(file string) (string, error)
-	// MustExecutable provides [proc.MustExecutable].
+	// MustExecutable provides [container.MustExecutable].
 	MustExecutable() string
 	// LookupGroup provides [user.LookupGroup].
 	LookupGroup(name string) (*user.Group, error)
@@ -32,9 +32,9 @@ type State interface {
 	ReadDir(name string) ([]fs.DirEntry, error)
 	// Stat provides [os.Stat].
 	Stat(name string) (fs.FileInfo, error)
-	// Open provides [os.Open]
+	// Open provides [os.Open].
 	Open(name string) (fs.File, error)
-	// EvalSymlinks provides [filepath.EvalSymlinks]
+	// EvalSymlinks provides filepath.EvalSymlinks.
 	EvalSymlinks(path string) (string, error)
 	// Exit provides [os.Exit].
 	Exit(code int)
@@ -45,19 +45,28 @@ type State interface {
 	// Paths returns a populated [hst.Paths] struct.
 	Paths() hst.Paths
 	// Uid invokes hsu and returns target uid.
-	// Any errors returned by Uid is already wrapped [fmsg.BaseError].
-	Uid(aid int) (int, error)
+	// Any errors returned by Uid is already wrapped [hlog.BaseError].
+	Uid(identity int) (int, error)
+}
+
+// GetUserID obtains user id from hsu by querying uid of identity 0.
+func GetUserID(os State) (int, error) {
+	if uid, err := os.Uid(0); err != nil {
+		return -1, err
+	} else {
+		return (uid / 10000) - 100, nil
+	}
 }
 
 // CopyPaths is a generic implementation of [hst.Paths].
-func CopyPaths(os State, v *hst.Paths) {
+func CopyPaths(os State, v *hst.Paths, userid int) {
 	if tempDir, err := container.NewAbs(os.TempDir()); err != nil {
 		log.Fatalf("invalid TMPDIR: %v", err)
 	} else {
 		v.TempDir = tempDir
 	}
 
-	v.SharePath = v.TempDir.Append("hakurei." + strconv.Itoa(os.Getuid()))
+	v.SharePath = v.TempDir.Append("hakurei." + strconv.Itoa(userid))
 	hlog.Verbosef("process share directory at %q", v.SharePath)
 
 	r, _ := os.LookupEnv(xdgRuntimeDir)

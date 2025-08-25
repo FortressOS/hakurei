@@ -49,11 +49,19 @@ func (s *Std) Printf(format string, v ...any)               { hlog.Verbosef(form
 const xdgRuntimeDir = "XDG_RUNTIME_DIR"
 
 func (s *Std) Paths() hst.Paths {
-	s.pathsOnce.Do(func() { CopyPaths(s, &s.paths) })
+	s.pathsOnce.Do(func() {
+		if userid, err := GetUserID(s); err != nil {
+			hlog.PrintBaseError(err, "cannot obtain user id from hsu:")
+			hlog.BeforeExit()
+			s.Exit(1)
+		} else {
+			CopyPaths(s, &s.paths, userid)
+		}
+	})
 	return s.paths
 }
 
-func (s *Std) Uid(aid int) (int, error) {
+func (s *Std) Uid(identity int) (int, error) {
 	s.uidOnce.Do(func() {
 		s.uidCopy = make(map[int]struct {
 			uid int
@@ -63,7 +71,7 @@ func (s *Std) Uid(aid int) (int, error) {
 
 	{
 		s.uidMu.RLock()
-		u, ok := s.uidCopy[aid]
+		u, ok := s.uidCopy[identity]
 		s.uidMu.RUnlock()
 		if ok {
 			return u.uid, u.err
@@ -77,7 +85,7 @@ func (s *Std) Uid(aid int) (int, error) {
 		uid int
 		err error
 	}{}
-	defer func() { s.uidCopy[aid] = u }()
+	defer func() { s.uidCopy[identity] = u }()
 
 	u.uid = -1
 	hsuPath := internal.MustHsuPath()
@@ -85,7 +93,7 @@ func (s *Std) Uid(aid int) (int, error) {
 	cmd := exec.Command(hsuPath)
 	cmd.Path = hsuPath
 	cmd.Stderr = os.Stderr // pass through fatal messages
-	cmd.Env = []string{"HAKUREI_APP_ID=" + strconv.Itoa(aid)}
+	cmd.Env = []string{"HAKUREI_APP_ID=" + strconv.Itoa(identity)}
 	cmd.Dir = container.FHSRoot
 	var (
 		p         []byte
@@ -95,7 +103,7 @@ func (s *Std) Uid(aid int) (int, error) {
 	if p, u.err = cmd.Output(); u.err == nil {
 		u.uid, u.err = strconv.Atoi(string(p))
 		if u.err != nil {
-			u.err = hlog.WrapErrSuffix(u.err, "cannot parse uid from hsu:")
+			u.err = hlog.WrapErr(u.err, "invalid uid string from hsu")
 		}
 	} else if errors.As(u.err, &exitError) && exitError != nil && exitError.ExitCode() == 1 {
 		u.err = hlog.WrapErr(syscall.EACCES, "") // hsu prints to stderr in this case

@@ -60,7 +60,7 @@ check_offset = 0
 def check_sandbox(name):
     global check_offset
     swaymsg(f"exec script /dev/null -E always -qec check-sandbox-{name}")
-    machine.wait_for_file(f"/tmp/hakurei.1000/tmpdir/{check_offset}/sandbox-ok", timeout=15)
+    machine.wait_for_file(f"/tmp/hakurei.0/tmpdir/{check_offset}/sandbox-ok", timeout=15)
     check_filter(check_offset, name, "hakurei-test")
     check_offset += 1
 

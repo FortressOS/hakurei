@@ -90,7 +90,7 @@ machine.wait_for_file("/tmp/hpkg-install-ok")
 swaymsg("exec hpkg -v start org.codeberg.dnkl.foot")
 wait_for_window("hakurei@machine-foot")
 machine.send_chars("clear; wayland-info && touch /tmp/success-client\n")
-machine.wait_for_file("/tmp/hakurei.1000/tmpdir/2/success-client")
+machine.wait_for_file("/tmp/hakurei.0/tmpdir/2/success-client")
 collect_state_ui("app_wayland")
 check_state("foot", {"wayland": True, "dbus": True, "pulse": True})
 # Verify acl on XDG_RUNTIME_DIR:

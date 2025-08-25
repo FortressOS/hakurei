@@ -113,12 +113,12 @@ def aid(offset):
 
 
 def tmpdir_path(offset, name):
-    return f"/tmp/hakurei.1000/tmpdir/{aid(offset)}/{name}"
+    return f"/tmp/hakurei.0/tmpdir/{aid(offset)}/{name}"
 
 
 # Start hakurei permissive defaults outside Wayland session:
 print(machine.succeed("sudo -u alice -i hakurei -v run -a 0 touch /tmp/pd-bare-ok"))
-machine.wait_for_file("/tmp/hakurei.1000/tmpdir/0/pd-bare-ok", timeout=5)
+machine.wait_for_file("/tmp/hakurei.0/tmpdir/0/pd-bare-ok", timeout=5)
 
 # Verify silent output permissive defaults:
 output = machine.succeed("sudo -u alice -i hakurei run -a 0 true &>/dev/stdout")
@@ -131,8 +131,8 @@ def silent_output_interrupt(flags):
     wait_for_window("alice@machine")
     # aid 0 does not have home-manager
     machine.send_chars(f"exec hakurei run {flags}-a 0 sh -c 'export PATH=/run/current-system/sw/bin:$PATH && touch /tmp/pd-silent-ready && sleep infinity' &>/tmp/pd-silent\n")
-    machine.wait_for_file("/tmp/hakurei.1000/tmpdir/0/pd-silent-ready", timeout=15)
-    machine.succeed("rm /tmp/hakurei.1000/tmpdir/0/pd-silent-ready")
+    machine.wait_for_file("/tmp/hakurei.0/tmpdir/0/pd-silent-ready", timeout=15)
+    machine.succeed("rm /tmp/hakurei.0/tmpdir/0/pd-silent-ready")
     machine.send_key("ctrl-c")
     machine.wait_until_fails("pgrep foot", timeout=5)
     machine.wait_until_fails(f"pgrep -u alice -f 'hakurei run {flags}-a 0 '", timeout=5)
