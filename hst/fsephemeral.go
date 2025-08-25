@@ -10,7 +10,7 @@ import (
 
 func init() { gob.Register(new(FSEphemeral)) }
 
-// FilesystemEphemeral is the [FilesystemConfig.Type] name of a mount point with ephemeral state.
+// FilesystemEphemeral is the type string of a mount point with ephemeral state.
 const FilesystemEphemeral = "ephemeral"
 
 // FSEphemeral represents an ephemeral container mount point.

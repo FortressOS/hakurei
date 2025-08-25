@@ -9,7 +9,7 @@ import (
 
 func init() { gob.Register(new(FSBind)) }
 
-// FilesystemBind is the [FilesystemConfig.Type] name of a bind mount point.
+// FilesystemBind is the type string of a bind mount point.
 const FilesystemBind = "bind"
 
 // FSBind represents a host to container bind mount.

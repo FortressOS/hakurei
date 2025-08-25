@@ -9,7 +9,7 @@ import (
 
 func init() { gob.Register(new(FSOverlay)) }
 
-// FilesystemOverlay is the [FilesystemConfig.Type] name of an overlay mount point.
+// FilesystemOverlay is the type string of an overlay mount point.
 const FilesystemOverlay = "overlay"
 
 // FSOverlay represents an overlay mount point.
