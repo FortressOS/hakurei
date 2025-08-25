@@ -97,8 +97,8 @@ func Template() *Config {
 				"GOOGLE_DEFAULT_CLIENT_SECRET": "OTJgUOQcT7lO7GsGZq2G4IlT",
 			},
 			Filesystem: []FilesystemConfigJSON{
-				{&FSBind{container.AbsFHSRoot, container.AbsFHSVarLib.Append("hakurei/base/org.debian"), true, false, false, true}},
-				{&FSBind{container.AbsFHSEtc, container.AbsFHSEtc, false, false, false, true}},
+				{&FSBind{Target: container.AbsFHSRoot, Source: container.AbsFHSVarLib.Append("hakurei/base/org.debian"), Write: true, Special: true}},
+				{&FSBind{Target: container.AbsFHSEtc, Source: container.AbsFHSEtc, Special: true}},
 				{&FSEphemeral{Target: container.AbsFHSTmp, Write: true, Perm: 0755}},
 				{&FSOverlay{
 					Target: container.MustAbs("/nix/store"),
@@ -110,7 +110,7 @@ func Template() *Config {
 				{&FSLink{Target: container.AbsFHSRun.Append("current-system"), Linkname: "/run/current-system", Dereference: true}},
 				{&FSLink{Target: container.AbsFHSRun.Append("opengl-driver"), Linkname: "/run/opengl-driver", Dereference: true}},
 				{&FSBind{Source: container.AbsFHSVarLib.Append("hakurei/u0/org.chromium.Chromium"),
-					Target: container.MustAbs("/data/data/org.chromium.Chromium"), Write: true}},
+					Target: container.MustAbs("/data/data/org.chromium.Chromium"), Write: true, Ensure: true}},
 				{&FSBind{Source: container.AbsFHSDev.Append("dri"), Device: true, Optional: true}},
 			},
 		},

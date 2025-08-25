@@ -14,15 +14,17 @@ const FilesystemBind = "bind"
 
 // FSBind represents a host to container bind mount.
 type FSBind struct {
-	// mount point in container, same as src if empty
+	// mount point in container, same as Source if empty
 	Target *container.Absolute `json:"dst,omitempty"`
 	// host filesystem path to make available to the container
 	Source *container.Absolute `json:"src"`
-	// do not mount filesystem read-only
+	// do not mount Target read-only
 	Write bool `json:"write,omitempty"`
-	// do not disable device files, implies Write
+	// do not disable device files on Target, implies Write
 	Device bool `json:"dev,omitempty"`
-	// skip this mount point if the host path does not exist
+	// create Source as a directory if it does not exist
+	Ensure bool `json:"ensure,omitempty"`
+	// skip this mount point if Source does not exist
 	Optional bool `json:"optional,omitempty"`
 
 	// enable special behaviour:
@@ -43,6 +45,9 @@ func (b *FSBind) IsAutoEtc() bool {
 
 func (b *FSBind) Valid() bool {
 	if b == nil || b.Source == nil {
+		return false
+	}
+	if b.Ensure && b.Optional {
 		return false
 	}
 	if b.Special {
@@ -93,6 +98,9 @@ func (b *FSBind) Apply(z *ApplyState) {
 	}
 	if b.Device {
 		flags |= container.BindDevice | container.BindWritable
+	}
+	if b.Ensure {
+		flags |= container.BindEnsure
 	}
 	if b.Optional {
 		flags |= container.BindOptional
@@ -148,10 +156,15 @@ func (b *FSBind) String() string {
 	expr.Grow(g)
 	expr.WriteString(flagSym)
 
-	if !b.Optional {
-		expr.WriteString("*")
-	} else {
+	switch {
+	case b.Ensure:
+		expr.WriteString("-")
+
+	case b.Optional:
 		expr.WriteString("+")
+
+	default:
+		expr.WriteString("*")
 	}
 
 	expr.WriteString(b.Source.String())

@@ -53,7 +53,7 @@ Filesystem
  */nix/store
  /run/current-system@
  /run/opengl-driver@
- w*/var/lib/hakurei/u0/org.chromium.Chromium:/data/data/org.chromium.Chromium
+ w-/var/lib/hakurei/u0/org.chromium.Chromium:/data/data/org.chromium.Chromium
  d+/dev/dri
 
 Extra ACL
@@ -130,7 +130,7 @@ Filesystem
  */nix/store
  /run/current-system@
  /run/opengl-driver@
- w*/var/lib/hakurei/u0/org.chromium.Chromium:/data/data/org.chromium.Chromium
+ w-/var/lib/hakurei/u0/org.chromium.Chromium:/data/data/org.chromium.Chromium
  d+/dev/dri
 
 Extra ACL
@@ -325,7 +325,8 @@ App
           "type": "bind",
           "dst": "/data/data/org.chromium.Chromium",
           "src": "/var/lib/hakurei/u0/org.chromium.Chromium",
-          "write": true
+          "write": true,
+          "ensure": true
         },
         {
           "type": "bind",
@@ -481,7 +482,8 @@ App
         "type": "bind",
         "dst": "/data/data/org.chromium.Chromium",
         "src": "/var/lib/hakurei/u0/org.chromium.Chromium",
-        "write": true
+        "write": true,
+        "ensure": true
       },
       {
         "type": "bind",
@@ -691,7 +693,8 @@ func Test_printPs(t *testing.T) {
             "type": "bind",
             "dst": "/data/data/org.chromium.Chromium",
             "src": "/var/lib/hakurei/u0/org.chromium.Chromium",
-            "write": true
+            "write": true,
+            "ensure": true
           },
           {
             "type": "bind",

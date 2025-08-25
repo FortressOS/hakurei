@@ -10,6 +10,8 @@ import (
 func TestFSBind(t *testing.T) {
 	checkFs(t, []fsTestCase{
 		{"nil", (*hst.FSBind)(nil), false, nil, nil, nil, "<invalid>"},
+		{"ensure optional", &hst.FSBind{Source: m("/"), Ensure: true, Optional: true},
+			false, nil, nil, nil, "<invalid>"},
 
 		{"full", &hst.FSBind{
 			Target:   m("/dev"),
@@ -22,6 +24,18 @@ func TestFSBind(t *testing.T) {
 			Flags:  container.BindWritable | container.BindDevice | container.BindOptional,
 		}}, m("/dev"), ms("/mnt/dev"),
 			"d+/mnt/dev:/dev"},
+
+		{"full ensure", &hst.FSBind{
+			Target: m("/dev"),
+			Source: m("/mnt/dev"),
+			Ensure: true,
+			Device: true,
+		}, true, container.Ops{&container.BindMountOp{
+			Source: m("/mnt/dev"),
+			Target: m("/dev"),
+			Flags:  container.BindWritable | container.BindDevice | container.BindEnsure,
+		}}, m("/dev"), ms("/mnt/dev"),
+			"d-/mnt/dev:/dev"},
 
 		{"full write dev", &hst.FSBind{
 			Target: m("/dev"),
