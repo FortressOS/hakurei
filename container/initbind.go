@@ -23,8 +23,6 @@ type BindMountOp struct {
 	Flags int
 }
 
-func (b *BindMountOp) Valid() bool { return b != nil && b.Source != nil && b.Target != nil }
-
 const (
 	// BindOptional skips nonexistent host paths.
 	BindOptional = 1 << iota
@@ -32,9 +30,23 @@ const (
 	BindWritable
 	// BindDevice allows access to devices (special files) on this filesystem.
 	BindDevice
+	// BindEnsure attempts to create the host path if it does not exist.
+	BindEnsure
 )
 
+func (b *BindMountOp) Valid() bool {
+	return b != nil &&
+		b.Source != nil && b.Target != nil &&
+		b.Flags&(BindOptional|BindEnsure) != (BindOptional|BindEnsure)
+}
+
 func (b *BindMountOp) early(_ *setupState, k syscallDispatcher) error {
+	if b.Flags&BindEnsure != 0 {
+		if err := k.mkdirAll(b.Source.String(), 0700); err != nil {
+			return wrapErrSelf(err)
+		}
+	}
+
 	if pathname, err := k.evalSymlinks(b.Source.String()); err != nil {
 		if os.IsNotExist(err) && b.Flags&BindOptional != 0 {
 			// leave sourceFinal as nil

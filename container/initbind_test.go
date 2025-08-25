@@ -47,6 +47,27 @@ func TestBindMountOp(t *testing.T) {
 			{"ensureFile", expectArgs{"/sysroot/dev/null", os.FileMode(0444), os.FileMode(0700)}, nil, errUnique},
 		}, errUnique},
 
+		{"mkdirAll ensure", new(Params), &BindMountOp{
+			Source: MustAbs("/bin/"),
+			Target: MustAbs("/bin/"),
+			Flags:  BindEnsure,
+		}, []kexpect{
+			{"mkdirAll", expectArgs{"/bin/", os.FileMode(0700)}, nil, errUnique},
+		}, wrapErrSelf(errUnique), nil, nil},
+
+		{"success ensure", new(Params), &BindMountOp{
+			Source: MustAbs("/bin/"),
+			Target: MustAbs("/usr/bin/"),
+			Flags:  BindEnsure,
+		}, []kexpect{
+			{"mkdirAll", expectArgs{"/bin/", os.FileMode(0700)}, nil, nil},
+			{"evalSymlinks", expectArgs{"/bin/"}, "/usr/bin", nil},
+		}, nil, []kexpect{
+			{"stat", expectArgs{"/host/usr/bin"}, isDirFi(true), nil},
+			{"mkdirAll", expectArgs{"/sysroot/usr/bin", os.FileMode(0700)}, nil, nil},
+			{"bindMount", expectArgs{"/host/usr/bin", "/sysroot/usr/bin", uintptr(0x4005), false}, nil, nil},
+		}, nil},
+
 		{"success device ro", new(Params), &BindMountOp{
 			Source: MustAbs("/dev/null"),
 			Target: MustAbs("/dev/null"),
@@ -134,6 +155,7 @@ func TestBindMountOp(t *testing.T) {
 		{"zero", new(BindMountOp), false},
 		{"nil source", &BindMountOp{Target: MustAbs("/")}, false},
 		{"nil target", &BindMountOp{Source: MustAbs("/")}, false},
+		{"flag optional ensure", &BindMountOp{Source: MustAbs("/"), Target: MustAbs("/"), Flags: BindOptional | BindEnsure}, false},
 		{"valid", &BindMountOp{Source: MustAbs("/"), Target: MustAbs("/")}, true},
 	})
 
