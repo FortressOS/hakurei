@@ -35,7 +35,7 @@ package
 
 
 *Default:*
-` <derivation hakurei-static-x86_64-unknown-linux-musl-0.0.2> `
+` <derivation hakurei-static-x86_64-unknown-linux-musl-0.2.0> `
 
 
 
@@ -52,6 +52,78 @@ attribute set of (submodule)
 
 *Default:*
 ` { } `
+
+
+
+## environment\.hakurei\.apps\.\<name>\.enablements\.dbus
+
+
+
+Whether to proxy D-Bus\.
+
+
+
+*Type:*
+null or boolean
+
+
+
+*Default:*
+` true `
+
+
+
+## environment\.hakurei\.apps\.\<name>\.enablements\.pulse
+
+
+
+Whether to share the PulseAudio socket and cookie\.
+
+
+
+*Type:*
+null or boolean
+
+
+
+*Default:*
+` true `
+
+
+
+## environment\.hakurei\.apps\.\<name>\.enablements\.wayland
+
+
+
+Whether to share the Wayland socket\.
+
+
+
+*Type:*
+null or boolean
+
+
+
+*Default:*
+` true `
+
+
+
+## environment\.hakurei\.apps\.\<name>\.enablements\.x11
+
+
+
+Whether to share the X11 socket and allow connection\.
+
+
+
+*Type:*
+null or boolean
+
+
+
+*Default:*
+` false `
 
 
 
@@ -89,78 +161,6 @@ null or (list of string)
 
 *Default:*
 ` null `
-
-
-
-## environment\.hakurei\.apps\.\<name>\.capability\.dbus
-
-
-
-Whether to proxy D-Bus\.
-
-
-
-*Type:*
-boolean
-
-
-
-*Default:*
-` true `
-
-
-
-## environment\.hakurei\.apps\.\<name>\.capability\.pulse
-
-
-
-Whether to share the PulseAudio socket and cookie\.
-
-
-
-*Type:*
-boolean
-
-
-
-*Default:*
-` true `
-
-
-
-## environment\.hakurei\.apps\.\<name>\.capability\.wayland
-
-
-
-Whether to share the Wayland socket\.
-
-
-
-*Type:*
-boolean
-
-
-
-*Default:*
-` true `
-
-
-
-## environment\.hakurei\.apps\.\<name>\.capability\.x11
-
-
-
-Whether to share the X11 socket and allow connection\.
-
-
-
-*Type:*
-boolean
-
-
-
-*Default:*
-` false `
 
 
 
@@ -313,112 +313,12 @@ Extra paths to make available to the container\.
 
 
 *Type:*
-list of (submodule)
+anything
 
 
 
 *Default:*
 ` [ ] `
-
-
-
-## environment\.hakurei\.apps\.\<name>\.extraPaths\.\*\.dev
-
-
-
-Whether to enable use of device files\.
-
-
-
-*Type:*
-boolean
-
-
-
-*Default:*
-` false `
-
-
-
-*Example:*
-` true `
-
-
-
-## environment\.hakurei\.apps\.\<name>\.extraPaths\.\*\.dst
-
-
-
-Mount point in container, same as src if null\.
-
-
-
-*Type:*
-null or string
-
-
-
-*Default:*
-` null `
-
-
-
-## environment\.hakurei\.apps\.\<name>\.extraPaths\.\*\.require
-
-
-
-Whether to enable start failure if the bind mount cannot be established for any reason\.
-
-
-
-*Type:*
-boolean
-
-
-
-*Default:*
-` false `
-
-
-
-*Example:*
-` true `
-
-
-
-## environment\.hakurei\.apps\.\<name>\.extraPaths\.\*\.src
-
-
-
-Host filesystem path to make available to the container\.
-
-
-
-*Type:*
-string
-
-
-
-## environment\.hakurei\.apps\.\<name>\.extraPaths\.\*\.write
-
-
-
-Whether to enable mounting path as writable\.
-
-
-
-*Type:*
-boolean
-
-
-
-*Default:*
-` false `
-
-
-
-*Example:*
-` true `
 
 
 
@@ -456,6 +356,52 @@ list of string
 
 *Default:*
 ` [ ] `
+
+
+
+## environment\.hakurei\.apps\.\<name>\.hostAbstract
+
+
+
+Whether to enable share abstract unix socket scope\.
+
+
+
+*Type:*
+boolean
+
+
+
+*Default:*
+` false `
+
+
+
+*Example:*
+` true `
+
+
+
+## environment\.hakurei\.apps\.\<name>\.hostNet
+
+
+
+Whether to enable share host net namespace\.
+
+
+
+*Type:*
+boolean
+
+
+
+*Default:*
+` true `
+
+
+
+*Example:*
+` true `
 
 
 
@@ -551,29 +497,6 @@ Name of the app’s launcher script\.
 
 *Type:*
 string
-
-
-
-## environment\.hakurei\.apps\.\<name>\.net
-
-
-
-Whether to enable network access\.
-
-
-
-*Type:*
-boolean
-
-
-
-*Default:*
-` true `
-
-
-
-*Example:*
-` true `
 
 
 
@@ -771,6 +694,26 @@ boolean
 
 
 
+## environment\.hakurei\.apps\.\<name>\.wait_delay
+
+
+
+Duration to wait for after interrupting a container’s initial process in nanoseconds\.
+A negative value causes the container to be terminated immediately on cancellation\.
+Setting this to null defaults to five seconds\.
+
+
+
+*Type:*
+null or signed integer
+
+
+
+*Default:*
+` null `
+
+
+
 ## environment\.hakurei\.commonPaths
 
 
@@ -780,112 +723,12 @@ Common extra paths to make available to the container\.
 
 
 *Type:*
-list of (submodule)
+anything
 
 
 
 *Default:*
 ` [ ] `
-
-
-
-## environment\.hakurei\.commonPaths\.\*\.dev
-
-
-
-Whether to enable use of device files\.
-
-
-
-*Type:*
-boolean
-
-
-
-*Default:*
-` false `
-
-
-
-*Example:*
-` true `
-
-
-
-## environment\.hakurei\.commonPaths\.\*\.dst
-
-
-
-Mount point in container, same as src if null\.
-
-
-
-*Type:*
-null or string
-
-
-
-*Default:*
-` null `
-
-
-
-## environment\.hakurei\.commonPaths\.\*\.require
-
-
-
-Whether to enable start failure if the bind mount cannot be established for any reason\.
-
-
-
-*Type:*
-boolean
-
-
-
-*Default:*
-` false `
-
-
-
-*Example:*
-` true `
-
-
-
-## environment\.hakurei\.commonPaths\.\*\.src
-
-
-
-Host filesystem path to make available to the container\.
-
-
-
-*Type:*
-string
-
-
-
-## environment\.hakurei\.commonPaths\.\*\.write
-
-
-
-Whether to enable mounting path as writable\.
-
-
-
-*Type:*
-boolean
-
-
-
-*Default:*
-` false `
-
-
-
-*Example:*
-` true `
 
 
 
@@ -916,7 +759,25 @@ package
 
 
 *Default:*
-` <derivation hakurei-hsu-0.0.2> `
+` <derivation hakurei-hsu-0.2.0> `
+
+
+
+## environment\.hakurei\.shell
+
+
+
+Absolute path to preferred shell\.
+
+
+
+*Type:*
+string
+
+
+
+*Default:*
+` "/run/current-system/sw/bin/bash" `
 
 
 
