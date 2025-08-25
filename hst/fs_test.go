@@ -70,6 +70,16 @@ func TestFilesystemConfigJSON(t *testing.T) {
 		}, nil,
 			`{"type":"overlay","dst":"/nix/store","lower":["/mnt-root/nix/.ro-store"],"upper":"/mnt-root/nix/.rw-store/upper","work":"/mnt-root/nix/.rw-store/work"}`,
 			`{"fs":{"type":"overlay","dst":"/nix/store","lower":["/mnt-root/nix/.ro-store"],"upper":"/mnt-root/nix/.rw-store/upper","work":"/mnt-root/nix/.rw-store/work"},"magic":3236757504}`},
+
+		{"link", hst.FilesystemConfigJSON{
+			FilesystemConfig: &hst.FSLink{
+				Target:      m("/run/current-system"),
+				Linkname:    "/run/current-system",
+				Dereference: true,
+			},
+		}, nil,
+			`{"type":"link","dst":"/run/current-system","linkname":"/run/current-system","dereference":true}`,
+			`{"fs":{"type":"link","dst":"/run/current-system","linkname":"/run/current-system","dereference":true},"magic":3236757504}`},
 	}
 
 	for _, tc := range testCases {
