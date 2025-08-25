@@ -43,6 +43,8 @@ const (
 	// Note that any source value is allowed when fstype is [FstypeOverlay].
 	SourceOverlay = "overlay"
 
+	// SourceTmpfs is used when mounting tmpfs.
+	SourceTmpfs = "tmpfs"
 	// SourceTmpfsRootfs is used when mounting the tmpfs instance backing the intermediate root.
 	SourceTmpfsRootfs = "rootfs"
 	// SourceTmpfsDevtmpfs is used when mounting tmpfs representing a subset of host devtmpfs.

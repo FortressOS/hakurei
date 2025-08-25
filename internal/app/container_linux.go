@@ -233,7 +233,9 @@ func newContainer(s *hst.ContainerConfig, os sys.State, prefix string, uid, gid 
 
 	// no more ContainerConfig paths beyond this point
 	if !s.Device {
-		params.Remount(container.AbsFHSDev, syscall.MS_RDONLY)
+		params.
+			Remount(container.AbsFHSDev, syscall.MS_RDONLY).
+			Tmpfs(container.AbsFHSDev.Append("shm"), 0, 01777)
 	}
 
 	return params, maps.Clone(s.Env), nil

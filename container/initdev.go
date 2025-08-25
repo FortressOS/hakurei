@@ -72,8 +72,9 @@ func (d *MountDevOp) apply(state *setupState, k syscallDispatcher) error {
 		}
 	}
 
+	devShmPath := path.Join(target, "shm")
 	devPtsPath := path.Join(target, "pts")
-	for _, name := range []string{path.Join(target, "shm"), devPtsPath} {
+	for _, name := range []string{devShmPath, devPtsPath} {
 		if err := k.mkdir(name, state.ParentPerm); err != nil {
 			return wrapErrSelf(err)
 		}
@@ -117,8 +118,12 @@ func (d *MountDevOp) apply(state *setupState, k syscallDispatcher) error {
 	if d.Write {
 		return nil
 	}
-	return wrapErrSuffix(k.remount(target, MS_RDONLY),
-		fmt.Sprintf("cannot remount %q:", target))
+
+	if err := k.remount(target, MS_RDONLY); err != nil {
+		return wrapErrSuffix(k.remount(target, MS_RDONLY),
+			fmt.Sprintf("cannot remount %q:", target))
+	}
+	return k.mountTmpfs(SourceTmpfs, devShmPath, MS_NOSUID|MS_NODEV, 0, 01777)
 }
 
 func (d *MountDevOp) Is(op Op) bool {

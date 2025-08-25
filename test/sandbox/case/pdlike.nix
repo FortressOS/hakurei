@@ -70,7 +70,7 @@ in
         ptmx = fs "80001ff" null null;
         pts = fs "800001ed" { ptmx = fs "42001b6" null null; } null;
         random = fs "42001b6" null null;
-        shm = fs "800001ed" { } null;
+        shm = fs "801001ff" { } null;
         stderr = fs "80001ff" null null;
         stdin = fs "80001ff" null null;
         stdout = fs "80001ff" null null;
@@ -251,6 +251,7 @@ in
       (ent "/dri" "/dev/dri" "rw,nosuid" "devtmpfs" "devtmpfs" ignore)
       (ent "/etc" ignore "ro,nosuid,nodev,relatime" "ext4" "/dev/disk/by-label/nixos" "rw")
       (ent "/var/lib/hakurei/u0/a5" "/var/lib/hakurei/u0/a5" "rw,nosuid,nodev,relatime" "ext4" "/dev/disk/by-label/nixos" "rw")
+      (ent "/" "/dev/shm" "rw,nosuid,nodev,relatime" "tmpfs" "ephemeral" "rw,uid=1000005,gid=1000005")
       (ent "/" "/run/user" "rw,nosuid,nodev,relatime" "tmpfs" "ephemeral" "rw,size=4k,mode=755,uid=1000005,gid=1000005")
       (ent "/tmp/hakurei.0/runtime/5" "/run/user/65534" "rw,nosuid,nodev,relatime" "ext4" "/dev/disk/by-label/nixos" "rw")
       (ent "/tmp/hakurei.0/tmpdir/5" "/tmp" "rw,nosuid,nodev,relatime" "ext4" "/dev/disk/by-label/nixos" "rw")

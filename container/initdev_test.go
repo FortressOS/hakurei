@@ -645,6 +645,7 @@ func TestMountDevOp(t *testing.T) {
 			{"readlink", expectArgs{"/host/proc/self/fd/1"}, "/dev/pts/2", nil},
 			{"bindMount", expectArgs{"/host/dev/pts/2", "/sysroot/dev/console", uintptr(0), false}, nil, nil},
 			{"remount", expectArgs{"/sysroot/dev", uintptr(1)}, nil, nil},
+			{"mountTmpfs", expectArgs{"tmpfs", "/sysroot/dev/shm", uintptr(0x6), 0, os.FileMode(01777)}, nil, nil},
 		}, nil},
 
 		{"success rw", &Params{ParentPerm: 0750, RetainSession: true}, &MountDevOp{
@@ -715,6 +716,7 @@ func TestMountDevOp(t *testing.T) {
 			{"mkdir", expectArgs{"/sysroot/dev/mqueue", os.FileMode(0750)}, nil, nil},
 			{"mount", expectArgs{"mqueue", "/sysroot/dev/mqueue", "mqueue", uintptr(0xe), ""}, nil, nil},
 			{"remount", expectArgs{"/sysroot/dev", uintptr(1)}, nil, nil},
+			{"mountTmpfs", expectArgs{"tmpfs", "/sysroot/dev/shm", uintptr(0x6), 0, os.FileMode(01777)}, nil, nil},
 		}, nil},
 	})
 

@@ -53,6 +53,7 @@ var testCasesPd = []sealTestCase{
 				Tmpfs(m("/run/user/1971"), 8192, 0755).
 				Tmpfs(m("/run/dbus"), 8192, 0755).
 				Remount(m("/dev/"), syscall.MS_RDONLY).
+				Tmpfs(m("/dev/shm"), 0, 01777).
 				Tmpfs(m("/run/user/"), 4096, 0755).
 				Bind(m("/tmp/hakurei.1971/runtime/0"), m("/run/user/65534"), container.BindWritable).
 				Bind(m("/tmp/hakurei.1971/tmpdir/0"), m("/tmp/"), container.BindWritable).
@@ -189,6 +190,7 @@ var testCasesPd = []sealTestCase{
 				Tmpfs(m("/run/user/1971"), 8192, 0755).
 				Tmpfs(m("/run/dbus"), 8192, 0755).
 				Remount(m("/dev/"), syscall.MS_RDONLY).
+				Tmpfs(m("/dev/shm"), 0, 01777).
 				Tmpfs(m("/run/user/"), 4096, 0755).
 				Bind(m("/tmp/hakurei.1971/runtime/9"), m("/run/user/65534"), container.BindWritable).
 				Bind(m("/tmp/hakurei.1971/tmpdir/9"), m("/tmp/"), container.BindWritable).

@@ -100,6 +100,7 @@ var containerTestCases = []struct {
 			ent("/tty", "/dev/tty", "rw,nosuid", "devtmpfs", "devtmpfs", ignore),
 			ent("/", "/dev/pts", "rw,nosuid,noexec,relatime", "devpts", "devpts", "rw,mode=620,ptmxmode=666"),
 			ent("/", "/dev/mqueue", "rw,nosuid,nodev,noexec,relatime", "mqueue", "mqueue", "rw"),
+			ent("/", "/dev/shm", "rw,nosuid,nodev,relatime", "tmpfs", "tmpfs", ignore),
 		),
 		1971, 100, nil, 0, seccomp.PresetStrict},
 
@@ -116,6 +117,7 @@ var containerTestCases = []struct {
 			ent("/urandom", "/dev/urandom", "rw,nosuid", "devtmpfs", "devtmpfs", ignore),
 			ent("/tty", "/dev/tty", "rw,nosuid", "devtmpfs", "devtmpfs", ignore),
 			ent("/", "/dev/pts", "rw,nosuid,noexec,relatime", "devpts", "devpts", "rw,mode=620,ptmxmode=666"),
+			ent("/", "/dev/shm", "rw,nosuid,nodev,relatime", "tmpfs", "tmpfs", ignore),
 		),
 		1971, 100, nil, 0, seccomp.PresetStrict},
 
