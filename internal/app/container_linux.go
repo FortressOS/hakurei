@@ -74,8 +74,19 @@ func newContainer(s *hst.ContainerConfig, os sys.State, prefix string, uid, gid 
 		*gid = container.OverflowGid()
 	}
 
-	if s.AutoRoot != nil {
-		params.Root(s.AutoRoot, s.RootFlags)
+	filesystem := s.Filesystem
+	var autoroot *hst.FSBind
+	// valid happens late, so root mount gets it here
+	if len(filesystem) > 0 && filesystem[0].Valid() && filesystem[0].Path().String() == container.FHSRoot {
+		// if the first element targets /, it is inserted early and excluded from path hiding
+		rootfs := filesystem[0].FilesystemConfig
+		filesystem = filesystem[1:]
+		rootfs.Apply(params.Ops)
+
+		// autoroot requires special handling during path hiding
+		if b, ok := rootfs.(*hst.FSBind); ok && b.Valid() && b.AutoRoot {
+			autoroot = b
+		}
 	}
 
 	params.
@@ -128,7 +139,7 @@ func newContainer(s *hst.ContainerConfig, os sys.State, prefix string, uid, gid 
 	}
 
 	var hidePathSourceCount int
-	for i, c := range s.Filesystem {
+	for i, c := range filesystem {
 		if !c.Valid() {
 			return nil, nil, fmt.Errorf("invalid filesystem at index %d", i)
 		}
@@ -138,10 +149,10 @@ func newContainer(s *hst.ContainerConfig, os sys.State, prefix string, uid, gid 
 		hidePathSourceCount += len(c.Host())
 	}
 
-	// AutoRoot is a collection of many BindMountOp internally
+	// AutoRootOp is a collection of many BindMountOp internally
 	var autoRootEntries []fs.DirEntry
-	if s.AutoRoot != nil {
-		if d, err := os.ReadDir(s.AutoRoot.String()); err != nil {
+	if autoroot != nil {
+		if d, err := os.ReadDir(autoroot.Source.String()); err != nil {
 			return nil, nil, err
 		} else {
 			// autoroot counter
@@ -153,17 +164,17 @@ func newContainer(s *hst.ContainerConfig, os sys.State, prefix string, uid, gid 
 	hidePathSource := make([]*container.Absolute, 0, hidePathSourceCount)
 
 	// fs append
-	for _, c := range s.Filesystem {
+	for _, c := range filesystem {
 		// all entries already checked above
 		hidePathSource = append(hidePathSource, c.Host()...)
 	}
 
 	// autoroot append
-	if s.AutoRoot != nil {
+	if autoroot != nil {
 		for _, ent := range autoRootEntries {
 			name := ent.Name()
 			if container.IsAutoRootBindable(name) {
-				hidePathSource = append(hidePathSource, s.AutoRoot.Append(name))
+				hidePathSource = append(hidePathSource, autoroot.Source.Append(name))
 			}
 		}
 	}

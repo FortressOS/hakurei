@@ -103,6 +103,13 @@ func TestTemplate(t *testing.T) {
 		"device": true,
 		"filesystem": [
 			{
+				"type": "bind",
+				"dst": "/",
+				"src": "/var/lib/hakurei/base/org.debian",
+				"write": true,
+				"autoroot": true
+			},
+			{
 				"type": "ephemeral",
 				"dst": "/tmp/",
 				"write": true,
@@ -148,8 +155,6 @@ func TestTemplate(t *testing.T) {
 				"linkname": "/run/user/150"
 			}
 		],
-		"auto_root": "/var/lib/hakurei/base/org.debian",
-		"root_flags": 2,
 		"etc": "/etc/",
 		"auto_etc": true
 	}

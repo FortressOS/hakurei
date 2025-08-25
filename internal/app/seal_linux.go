@@ -244,8 +244,14 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 			Tty:          true,
 			AutoEtc:      true,
 
-			AutoRoot:  container.AbsFHSRoot,
-			RootFlags: container.BindWritable,
+			Filesystem: []hst.FilesystemConfigJSON{
+				{&hst.FSBind{
+					Target:   container.AbsFHSRoot,
+					Source:   container.AbsFHSRoot,
+					Write:    true,
+					AutoRoot: true,
+				}},
+			},
 		}
 
 		// bind GPU stuff

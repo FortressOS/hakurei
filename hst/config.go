@@ -93,16 +93,11 @@ type (
 
 		// pass through all devices
 		Device bool `json:"device,omitempty"`
-		// container mount points
+		// container mount points;
+		// if the first element targets /, it is inserted early and excluded from path hiding
 		Filesystem []FilesystemConfigJSON `json:"filesystem"`
 		// create symlinks inside container filesystem
 		Link []LinkConfig `json:"symlink"`
-
-		// automatically bind mount top-level directories to container root;
-		// the zero value disables this behaviour
-		AutoRoot *container.Absolute `json:"auto_root,omitempty"`
-		// extra flags for AutoRoot
-		RootFlags int `json:"root_flags,omitempty"`
 
 		// read-only /etc directory
 		Etc *container.Absolute `json:"etc,omitempty"`

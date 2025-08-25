@@ -110,10 +110,6 @@ func printShowInstance(
 		}
 		t.Printf(" Flags:\t%s\n", strings.Join(flags, " "))
 
-		if params.AutoRoot != nil {
-			t.Printf(" Root:\t%s (%d)\n", params.AutoRoot, params.RootFlags)
-		}
-
 		etc := params.Etc
 		if etc == nil {
 			etc = container.AbsFHSEtc

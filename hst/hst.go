@@ -97,6 +97,7 @@ func Template() *Config {
 				"GOOGLE_DEFAULT_CLIENT_SECRET": "OTJgUOQcT7lO7GsGZq2G4IlT",
 			},
 			Filesystem: []FilesystemConfigJSON{
+				{&FSBind{container.AbsFHSRoot, container.AbsFHSVarLib.Append("hakurei/base/org.debian"), true, false, false, true}},
 				{&FSEphemeral{Target: container.AbsFHSTmp, Write: true, Perm: 0755}},
 				{&FSOverlay{
 					Target: container.MustAbs("/nix/store"),
@@ -111,11 +112,9 @@ func Template() *Config {
 					Target: container.MustAbs("/data/data/org.chromium.Chromium"), Write: true}},
 				{&FSBind{Source: container.AbsFHSDev.Append("dri"), Device: true, Optional: true}},
 			},
-			Link:      []LinkConfig{{container.AbsFHSRunUser.Append("65534"), container.FHSRunUser + "150"}},
-			AutoRoot:  container.AbsFHSVarLib.Append("hakurei/base/org.debian"),
-			RootFlags: container.BindWritable,
-			Etc:       container.AbsFHSEtc,
-			AutoEtc:   true,
+			Link:    []LinkConfig{{container.AbsFHSRunUser.Append("65534"), container.FHSRunUser + "150"}},
+			Etc:     container.AbsFHSEtc,
+			AutoEtc: true,
 		},
 	}
 }

@@ -42,12 +42,12 @@ func Test_printShowInstance(t *testing.T) {
  Data:           /var/lib/hakurei/u0/org.chromium.Chromium
  Hostname:       localhost
  Flags:          userns devel net abstract device tty mapuid autoetc
- Root:           /var/lib/hakurei/base/org.debian (2)
  Etc:            /etc/
  Path:           /run/current-system/sw/bin/chromium
  Arguments:      chromium --ignore-gpu-blocklist --disable-smooth-scrolling --enable-features=UseOzonePlatform --ozone-platform=wayland
 
 Filesystem
+ autoroot:w:/var/lib/hakurei/base/org.debian
  w+ephemeral(-rwxr-xr-x):/tmp/
  w*/nix/store:/mnt-root/nix/.rw-store/upper:/mnt-root/nix/.rw-store/work:/mnt-root/nix/.ro-store
  */nix/store
@@ -121,12 +121,12 @@ App
  Data:           /var/lib/hakurei/u0/org.chromium.Chromium
  Hostname:       localhost
  Flags:          userns devel net abstract device tty mapuid autoetc
- Root:           /var/lib/hakurei/base/org.debian (2)
  Etc:            /etc/
  Path:           /run/current-system/sw/bin/chromium
  Arguments:      chromium --ignore-gpu-blocklist --disable-smooth-scrolling --enable-features=UseOzonePlatform --ozone-platform=wayland
 
 Filesystem
+ autoroot:w:/var/lib/hakurei/base/org.debian
  w+ephemeral(-rwxr-xr-x):/tmp/
  w*/nix/store:/mnt-root/nix/.rw-store/upper:/mnt-root/nix/.rw-store/work:/mnt-root/nix/.ro-store
  */nix/store
@@ -280,6 +280,13 @@ App
       "device": true,
       "filesystem": [
         {
+          "type": "bind",
+          "dst": "/",
+          "src": "/var/lib/hakurei/base/org.debian",
+          "write": true,
+          "autoroot": true
+        },
+        {
           "type": "ephemeral",
           "dst": "/tmp/",
           "write": true,
@@ -325,8 +332,6 @@ App
           "linkname": "/run/user/150"
         }
       ],
-      "auto_root": "/var/lib/hakurei/base/org.debian",
-      "root_flags": 2,
       "etc": "/etc/",
       "auto_etc": true
     }
@@ -429,6 +434,13 @@ App
     "device": true,
     "filesystem": [
       {
+        "type": "bind",
+        "dst": "/",
+        "src": "/var/lib/hakurei/base/org.debian",
+        "write": true,
+        "autoroot": true
+      },
+      {
         "type": "ephemeral",
         "dst": "/tmp/",
         "write": true,
@@ -474,8 +486,6 @@ App
         "linkname": "/run/user/150"
       }
     ],
-    "auto_root": "/var/lib/hakurei/base/org.debian",
-    "root_flags": 2,
     "etc": "/etc/",
     "auto_etc": true
   }
@@ -632,6 +642,13 @@ func Test_printPs(t *testing.T) {
         "device": true,
         "filesystem": [
           {
+            "type": "bind",
+            "dst": "/",
+            "src": "/var/lib/hakurei/base/org.debian",
+            "write": true,
+            "autoroot": true
+          },
+          {
             "type": "ephemeral",
             "dst": "/tmp/",
             "write": true,
@@ -677,8 +694,6 @@ func Test_printPs(t *testing.T) {
             "linkname": "/run/user/150"
           }
         ],
-        "auto_root": "/var/lib/hakurei/base/org.debian",
-        "root_flags": 2,
         "etc": "/etc/",
         "auto_etc": true
       }
