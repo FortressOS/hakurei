@@ -188,28 +188,29 @@ in
                             src = "/etc/";
                             special = true;
                           }
-                        ];
-
-                      symlink = [
-                        {
-                          target = "/run/current-system";
-                          linkname = "*/run/current-system";
-                        }
-                      ]
-                      ++ optionals (isGraphical && config.hardware.graphics.enable) (
-                        [
                           {
-                            target = "/run/opengl-driver";
-                            linkname = config.systemd.tmpfiles.settings.graphics-driver."/run/opengl-driver"."L+".argument;
+                            type = "link";
+                            dst = "/run/current-system";
+                            linkname = "/run/current-system";
+                            dereference = true;
                           }
                         ]
-                        ++ optionals (app.multiarch && config.hardware.graphics.enable32Bit) [
-                          {
-                            target = "/run/opengl-driver-32";
-                            linkname = config.systemd.tmpfiles.settings.graphics-driver."/run/opengl-driver-32"."L+".argument;
-                          }
-                        ]
-                      );
+                        ++ optionals (isGraphical && config.hardware.graphics.enable) (
+                          [
+                            {
+                              type = "link";
+                              dst = "/run/opengl-driver";
+                              linkname = config.systemd.tmpfiles.settings.graphics-driver."/run/opengl-driver"."L+".argument;
+                            }
+                          ]
+                          ++ optionals (app.multiarch && config.hardware.graphics.enable32Bit) [
+                            {
+                              type = "link";
+                              dst = "/run/opengl-driver-32";
+                              linkname = config.systemd.tmpfiles.settings.graphics-driver."/run/opengl-driver-32"."L+".argument;
+                            }
+                          ]
+                        );
                     };
                   };
 

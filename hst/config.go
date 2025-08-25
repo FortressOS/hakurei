@@ -96,16 +96,6 @@ type (
 		// container mount points;
 		// if the first element targets /, it is inserted early and excluded from path hiding
 		Filesystem []FilesystemConfigJSON `json:"filesystem"`
-		// create symlinks inside container filesystem
-		Link []LinkConfig `json:"symlink"`
-	}
-
-	LinkConfig struct {
-		// symlink target in container
-		Target *container.Absolute `json:"target"`
-		// linkname the symlink points to;
-		// prepend '*' to dereference an absolute pathname on host
-		Linkname string `json:"linkname"`
 	}
 )
 

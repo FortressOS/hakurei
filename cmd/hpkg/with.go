@@ -51,11 +51,9 @@ func withNixDaemon(
 			Filesystem: []hst.FilesystemConfigJSON{
 				{FilesystemConfig: &hst.FSBind{Target: container.AbsFHSEtc, Source: pathSet.cacheDir.Append("etc"), Special: true}},
 				{FilesystemConfig: &hst.FSBind{Source: pathSet.nixPath, Target: pathNix, Write: true}},
-			},
-			Link: []hst.LinkConfig{
-				{pathCurrentSystem, app.CurrentSystem.String()},
-				{pathBin, pathSwBin.String()},
-				{container.AbsFHSUsrBin, pathSwBin.String()},
+				{FilesystemConfig: &hst.FSLink{Target: pathCurrentSystem, Linkname: app.CurrentSystem.String()}},
+				{FilesystemConfig: &hst.FSLink{Target: pathBin, Linkname: pathSwBin.String()}},
+				{FilesystemConfig: &hst.FSLink{Target: container.AbsFHSUsrBin, Linkname: pathSwBin.String()}},
 			},
 		},
 	}), dropShell, beforeFail)
@@ -90,12 +88,10 @@ func withCacheDir(
 			Filesystem: []hst.FilesystemConfigJSON{
 				{FilesystemConfig: &hst.FSBind{Target: container.AbsFHSEtc, Source: workDir.Append(container.FHSEtc), Special: true}},
 				{FilesystemConfig: &hst.FSBind{Source: workDir.Append("nix"), Target: pathNix}},
+				{FilesystemConfig: &hst.FSLink{Target: pathCurrentSystem, Linkname: app.CurrentSystem.String()}},
+				{FilesystemConfig: &hst.FSLink{Target: pathBin, Linkname: pathSwBin.String()}},
+				{FilesystemConfig: &hst.FSLink{Target: container.AbsFHSUsrBin, Linkname: pathSwBin.String()}},
 				{FilesystemConfig: &hst.FSBind{Source: workDir, Target: hst.AbsTmp.Append("bundle")}},
-			},
-			Link: []hst.LinkConfig{
-				{pathCurrentSystem, app.CurrentSystem.String()},
-				{pathBin, pathSwBin.String()},
-				{container.AbsFHSUsrBin, pathSwBin.String()},
 			},
 		},
 	}, dropShell, beforeFail)

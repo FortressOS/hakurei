@@ -44,7 +44,7 @@ func newContainer(s *hst.ContainerConfig, os sys.State, prefix string, uid, gid 
 		AutoEtcPrefix: prefix,
 	}
 	{
-		ops := make(container.Ops, 0, preallocateOpsCount+len(s.Filesystem)+len(s.Link))
+		ops := make(container.Ops, 0, preallocateOpsCount+len(s.Filesystem))
 		params.Ops = &ops
 		as.Ops = &ops
 	}
@@ -229,19 +229,6 @@ func newContainer(s *hst.ContainerConfig, os sys.State, prefix string, uid, gid 
 				params.Tmpfs(a, 1<<13, 0755)
 			}
 		}
-	}
-
-	for i, l := range s.Link {
-		if l.Target == nil || l.Linkname == "" {
-			return nil, nil, fmt.Errorf("invalid link at index %d", i)
-		}
-		linkname := l.Linkname
-		var dereference bool
-		if linkname[0] == '*' && path.IsAbs(linkname[1:]) {
-			linkname = linkname[1:]
-			dereference = true
-		}
-		params.Link(l.Target, linkname, dereference)
 	}
 
 	// no more ContainerConfig paths beyond this point

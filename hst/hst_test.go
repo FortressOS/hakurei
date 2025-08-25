@@ -135,12 +135,16 @@ func TestTemplate(t *testing.T) {
 				"src": "/nix/store"
 			},
 			{
-				"type": "bind",
-				"src": "/run/current-system"
+				"type": "link",
+				"dst": "/run/current-system",
+				"linkname": "/run/current-system",
+				"dereference": true
 			},
 			{
-				"type": "bind",
-				"src": "/run/opengl-driver"
+				"type": "link",
+				"dst": "/run/opengl-driver",
+				"linkname": "/run/opengl-driver",
+				"dereference": true
 			},
 			{
 				"type": "bind",
@@ -153,12 +157,6 @@ func TestTemplate(t *testing.T) {
 				"src": "/dev/dri",
 				"dev": true,
 				"optional": true
-			}
-		],
-		"symlink": [
-			{
-				"target": "/run/user/65534",
-				"linkname": "/run/user/150"
 			}
 		]
 	}

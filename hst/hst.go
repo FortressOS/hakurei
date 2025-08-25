@@ -107,13 +107,12 @@ func Template() *Config {
 					Work:   container.MustAbs("/mnt-root/nix/.rw-store/work"),
 				}},
 				{&FSBind{Source: container.MustAbs("/nix/store")}},
-				{&FSBind{Source: container.AbsFHSRun.Append("current-system")}},
-				{&FSBind{Source: container.AbsFHSRun.Append("opengl-driver")}},
+				{&FSLink{Target: container.AbsFHSRun.Append("current-system"), Linkname: "/run/current-system", Dereference: true}},
+				{&FSLink{Target: container.AbsFHSRun.Append("opengl-driver"), Linkname: "/run/opengl-driver", Dereference: true}},
 				{&FSBind{Source: container.AbsFHSVarLib.Append("hakurei/u0/org.chromium.Chromium"),
 					Target: container.MustAbs("/data/data/org.chromium.Chromium"), Write: true}},
 				{&FSBind{Source: container.AbsFHSDev.Append("dri"), Device: true, Optional: true}},
 			},
-			Link: []LinkConfig{{container.AbsFHSRunUser.Append("65534"), container.FHSRunUser + "150"}},
 		},
 	}
 }

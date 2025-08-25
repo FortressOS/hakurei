@@ -51,8 +51,8 @@ Filesystem
  w+ephemeral(-rwxr-xr-x):/tmp/
  w*/nix/store:/mnt-root/nix/.rw-store/upper:/mnt-root/nix/.rw-store/work:/mnt-root/nix/.ro-store
  */nix/store
- */run/current-system
- */run/opengl-driver
+ &/run/current-system:*/run/current-system
+ &/run/opengl-driver:*/run/opengl-driver
  w*/var/lib/hakurei/u0/org.chromium.Chromium:/data/data/org.chromium.Chromium
  d+/dev/dri
 
@@ -128,8 +128,8 @@ Filesystem
  w+ephemeral(-rwxr-xr-x):/tmp/
  w*/nix/store:/mnt-root/nix/.rw-store/upper:/mnt-root/nix/.rw-store/work:/mnt-root/nix/.ro-store
  */nix/store
- */run/current-system
- */run/opengl-driver
+ &/run/current-system:*/run/current-system
+ &/run/opengl-driver:*/run/opengl-driver
  w*/var/lib/hakurei/u0/org.chromium.Chromium:/data/data/org.chromium.Chromium
  d+/dev/dri
 
@@ -310,12 +310,16 @@ App
           "src": "/nix/store"
         },
         {
-          "type": "bind",
-          "src": "/run/current-system"
+          "type": "link",
+          "dst": "/run/current-system",
+          "linkname": "/run/current-system",
+          "dereference": true
         },
         {
-          "type": "bind",
-          "src": "/run/opengl-driver"
+          "type": "link",
+          "dst": "/run/opengl-driver",
+          "linkname": "/run/opengl-driver",
+          "dereference": true
         },
         {
           "type": "bind",
@@ -328,12 +332,6 @@ App
           "src": "/dev/dri",
           "dev": true,
           "optional": true
-        }
-      ],
-      "symlink": [
-        {
-          "target": "/run/user/65534",
-          "linkname": "/run/user/150"
         }
       ]
     }
@@ -468,12 +466,16 @@ App
         "src": "/nix/store"
       },
       {
-        "type": "bind",
-        "src": "/run/current-system"
+        "type": "link",
+        "dst": "/run/current-system",
+        "linkname": "/run/current-system",
+        "dereference": true
       },
       {
-        "type": "bind",
-        "src": "/run/opengl-driver"
+        "type": "link",
+        "dst": "/run/opengl-driver",
+        "linkname": "/run/opengl-driver",
+        "dereference": true
       },
       {
         "type": "bind",
@@ -486,12 +488,6 @@ App
         "src": "/dev/dri",
         "dev": true,
         "optional": true
-      }
-    ],
-    "symlink": [
-      {
-        "target": "/run/user/65534",
-        "linkname": "/run/user/150"
       }
     ]
   }
@@ -680,12 +676,16 @@ func Test_printPs(t *testing.T) {
             "src": "/nix/store"
           },
           {
-            "type": "bind",
-            "src": "/run/current-system"
+            "type": "link",
+            "dst": "/run/current-system",
+            "linkname": "/run/current-system",
+            "dereference": true
           },
           {
-            "type": "bind",
-            "src": "/run/opengl-driver"
+            "type": "link",
+            "dst": "/run/opengl-driver",
+            "linkname": "/run/opengl-driver",
+            "dereference": true
           },
           {
             "type": "bind",
@@ -698,12 +698,6 @@ func Test_printPs(t *testing.T) {
             "src": "/dev/dri",
             "dev": true,
             "optional": true
-          }
-        ],
-        "symlink": [
-          {
-            "target": "/run/user/65534",
-            "linkname": "/run/user/150"
           }
         ]
       }

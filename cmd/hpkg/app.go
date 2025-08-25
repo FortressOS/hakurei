@@ -96,6 +96,9 @@ func (app *appInfo) toHst(pathSet *appPathSet, pathname *container.Absolute, arg
 			Filesystem: []hst.FilesystemConfigJSON{
 				{FilesystemConfig: &hst.FSBind{Target: container.AbsFHSEtc, Source: pathSet.cacheDir.Append("etc"), Special: true}},
 				{FilesystemConfig: &hst.FSBind{Source: pathSet.nixPath.Append("store"), Target: pathNixStore}},
+				{FilesystemConfig: &hst.FSLink{Target: pathCurrentSystem, Linkname: app.CurrentSystem.String()}},
+				{FilesystemConfig: &hst.FSLink{Target: pathBin, Linkname: pathSwBin.String()}},
+				{FilesystemConfig: &hst.FSLink{Target: container.AbsFHSUsrBin, Linkname: pathSwBin.String()}},
 				{FilesystemConfig: &hst.FSBind{Source: pathSet.metaPath, Target: hst.AbsTmp.Append("app")}},
 				{FilesystemConfig: &hst.FSBind{Source: container.AbsFHSEtc.Append("resolv.conf"), Optional: true}},
 				{FilesystemConfig: &hst.FSBind{Source: container.AbsFHSSys.Append("block"), Optional: true}},
@@ -103,11 +106,6 @@ func (app *appInfo) toHst(pathSet *appPathSet, pathname *container.Absolute, arg
 				{FilesystemConfig: &hst.FSBind{Source: container.AbsFHSSys.Append("class"), Optional: true}},
 				{FilesystemConfig: &hst.FSBind{Source: container.AbsFHSSys.Append("dev"), Optional: true}},
 				{FilesystemConfig: &hst.FSBind{Source: container.AbsFHSSys.Append("devices"), Optional: true}},
-			},
-			Link: []hst.LinkConfig{
-				{pathCurrentSystem, app.CurrentSystem.String()},
-				{pathBin, pathSwBin.String()},
-				{container.AbsFHSUsrBin, pathSwBin.String()},
 			},
 		},
 		ExtraPerms: []*hst.ExtraPermConfig{
