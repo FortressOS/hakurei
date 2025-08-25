@@ -12,7 +12,6 @@ import (
 	"text/tabwriter"
 	"time"
 
-	"hakurei.app/container"
 	"hakurei.app/hst"
 	"hakurei.app/internal/app/state"
 	"hakurei.app/internal/hlog"
@@ -104,17 +103,10 @@ func printShowInstance(
 		writeFlag("tty", params.Tty)
 		writeFlag("mapuid", params.MapRealUID)
 		writeFlag("directwl", config.DirectWayland)
-		writeFlag("autoetc", params.AutoEtc)
 		if len(flags) == 0 {
 			flags = append(flags, "none")
 		}
 		t.Printf(" Flags:\t%s\n", strings.Join(flags, " "))
-
-		etc := params.Etc
-		if etc == nil {
-			etc = container.AbsFHSEtc
-		}
-		t.Printf(" Etc:\t%s\n", etc)
 
 		if config.Path != nil {
 			t.Printf(" Path:\t%s\n", config.Path)

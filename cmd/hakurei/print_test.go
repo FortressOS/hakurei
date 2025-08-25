@@ -41,13 +41,13 @@ func Test_printShowInstance(t *testing.T) {
  Groups:         video, dialout, plugdev
  Data:           /var/lib/hakurei/u0/org.chromium.Chromium
  Hostname:       localhost
- Flags:          userns devel net abstract device tty mapuid autoetc
- Etc:            /etc/
+ Flags:          userns devel net abstract device tty mapuid
  Path:           /run/current-system/sw/bin/chromium
  Arguments:      chromium --ignore-gpu-blocklist --disable-smooth-scrolling --enable-features=UseOzonePlatform --ozone-platform=wayland
 
 Filesystem
  autoroot:w:/var/lib/hakurei/base/org.debian
+ autoetc:/etc/
  w+ephemeral(-rwxr-xr-x):/tmp/
  w*/nix/store:/mnt-root/nix/.rw-store/upper:/mnt-root/nix/.rw-store/work:/mnt-root/nix/.ro-store
  */nix/store
@@ -83,14 +83,12 @@ App
  Identity:       0
  Enablements:    (no enablements)
  Flags:          none
- Etc:            /etc/
 
 `},
 		{"config nil entries", nil, &hst.Config{Container: &hst.ContainerConfig{Filesystem: make([]hst.FilesystemConfigJSON, 1)}, ExtraPerms: make([]*hst.ExtraPermConfig, 1)}, false, false, `App
  Identity:       0
  Enablements:    (no enablements)
  Flags:          none
- Etc:            /etc/
 
 Filesystem
  <invalid>
@@ -120,13 +118,13 @@ App
  Groups:         video, dialout, plugdev
  Data:           /var/lib/hakurei/u0/org.chromium.Chromium
  Hostname:       localhost
- Flags:          userns devel net abstract device tty mapuid autoetc
- Etc:            /etc/
+ Flags:          userns devel net abstract device tty mapuid
  Path:           /run/current-system/sw/bin/chromium
  Arguments:      chromium --ignore-gpu-blocklist --disable-smooth-scrolling --enable-features=UseOzonePlatform --ozone-platform=wayland
 
 Filesystem
  autoroot:w:/var/lib/hakurei/base/org.debian
+ autoetc:/etc/
  w+ephemeral(-rwxr-xr-x):/tmp/
  w*/nix/store:/mnt-root/nix/.rw-store/upper:/mnt-root/nix/.rw-store/work:/mnt-root/nix/.ro-store
  */nix/store
@@ -287,6 +285,12 @@ App
           "special": true
         },
         {
+          "type": "bind",
+          "dst": "/etc/",
+          "src": "/etc/",
+          "special": true
+        },
+        {
           "type": "ephemeral",
           "dst": "/tmp/",
           "write": true,
@@ -331,9 +335,7 @@ App
           "target": "/run/user/65534",
           "linkname": "/run/user/150"
         }
-      ],
-      "etc": "/etc/",
-      "auto_etc": true
+      ]
     }
   },
   "time": "1970-01-01T00:00:00.000000009Z"
@@ -441,6 +443,12 @@ App
         "special": true
       },
       {
+        "type": "bind",
+        "dst": "/etc/",
+        "src": "/etc/",
+        "special": true
+      },
+      {
         "type": "ephemeral",
         "dst": "/tmp/",
         "write": true,
@@ -485,9 +493,7 @@ App
         "target": "/run/user/65534",
         "linkname": "/run/user/150"
       }
-    ],
-    "etc": "/etc/",
-    "auto_etc": true
+    ]
   }
 }
 `},
@@ -649,6 +655,12 @@ func Test_printPs(t *testing.T) {
             "special": true
           },
           {
+            "type": "bind",
+            "dst": "/etc/",
+            "src": "/etc/",
+            "special": true
+          },
+          {
             "type": "ephemeral",
             "dst": "/tmp/",
             "write": true,
@@ -693,9 +705,7 @@ func Test_printPs(t *testing.T) {
             "target": "/run/user/65534",
             "linkname": "/run/user/150"
           }
-        ],
-        "etc": "/etc/",
-        "auto_etc": true
+        ]
       }
     },
     "time": "1970-01-01T00:00:00.000000009Z"

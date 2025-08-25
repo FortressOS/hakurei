@@ -180,8 +180,15 @@ in
                           (optDevBind "/dev/nvidia0")
                         ]
                         ++ optionals app.useCommonPaths cfg.commonPaths
-                        ++ app.extraPaths;
-                      auto_etc = true;
+                        ++ app.extraPaths
+                        ++ [
+                          {
+                            type = "bind";
+                            dst = "/etc/";
+                            src = "/etc/";
+                            special = true;
+                          }
+                        ];
 
                       symlink = [
                         {

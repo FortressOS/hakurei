@@ -49,6 +49,7 @@ func withNixDaemon(
 			SeccompFlags: seccomp.AllowMultiarch,
 			Tty:          dropShell,
 			Filesystem: []hst.FilesystemConfigJSON{
+				{FilesystemConfig: &hst.FSBind{Target: container.AbsFHSEtc, Source: pathSet.cacheDir.Append("etc"), Special: true}},
 				{FilesystemConfig: &hst.FSBind{Source: pathSet.nixPath, Target: pathNix, Write: true}},
 			},
 			Link: []hst.LinkConfig{
@@ -56,8 +57,6 @@ func withNixDaemon(
 				{pathBin, pathSwBin.String()},
 				{container.AbsFHSUsrBin, pathSwBin.String()},
 			},
-			Etc:     pathSet.cacheDir.Append("etc"),
-			AutoEtc: true,
 		},
 	}), dropShell, beforeFail)
 }
@@ -89,6 +88,7 @@ func withCacheDir(
 			SeccompFlags: seccomp.AllowMultiarch,
 			Tty:          dropShell,
 			Filesystem: []hst.FilesystemConfigJSON{
+				{FilesystemConfig: &hst.FSBind{Target: container.AbsFHSEtc, Source: workDir.Append(container.FHSEtc), Special: true}},
 				{FilesystemConfig: &hst.FSBind{Source: workDir.Append("nix"), Target: pathNix}},
 				{FilesystemConfig: &hst.FSBind{Source: workDir, Target: hst.AbsTmp.Append("bundle")}},
 			},
@@ -97,8 +97,6 @@ func withCacheDir(
 				{pathBin, pathSwBin.String()},
 				{container.AbsFHSUsrBin, pathSwBin.String()},
 			},
-			Etc:     workDir.Append(container.FHSEtc),
-			AutoEtc: true,
 		},
 	}, dropShell, beforeFail)
 }

@@ -244,18 +244,6 @@ func newContainer(s *hst.ContainerConfig, os sys.State, prefix string, uid, gid 
 		params.Link(l.Target, linkname, dereference)
 	}
 
-	if !s.AutoEtc {
-		if s.Etc != nil {
-			params.Bind(s.Etc, container.AbsFHSEtc, 0)
-		}
-	} else {
-		if s.Etc == nil {
-			params.Etc(container.AbsFHSEtc, prefix)
-		} else {
-			params.Etc(s.Etc, prefix)
-		}
-	}
-
 	// no more ContainerConfig paths beyond this point
 	if !s.Device {
 		params.Remount(container.AbsFHSDev, syscall.MS_RDONLY)

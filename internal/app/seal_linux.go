@@ -242,7 +242,6 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 			HostNet:      true,
 			HostAbstract: true,
 			Tty:          true,
-			AutoEtc:      true,
 
 			Filesystem: []hst.FilesystemConfigJSON{
 				{&hst.FSBind{
@@ -266,6 +265,15 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 		if _, err := sys.Stat(nscd.String()); !errors.Is(err, fs.ErrNotExist) {
 			conf.Filesystem = append(conf.Filesystem, hst.FilesystemConfigJSON{FilesystemConfig: &hst.FSEphemeral{Target: nscd}})
 		}
+
+		// do autoetc last
+		conf.Filesystem = append(conf.Filesystem,
+			hst.FilesystemConfigJSON{FilesystemConfig: &hst.FSBind{
+				Target:  container.AbsFHSEtc,
+				Source:  container.AbsFHSEtc,
+				Special: true,
+			}},
+		)
 
 		config.Container = conf
 	}

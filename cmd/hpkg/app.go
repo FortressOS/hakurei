@@ -94,6 +94,7 @@ func (app *appInfo) toHst(pathSet *appPathSet, pathname *container.Absolute, arg
 			Tty:          app.Tty || flagDropShell,
 			MapRealUID:   app.MapRealUID,
 			Filesystem: []hst.FilesystemConfigJSON{
+				{FilesystemConfig: &hst.FSBind{Target: container.AbsFHSEtc, Source: pathSet.cacheDir.Append("etc"), Special: true}},
 				{FilesystemConfig: &hst.FSBind{Source: pathSet.nixPath.Append("store"), Target: pathNixStore}},
 				{FilesystemConfig: &hst.FSBind{Source: pathSet.metaPath, Target: hst.AbsTmp.Append("app")}},
 				{FilesystemConfig: &hst.FSBind{Source: container.AbsFHSEtc.Append("resolv.conf"), Optional: true}},
@@ -108,8 +109,6 @@ func (app *appInfo) toHst(pathSet *appPathSet, pathname *container.Absolute, arg
 				{pathBin, pathSwBin.String()},
 				{container.AbsFHSUsrBin, pathSwBin.String()},
 			},
-			Etc:     pathSet.cacheDir.Append("etc"),
-			AutoEtc: true,
 		},
 		ExtraPerms: []*hst.ExtraPermConfig{
 			{Path: dataHome, Execute: true},

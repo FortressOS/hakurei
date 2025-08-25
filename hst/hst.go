@@ -98,6 +98,7 @@ func Template() *Config {
 			},
 			Filesystem: []FilesystemConfigJSON{
 				{&FSBind{container.AbsFHSRoot, container.AbsFHSVarLib.Append("hakurei/base/org.debian"), true, false, false, true}},
+				{&FSBind{container.AbsFHSEtc, container.AbsFHSEtc, false, false, false, true}},
 				{&FSEphemeral{Target: container.AbsFHSTmp, Write: true, Perm: 0755}},
 				{&FSOverlay{
 					Target: container.MustAbs("/nix/store"),
@@ -112,9 +113,7 @@ func Template() *Config {
 					Target: container.MustAbs("/data/data/org.chromium.Chromium"), Write: true}},
 				{&FSBind{Source: container.AbsFHSDev.Append("dri"), Device: true, Optional: true}},
 			},
-			Link:    []LinkConfig{{container.AbsFHSRunUser.Append("65534"), container.FHSRunUser + "150"}},
-			Etc:     container.AbsFHSEtc,
-			AutoEtc: true,
+			Link: []LinkConfig{{container.AbsFHSRunUser.Append("65534"), container.FHSRunUser + "150"}},
 		},
 	}
 }

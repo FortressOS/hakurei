@@ -98,11 +98,6 @@ type (
 		Filesystem []FilesystemConfigJSON `json:"filesystem"`
 		// create symlinks inside container filesystem
 		Link []LinkConfig `json:"symlink"`
-
-		// read-only /etc directory
-		Etc *container.Absolute `json:"etc,omitempty"`
-		// automatically set up /etc symlinks
-		AutoEtc bool `json:"auto_etc"`
 	}
 
 	LinkConfig struct {

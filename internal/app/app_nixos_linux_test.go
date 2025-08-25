@@ -27,7 +27,7 @@ var testCasesNixos = []sealTestCase{
 			Shell:       m("/run/current-system/sw/bin/zsh"),
 
 			Container: &hst.ContainerConfig{
-				Userns: true, HostNet: true, MapRealUID: true, Env: nil, AutoEtc: true,
+				Userns: true, HostNet: true, MapRealUID: true, Env: nil,
 				Filesystem: []hst.FilesystemConfigJSON{
 					f(&hst.FSBind{Source: m("/bin")}),
 					f(&hst.FSBind{Source: m("/usr/bin/")}),
@@ -40,6 +40,7 @@ var testCasesNixos = []sealTestCase{
 					f(&hst.FSBind{Source: m("/sys/devices"), Optional: true}),
 					f(&hst.FSBind{Source: m("/run/opengl-driver")}),
 					f(&hst.FSBind{Source: m("/dev/dri"), Device: true, Optional: true}),
+					f(&hst.FSBind{Source: m("/etc/"), Target: m("/etc/"), Special: true}),
 				},
 			},
 			SystemBus: &dbus.Config{

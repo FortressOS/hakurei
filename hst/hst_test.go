@@ -110,6 +110,12 @@ func TestTemplate(t *testing.T) {
 				"special": true
 			},
 			{
+				"type": "bind",
+				"dst": "/etc/",
+				"src": "/etc/",
+				"special": true
+			},
+			{
 				"type": "ephemeral",
 				"dst": "/tmp/",
 				"write": true,
@@ -154,9 +160,7 @@ func TestTemplate(t *testing.T) {
 				"target": "/run/user/65534",
 				"linkname": "/run/user/150"
 			}
-		],
-		"etc": "/etc/",
-		"auto_etc": true
+		]
 	}
 }`
 
