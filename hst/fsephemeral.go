@@ -38,7 +38,7 @@ func (e *FSEphemeral) Host() []*container.Absolute { return nil }
 
 const fsEphemeralDefaultPerm = os.FileMode(0755)
 
-func (e *FSEphemeral) Apply(ops *container.Ops) {
+func (e *FSEphemeral) Apply(z *ApplyState) {
 	if !e.Valid() {
 		return
 	}
@@ -54,9 +54,9 @@ func (e *FSEphemeral) Apply(ops *container.Ops) {
 	}
 
 	if e.Write {
-		ops.Tmpfs(e.Target, size, perm)
+		z.Tmpfs(e.Target, size, perm)
 	} else {
-		ops.Readonly(e.Target, perm)
+		z.Readonly(e.Target, perm)
 	}
 }
 

@@ -209,7 +209,7 @@ type stubFS struct {
 func (s stubFS) Valid() bool                 { return false }
 func (s stubFS) Path() *container.Absolute   { panic("unreachable") }
 func (s stubFS) Host() []*container.Absolute { panic("unreachable") }
-func (s stubFS) Apply(*container.Ops)        { panic("unreachable") }
+func (s stubFS) Apply(*hst.ApplyState)       { panic("unreachable") }
 func (s stubFS) String() string              { return "<invalid " + s.typeName + ">" }
 
 type sCheck struct {
@@ -238,7 +238,7 @@ func checkFs(t *testing.T, testCases []fsTestCase) {
 
 			t.Run("ops", func(t *testing.T) {
 				ops := new(container.Ops)
-				tc.fs.Apply(ops)
+				tc.fs.Apply(&hst.ApplyState{AutoEtcPrefix: ":3", Ops: ops})
 				if !reflect.DeepEqual(ops, &tc.ops) {
 					gotString := new(strings.Builder)
 					for _, op := range *ops {

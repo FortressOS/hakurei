@@ -107,7 +107,7 @@ func TestTemplate(t *testing.T) {
 				"dst": "/",
 				"src": "/var/lib/hakurei/base/org.debian",
 				"write": true,
-				"autoroot": true
+				"special": true
 			},
 			{
 				"type": "ephemeral",

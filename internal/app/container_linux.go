@@ -40,9 +40,13 @@ func newContainer(s *hst.ContainerConfig, os sys.State, prefix string, uid, gid 
 		ForwardCancel: s.WaitDelay >= 0,
 	}
 
+	as := &hst.ApplyState{
+		AutoEtcPrefix: prefix,
+	}
 	{
 		ops := make(container.Ops, 0, preallocateOpsCount+len(s.Filesystem)+len(s.Link))
 		params.Ops = &ops
+		as.Ops = &ops
 	}
 
 	if s.Multiarch {
@@ -81,10 +85,10 @@ func newContainer(s *hst.ContainerConfig, os sys.State, prefix string, uid, gid 
 		// if the first element targets /, it is inserted early and excluded from path hiding
 		rootfs := filesystem[0].FilesystemConfig
 		filesystem = filesystem[1:]
-		rootfs.Apply(params.Ops)
+		rootfs.Apply(as)
 
 		// autoroot requires special handling during path hiding
-		if b, ok := rootfs.(*hst.FSBind); ok && b.Valid() && b.AutoRoot {
+		if b, ok := rootfs.(*hst.FSBind); ok && b.IsAutoRoot() {
 			autoroot = b
 		}
 	}
@@ -143,7 +147,7 @@ func newContainer(s *hst.ContainerConfig, os sys.State, prefix string, uid, gid 
 		if !c.Valid() {
 			return nil, nil, fmt.Errorf("invalid filesystem at index %d", i)
 		}
-		c.Apply(params.Ops)
+		c.Apply(as)
 
 		// fs counter
 		hidePathSourceCount += len(c.Host())

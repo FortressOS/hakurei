@@ -18,9 +18,17 @@ type FilesystemConfig interface {
 	// Host returns a slice of all host paths used by this operation.
 	Host() []*container.Absolute
 	// Apply appends the [container.Op] implementing this operation.
-	Apply(ops *container.Ops)
+	Apply(z *ApplyState)
 
 	fmt.Stringer
+}
+
+// ApplyState holds the address of [container.Ops] and any relevant application state.
+type ApplyState struct {
+	// AutoEtcPrefix is the prefix for [container.AutoEtcOp].
+	AutoEtcPrefix string
+
+	*container.Ops
 }
 
 var (

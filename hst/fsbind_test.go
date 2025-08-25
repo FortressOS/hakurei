@@ -63,35 +63,45 @@ func TestFSBind(t *testing.T) {
 		}}, m("/"), ms("/"),
 			"*/"},
 
-		{"autoroot nil target", &hst.FSBind{
-			Source:   m("/"),
-			AutoRoot: true,
+		{"special nil target", &hst.FSBind{
+			Source:  m("/"),
+			Special: true,
 		}, false, nil, nil, nil, "<invalid>"},
 
-		{"autoroot bad target", &hst.FSBind{
-			Source:   m("/"),
-			Target:   m("/etc/"),
-			AutoRoot: true,
+		{"special bad target", &hst.FSBind{
+			Source:  m("/"),
+			Target:  m("/var/"),
+			Special: true,
 		}, false, nil, nil, nil, "<invalid>"},
 
 		{"autoroot pd", &hst.FSBind{
-			Target:   m("/"),
-			Source:   m("/"),
-			Write:    true,
-			AutoRoot: true,
+			Target:  m("/"),
+			Source:  m("/"),
+			Write:   true,
+			Special: true,
 		}, true, container.Ops{&container.AutoRootOp{
 			Host:  m("/"),
 			Flags: container.BindWritable,
 		}}, m("/"), ms("/"), "autoroot:w"},
 
 		{"autoroot silly", &hst.FSBind{
-			Target:   m("/"),
-			Source:   m("/etc"),
-			Write:    true,
-			AutoRoot: true,
+			Target:  m("/"),
+			Source:  m("/etc"),
+			Write:   true,
+			Special: true,
 		}, true, container.Ops{&container.AutoRootOp{
 			Host:  m("/etc"),
 			Flags: container.BindWritable,
 		}}, m("/"), ms("/etc"), "autoroot:w:/etc"},
+
+		{"autoetc", &hst.FSBind{
+			Target:  m("/etc/"),
+			Source:  m("/etc/"),
+			Special: true,
+		}, true, container.Ops{
+			&container.MkdirOp{Path: m("/etc/"), Perm: 0755},
+			&container.BindMountOp{Source: m("/etc/"), Target: m("/etc/.host/:3")},
+			&container.AutoEtcOp{Prefix: ":3"},
+		}, m("/etc/"), ms("/etc/"), "autoetc:/etc/"},
 	})
 }

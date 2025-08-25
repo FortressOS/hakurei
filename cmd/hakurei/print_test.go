@@ -284,7 +284,7 @@ App
           "dst": "/",
           "src": "/var/lib/hakurei/base/org.debian",
           "write": true,
-          "autoroot": true
+          "special": true
         },
         {
           "type": "ephemeral",
@@ -438,7 +438,7 @@ App
         "dst": "/",
         "src": "/var/lib/hakurei/base/org.debian",
         "write": true,
-        "autoroot": true
+        "special": true
       },
       {
         "type": "ephemeral",
@@ -646,7 +646,7 @@ func Test_printPs(t *testing.T) {
             "dst": "/",
             "src": "/var/lib/hakurei/base/org.debian",
             "write": true,
-            "autoroot": true
+            "special": true
           },
           {
             "type": "ephemeral",

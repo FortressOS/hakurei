@@ -62,15 +62,15 @@ func (o *FSOverlay) Host() []*container.Absolute {
 	return p
 }
 
-func (o *FSOverlay) Apply(op *container.Ops) {
+func (o *FSOverlay) Apply(z *ApplyState) {
 	if !o.Valid() {
 		return
 	}
 
 	if o.Upper != nil && o.Work != nil { // rw
-		op.Overlay(o.Target, o.Upper, o.Work, o.Lower...)
+		z.Overlay(o.Target, o.Upper, o.Work, o.Lower...)
 	} else { // ro
-		op.OverlayReadonly(o.Target, o.Lower...)
+		z.OverlayReadonly(o.Target, o.Lower...)
 	}
 }
 

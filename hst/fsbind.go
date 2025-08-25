@@ -25,17 +25,38 @@ type FSBind struct {
 	// skip this mount point if the host path does not exist
 	Optional bool `json:"optional,omitempty"`
 
-	// enable autoroot behaviour;
-	// this requires Target to be [container.AbsFHSRoot].
-	AutoRoot bool `json:"autoroot,omitempty"`
+	// enable special behaviour:
+	// for autoroot, Target must be set to [container.AbsFHSRoot];
+	// for autoetc, Target must be set to [container.AbsFHSEtc]
+	Special bool `json:"special,omitempty"`
+}
+
+// IsAutoRoot returns whether this FSBind has autoroot behaviour enabled.
+func (b *FSBind) IsAutoRoot() bool {
+	return b.Valid() && b.Special && b.Target.String() == container.FHSRoot
+}
+
+// IsAutoEtc returns whether this FSBind has autoetc behaviour enabled.
+func (b *FSBind) IsAutoEtc() bool {
+	return b.Valid() && b.Special && b.Target.String() == container.FHSEtc
 }
 
 func (b *FSBind) Valid() bool {
 	if b == nil || b.Source == nil {
 		return false
 	}
-	if b.AutoRoot && (b.Target == nil || b.Target.String() != container.FHSRoot) {
-		return false
+	if b.Special {
+		if b.Target == nil {
+			return false
+		} else {
+			switch b.Target.String() {
+			case container.FHSRoot, container.FHSEtc:
+				break
+
+			default:
+				return false
+			}
+		}
 	}
 	return true
 }
@@ -57,7 +78,7 @@ func (b *FSBind) Host() []*container.Absolute {
 	return []*container.Absolute{b.Source}
 }
 
-func (b *FSBind) Apply(ops *container.Ops) {
+func (b *FSBind) Apply(z *ApplyState) {
 	if !b.Valid() {
 		return
 	}
@@ -77,10 +98,15 @@ func (b *FSBind) Apply(ops *container.Ops) {
 		flags |= container.BindOptional
 	}
 
-	if !b.AutoRoot {
-		ops.Bind(b.Source, target, flags)
-	} else {
-		ops.Root(b.Source, flags)
+	switch {
+	case b.IsAutoRoot():
+		z.Root(b.Source, flags)
+
+	case b.IsAutoEtc():
+		z.Etc(b.Source, z.AutoEtcPrefix)
+
+	default:
+		z.Bind(b.Source, target, flags)
 	}
 }
 
@@ -96,15 +122,21 @@ func (b *FSBind) String() string {
 		flagSym = "w"
 	}
 
-	if b.AutoRoot {
-		prefix := "autoroot"
-		if flagSym != "" {
-			prefix += ":" + flagSym
+	if b.Special {
+		switch {
+		case b.IsAutoRoot():
+			prefix := "autoroot"
+			if flagSym != "" {
+				prefix += ":" + flagSym
+			}
+			if b.Source.String() != container.FHSRoot {
+				return prefix + ":" + b.Source.String()
+			}
+			return prefix
+
+		case b.IsAutoEtc():
+			return "autoetc:" + b.Source.String()
 		}
-		if b.Source.String() != container.FHSRoot {
-			return prefix + ":" + b.Source.String()
-		}
-		return prefix
 	}
 
 	g := 4 + len(b.Source.String())
