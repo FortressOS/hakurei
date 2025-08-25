@@ -24,9 +24,21 @@ type FSBind struct {
 	Device bool `json:"dev,omitempty"`
 	// skip this mount point if the host path does not exist
 	Optional bool `json:"optional,omitempty"`
+
+	// enable autoroot behaviour;
+	// this requires Target to be [container.AbsFHSRoot].
+	AutoRoot bool `json:"autoroot,omitempty"`
 }
 
-func (b *FSBind) Valid() bool { return b != nil && b.Source != nil }
+func (b *FSBind) Valid() bool {
+	if b == nil || b.Source == nil {
+		return false
+	}
+	if b.AutoRoot && (b.Target == nil || b.Target.String() != container.FHSRoot) {
+		return false
+	}
+	return true
+}
 
 func (b *FSBind) Path() *container.Absolute {
 	if !b.Valid() {
@@ -64,28 +76,45 @@ func (b *FSBind) Apply(ops *container.Ops) {
 	if b.Optional {
 		flags |= container.BindOptional
 	}
-	ops.Bind(b.Source, target, flags)
+
+	if !b.AutoRoot {
+		ops.Bind(b.Source, target, flags)
+	} else {
+		ops.Root(b.Source, flags)
+	}
 }
 
 func (b *FSBind) String() string {
-	g := 4
 	if !b.Valid() {
 		return "<invalid>"
 	}
 
-	g += len(b.Source.String())
+	var flagSym string
+	if b.Device {
+		flagSym = "d"
+	} else if b.Write {
+		flagSym = "w"
+	}
+
+	if b.AutoRoot {
+		prefix := "autoroot"
+		if flagSym != "" {
+			prefix += ":" + flagSym
+		}
+		if b.Source.String() != container.FHSRoot {
+			return prefix + ":" + b.Source.String()
+		}
+		return prefix
+	}
+
+	g := 4 + len(b.Source.String())
 	if b.Target != nil {
 		g += len(b.Target.String())
 	}
 
 	expr := new(strings.Builder)
 	expr.Grow(g)
-
-	if b.Device {
-		expr.WriteString("d")
-	} else if b.Write {
-		expr.WriteString("w")
-	}
+	expr.WriteString(flagSym)
 
 	if !b.Optional {
 		expr.WriteString("*")

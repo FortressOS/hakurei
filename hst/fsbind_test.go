@@ -62,5 +62,36 @@ func TestFSBind(t *testing.T) {
 			Target: m("/"),
 		}}, m("/"), ms("/"),
 			"*/"},
+
+		{"autoroot nil target", &hst.FSBind{
+			Source:   m("/"),
+			AutoRoot: true,
+		}, false, nil, nil, nil, "<invalid>"},
+
+		{"autoroot bad target", &hst.FSBind{
+			Source:   m("/"),
+			Target:   m("/etc/"),
+			AutoRoot: true,
+		}, false, nil, nil, nil, "<invalid>"},
+
+		{"autoroot pd", &hst.FSBind{
+			Target:   m("/"),
+			Source:   m("/"),
+			Write:    true,
+			AutoRoot: true,
+		}, true, container.Ops{&container.AutoRootOp{
+			Host:  m("/"),
+			Flags: container.BindWritable,
+		}}, m("/"), ms("/"), "autoroot:w"},
+
+		{"autoroot silly", &hst.FSBind{
+			Target:   m("/"),
+			Source:   m("/etc"),
+			Write:    true,
+			AutoRoot: true,
+		}, true, container.Ops{&container.AutoRootOp{
+			Host:  m("/etc"),
+			Flags: container.BindWritable,
+		}}, m("/"), ms("/etc"), "autoroot:w:/etc"},
 	})
 }
