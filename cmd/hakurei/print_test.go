@@ -51,8 +51,8 @@ Filesystem
  w+ephemeral(-rwxr-xr-x):/tmp/
  w*/nix/store:/mnt-root/nix/.rw-store/upper:/mnt-root/nix/.rw-store/work:/mnt-root/nix/.ro-store
  */nix/store
- &/run/current-system:*/run/current-system
- &/run/opengl-driver:*/run/opengl-driver
+ /run/current-system@
+ /run/opengl-driver@
  w*/var/lib/hakurei/u0/org.chromium.Chromium:/data/data/org.chromium.Chromium
  d+/dev/dri
 
@@ -128,8 +128,8 @@ Filesystem
  w+ephemeral(-rwxr-xr-x):/tmp/
  w*/nix/store:/mnt-root/nix/.rw-store/upper:/mnt-root/nix/.rw-store/work:/mnt-root/nix/.ro-store
  */nix/store
- &/run/current-system:*/run/current-system
- &/run/opengl-driver:*/run/opengl-driver
+ /run/current-system@
+ /run/opengl-driver@
  w*/var/lib/hakurei/u0/org.chromium.Chromium:/data/data/org.chromium.Chromium
  d+/dev/dri
 

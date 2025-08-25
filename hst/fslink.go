@@ -50,9 +50,12 @@ func (l *FSLink) String() string {
 		return "<invalid>"
 	}
 
-	dereference := ""
+	var dereference string
 	if l.Dereference {
+		if l.Target.String() == l.Linkname {
+			return l.Target.String() + "@"
+		}
 		dereference = "*"
 	}
-	return "&" + l.Target.String() + ":" + dereference + l.Linkname
+	return l.Target.String() + " -> " + dereference + l.Linkname
 }
