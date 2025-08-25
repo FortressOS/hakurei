@@ -121,7 +121,7 @@ in
                     direct_wayland = app.insecureWayland;
 
                     username = getsubname fid app.identity;
-                    data = getsubhome fid app.identity;
+                    home = getsubhome fid app.identity;
 
                     inherit (cfg) shell;
                     inherit (app) identity groups enablements;
@@ -210,7 +210,15 @@ in
                               linkname = config.systemd.tmpfiles.settings.graphics-driver."/run/opengl-driver-32"."L+".argument;
                             }
                           ]
-                        );
+                        )
+                        ++ [
+                          {
+                            type = "bind";
+                            src = getsubhome fid app.identity;
+                            write = true;
+                            ensure = true;
+                          }
+                        ];
                     };
                   };
 

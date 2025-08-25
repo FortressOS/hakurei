@@ -78,8 +78,7 @@ func (app *appInfo) toHst(pathSet *appPathSet, pathname *container.Absolute, arg
 
 		Username: "hakurei",
 		Shell:    pathShell,
-		Data:     pathSet.homeDir,
-		Dir:      pathDataData.Append(app.ID),
+		Home:     pathDataData.Append(app.ID),
 
 		Identity: app.Identity,
 		Groups:   app.Groups,
@@ -106,6 +105,7 @@ func (app *appInfo) toHst(pathSet *appPathSet, pathname *container.Absolute, arg
 				{FilesystemConfig: &hst.FSBind{Source: container.AbsFHSSys.Append("class"), Optional: true}},
 				{FilesystemConfig: &hst.FSBind{Source: container.AbsFHSSys.Append("dev"), Optional: true}},
 				{FilesystemConfig: &hst.FSBind{Source: container.AbsFHSSys.Append("devices"), Optional: true}},
+				{FilesystemConfig: &hst.FSBind{Target: pathDataData.Append(app.ID), Source: pathSet.homeDir, Write: true, Ensure: true}},
 			},
 		},
 		ExtraPerms: []*hst.ExtraPermConfig{

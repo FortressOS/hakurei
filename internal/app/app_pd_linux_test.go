@@ -16,7 +16,7 @@ import (
 var testCasesPd = []sealTestCase{
 	{
 		"nixos permissive defaults no enablements", new(stubNixOS),
-		&hst.Config{Username: "chronos", Data: m("/home/chronos")},
+		&hst.Config{Username: "chronos", Home: m("/home/chronos")},
 		state.ID{
 			0x4a, 0x45, 0x0b, 0x65,
 			0x96, 0xd7, 0xbc, 0x15,
@@ -56,7 +56,6 @@ var testCasesPd = []sealTestCase{
 				Tmpfs(m("/run/user/"), 4096, 0755).
 				Bind(m("/tmp/hakurei.1971/runtime/0"), m("/run/user/65534"), container.BindWritable).
 				Bind(m("/tmp/hakurei.1971/tmpdir/0"), m("/tmp/"), container.BindWritable).
-				Bind(m("/home/chronos"), m("/home/chronos"), container.BindWritable).
 				Place(m("/etc/passwd"), []byte("chronos:x:65534:65534:Hakurei:/home/chronos:/run/current-system/sw/bin/zsh\n")).
 				Place(m("/etc/group"), []byte("hakurei:x:65534:\n")).
 				Remount(m("/"), syscall.MS_RDONLY),
@@ -75,7 +74,7 @@ var testCasesPd = []sealTestCase{
 			Identity: 9,
 			Groups:   []string{"video"},
 			Username: "chronos",
-			Data:     m("/home/chronos"),
+			Home:     m("/home/chronos"),
 			SessionBus: &dbus.Config{
 				Talk: []string{
 					"org.freedesktop.Notifications",
@@ -193,7 +192,6 @@ var testCasesPd = []sealTestCase{
 				Tmpfs(m("/run/user/"), 4096, 0755).
 				Bind(m("/tmp/hakurei.1971/runtime/9"), m("/run/user/65534"), container.BindWritable).
 				Bind(m("/tmp/hakurei.1971/tmpdir/9"), m("/tmp/"), container.BindWritable).
-				Bind(m("/home/chronos"), m("/home/chronos"), container.BindWritable).
 				Place(m("/etc/passwd"), []byte("chronos:x:65534:65534:Hakurei:/home/chronos:/run/current-system/sw/bin/zsh\n")).
 				Place(m("/etc/group"), []byte("hakurei:x:65534:\n")).
 				Bind(m("/tmp/hakurei.1971/ebf083d1b175911782d413369b64ce7c/wayland"), m("/run/user/65534/wayland-0"), 0).

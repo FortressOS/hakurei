@@ -34,8 +34,6 @@ type shimParams struct {
 
 	// finalised container params
 	Container *container.Params
-	// path to outer home directory
-	Home string
 
 	// verbosity pass through
 	Verbose bool
@@ -140,21 +138,6 @@ func ShimMain() {
 	if err := closeSetup(); err != nil {
 		log.Printf("cannot close setup pipe: %v", err)
 		// not fatal
-	}
-
-	// ensure home directory as target user
-	if s, err := os.Stat(params.Home); err != nil {
-		if os.IsNotExist(err) {
-			if err = os.Mkdir(params.Home, 0700); err != nil {
-				log.Fatalf("cannot create home directory: %v", err)
-			}
-		} else {
-			log.Fatalf("cannot access home directory: %v", err)
-		}
-
-		// home directory is created, proceed
-	} else if !s.IsDir() {
-		log.Fatalf("path %q is not a directory", params.Home)
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)

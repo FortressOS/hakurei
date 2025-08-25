@@ -65,8 +65,7 @@ func Template() *Config {
 
 		Username: "chronos",
 		Shell:    container.AbsFHSRun.Append("current-system/sw/bin/zsh"),
-		Data:     container.AbsFHSVarLib.Append("hakurei/u0/org.chromium.Chromium"),
-		Dir:      container.MustAbs("/data/data/org.chromium.Chromium"),
+		Home:     container.MustAbs("/data/data/org.chromium.Chromium"),
 		ExtraPerms: []*ExtraPermConfig{
 			{Path: container.AbsFHSVarLib.Append("hakurei/u0"), Ensure: true, Execute: true},
 			{Path: container.AbsFHSVarLib.Append("hakurei/u0/org.chromium.Chromium"), Read: true, Write: true, Execute: true},

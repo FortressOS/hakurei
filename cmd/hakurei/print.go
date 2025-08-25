@@ -81,8 +81,8 @@ func printShowInstance(
 	if len(config.Groups) > 0 {
 		t.Printf(" Groups:\t%s\n", strings.Join(config.Groups, ", "))
 	}
-	if config.Data != nil {
-		t.Printf(" Data:\t%s\n", config.Data)
+	if config.Home != nil {
+		t.Printf(" Home:\t%s\n", config.Home)
 	}
 	if config.Container != nil {
 		params := config.Container

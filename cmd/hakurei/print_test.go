@@ -39,7 +39,7 @@ func Test_printShowInstance(t *testing.T) {
  Identity:       9 (org.chromium.Chromium)
  Enablements:    wayland, dbus, pulseaudio
  Groups:         video, dialout, plugdev
- Data:           /var/lib/hakurei/u0/org.chromium.Chromium
+ Home:           /data/data/org.chromium.Chromium
  Hostname:       localhost
  Flags:          userns devel net abstract device tty mapuid
  Path:           /run/current-system/sw/bin/chromium
@@ -116,7 +116,7 @@ App
  Identity:       9 (org.chromium.Chromium)
  Enablements:    wayland, dbus, pulseaudio
  Groups:         video, dialout, plugdev
- Data:           /var/lib/hakurei/u0/org.chromium.Chromium
+ Home:           /data/data/org.chromium.Chromium
  Hostname:       localhost
  Flags:          userns devel net abstract device tty mapuid
  Path:           /run/current-system/sw/bin/chromium
@@ -236,8 +236,7 @@ App
     },
     "username": "chronos",
     "shell": "/run/current-system/sw/bin/zsh",
-    "data": "/var/lib/hakurei/u0/org.chromium.Chromium",
-    "dir": "/data/data/org.chromium.Chromium",
+    "home": "/data/data/org.chromium.Chromium",
     "extra_perms": [
       {
         "ensure": true,
@@ -393,8 +392,7 @@ App
   },
   "username": "chronos",
   "shell": "/run/current-system/sw/bin/zsh",
-  "data": "/var/lib/hakurei/u0/org.chromium.Chromium",
-  "dir": "/data/data/org.chromium.Chromium",
+  "home": "/data/data/org.chromium.Chromium",
   "extra_perms": [
     {
       "ensure": true,
@@ -604,8 +602,7 @@ func Test_printPs(t *testing.T) {
       },
       "username": "chronos",
       "shell": "/run/current-system/sw/bin/zsh",
-      "data": "/var/lib/hakurei/u0/org.chromium.Chromium",
-      "dir": "/data/data/org.chromium.Chromium",
+      "home": "/data/data/org.chromium.Chromium",
       "extra_perms": [
         {
           "ensure": true,

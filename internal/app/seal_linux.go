@@ -144,8 +144,6 @@ type hsuUser struct {
 	// supplementary group ids
 	supp []string
 
-	// home directory host path
-	data *container.Absolute
 	// app user home directory
 	home *container.Absolute
 	// passwd database username
@@ -161,8 +159,8 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 	if config == nil {
 		return hlog.WrapErr(syscall.EINVAL, syscall.EINVAL.Error())
 	}
-	if config.Data == nil {
-		return hlog.WrapErr(os.ErrInvalid, "invalid data directory")
+	if config.Home == nil {
+		return hlog.WrapErr(os.ErrInvalid, "invalid path to home directory")
 	}
 
 	{
@@ -183,8 +181,7 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 
 	seal.user = hsuUser{
 		aid:      newInt(config.Identity),
-		data:     config.Data,
-		home:     config.Dir,
+		home:     config.Home,
 		username: config.Username,
 	}
 	if seal.user.username == "" {
@@ -193,9 +190,6 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 		len(seal.user.username) >= internal.Sysconf(internal.SC_LOGIN_NAME_MAX) {
 		return hlog.WrapErr(ErrName,
 			fmt.Sprintf("invalid user name %q", seal.user.username))
-	}
-	if seal.user.home == nil {
-		seal.user.home = seal.user.data
 	}
 	if u, err := sys.Uid(seal.user.aid.unwrap()); err != nil {
 		return err
@@ -244,6 +238,7 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 			Tty:          true,
 
 			Filesystem: []hst.FilesystemConfigJSON{
+				// autoroot, includes the home directory
 				{&hst.FSBind{
 					Target:  container.AbsFHSRoot,
 					Source:  container.AbsFHSRoot,
@@ -347,7 +342,6 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 		if seal.user.username != "" {
 			username = seal.user.username
 		}
-		seal.container.Bind(seal.user.data, seal.user.home, container.BindWritable)
 		seal.container.Dir = seal.user.home
 		seal.env["HOME"] = seal.user.home.String()
 		seal.env["USER"] = username

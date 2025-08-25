@@ -128,7 +128,6 @@ func (seal *outcome) Run(rs *RunState) error {
 			os.Getpid(),
 			seal.waitDelay,
 			seal.container,
-			seal.user.data.String(),
 			hlog.Load(),
 		})
 	}()

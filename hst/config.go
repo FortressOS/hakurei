@@ -42,11 +42,10 @@ type (
 		Username string `json:"username,omitempty"`
 		// absolute path to shell
 		Shell *container.Absolute `json:"shell"`
-		// absolute path to home directory in the init mount namespace
-		Data *container.Absolute `json:"data"`
-		// directory to enter and use as home in the container mount namespace, nil for Data
-		Dir *container.Absolute `json:"dir,omitempty"`
-		// extra acl ops, dispatches before container init
+		// directory to enter and use as home in the container mount namespace
+		Home *container.Absolute `json:"home"`
+
+		// extra acl ops to perform before setuid
 		ExtraPerms []*ExtraPermConfig `json:"extra_perms,omitempty"`
 
 		// numerical application id, used for init user namespace credentials

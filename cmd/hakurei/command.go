@@ -121,7 +121,7 @@ func buildCommand(out io.Writer) command.Command {
 				log.Fatal(err.Error())
 				return err
 			} else {
-				config.Data = a
+				config.Home = a
 			}
 
 			var e system.Enablement

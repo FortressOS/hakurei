@@ -33,8 +33,7 @@ func withNixDaemon(
 
 		Username: "hakurei",
 		Shell:    pathShell,
-		Data:     pathSet.homeDir,
-		Dir:      pathDataData.Append(app.ID),
+		Home:     pathDataData.Append(app.ID),
 		ExtraPerms: []*hst.ExtraPermConfig{
 			{Path: dataHome, Execute: true},
 			{Ensure: true, Path: pathSet.baseDir, Read: true, Write: true, Execute: true},
@@ -54,6 +53,7 @@ func withNixDaemon(
 				{FilesystemConfig: &hst.FSLink{Target: pathCurrentSystem, Linkname: app.CurrentSystem.String()}},
 				{FilesystemConfig: &hst.FSLink{Target: pathBin, Linkname: pathSwBin.String()}},
 				{FilesystemConfig: &hst.FSLink{Target: container.AbsFHSUsrBin, Linkname: pathSwBin.String()}},
+				{FilesystemConfig: &hst.FSBind{Target: pathDataData.Append(app.ID), Source: pathSet.homeDir, Write: true, Ensure: true}},
 			},
 		},
 	}), dropShell, beforeFail)
@@ -71,8 +71,7 @@ func withCacheDir(
 
 		Username: "nixos",
 		Shell:    pathShell,
-		Data:     pathSet.cacheDir, // this also ensures cacheDir via shim
-		Dir:      pathDataData.Append(app.ID, "cache"),
+		Home:     pathDataData.Append(app.ID, "cache"),
 		ExtraPerms: []*hst.ExtraPermConfig{
 			{Path: dataHome, Execute: true},
 			{Ensure: true, Path: pathSet.baseDir, Read: true, Write: true, Execute: true},
@@ -92,6 +91,7 @@ func withCacheDir(
 				{FilesystemConfig: &hst.FSLink{Target: pathBin, Linkname: pathSwBin.String()}},
 				{FilesystemConfig: &hst.FSLink{Target: container.AbsFHSUsrBin, Linkname: pathSwBin.String()}},
 				{FilesystemConfig: &hst.FSBind{Source: workDir, Target: hst.AbsTmp.Append("bundle")}},
+				{FilesystemConfig: &hst.FSBind{Target: pathDataData.Append(app.ID, "cache"), Source: pathSet.cacheDir, Write: true, Ensure: true}},
 			},
 		},
 	}, dropShell, beforeFail)

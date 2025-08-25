@@ -41,6 +41,7 @@ var testCasesNixos = []sealTestCase{
 					f(&hst.FSBind{Source: m("/run/opengl-driver")}),
 					f(&hst.FSBind{Source: m("/dev/dri"), Device: true, Optional: true}),
 					f(&hst.FSBind{Source: m("/etc/"), Target: m("/etc/"), Special: true}),
+					f(&hst.FSBind{Source: m("/var/lib/persist/module/hakurei/0/1"), Write: true, Ensure: true}),
 				},
 			},
 			SystemBus: &dbus.Config{
@@ -64,7 +65,7 @@ var testCasesNixos = []sealTestCase{
 			DirectWayland: true,
 
 			Username: "u0_a1",
-			Data:     m("/var/lib/persist/module/hakurei/0/1"),
+			Home:     m("/var/lib/persist/module/hakurei/0/1"),
 			Identity: 1, Groups: []string{},
 		},
 		state.ID{
@@ -145,11 +146,11 @@ var testCasesNixos = []sealTestCase{
 				Bind(m("/run/opengl-driver"), m("/run/opengl-driver"), 0).
 				Bind(m("/dev/dri"), m("/dev/dri"), container.BindDevice|container.BindWritable|container.BindOptional).
 				Etc(m("/etc/"), "8e2c76b066dabe574cf073bdb46eb5c1").
+				Bind(m("/var/lib/persist/module/hakurei/0/1"), m("/var/lib/persist/module/hakurei/0/1"), container.BindWritable|container.BindEnsure).
 				Remount(m("/dev/"), syscall.MS_RDONLY).
 				Tmpfs(m("/run/user/"), 4096, 0755).
 				Bind(m("/tmp/hakurei.1971/runtime/1"), m("/run/user/1971"), container.BindWritable).
 				Bind(m("/tmp/hakurei.1971/tmpdir/1"), m("/tmp/"), container.BindWritable).
-				Bind(m("/var/lib/persist/module/hakurei/0/1"), m("/var/lib/persist/module/hakurei/0/1"), container.BindWritable).
 				Place(m("/etc/passwd"), []byte("u0_a1:x:1971:100:Hakurei:/var/lib/persist/module/hakurei/0/1:/run/current-system/sw/bin/zsh\n")).
 				Place(m("/etc/group"), []byte("hakurei:x:100:\n")).
 				Bind(m("/run/user/1971/wayland-0"), m("/run/user/1971/wayland-0"), 0).

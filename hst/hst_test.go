@@ -61,8 +61,7 @@ func TestTemplate(t *testing.T) {
 	},
 	"username": "chronos",
 	"shell": "/run/current-system/sw/bin/zsh",
-	"data": "/var/lib/hakurei/u0/org.chromium.Chromium",
-	"dir": "/data/data/org.chromium.Chromium",
+	"home": "/data/data/org.chromium.Chromium",
 	"extra_perms": [
 		{
 			"ensure": true,
