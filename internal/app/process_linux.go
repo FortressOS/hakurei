@@ -44,7 +44,7 @@ func (seal *outcome) Run(rs *RunState) error {
 	defer func() {
 		var revertErr error
 		storeErr := new(StateStoreError)
-		storeErr.Inner, storeErr.DoErr = store.Do(seal.user.aid.unwrap(), func(c state.Cursor) {
+		storeErr.Inner, storeErr.DoErr = store.Do(seal.user.identity.unwrap(), func(c state.Cursor) {
 			revertErr = func() error {
 				storeErr.InnerErr = deferredStoreFunc(c)
 
@@ -102,7 +102,7 @@ func (seal *outcome) Run(rs *RunState) error {
 			// passed through to shim by hsu
 			shimEnv + "=" + strconv.Itoa(fd),
 			// interpreted by hsu
-			"HAKUREI_APP_ID=" + seal.user.aid.String(),
+			"HAKUREI_APP_ID=" + seal.user.identity.String(),
 		}
 	}
 
@@ -155,7 +155,7 @@ func (seal *outcome) Run(rs *RunState) error {
 			PID:  cmd.Process.Pid,
 			Time: *rs.Time,
 		}
-		earlyStoreErr.Inner, earlyStoreErr.DoErr = store.Do(seal.user.aid.unwrap(), func(c state.Cursor) {
+		earlyStoreErr.Inner, earlyStoreErr.DoErr = store.Do(seal.user.identity.unwrap(), func(c state.Cursor) {
 			earlyStoreErr.InnerErr = c.Save(&sd, seal.ct)
 		})
 	}

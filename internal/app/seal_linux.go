@@ -10,7 +10,6 @@ import (
 	"io/fs"
 	"os"
 	"path"
-	"regexp"
 	"slices"
 	"strconv"
 	"strings"
@@ -58,8 +57,6 @@ var (
 	ErrPulseSocket = errors.New("pulse socket not present")
 	ErrPulseMode   = errors.New("unexpected pulse socket mode")
 )
-
-var posixUsername = regexp.MustCompilePOSIX("^[a-z_]([A-Za-z0-9_-]{0,31}|[A-Za-z0-9_-]{0,30}\\$)$")
 
 // outcome stores copies of various parts of [hst.Config]
 type outcome struct {
@@ -135,8 +132,7 @@ func (share *shareHost) runtime() *container.Absolute {
 
 // hsuUser stores post-hsu credentials and metadata
 type hsuUser struct {
-	// identity
-	aid *stringPair[int]
+	identity *stringPair[int]
 	// target uid resolved by hid:aid
 	uid *stringPair[int]
 
@@ -172,25 +168,24 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 		seal.ct = ct
 	}
 
-	// allowed aid range 0 to 9999, this is checked again in hsu
+	// allowed identity range 0 to 9999, this is checked again in hsu
 	if config.Identity < 0 || config.Identity > 9999 {
 		return hlog.WrapErr(ErrIdent,
 			fmt.Sprintf("identity %d out of range", config.Identity))
 	}
 
 	seal.user = hsuUser{
-		aid:      newInt(config.Identity),
+		identity: newInt(config.Identity),
 		home:     config.Home,
 		username: config.Username,
 	}
 	if seal.user.username == "" {
 		seal.user.username = "chronos"
-	} else if !posixUsername.MatchString(seal.user.username) ||
-		len(seal.user.username) >= sysconf(_SC_LOGIN_NAME_MAX) {
+	} else if !isValidUsername(seal.user.username) {
 		return hlog.WrapErr(ErrName,
 			fmt.Sprintf("invalid user name %q", seal.user.username))
 	}
-	if u, err := sys.Uid(seal.user.aid.unwrap()); err != nil {
+	if u, err := sys.Uid(seal.user.identity.unwrap()); err != nil {
 		return err
 	} else {
 		seal.user.uid = newInt(u)
@@ -318,7 +313,7 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 		runtimeDir := share.sc.SharePath.Append("runtime")
 		seal.sys.Ensure(runtimeDir.String(), 0700)
 		seal.sys.UpdatePermType(system.User, runtimeDir.String(), acl.Execute)
-		runtimeDirInst := runtimeDir.Append(seal.user.aid.String())
+		runtimeDirInst := runtimeDir.Append(seal.user.identity.String())
 		seal.sys.Ensure(runtimeDirInst.String(), 0700)
 		seal.sys.UpdatePermType(system.User, runtimeDirInst.String(), acl.Read, acl.Write, acl.Execute)
 		seal.container.Tmpfs(container.AbsFHSRunUser, 1<<12, 0755)
@@ -329,7 +324,7 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 		tmpdir := share.sc.SharePath.Append("tmpdir")
 		seal.sys.Ensure(tmpdir.String(), 0700)
 		seal.sys.UpdatePermType(system.User, tmpdir.String(), acl.Execute)
-		tmpdirInst := tmpdir.Append(seal.user.aid.String())
+		tmpdirInst := tmpdir.Append(seal.user.identity.String())
 		seal.sys.Ensure(tmpdirInst.String(), 01700)
 		seal.sys.UpdatePermType(system.User, tmpdirInst.String(), acl.Read, acl.Write, acl.Execute)
 		// mount inner /tmp from share so it shares persistence and storage behaviour of host /tmp
