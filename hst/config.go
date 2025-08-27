@@ -87,7 +87,9 @@ type (
 
 		// initial process environment variables
 		Env map[string]string `json:"env"`
-		// map target user uid to privileged user uid in the user namespace
+		// map target user uid to privileged user uid in the user namespace;
+		// some programs fail to connect to dbus session running as a different uid,
+		// this option works around it by mapping priv-side caller uid in container
 		MapRealUID bool `json:"map_real_uid"`
 
 		// pass through all devices

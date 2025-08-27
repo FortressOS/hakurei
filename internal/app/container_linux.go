@@ -16,8 +16,7 @@ import (
 	"hakurei.app/system/dbus"
 )
 
-// in practice there should be less than 30 entries added by the runtime;
-// allocating slightly more as a margin for future expansion
+// in practice there should be less than 30 system mount points
 const preallocateOpsCount = 1 << 5
 
 // newContainer initialises [container.Params] via [hst.ContainerConfig].
@@ -67,8 +66,6 @@ func newContainer(s *hst.ContainerConfig, os sys.State, prefix string, uid, gid 
 	}
 
 	if s.MapRealUID {
-		/* some programs fail to connect to dbus session running as a different uid
-		so this workaround is introduced to map priv-side caller uid in container */
 		params.Uid = os.Getuid()
 		*uid = params.Uid
 		params.Gid = os.Getgid()
@@ -104,6 +101,7 @@ func newContainer(s *hst.ContainerConfig, os sys.State, prefix string, uid, gid 
 	}
 
 	/* retrieve paths and hide them if they're made available in the sandbox;
+
 	this feature tries to improve user experience of permissive defaults, and
 	to warn about issues in custom configuration; it is NOT a security feature
 	and should not be treated as such, ALWAYS be careful with what you bind */

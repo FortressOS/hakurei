@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"fmt"
+	"log"
 	"sync"
 
 	"hakurei.app/hst"
@@ -20,6 +21,14 @@ func New(ctx context.Context, os sys.State) (App, error) {
 	a.id = newID(id)
 
 	return a, err
+}
+
+func MustNew(ctx context.Context, os sys.State) App {
+	a, err := New(ctx, os)
+	if err != nil {
+		log.Fatalf("cannot create app: %v", err)
+	}
+	return a
 }
 
 type app struct {
