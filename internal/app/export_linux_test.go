@@ -7,17 +7,16 @@ import (
 	"hakurei.app/system"
 )
 
-func NewWithID(id state.ID, os sys.State) App {
-	a := new(app)
+func NewWithID(id state.ID, os sys.State) *App {
+	a := new(App)
 	a.id = newID(&id)
 	a.sys = os
 	return a
 }
 
-func AppIParams(a App, sa SealedApp) (*system.I, *container.Params) {
-	v := a.(*app)
+func AppIParams(a *App, sa SealedApp) (*system.I, *container.Params) {
 	seal := sa.(*outcome)
-	if v.outcome != seal || v.id != seal.id {
+	if a.outcome != seal || a.id != seal.id {
 		panic("broken app/outcome link")
 	}
 	return seal.sys, seal.container

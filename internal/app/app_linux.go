@@ -11,8 +11,8 @@ import (
 	"hakurei.app/internal/sys"
 )
 
-func New(ctx context.Context, os sys.State) (App, error) {
-	a := new(app)
+func New(ctx context.Context, os sys.State) (*App, error) {
+	a := new(App)
 	a.sys = os
 	a.ctx = ctx
 
@@ -23,7 +23,7 @@ func New(ctx context.Context, os sys.State) (App, error) {
 	return a, err
 }
 
-func MustNew(ctx context.Context, os sys.State) App {
+func MustNew(ctx context.Context, os sys.State) *App {
 	a, err := New(ctx, os)
 	if err != nil {
 		log.Fatalf("cannot create app: %v", err)
@@ -31,7 +31,7 @@ func MustNew(ctx context.Context, os sys.State) App {
 	return a
 }
 
-type app struct {
+type App struct {
 	id  *stringPair[state.ID]
 	sys sys.State
 	ctx context.Context
@@ -40,9 +40,10 @@ type app struct {
 	mu sync.RWMutex
 }
 
-func (a *app) ID() state.ID { a.mu.RLock(); defer a.mu.RUnlock(); return a.id.unwrap() }
+// ID returns a copy of [state.ID] held by App.
+func (a *App) ID() state.ID { a.mu.RLock(); defer a.mu.RUnlock(); return a.id.unwrap() }
 
-func (a *app) String() string {
+func (a *App) String() string {
 	if a == nil {
 		return "(invalid app)"
 	}
@@ -60,7 +61,9 @@ func (a *app) String() string {
 	return fmt.Sprintf("(unsealed app %s)", a.id)
 }
 
-func (a *app) Seal(config *hst.Config) (SealedApp, error) {
+// Seal determines the outcome of [hst.Config] as a [SealedApp].
+// Values stored in and referred to by [hst.Config] might be overwritten and must not be used again.
+func (a *App) Seal(config *hst.Config) (SealedApp, error) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 

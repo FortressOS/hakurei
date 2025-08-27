@@ -4,21 +4,7 @@ package app
 import (
 	"syscall"
 	"time"
-
-	"hakurei.app/hst"
-	"hakurei.app/internal/app/state"
 )
-
-type App interface {
-	// ID returns a copy of [state.ID] held by App.
-	ID() state.ID
-
-	// Seal determines the outcome of config as a [SealedApp].
-	// The value of config might be overwritten and must not be used again.
-	Seal(config *hst.Config) (SealedApp, error)
-
-	String() string
-}
 
 type SealedApp interface {
 	// Run commits sealed system setup and starts the app process.
