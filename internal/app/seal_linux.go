@@ -20,7 +20,6 @@ import (
 
 	"hakurei.app/container"
 	"hakurei.app/hst"
-	"hakurei.app/internal"
 	"hakurei.app/internal/app/state"
 	"hakurei.app/internal/hlog"
 	"hakurei.app/internal/sys"
@@ -187,7 +186,7 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 	if seal.user.username == "" {
 		seal.user.username = "chronos"
 	} else if !posixUsername.MatchString(seal.user.username) ||
-		len(seal.user.username) >= internal.Sysconf(internal.SC_LOGIN_NAME_MAX) {
+		len(seal.user.username) >= sysconf(_SC_LOGIN_NAME_MAX) {
 		return hlog.WrapErr(ErrName,
 			fmt.Sprintf("invalid user name %q", seal.user.username))
 	}
