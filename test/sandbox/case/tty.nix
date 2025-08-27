@@ -35,6 +35,7 @@ in
   useCommonPaths = true;
   userns = false;
   x11 = true;
+  hostAbstract = true;
 
   # 0, PresetExt | PresetDenyNS | PresetDenyDevel
   expectedFilter = {
@@ -45,7 +46,7 @@ in
   want = {
     env = [
       "DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/65534/bus"
-      "DISPLAY=unix:/tmp/.X11-unix/X0"
+      "DISPLAY=:0"
       "HOME=/var/lib/hakurei/u0/a2"
       "PULSE_SERVER=unix:/run/user/65534/pulse/native"
       "SHELL=/run/current-system/sw/bin/bash"
@@ -276,7 +277,7 @@ in
     seccomp = true;
 
     try_socket = "/tmp/.X11-unix/X0";
-    socket_abstract = false;
+    socket_abstract = true;
     socket_pathname = true;
   };
 }

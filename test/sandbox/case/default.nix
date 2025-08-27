@@ -49,6 +49,7 @@ let
         mapRealUid
         useCommonPaths
         userns
+        hostAbstract
         ;
       enablements = {
         inherit (tc) x11;

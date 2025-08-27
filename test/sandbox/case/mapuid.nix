@@ -35,6 +35,7 @@ in
   useCommonPaths = true;
   userns = false;
   x11 = false;
+  hostAbstract = false;
 
   # 0, PresetStrict
   expectedFilter = {

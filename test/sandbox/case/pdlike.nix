@@ -35,6 +35,7 @@ in
   useCommonPaths = false;
   userns = true;
   x11 = false;
+  hostAbstract = false;
 
   # 0, PresetExt | PresetDenyDevel
   expectedFilter = {

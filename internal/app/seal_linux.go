@@ -418,7 +418,9 @@ func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 					}
 				} else {
 					seal.sys.UpdatePermType(system.EX11, socketPath.String(), acl.Read, acl.Write, acl.Execute)
-					d = "unix:" + socketPath.String()
+					if !config.Container.HostAbstract {
+						d = "unix:" + socketPath.String()
+					}
 				}
 			}
 
