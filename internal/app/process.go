@@ -21,9 +21,34 @@ import (
 
 const shimWaitTimeout = 5 * time.Second
 
-func (seal *outcome) Run(rs *RunState) error {
+// RunState stores the outcome of a call to [Outcome.Run].
+type RunState struct {
+	// Time is the exact point in time where the process was created.
+	// Location must be set to UTC.
+	//
+	// Time is nil if no process was ever created.
+	Time *time.Time
+	// RevertErr is stored by the deferred revert call.
+	RevertErr error
+	// WaitErr is the generic error value created by the standard library.
+	WaitErr error
+
+	syscall.WaitStatus
+}
+
+// setStart stores the current time in [RunState] once.
+func (rs *RunState) setStart() {
+	if rs.Time != nil {
+		panic("attempted to store time twice")
+	}
+	now := time.Now().UTC()
+	rs.Time = &now
+}
+
+// Run commits deferred system setup and starts the container.
+func (seal *Outcome) Run(rs *RunState) error {
 	if !seal.f.CompareAndSwap(false, true) {
-		// run does much more than just starting a process; calling it twice, even if the first call fails, will result
+		// Run does much more than just starting a process; calling it twice, even if the first call fails, will result
 		// in inconsistent state that is impossible to clean up; return here to limit damage and hopefully give the
 		// other Run a chance to return
 		return errors.New("outcome: attempted to run twice")
@@ -118,7 +143,7 @@ func (seal *outcome) Run(rs *RunState) error {
 		return hlog.WrapErrSuffix(err,
 			"cannot start setuid wrapper:")
 	}
-	rs.SetStart()
+	rs.setStart()
 
 	// this prevents blocking forever on an early failure
 	waitErr, setupErr := make(chan error, 1), make(chan error, 1)
@@ -173,10 +198,13 @@ func (seal *outcome) Run(rs *RunState) error {
 			switch {
 			case rs.Exited():
 				hlog.Verbosef("process %d exited with code %d", cmd.Process.Pid, rs.ExitStatus())
+
 			case rs.CoreDump():
 				hlog.Verbosef("process %d dumped core", cmd.Process.Pid)
+
 			case rs.Signaled():
 				hlog.Verbosef("process %d got %s", cmd.Process.Pid, rs.Signal())
+
 			default:
 				hlog.Verbosef("process %d exited with status %#x", cmd.Process.Pid, rs.WaitStatus)
 			}

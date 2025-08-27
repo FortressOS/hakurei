@@ -58,8 +58,8 @@ var (
 	ErrPulseMode   = errors.New("unexpected pulse socket mode")
 )
 
-// outcome stores copies of various parts of [hst.Config]
-type outcome struct {
+// An Outcome is the runnable state of a hakurei container via [hst.Config].
+type Outcome struct {
 	// copied from initialising [app]
 	id *stringPair[state.ID]
 	// copied from [sys.State]
@@ -92,7 +92,7 @@ type shareHost struct {
 	// process-specific directory in XDG_RUNTIME_DIR, empty if unused
 	runtimeSharePath *container.Absolute
 
-	seal *outcome
+	seal *Outcome
 	sc   hst.Paths
 }
 
@@ -145,7 +145,7 @@ type hsuUser struct {
 	username string
 }
 
-func (seal *outcome) finalise(ctx context.Context, sys sys.State, config *hst.Config) error {
+func (seal *Outcome) finalise(ctx context.Context, sys sys.State, config *hst.Config) error {
 	if seal.ctx != nil {
 		panic("finalise called twice")
 	}

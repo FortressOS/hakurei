@@ -14,8 +14,7 @@ func NewWithID(id state.ID, os sys.State) *App {
 	return a
 }
 
-func AppIParams(a *App, sa SealedApp) (*system.I, *container.Params) {
-	seal := sa.(*outcome)
+func AppIParams(a *App, seal *Outcome) (*system.I, *container.Params) {
 	if a.outcome != seal || a.id != seal.id {
 		panic("broken app/outcome link")
 	}
