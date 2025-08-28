@@ -82,8 +82,7 @@ func (d *MountDevOp) apply(state *setupState, k syscallDispatcher) error {
 
 	if err := k.mount(SourceDevpts, devPtsPath, FstypeDevpts, MS_NOSUID|MS_NOEXEC,
 		"newinstance,ptmxmode=0666,mode=620"); err != nil {
-		return wrapErrSuffix(err,
-			fmt.Sprintf("cannot mount devpts on %q:", devPtsPath))
+		return err
 	}
 
 	if state.RetainSession {
@@ -111,7 +110,7 @@ func (d *MountDevOp) apply(state *setupState, k syscallDispatcher) error {
 			return wrapErrSelf(err)
 		}
 		if err := k.mount(SourceMqueue, mqueueTarget, FstypeMqueue, MS_NOSUID|MS_NOEXEC|MS_NODEV, zeroString); err != nil {
-			return wrapErrSuffix(err, "cannot mount mqueue:")
+			return err
 		}
 	}
 
@@ -120,8 +119,7 @@ func (d *MountDevOp) apply(state *setupState, k syscallDispatcher) error {
 	}
 
 	if err := k.remount(target, MS_RDONLY); err != nil {
-		return wrapErrSuffix(k.remount(target, MS_RDONLY),
-			fmt.Sprintf("cannot remount %q:", target))
+		return err
 	}
 	return k.mountTmpfs(SourceTmpfs, devShmPath, MS_NOSUID|MS_NODEV, 0, 01777)
 }

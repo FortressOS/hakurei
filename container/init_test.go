@@ -377,7 +377,7 @@ func TestInitEntrypoint(t *testing.T) {
 			},
 		}, nil},
 
-		{"apply", func(k syscallDispatcher) error { initEntrypoint(k, assertPrefix, assertVerboseTrue); return nil }, [][]kexpect{
+		{"early unhandled error", func(k syscallDispatcher) error { initEntrypoint(k, assertPrefix, assertVerboseTrue); return nil }, [][]kexpect{
 			{
 				{"lockOSThread", expectArgs{}, nil, nil},
 				{"getpid", expectArgs{}, 1, nil},
@@ -759,10 +759,8 @@ func TestInitEntrypoint(t *testing.T) {
 				{"bindMount", expectArgs{"/host", "/sysroot", uintptr(0x4001), false}, nil, nil},
 				{"verbosef", expectArgs{"%s %s", []any{"mounting", &MountProcOp{Target: MustAbs("/proc/")}}}, nil, nil},
 				{"mkdirAll", expectArgs{"/sysroot/proc", os.FileMode(0755)}, nil, nil},
-				{"mount", expectArgs{"proc", "/sysroot/proc", "proc", uintptr(0xe), ""}, nil, errUnique},
-				{"printBaseErr", expectArgs{wrapErrSuffix(errUnique, `cannot mount proc on "/proc/":`), "cannot apply op at index 1:"}, nil, nil},
-				{"beforeExit", expectArgs{}, nil, nil},
-				{"exit", expectArgs{1}, nil, nil},
+				{"mount", expectArgs{"proc", "/sysroot/proc", "proc", uintptr(0xe), ""}, nil, &MountError{"proc", "/sysroot/proc", "proc", uintptr(0xe), "", syscall.ENOTRECOVERABLE}},
+				{"fatal", expectArgs{[]any{"cannot mount proc on /sysroot/proc: state not recoverable"}}, nil, nil},
 				/* end apply */
 			},
 		}, nil},

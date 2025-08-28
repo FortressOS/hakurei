@@ -24,8 +24,7 @@ func (p *MountProcOp) apply(state *setupState, k syscallDispatcher) error {
 	if err := k.mkdirAll(target, state.ParentPerm); err != nil {
 		return wrapErrSelf(err)
 	}
-	return wrapErrSuffix(k.mount(SourceProc, target, FstypeProc, MS_NOSUID|MS_NOEXEC|MS_NODEV, zeroString),
-		fmt.Sprintf("cannot mount proc on %q:", p.Target.String()))
+	return k.mount(SourceProc, target, FstypeProc, MS_NOSUID|MS_NOEXEC|MS_NODEV, zeroString)
 }
 
 func (p *MountProcOp) Is(op Op) bool {

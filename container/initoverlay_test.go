@@ -186,7 +186,7 @@ func TestMountOverlayOp(t *testing.T) {
 		}, nil, []kexpect{
 			{"mkdirAll", expectArgs{"/sysroot/nix/store", os.FileMode(0700)}, nil, nil},
 			{"mount", expectArgs{"overlay", "/sysroot/nix/store", "overlay", uintptr(0), "upperdir=/host/mnt-root/nix/.rw-store/.upper,workdir=/host/mnt-root/nix/.rw-store/.work,lowerdir=/host/mnt-root/nix/ro-store,userxattr"}, nil, errUnique},
-		}, wrapErrSuffix(errUnique, `cannot mount overlay on "/nix/store":`)},
+		}, errUnique},
 
 		{"success single layer", &Params{ParentPerm: 0700}, &MountOverlayOp{
 			Target: MustAbs("/nix/store"),

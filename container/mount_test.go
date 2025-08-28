@@ -15,7 +15,7 @@ func TestBindMount(t *testing.T) {
 		}, [][]kexpect{{
 			{"verbosef", expectArgs{"resolved %q flags %#x", []any{"/sysroot/nix", uintptr(1)}}, nil, nil},
 			{"mount", expectArgs{"/host/nix", "/sysroot/nix", "", uintptr(0x9000), ""}, nil, errUnique},
-		}}, wrapErrSuffix(errUnique, `cannot mount "/host/nix" on "/sysroot/nix":`)},
+		}}, errUnique},
 
 		{"success ne", func(k syscallDispatcher) error {
 			return newProcPaths(k, hostPath).bindMount("/host/nix", "/sysroot/.host-nix", syscall.MS_RDONLY, false)
@@ -139,7 +139,7 @@ func TestRemount(t *testing.T) {
 			{"close", expectArgs{0xdeadbeef}, nil, nil},
 			{"openNew", expectArgs{"/host/proc/self/mountinfo"}, newConstFile(sampleMountinfoNix), nil},
 			{"mount", expectArgs{"none", "/sysroot/nix", "", uintptr(0x209027), ""}, nil, errUnique},
-		}}, wrapErrSuffix(errUnique, `cannot remount "/sysroot/nix":`)},
+		}}, errUnique},
 
 		{"mount propagate", func(k syscallDispatcher) error {
 			return newProcPaths(k, hostPath).remount("/sysroot/nix", syscall.MS_REC|syscall.MS_RDONLY|syscall.MS_NODEV)
@@ -151,7 +151,7 @@ func TestRemount(t *testing.T) {
 			{"openNew", expectArgs{"/host/proc/self/mountinfo"}, newConstFile(sampleMountinfoNix), nil},
 			{"mount", expectArgs{"none", "/sysroot/nix", "", uintptr(0x209027), ""}, nil, nil},
 			{"mount", expectArgs{"none", "/sysroot/nix/.ro-store", "", uintptr(0x209027), ""}, nil, errUnique},
-		}}, wrapErrSuffix(errUnique, `cannot propagate flags to "/sysroot/nix/.ro-store":`)},
+		}}, errUnique},
 
 		{"success toplevel", func(k syscallDispatcher) error {
 			return newProcPaths(k, hostPath).remount("/sysroot/bin", syscall.MS_REC|syscall.MS_RDONLY|syscall.MS_NODEV)

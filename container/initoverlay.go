@@ -167,8 +167,7 @@ func (o *MountOverlayOp) apply(state *setupState, k syscallDispatcher) error {
 		OptionOverlayLowerdir+"="+strings.Join(o.lower, SpecialOverlayPath),
 		OptionOverlayUserxattr)
 
-	return wrapErrSuffix(k.mount(SourceOverlay, target, FstypeOverlay, 0, strings.Join(options, SpecialOverlayOption)),
-		fmt.Sprintf("cannot mount overlay on %q:", o.Target))
+	return k.mount(SourceOverlay, target, FstypeOverlay, 0, strings.Join(options, SpecialOverlayOption))
 }
 
 func (o *MountOverlayOp) Is(op Op) bool {

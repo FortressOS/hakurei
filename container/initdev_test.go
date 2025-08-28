@@ -390,7 +390,7 @@ func TestMountDevOp(t *testing.T) {
 			{"mkdir", expectArgs{"/sysroot/dev/shm", os.FileMode(0750)}, nil, nil},
 			{"mkdir", expectArgs{"/sysroot/dev/pts", os.FileMode(0750)}, nil, nil},
 			{"mount", expectArgs{"devpts", "/sysroot/dev/pts", "devpts", uintptr(0xa), "newinstance,ptmxmode=0666,mode=620"}, nil, errUnique},
-		}, wrapErrSuffix(errUnique, `cannot mount devpts on "/sysroot/dev/pts":`)},
+		}, errUnique},
 
 		{"ensureFile stdout", &Params{ParentPerm: 0750, RetainSession: true}, &MountDevOp{
 			Target: MustAbs("/dev/"),
@@ -550,7 +550,7 @@ func TestMountDevOp(t *testing.T) {
 			{"bindMount", expectArgs{"/host/dev/pts/2", "/sysroot/dev/console", uintptr(0), false}, nil, nil},
 			{"mkdir", expectArgs{"/sysroot/dev/mqueue", os.FileMode(0750)}, nil, nil},
 			{"mount", expectArgs{"mqueue", "/sysroot/dev/mqueue", "mqueue", uintptr(0xe), ""}, nil, errUnique},
-		}, wrapErrSuffix(errUnique, "cannot mount mqueue:")},
+		}, errUnique},
 
 		{"success no session", &Params{ParentPerm: 0755}, &MountDevOp{
 			Target: MustAbs("/dev/"),

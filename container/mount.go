@@ -106,8 +106,7 @@ func (p *procPaths) bindMount(source, target string, flags uintptr, eq bool) err
 	}
 
 	if err := p.k.mount(source, target, FstypeNULL, MS_SILENT|MS_BIND|flags&MS_REC, zeroString); err != nil {
-		return wrapErrSuffix(err,
-			fmt.Sprintf("cannot mount %q on %q:", source, target))
+		return err
 	}
 
 	return p.k.remount(target, flags)
@@ -161,8 +160,7 @@ func (p *procPaths) remount(target string, flags uintptr) error {
 		}
 
 		if err = remountWithFlags(p.k, n, mf); err != nil {
-			return wrapErrSuffix(err,
-				fmt.Sprintf("cannot remount %q:", n.Clean))
+			return err
 		}
 		if flags&MS_REC == 0 {
 			return nil
@@ -174,11 +172,8 @@ func (p *procPaths) remount(target string, flags uintptr) error {
 				continue
 			}
 
-			err = remountWithFlags(p.k, cur, mf)
-
-			if err != nil && !errors.Is(err, EACCES) {
-				return wrapErrSuffix(err,
-					fmt.Sprintf("cannot propagate flags to %q:", cur.Clean))
+			if err = remountWithFlags(p.k, cur, mf); err != nil && !errors.Is(err, EACCES) {
+				return err
 			}
 		}
 
@@ -213,9 +208,7 @@ func mountTmpfs(k syscallDispatcher, fsname, target string, flags uintptr, size 
 	if size > 0 {
 		opt += fmt.Sprintf(",size=%d", size)
 	}
-	return wrapErrSuffix(
-		k.mount(fsname, target, FstypeTmpfs, flags, opt),
-		fmt.Sprintf("cannot mount tmpfs on %q:", target))
+	return k.mount(fsname, target, FstypeTmpfs, flags, opt)
 }
 
 func parentPerm(perm os.FileMode) os.FileMode {
