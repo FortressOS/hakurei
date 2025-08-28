@@ -3,13 +3,19 @@ package container
 import (
 	"encoding/gob"
 	"fmt"
-	"io/fs"
 	"math"
 	"os"
+	"strconv"
 	. "syscall"
 )
 
 func init() { gob.Register(new(MountTmpfsOp)) }
+
+type TmpfsSizeError int
+
+func (e TmpfsSizeError) Error() string {
+	return "tmpfs size " + strconv.Itoa(int(e)) + " out of bounds"
+}
 
 // Tmpfs appends an [Op] that mounts tmpfs on container path [MountTmpfsOp.Path].
 func (f *Ops) Tmpfs(target *Absolute, size int, perm os.FileMode) *Ops {
@@ -36,7 +42,7 @@ func (t *MountTmpfsOp) Valid() bool                                { return t !=
 func (t *MountTmpfsOp) early(*setupState, syscallDispatcher) error { return nil }
 func (t *MountTmpfsOp) apply(_ *setupState, k syscallDispatcher) error {
 	if t.Size < 0 || t.Size > math.MaxUint>>1 {
-		return msg.WrapErr(fs.ErrInvalid, fmt.Sprintf("size %d out of bounds", t.Size))
+		return TmpfsSizeError(t.Size)
 	}
 	return k.mountTmpfs(t.FSName, toSysroot(t.Path.String()), t.Flags, t.Size, t.Perm)
 }

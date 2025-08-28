@@ -1,17 +1,24 @@
 package container
 
 import (
-	"io/fs"
 	"os"
 	"syscall"
 	"testing"
 )
 
 func TestMountTmpfsOp(t *testing.T) {
+	t.Run("size error", func(t *testing.T) {
+		tmpfsSizeError := TmpfsSizeError(-1)
+		want := "tmpfs size -1 out of bounds"
+		if got := tmpfsSizeError.Error(); got != want {
+			t.Errorf("Error: %q, want %q", got, want)
+		}
+	})
+
 	checkOpBehaviour(t, []opBehaviourTestCase{
 		{"size oob", new(Params), &MountTmpfsOp{
 			Size: -1,
-		}, nil, nil, nil, msg.WrapErr(fs.ErrInvalid, "size -1 out of bounds")},
+		}, nil, nil, nil, TmpfsSizeError(-1)},
 
 		{"success", new(Params), &MountTmpfsOp{
 			FSName: "ephemeral",

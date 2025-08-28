@@ -39,6 +39,9 @@ func TestMessageFromError(t *testing.T) {
 		{"state", OpStateError("overlay"),
 			"impossible overlay state reached", true},
 
+		{"tmpfs", TmpfsSizeError(-1),
+			"tmpfs size -1 out of bounds", true},
+
 		{"unsupported", errUnique, zeroString, false},
 	}
 	for _, tc := range testCases {

@@ -24,6 +24,10 @@ func messageFromError(err error) (string, bool) {
 		return m, ok
 	}
 
+	if m, ok := messagePrefix[TmpfsSizeError]("", err); ok {
+		return m, ok
+	}
+
 	return zeroString, false
 }
 
