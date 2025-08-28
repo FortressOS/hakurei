@@ -97,7 +97,7 @@ func (o *MountOverlayOp) early(_ *setupState, k syscallDispatcher) error {
 	if !o.ephemeral {
 		if o.Upper != o.Work && (o.Upper == nil || o.Work == nil) {
 			// unreachable
-			return msg.WrapErr(fs.ErrClosed, "impossible overlay state reached")
+			return OpStateError("overlay")
 		}
 
 		if o.Upper != nil {

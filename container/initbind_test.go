@@ -143,7 +143,7 @@ func TestBindMountOp(t *testing.T) {
 
 	t.Run("unreachable", func(t *testing.T) {
 		t.Run("nil sourceFinal not optional", func(t *testing.T) {
-			wantErr := msg.WrapErr(os.ErrClosed, "impossible bind state reached")
+			wantErr := OpStateError("bind")
 			if err := new(BindMountOp).apply(nil, nil); !errors.Is(err, wantErr) {
 				t.Errorf("apply: error = %v, want %v", err, wantErr)
 			}

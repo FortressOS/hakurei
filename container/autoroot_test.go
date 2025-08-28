@@ -2,14 +2,13 @@ package container
 
 import (
 	"errors"
-	"io/fs"
 	"os"
 	"testing"
 )
 
 func TestAutoRootOp(t *testing.T) {
 	t.Run("nonrepeatable", func(t *testing.T) {
-		wantErr := msg.WrapErr(fs.ErrInvalid, "autoroot is not repeatable")
+		wantErr := OpRepeatError("autoroot")
 		if err := new(AutoRootOp).apply(&setupState{nonrepeatable: nrAutoRoot}, nil); !errors.Is(err, wantErr) {
 			t.Errorf("apply: error = %v, want %v", err, wantErr)
 		}

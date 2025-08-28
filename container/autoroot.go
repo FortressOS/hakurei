@@ -3,7 +3,6 @@ package container
 import (
 	"encoding/gob"
 	"fmt"
-	"io/fs"
 )
 
 func init() { gob.Register(new(AutoRootOp)) }
@@ -53,7 +52,7 @@ func (r *AutoRootOp) early(state *setupState, k syscallDispatcher) error {
 
 func (r *AutoRootOp) apply(state *setupState, k syscallDispatcher) error {
 	if state.nonrepeatable&nrAutoRoot != 0 {
-		return msg.WrapErr(fs.ErrInvalid, "autoroot is not repeatable")
+		return OpRepeatError("autoroot")
 	}
 	state.nonrepeatable |= nrAutoRoot
 

@@ -68,6 +68,16 @@ const (
 	nrAutoRoot
 )
 
+// OpRepeatError is returned applying a repeated nonrepeatable [Op].
+type OpRepeatError string
+
+func (e OpRepeatError) Error() string { return string(e) + " is not repeatable" }
+
+// OpStateError indicates an impossible internal state has been reached in an [Op].
+type OpStateError string
+
+func (o OpStateError) Error() string { return "impossible " + string(o) + " state reached" }
+
 // initParams are params passed from parent.
 type initParams struct {
 	Params

@@ -2,14 +2,13 @@ package container
 
 import (
 	"errors"
-	"io/fs"
 	"os"
 	"testing"
 )
 
 func TestAutoEtcOp(t *testing.T) {
 	t.Run("nonrepeatable", func(t *testing.T) {
-		wantErr := msg.WrapErr(fs.ErrInvalid, "autoetc is not repeatable")
+		wantErr := OpRepeatError("autoetc")
 		if err := (&AutoEtcOp{Prefix: "81ceabb30d37bbdb3868004629cb84e9"}).apply(&setupState{nonrepeatable: nrAutoEtc}, nil); !errors.Is(err, wantErr) {
 			t.Errorf("apply: error = %v, want %v", err, wantErr)
 		}

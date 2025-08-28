@@ -3,7 +3,6 @@ package container
 import (
 	"encoding/gob"
 	"fmt"
-	"io/fs"
 )
 
 func init() { gob.Register(new(AutoEtcOp)) }
@@ -24,7 +23,7 @@ func (e *AutoEtcOp) Valid() bool                                { return e != ni
 func (e *AutoEtcOp) early(*setupState, syscallDispatcher) error { return nil }
 func (e *AutoEtcOp) apply(state *setupState, k syscallDispatcher) error {
 	if state.nonrepeatable&nrAutoEtc != 0 {
-		return msg.WrapErr(fs.ErrInvalid, "autoetc is not repeatable")
+		return OpRepeatError("autoetc")
 	}
 	state.nonrepeatable |= nrAutoEtc
 

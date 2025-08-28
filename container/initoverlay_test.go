@@ -242,7 +242,7 @@ func TestMountOverlayOp(t *testing.T) {
 
 	t.Run("unreachable", func(t *testing.T) {
 		t.Run("nil Upper non-nil Work not ephemeral", func(t *testing.T) {
-			wantErr := msg.WrapErr(fs.ErrClosed, "impossible overlay state reached")
+			wantErr := OpStateError("overlay")
 			if err := (&MountOverlayOp{
 				Work: MustAbs("/"),
 			}).early(nil, nil); !errors.Is(err, wantErr) {

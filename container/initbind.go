@@ -63,7 +63,7 @@ func (b *BindMountOp) apply(_ *setupState, k syscallDispatcher) error {
 	if b.sourceFinal == nil {
 		if b.Flags&BindOptional == 0 {
 			// unreachable
-			return msg.WrapErr(os.ErrClosed, "impossible bind state reached")
+			return OpStateError("bind")
 		}
 		return nil
 	}
