@@ -146,14 +146,14 @@ func checkOpBehaviour(t *testing.T, testCases []opBehaviourTestCase) {
 				k := &kstub{t: t, want: [][]kexpect{slices.Concat(tc.early, []kexpect{{name: "\x00"}}, tc.apply)}, wg: new(sync.WaitGroup)}
 				errEarly := tc.op.early(state, k)
 				k.expect("\x00")
-				if !errors.Is(errEarly, tc.wantErrEarly) {
+				if !reflect.DeepEqual(errEarly, tc.wantErrEarly) {
 					t.Errorf("early: error = %v, want %v", errEarly, tc.wantErrEarly)
 				}
 				if errEarly != nil {
 					goto out
 				}
 
-				if err := tc.op.apply(state, k); !errors.Is(err, tc.wantErrApply) {
+				if err := tc.op.apply(state, k); !reflect.DeepEqual(err, tc.wantErrApply) {
 					t.Errorf("apply: error = %v, want %v", err, tc.wantErrApply)
 				}
 
