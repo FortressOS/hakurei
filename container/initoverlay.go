@@ -3,7 +3,6 @@ package container
 import (
 	"encoding/gob"
 	"fmt"
-	"io/fs"
 	"slices"
 	"strings"
 )
@@ -18,6 +17,39 @@ const (
 )
 
 func init() { gob.Register(new(MountOverlayOp)) }
+
+const (
+	// OverlayEphemeralUnexpectedUpper is set when [MountOverlayOp.Work] is nil
+	// and [MountOverlayOp.Upper] holds an unexpected value.
+	OverlayEphemeralUnexpectedUpper = iota
+	// OverlayReadonlyLower is set when [MountOverlayOp.Lower] contains less than
+	// two entries when mounting readonly.
+	OverlayReadonlyLower
+	// OverlayEmptyLower is set when [MountOverlayOp.Lower] has length of zero.
+	OverlayEmptyLower
+)
+
+// OverlayArgumentError is returned for [MountOverlayOp] supplied with invalid argument.
+type OverlayArgumentError struct {
+	Type  uintptr
+	Value string
+}
+
+func (e *OverlayArgumentError) Error() string {
+	switch e.Type {
+	case OverlayEphemeralUnexpectedUpper:
+		return fmt.Sprintf("upperdir has unexpected value %q", e.Value)
+
+	case OverlayReadonlyLower:
+		return "readonly overlay requires at least two lowerdir"
+
+	case OverlayEmptyLower:
+		return "overlay requires at least one lowerdir"
+
+	default:
+		return fmt.Sprintf("invalid overlay argument error %#x", e.Type)
+	}
+}
 
 // Overlay appends an [Op] that mounts the overlay pseudo filesystem on [MountOverlayOp.Target].
 func (f *Ops) Overlay(target, state, work *Absolute, layers ...*Absolute) *Ops {
@@ -89,7 +121,7 @@ func (o *MountOverlayOp) early(_ *setupState, k syscallDispatcher) error {
 			o.ephemeral = true // intermediate root not yet available
 
 		default:
-			return msg.WrapErr(fs.ErrInvalid, fmt.Sprintf("upperdir has unexpected value %q", o.Upper))
+			return &OverlayArgumentError{OverlayEphemeralUnexpectedUpper, o.Upper.String()}
 		}
 	}
 	// readonly handled in apply
@@ -152,12 +184,12 @@ func (o *MountOverlayOp) apply(state *setupState, k syscallDispatcher) error {
 
 	if o.upper == zeroString && o.work == zeroString { // readonly
 		if len(o.Lower) < 2 {
-			return msg.WrapErr(fs.ErrInvalid, "readonly overlay requires at least two lowerdir")
+			return &OverlayArgumentError{OverlayReadonlyLower, zeroString}
 		}
 		// "upperdir=" and "workdir=" may be omitted. In that case the overlay will be read-only
 	} else {
 		if len(o.Lower) == 0 {
-			return msg.WrapErr(fs.ErrInvalid, "overlay requires at least one lowerdir")
+			return &OverlayArgumentError{OverlayEmptyLower, zeroString}
 		}
 		options = append(options,
 			OptionOverlayUpperdir+"="+o.upper,

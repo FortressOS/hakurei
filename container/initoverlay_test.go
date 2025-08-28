@@ -2,12 +2,38 @@ package container
 
 import (
 	"errors"
-	"io/fs"
 	"os"
 	"testing"
 )
 
 func TestMountOverlayOp(t *testing.T) {
+	t.Run("argument error", func(t *testing.T) {
+		testCases := []struct {
+			name string
+			err  *OverlayArgumentError
+			want string
+		}{
+			{"unexpected upper", &OverlayArgumentError{OverlayEphemeralUnexpectedUpper, "/proc/"},
+				`upperdir has unexpected value "/proc/"`},
+
+			{"lower ro short", &OverlayArgumentError{OverlayReadonlyLower, zeroString},
+				"readonly overlay requires at least two lowerdir"},
+
+			{"lower short", &OverlayArgumentError{OverlayEmptyLower, zeroString},
+				"overlay requires at least one lowerdir"},
+
+			{"oob", &OverlayArgumentError{0xdeadbeef, zeroString},
+				"invalid overlay argument error 0xdeadbeef"},
+		}
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				if got := tc.err.Error(); got != tc.want {
+					t.Errorf("Error: %q, want %q", got, tc.want)
+				}
+			})
+		}
+	})
+
 	checkOpBehaviour(t, []opBehaviourTestCase{
 		{"mkdirTemp invalid ephemeral", &Params{ParentPerm: 0705}, &MountOverlayOp{
 			Target: MustAbs("/"),
@@ -16,7 +42,7 @@ func TestMountOverlayOp(t *testing.T) {
 				MustAbs("/var/lib/planterette/app/org.chromium.Chromium@debian:f92c9052"),
 			},
 			Upper: MustAbs("/proc/"),
-		}, nil, msg.WrapErr(fs.ErrInvalid, `upperdir has unexpected value "/proc/"`), nil, nil},
+		}, nil, &OverlayArgumentError{OverlayEphemeralUnexpectedUpper, "/proc/"}, nil, nil},
 
 		{"mkdirTemp upper ephemeral", &Params{ParentPerm: 0705}, &MountOverlayOp{
 			Target: MustAbs("/"),
@@ -81,7 +107,7 @@ func TestMountOverlayOp(t *testing.T) {
 			{"evalSymlinks", expectArgs{"/mnt-root/nix/.ro-store"}, "/mnt-root/nix/.ro-store", nil},
 		}, nil, []kexpect{
 			{"mkdirAll", expectArgs{"/sysroot/nix/store", os.FileMode(0755)}, nil, nil},
-		}, msg.WrapErr(fs.ErrInvalid, "readonly overlay requires at least two lowerdir")},
+		}, &OverlayArgumentError{OverlayReadonlyLower, zeroString}},
 
 		{"success ro noPrefix", &Params{ParentPerm: 0755}, &MountOverlayOp{
 			Target: MustAbs("/nix/store"),
@@ -129,7 +155,7 @@ func TestMountOverlayOp(t *testing.T) {
 			{"evalSymlinks", expectArgs{"/mnt-root/nix/.rw-store/work"}, "/mnt-root/nix/.rw-store/.work", nil},
 		}, nil, []kexpect{
 			{"mkdirAll", expectArgs{"/sysroot/nix/store", os.FileMode(0700)}, nil, nil},
-		}, msg.WrapErr(fs.ErrInvalid, "overlay requires at least one lowerdir")},
+		}, &OverlayArgumentError{OverlayEmptyLower, zeroString}},
 
 		{"evalSymlinks upper", &Params{ParentPerm: 0700}, &MountOverlayOp{
 			Target: MustAbs("/nix/store"),
