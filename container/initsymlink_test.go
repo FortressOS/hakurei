@@ -1,7 +1,6 @@
 package container
 
 import (
-	"io/fs"
 	"os"
 	"testing"
 )
@@ -19,7 +18,7 @@ func TestSymlinkOp(t *testing.T) {
 			Target:      MustAbs("/etc/mtab"),
 			LinkName:    "etc/mtab",
 			Dereference: true,
-		}, nil, msg.WrapErr(fs.ErrInvalid, `path "etc/mtab" is not absolute`), nil, nil},
+		}, nil, &AbsoluteError{"etc/mtab"}, nil, nil},
 
 		{"readlink", &Params{ParentPerm: 0755}, &SymlinkOp{
 			Target:      MustAbs("/etc/mtab"),

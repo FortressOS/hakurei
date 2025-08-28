@@ -3,7 +3,6 @@ package container
 import (
 	"encoding/gob"
 	"fmt"
-	"io/fs"
 	"path"
 )
 
@@ -30,7 +29,7 @@ func (l *SymlinkOp) Valid() bool { return l != nil && l.Target != nil && l.LinkN
 func (l *SymlinkOp) early(_ *setupState, k syscallDispatcher) error {
 	if l.Dereference {
 		if !isAbs(l.LinkName) {
-			return msg.WrapErr(fs.ErrInvalid, fmt.Sprintf("path %q is not absolute", l.LinkName))
+			return &AbsoluteError{l.LinkName}
 		}
 		if name, err := k.readlink(l.LinkName); err != nil {
 			return wrapErrSelf(err)
