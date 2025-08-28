@@ -225,7 +225,7 @@ func (direct) pivotRoot(newroot, putold string) (err error) {
 	return syscall.PivotRoot(newroot, putold)
 }
 func (direct) mount(source, target, fstype string, flags uintptr, data string) (err error) {
-	return syscall.Mount(source, target, fstype, flags, data)
+	return mount(source, target, fstype, flags, data)
 }
 func (direct) unmount(target string, flags int) (err error) {
 	return syscall.Unmount(target, flags)
