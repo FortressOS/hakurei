@@ -23,7 +23,7 @@ type MkdirOp struct {
 func (m *MkdirOp) Valid() bool                                { return m != nil && m.Path != nil }
 func (m *MkdirOp) early(*setupState, syscallDispatcher) error { return nil }
 func (m *MkdirOp) apply(_ *setupState, k syscallDispatcher) error {
-	return wrapErrSelf(k.mkdirAll(toSysroot(m.Path.String()), m.Perm))
+	return k.mkdirAll(toSysroot(m.Path.String()), m.Perm)
 }
 
 func (m *MkdirOp) Is(op Op) bool {

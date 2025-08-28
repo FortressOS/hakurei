@@ -102,7 +102,7 @@ func (o *MountOverlayOp) early(_ *setupState, k syscallDispatcher) error {
 
 		if o.Upper != nil {
 			if v, err := k.evalSymlinks(o.Upper.String()); err != nil {
-				return wrapErrSelf(err)
+				return err
 			} else {
 				o.upper = EscapeOverlayDataSegment(toHost(v))
 			}
@@ -110,7 +110,7 @@ func (o *MountOverlayOp) early(_ *setupState, k syscallDispatcher) error {
 
 		if o.Work != nil {
 			if v, err := k.evalSymlinks(o.Work.String()); err != nil {
-				return wrapErrSelf(err)
+				return err
 			} else {
 				o.work = EscapeOverlayDataSegment(toHost(v))
 			}
@@ -120,7 +120,7 @@ func (o *MountOverlayOp) early(_ *setupState, k syscallDispatcher) error {
 	o.lower = make([]string, len(o.Lower))
 	for i, a := range o.Lower { // nil checked in Valid
 		if v, err := k.evalSymlinks(a.String()); err != nil {
-			return wrapErrSelf(err)
+			return err
 		} else {
 			o.lower[i] = EscapeOverlayDataSegment(toHost(v))
 		}
@@ -134,17 +134,17 @@ func (o *MountOverlayOp) apply(state *setupState, k syscallDispatcher) error {
 		target = toSysroot(target)
 	}
 	if err := k.mkdirAll(target, state.ParentPerm); err != nil {
-		return wrapErrSelf(err)
+		return err
 	}
 
 	if o.ephemeral {
 		var err error
 		// these directories are created internally, therefore early (absolute, symlink, prefix, escape) is bypassed
 		if o.upper, err = k.mkdirTemp(FHSRoot, intermediatePatternOverlayUpper); err != nil {
-			return wrapErrSelf(err)
+			return err
 		}
 		if o.work, err = k.mkdirTemp(FHSRoot, intermediatePatternOverlayWork); err != nil {
-			return wrapErrSelf(err)
+			return err
 		}
 	}
 

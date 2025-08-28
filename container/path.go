@@ -2,7 +2,6 @@ package container
 
 import (
 	"errors"
-	"fmt"
 	"io/fs"
 	"os"
 	"path"
@@ -103,30 +102,29 @@ func toHost(name string) string {
 
 func createFile(name string, perm, pperm os.FileMode, content []byte) error {
 	if err := os.MkdirAll(path.Dir(name), pperm); err != nil {
-		return wrapErrSelf(err)
+		return err
 	}
 	f, err := os.OpenFile(name, syscall.O_CREAT|syscall.O_EXCL|syscall.O_WRONLY, perm)
 	if err != nil {
-		return wrapErrSelf(err)
+		return err
 	}
 	if content != nil {
 		_, err = f.Write(content)
 	}
-	return errors.Join(f.Close(), wrapErrSelf(err))
+	return errors.Join(f.Close(), err)
 }
 
 func ensureFile(name string, perm, pperm os.FileMode) error {
 	fi, err := os.Stat(name)
 	if err != nil {
 		if !os.IsNotExist(err) {
-			return wrapErrSelf(err)
+			return err
 		}
 		return createFile(name, perm, pperm, nil)
 	}
 
 	if mode := fi.Mode(); mode&fs.ModeDir != 0 || mode&fs.ModeSymlink != 0 {
-		err = msg.WrapErr(syscall.EISDIR,
-			fmt.Sprintf("path %q is a directory", name))
+		err = &os.PathError{Op: "ensure", Path: name, Err: syscall.EISDIR}
 	}
 	return err
 }
@@ -147,12 +145,12 @@ func (p *procPaths) stdout() string   { return p.self + "/fd/1" }
 func (p *procPaths) fd(fd int) string { return p.self + "/fd/" + strconv.Itoa(fd) }
 func (p *procPaths) mountinfo(f func(d *vfs.MountInfoDecoder) error) error {
 	if r, err := p.k.openNew(p.self + "/mountinfo"); err != nil {
-		return wrapErrSelf(err)
+		return err
 	} else {
 		d := vfs.NewMountInfoDecoder(r)
 		err0 := f(d)
 		if err = r.Close(); err != nil {
-			return wrapErrSelf(err)
+			return err
 		} else if err = d.Err(); err != nil {
 			return wrapErrSuffix(err,
 				"cannot parse mountinfo:")

@@ -18,21 +18,21 @@ func TestTmpfileOp(t *testing.T) {
 			Data: sampleData,
 		}, nil, nil, []kexpect{
 			{"createTemp", expectArgs{"/", "tmp.*"}, newCheckedFile(t, "tmp.32768", sampleDataString, nil), errUnique},
-		}, wrapErrSelf(errUnique)},
+		}, errUnique},
 
 		{"Write", &Params{ParentPerm: 0700}, &TmpfileOp{
 			Path: samplePath,
 			Data: sampleData,
 		}, nil, nil, []kexpect{
 			{"createTemp", expectArgs{"/", "tmp.*"}, writeErrOsFile{errUnique}, nil},
-		}, wrapErrSuffix(errUnique, "cannot write to intermediate file:")},
+		}, errUnique},
 
 		{"Close", &Params{ParentPerm: 0700}, &TmpfileOp{
 			Path: samplePath,
 			Data: sampleData,
 		}, nil, nil, []kexpect{
 			{"createTemp", expectArgs{"/", "tmp.*"}, newCheckedFile(t, "tmp.32768", sampleDataString, errUnique), nil},
-		}, wrapErrSuffix(errUnique, "cannot close intermediate file:")},
+		}, errUnique},
 
 		{"ensureFile", &Params{ParentPerm: 0700}, &TmpfileOp{
 			Path: samplePath,
@@ -59,7 +59,7 @@ func TestTmpfileOp(t *testing.T) {
 			{"ensureFile", expectArgs{"/sysroot/etc/passwd", os.FileMode(0444), os.FileMode(0700)}, nil, nil},
 			{"bindMount", expectArgs{"tmp.32768", "/sysroot/etc/passwd", uintptr(0x5), false}, nil, nil},
 			{"remove", expectArgs{"tmp.32768"}, nil, errUnique},
-		}, wrapErrSelf(errUnique)},
+		}, errUnique},
 
 		{"success", &Params{ParentPerm: 0700}, &TmpfileOp{
 			Path: samplePath,

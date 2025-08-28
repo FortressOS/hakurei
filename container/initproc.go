@@ -22,7 +22,7 @@ func (p *MountProcOp) early(*setupState, syscallDispatcher) error { return nil }
 func (p *MountProcOp) apply(state *setupState, k syscallDispatcher) error {
 	target := toSysroot(p.Target.String())
 	if err := k.mkdirAll(target, state.ParentPerm); err != nil {
-		return wrapErrSelf(err)
+		return err
 	}
 	return k.mount(SourceProc, target, FstypeProc, MS_NOSUID|MS_NOEXEC|MS_NODEV, zeroString)
 }

@@ -12,7 +12,7 @@ func TestMountProcOp(t *testing.T) {
 				Target: MustAbs("/proc/"),
 			}, nil, nil, []kexpect{
 				{"mkdirAll", expectArgs{"/sysroot/proc", os.FileMode(0755)}, nil, errUnique},
-			}, wrapErrSelf(errUnique)},
+			}, errUnique},
 
 		{"success", &Params{ParentPerm: 0700},
 			&MountProcOp{

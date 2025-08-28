@@ -43,7 +43,7 @@ func (b *BindMountOp) Valid() bool {
 func (b *BindMountOp) early(_ *setupState, k syscallDispatcher) error {
 	if b.Flags&BindEnsure != 0 {
 		if err := k.mkdirAll(b.Source.String(), 0700); err != nil {
-			return wrapErrSelf(err)
+			return err
 		}
 	}
 
@@ -52,7 +52,7 @@ func (b *BindMountOp) early(_ *setupState, k syscallDispatcher) error {
 			// leave sourceFinal as nil
 			return nil
 		}
-		return wrapErrSelf(err)
+		return err
 	} else {
 		b.sourceFinal, err = NewAbs(pathname)
 		return err
@@ -74,10 +74,10 @@ func (b *BindMountOp) apply(_ *setupState, k syscallDispatcher) error {
 	// this perm value emulates bwrap behaviour as it clears bits from 0755 based on
 	// op->perms which is never set for any bind setup op so always results in 0700
 	if fi, err := k.stat(source); err != nil {
-		return wrapErrSelf(err)
+		return err
 	} else if fi.IsDir() {
 		if err = k.mkdirAll(target, 0700); err != nil {
-			return wrapErrSelf(err)
+			return err
 		}
 	} else if err = k.ensureFile(target, 0444, 0700); err != nil {
 		return err

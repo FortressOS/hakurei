@@ -29,7 +29,7 @@ func (r *AutoRootOp) Valid() bool { return r != nil && r.Host != nil }
 
 func (r *AutoRootOp) early(state *setupState, k syscallDispatcher) error {
 	if d, err := k.readdir(r.Host.String()); err != nil {
-		return wrapErrSelf(err)
+		return err
 	} else {
 		r.resolved = make([]Op, 0, len(d))
 		for _, ent := range d {

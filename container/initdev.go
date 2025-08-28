@@ -59,7 +59,7 @@ func (d *MountDevOp) apply(state *setupState, k syscallDispatcher) error {
 			FHSProc+"self/fd/"+string(rune(i+'0')),
 			path.Join(target, name),
 		); err != nil {
-			return wrapErrSelf(err)
+			return err
 		}
 	}
 	for _, pair := range [][2]string{
@@ -68,7 +68,7 @@ func (d *MountDevOp) apply(state *setupState, k syscallDispatcher) error {
 		{"pts/ptmx", "ptmx"},
 	} {
 		if err := k.symlink(pair[0], path.Join(target, pair[1])); err != nil {
-			return wrapErrSelf(err)
+			return err
 		}
 	}
 
@@ -76,7 +76,7 @@ func (d *MountDevOp) apply(state *setupState, k syscallDispatcher) error {
 	devPtsPath := path.Join(target, "pts")
 	for _, name := range []string{devShmPath, devPtsPath} {
 		if err := k.mkdir(name, state.ParentPerm); err != nil {
-			return wrapErrSelf(err)
+			return err
 		}
 	}
 
@@ -92,7 +92,7 @@ func (d *MountDevOp) apply(state *setupState, k syscallDispatcher) error {
 				return err
 			}
 			if name, err := k.readlink(hostProc.stdout()); err != nil {
-				return wrapErrSelf(err)
+				return err
 			} else if err = k.bindMount(
 				toHost(name),
 				consolePath,
@@ -107,7 +107,7 @@ func (d *MountDevOp) apply(state *setupState, k syscallDispatcher) error {
 	if d.Mqueue {
 		mqueueTarget := path.Join(target, "mqueue")
 		if err := k.mkdir(mqueueTarget, state.ParentPerm); err != nil {
-			return wrapErrSelf(err)
+			return err
 		}
 		if err := k.mount(SourceMqueue, mqueueTarget, FstypeMqueue, MS_NOSUID|MS_NOEXEC|MS_NODEV, zeroString); err != nil {
 			return err

@@ -20,7 +20,7 @@ func TestAutoRootOp(t *testing.T) {
 			Flags: BindWritable,
 		}, []kexpect{
 			{"readdir", expectArgs{"/"}, stubDir(), errUnique},
-		}, wrapErrSelf(errUnique), nil, nil},
+		}, errUnique, nil, nil},
 
 		{"early", &Params{ParentPerm: 0750}, &AutoRootOp{
 			Host:  MustAbs("/"),
@@ -29,7 +29,7 @@ func TestAutoRootOp(t *testing.T) {
 			{"readdir", expectArgs{"/"}, stubDir("bin", "dev", "etc", "home", "lib64",
 				"lost+found", "mnt", "nix", "proc", "root", "run", "srv", "sys", "tmp", "usr", "var"), nil},
 			{"evalSymlinks", expectArgs{"/bin"}, "", errUnique},
-		}, wrapErrSelf(errUnique), nil, nil},
+		}, errUnique, nil, nil},
 
 		{"apply", &Params{ParentPerm: 0750}, &AutoRootOp{
 			Host:  MustAbs("/"),
@@ -51,7 +51,7 @@ func TestAutoRootOp(t *testing.T) {
 		}, nil, []kexpect{
 			{"verbosef", expectArgs{"%s %s", []any{"mounting", &BindMountOp{MustAbs("/usr/bin"), MustAbs("/bin"), MustAbs("/bin"), BindWritable}}}, nil, nil},
 			{"stat", expectArgs{"/host/usr/bin"}, isDirFi(false), errUnique},
-		}, wrapErrSelf(errUnique)},
+		}, errUnique},
 
 		{"success pd", &Params{ParentPerm: 0750}, &AutoRootOp{
 			Host:  MustAbs("/"),

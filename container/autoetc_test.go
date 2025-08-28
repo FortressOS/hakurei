@@ -19,14 +19,14 @@ func TestAutoEtcOp(t *testing.T) {
 			Prefix: "81ceabb30d37bbdb3868004629cb84e9",
 		}, nil, nil, []kexpect{
 			{"mkdirAll", expectArgs{"/sysroot/etc/", os.FileMode(0755)}, nil, errUnique},
-		}, wrapErrSelf(errUnique)},
+		}, errUnique},
 
 		{"readdir", new(Params), &AutoEtcOp{
 			Prefix: "81ceabb30d37bbdb3868004629cb84e9",
 		}, nil, nil, []kexpect{
 			{"mkdirAll", expectArgs{"/sysroot/etc/", os.FileMode(0755)}, nil, nil},
 			{"readdir", expectArgs{"/sysroot/etc/.host/81ceabb30d37bbdb3868004629cb84e9"}, stubDir(), errUnique},
-		}, wrapErrSelf(errUnique)},
+		}, errUnique},
 
 		{"symlink", new(Params), &AutoEtcOp{
 			Prefix: "81ceabb30d37bbdb3868004629cb84e9",
@@ -42,7 +42,7 @@ func TestAutoEtcOp(t *testing.T) {
 				"ssh", "ssl", "static", "subgid", "subuid", "sudoers", "sway", "sysctl.d", "systemd", "terminfo",
 				"tmpfiles.d", "udev", "vconsole.conf", "X11", "xdg", "zoneinfo"), nil},
 			{"symlink", expectArgs{".host/81ceabb30d37bbdb3868004629cb84e9/alsa", "/sysroot/etc/alsa"}, nil, errUnique},
-		}, wrapErrSelf(errUnique)},
+		}, errUnique},
 
 		{"symlink mtab", new(Params), &AutoEtcOp{
 			Prefix: "81ceabb30d37bbdb3868004629cb84e9",
@@ -84,7 +84,7 @@ func TestAutoEtcOp(t *testing.T) {
 			{"symlink", expectArgs{".host/81ceabb30d37bbdb3868004629cb84e9/modprobe.d", "/sysroot/etc/modprobe.d"}, nil, nil},
 			{"symlink", expectArgs{".host/81ceabb30d37bbdb3868004629cb84e9/modules-load.d", "/sysroot/etc/modules-load.d"}, nil, nil},
 			{"symlink", expectArgs{"/proc/mounts", "/sysroot/etc/mtab"}, nil, errUnique},
-		}, wrapErrSelf(errUnique)},
+		}, errUnique},
 
 		{"success nested", new(Params), &AutoEtcOp{
 			Prefix: "81ceabb30d37bbdb3868004629cb84e9",

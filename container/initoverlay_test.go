@@ -31,7 +31,7 @@ func TestMountOverlayOp(t *testing.T) {
 		}, nil, []kexpect{
 			{"mkdirAll", expectArgs{"/sysroot", os.FileMode(0705)}, nil, nil},
 			{"mkdirTemp", expectArgs{"/", "overlay.upper.*"}, "overlay.upper.32768", errUnique},
-		}, wrapErrSelf(errUnique)},
+		}, errUnique},
 
 		{"mkdirTemp work ephemeral", &Params{ParentPerm: 0705}, &MountOverlayOp{
 			Target: MustAbs("/"),
@@ -47,7 +47,7 @@ func TestMountOverlayOp(t *testing.T) {
 			{"mkdirAll", expectArgs{"/sysroot", os.FileMode(0705)}, nil, nil},
 			{"mkdirTemp", expectArgs{"/", "overlay.upper.*"}, "overlay.upper.32768", nil},
 			{"mkdirTemp", expectArgs{"/", "overlay.work.*"}, "overlay.work.32768", errUnique},
-		}, wrapErrSelf(errUnique)},
+		}, errUnique},
 
 		{"success ephemeral", &Params{ParentPerm: 0705}, &MountOverlayOp{
 			Target: MustAbs("/"),
@@ -138,7 +138,7 @@ func TestMountOverlayOp(t *testing.T) {
 			Work:   MustAbs("/mnt-root/nix/.rw-store/work"),
 		}, []kexpect{
 			{"evalSymlinks", expectArgs{"/mnt-root/nix/.rw-store/upper"}, "/mnt-root/nix/.rw-store/.upper", errUnique},
-		}, wrapErrSelf(errUnique), nil, nil},
+		}, errUnique, nil, nil},
 
 		{"evalSymlinks work", &Params{ParentPerm: 0700}, &MountOverlayOp{
 			Target: MustAbs("/nix/store"),
@@ -148,7 +148,7 @@ func TestMountOverlayOp(t *testing.T) {
 		}, []kexpect{
 			{"evalSymlinks", expectArgs{"/mnt-root/nix/.rw-store/upper"}, "/mnt-root/nix/.rw-store/.upper", nil},
 			{"evalSymlinks", expectArgs{"/mnt-root/nix/.rw-store/work"}, "/mnt-root/nix/.rw-store/.work", errUnique},
-		}, wrapErrSelf(errUnique), nil, nil},
+		}, errUnique, nil, nil},
 
 		{"evalSymlinks lower", &Params{ParentPerm: 0700}, &MountOverlayOp{
 			Target: MustAbs("/nix/store"),
@@ -159,7 +159,7 @@ func TestMountOverlayOp(t *testing.T) {
 			{"evalSymlinks", expectArgs{"/mnt-root/nix/.rw-store/upper"}, "/mnt-root/nix/.rw-store/.upper", nil},
 			{"evalSymlinks", expectArgs{"/mnt-root/nix/.rw-store/work"}, "/mnt-root/nix/.rw-store/.work", nil},
 			{"evalSymlinks", expectArgs{"/mnt-root/nix/.ro-store"}, "/mnt-root/nix/ro-store", errUnique},
-		}, wrapErrSelf(errUnique), nil, nil},
+		}, errUnique, nil, nil},
 
 		{"mkdirAll", &Params{ParentPerm: 0700}, &MountOverlayOp{
 			Target: MustAbs("/nix/store"),
@@ -172,7 +172,7 @@ func TestMountOverlayOp(t *testing.T) {
 			{"evalSymlinks", expectArgs{"/mnt-root/nix/.ro-store"}, "/mnt-root/nix/ro-store", nil},
 		}, nil, []kexpect{
 			{"mkdirAll", expectArgs{"/sysroot/nix/store", os.FileMode(0700)}, nil, errUnique},
-		}, wrapErrSelf(errUnique)},
+		}, errUnique},
 
 		{"mount", &Params{ParentPerm: 0700}, &MountOverlayOp{
 			Target: MustAbs("/nix/store"),

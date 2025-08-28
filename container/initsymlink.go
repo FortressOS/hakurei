@@ -32,7 +32,7 @@ func (l *SymlinkOp) early(_ *setupState, k syscallDispatcher) error {
 			return &AbsoluteError{l.LinkName}
 		}
 		if name, err := k.readlink(l.LinkName); err != nil {
-			return wrapErrSelf(err)
+			return err
 		} else {
 			l.LinkName = name
 		}
@@ -43,9 +43,9 @@ func (l *SymlinkOp) early(_ *setupState, k syscallDispatcher) error {
 func (l *SymlinkOp) apply(state *setupState, k syscallDispatcher) error {
 	target := toSysroot(l.Target.String())
 	if err := k.mkdirAll(path.Dir(target), state.ParentPerm); err != nil {
-		return wrapErrSelf(err)
+		return err
 	}
-	return wrapErrSelf(k.symlink(l.LinkName, target))
+	return k.symlink(l.LinkName, target)
 }
 
 func (l *SymlinkOp) Is(op Op) bool {

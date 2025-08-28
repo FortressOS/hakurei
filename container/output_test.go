@@ -58,16 +58,6 @@ func TestWrapErr(t *testing.T) {
 				t.Errorf("wrapErrSuffix: %v", err)
 			}
 		}, syscall.ENOTRECOVERABLE, []any{"\x00\x00", syscall.ENOTRECOVERABLE}},
-		{"self nil", func(t *testing.T) {
-			if err := wrapErrSelf(nil); err != nil {
-				t.Errorf("wrapErrSelf: %v", err)
-			}
-		}, nil, nil},
-		{"self val", func(t *testing.T) {
-			if err := wrapErrSelf(syscall.ENOTRECOVERABLE); err != syscall.ENOTRECOVERABLE {
-				t.Errorf("wrapErrSelf: %v", err)
-			}
-		}, syscall.ENOTRECOVERABLE, []any{"state not recoverable"}},
 	}
 
 	for _, tc := range testCases {

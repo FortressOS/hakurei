@@ -14,7 +14,7 @@ func TestBindMountOp(t *testing.T) {
 			Target: MustAbs("/bin/"),
 		}, []kexpect{
 			{"evalSymlinks", expectArgs{"/bin/"}, "", syscall.ENOENT},
-		}, wrapErrSelf(syscall.ENOENT), nil, nil},
+		}, syscall.ENOENT, nil, nil},
 
 		{"skip optional", new(Params), &BindMountOp{
 			Source: MustAbs("/bin/"),
@@ -53,7 +53,7 @@ func TestBindMountOp(t *testing.T) {
 			Flags:  BindEnsure,
 		}, []kexpect{
 			{"mkdirAll", expectArgs{"/bin/", os.FileMode(0700)}, nil, errUnique},
-		}, wrapErrSelf(errUnique), nil, nil},
+		}, errUnique, nil, nil},
 
 		{"success ensure", new(Params), &BindMountOp{
 			Source: MustAbs("/bin/"),
@@ -97,7 +97,7 @@ func TestBindMountOp(t *testing.T) {
 			Target: MustAbs("/bin/"),
 		}, []kexpect{
 			{"evalSymlinks", expectArgs{"/bin/"}, "/usr/bin", errUnique},
-		}, wrapErrSelf(errUnique), nil, nil},
+		}, errUnique, nil, nil},
 
 		{"stat", new(Params), &BindMountOp{
 			Source: MustAbs("/bin/"),
@@ -106,7 +106,7 @@ func TestBindMountOp(t *testing.T) {
 			{"evalSymlinks", expectArgs{"/bin/"}, "/usr/bin", nil},
 		}, nil, []kexpect{
 			{"stat", expectArgs{"/host/usr/bin"}, isDirFi(true), errUnique},
-		}, wrapErrSelf(errUnique)},
+		}, errUnique},
 
 		{"mkdirAll", new(Params), &BindMountOp{
 			Source: MustAbs("/bin/"),
@@ -116,7 +116,7 @@ func TestBindMountOp(t *testing.T) {
 		}, nil, []kexpect{
 			{"stat", expectArgs{"/host/usr/bin"}, isDirFi(true), nil},
 			{"mkdirAll", expectArgs{"/sysroot/bin", os.FileMode(0700)}, nil, errUnique},
-		}, wrapErrSelf(errUnique)},
+		}, errUnique},
 
 		{"bindMount", new(Params), &BindMountOp{
 			Source: MustAbs("/bin/"),

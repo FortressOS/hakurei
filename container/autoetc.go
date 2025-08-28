@@ -31,10 +31,10 @@ func (e *AutoEtcOp) apply(state *setupState, k syscallDispatcher) error {
 	rel := e.hostRel() + "/"
 
 	if err := k.mkdirAll(target, 0755); err != nil {
-		return wrapErrSelf(err)
+		return err
 	}
 	if d, err := k.readdir(toSysroot(e.hostPath().String())); err != nil {
-		return wrapErrSelf(err)
+		return err
 	} else {
 		for _, ent := range d {
 			n := ent.Name()
@@ -43,12 +43,12 @@ func (e *AutoEtcOp) apply(state *setupState, k syscallDispatcher) error {
 
 			case "mtab":
 				if err = k.symlink(FHSProc+"mounts", target+n); err != nil {
-					return wrapErrSelf(err)
+					return err
 				}
 
 			default:
 				if err = k.symlink(rel+n, target+n); err != nil {
-					return wrapErrSelf(err)
+					return err
 				}
 			}
 		}

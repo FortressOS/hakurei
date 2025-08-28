@@ -39,13 +39,11 @@ func (t *TmpfileOp) early(*setupState, syscallDispatcher) error { return nil }
 func (t *TmpfileOp) apply(state *setupState, k syscallDispatcher) error {
 	var tmpPath string
 	if f, err := k.createTemp(FHSRoot, intermediatePatternTmpfile); err != nil {
-		return wrapErrSelf(err)
+		return err
 	} else if _, err = f.Write(t.Data); err != nil {
-		return wrapErrSuffix(err,
-			"cannot write to intermediate file:")
+		return err
 	} else if err = f.Close(); err != nil {
-		return wrapErrSuffix(err,
-			"cannot close intermediate file:")
+		return err
 	} else {
 		tmpPath = f.Name()
 	}
@@ -61,7 +59,7 @@ func (t *TmpfileOp) apply(state *setupState, k syscallDispatcher) error {
 	); err != nil {
 		return err
 	} else if err = k.remove(tmpPath); err != nil {
-		return wrapErrSelf(err)
+		return err
 	}
 	return nil
 }

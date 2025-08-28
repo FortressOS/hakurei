@@ -194,7 +194,7 @@ func TestMountDevOp(t *testing.T) {
 			{"ensureFile", expectArgs{"/sysroot/dev/tty", os.FileMode(0444), os.FileMode(0750)}, nil, nil},
 			{"bindMount", expectArgs{"/host/dev/tty", "/sysroot/dev/tty", uintptr(0), true}, nil, nil},
 			{"symlink", expectArgs{"/proc/self/fd/0", "/sysroot/dev/stdin"}, nil, errUnique},
-		}, wrapErrSelf(errUnique)},
+		}, errUnique},
 
 		{"symlink stdout", &Params{ParentPerm: 0750, RetainSession: true}, &MountDevOp{
 			Target: MustAbs("/dev/"),
@@ -215,7 +215,7 @@ func TestMountDevOp(t *testing.T) {
 			{"bindMount", expectArgs{"/host/dev/tty", "/sysroot/dev/tty", uintptr(0), true}, nil, nil},
 			{"symlink", expectArgs{"/proc/self/fd/0", "/sysroot/dev/stdin"}, nil, nil},
 			{"symlink", expectArgs{"/proc/self/fd/1", "/sysroot/dev/stdout"}, nil, errUnique},
-		}, wrapErrSelf(errUnique)},
+		}, errUnique},
 
 		{"symlink stderr", &Params{ParentPerm: 0750, RetainSession: true}, &MountDevOp{
 			Target: MustAbs("/dev/"),
@@ -237,7 +237,7 @@ func TestMountDevOp(t *testing.T) {
 			{"symlink", expectArgs{"/proc/self/fd/0", "/sysroot/dev/stdin"}, nil, nil},
 			{"symlink", expectArgs{"/proc/self/fd/1", "/sysroot/dev/stdout"}, nil, nil},
 			{"symlink", expectArgs{"/proc/self/fd/2", "/sysroot/dev/stderr"}, nil, errUnique},
-		}, wrapErrSelf(errUnique)},
+		}, errUnique},
 
 		{"symlink fd", &Params{ParentPerm: 0750, RetainSession: true}, &MountDevOp{
 			Target: MustAbs("/dev/"),
@@ -260,7 +260,7 @@ func TestMountDevOp(t *testing.T) {
 			{"symlink", expectArgs{"/proc/self/fd/1", "/sysroot/dev/stdout"}, nil, nil},
 			{"symlink", expectArgs{"/proc/self/fd/2", "/sysroot/dev/stderr"}, nil, nil},
 			{"symlink", expectArgs{"/proc/self/fd", "/sysroot/dev/fd"}, nil, errUnique},
-		}, wrapErrSelf(errUnique)},
+		}, errUnique},
 
 		{"symlink kcore", &Params{ParentPerm: 0750, RetainSession: true}, &MountDevOp{
 			Target: MustAbs("/dev/"),
@@ -284,7 +284,7 @@ func TestMountDevOp(t *testing.T) {
 			{"symlink", expectArgs{"/proc/self/fd/2", "/sysroot/dev/stderr"}, nil, nil},
 			{"symlink", expectArgs{"/proc/self/fd", "/sysroot/dev/fd"}, nil, nil},
 			{"symlink", expectArgs{"/proc/kcore", "/sysroot/dev/core"}, nil, errUnique},
-		}, wrapErrSelf(errUnique)},
+		}, errUnique},
 
 		{"symlink ptmx", &Params{ParentPerm: 0750, RetainSession: true}, &MountDevOp{
 			Target: MustAbs("/dev/"),
@@ -309,7 +309,7 @@ func TestMountDevOp(t *testing.T) {
 			{"symlink", expectArgs{"/proc/self/fd", "/sysroot/dev/fd"}, nil, nil},
 			{"symlink", expectArgs{"/proc/kcore", "/sysroot/dev/core"}, nil, nil},
 			{"symlink", expectArgs{"pts/ptmx", "/sysroot/dev/ptmx"}, nil, errUnique},
-		}, wrapErrSelf(errUnique)},
+		}, errUnique},
 
 		{"mkdir shm", &Params{ParentPerm: 0750, RetainSession: true}, &MountDevOp{
 			Target: MustAbs("/dev/"),
@@ -335,7 +335,7 @@ func TestMountDevOp(t *testing.T) {
 			{"symlink", expectArgs{"/proc/kcore", "/sysroot/dev/core"}, nil, nil},
 			{"symlink", expectArgs{"pts/ptmx", "/sysroot/dev/ptmx"}, nil, nil},
 			{"mkdir", expectArgs{"/sysroot/dev/shm", os.FileMode(0750)}, nil, errUnique},
-		}, wrapErrSelf(errUnique)},
+		}, errUnique},
 
 		{"mkdir devpts", &Params{ParentPerm: 0750, RetainSession: true}, &MountDevOp{
 			Target: MustAbs("/dev/"),
@@ -362,7 +362,7 @@ func TestMountDevOp(t *testing.T) {
 			{"symlink", expectArgs{"pts/ptmx", "/sysroot/dev/ptmx"}, nil, nil},
 			{"mkdir", expectArgs{"/sysroot/dev/shm", os.FileMode(0750)}, nil, nil},
 			{"mkdir", expectArgs{"/sysroot/dev/pts", os.FileMode(0750)}, nil, errUnique},
-		}, wrapErrSelf(errUnique)},
+		}, errUnique},
 
 		{"mount devpts", &Params{ParentPerm: 0750, RetainSession: true}, &MountDevOp{
 			Target: MustAbs("/dev/"),
@@ -451,7 +451,7 @@ func TestMountDevOp(t *testing.T) {
 			{"isatty", expectArgs{1}, true, nil},
 			{"ensureFile", expectArgs{"/sysroot/dev/console", os.FileMode(0444), os.FileMode(0750)}, nil, nil},
 			{"readlink", expectArgs{"/host/proc/self/fd/1"}, "", errUnique},
-		}, wrapErrSelf(errUnique)},
+		}, errUnique},
 
 		{"bindMount stdout", &Params{ParentPerm: 0750, RetainSession: true}, &MountDevOp{
 			Target: MustAbs("/dev/"),
@@ -516,7 +516,7 @@ func TestMountDevOp(t *testing.T) {
 			{"readlink", expectArgs{"/host/proc/self/fd/1"}, "/dev/pts/2", nil},
 			{"bindMount", expectArgs{"/host/dev/pts/2", "/sysroot/dev/console", uintptr(0), false}, nil, nil},
 			{"mkdir", expectArgs{"/sysroot/dev/mqueue", os.FileMode(0750)}, nil, errUnique},
-		}, wrapErrSelf(errUnique)},
+		}, errUnique},
 
 		{"mount mqueue", &Params{ParentPerm: 0750, RetainSession: true}, &MountDevOp{
 			Target: MustAbs("/dev/"),
@@ -614,6 +614,38 @@ func TestMountDevOp(t *testing.T) {
 			{"mkdir", expectArgs{"/sysroot/dev/mqueue", os.FileMode(0750)}, nil, nil},
 			{"mount", expectArgs{"mqueue", "/sysroot/dev/mqueue", "mqueue", uintptr(0xe), ""}, nil, nil},
 		}, nil},
+
+		{"remount", &Params{ParentPerm: 0750, RetainSession: true}, &MountDevOp{
+			Target: MustAbs("/dev/"),
+		}, nil, nil, []kexpect{
+			{"mountTmpfs", expectArgs{"devtmpfs", "/sysroot/dev", uintptr(0x6), 0, os.FileMode(0750)}, nil, nil},
+			{"ensureFile", expectArgs{"/sysroot/dev/null", os.FileMode(0444), os.FileMode(0750)}, nil, nil},
+			{"bindMount", expectArgs{"/host/dev/null", "/sysroot/dev/null", uintptr(0), true}, nil, nil},
+			{"ensureFile", expectArgs{"/sysroot/dev/zero", os.FileMode(0444), os.FileMode(0750)}, nil, nil},
+			{"bindMount", expectArgs{"/host/dev/zero", "/sysroot/dev/zero", uintptr(0), true}, nil, nil},
+			{"ensureFile", expectArgs{"/sysroot/dev/full", os.FileMode(0444), os.FileMode(0750)}, nil, nil},
+			{"bindMount", expectArgs{"/host/dev/full", "/sysroot/dev/full", uintptr(0), true}, nil, nil},
+			{"ensureFile", expectArgs{"/sysroot/dev/random", os.FileMode(0444), os.FileMode(0750)}, nil, nil},
+			{"bindMount", expectArgs{"/host/dev/random", "/sysroot/dev/random", uintptr(0), true}, nil, nil},
+			{"ensureFile", expectArgs{"/sysroot/dev/urandom", os.FileMode(0444), os.FileMode(0750)}, nil, nil},
+			{"bindMount", expectArgs{"/host/dev/urandom", "/sysroot/dev/urandom", uintptr(0), true}, nil, nil},
+			{"ensureFile", expectArgs{"/sysroot/dev/tty", os.FileMode(0444), os.FileMode(0750)}, nil, nil},
+			{"bindMount", expectArgs{"/host/dev/tty", "/sysroot/dev/tty", uintptr(0), true}, nil, nil},
+			{"symlink", expectArgs{"/proc/self/fd/0", "/sysroot/dev/stdin"}, nil, nil},
+			{"symlink", expectArgs{"/proc/self/fd/1", "/sysroot/dev/stdout"}, nil, nil},
+			{"symlink", expectArgs{"/proc/self/fd/2", "/sysroot/dev/stderr"}, nil, nil},
+			{"symlink", expectArgs{"/proc/self/fd", "/sysroot/dev/fd"}, nil, nil},
+			{"symlink", expectArgs{"/proc/kcore", "/sysroot/dev/core"}, nil, nil},
+			{"symlink", expectArgs{"pts/ptmx", "/sysroot/dev/ptmx"}, nil, nil},
+			{"mkdir", expectArgs{"/sysroot/dev/shm", os.FileMode(0750)}, nil, nil},
+			{"mkdir", expectArgs{"/sysroot/dev/pts", os.FileMode(0750)}, nil, nil},
+			{"mount", expectArgs{"devpts", "/sysroot/dev/pts", "devpts", uintptr(0xa), "newinstance,ptmxmode=0666,mode=620"}, nil, nil},
+			{"isatty", expectArgs{1}, true, nil},
+			{"ensureFile", expectArgs{"/sysroot/dev/console", os.FileMode(0444), os.FileMode(0750)}, nil, nil},
+			{"readlink", expectArgs{"/host/proc/self/fd/1"}, "/dev/pts/2", nil},
+			{"bindMount", expectArgs{"/host/dev/pts/2", "/sysroot/dev/console", uintptr(0), false}, nil, nil},
+			{"remount", expectArgs{"/sysroot/dev", uintptr(1)}, nil, errUnique},
+		}, errUnique},
 
 		{"success no mqueue", &Params{ParentPerm: 0750, RetainSession: true}, &MountDevOp{
 			Target: MustAbs("/dev/"),

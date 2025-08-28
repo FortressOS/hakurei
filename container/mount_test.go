@@ -83,14 +83,14 @@ func TestRemount(t *testing.T) {
 			return newProcPaths(k, hostPath).remount("/sysroot/nix", syscall.MS_REC|syscall.MS_RDONLY|syscall.MS_NODEV)
 		}, [][]kexpect{{
 			{"evalSymlinks", expectArgs{"/sysroot/nix"}, "/sysroot/nix", errUnique},
-		}}, wrapErrSelf(errUnique)},
+		}}, errUnique},
 
 		{"open", func(k syscallDispatcher) error {
 			return newProcPaths(k, hostPath).remount("/sysroot/nix", syscall.MS_REC|syscall.MS_RDONLY|syscall.MS_NODEV)
 		}, [][]kexpect{{
 			{"evalSymlinks", expectArgs{"/sysroot/nix"}, "/sysroot/nix", nil},
 			{"open", expectArgs{"/sysroot/nix", 0x280000, uint32(0)}, 0xdeadbeef, errUnique},
-		}}, wrapErrSuffix(errUnique, `cannot open "/sysroot/nix":`)},
+		}}, errUnique},
 
 		{"readlink", func(k syscallDispatcher) error {
 			return newProcPaths(k, hostPath).remount("/sysroot/nix", syscall.MS_REC|syscall.MS_RDONLY|syscall.MS_NODEV)
@@ -98,7 +98,7 @@ func TestRemount(t *testing.T) {
 			{"evalSymlinks", expectArgs{"/sysroot/nix"}, "/sysroot/nix", nil},
 			{"open", expectArgs{"/sysroot/nix", 0x280000, uint32(0)}, 0xdeadbeef, nil},
 			{"readlink", expectArgs{"/host/proc/self/fd/3735928559"}, "/sysroot/nix", errUnique},
-		}}, wrapErrSelf(errUnique)},
+		}}, errUnique},
 
 		{"close", func(k syscallDispatcher) error {
 			return newProcPaths(k, hostPath).remount("/sysroot/nix", syscall.MS_REC|syscall.MS_RDONLY|syscall.MS_NODEV)
@@ -107,7 +107,7 @@ func TestRemount(t *testing.T) {
 			{"open", expectArgs{"/sysroot/nix", 0x280000, uint32(0)}, 0xdeadbeef, nil},
 			{"readlink", expectArgs{"/host/proc/self/fd/3735928559"}, "/sysroot/nix", nil},
 			{"close", expectArgs{0xdeadbeef}, nil, errUnique},
-		}}, wrapErrSuffix(errUnique, `cannot close "/sysroot/nix":`)},
+		}}, errUnique},
 
 		{"mountinfo stale", func(k syscallDispatcher) error {
 			return newProcPaths(k, hostPath).remount("/sysroot/nix", syscall.MS_REC|syscall.MS_RDONLY|syscall.MS_NODEV)
@@ -243,7 +243,7 @@ func TestMountTmpfs(t *testing.T) {
 			return mountTmpfs(k, "ephemeral", "/sysroot/run/user/1000", 0, 1<<10, 0700)
 		}, [][]kexpect{{
 			{"mkdirAll", expectArgs{"/sysroot/run/user/1000", os.FileMode(0700)}, nil, errUnique},
-		}}, wrapErrSelf(errUnique)},
+		}}, errUnique},
 
 		{"success no size", func(k syscallDispatcher) error {
 			return mountTmpfs(k, "ephemeral", "/sysroot/run/user/1000", 0, 0, 0710)

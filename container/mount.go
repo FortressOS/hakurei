@@ -118,7 +118,7 @@ func (p *procPaths) remount(target string, flags uintptr) error {
 
 	var targetFinal string
 	if v, err := p.k.evalSymlinks(target); err != nil {
-		return wrapErrSelf(err)
+		return err
 	} else {
 		targetFinal = v
 		if targetFinal != target {
@@ -134,14 +134,12 @@ func (p *procPaths) remount(target string, flags uintptr) error {
 			destFd, err = p.k.open(targetFinal, O_PATH|O_CLOEXEC, 0)
 			return
 		}); err != nil {
-			return wrapErrSuffix(err,
-				fmt.Sprintf("cannot open %q:", targetFinal))
+			return &os.PathError{Op: "open", Path: targetFinal, Err: err}
 		}
 		if v, err := p.k.readlink(p.fd(destFd)); err != nil {
-			return wrapErrSelf(err)
+			return err
 		} else if err = p.k.close(destFd); err != nil {
-			return wrapErrSuffix(err,
-				fmt.Sprintf("cannot close %q:", targetFinal))
+			return &os.PathError{Op: "close", Path: targetFinal, Err: err}
 		} else {
 			targetKFinal = v
 		}
@@ -202,7 +200,7 @@ func mountTmpfs(k syscallDispatcher, fsname, target string, flags uintptr, size 
 	// syscallDispatcher.mountTmpfs must not be called from this function
 
 	if err := k.mkdirAll(target, parentPerm(perm)); err != nil {
-		return wrapErrSelf(err)
+		return err
 	}
 	opt := fmt.Sprintf("mode=%#o", perm)
 	if size > 0 {

@@ -12,7 +12,7 @@ func TestSymlinkOp(t *testing.T) {
 			LinkName: "/etc/static/nixos",
 		}, nil, nil, []kexpect{
 			{"mkdirAll", expectArgs{"/sysroot/etc", os.FileMode(0700)}, nil, errUnique},
-		}, wrapErrSelf(errUnique)},
+		}, errUnique},
 
 		{"abs", &Params{ParentPerm: 0755}, &SymlinkOp{
 			Target:      MustAbs("/etc/mtab"),
@@ -26,7 +26,7 @@ func TestSymlinkOp(t *testing.T) {
 			Dereference: true,
 		}, []kexpect{
 			{"readlink", expectArgs{"/etc/mtab"}, "/proc/mounts", errUnique},
-		}, wrapErrSelf(errUnique), nil, nil},
+		}, errUnique, nil, nil},
 
 		{"success noderef", &Params{ParentPerm: 0700}, &SymlinkOp{
 			Target:   MustAbs("/etc/nixos"),
