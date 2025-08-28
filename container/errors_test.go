@@ -8,6 +8,52 @@ import (
 	"testing"
 )
 
+func TestMessageFromError(t *testing.T) {
+	testCases := []struct {
+		name   string
+		err    error
+		want   string
+		wantOk bool
+	}{
+		{"mount", &MountError{
+			Source: SourceTmpfsEphemeral,
+			Target: "/sysroot/tmp",
+			Fstype: FstypeTmpfs,
+			Flags:  syscall.MS_NOSUID | syscall.MS_NODEV,
+			Data:   zeroString,
+			Errno:  syscall.EINVAL,
+		}, "cannot mount tmpfs on /sysroot/tmp: invalid argument", true},
+
+		{"path", &os.PathError{
+			Op:   "mount",
+			Path: "/sysroot",
+			Err:  errUnique,
+		}, "cannot mount /sysroot: unique error injected by the test suite", true},
+
+		{"absolute", &AbsoluteError{"etc/mtab"},
+			`path "etc/mtab" is not absolute`, true},
+
+		{"repeat", OpRepeatError("autoetc"),
+			"autoetc is not repeatable", true},
+
+		{"state", OpStateError("overlay"),
+			"impossible overlay state reached", true},
+
+		{"unsupported", errUnique, zeroString, false},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got, ok := messageFromError(tc.err)
+			if got != tc.want {
+				t.Errorf("messageFromError: %q, want %q", got, tc.want)
+			}
+			if ok != tc.wantOk {
+				t.Errorf("messageFromError: ok = %v, want %v", ok, tc.wantOk)
+			}
+		})
+	}
+}
+
 func TestMountError(t *testing.T) {
 	testCases := []struct {
 		name  string

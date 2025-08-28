@@ -6,6 +6,49 @@ import (
 	"syscall"
 )
 
+// messageFromError returns a printable error message for a supported concrete type.
+func messageFromError(err error) (string, bool) {
+	if m, ok := messagePrefixP[MountError, *MountError]("cannot ", err); ok {
+		return m, ok
+	}
+	if m, ok := messagePrefixP[os.PathError, *os.PathError]("cannot ", err); ok {
+		return m, ok
+	}
+	if m, ok := messagePrefixP[AbsoluteError, *AbsoluteError]("", err); ok {
+		return m, ok
+	}
+	if m, ok := messagePrefix[OpRepeatError]("", err); ok {
+		return m, ok
+	}
+	if m, ok := messagePrefix[OpStateError]("", err); ok {
+		return m, ok
+	}
+
+	return zeroString, false
+}
+
+// messagePrefix checks and prefixes the error message of a non-pointer error.
+// While this is usable for pointer errors, such use should be avoided as nil check is omitted.
+func messagePrefix[T error](prefix string, err error) (string, bool) {
+	var targetError T
+	if errors.As(err, &targetError) {
+		return prefix + targetError.Error(), true
+	}
+	return zeroString, false
+}
+
+// messagePrefixP checks and prefixes the error message of a pointer error.
+func messagePrefixP[V any, T interface {
+	*V
+	error
+}](prefix string, err error) (string, bool) {
+	var targetError T
+	if errors.As(err, &targetError) && targetError != nil {
+		return prefix + targetError.Error(), true
+	}
+	return zeroString, false
+}
+
 type MountError struct {
 	Source, Target, Fstype string
 

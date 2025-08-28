@@ -184,10 +184,14 @@ func initEntrypoint(k syscallDispatcher, prepareLogger func(prefix string), setV
 		}
 
 		if err := op.early(state, k); err != nil {
-			k.printBaseErr(err,
-				fmt.Sprintf("cannot prepare op at index %d:", i))
-			k.beforeExit()
-			k.exit(1)
+			if m, ok := messageFromError(err); ok {
+				k.fatal(m)
+			} else {
+				k.printBaseErr(err,
+					fmt.Sprintf("cannot prepare op at index %d:", i))
+				k.beforeExit()
+				k.exit(1)
+			}
 		}
 	}
 
@@ -224,10 +228,14 @@ func initEntrypoint(k syscallDispatcher, prepareLogger func(prefix string), setV
 		// ops already checked during early setup
 		k.verbosef("%s %s", op.prefix(), op)
 		if err := op.apply(state, k); err != nil {
-			k.printBaseErr(err,
-				fmt.Sprintf("cannot apply op at index %d:", i))
-			k.beforeExit()
-			k.exit(1)
+			if m, ok := messageFromError(err); ok {
+				k.fatal(m)
+			} else {
+				k.printBaseErr(err,
+					fmt.Sprintf("cannot apply op at index %d:", i))
+				k.beforeExit()
+				k.exit(1)
+			}
 		}
 	}
 
