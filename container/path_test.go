@@ -1,7 +1,6 @@
 package container
 
 import (
-	"errors"
 	"io"
 	"math"
 	"os"
@@ -248,8 +247,8 @@ func TestProcPaths(t *testing.T) {
 					t.Fatalf("WriteFile: error = %v", err)
 				}
 
-				wantErr := wrapErrSuffix(&vfs.DecoderError{Op: "parse", Line: 0, Err: vfs.ErrMountInfoFields}, "cannot parse mountinfo:")
-				if err := newProcPaths(direct{}, tempDir).mountinfo(func(d *vfs.MountInfoDecoder) error { return d.Decode(new(*vfs.MountInfo)) }); !errors.Is(err, wantErr) {
+				wantErr := &vfs.DecoderError{Op: "parse", Line: 0, Err: vfs.ErrMountInfoFields}
+				if err := newProcPaths(direct{}, tempDir).mountinfo(func(d *vfs.MountInfoDecoder) error { return d.Decode(new(*vfs.MountInfo)) }); !reflect.DeepEqual(err, wantErr) {
 					t.Fatalf("mountinfo: error = %v, want %v", err, wantErr)
 				}
 			})

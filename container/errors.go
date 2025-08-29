@@ -4,17 +4,19 @@ import (
 	"errors"
 	"os"
 	"syscall"
+
+	"hakurei.app/container/vfs"
 )
 
 // messageFromError returns a printable error message for a supported concrete type.
 func messageFromError(err error) (string, bool) {
-	if m, ok := messagePrefixP[MountError, *MountError]("cannot ", err); ok {
+	if m, ok := messagePrefixP[MountError]("cannot ", err); ok {
 		return m, ok
 	}
-	if m, ok := messagePrefixP[os.PathError, *os.PathError]("cannot ", err); ok {
+	if m, ok := messagePrefixP[os.PathError]("cannot ", err); ok {
 		return m, ok
 	}
-	if m, ok := messagePrefixP[AbsoluteError, *AbsoluteError]("", err); ok {
+	if m, ok := messagePrefixP[AbsoluteError]("", err); ok {
 		return m, ok
 	}
 	if m, ok := messagePrefix[OpRepeatError]("", err); ok {
@@ -24,6 +26,9 @@ func messageFromError(err error) (string, bool) {
 		return m, ok
 	}
 
+	if m, ok := messagePrefixP[vfs.DecoderError]("cannot ", err); ok {
+		return m, ok
+	}
 	if m, ok := messagePrefix[TmpfsSizeError]("", err); ok {
 		return m, ok
 	}

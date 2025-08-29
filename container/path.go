@@ -152,8 +152,7 @@ func (p *procPaths) mountinfo(f func(d *vfs.MountInfoDecoder) error) error {
 		if err = r.Close(); err != nil {
 			return err
 		} else if err = d.Err(); err != nil {
-			return wrapErrSuffix(err,
-				"cannot parse mountinfo:")
+			return err
 		}
 		return err0
 	}

@@ -149,12 +149,7 @@ func (p *procPaths) remount(target string, flags uintptr) error {
 	return p.mountinfo(func(d *vfs.MountInfoDecoder) error {
 		n, err := d.Unfold(targetKFinal)
 		if err != nil {
-			if errors.As(err, new(vfs.UnfoldTargetError)) {
-				return msg.WrapErr(err,
-					fmt.Sprintf("mount point %q never appeared in mountinfo", targetKFinal))
-			}
-			return wrapErrSuffix(err,
-				"cannot unfold mount hierarchy:")
+			return err
 		}
 
 		if err = remountWithFlags(p.k, n, mf); err != nil {

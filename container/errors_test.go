@@ -4,8 +4,11 @@ import (
 	"errors"
 	"os"
 	"reflect"
+	"strconv"
 	"syscall"
 	"testing"
+
+	"hakurei.app/container/vfs"
 )
 
 func TestMessageFromError(t *testing.T) {
@@ -38,6 +41,9 @@ func TestMessageFromError(t *testing.T) {
 
 		{"state", OpStateError("overlay"),
 			"impossible overlay state reached", true},
+
+		{"vfs parse", &vfs.DecoderError{Op: "parse", Line: 0xdeadbeef, Err: &strconv.NumError{Func: "Atoi", Num: "meow", Err: strconv.ErrSyntax}},
+			`cannot parse mountinfo at line 3735928559: numeric field "meow" invalid syntax`, true},
 
 		{"tmpfs", TmpfsSizeError(-1),
 			"tmpfs size -1 out of bounds", true},
