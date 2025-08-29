@@ -4,8 +4,13 @@ import (
 	"iter"
 	"path"
 	"strings"
-	"syscall"
 )
+
+type UnfoldTargetError string
+
+func (e UnfoldTargetError) Error() string {
+	return "mount point " + string(e) + " never appeared in mountinfo"
+}
 
 // MountInfoNode positions a [MountInfoEntry] in its mount hierarchy.
 type MountInfoNode struct {
@@ -65,7 +70,8 @@ func (d *MountInfoDecoder) Unfold(target string) (*MountInfoNode, error) {
 	}
 
 	if targetIndex == -1 {
-		return nil, syscall.ESTALE
+		// target does not exist in parsed mountinfo
+		return nil, &DecoderError{Op: "unfold", Line: -1, Err: UnfoldTargetError(targetClean)}
 	}
 
 	for _, cur := range mountinfo {

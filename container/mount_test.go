@@ -109,7 +109,7 @@ func TestRemount(t *testing.T) {
 			{"close", expectArgs{0xdeadbeef}, nil, errUnique},
 		}}, errUnique},
 
-		{"mountinfo stale", func(k syscallDispatcher) error {
+		{"mountinfo no match", func(k syscallDispatcher) error {
 			return newProcPaths(k, hostPath).remount("/sysroot/nix", syscall.MS_REC|syscall.MS_RDONLY|syscall.MS_NODEV)
 		}, [][]kexpect{{
 			{"evalSymlinks", expectArgs{"/sysroot/nix"}, "/sysroot/.hakurei", nil},
@@ -118,7 +118,7 @@ func TestRemount(t *testing.T) {
 			{"readlink", expectArgs{"/host/proc/self/fd/3735928559"}, "/sysroot/.hakurei", nil},
 			{"close", expectArgs{0xdeadbeef}, nil, nil},
 			{"openNew", expectArgs{"/host/proc/self/mountinfo"}, newConstFile(sampleMountinfoNix), nil},
-		}}, msg.WrapErr(syscall.ESTALE, `mount point "/sysroot/.hakurei" never appeared in mountinfo`)},
+		}}, msg.WrapErr(&vfs.DecoderError{Op: "unfold", Line: -1, Err: vfs.UnfoldTargetError("/sysroot/.hakurei")}, `mount point "/sysroot/.hakurei" never appeared in mountinfo`)},
 
 		{"mountinfo", func(k syscallDispatcher) error {
 			return newProcPaths(k, hostPath).remount("/sysroot/nix", syscall.MS_REC|syscall.MS_RDONLY|syscall.MS_NODEV)
@@ -128,7 +128,7 @@ func TestRemount(t *testing.T) {
 			{"readlink", expectArgs{"/host/proc/self/fd/3735928559"}, "/sysroot/nix", nil},
 			{"close", expectArgs{0xdeadbeef}, nil, nil},
 			{"openNew", expectArgs{"/host/proc/self/mountinfo"}, newConstFile("\x00"), nil},
-		}}, wrapErrSuffix(vfs.ErrMountInfoFields, `cannot parse mountinfo:`)},
+		}}, wrapErrSuffix(&vfs.DecoderError{Op: "parse", Line: 0, Err: vfs.ErrMountInfoFields}, `cannot parse mountinfo:`)},
 
 		{"mount", func(k syscallDispatcher) error {
 			return newProcPaths(k, hostPath).remount("/sysroot/nix", syscall.MS_REC|syscall.MS_RDONLY|syscall.MS_NODEV)

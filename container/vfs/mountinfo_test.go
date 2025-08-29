@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"iter"
+	"os"
 	"path"
 	"reflect"
 	"slices"
@@ -15,62 +16,102 @@ import (
 	"hakurei.app/container/vfs"
 )
 
+func TestDecoderError(t *testing.T) {
+	testCases := []struct {
+		name    string
+		err     *vfs.DecoderError
+		want    string
+		target  error
+		targetF error
+	}{
+		{"errno", &vfs.DecoderError{Op: "parse", Line: 0xdeadbeef, Err: syscall.ENOTRECOVERABLE},
+			"parse mountinfo at line 3735928559: state not recoverable", syscall.ENOTRECOVERABLE, syscall.EROFS},
+
+		{"strconv", &vfs.DecoderError{Op: "parse", Line: 0xdeadbeef, Err: &strconv.NumError{Func: "Atoi", Num: "meow", Err: strconv.ErrSyntax}},
+			`parse mountinfo at line 3735928559: numeric field "meow" invalid syntax`, strconv.ErrSyntax, os.ErrInvalid},
+
+		{"unfold", &vfs.DecoderError{Op: "unfold", Line: -1, Err: vfs.UnfoldTargetError("/proc/nonexistent")},
+			"unfold mountinfo: mount point /proc/nonexistent never appeared in mountinfo", vfs.UnfoldTargetError("/proc/nonexistent"), os.ErrNotExist},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Run("error", func(t *testing.T) {
+				if got := tc.err.Error(); got != tc.want {
+					t.Errorf("Error: %s, want %s", got, tc.want)
+				}
+			})
+
+			t.Run("is", func(t *testing.T) {
+				if !errors.Is(tc.err, tc.target) {
+					t.Errorf("Is: unexpected false")
+				}
+				if errors.Is(tc.err, tc.targetF) {
+					t.Errorf("Is: unexpected true")
+				}
+			})
+		})
+	}
+}
+
 func TestMountInfo(t *testing.T) {
 	testCases := []mountInfoTest{
 		{"count", sampleMountinfoBase + `
 21 20 0:53/ /mnt/test rw,relatime - tmpfs  rw
 21 16 0:17 / /sys/fs/cgroup rw,nosuid,nodev,noexec,relatime - tmpfs tmpfs rw,mode=755`,
-			vfs.ErrMountInfoFields, "", nil, nil, nil},
+			&vfs.DecoderError{Op: "parse", Line: 6, Err: vfs.ErrMountInfoFields},
+			"", nil, nil, nil},
 
 		{"sep", sampleMountinfoBase + `
 21 20 0:53 / /mnt/test rw,relatime shared:212 _ tmpfs  rw
 21 16 0:17 / /sys/fs/cgroup rw,nosuid,nodev,noexec,relatime - tmpfs tmpfs rw,mode=755`,
-			vfs.ErrMountInfoSep, "", nil, nil, nil},
+			&vfs.DecoderError{Op: "parse", Line: 6, Err: vfs.ErrMountInfoSep},
+			"", nil, nil, nil},
 
 		{"id", sampleMountinfoBase + `
 id 20 0:53 / /mnt/test rw,relatime shared:212 - tmpfs  rw
 21 16 0:17 / /sys/fs/cgroup rw,nosuid,nodev,noexec,relatime - tmpfs tmpfs rw,mode=755`,
-			strconv.ErrSyntax, "", nil, nil, nil},
+			&vfs.DecoderError{Op: "parse", Line: 6, Err: &strconv.NumError{Func: "Atoi", Num: "id", Err: strconv.ErrSyntax}},
+			"", nil, nil, nil},
 
 		{"parent", sampleMountinfoBase + `
 21 parent 0:53 / /mnt/test rw,relatime shared:212 - tmpfs  rw
 21 16 0:17 / /sys/fs/cgroup rw,nosuid,nodev,noexec,relatime - tmpfs tmpfs rw,mode=755`,
-			strconv.ErrSyntax, "", nil, nil, nil},
+			&vfs.DecoderError{Op: "parse", Line: 6, Err: &strconv.NumError{Func: "Atoi", Num: "parent", Err: strconv.ErrSyntax}}, "", nil, nil, nil},
 
 		{"devno", sampleMountinfoBase + `
 21 20 053 / /mnt/test rw,relatime shared:212 - tmpfs  rw
 21 16 0:17 / /sys/fs/cgroup rw,nosuid,nodev,noexec,relatime - tmpfs tmpfs rw,mode=755`,
-			nil, "unexpected EOF", nil, nil, nil},
+			nil, "parse mountinfo at line 6: unexpected EOF", nil, nil, nil},
 
 		{"maj", sampleMountinfoBase + `
 21 20 maj:53 / /mnt/test rw,relatime shared:212 - tmpfs  rw
 21 16 0:17 / /sys/fs/cgroup rw,nosuid,nodev,noexec,relatime - tmpfs tmpfs rw,mode=755`,
-			nil, "expected integer", nil, nil, nil},
+			nil, "parse mountinfo at line 6: expected integer", nil, nil, nil},
 
 		{"min", sampleMountinfoBase + `
 21 20 0:min / /mnt/test rw,relatime shared:212 - tmpfs  rw
 21 16 0:17 / /sys/fs/cgroup rw,nosuid,nodev,noexec,relatime - tmpfs tmpfs rw,mode=755`,
-			nil, "expected integer", nil, nil, nil},
+			nil, "parse mountinfo at line 6: expected integer", nil, nil, nil},
 
 		{"mountroot", sampleMountinfoBase + `
 21 20 0:53  /mnt/test rw,relatime - tmpfs  rw
 21 16 0:17 / /sys/fs/cgroup rw,nosuid,nodev,noexec,relatime - tmpfs tmpfs rw,mode=755`,
-			vfs.ErrMountInfoEmpty, "", nil, nil, nil},
+			&vfs.DecoderError{Op: "parse", Line: 6, Err: vfs.ErrMountInfoEmpty}, "", nil, nil, nil},
 
 		{"target", sampleMountinfoBase + `
 21 20 0:53 /  rw,relatime - tmpfs  rw
 21 16 0:17 / /sys/fs/cgroup rw,nosuid,nodev,noexec,relatime - tmpfs tmpfs rw,mode=755`,
-			vfs.ErrMountInfoEmpty, "", nil, nil, nil},
+			&vfs.DecoderError{Op: "parse", Line: 6, Err: vfs.ErrMountInfoEmpty}, "", nil, nil, nil},
 
 		{"vfs options", sampleMountinfoBase + `
 21 20 0:53 / /mnt/test  - tmpfs  rw
 21 16 0:17 / /sys/fs/cgroup rw,nosuid,nodev,noexec,relatime - tmpfs tmpfs rw,mode=755`,
-			vfs.ErrMountInfoEmpty, "", nil, nil, nil},
+			&vfs.DecoderError{Op: "parse", Line: 6, Err: vfs.ErrMountInfoEmpty}, "", nil, nil, nil},
 
 		{"FS type", sampleMountinfoBase + `
-21 20 0:53 / /mnt/test rw,relatime -   rw
-21 16 0:17 / /sys/fs/cgroup rw,nosuid,nodev,noexec,relatime - tmpfs tmpfs rw,mode=755`,
-			vfs.ErrMountInfoEmpty, "", nil, nil, nil},
+21 16 0:17 / /sys/fs/cgroup rw,nosuid,nodev,noexec,relatime - tmpfs tmpfs rw,mode=755
+21 20 0:53 / /mnt/test rw,relatime -   rw`,
+			&vfs.DecoderError{Op: "parse", Line: 7, Err: vfs.ErrMountInfoEmpty}, "", nil, nil, nil},
 
 		{"base", sampleMountinfoBase, nil, "", []*wantMountInfo{
 			m(15, 20, 0, 3, "/", "/proc", "rw,relatime", o(), "proc", "/proc", "rw", syscall.MS_RELATIME, nil),
@@ -266,9 +307,9 @@ func (tc *mountInfoTest) check(t *testing.T, d *vfs.MountInfoDecoder, funcName s
 		})
 	} else if tc.wantNode != nil || tc.wantCollectF != nil {
 		panic("invalid test case")
-	} else if _, err := d.Unfold("/"); !errors.Is(err, tc.wantErr) {
+	} else if _, err := d.Unfold("/"); !reflect.DeepEqual(err, tc.wantErr) {
 		if tc.wantError == "" {
-			t.Errorf("Unfold: error = %v, wantErr %v",
+			t.Errorf("Unfold: error = %#v, wantErr %#v",
 				err, tc.wantErr)
 		} else if err != nil && err.Error() != tc.wantError {
 			t.Errorf("Unfold: error = %q, wantError %q",
@@ -276,9 +317,9 @@ func (tc *mountInfoTest) check(t *testing.T, d *vfs.MountInfoDecoder, funcName s
 		}
 	}
 
-	if err := gotErr(); !errors.Is(err, tc.wantErr) {
+	if err := gotErr(); !reflect.DeepEqual(err, tc.wantErr) {
 		if tc.wantError == "" {
-			t.Errorf("%s: error = %v, wantErr %v",
+			t.Errorf("%s: error = %#v, wantErr %#v",
 				funcName, err, tc.wantErr)
 		} else if err != nil && err.Error() != tc.wantError {
 			t.Errorf("%s: error = %q, wantError %q",

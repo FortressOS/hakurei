@@ -1,11 +1,9 @@
 package vfs_test
 
 import (
-	"errors"
 	"reflect"
 	"slices"
 	"strings"
-	"syscall"
 	"testing"
 
 	"hakurei.app/container/vfs"
@@ -26,7 +24,7 @@ func TestUnfold(t *testing.T) {
 			"no match",
 			sampleMountinfoBase,
 			"/mnt",
-			syscall.ESTALE, nil, nil, nil,
+			&vfs.DecoderError{Op: "unfold", Line: -1, Err: vfs.UnfoldTargetError("/mnt")}, nil, nil, nil,
 		},
 		{
 			"cover",
@@ -55,7 +53,7 @@ func TestUnfold(t *testing.T) {
 			d := vfs.NewMountInfoDecoder(strings.NewReader(tc.sample))
 			got, err := d.Unfold(tc.target)
 
-			if !errors.Is(err, tc.wantErr) {
+			if !reflect.DeepEqual(err, tc.wantErr) {
 				t.Errorf("Unfold: error = %v, wantErr %v",
 					err, tc.wantErr)
 			}

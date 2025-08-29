@@ -24,6 +24,32 @@ var (
 	ErrMountInfoSep    = errors.New("bad optional fields separator")
 )
 
+type DecoderError struct {
+	Op   string
+	Line int
+	Err  error
+}
+
+func (e *DecoderError) Unwrap() error { return e.Err }
+func (e *DecoderError) Error() string {
+	var s string
+
+	var numError *strconv.NumError
+	switch {
+	case errors.As(e.Err, &numError) && numError != nil:
+		s = "numeric field " + strconv.Quote(numError.Num) + " " + numError.Err.Error()
+
+	default:
+		s = e.Err.Error()
+	}
+
+	var atLine string
+	if e.Line >= 0 {
+		atLine = " at line " + strconv.Itoa(e.Line)
+	}
+	return e.Op + " mountinfo" + atLine + ": " + s
+}
+
 type (
 	// A MountInfoDecoder reads and decodes proc_pid_mountinfo(5) entries from an input stream.
 	MountInfoDecoder struct {
@@ -32,6 +58,7 @@ type (
 
 		current  *MountInfo
 		parseErr error
+		curLine  int
 		complete bool
 	}
 
@@ -132,9 +159,12 @@ func (d *MountInfoDecoder) Entries() iter.Seq[*MountInfoEntry] {
 
 func (d *MountInfoDecoder) Err() error {
 	if err := d.s.Err(); err != nil {
-		return err
+		return &DecoderError{"scan", d.curLine, err}
 	}
-	return d.parseErr
+	if d.parseErr != nil {
+		return &DecoderError{"parse", d.curLine, d.parseErr}
+	}
+	return nil
 }
 
 func (d *MountInfoDecoder) scan() bool {
@@ -160,6 +190,7 @@ func (d *MountInfoDecoder) scan() bool {
 		d.current.Next = m
 		d.current = d.current.Next
 	}
+	d.curLine++
 	return true
 }
 
