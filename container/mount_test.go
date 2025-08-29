@@ -90,7 +90,7 @@ func TestRemount(t *testing.T) {
 		}, [][]kexpect{{
 			{"evalSymlinks", expectArgs{"/sysroot/nix"}, "/sysroot/nix", nil},
 			{"open", expectArgs{"/sysroot/nix", 0x280000, uint32(0)}, 0xdeadbeef, errUnique},
-		}}, errUnique},
+		}}, &os.PathError{Op: "open", Path: "/sysroot/nix", Err: errUnique}},
 
 		{"readlink", func(k syscallDispatcher) error {
 			return newProcPaths(k, hostPath).remount("/sysroot/nix", syscall.MS_REC|syscall.MS_RDONLY|syscall.MS_NODEV)
@@ -107,7 +107,7 @@ func TestRemount(t *testing.T) {
 			{"open", expectArgs{"/sysroot/nix", 0x280000, uint32(0)}, 0xdeadbeef, nil},
 			{"readlink", expectArgs{"/host/proc/self/fd/3735928559"}, "/sysroot/nix", nil},
 			{"close", expectArgs{0xdeadbeef}, nil, errUnique},
-		}}, errUnique},
+		}}, &os.PathError{Op: "close", Path: "/sysroot/nix", Err: errUnique}},
 
 		{"mountinfo no match", func(k syscallDispatcher) error {
 			return newProcPaths(k, hostPath).remount("/sysroot/nix", syscall.MS_REC|syscall.MS_RDONLY|syscall.MS_NODEV)

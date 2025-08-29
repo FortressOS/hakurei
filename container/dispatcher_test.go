@@ -115,7 +115,7 @@ func checkSimple(t *testing.T, fname string, testCases []simpleTestCase) {
 		t.Run(tc.name, func(t *testing.T) {
 			defer handleExitStub()
 			k := &kstub{t: t, want: tc.want, wg: new(sync.WaitGroup)}
-			if err := tc.f(k); !errors.Is(err, tc.wantErr) {
+			if err := tc.f(k); !reflect.DeepEqual(err, tc.wantErr) {
 				t.Errorf("%s: error = %v, want %v", fname, err, tc.wantErr)
 			}
 			k.handleIncomplete(func(k *kstub) {
