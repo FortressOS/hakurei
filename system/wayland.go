@@ -31,35 +31,31 @@ func (w *Wayland) Type() Enablement { return Process }
 
 func (w *Wayland) apply(sys *I) error {
 	if w.sync == nil {
-		// this is a misuse of the API; do not return an error message
+		// this is a misuse of the API; do not return a wrapped error
 		return errors.New("invalid sync")
 	}
 
 	// the Wayland op is not repeatable
 	if *w.sync != nil {
-		// this is a misuse of the API; do not return an error message
+		// this is a misuse of the API; do not return a wrapped error
 		return errors.New("attempted to attach multiple wayland sockets")
 	}
 
 	if err := w.conn.Attach(w.src); err != nil {
-		// make console output less nasty
-		if errors.Is(err, os.ErrNotExist) {
-			err = os.ErrNotExist
-		}
-		return wrapErrSuffix(err,
-			fmt.Sprintf("cannot attach to wayland on %q:", w.src))
+		return newOpError("wayland", err, false)
 	} else {
 		msg.Verbosef("wayland attached on %q", w.src)
 	}
 
 	if sp, err := w.conn.Bind(w.dst, w.appID, w.instanceID); err != nil {
-		return wrapErrSuffix(err,
-			fmt.Sprintf("cannot bind to socket on %q:", w.dst))
+		return newOpError("wayland", err, false)
 	} else {
 		*w.sync = sp
 		msg.Verbosef("wayland listening on %q", w.dst)
-		return wrapErrSuffix(errors.Join(os.Chmod(w.dst, 0), acl.Update(w.dst, sys.uid, acl.Read, acl.Write, acl.Execute)),
-			fmt.Sprintf("cannot chmod socket on %q:", w.dst))
+		if err = os.Chmod(w.dst, 0); err != nil {
+			return newOpError("wayland", err, false)
+		}
+		return newOpError("wayland", acl.Update(w.dst, sys.uid, acl.Read, acl.Write, acl.Execute), false)
 	}
 }
 
@@ -67,12 +63,11 @@ func (w *Wayland) revert(_ *I, ec *Criteria) error {
 	if ec.hasType(w) {
 		msg.Verbosef("removing wayland socket on %q", w.dst)
 		if err := os.Remove(w.dst); err != nil && !errors.Is(err, os.ErrNotExist) {
-			return err
+			return newOpError("wayland", err, true)
 		}
 
 		msg.Verbosef("detaching from wayland on %q", w.src)
-		return wrapErrSuffix(w.conn.Close(),
-			fmt.Sprintf("cannot detach from wayland on %q:", w.src))
+		return newOpError("wayland", w.conn.Close(), true)
 	} else {
 		msg.Verbosef("skipping wayland cleanup on %q", w.dst)
 		return nil

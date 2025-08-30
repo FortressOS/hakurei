@@ -40,26 +40,20 @@ func (t *Tmpfile) apply(*I) error {
 	}
 
 	if b, err := os.Stat(t.src); err != nil {
-		return wrapErrSuffix(err,
-			fmt.Sprintf("cannot stat %q:", t.src))
+		return newOpError("tmpfile", err, false)
 	} else {
 		if b.IsDir() {
-			return wrapErrSuffix(syscall.EISDIR,
-				fmt.Sprintf("%q is a directory", t.src))
+			return newOpError("tmpfile", &os.PathError{Op: "stat", Path: t.src, Err: syscall.EISDIR}, false)
 		}
 		if s := b.Size(); s > t.n {
-			return wrapErrSuffix(syscall.ENOMEM,
-				fmt.Sprintf("file %q is too long: %d > %d",
-					t.src, s, t.n))
+			return newOpError("tmpfile", &os.PathError{Op: "stat", Path: t.src, Err: syscall.ENOMEM}, false)
 		}
 	}
 
 	if f, err := os.Open(t.src); err != nil {
-		return wrapErrSuffix(err,
-			fmt.Sprintf("cannot open %q:", t.src))
+		return newOpError("tmpfile", err, false)
 	} else if _, err = io.CopyN(t.buf, f, t.n); err != nil {
-		return wrapErrSuffix(err,
-			fmt.Sprintf("cannot read from %q:", t.src))
+		return newOpError("tmpfile", err, false)
 	}
 
 	*t.payload = t.buf.Bytes()

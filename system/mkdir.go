@@ -41,15 +41,15 @@ func (m *Mkdir) apply(*I) error {
 	msg.Verbose("ensuring directory", m)
 
 	// create directory
-	err := os.Mkdir(m.path, m.perm)
-	if !errors.Is(err, os.ErrExist) {
-		return wrapErrSuffix(err,
-			fmt.Sprintf("cannot create directory %q:", m.path))
+	if err := os.Mkdir(m.path, m.perm); err != nil {
+		if !errors.Is(err, os.ErrExist) {
+			return newOpError("mkdir", err, false)
+		}
+		// directory exists, ensure mode
+		return newOpError("mkdir", os.Chmod(m.path, m.perm), false)
+	} else {
+		return nil
 	}
-
-	// directory exists, ensure mode
-	return wrapErrSuffix(os.Chmod(m.path, m.perm),
-		fmt.Sprintf("cannot change mode of %q to %s:", m.path, m.perm))
 }
 
 func (m *Mkdir) revert(_ *I, ec *Criteria) error {
@@ -60,8 +60,7 @@ func (m *Mkdir) revert(_ *I, ec *Criteria) error {
 
 	if ec.hasType(m) {
 		msg.Verbose("destroying ephemeral directory", m)
-		return wrapErrSuffix(os.Remove(m.path),
-			fmt.Sprintf("cannot remove ephemeral directory %q:", m.path))
+		return newOpError("mkdir", os.Remove(m.path), true)
 	} else {
 		msg.Verbose("skipping ephemeral directory", m)
 		return nil

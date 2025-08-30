@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"log"
 	"strings"
 	"sync"
@@ -29,8 +30,8 @@ func (sys *I) ProxyDBus(session, system *dbus.Config, sessionPath, systemPath st
 
 	// session bus is required as otherwise this is effectively a very expensive noop
 	if session == nil {
-		return nil, msg.WrapErr(ErrDBusConfig,
-			"attempted to create message bus proxy args without session bus config")
+		return nil, newOpErrorMessage("dbus", ErrDBusConfig,
+			"attempted to create message bus proxy args without session bus config", false)
 	}
 
 	// system bus is optional
@@ -41,9 +42,11 @@ func (sys *I) ProxyDBus(session, system *dbus.Config, sessionPath, systemPath st
 	d.out = &scanToFmsg{msg: new(strings.Builder)}
 	if final, err := dbus.Finalise(d.sessionBus, d.systemBus, session, system); err != nil {
 		if errors.Is(err, syscall.EINVAL) {
-			return nil, msg.WrapErr(err, "message bus proxy configuration contains NUL byte")
+			return nil, newOpErrorMessage("dbus", err,
+				"message bus proxy configuration contains NUL byte", false)
 		}
-		return nil, wrapErrSuffix(err, "cannot finalise message bus proxy:")
+		return nil, newOpErrorMessage("dbus", err,
+			fmt.Sprintf("cannot finalise message bus proxy: %v", err), false)
 	} else {
 		if msg.IsVerbose() {
 			msg.Verbose("session bus proxy:", session.Args(d.sessionBus))
@@ -84,8 +87,8 @@ func (d *DBus) apply(sys *I) error {
 	d.proxy = dbus.New(sys.ctx, d.final, d.out)
 	if err := d.proxy.Start(); err != nil {
 		d.out.Dump()
-		return wrapErrSuffix(err,
-			"cannot start message bus proxy:")
+		return newOpErrorMessage("dbus", err,
+			fmt.Sprintf("cannot start message bus proxy: %v", err), false)
 	}
 	msg.Verbose("starting message bus proxy", d.proxy)
 	return nil
@@ -101,7 +104,8 @@ func (d *DBus) revert(*I, *Criteria) error {
 		msg.Verbose("message bus proxy canceled upstream")
 		err = nil
 	}
-	return wrapErrSuffix(err, "message bus proxy error:")
+	return newOpErrorMessage("dbus", err,
+		fmt.Sprintf("message bus proxy error: %v", err), true)
 }
 
 func (d *DBus) Is(o Op) bool {
@@ -111,13 +115,8 @@ func (d *DBus) Is(o Op) bool {
 			(d.proxy != nil && d0.proxy != nil && d.proxy.String() == d0.proxy.String()))
 }
 
-func (d *DBus) Path() string {
-	return "(dbus proxy)"
-}
-
-func (d *DBus) String() string {
-	return d.proxy.String()
-}
+func (d *DBus) Path() string   { return "(dbus proxy)" }
+func (d *DBus) String() string { return d.proxy.String() }
 
 type scanToFmsg struct {
 	msg    *strings.Builder
@@ -154,8 +153,8 @@ func (s *scanToFmsg) write(p []byte, a int) (int, error) {
 
 func (s *scanToFmsg) Dump() {
 	s.mu.RLock()
-	for _, msg := range s.msgbuf {
-		log.Println("(dbus) " + msg)
+	for _, m := range s.msgbuf {
+		log.Println("(dbus) " + m)
 	}
 	s.mu.RUnlock()
 }

@@ -123,7 +123,7 @@ func (sys *I) Commit(ctx context.Context) error {
 			// rollback partial commit
 			msg.Verbosef("commit faulted after %d ops, rolling back partial commit", len(sp.ops))
 			if err := sp.Revert(nil); err != nil {
-				log.Println("errors returned reverting partial commit:", err)
+				printJoinedError(log.Println, "cannot revert partial commit:", err)
 			}
 		}
 	}()

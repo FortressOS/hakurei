@@ -36,8 +36,7 @@ func (a *ACL) Type() Enablement { return a.et }
 
 func (a *ACL) apply(sys *I) error {
 	msg.Verbose("applying ACL", a)
-	return wrapErrSuffix(acl.Update(a.path, sys.uid, a.perms...),
-		fmt.Sprintf("cannot apply ACL entry to %q:", a.path))
+	return newOpError("acl", acl.Update(a.path, sys.uid, a.perms...), false)
 }
 
 func (a *ACL) revert(sys *I, ec *Criteria) error {
@@ -49,8 +48,7 @@ func (a *ACL) revert(sys *I, ec *Criteria) error {
 			msg.Verbosef("target of ACL %s no longer exists", a)
 			err = nil
 		}
-		return wrapErrSuffix(err,
-			fmt.Sprintf("cannot strip ACL entry from %q:", a.path))
+		return newOpError("acl", err, true)
 	} else {
 		msg.Verbose("skipping ACL", a)
 		return nil

@@ -27,15 +27,13 @@ func (l *Hardlink) Type() Enablement { return l.et }
 
 func (l *Hardlink) apply(*I) error {
 	msg.Verbose("linking", l)
-	return wrapErrSuffix(os.Link(l.src, l.dst),
-		fmt.Sprintf("cannot link %q:", l.dst))
+	return newOpError("hardlink", os.Link(l.src, l.dst), false)
 }
 
 func (l *Hardlink) revert(_ *I, ec *Criteria) error {
 	if ec.hasType(l) {
 		msg.Verbosef("removing hard link %q", l.dst)
-		return wrapErrSuffix(os.Remove(l.dst),
-			fmt.Sprintf("cannot remove hard link %q:", l.dst))
+		return newOpError("hardlink", os.Remove(l.dst), true)
 	} else {
 		msg.Verbosef("skipping hard link %q", l.dst)
 		return nil
