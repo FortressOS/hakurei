@@ -29,8 +29,5 @@ func Update(name string, uid int, perms ...Perm) error {
 		(*C.acl_perm_t)(p),
 		C.size_t(len(perms)),
 	)
-	if r == 0 {
-		return nil
-	}
-	return err
+	return newAclPathError(name, int(r), err)
 }
