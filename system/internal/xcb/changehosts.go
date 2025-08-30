@@ -1,21 +1,16 @@
-// Package xcb implements X11 ChangeHosts via libxcb.
 package xcb
 
-import (
-	"errors"
-)
+import "errors"
 
 var ErrChangeHosts = errors.New("xcb_change_hosts() failed")
 
 func ChangeHosts(mode HostMode, family Family, address string) error {
-	var conn *connection
-
-	if c, err := connect(); err != nil {
-		c.disconnect()
+	conn := new(connection)
+	if err := conn.connect(); err != nil {
+		conn.disconnect()
 		return err
 	} else {
-		defer c.disconnect()
-		conn = c
+		defer conn.disconnect()
 	}
 
 	return conn.changeHostsChecked(mode, family, address)
