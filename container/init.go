@@ -116,7 +116,7 @@ func initEntrypoint(k syscallDispatcher, prepareLogger func(prefix string), setV
 		if errors.Is(err, EBADF) {
 			k.fatal("invalid setup descriptor")
 		}
-		if errors.Is(err, ErrNotSet) {
+		if errors.Is(err, ErrReceiveEnv) {
 			k.fatal("HAKUREI_SETUP not set")
 		}
 
@@ -187,10 +187,7 @@ func initEntrypoint(k syscallDispatcher, prepareLogger func(prefix string), setV
 			if m, ok := messageFromError(err); ok {
 				k.fatal(m)
 			} else {
-				k.printBaseErr(err,
-					fmt.Sprintf("cannot prepare op at index %d:", i))
-				k.beforeExit()
-				k.exit(1)
+				k.fatalf("cannot prepare op at index %d: %v", i, err)
 			}
 		}
 	}
@@ -231,10 +228,7 @@ func initEntrypoint(k syscallDispatcher, prepareLogger func(prefix string), setV
 			if m, ok := messageFromError(err); ok {
 				k.fatal(m)
 			} else {
-				k.printBaseErr(err,
-					fmt.Sprintf("cannot apply op at index %d:", i))
-				k.beforeExit()
-				k.exit(1)
+				k.fatalf("cannot apply op at index %d: %v", i, err)
 			}
 		}
 	}

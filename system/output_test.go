@@ -26,11 +26,11 @@ func TestOpError(t *testing.T) {
 			ErrDBusConfig, syscall.ENOTRECOVERABLE},
 
 		{"apply", newOpError("tmpfile", syscall.EBADE, false),
-			"cannot apply tmpfile: invalid exchange",
+			"apply tmpfile: invalid exchange",
 			syscall.EBADE, syscall.EBADF},
 
 		{"revert", newOpError("wayland", syscall.EBADF, true),
-			"cannot revert wayland: bad file descriptor",
+			"revert wayland: bad file descriptor",
 			syscall.EBADF, syscall.EBADE},
 
 		{"path", newOpError("tmpfile", &os.PathError{Op: "stat", Path: "/run/dbus", Err: syscall.EISDIR}, false),

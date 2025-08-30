@@ -99,6 +99,39 @@ type (
 	}
 )
 
+// A StartError contains additional information on a container startup failure.
+type StartError struct {
+	// Fatal suggests whether this error should be considered fatal for the entire program.
+	Fatal bool
+	// Step refers to the part of the setup this error is returned from.
+	Step string
+	// Err is the underlying error.
+	Err error
+	// Origin is whether this error originated from the [Container.Start] method.
+	Origin bool
+	// Passthrough is whether the Error method is passed through to Err.
+	Passthrough bool
+}
+
+func (e *StartError) Unwrap() error { return e.Err }
+func (e *StartError) Error() string {
+	if e.Passthrough {
+		return e.Err.Error()
+	}
+	if e.Origin {
+		return e.Step
+	}
+
+	{
+		var syscallError *os.SyscallError
+		if errors.As(e.Err, &syscallError) && syscallError != nil {
+			return e.Step + " " + syscallError.Error()
+		}
+	}
+
+	return e.Step + ": " + e.Err.Error()
+}
+
 // Start starts the container init. The init process blocks until Serve is called.
 func (p *Container) Start() error {
 	if p.cmd != nil {
@@ -167,8 +200,7 @@ func (p *Container) Start() error {
 
 	// place setup pipe before user supplied extra files, this is later restored by init
 	if fd, e, err := Setup(&p.cmd.ExtraFiles); err != nil {
-		return wrapErrSuffix(err,
-			"cannot create shim setup pipe:")
+		return &StartError{true, "set up params stream", err, false, false}
 	} else {
 		p.setup = e
 		p.cmd.Env = []string{setupEnv + "=" + strconv.Itoa(fd)}
@@ -183,8 +215,7 @@ func (p *Container) Start() error {
 		done <- func() error { // setup depending on per-thread state must happen here
 			// PR_SET_NO_NEW_PRIVS: depends on per-thread state but acts on all processes created from that thread
 			if err := SetNoNewPrivs(); err != nil {
-				return wrapErrSuffix(err,
-					"prctl(PR_SET_NO_NEW_PRIVS):")
+				return &StartError{true, "prctl(PR_SET_NO_NEW_PRIVS)", err, false, false}
 			}
 
 			// landlock: depends on per-thread state but acts on a process group
@@ -200,28 +231,24 @@ func (p *Container) Start() error {
 						// already covered by namespaces (pid)
 						goto landlockOut
 					}
-					return wrapErrSuffix(err,
-						"landlock does not appear to be enabled:")
+					return &StartError{false, "get landlock ABI", err, false, false}
 				} else if abi < 6 {
 					if p.HostAbstract {
 						// see above comment
 						goto landlockOut
 					}
-					return msg.WrapErr(ENOSYS,
-						"kernel version too old for LANDLOCK_SCOPE_ABSTRACT_UNIX_SOCKET")
+					return &StartError{false, "kernel version too old for LANDLOCK_SCOPE_ABSTRACT_UNIX_SOCKET", ENOSYS, true, false}
 				} else {
 					msg.Verbosef("landlock abi version %d", abi)
 				}
 
 				if rulesetFd, err := rulesetAttr.Create(0); err != nil {
-					return wrapErrSuffix(err,
-						"cannot create landlock ruleset:")
+					return &StartError{true, "create landlock ruleset", err, false, false}
 				} else {
 					msg.Verbosef("enforcing landlock ruleset %s", rulesetAttr)
 					if err = LandlockRestrictSelf(rulesetFd, 0); err != nil {
 						_ = Close(rulesetFd)
-						return wrapErrSuffix(err,
-							"cannot enforce landlock ruleset:")
+						return &StartError{true, "enforce landlock ruleset", err, false, false}
 					}
 					if err = Close(rulesetFd); err != nil {
 						msg.Verbosef("cannot close landlock ruleset: %v", err)
@@ -234,7 +261,7 @@ func (p *Container) Start() error {
 
 			msg.Verbose("starting container init")
 			if err := p.cmd.Start(); err != nil {
-				return msg.WrapErr(err, err.Error())
+				return &StartError{false, "start container init", err, false, true}
 			}
 			return nil
 		}()
@@ -257,7 +284,7 @@ func (p *Container) Serve() error {
 
 	if p.Path == nil {
 		p.cancel()
-		return msg.WrapErr(EINVAL, "invalid executable pathname")
+		return &StartError{false, "invalid executable pathname", EINVAL, true, false}
 	}
 
 	// do not transmit nil

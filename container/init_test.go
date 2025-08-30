@@ -51,7 +51,7 @@ func TestInitEntrypoint(t *testing.T) {
 				{"lockOSThread", expectArgs{}, nil, nil},
 				{"getpid", expectArgs{}, 1, nil},
 				{"setPtracer", expectArgs{uintptr(0)}, nil, nil},
-				{"receive", expectArgs{"HAKUREI_SETUP", new(initParams), new(uintptr)}, nil, ErrNotSet},
+				{"receive", expectArgs{"HAKUREI_SETUP", new(initParams), new(uintptr)}, nil, ErrReceiveEnv},
 				{"fatal", expectArgs{[]any{"HAKUREI_SETUP not set"}}, nil, nil},
 			},
 		}, nil},
@@ -410,9 +410,7 @@ func TestInitEntrypoint(t *testing.T) {
 				{"mount", expectArgs{"", "/", "", uintptr(0x8c000), ""}, nil, nil},
 				/* begin early */
 				{"evalSymlinks", expectArgs{"/"}, "/", errUnique},
-				{"printBaseErr", expectArgs{errUnique, "cannot prepare op at index 0:"}, nil, nil},
-				{"beforeExit", expectArgs{}, nil, nil},
-				{"exit", expectArgs{1}, nil, nil},
+				{"fatalf", expectArgs{"cannot prepare op at index %d: %v", []any{0, errUnique}}, nil, nil},
 				/* end early */
 			},
 		}, nil},
@@ -798,9 +796,7 @@ func TestInitEntrypoint(t *testing.T) {
 				{"verbosef", expectArgs{"%s %s", []any{"mounting", &MountProcOp{Target: MustAbs("/proc/")}}}, nil, nil},
 				{"mkdirAll", expectArgs{"/sysroot/proc", os.FileMode(0755)}, nil, nil},
 				{"mount", expectArgs{"proc", "/sysroot/proc", "proc", uintptr(0xe), ""}, nil, errUnique},
-				{"printBaseErr", expectArgs{errUnique, "cannot apply op at index 1:"}, nil, nil},
-				{"beforeExit", expectArgs{}, nil, nil},
-				{"exit", expectArgs{1}, nil, nil},
+				{"fatalf", expectArgs{"cannot apply op at index %d: %v", []any{1, errUnique}}, nil, nil},
 				/* end apply */
 			},
 		}, nil},

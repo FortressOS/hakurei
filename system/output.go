@@ -33,14 +33,16 @@ func (e *OpError) Error() string {
 	}
 
 	switch {
-	case errors.As(e.Err, new(*os.PathError)), errors.As(e.Err, new(*net.OpError)):
+	case errors.As(e.Err, new(*os.PathError)),
+		errors.As(e.Err, new(*net.OpError)),
+		errors.As(e.Err, new(*container.StartError)):
 		return e.Err.Error()
 
 	default:
 		if !e.Revert {
-			return "cannot apply " + e.Op + ": " + e.Err.Error()
+			return "apply " + e.Op + ": " + e.Err.Error()
 		} else {
-			return "cannot revert " + e.Op + ": " + e.Err.Error()
+			return "revert " + e.Op + ": " + e.Err.Error()
 		}
 	}
 }

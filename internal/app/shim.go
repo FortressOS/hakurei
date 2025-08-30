@@ -65,7 +65,7 @@ func ShimMain() {
 		if errors.Is(err, syscall.EBADF) {
 			log.Fatal("invalid config descriptor")
 		}
-		if errors.Is(err, container.ErrNotSet) {
+		if errors.Is(err, container.ErrReceiveEnv) {
 			log.Fatal("HAKUREI_SHIM not set")
 		}
 

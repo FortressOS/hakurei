@@ -10,10 +10,3 @@ func SetOutput(v Msg) {
 		msg = v
 	}
 }
-
-func wrapErrSuffix(err error, a ...any) error {
-	if err == nil {
-		return nil
-	}
-	return msg.WrapErr(err, append(a, err)...)
-}

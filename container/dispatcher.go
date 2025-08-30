@@ -138,8 +138,6 @@ type syscallDispatcher interface {
 	resume() bool
 	// beforeExit provides [Msg.BeforeExit].
 	beforeExit()
-	// printBaseErr provides [Msg.PrintBaseErr].
-	printBaseErr(err error, fallback string)
 }
 
 // direct implements syscallDispatcher on the current kernel.
@@ -234,12 +232,11 @@ func (direct) wait4(pid int, wstatus *syscall.WaitStatus, options int, rusage *s
 	return syscall.Wait4(pid, wstatus, options, rusage)
 }
 
-func (direct) printf(format string, v ...any)          { log.Printf(format, v...) }
-func (direct) fatal(v ...any)                          { log.Fatal(v...) }
-func (direct) fatalf(format string, v ...any)          { log.Fatalf(format, v...) }
-func (direct) verbose(v ...any)                        { msg.Verbose(v...) }
-func (direct) verbosef(format string, v ...any)        { msg.Verbosef(format, v...) }
-func (direct) suspend()                                { msg.Suspend() }
-func (direct) resume() bool                            { return msg.Resume() }
-func (direct) beforeExit()                             { msg.BeforeExit() }
-func (direct) printBaseErr(err error, fallback string) { msg.PrintBaseErr(err, fallback) }
+func (direct) printf(format string, v ...any)   { log.Printf(format, v...) }
+func (direct) fatal(v ...any)                   { log.Fatal(v...) }
+func (direct) fatalf(format string, v ...any)   { log.Fatalf(format, v...) }
+func (direct) verbose(v ...any)                 { msg.Verbose(v...) }
+func (direct) verbosef(format string, v ...any) { msg.Verbosef(format, v...) }
+func (direct) suspend()                         { msg.Suspend() }
+func (direct) resume() bool                     { return msg.Resume() }
+func (direct) beforeExit()                      { msg.BeforeExit() }

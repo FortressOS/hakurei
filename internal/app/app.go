@@ -62,7 +62,7 @@ func (a *App) String() string {
 	return fmt.Sprintf("(unsealed app %s)", a.id)
 }
 
-// Seal determines the outcome of [hst.Config] as a [SealedApp].
+// Seal determines the [Outcome] of [hst.Config].
 // Values stored in and referred to by [hst.Config] might be overwritten and must not be used again.
 func (a *App) Seal(config *hst.Config) (*Outcome, error) {
 	a.mu.Lock()

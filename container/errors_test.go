@@ -162,3 +162,6 @@ func TestErrnoFallback(t *testing.T) {
 		})
 	}
 }
+
+// InternalMessageFromError exports messageFromError for other tests.
+func InternalMessageFromError(err error) (string, bool) { return messageFromError(err) }

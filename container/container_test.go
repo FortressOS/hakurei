@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"reflect"
 	"strconv"
 	"strings"
 	"syscall"
@@ -25,6 +26,100 @@ import (
 	"hakurei.app/internal/hlog"
 	"hakurei.app/ldd"
 )
+
+func TestStartError(t *testing.T) {
+	testCases := []struct {
+		name string
+		err  error
+		s    string
+		is   error
+		isF  error
+	}{
+		{"params env", &container.StartError{
+			Fatal: true,
+			Step:  "set up params stream",
+			Err:   container.ErrReceiveEnv,
+		},
+			"set up params stream: environment variable not set",
+			container.ErrReceiveEnv, syscall.EBADF},
+
+		{"params", &container.StartError{
+			Fatal: true,
+			Step:  "set up params stream",
+			Err:   &os.SyscallError{Syscall: "pipe2", Err: syscall.EBADF},
+		},
+			"set up params stream pipe2: bad file descriptor",
+			syscall.EBADF, os.ErrInvalid},
+
+		{"PR_SET_NO_NEW_PRIVS", &container.StartError{
+			Fatal: true,
+			Step:  "prctl(PR_SET_NO_NEW_PRIVS)",
+			Err:   syscall.EPERM,
+		},
+			"prctl(PR_SET_NO_NEW_PRIVS): operation not permitted",
+			syscall.EPERM, syscall.EACCES},
+
+		{"landlock abi", &container.StartError{
+			Step: "get landlock ABI",
+			Err:  syscall.ENOSYS,
+		},
+			"get landlock ABI: function not implemented",
+			syscall.ENOSYS, syscall.ENOEXEC},
+
+		{"landlock old", &container.StartError{
+			Step:   "kernel version too old for LANDLOCK_SCOPE_ABSTRACT_UNIX_SOCKET",
+			Err:    syscall.ENOSYS,
+			Origin: true,
+		},
+			"kernel version too old for LANDLOCK_SCOPE_ABSTRACT_UNIX_SOCKET",
+			syscall.ENOSYS, syscall.ENOSPC},
+
+		{"landlock create", &container.StartError{
+			Fatal: true,
+			Step:  "create landlock ruleset",
+			Err:   syscall.EBADFD,
+		},
+			"create landlock ruleset: file descriptor in bad state",
+			syscall.EBADFD, syscall.EBADF},
+
+		{"landlock enforce", &container.StartError{
+			Fatal: true,
+			Step:  "enforce landlock ruleset",
+			Err:   syscall.ENOTRECOVERABLE,
+		},
+			"enforce landlock ruleset: state not recoverable",
+			syscall.ENOTRECOVERABLE, syscall.ETIMEDOUT},
+
+		{"start", &container.StartError{
+			Step: "start container init",
+			Err: &os.PathError{
+				Op:   "fork/exec",
+				Path: "/proc/nonexistent",
+				Err:  syscall.ENOENT,
+			}, Passthrough: true,
+		},
+			"fork/exec /proc/nonexistent: no such file or directory",
+			syscall.ENOENT, syscall.ENOSYS},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Run("error", func(t *testing.T) {
+				if got := tc.err.Error(); got != tc.s {
+					t.Errorf("Error: %q, want %q", got, tc.s)
+				}
+			})
+
+			t.Run("is", func(t *testing.T) {
+				if !errors.Is(tc.err, tc.is) {
+					t.Error("Is: unexpected false")
+				}
+				if errors.Is(tc.err, tc.isF) {
+					t.Errorf("Is: unexpected true")
+				}
+			})
+		})
+	}
+}
 
 const (
 	ignore  = "\x00"
@@ -217,9 +312,11 @@ func TestContainer(t *testing.T) {
 	t.Run("cancel", testContainerCancel(nil, func(t *testing.T, c *container.Container) {
 		wantErr := context.Canceled
 		wantExitCode := 0
-		if err := c.Wait(); !errors.Is(err, wantErr) {
-			container.GetOutput().PrintBaseErr(err, "wait:")
-			t.Errorf("Wait: error = %v, want %v", err, wantErr)
+		if err := c.Wait(); !reflect.DeepEqual(err, wantErr) {
+			if m, ok := container.InternalMessageFromError(err); ok {
+				t.Error(m)
+			}
+			t.Errorf("Wait: error = %#v, want %#v", err, wantErr)
 		}
 		if ps := c.ProcessState(); ps == nil {
 			t.Errorf("ProcessState unexpectedly returned nil")
@@ -233,7 +330,9 @@ func TestContainer(t *testing.T) {
 	}, func(t *testing.T, c *container.Container) {
 		var exitError *exec.ExitError
 		if err := c.Wait(); !errors.As(err, &exitError) {
-			container.GetOutput().PrintBaseErr(err, "wait:")
+			if m, ok := container.InternalMessageFromError(err); ok {
+				t.Error(m)
+			}
 			t.Errorf("Wait: error = %v", err)
 		}
 		if code := exitError.ExitCode(); code != blockExitCodeInterrupt {
@@ -313,17 +412,26 @@ func TestContainer(t *testing.T) {
 
 			if err := c.Start(); err != nil {
 				_, _ = output.WriteTo(os.Stdout)
-				container.GetOutput().PrintBaseErr(err, "start:")
-				t.Fatalf("cannot start container: %v", err)
+				if m, ok := container.InternalMessageFromError(err); ok {
+					t.Fatal(m)
+				} else {
+					t.Fatalf("cannot start container: %v", err)
+				}
 			} else if err = c.Serve(); err != nil {
 				_, _ = output.WriteTo(os.Stdout)
-				container.GetOutput().PrintBaseErr(err, "serve:")
-				t.Errorf("cannot serve setup params: %v", err)
+				if m, ok := container.InternalMessageFromError(err); ok {
+					t.Error(m)
+				} else {
+					t.Errorf("cannot serve setup params: %v", err)
+				}
 			}
 			if err := c.Wait(); err != nil {
 				_, _ = output.WriteTo(os.Stdout)
-				container.GetOutput().PrintBaseErr(err, "wait:")
-				t.Fatalf("wait: %v", err)
+				if m, ok := container.InternalMessageFromError(err); ok {
+					t.Fatal(m)
+				} else {
+					t.Fatalf("wait: %v", err)
+				}
 			}
 		})
 	}
@@ -376,11 +484,17 @@ func testContainerCancel(
 		}
 
 		if err := c.Start(); err != nil {
-			container.GetOutput().PrintBaseErr(err, "start:")
-			t.Fatalf("cannot start container: %v", err)
+			if m, ok := container.InternalMessageFromError(err); ok {
+				t.Fatal(m)
+			} else {
+				t.Fatalf("cannot start container: %v", err)
+			}
 		} else if err = c.Serve(); err != nil {
-			container.GetOutput().PrintBaseErr(err, "serve:")
-			t.Errorf("cannot serve setup params: %v", err)
+			if m, ok := container.InternalMessageFromError(err); ok {
+				t.Error(m)
+			} else {
+				t.Errorf("cannot serve setup params: %v", err)
+			}
 		}
 		<-ready
 		cancel()

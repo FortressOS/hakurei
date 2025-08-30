@@ -29,8 +29,8 @@ func TestSetupReceive(t *testing.T) {
 			})
 		}
 
-		if _, err := container.Receive(key, nil, nil); !errors.Is(err, container.ErrNotSet) {
-			t.Errorf("Receive: error = %v, want %v", err, container.ErrNotSet)
+		if _, err := container.Receive(key, nil, nil); !errors.Is(err, container.ErrReceiveEnv) {
+			t.Errorf("Receive: error = %v, want %v", err, container.ErrReceiveEnv)
 		}
 	})
 
@@ -38,8 +38,8 @@ func TestSetupReceive(t *testing.T) {
 		const key = "TEST_ENV_FORMAT"
 		t.Setenv(key, "")
 
-		if _, err := container.Receive(key, nil, nil); !errors.Is(err, container.ErrFdFormat) {
-			t.Errorf("Receive: error = %v, want %v", err, container.ErrFdFormat)
+		if _, err := container.Receive(key, nil, nil); !errors.Is(err, strconv.ErrSyntax) {
+			t.Errorf("Receive: error = %v, want %v", err, strconv.ErrSyntax)
 		}
 	})
 
@@ -47,8 +47,8 @@ func TestSetupReceive(t *testing.T) {
 		const key = "TEST_ENV_RANGE"
 		t.Setenv(key, "-1")
 
-		if _, err := container.Receive(key, nil, nil); !errors.Is(err, syscall.EBADF) {
-			t.Errorf("Receive: error = %v, want %v", err, syscall.EBADF)
+		if _, err := container.Receive(key, nil, nil); !errors.Is(err, syscall.EDOM) {
+			t.Errorf("Receive: error = %v, want %v", err, syscall.EDOM)
 		}
 	})
 

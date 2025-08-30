@@ -8,11 +8,6 @@ import (
 	"syscall"
 )
 
-var (
-	ErrNotSet   = errors.New("environment variable not set")
-	ErrFdFormat = errors.New("bad file descriptor representation")
-)
-
 // Setup appends the read end of a pipe for setup params transmission and returns its fd.
 func Setup(extraFiles *[]*os.File) (int, *gob.Encoder, error) {
 	if r, w, err := os.Pipe(); err != nil {
@@ -24,19 +19,23 @@ func Setup(extraFiles *[]*os.File) (int, *gob.Encoder, error) {
 	}
 }
 
+var (
+	ErrReceiveEnv = errors.New("environment variable not set")
+)
+
 // Receive retrieves setup fd from the environment and receives params.
 func Receive(key string, e any, fdp *uintptr) (func() error, error) {
 	var setup *os.File
 
 	if s, ok := os.LookupEnv(key); !ok {
-		return nil, ErrNotSet
+		return nil, ErrReceiveEnv
 	} else {
 		if fd, err := strconv.Atoi(s); err != nil {
-			return nil, ErrFdFormat
+			return nil, errors.Unwrap(err)
 		} else {
 			setup = os.NewFile(uintptr(fd), "setup")
 			if setup == nil {
-				return nil, syscall.EBADF
+				return nil, syscall.EDOM
 			}
 			if fdp != nil {
 				*fdp = setup.Fd()

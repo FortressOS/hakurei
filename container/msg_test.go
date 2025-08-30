@@ -1,21 +1,15 @@
 package container_test
 
 import (
-	"errors"
 	"log"
 	"strings"
 	"sync/atomic"
-	"syscall"
 	"testing"
 
 	"hakurei.app/container"
-	"hakurei.app/internal/hlog"
 )
 
 func TestDefaultMsg(t *testing.T) {
-	// bypass WrapErr testing behaviour
-	t.Setenv("GOPATH", container.Nonexistent)
-
 	{
 		w := log.Writer()
 		f := log.Flags()
@@ -48,21 +42,6 @@ func TestDefaultMsg(t *testing.T) {
 		}
 	})
 
-	t.Run("wrapErr", func(t *testing.T) {
-		buf := new(strings.Builder)
-		log.SetOutput(buf)
-		log.SetFlags(0)
-		if err := msg.WrapErr(syscall.EBADE, "\x00", "\x00"); err != syscall.EBADE {
-			t.Errorf("WrapErr: %v", err)
-		}
-		msg.PrintBaseErr(syscall.ENOTRECOVERABLE, "cannot cuddle cat:")
-
-		want := "\x00 \x00\ncannot cuddle cat: state not recoverable\n"
-		if buf.String() != want {
-			t.Errorf("WrapErr: %q, want %q", buf.String(), want)
-		}
-	})
-
 	t.Run("inactive", func(t *testing.T) {
 		{
 			inactive := msg.Resume()
@@ -83,25 +62,6 @@ func TestDefaultMsg(t *testing.T) {
 
 	// the function is a noop
 	t.Run("beforeExit", func(t *testing.T) { msg.BeforeExit() })
-
-	t.Run("checkedWrappedErr", func(t *testing.T) {
-		// temporarily re-enable testing behaviour
-		t.Setenv("GOPATH", "")
-		wrappedErr := msg.WrapErr(syscall.ENOTRECOVERABLE, "cannot cuddle cat:", syscall.ENOTRECOVERABLE)
-
-		t.Run("string", func(t *testing.T) {
-			want := "state not recoverable, a = [cannot cuddle cat: state not recoverable]"
-			if got := wrappedErr.Error(); got != want {
-				t.Errorf("Error: %q, want %q", got, want)
-			}
-		})
-
-		t.Run("bad concrete type", func(t *testing.T) {
-			if errors.Is(wrappedErr, syscall.ENOTRECOVERABLE) {
-				t.Error("incorrect type assertion")
-			}
-		})
-	})
 }
 
 type panicWriter struct{}
@@ -138,9 +98,6 @@ func (out *testOutput) Verbosef(format string, v ...any) {
 	}
 	out.t.Logf(format, v...)
 }
-
-func (out *testOutput) WrapErr(err error, a ...any) error       { return hlog.WrapErr(err, a...) }
-func (out *testOutput) PrintBaseErr(err error, fallback string) { hlog.PrintBaseError(err, fallback) }
 
 func (out *testOutput) Suspend() {
 	if out.suspended.CompareAndSwap(false, true) {
