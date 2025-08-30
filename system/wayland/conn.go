@@ -10,6 +10,7 @@ import (
 	"syscall"
 )
 
+// Conn represents a connection to the wayland display server.
 type Conn struct {
 	conn *net.UnixConn
 
@@ -25,7 +26,7 @@ func (c *Conn) Attach(p string) (err error) {
 	defer c.mu.Unlock()
 
 	if c.conn != nil {
-		return errors.New("attached")
+		return errors.New("socket already attached")
 	}
 
 	c.conn, err = net.DialUnix("unix", nil, &net.UnixAddr{Name: p, Net: "unix"})
@@ -51,15 +52,16 @@ func (c *Conn) Close() error {
 	return nil
 }
 
-func (c *Conn) Bind(p, appID, instanceID string) (*os.File, error) {
+// Bind binds the new socket to pathname.
+func (c *Conn) Bind(pathname, appID, instanceID string) (*os.File, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
 	if c.conn == nil {
-		return nil, errors.New("not attached")
+		return nil, errors.New("socket not attached")
 	}
 	if c.done != nil {
-		return nil, errors.New("bound")
+		return nil, errors.New("socket already bound")
 	}
 
 	if rc, err := c.conn.SyscallConn(); err != nil {
@@ -67,7 +69,7 @@ func (c *Conn) Bind(p, appID, instanceID string) (*os.File, error) {
 		return nil, err
 	} else {
 		c.done = make(chan struct{})
-		return bindRawConn(c.done, rc, p, appID, instanceID)
+		return bindRawConn(c.done, rc, pathname, appID, instanceID)
 	}
 }
 
