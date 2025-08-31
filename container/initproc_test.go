@@ -3,6 +3,8 @@ package container
 import (
 	"os"
 	"testing"
+
+	"hakurei.app/container/stub"
 )
 
 func TestMountProcOp(t *testing.T) {
@@ -10,16 +12,16 @@ func TestMountProcOp(t *testing.T) {
 		{"mkdir", &Params{ParentPerm: 0755},
 			&MountProcOp{
 				Target: MustAbs("/proc/"),
-			}, nil, nil, []kexpect{
-				{"mkdirAll", expectArgs{"/sysroot/proc", os.FileMode(0755)}, nil, errUnique},
-			}, errUnique},
+			}, nil, nil, []stub.Call{
+				{"mkdirAll", stub.ExpectArgs{"/sysroot/proc", os.FileMode(0755)}, nil, stub.UniqueError(0)},
+			}, stub.UniqueError(0)},
 
 		{"success", &Params{ParentPerm: 0700},
 			&MountProcOp{
 				Target: MustAbs("/proc/"),
-			}, nil, nil, []kexpect{
-				{"mkdirAll", expectArgs{"/sysroot/proc", os.FileMode(0700)}, nil, nil},
-				{"mount", expectArgs{"proc", "/sysroot/proc", "proc", uintptr(0xe), ""}, nil, nil},
+			}, nil, nil, []stub.Call{
+				{"mkdirAll", stub.ExpectArgs{"/sysroot/proc", os.FileMode(0700)}, nil, nil},
+				{"mount", stub.ExpectArgs{"proc", "/sysroot/proc", "proc", uintptr(0xe), ""}, nil, nil},
 			}, nil},
 	})
 

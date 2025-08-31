@@ -3,6 +3,8 @@ package container
 import (
 	"os"
 	"testing"
+
+	"hakurei.app/container/stub"
 )
 
 func TestTmpfileOp(t *testing.T) {
@@ -16,59 +18,59 @@ func TestTmpfileOp(t *testing.T) {
 		{"createTemp", &Params{ParentPerm: 0700}, &TmpfileOp{
 			Path: samplePath,
 			Data: sampleData,
-		}, nil, nil, []kexpect{
-			{"createTemp", expectArgs{"/", "tmp.*"}, newCheckedFile(t, "tmp.32768", sampleDataString, nil), errUnique},
-		}, errUnique},
+		}, nil, nil, []stub.Call{
+			{"createTemp", stub.ExpectArgs{"/", "tmp.*"}, newCheckedFile(t, "tmp.32768", sampleDataString, nil), stub.UniqueError(5)},
+		}, stub.UniqueError(5)},
 
 		{"Write", &Params{ParentPerm: 0700}, &TmpfileOp{
 			Path: samplePath,
 			Data: sampleData,
-		}, nil, nil, []kexpect{
-			{"createTemp", expectArgs{"/", "tmp.*"}, writeErrOsFile{errUnique}, nil},
-		}, errUnique},
+		}, nil, nil, []stub.Call{
+			{"createTemp", stub.ExpectArgs{"/", "tmp.*"}, writeErrOsFile{stub.UniqueError(4)}, nil},
+		}, stub.UniqueError(4)},
 
 		{"Close", &Params{ParentPerm: 0700}, &TmpfileOp{
 			Path: samplePath,
 			Data: sampleData,
-		}, nil, nil, []kexpect{
-			{"createTemp", expectArgs{"/", "tmp.*"}, newCheckedFile(t, "tmp.32768", sampleDataString, errUnique), nil},
-		}, errUnique},
+		}, nil, nil, []stub.Call{
+			{"createTemp", stub.ExpectArgs{"/", "tmp.*"}, newCheckedFile(t, "tmp.32768", sampleDataString, stub.UniqueError(3)), nil},
+		}, stub.UniqueError(3)},
 
 		{"ensureFile", &Params{ParentPerm: 0700}, &TmpfileOp{
 			Path: samplePath,
 			Data: sampleData,
-		}, nil, nil, []kexpect{
-			{"createTemp", expectArgs{"/", "tmp.*"}, newCheckedFile(t, "tmp.32768", sampleDataString, nil), nil},
-			{"ensureFile", expectArgs{"/sysroot/etc/passwd", os.FileMode(0444), os.FileMode(0700)}, nil, errUnique},
-		}, errUnique},
+		}, nil, nil, []stub.Call{
+			{"createTemp", stub.ExpectArgs{"/", "tmp.*"}, newCheckedFile(t, "tmp.32768", sampleDataString, nil), nil},
+			{"ensureFile", stub.ExpectArgs{"/sysroot/etc/passwd", os.FileMode(0444), os.FileMode(0700)}, nil, stub.UniqueError(2)},
+		}, stub.UniqueError(2)},
 
 		{"bindMount", &Params{ParentPerm: 0700}, &TmpfileOp{
 			Path: samplePath,
 			Data: sampleData,
-		}, nil, nil, []kexpect{
-			{"createTemp", expectArgs{"/", "tmp.*"}, newCheckedFile(t, "tmp.32768", sampleDataString, nil), nil},
-			{"ensureFile", expectArgs{"/sysroot/etc/passwd", os.FileMode(0444), os.FileMode(0700)}, nil, nil},
-			{"bindMount", expectArgs{"tmp.32768", "/sysroot/etc/passwd", uintptr(0x5), false}, nil, errUnique},
-		}, errUnique},
+		}, nil, nil, []stub.Call{
+			{"createTemp", stub.ExpectArgs{"/", "tmp.*"}, newCheckedFile(t, "tmp.32768", sampleDataString, nil), nil},
+			{"ensureFile", stub.ExpectArgs{"/sysroot/etc/passwd", os.FileMode(0444), os.FileMode(0700)}, nil, nil},
+			{"bindMount", stub.ExpectArgs{"tmp.32768", "/sysroot/etc/passwd", uintptr(0x5), false}, nil, stub.UniqueError(1)},
+		}, stub.UniqueError(1)},
 
 		{"remove", &Params{ParentPerm: 0700}, &TmpfileOp{
 			Path: samplePath,
 			Data: sampleData,
-		}, nil, nil, []kexpect{
-			{"createTemp", expectArgs{"/", "tmp.*"}, newCheckedFile(t, "tmp.32768", sampleDataString, nil), nil},
-			{"ensureFile", expectArgs{"/sysroot/etc/passwd", os.FileMode(0444), os.FileMode(0700)}, nil, nil},
-			{"bindMount", expectArgs{"tmp.32768", "/sysroot/etc/passwd", uintptr(0x5), false}, nil, nil},
-			{"remove", expectArgs{"tmp.32768"}, nil, errUnique},
-		}, errUnique},
+		}, nil, nil, []stub.Call{
+			{"createTemp", stub.ExpectArgs{"/", "tmp.*"}, newCheckedFile(t, "tmp.32768", sampleDataString, nil), nil},
+			{"ensureFile", stub.ExpectArgs{"/sysroot/etc/passwd", os.FileMode(0444), os.FileMode(0700)}, nil, nil},
+			{"bindMount", stub.ExpectArgs{"tmp.32768", "/sysroot/etc/passwd", uintptr(0x5), false}, nil, nil},
+			{"remove", stub.ExpectArgs{"tmp.32768"}, nil, stub.UniqueError(0)},
+		}, stub.UniqueError(0)},
 
 		{"success", &Params{ParentPerm: 0700}, &TmpfileOp{
 			Path: samplePath,
 			Data: sampleData,
-		}, nil, nil, []kexpect{
-			{"createTemp", expectArgs{"/", "tmp.*"}, newCheckedFile(t, "tmp.32768", sampleDataString, nil), nil},
-			{"ensureFile", expectArgs{"/sysroot/etc/passwd", os.FileMode(0444), os.FileMode(0700)}, nil, nil},
-			{"bindMount", expectArgs{"tmp.32768", "/sysroot/etc/passwd", uintptr(0x5), false}, nil, nil},
-			{"remove", expectArgs{"tmp.32768"}, nil, nil},
+		}, nil, nil, []stub.Call{
+			{"createTemp", stub.ExpectArgs{"/", "tmp.*"}, newCheckedFile(t, "tmp.32768", sampleDataString, nil), nil},
+			{"ensureFile", stub.ExpectArgs{"/sysroot/etc/passwd", os.FileMode(0444), os.FileMode(0700)}, nil, nil},
+			{"bindMount", stub.ExpectArgs{"tmp.32768", "/sysroot/etc/passwd", uintptr(0x5), false}, nil, nil},
+			{"remove", stub.ExpectArgs{"tmp.32768"}, nil, nil},
 		}, nil},
 	})
 

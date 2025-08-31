@@ -2,7 +2,6 @@ package container
 
 import (
 	"bytes"
-	"errors"
 	"io"
 	"io/fs"
 	"os"
@@ -11,15 +10,13 @@ import (
 	"runtime"
 	"slices"
 	"strings"
-	"sync"
 	"syscall"
 	"testing"
 	"time"
 
 	"hakurei.app/container/seccomp"
+	"hakurei.app/container/stub"
 )
-
-var errUnique = errors.New("unique error injected by the test suite")
 
 type opValidTestCase struct {
 	name string
@@ -28,9 +25,15 @@ type opValidTestCase struct {
 }
 
 func checkOpsValid(t *testing.T, testCases []opValidTestCase) {
+	t.Helper()
+
 	t.Run("valid", func(t *testing.T) {
+		t.Helper()
+
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
+				t.Helper()
+
 				if got := tc.op.Valid(); got != tc.want {
 					t.Errorf("Valid: %v, want %v", got, tc.want)
 				}
@@ -46,9 +49,15 @@ type opsBuilderTestCase struct {
 }
 
 func checkOpsBuilder(t *testing.T, testCases []opsBuilderTestCase) {
+	t.Helper()
+
 	t.Run("build", func(t *testing.T) {
+		t.Helper()
+
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
+				t.Helper()
+
 				if !slices.EqualFunc(*tc.ops, tc.want, func(op Op, v Op) bool { return op.Is(v) }) {
 					t.Errorf("Ops: %#v, want %#v", tc.ops, tc.want)
 				}
@@ -64,9 +73,15 @@ type opIsTestCase struct {
 }
 
 func checkOpIs(t *testing.T, testCases []opIsTestCase) {
+	t.Helper()
+
 	t.Run("is", func(t *testing.T) {
+		t.Helper()
+
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
+				t.Helper()
+
 				if got := tc.op.Is(tc.v); got != tc.want {
 					t.Errorf("Is: %v, want %v", got, tc.want)
 				}
@@ -84,16 +99,26 @@ type opMetaTestCase struct {
 }
 
 func checkOpMeta(t *testing.T, testCases []opMetaTestCase) {
+	t.Helper()
+
 	t.Run("meta", func(t *testing.T) {
+		t.Helper()
+
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
+				t.Helper()
+
 				t.Run("prefix", func(t *testing.T) {
+					t.Helper()
+
 					if got := tc.op.prefix(); got != tc.wantPrefix {
 						t.Errorf("prefix: %q, want %q", got, tc.wantPrefix)
 					}
 				})
 
 				t.Run("string", func(t *testing.T) {
+					t.Helper()
+
 					if got := tc.op.String(); got != tc.wantString {
 						t.Errorf("String: %s, want %s", got, tc.wantString)
 					}
@@ -106,20 +131,26 @@ func checkOpMeta(t *testing.T, testCases []opMetaTestCase) {
 type simpleTestCase struct {
 	name    string
 	f       func(k syscallDispatcher) error
-	want    [][]kexpect
+	want    stub.Expect
 	wantErr error
 }
 
 func checkSimple(t *testing.T, fname string, testCases []simpleTestCase) {
+	t.Helper()
+
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			defer handleExitStub()
-			k := &kstub{t: t, want: tc.want, wg: new(sync.WaitGroup)}
+			t.Helper()
+
+			defer stub.HandleExit()
+			k := &kstub{stub.New(t, func(s *stub.Stub[syscallDispatcher]) syscallDispatcher { return &kstub{s} }, tc.want)}
 			if err := tc.f(k); !reflect.DeepEqual(err, tc.wantErr) {
 				t.Errorf("%s: error = %v, want %v", fname, err, tc.wantErr)
 			}
-			k.handleIncomplete(func(k *kstub) {
-				t.Errorf("%s: %d calls, want %d (track %d)", fname, k.pos, len(k.want[k.track]), k.track)
+			k.VisitIncomplete(func(s *stub.Stub[syscallDispatcher]) {
+				t.Helper()
+
+				t.Errorf("%s: %d calls, want %d", fname, s.Pos(), s.Len())
 			})
 		})
 	}
@@ -130,22 +161,31 @@ type opBehaviourTestCase struct {
 	params *Params
 	op     Op
 
-	early        []kexpect
+	early        []stub.Call
 	wantErrEarly error
 
-	apply        []kexpect
+	apply        []stub.Call
 	wantErrApply error
 }
 
 func checkOpBehaviour(t *testing.T, testCases []opBehaviourTestCase) {
+	t.Helper()
+
 	t.Run("behaviour", func(t *testing.T) {
+		t.Helper()
+
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
-				defer handleExitStub()
+				t.Helper()
+
+				defer stub.HandleExit()
 				state := &setupState{Params: tc.params}
-				k := &kstub{t: t, want: [][]kexpect{slices.Concat(tc.early, []kexpect{{name: "\x00"}}, tc.apply)}, wg: new(sync.WaitGroup)}
+				k := &kstub{stub.New(t,
+					func(s *stub.Stub[syscallDispatcher]) syscallDispatcher { return &kstub{s} },
+					stub.Expect{Calls: slices.Concat(tc.early, []stub.Call{{Name: stub.CallSeparator}}, tc.apply)},
+				)}
 				errEarly := tc.op.early(state, k)
-				k.expect("\x00")
+				k.Expects(stub.CallSeparator)
 				if !reflect.DeepEqual(errEarly, tc.wantErrEarly) {
 					t.Errorf("early: error = %v, want %v", errEarly, tc.wantErrEarly)
 				}
@@ -158,8 +198,8 @@ func checkOpBehaviour(t *testing.T, testCases []opBehaviourTestCase) {
 				}
 
 			out:
-				k.handleIncomplete(func(k *kstub) {
-					count := k.pos - 1 // separator
+				k.VisitIncomplete(func(s *stub.Stub[syscallDispatcher]) {
+					count := k.Pos() - 1 // separator
 					if count < len(tc.early) {
 						t.Errorf("early: %d calls, want %d", count, len(tc.early))
 					} else {
@@ -226,8 +266,6 @@ func (writeErrOsFile) Stat() (fs.FileInfo, error)  { panic("unreachable") }
 func (writeErrOsFile) Read([]byte) (int, error)    { panic("unreachable") }
 func (writeErrOsFile) Close() error                { panic("unreachable") }
 
-type expectArgs = [5]any
-
 type isDirFi bool
 
 func (isDirFi) Name() string       { panic("unreachable") }
@@ -252,184 +290,83 @@ func (nameDentry) IsDir() bool                { panic("unreachable") }
 func (nameDentry) Type() fs.FileMode          { panic("unreachable") }
 func (nameDentry) Info() (fs.FileInfo, error) { panic("unreachable") }
 
-type kexpect struct {
-	name string
-	args expectArgs
-	ret  any
-	err  error
-}
+type kstub struct{ *stub.Stub[syscallDispatcher] }
 
-func (k *kexpect) error(ok ...bool) error {
-	if !slices.Contains(ok, false) {
-		return k.err
-	}
-	return syscall.ENOTRECOVERABLE
-}
+func (k *kstub) new(f func(k syscallDispatcher)) { k.Helper(); k.New(f) }
 
-func handleExitStub() {
-	r := recover()
-	if r == 0xdeadbeef {
-		return
-	}
-	if r != nil {
-		panic(r)
-	}
-}
-
-type kstub struct {
-	t *testing.T
-
-	want [][]kexpect
-	// pos is the current position in want[track].
-	pos int
-	// track is the current active want.
-	track int
-	// sub stores addresses of kstub created by new.
-	sub []*kstub
-	// wg waits for all descendants to complete.
-	wg *sync.WaitGroup
-}
-
-// handleIncomplete calls f on an incomplete k and all its descendants.
-func (k *kstub) handleIncomplete(f func(k *kstub)) {
-	k.wg.Wait()
-
-	if k.want != nil && len(k.want[k.track]) != k.pos {
-		f(k)
-	}
-	for _, sk := range k.sub {
-		sk.handleIncomplete(f)
-	}
-}
-
-// expect checks name and returns the current kexpect and advances pos.
-func (k *kstub) expect(name string) (expect *kexpect) {
-	if len(k.want[k.track]) == k.pos {
-		k.t.Fatal("expect: want too short")
-	}
-	expect = &k.want[k.track][k.pos]
-	if name != expect.name {
-		if expect.name == "\x00" {
-			k.t.Fatalf("expect: func = %s, separator overrun", name)
-		}
-		if name == "\x00" {
-			k.t.Fatalf("expect: separator, want %s", expect.name)
-		}
-		k.t.Fatalf("expect: func = %s, want %s", name, expect.name)
-	}
-	k.pos++
-	return
-}
-
-// checkArg checks an argument comparable with the == operator. Avoid using this with pointers.
-func checkArg[T comparable](k *kstub, arg string, got T, n int) bool {
-	if k.pos == 0 {
-		panic("invalid call to checkArg")
-	}
-	expect := k.want[k.track][k.pos-1]
-	want, ok := expect.args[n].(T)
-	if !ok || got != want {
-		k.t.Errorf("%s: %s = %#v, want %#v (%d)", expect.name, arg, got, want, k.pos-1)
-		return false
-	}
-	return true
-}
-
-// checkArgReflect checks an argument of any type.
-func checkArgReflect(k *kstub, arg string, got any, n int) bool {
-	if k.pos == 0 {
-		panic("invalid call to checkArgReflect")
-	}
-	expect := k.want[k.track][k.pos-1]
-	want := expect.args[n]
-	if !reflect.DeepEqual(got, want) {
-		k.t.Errorf("%s: %s = %#v, want %#v (%d)", expect.name, arg, got, want, k.pos-1)
-		return false
-	}
-	return true
-}
-
-func (k *kstub) new(f func(k syscallDispatcher)) {
-	k.expect("new")
-	if len(k.want) <= k.track+1 {
-		k.t.Fatalf("new: track overrun")
-	}
-	sk := &kstub{t: k.t, want: k.want, track: len(k.sub) + 1, wg: k.wg}
-	k.sub = append(k.sub, sk)
-	k.wg.Add(1)
-	go func() {
-		defer k.wg.Done()
-		defer handleExitStub()
-		f(sk)
-	}()
-}
-
-func (k *kstub) lockOSThread() { k.expect("lockOSThread") }
+func (k *kstub) lockOSThread() { k.Helper(); k.Expects("lockOSThread") }
 
 func (k *kstub) setPtracer(pid uintptr) error {
-	return k.expect("setPtracer").error(
-		checkArg(k, "pid", pid, 0))
+	k.Helper()
+	return k.Expects("setPtracer").Error(
+		stub.CheckArg(k.Stub, "pid", pid, 0))
 }
 
 func (k *kstub) setDumpable(dumpable uintptr) error {
-	return k.expect("setDumpable").error(
-		checkArg(k, "dumpable", dumpable, 0))
+	k.Helper()
+	return k.Expects("setDumpable").Error(
+		stub.CheckArg(k.Stub, "dumpable", dumpable, 0))
 }
 
-func (k *kstub) setNoNewPrivs() error { return k.expect("setNoNewPrivs").err }
-func (k *kstub) lastcap() uintptr     { return k.expect("lastcap").ret.(uintptr) }
+func (k *kstub) setNoNewPrivs() error { k.Helper(); return k.Expects("setNoNewPrivs").Err }
+func (k *kstub) lastcap() uintptr     { k.Helper(); return k.Expects("lastcap").Ret.(uintptr) }
 
 func (k *kstub) capset(hdrp *capHeader, datap *[2]capData) error {
-	return k.expect("capset").error(
-		checkArgReflect(k, "hdrp", hdrp, 0),
-		checkArgReflect(k, "datap", datap, 1))
+	k.Helper()
+	return k.Expects("capset").Error(
+		stub.CheckArgReflect(k.Stub, "hdrp", hdrp, 0),
+		stub.CheckArgReflect(k.Stub, "datap", datap, 1))
 }
 
 func (k *kstub) capBoundingSetDrop(cap uintptr) error {
-	return k.expect("capBoundingSetDrop").error(
-		checkArg(k, "cap", cap, 0))
+	k.Helper()
+	return k.Expects("capBoundingSetDrop").Error(
+		stub.CheckArg(k.Stub, "cap", cap, 0))
 }
 
-func (k *kstub) capAmbientClearAll() error { return k.expect("capAmbientClearAll").err }
+func (k *kstub) capAmbientClearAll() error { k.Helper(); return k.Expects("capAmbientClearAll").Err }
 
 func (k *kstub) capAmbientRaise(cap uintptr) error {
-	return k.expect("capAmbientRaise").error(
-		checkArg(k, "cap", cap, 0))
+	k.Helper()
+	return k.Expects("capAmbientRaise").Error(
+		stub.CheckArg(k.Stub, "cap", cap, 0))
 }
 
 func (k *kstub) isatty(fd int) bool {
-	expect := k.expect("isatty")
-	if !checkArg(k, "fd", fd, 0) {
-		k.t.FailNow()
+	k.Helper()
+	expect := k.Expects("isatty")
+	if !stub.CheckArg(k.Stub, "fd", fd, 0) {
+		k.FailNow()
 	}
-	return expect.ret.(bool)
+	return expect.Ret.(bool)
 }
 
 func (k *kstub) receive(key string, e any, fdp *uintptr) (closeFunc func() error, err error) {
-	expect := k.expect("receive")
+	k.Helper()
+	expect := k.Expects("receive")
 
 	var closed bool
 	closeFunc = func() error {
 		if closed {
-			k.t.Error("closeFunc called more than once")
+			k.Error("closeFunc called more than once")
 			return os.ErrClosed
 		}
 		closed = true
 
-		if expect.ret != nil {
+		if expect.Ret != nil {
 			// use return stored in kexpect for closeFunc instead
-			return expect.ret.(error)
+			return expect.Ret.(error)
 		}
 		return nil
 	}
-	err = expect.error(
-		checkArg(k, "key", key, 0),
-		checkArgReflect(k, "e", e, 1),
-		checkArgReflect(k, "fdp", fdp, 2))
+	err = expect.Error(
+		stub.CheckArg(k.Stub, "key", key, 0),
+		stub.CheckArgReflect(k.Stub, "e", e, 1),
+		stub.CheckArgReflect(k.Stub, "fdp", fdp, 2))
 
 	// 3 is unused so stores params
-	if expect.args[3] != nil {
-		if v, ok := expect.args[3].(*initParams); ok && v != nil {
+	if expect.Args[3] != nil {
+		if v, ok := expect.Args[3].(*initParams); ok && v != nil {
 			if p, ok0 := e.(*initParams); ok0 && p != nil {
 				*p = *v
 			}
@@ -437,8 +374,8 @@ func (k *kstub) receive(key string, e any, fdp *uintptr) (closeFunc func() error
 	}
 
 	// 4 is unused so stores fd
-	if expect.args[4] != nil {
-		if v, ok := expect.args[4].(uintptr); ok && v >= 3 {
+	if expect.Args[4] != nil {
+		if v, ok := expect.Args[4].(uintptr); ok && v >= 3 {
 			if fdp != nil {
 				*fdp = v
 			}
@@ -449,246 +386,277 @@ func (k *kstub) receive(key string, e any, fdp *uintptr) (closeFunc func() error
 }
 
 func (k *kstub) bindMount(source, target string, flags uintptr, eq bool) error {
-	return k.expect("bindMount").error(
-		checkArg(k, "source", source, 0),
-		checkArg(k, "target", target, 1),
-		checkArg(k, "flags", flags, 2),
-		checkArg(k, "eq", eq, 3))
+	k.Helper()
+	return k.Expects("bindMount").Error(
+		stub.CheckArg(k.Stub, "source", source, 0),
+		stub.CheckArg(k.Stub, "target", target, 1),
+		stub.CheckArg(k.Stub, "flags", flags, 2),
+		stub.CheckArg(k.Stub, "eq", eq, 3))
 }
 
 func (k *kstub) remount(target string, flags uintptr) error {
-	return k.expect("remount").error(
-		checkArg(k, "target", target, 0),
-		checkArg(k, "flags", flags, 1))
+	k.Helper()
+	return k.Expects("remount").Error(
+		stub.CheckArg(k.Stub, "target", target, 0),
+		stub.CheckArg(k.Stub, "flags", flags, 1))
 }
 
 func (k *kstub) mountTmpfs(fsname, target string, flags uintptr, size int, perm os.FileMode) error {
-	return k.expect("mountTmpfs").error(
-		checkArg(k, "fsname", fsname, 0),
-		checkArg(k, "target", target, 1),
-		checkArg(k, "flags", flags, 2),
-		checkArg(k, "size", size, 3),
-		checkArg(k, "perm", perm, 4))
+	k.Helper()
+	return k.Expects("mountTmpfs").Error(
+		stub.CheckArg(k.Stub, "fsname", fsname, 0),
+		stub.CheckArg(k.Stub, "target", target, 1),
+		stub.CheckArg(k.Stub, "flags", flags, 2),
+		stub.CheckArg(k.Stub, "size", size, 3),
+		stub.CheckArg(k.Stub, "perm", perm, 4))
 }
 
 func (k *kstub) ensureFile(name string, perm, pperm os.FileMode) error {
-
-	return k.expect("ensureFile").error(
-		checkArg(k, "name", name, 0),
-		checkArg(k, "perm", perm, 1),
-		checkArg(k, "pperm", pperm, 2))
+	k.Helper()
+	return k.Expects("ensureFile").Error(
+		stub.CheckArg(k.Stub, "name", name, 0),
+		stub.CheckArg(k.Stub, "perm", perm, 1),
+		stub.CheckArg(k.Stub, "pperm", pperm, 2))
 }
 
 func (k *kstub) seccompLoad(rules []seccomp.NativeRule, flags seccomp.ExportFlag) error {
-	return k.expect("seccompLoad").error(
-		checkArgReflect(k, "rules", rules, 0),
-		checkArg(k, "flags", flags, 1))
+	k.Helper()
+	return k.Expects("seccompLoad").Error(
+		stub.CheckArgReflect(k.Stub, "rules", rules, 0),
+		stub.CheckArg(k.Stub, "flags", flags, 1))
 }
 
 func (k *kstub) notify(c chan<- os.Signal, sig ...os.Signal) {
-	expect := k.expect("notify")
-	if c == nil || expect.error(
-		checkArgReflect(k, "sig", sig, 1)) != nil {
-		k.t.FailNow()
+	k.Helper()
+	expect := k.Expects("notify")
+	if c == nil || expect.Error(
+		stub.CheckArgReflect(k.Stub, "sig", sig, 1)) != nil {
+		k.FailNow()
 	}
 
 	// export channel for external instrumentation
-	if chanf, ok := expect.args[0].(func(c chan<- os.Signal)); ok && chanf != nil {
+	if chanf, ok := expect.Args[0].(func(c chan<- os.Signal)); ok && chanf != nil {
 		chanf(c)
 	}
 }
 
 func (k *kstub) start(c *exec.Cmd) error {
-	expect := k.expect("start")
-	err := expect.error(
-		checkArg(k, "c.Path", c.Path, 0),
-		checkArgReflect(k, "c.Args", c.Args, 1),
-		checkArgReflect(k, "c.Env", c.Env, 2),
-		checkArg(k, "c.Dir", c.Dir, 3))
+	k.Helper()
+	expect := k.Expects("start")
+	err := expect.Error(
+		stub.CheckArg(k.Stub, "c.Path", c.Path, 0),
+		stub.CheckArgReflect(k.Stub, "c.Args", c.Args, 1),
+		stub.CheckArgReflect(k.Stub, "c.Env", c.Env, 2),
+		stub.CheckArg(k.Stub, "c.Dir", c.Dir, 3))
 
-	if process, ok := expect.ret.(*os.Process); ok && process != nil {
+	if process, ok := expect.Ret.(*os.Process); ok && process != nil {
 		c.Process = process
 	}
 	return err
 }
 
 func (k *kstub) signal(c *exec.Cmd, sig os.Signal) error {
-	return k.expect("signal").error(
-		checkArg(k, "c.Path", c.Path, 0),
-		checkArgReflect(k, "c.Args", c.Args, 1),
-		checkArgReflect(k, "c.Env", c.Env, 2),
-		checkArg(k, "c.Dir", c.Dir, 3),
-		checkArg(k, "sig", sig, 4))
+	k.Helper()
+	return k.Expects("signal").Error(
+		stub.CheckArg(k.Stub, "c.Path", c.Path, 0),
+		stub.CheckArgReflect(k.Stub, "c.Args", c.Args, 1),
+		stub.CheckArgReflect(k.Stub, "c.Env", c.Env, 2),
+		stub.CheckArg(k.Stub, "c.Dir", c.Dir, 3),
+		stub.CheckArg(k.Stub, "sig", sig, 4))
 }
 
 func (k *kstub) evalSymlinks(path string) (string, error) {
-	expect := k.expect("evalSymlinks")
-	return expect.ret.(string), expect.error(
-		checkArg(k, "path", path, 0))
+	k.Helper()
+	expect := k.Expects("evalSymlinks")
+	return expect.Ret.(string), expect.Error(
+		stub.CheckArg(k.Stub, "path", path, 0))
 }
 
 func (k *kstub) exit(code int) {
-	k.expect("exit")
-	if !checkArg(k, "code", code, 0) {
-		k.t.FailNow()
+	k.Helper()
+	k.Expects("exit")
+	if !stub.CheckArg(k.Stub, "code", code, 0) {
+		k.FailNow()
 	}
-	panic(0xdeadbeef)
+	panic(stub.PanicExit)
 }
 
-func (k *kstub) getpid() int { return k.expect("getpid").ret.(int) }
+func (k *kstub) getpid() int { k.Helper(); return k.Expects("getpid").Ret.(int) }
 
 func (k *kstub) stat(name string) (os.FileInfo, error) {
-	expect := k.expect("stat")
-	return expect.ret.(os.FileInfo), expect.error(
-		checkArg(k, "name", name, 0))
+	k.Helper()
+	expect := k.Expects("stat")
+	return expect.Ret.(os.FileInfo), expect.Error(
+		stub.CheckArg(k.Stub, "name", name, 0))
 }
 
 func (k *kstub) mkdir(name string, perm os.FileMode) error {
-	return k.expect("mkdir").error(
-		checkArg(k, "name", name, 0),
-		checkArg(k, "perm", perm, 1))
+	k.Helper()
+	return k.Expects("mkdir").Error(
+		stub.CheckArg(k.Stub, "name", name, 0),
+		stub.CheckArg(k.Stub, "perm", perm, 1))
 }
 
 func (k *kstub) mkdirTemp(dir, pattern string) (string, error) {
-	expect := k.expect("mkdirTemp")
-	return expect.ret.(string), expect.error(
-		checkArg(k, "dir", dir, 0),
-		checkArg(k, "pattern", pattern, 1))
+	k.Helper()
+	expect := k.Expects("mkdirTemp")
+	return expect.Ret.(string), expect.Error(
+		stub.CheckArg(k.Stub, "dir", dir, 0),
+		stub.CheckArg(k.Stub, "pattern", pattern, 1))
 }
 
 func (k *kstub) mkdirAll(path string, perm os.FileMode) error {
-	return k.expect("mkdirAll").error(
-		checkArg(k, "path", path, 0),
-		checkArg(k, "perm", perm, 1))
+	k.Helper()
+	return k.Expects("mkdirAll").Error(
+		stub.CheckArg(k.Stub, "path", path, 0),
+		stub.CheckArg(k.Stub, "perm", perm, 1))
 }
 
 func (k *kstub) readdir(name string) ([]os.DirEntry, error) {
-	expect := k.expect("readdir")
-	return expect.ret.([]os.DirEntry), expect.error(
-		checkArg(k, "name", name, 0))
+	k.Helper()
+	expect := k.Expects("readdir")
+	return expect.Ret.([]os.DirEntry), expect.Error(
+		stub.CheckArg(k.Stub, "name", name, 0))
 }
 
 func (k *kstub) openNew(name string) (osFile, error) {
-	expect := k.expect("openNew")
-	return expect.ret.(osFile), expect.error(
-		checkArg(k, "name", name, 0))
+	k.Helper()
+	expect := k.Expects("openNew")
+	return expect.Ret.(osFile), expect.Error(
+		stub.CheckArg(k.Stub, "name", name, 0))
 }
 
 func (k *kstub) writeFile(name string, data []byte, perm os.FileMode) error {
-	return k.expect("writeFile").error(
-		checkArg(k, "name", name, 0),
-		checkArgReflect(k, "data", data, 1),
-		checkArg(k, "perm", perm, 2))
+	k.Helper()
+	return k.Expects("writeFile").Error(
+		stub.CheckArg(k.Stub, "name", name, 0),
+		stub.CheckArgReflect(k.Stub, "data", data, 1),
+		stub.CheckArg(k.Stub, "perm", perm, 2))
 }
 
 func (k *kstub) createTemp(dir, pattern string) (osFile, error) {
-	expect := k.expect("createTemp")
-	return expect.ret.(osFile), expect.error(
-		checkArg(k, "dir", dir, 0),
-		checkArg(k, "pattern", pattern, 1))
+	k.Helper()
+	expect := k.Expects("createTemp")
+	return expect.Ret.(osFile), expect.Error(
+		stub.CheckArg(k.Stub, "dir", dir, 0),
+		stub.CheckArg(k.Stub, "pattern", pattern, 1))
 }
 
 func (k *kstub) remove(name string) error {
-	return k.expect("remove").error(
-		checkArg(k, "name", name, 0))
+	k.Helper()
+	return k.Expects("remove").Error(
+		stub.CheckArg(k.Stub, "name", name, 0))
 }
 
 func (k *kstub) newFile(fd uintptr, name string) *os.File {
-	expect := k.expect("newFile")
-	if expect.error(
-		checkArg(k, "fd", fd, 0),
-		checkArg(k, "name", name, 1)) != nil {
-		k.t.FailNow()
+	k.Helper()
+	expect := k.Expects("newFile")
+	if expect.Error(
+		stub.CheckArg(k.Stub, "fd", fd, 0),
+		stub.CheckArg(k.Stub, "name", name, 1)) != nil {
+		k.FailNow()
 	}
-	return expect.ret.(*os.File)
+	return expect.Ret.(*os.File)
 }
 
 func (k *kstub) symlink(oldname, newname string) error {
-	return k.expect("symlink").error(
-		checkArg(k, "oldname", oldname, 0),
-		checkArg(k, "newname", newname, 1))
+	k.Helper()
+	return k.Expects("symlink").Error(
+		stub.CheckArg(k.Stub, "oldname", oldname, 0),
+		stub.CheckArg(k.Stub, "newname", newname, 1))
 }
 
 func (k *kstub) readlink(name string) (string, error) {
-	expect := k.expect("readlink")
-	return expect.ret.(string), expect.error(
-		checkArg(k, "name", name, 0))
+	k.Helper()
+	expect := k.Expects("readlink")
+	return expect.Ret.(string), expect.Error(
+		stub.CheckArg(k.Stub, "name", name, 0))
 }
 
 func (k *kstub) umask(mask int) (oldmask int) {
-	expect := k.expect("umask")
-	if !checkArg(k, "mask", mask, 0) {
-		k.t.FailNow()
+	k.Helper()
+	expect := k.Expects("umask")
+	if !stub.CheckArg(k.Stub, "mask", mask, 0) {
+		k.FailNow()
 	}
-	return expect.ret.(int)
+	return expect.Ret.(int)
 }
 
 func (k *kstub) sethostname(p []byte) (err error) {
-	return k.expect("sethostname").error(
-		checkArgReflect(k, "p", p, 0))
+	k.Helper()
+	return k.Expects("sethostname").Error(
+		stub.CheckArgReflect(k.Stub, "p", p, 0))
 }
 
 func (k *kstub) chdir(path string) (err error) {
-	return k.expect("chdir").error(
-		checkArg(k, "path", path, 0))
+	k.Helper()
+	return k.Expects("chdir").Error(
+		stub.CheckArg(k.Stub, "path", path, 0))
 }
 
 func (k *kstub) fchdir(fd int) (err error) {
-	return k.expect("fchdir").error(
-		checkArg(k, "fd", fd, 0))
+	k.Helper()
+	return k.Expects("fchdir").Error(
+		stub.CheckArg(k.Stub, "fd", fd, 0))
 }
 
 func (k *kstub) open(path string, mode int, perm uint32) (fd int, err error) {
-	expect := k.expect("open")
-	return expect.ret.(int), expect.error(
-		checkArg(k, "path", path, 0),
-		checkArg(k, "mode", mode, 1),
-		checkArg(k, "perm", perm, 2))
+	k.Helper()
+	expect := k.Expects("open")
+	return expect.Ret.(int), expect.Error(
+		stub.CheckArg(k.Stub, "path", path, 0),
+		stub.CheckArg(k.Stub, "mode", mode, 1),
+		stub.CheckArg(k.Stub, "perm", perm, 2))
 }
 
 func (k *kstub) close(fd int) (err error) {
-	return k.expect("close").error(
-		checkArg(k, "fd", fd, 0))
+	k.Helper()
+	return k.Expects("close").Error(
+		stub.CheckArg(k.Stub, "fd", fd, 0))
 }
 
 func (k *kstub) pivotRoot(newroot, putold string) (err error) {
-	return k.expect("pivotRoot").error(
-		checkArg(k, "newroot", newroot, 0),
-		checkArg(k, "putold", putold, 1))
+	k.Helper()
+	return k.Expects("pivotRoot").Error(
+		stub.CheckArg(k.Stub, "newroot", newroot, 0),
+		stub.CheckArg(k.Stub, "putold", putold, 1))
 }
 
 func (k *kstub) mount(source, target, fstype string, flags uintptr, data string) (err error) {
-	return k.expect("mount").error(
-		checkArg(k, "source", source, 0),
-		checkArg(k, "target", target, 1),
-		checkArg(k, "fstype", fstype, 2),
-		checkArg(k, "flags", flags, 3),
-		checkArg(k, "data", data, 4))
+	k.Helper()
+	return k.Expects("mount").Error(
+		stub.CheckArg(k.Stub, "source", source, 0),
+		stub.CheckArg(k.Stub, "target", target, 1),
+		stub.CheckArg(k.Stub, "fstype", fstype, 2),
+		stub.CheckArg(k.Stub, "flags", flags, 3),
+		stub.CheckArg(k.Stub, "data", data, 4))
 }
 
 func (k *kstub) unmount(target string, flags int) (err error) {
-	return k.expect("unmount").error(
-		checkArg(k, "target", target, 0),
-		checkArg(k, "flags", flags, 1))
+	k.Helper()
+	return k.Expects("unmount").Error(
+		stub.CheckArg(k.Stub, "target", target, 0),
+		stub.CheckArg(k.Stub, "flags", flags, 1))
 }
 
 func (k *kstub) wait4(pid int, wstatus *syscall.WaitStatus, options int, rusage *syscall.Rusage) (wpid int, err error) {
-	expect := k.expect("wait4")
+	k.Helper()
+	expect := k.Expects("wait4")
 	// special case to prevent leaking the wait4 goroutine when testing initEntrypoint
-	if v, ok := expect.args[4].(int); ok && v == 0xdeadbeef {
-		k.t.Log("terminating current goroutine as requested by kexpect")
-		panic(0xdeadbeef)
+	if v, ok := expect.Args[4].(int); ok && v == stub.PanicExit {
+		k.Log("terminating current goroutine as requested by kexpect")
+		panic(stub.PanicExit)
 	}
 
-	wpid = expect.ret.(int)
-	err = expect.error(
-		checkArg(k, "pid", pid, 0),
-		checkArg(k, "options", options, 2))
+	wpid = expect.Ret.(int)
+	err = expect.Error(
+		stub.CheckArg(k.Stub, "pid", pid, 0),
+		stub.CheckArg(k.Stub, "options", options, 2))
 
-	if wstatusV, ok := expect.args[1].(syscall.WaitStatus); wstatus != nil && ok {
+	if wstatusV, ok := expect.Args[1].(syscall.WaitStatus); wstatus != nil && ok {
 		*wstatus = wstatusV
 	}
-	if rusageV, ok := expect.args[3].(syscall.Rusage); rusage != nil && ok {
+	if rusageV, ok := expect.Args[3].(syscall.Rusage); rusage != nil && ok {
 		*rusage = rusageV
 	}
 
@@ -696,53 +664,50 @@ func (k *kstub) wait4(pid int, wstatus *syscall.WaitStatus, options int, rusage 
 }
 
 func (k *kstub) printf(format string, v ...any) {
-	if k.expect("printf").error(
-		checkArg(k, "format", format, 0),
-		checkArgReflect(k, "v", v, 1)) != nil {
-		k.t.FailNow()
+	k.Helper()
+	if k.Expects("printf").Error(
+		stub.CheckArg(k.Stub, "format", format, 0),
+		stub.CheckArgReflect(k.Stub, "v", v, 1)) != nil {
+		k.FailNow()
 	}
 }
 
 func (k *kstub) fatal(v ...any) {
-	if k.expect("fatal").error(
-		checkArgReflect(k, "v", v, 0)) != nil {
-		k.t.FailNow()
+	k.Helper()
+	if k.Expects("fatal").Error(
+		stub.CheckArgReflect(k.Stub, "v", v, 0)) != nil {
+		k.FailNow()
 	}
-	panic(0xdeadbeef)
+	panic(stub.PanicExit)
 }
 
 func (k *kstub) fatalf(format string, v ...any) {
-	if k.expect("fatalf").error(
-		checkArg(k, "format", format, 0),
-		checkArgReflect(k, "v", v, 1)) != nil {
-		k.t.FailNow()
+	k.Helper()
+	if k.Expects("fatalf").Error(
+		stub.CheckArg(k.Stub, "format", format, 0),
+		stub.CheckArgReflect(k.Stub, "v", v, 1)) != nil {
+		k.FailNow()
 	}
-	panic(0xdeadbeef)
+	panic(stub.PanicExit)
 }
 
 func (k *kstub) verbose(v ...any) {
-	if k.expect("verbose").error(
-		checkArgReflect(k, "v", v, 0)) != nil {
-		k.t.FailNow()
+	k.Helper()
+	if k.Expects("verbose").Error(
+		stub.CheckArgReflect(k.Stub, "v", v, 0)) != nil {
+		k.FailNow()
 	}
 }
 
 func (k *kstub) verbosef(format string, v ...any) {
-	if k.expect("verbosef").error(
-		checkArg(k, "format", format, 0),
-		checkArgReflect(k, "v", v, 1)) != nil {
-		k.t.FailNow()
+	k.Helper()
+	if k.Expects("verbosef").Error(
+		stub.CheckArg(k.Stub, "format", format, 0),
+		stub.CheckArgReflect(k.Stub, "v", v, 1)) != nil {
+		k.FailNow()
 	}
 }
 
-func (k *kstub) suspend()     { k.expect("suspend") }
-func (k *kstub) resume() bool { return k.expect("resume").ret.(bool) }
-func (k *kstub) beforeExit()  { k.expect("beforeExit") }
-
-func (k *kstub) printBaseErr(err error, fallback string) {
-	if k.expect("printBaseErr").error(
-		checkArgReflect(k, "err", err, 0),
-		checkArg(k, "fallback", fallback, 1)) != nil {
-		k.t.FailNow()
-	}
-}
+func (k *kstub) suspend()     { k.Helper(); k.Expects("suspend") }
+func (k *kstub) resume() bool { k.Helper(); return k.Expects("resume").Ret.(bool) }
+func (k *kstub) beforeExit()  { k.Helper(); k.Expects("beforeExit") }

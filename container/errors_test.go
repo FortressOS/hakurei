@@ -8,6 +8,7 @@ import (
 	"syscall"
 	"testing"
 
+	"hakurei.app/container/stub"
 	"hakurei.app/container/vfs"
 )
 
@@ -30,8 +31,8 @@ func TestMessageFromError(t *testing.T) {
 		{"path", &os.PathError{
 			Op:   "mount",
 			Path: "/sysroot",
-			Err:  errUnique,
-		}, "cannot mount /sysroot: unique error injected by the test suite", true},
+			Err:  stub.UniqueError(0xdeadbeef),
+		}, "cannot mount /sysroot: unique error 3735928559 injected by the test suite", true},
 
 		{"absolute", &AbsoluteError{"etc/mtab"},
 			`path "etc/mtab" is not absolute`, true},
@@ -48,7 +49,7 @@ func TestMessageFromError(t *testing.T) {
 		{"tmpfs", TmpfsSizeError(-1),
 			"tmpfs size -1 out of bounds", true},
 
-		{"unsupported", errUnique, zeroString, false},
+		{"unsupported", stub.UniqueError(0xdeadbeef), zeroString, false},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -144,10 +145,10 @@ func TestErrnoFallback(t *testing.T) {
 			Err: syscall.ETIMEDOUT,
 		}, syscall.ETIMEDOUT, nil},
 
-		{"fallback", errUnique, 0, &os.PathError{
+		{"fallback", stub.UniqueError(0xcafebabe), 0, &os.PathError{
 			Op:   "fallback",
 			Path: "/proc/nonexistent",
-			Err:  errUnique,
+			Err:  stub.UniqueError(0xcafebabe),
 		}},
 	}
 	for _, tc := range testCases {

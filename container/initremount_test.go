@@ -3,6 +3,8 @@ package container
 import (
 	"syscall"
 	"testing"
+
+	"hakurei.app/container/stub"
 )
 
 func TestRemountOp(t *testing.T) {
@@ -10,8 +12,8 @@ func TestRemountOp(t *testing.T) {
 		{"success", new(Params), &RemountOp{
 			Target: MustAbs("/"),
 			Flags:  syscall.MS_RDONLY,
-		}, nil, nil, []kexpect{
-			{"remount", expectArgs{"/sysroot", uintptr(1)}, nil, nil},
+		}, nil, nil, []stub.Call{
+			{"remount", stub.ExpectArgs{"/sysroot", uintptr(1)}, nil, nil},
 		}, nil},
 	})
 

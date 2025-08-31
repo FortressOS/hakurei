@@ -3,6 +3,8 @@ package container
 import (
 	"os"
 	"testing"
+
+	"hakurei.app/container/stub"
 )
 
 func TestSymlinkOp(t *testing.T) {
@@ -10,9 +12,9 @@ func TestSymlinkOp(t *testing.T) {
 		{"mkdir", &Params{ParentPerm: 0700}, &SymlinkOp{
 			Target:   MustAbs("/etc/nixos"),
 			LinkName: "/etc/static/nixos",
-		}, nil, nil, []kexpect{
-			{"mkdirAll", expectArgs{"/sysroot/etc", os.FileMode(0700)}, nil, errUnique},
-		}, errUnique},
+		}, nil, nil, []stub.Call{
+			{"mkdirAll", stub.ExpectArgs{"/sysroot/etc", os.FileMode(0700)}, nil, stub.UniqueError(1)},
+		}, stub.UniqueError(1)},
 
 		{"abs", &Params{ParentPerm: 0755}, &SymlinkOp{
 			Target:      MustAbs("/etc/mtab"),
@@ -24,27 +26,27 @@ func TestSymlinkOp(t *testing.T) {
 			Target:      MustAbs("/etc/mtab"),
 			LinkName:    "/etc/mtab",
 			Dereference: true,
-		}, []kexpect{
-			{"readlink", expectArgs{"/etc/mtab"}, "/proc/mounts", errUnique},
-		}, errUnique, nil, nil},
+		}, []stub.Call{
+			{"readlink", stub.ExpectArgs{"/etc/mtab"}, "/proc/mounts", stub.UniqueError(0)},
+		}, stub.UniqueError(0), nil, nil},
 
 		{"success noderef", &Params{ParentPerm: 0700}, &SymlinkOp{
 			Target:   MustAbs("/etc/nixos"),
 			LinkName: "/etc/static/nixos",
-		}, nil, nil, []kexpect{
-			{"mkdirAll", expectArgs{"/sysroot/etc", os.FileMode(0700)}, nil, nil},
-			{"symlink", expectArgs{"/etc/static/nixos", "/sysroot/etc/nixos"}, nil, nil},
+		}, nil, nil, []stub.Call{
+			{"mkdirAll", stub.ExpectArgs{"/sysroot/etc", os.FileMode(0700)}, nil, nil},
+			{"symlink", stub.ExpectArgs{"/etc/static/nixos", "/sysroot/etc/nixos"}, nil, nil},
 		}, nil},
 
 		{"success", &Params{ParentPerm: 0755}, &SymlinkOp{
 			Target:      MustAbs("/etc/mtab"),
 			LinkName:    "/etc/mtab",
 			Dereference: true,
-		}, []kexpect{
-			{"readlink", expectArgs{"/etc/mtab"}, "/proc/mounts", nil},
-		}, nil, []kexpect{
-			{"mkdirAll", expectArgs{"/sysroot/etc", os.FileMode(0755)}, nil, nil},
-			{"symlink", expectArgs{"/proc/mounts", "/sysroot/etc/mtab"}, nil, nil},
+		}, []stub.Call{
+			{"readlink", stub.ExpectArgs{"/etc/mtab"}, "/proc/mounts", nil},
+		}, nil, []stub.Call{
+			{"mkdirAll", stub.ExpectArgs{"/sysroot/etc", os.FileMode(0755)}, nil, nil},
+			{"symlink", stub.ExpectArgs{"/proc/mounts", "/sysroot/etc/mtab"}, nil, nil},
 		}, nil},
 	})
 

@@ -4,6 +4,8 @@ import (
 	"os"
 	"syscall"
 	"testing"
+
+	"hakurei.app/container/stub"
 )
 
 func TestMountTmpfsOp(t *testing.T) {
@@ -25,8 +27,8 @@ func TestMountTmpfsOp(t *testing.T) {
 			Path:   MustAbs("/run/user/1000/"),
 			Size:   1 << 10,
 			Perm:   0700,
-		}, nil, nil, []kexpect{
-			{"mountTmpfs", expectArgs{
+		}, nil, nil, []stub.Call{
+			{"mountTmpfs", stub.ExpectArgs{
 				"ephemeral",              // fsname
 				"/sysroot/run/user/1000", // target
 				uintptr(0),               // flags

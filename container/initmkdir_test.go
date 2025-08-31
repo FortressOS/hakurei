@@ -3,6 +3,8 @@ package container
 import (
 	"os"
 	"testing"
+
+	"hakurei.app/container/stub"
 )
 
 func TestMkdirOp(t *testing.T) {
@@ -10,8 +12,8 @@ func TestMkdirOp(t *testing.T) {
 		{"success", new(Params), &MkdirOp{
 			Path: MustAbs("/.hakurei"),
 			Perm: 0500,
-		}, nil, nil, []kexpect{
-			{"mkdirAll", expectArgs{"/sysroot/.hakurei", os.FileMode(0500)}, nil, nil},
+		}, nil, nil, []stub.Call{
+			{"mkdirAll", stub.ExpectArgs{"/sysroot/.hakurei", os.FileMode(0500)}, nil, nil},
 		}, nil},
 	})
 

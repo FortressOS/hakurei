@@ -5,6 +5,7 @@ import (
 	"syscall"
 	"testing"
 
+	"hakurei.app/container/stub"
 	"hakurei.app/container/vfs"
 )
 
@@ -12,25 +13,25 @@ func TestBindMount(t *testing.T) {
 	checkSimple(t, "bindMount", []simpleTestCase{
 		{"mount", func(k syscallDispatcher) error {
 			return newProcPaths(k, hostPath).bindMount("/host/nix", "/sysroot/nix", syscall.MS_RDONLY, true)
-		}, [][]kexpect{{
-			{"verbosef", expectArgs{"resolved %q flags %#x", []any{"/sysroot/nix", uintptr(1)}}, nil, nil},
-			{"mount", expectArgs{"/host/nix", "/sysroot/nix", "", uintptr(0x9000), ""}, nil, errUnique},
-		}}, errUnique},
+		}, stub.Expect{Calls: []stub.Call{
+			{"verbosef", stub.ExpectArgs{"resolved %q flags %#x", []any{"/sysroot/nix", uintptr(1)}}, nil, nil},
+			{"mount", stub.ExpectArgs{"/host/nix", "/sysroot/nix", "", uintptr(0x9000), ""}, nil, stub.UniqueError(0xbad)},
+		}}, stub.UniqueError(0xbad)},
 
 		{"success ne", func(k syscallDispatcher) error {
 			return newProcPaths(k, hostPath).bindMount("/host/nix", "/sysroot/.host-nix", syscall.MS_RDONLY, false)
-		}, [][]kexpect{{
-			{"verbosef", expectArgs{"resolved %q on %q flags %#x", []any{"/host/nix", "/sysroot/.host-nix", uintptr(1)}}, nil, nil},
-			{"mount", expectArgs{"/host/nix", "/sysroot/.host-nix", "", uintptr(0x9000), ""}, nil, nil},
-			{"remount", expectArgs{"/sysroot/.host-nix", uintptr(1)}, nil, nil},
+		}, stub.Expect{Calls: []stub.Call{
+			{"verbosef", stub.ExpectArgs{"resolved %q on %q flags %#x", []any{"/host/nix", "/sysroot/.host-nix", uintptr(1)}}, nil, nil},
+			{"mount", stub.ExpectArgs{"/host/nix", "/sysroot/.host-nix", "", uintptr(0x9000), ""}, nil, nil},
+			{"remount", stub.ExpectArgs{"/sysroot/.host-nix", uintptr(1)}, nil, nil},
 		}}, nil},
 
 		{"success", func(k syscallDispatcher) error {
 			return newProcPaths(k, hostPath).bindMount("/host/nix", "/sysroot/nix", syscall.MS_RDONLY, true)
-		}, [][]kexpect{{
-			{"verbosef", expectArgs{"resolved %q flags %#x", []any{"/sysroot/nix", uintptr(1)}}, nil, nil},
-			{"mount", expectArgs{"/host/nix", "/sysroot/nix", "", uintptr(0x9000), ""}, nil, nil},
-			{"remount", expectArgs{"/sysroot/nix", uintptr(1)}, nil, nil},
+		}, stub.Expect{Calls: []stub.Call{
+			{"verbosef", stub.ExpectArgs{"resolved %q flags %#x", []any{"/sysroot/nix", uintptr(1)}}, nil, nil},
+			{"mount", stub.ExpectArgs{"/host/nix", "/sysroot/nix", "", uintptr(0x9000), ""}, nil, nil},
+			{"remount", stub.ExpectArgs{"/sysroot/nix", uintptr(1)}, nil, nil},
 		}}, nil},
 	})
 }
@@ -81,138 +82,138 @@ func TestRemount(t *testing.T) {
 	checkSimple(t, "remount", []simpleTestCase{
 		{"evalSymlinks", func(k syscallDispatcher) error {
 			return newProcPaths(k, hostPath).remount("/sysroot/nix", syscall.MS_REC|syscall.MS_RDONLY|syscall.MS_NODEV)
-		}, [][]kexpect{{
-			{"evalSymlinks", expectArgs{"/sysroot/nix"}, "/sysroot/nix", errUnique},
-		}}, errUnique},
+		}, stub.Expect{Calls: []stub.Call{
+			{"evalSymlinks", stub.ExpectArgs{"/sysroot/nix"}, "/sysroot/nix", stub.UniqueError(6)},
+		}}, stub.UniqueError(6)},
 
 		{"open", func(k syscallDispatcher) error {
 			return newProcPaths(k, hostPath).remount("/sysroot/nix", syscall.MS_REC|syscall.MS_RDONLY|syscall.MS_NODEV)
-		}, [][]kexpect{{
-			{"evalSymlinks", expectArgs{"/sysroot/nix"}, "/sysroot/nix", nil},
-			{"open", expectArgs{"/sysroot/nix", 0x280000, uint32(0)}, 0xdeadbeef, errUnique},
-		}}, &os.PathError{Op: "open", Path: "/sysroot/nix", Err: errUnique}},
+		}, stub.Expect{Calls: []stub.Call{
+			{"evalSymlinks", stub.ExpectArgs{"/sysroot/nix"}, "/sysroot/nix", nil},
+			{"open", stub.ExpectArgs{"/sysroot/nix", 0x280000, uint32(0)}, 0xdeadbeef, stub.UniqueError(5)},
+		}}, &os.PathError{Op: "open", Path: "/sysroot/nix", Err: stub.UniqueError(5)}},
 
 		{"readlink", func(k syscallDispatcher) error {
 			return newProcPaths(k, hostPath).remount("/sysroot/nix", syscall.MS_REC|syscall.MS_RDONLY|syscall.MS_NODEV)
-		}, [][]kexpect{{
-			{"evalSymlinks", expectArgs{"/sysroot/nix"}, "/sysroot/nix", nil},
-			{"open", expectArgs{"/sysroot/nix", 0x280000, uint32(0)}, 0xdeadbeef, nil},
-			{"readlink", expectArgs{"/host/proc/self/fd/3735928559"}, "/sysroot/nix", errUnique},
-		}}, errUnique},
+		}, stub.Expect{Calls: []stub.Call{
+			{"evalSymlinks", stub.ExpectArgs{"/sysroot/nix"}, "/sysroot/nix", nil},
+			{"open", stub.ExpectArgs{"/sysroot/nix", 0x280000, uint32(0)}, 0xdeadbeef, nil},
+			{"readlink", stub.ExpectArgs{"/host/proc/self/fd/3735928559"}, "/sysroot/nix", stub.UniqueError(4)},
+		}}, stub.UniqueError(4)},
 
 		{"close", func(k syscallDispatcher) error {
 			return newProcPaths(k, hostPath).remount("/sysroot/nix", syscall.MS_REC|syscall.MS_RDONLY|syscall.MS_NODEV)
-		}, [][]kexpect{{
-			{"evalSymlinks", expectArgs{"/sysroot/nix"}, "/sysroot/nix", nil},
-			{"open", expectArgs{"/sysroot/nix", 0x280000, uint32(0)}, 0xdeadbeef, nil},
-			{"readlink", expectArgs{"/host/proc/self/fd/3735928559"}, "/sysroot/nix", nil},
-			{"close", expectArgs{0xdeadbeef}, nil, errUnique},
-		}}, &os.PathError{Op: "close", Path: "/sysroot/nix", Err: errUnique}},
+		}, stub.Expect{Calls: []stub.Call{
+			{"evalSymlinks", stub.ExpectArgs{"/sysroot/nix"}, "/sysroot/nix", nil},
+			{"open", stub.ExpectArgs{"/sysroot/nix", 0x280000, uint32(0)}, 0xdeadbeef, nil},
+			{"readlink", stub.ExpectArgs{"/host/proc/self/fd/3735928559"}, "/sysroot/nix", nil},
+			{"close", stub.ExpectArgs{0xdeadbeef}, nil, stub.UniqueError(3)},
+		}}, &os.PathError{Op: "close", Path: "/sysroot/nix", Err: stub.UniqueError(3)}},
 
 		{"mountinfo no match", func(k syscallDispatcher) error {
 			return newProcPaths(k, hostPath).remount("/sysroot/nix", syscall.MS_REC|syscall.MS_RDONLY|syscall.MS_NODEV)
-		}, [][]kexpect{{
-			{"evalSymlinks", expectArgs{"/sysroot/nix"}, "/sysroot/.hakurei", nil},
-			{"verbosef", expectArgs{"target resolves to %q", []any{"/sysroot/.hakurei"}}, nil, nil},
-			{"open", expectArgs{"/sysroot/.hakurei", 0x280000, uint32(0)}, 0xdeadbeef, nil},
-			{"readlink", expectArgs{"/host/proc/self/fd/3735928559"}, "/sysroot/.hakurei", nil},
-			{"close", expectArgs{0xdeadbeef}, nil, nil},
-			{"openNew", expectArgs{"/host/proc/self/mountinfo"}, newConstFile(sampleMountinfoNix), nil},
+		}, stub.Expect{Calls: []stub.Call{
+			{"evalSymlinks", stub.ExpectArgs{"/sysroot/nix"}, "/sysroot/.hakurei", nil},
+			{"verbosef", stub.ExpectArgs{"target resolves to %q", []any{"/sysroot/.hakurei"}}, nil, nil},
+			{"open", stub.ExpectArgs{"/sysroot/.hakurei", 0x280000, uint32(0)}, 0xdeadbeef, nil},
+			{"readlink", stub.ExpectArgs{"/host/proc/self/fd/3735928559"}, "/sysroot/.hakurei", nil},
+			{"close", stub.ExpectArgs{0xdeadbeef}, nil, nil},
+			{"openNew", stub.ExpectArgs{"/host/proc/self/mountinfo"}, newConstFile(sampleMountinfoNix), nil},
 		}}, &vfs.DecoderError{Op: "unfold", Line: -1, Err: vfs.UnfoldTargetError("/sysroot/.hakurei")}},
 
 		{"mountinfo", func(k syscallDispatcher) error {
 			return newProcPaths(k, hostPath).remount("/sysroot/nix", syscall.MS_REC|syscall.MS_RDONLY|syscall.MS_NODEV)
-		}, [][]kexpect{{
-			{"evalSymlinks", expectArgs{"/sysroot/nix"}, "/sysroot/nix", nil},
-			{"open", expectArgs{"/sysroot/nix", 0x280000, uint32(0)}, 0xdeadbeef, nil},
-			{"readlink", expectArgs{"/host/proc/self/fd/3735928559"}, "/sysroot/nix", nil},
-			{"close", expectArgs{0xdeadbeef}, nil, nil},
-			{"openNew", expectArgs{"/host/proc/self/mountinfo"}, newConstFile("\x00"), nil},
+		}, stub.Expect{Calls: []stub.Call{
+			{"evalSymlinks", stub.ExpectArgs{"/sysroot/nix"}, "/sysroot/nix", nil},
+			{"open", stub.ExpectArgs{"/sysroot/nix", 0x280000, uint32(0)}, 0xdeadbeef, nil},
+			{"readlink", stub.ExpectArgs{"/host/proc/self/fd/3735928559"}, "/sysroot/nix", nil},
+			{"close", stub.ExpectArgs{0xdeadbeef}, nil, nil},
+			{"openNew", stub.ExpectArgs{"/host/proc/self/mountinfo"}, newConstFile("\x00"), nil},
 		}}, &vfs.DecoderError{Op: "parse", Line: 0, Err: vfs.ErrMountInfoFields}},
 
 		{"mount", func(k syscallDispatcher) error {
 			return newProcPaths(k, hostPath).remount("/sysroot/nix", syscall.MS_REC|syscall.MS_RDONLY|syscall.MS_NODEV)
-		}, [][]kexpect{{
-			{"evalSymlinks", expectArgs{"/sysroot/nix"}, "/sysroot/nix", nil},
-			{"open", expectArgs{"/sysroot/nix", 0x280000, uint32(0)}, 0xdeadbeef, nil},
-			{"readlink", expectArgs{"/host/proc/self/fd/3735928559"}, "/sysroot/nix", nil},
-			{"close", expectArgs{0xdeadbeef}, nil, nil},
-			{"openNew", expectArgs{"/host/proc/self/mountinfo"}, newConstFile(sampleMountinfoNix), nil},
-			{"mount", expectArgs{"none", "/sysroot/nix", "", uintptr(0x209027), ""}, nil, errUnique},
-		}}, errUnique},
+		}, stub.Expect{Calls: []stub.Call{
+			{"evalSymlinks", stub.ExpectArgs{"/sysroot/nix"}, "/sysroot/nix", nil},
+			{"open", stub.ExpectArgs{"/sysroot/nix", 0x280000, uint32(0)}, 0xdeadbeef, nil},
+			{"readlink", stub.ExpectArgs{"/host/proc/self/fd/3735928559"}, "/sysroot/nix", nil},
+			{"close", stub.ExpectArgs{0xdeadbeef}, nil, nil},
+			{"openNew", stub.ExpectArgs{"/host/proc/self/mountinfo"}, newConstFile(sampleMountinfoNix), nil},
+			{"mount", stub.ExpectArgs{"none", "/sysroot/nix", "", uintptr(0x209027), ""}, nil, stub.UniqueError(2)},
+		}}, stub.UniqueError(2)},
 
 		{"mount propagate", func(k syscallDispatcher) error {
 			return newProcPaths(k, hostPath).remount("/sysroot/nix", syscall.MS_REC|syscall.MS_RDONLY|syscall.MS_NODEV)
-		}, [][]kexpect{{
-			{"evalSymlinks", expectArgs{"/sysroot/nix"}, "/sysroot/nix", nil},
-			{"open", expectArgs{"/sysroot/nix", 0x280000, uint32(0)}, 0xdeadbeef, nil},
-			{"readlink", expectArgs{"/host/proc/self/fd/3735928559"}, "/sysroot/nix", nil},
-			{"close", expectArgs{0xdeadbeef}, nil, nil},
-			{"openNew", expectArgs{"/host/proc/self/mountinfo"}, newConstFile(sampleMountinfoNix), nil},
-			{"mount", expectArgs{"none", "/sysroot/nix", "", uintptr(0x209027), ""}, nil, nil},
-			{"mount", expectArgs{"none", "/sysroot/nix/.ro-store", "", uintptr(0x209027), ""}, nil, errUnique},
-		}}, errUnique},
+		}, stub.Expect{Calls: []stub.Call{
+			{"evalSymlinks", stub.ExpectArgs{"/sysroot/nix"}, "/sysroot/nix", nil},
+			{"open", stub.ExpectArgs{"/sysroot/nix", 0x280000, uint32(0)}, 0xdeadbeef, nil},
+			{"readlink", stub.ExpectArgs{"/host/proc/self/fd/3735928559"}, "/sysroot/nix", nil},
+			{"close", stub.ExpectArgs{0xdeadbeef}, nil, nil},
+			{"openNew", stub.ExpectArgs{"/host/proc/self/mountinfo"}, newConstFile(sampleMountinfoNix), nil},
+			{"mount", stub.ExpectArgs{"none", "/sysroot/nix", "", uintptr(0x209027), ""}, nil, nil},
+			{"mount", stub.ExpectArgs{"none", "/sysroot/nix/.ro-store", "", uintptr(0x209027), ""}, nil, stub.UniqueError(1)},
+		}}, stub.UniqueError(1)},
 
 		{"success toplevel", func(k syscallDispatcher) error {
 			return newProcPaths(k, hostPath).remount("/sysroot/bin", syscall.MS_REC|syscall.MS_RDONLY|syscall.MS_NODEV)
-		}, [][]kexpect{{
-			{"evalSymlinks", expectArgs{"/sysroot/bin"}, "/sysroot/bin", nil},
-			{"open", expectArgs{"/sysroot/bin", 0x280000, uint32(0)}, 0xbabe, nil},
-			{"readlink", expectArgs{"/host/proc/self/fd/47806"}, "/sysroot/bin", nil},
-			{"close", expectArgs{0xbabe}, nil, nil},
-			{"openNew", expectArgs{"/host/proc/self/mountinfo"}, newConstFile(sampleMountinfoNix), nil},
-			{"mount", expectArgs{"none", "/sysroot/bin", "", uintptr(0x209027), ""}, nil, nil},
+		}, stub.Expect{Calls: []stub.Call{
+			{"evalSymlinks", stub.ExpectArgs{"/sysroot/bin"}, "/sysroot/bin", nil},
+			{"open", stub.ExpectArgs{"/sysroot/bin", 0x280000, uint32(0)}, 0xbabe, nil},
+			{"readlink", stub.ExpectArgs{"/host/proc/self/fd/47806"}, "/sysroot/bin", nil},
+			{"close", stub.ExpectArgs{0xbabe}, nil, nil},
+			{"openNew", stub.ExpectArgs{"/host/proc/self/mountinfo"}, newConstFile(sampleMountinfoNix), nil},
+			{"mount", stub.ExpectArgs{"none", "/sysroot/bin", "", uintptr(0x209027), ""}, nil, nil},
 		}}, nil},
 
 		{"success EACCES", func(k syscallDispatcher) error {
 			return newProcPaths(k, hostPath).remount("/sysroot/nix", syscall.MS_REC|syscall.MS_RDONLY|syscall.MS_NODEV)
-		}, [][]kexpect{{
-			{"evalSymlinks", expectArgs{"/sysroot/nix"}, "/sysroot/nix", nil},
-			{"open", expectArgs{"/sysroot/nix", 0x280000, uint32(0)}, 0xdeadbeef, nil},
-			{"readlink", expectArgs{"/host/proc/self/fd/3735928559"}, "/sysroot/nix", nil},
-			{"close", expectArgs{0xdeadbeef}, nil, nil},
-			{"openNew", expectArgs{"/host/proc/self/mountinfo"}, newConstFile(sampleMountinfoNix), nil},
-			{"mount", expectArgs{"none", "/sysroot/nix", "", uintptr(0x209027), ""}, nil, nil},
-			{"mount", expectArgs{"none", "/sysroot/nix/.ro-store", "", uintptr(0x209027), ""}, nil, syscall.EACCES},
-			{"mount", expectArgs{"none", "/sysroot/nix/store", "", uintptr(0x209027), ""}, nil, nil},
+		}, stub.Expect{Calls: []stub.Call{
+			{"evalSymlinks", stub.ExpectArgs{"/sysroot/nix"}, "/sysroot/nix", nil},
+			{"open", stub.ExpectArgs{"/sysroot/nix", 0x280000, uint32(0)}, 0xdeadbeef, nil},
+			{"readlink", stub.ExpectArgs{"/host/proc/self/fd/3735928559"}, "/sysroot/nix", nil},
+			{"close", stub.ExpectArgs{0xdeadbeef}, nil, nil},
+			{"openNew", stub.ExpectArgs{"/host/proc/self/mountinfo"}, newConstFile(sampleMountinfoNix), nil},
+			{"mount", stub.ExpectArgs{"none", "/sysroot/nix", "", uintptr(0x209027), ""}, nil, nil},
+			{"mount", stub.ExpectArgs{"none", "/sysroot/nix/.ro-store", "", uintptr(0x209027), ""}, nil, syscall.EACCES},
+			{"mount", stub.ExpectArgs{"none", "/sysroot/nix/store", "", uintptr(0x209027), ""}, nil, nil},
 		}}, nil},
 
 		{"success no propagate", func(k syscallDispatcher) error {
 			return newProcPaths(k, hostPath).remount("/sysroot/nix", syscall.MS_RDONLY|syscall.MS_NODEV)
-		}, [][]kexpect{{
-			{"evalSymlinks", expectArgs{"/sysroot/nix"}, "/sysroot/nix", nil},
-			{"open", expectArgs{"/sysroot/nix", 0x280000, uint32(0)}, 0xdeadbeef, nil},
-			{"readlink", expectArgs{"/host/proc/self/fd/3735928559"}, "/sysroot/nix", nil},
-			{"close", expectArgs{0xdeadbeef}, nil, nil},
-			{"openNew", expectArgs{"/host/proc/self/mountinfo"}, newConstFile(sampleMountinfoNix), nil},
-			{"mount", expectArgs{"none", "/sysroot/nix", "", uintptr(0x209027), ""}, nil, nil},
+		}, stub.Expect{Calls: []stub.Call{
+			{"evalSymlinks", stub.ExpectArgs{"/sysroot/nix"}, "/sysroot/nix", nil},
+			{"open", stub.ExpectArgs{"/sysroot/nix", 0x280000, uint32(0)}, 0xdeadbeef, nil},
+			{"readlink", stub.ExpectArgs{"/host/proc/self/fd/3735928559"}, "/sysroot/nix", nil},
+			{"close", stub.ExpectArgs{0xdeadbeef}, nil, nil},
+			{"openNew", stub.ExpectArgs{"/host/proc/self/mountinfo"}, newConstFile(sampleMountinfoNix), nil},
+			{"mount", stub.ExpectArgs{"none", "/sysroot/nix", "", uintptr(0x209027), ""}, nil, nil},
 		}}, nil},
 
 		{"success case sensitive", func(k syscallDispatcher) error {
 			return newProcPaths(k, hostPath).remount("/sysroot/nix", syscall.MS_REC|syscall.MS_RDONLY|syscall.MS_NODEV)
-		}, [][]kexpect{{
-			{"evalSymlinks", expectArgs{"/sysroot/nix"}, "/sysroot/nix", nil},
-			{"open", expectArgs{"/sysroot/nix", 0x280000, uint32(0)}, 0xdeadbeef, nil},
-			{"readlink", expectArgs{"/host/proc/self/fd/3735928559"}, "/sysroot/nix", nil},
-			{"close", expectArgs{0xdeadbeef}, nil, nil},
-			{"openNew", expectArgs{"/host/proc/self/mountinfo"}, newConstFile(sampleMountinfoNix), nil},
-			{"mount", expectArgs{"none", "/sysroot/nix", "", uintptr(0x209027), ""}, nil, nil},
-			{"mount", expectArgs{"none", "/sysroot/nix/.ro-store", "", uintptr(0x209027), ""}, nil, nil},
-			{"mount", expectArgs{"none", "/sysroot/nix/store", "", uintptr(0x209027), ""}, nil, nil},
+		}, stub.Expect{Calls: []stub.Call{
+			{"evalSymlinks", stub.ExpectArgs{"/sysroot/nix"}, "/sysroot/nix", nil},
+			{"open", stub.ExpectArgs{"/sysroot/nix", 0x280000, uint32(0)}, 0xdeadbeef, nil},
+			{"readlink", stub.ExpectArgs{"/host/proc/self/fd/3735928559"}, "/sysroot/nix", nil},
+			{"close", stub.ExpectArgs{0xdeadbeef}, nil, nil},
+			{"openNew", stub.ExpectArgs{"/host/proc/self/mountinfo"}, newConstFile(sampleMountinfoNix), nil},
+			{"mount", stub.ExpectArgs{"none", "/sysroot/nix", "", uintptr(0x209027), ""}, nil, nil},
+			{"mount", stub.ExpectArgs{"none", "/sysroot/nix/.ro-store", "", uintptr(0x209027), ""}, nil, nil},
+			{"mount", stub.ExpectArgs{"none", "/sysroot/nix/store", "", uintptr(0x209027), ""}, nil, nil},
 		}}, nil},
 
 		{"success", func(k syscallDispatcher) error {
 			return newProcPaths(k, hostPath).remount("/sysroot/.nix", syscall.MS_REC|syscall.MS_RDONLY|syscall.MS_NODEV)
-		}, [][]kexpect{{
-			{"evalSymlinks", expectArgs{"/sysroot/.nix"}, "/sysroot/NIX", nil},
-			{"verbosef", expectArgs{"target resolves to %q", []any{"/sysroot/NIX"}}, nil, nil},
-			{"open", expectArgs{"/sysroot/NIX", 0x280000, uint32(0)}, 0xdeadbeef, nil},
-			{"readlink", expectArgs{"/host/proc/self/fd/3735928559"}, "/sysroot/nix", nil},
-			{"close", expectArgs{0xdeadbeef}, nil, nil},
-			{"openNew", expectArgs{"/host/proc/self/mountinfo"}, newConstFile(sampleMountinfoNix), nil},
-			{"mount", expectArgs{"none", "/sysroot/nix", "", uintptr(0x209027), ""}, nil, nil},
-			{"mount", expectArgs{"none", "/sysroot/nix/.ro-store", "", uintptr(0x209027), ""}, nil, nil},
-			{"mount", expectArgs{"none", "/sysroot/nix/store", "", uintptr(0x209027), ""}, nil, nil},
+		}, stub.Expect{Calls: []stub.Call{
+			{"evalSymlinks", stub.ExpectArgs{"/sysroot/.nix"}, "/sysroot/NIX", nil},
+			{"verbosef", stub.ExpectArgs{"target resolves to %q", []any{"/sysroot/NIX"}}, nil, nil},
+			{"open", stub.ExpectArgs{"/sysroot/NIX", 0x280000, uint32(0)}, 0xdeadbeef, nil},
+			{"readlink", stub.ExpectArgs{"/host/proc/self/fd/3735928559"}, "/sysroot/nix", nil},
+			{"close", stub.ExpectArgs{0xdeadbeef}, nil, nil},
+			{"openNew", stub.ExpectArgs{"/host/proc/self/mountinfo"}, newConstFile(sampleMountinfoNix), nil},
+			{"mount", stub.ExpectArgs{"none", "/sysroot/nix", "", uintptr(0x209027), ""}, nil, nil},
+			{"mount", stub.ExpectArgs{"none", "/sysroot/nix/.ro-store", "", uintptr(0x209027), ""}, nil, nil},
+			{"mount", stub.ExpectArgs{"none", "/sysroot/nix/store", "", uintptr(0x209027), ""}, nil, nil},
 		}}, nil},
 	})
 }
@@ -221,18 +222,18 @@ func TestRemountWithFlags(t *testing.T) {
 	checkSimple(t, "remountWithFlags", []simpleTestCase{
 		{"noop unmatched", func(k syscallDispatcher) error {
 			return remountWithFlags(k, &vfs.MountInfoNode{MountInfoEntry: &vfs.MountInfoEntry{VfsOptstr: "rw,relatime,cat"}}, 0)
-		}, [][]kexpect{{
-			{"verbosef", expectArgs{"unmatched vfs options: %q", []any{[]string{"cat"}}}, nil, nil},
+		}, stub.Expect{Calls: []stub.Call{
+			{"verbosef", stub.ExpectArgs{"unmatched vfs options: %q", []any{[]string{"cat"}}}, nil, nil},
 		}}, nil},
 
 		{"noop", func(k syscallDispatcher) error {
 			return remountWithFlags(k, &vfs.MountInfoNode{MountInfoEntry: &vfs.MountInfoEntry{VfsOptstr: "rw,relatime"}}, 0)
-		}, nil, nil},
+		}, stub.Expect{}, nil},
 
 		{"success", func(k syscallDispatcher) error {
 			return remountWithFlags(k, &vfs.MountInfoNode{MountInfoEntry: &vfs.MountInfoEntry{VfsOptstr: "rw,relatime"}}, syscall.MS_RDONLY)
-		}, [][]kexpect{{
-			{"mount", expectArgs{"none", "", "", uintptr(0x209021), ""}, nil, nil},
+		}, stub.Expect{Calls: []stub.Call{
+			{"mount", stub.ExpectArgs{"none", "", "", uintptr(0x209021), ""}, nil, nil},
 		}}, nil},
 	})
 }
@@ -241,22 +242,22 @@ func TestMountTmpfs(t *testing.T) {
 	checkSimple(t, "mountTmpfs", []simpleTestCase{
 		{"mkdirAll", func(k syscallDispatcher) error {
 			return mountTmpfs(k, "ephemeral", "/sysroot/run/user/1000", 0, 1<<10, 0700)
-		}, [][]kexpect{{
-			{"mkdirAll", expectArgs{"/sysroot/run/user/1000", os.FileMode(0700)}, nil, errUnique},
-		}}, errUnique},
+		}, stub.Expect{Calls: []stub.Call{
+			{"mkdirAll", stub.ExpectArgs{"/sysroot/run/user/1000", os.FileMode(0700)}, nil, stub.UniqueError(0)},
+		}}, stub.UniqueError(0)},
 
 		{"success no size", func(k syscallDispatcher) error {
 			return mountTmpfs(k, "ephemeral", "/sysroot/run/user/1000", 0, 0, 0710)
-		}, [][]kexpect{{
-			{"mkdirAll", expectArgs{"/sysroot/run/user/1000", os.FileMode(0750)}, nil, nil},
-			{"mount", expectArgs{"ephemeral", "/sysroot/run/user/1000", "tmpfs", uintptr(0), "mode=0710"}, nil, nil},
+		}, stub.Expect{Calls: []stub.Call{
+			{"mkdirAll", stub.ExpectArgs{"/sysroot/run/user/1000", os.FileMode(0750)}, nil, nil},
+			{"mount", stub.ExpectArgs{"ephemeral", "/sysroot/run/user/1000", "tmpfs", uintptr(0), "mode=0710"}, nil, nil},
 		}}, nil},
 
 		{"success", func(k syscallDispatcher) error {
 			return mountTmpfs(k, "ephemeral", "/sysroot/run/user/1000", 0, 1<<10, 0700)
-		}, [][]kexpect{{
-			{"mkdirAll", expectArgs{"/sysroot/run/user/1000", os.FileMode(0700)}, nil, nil},
-			{"mount", expectArgs{"ephemeral", "/sysroot/run/user/1000", "tmpfs", uintptr(0), "mode=0700,size=1024"}, nil, nil},
+		}, stub.Expect{Calls: []stub.Call{
+			{"mkdirAll", stub.ExpectArgs{"/sysroot/run/user/1000", os.FileMode(0700)}, nil, nil},
+			{"mount", stub.ExpectArgs{"ephemeral", "/sysroot/run/user/1000", "tmpfs", uintptr(0), "mode=0700,size=1024"}, nil, nil},
 		}}, nil},
 	})
 }
