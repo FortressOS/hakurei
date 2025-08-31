@@ -20,16 +20,16 @@ func SetOutput(v container.Msg) {
 
 // OpError is returned by [I.Commit] and [I.Revert].
 type OpError struct {
-	Op      string
-	Err     error
-	Message string
-	Revert  bool
+	Op     string
+	Err    error
+	Msg    string
+	Revert bool
 }
 
 func (e *OpError) Unwrap() error { return e.Err }
 func (e *OpError) Error() string {
-	if e.Message != "" {
-		return e.Message
+	if e.Msg != "" {
+		return e.Msg
 	}
 
 	switch {
@@ -44,6 +44,16 @@ func (e *OpError) Error() string {
 		} else {
 			return "revert " + e.Op + ": " + e.Err.Error()
 		}
+	}
+}
+
+func (e *OpError) Message() string {
+	switch {
+	case e.Msg != "":
+		return e.Error()
+
+	default:
+		return "cannot " + e.Error()
 	}
 }
 
@@ -69,10 +79,18 @@ func printJoinedError(println func(v ...any), fallback string, err error) {
 		error
 	}
 	if !errors.As(err, &joinErr) {
-		println(fallback, err)
+		if m, ok := container.GetErrorMessage(err); ok {
+			println(m)
+		} else {
+			println(fallback, err)
+		}
 	} else {
 		for _, err = range joinErr.Unwrap() {
-			println(err.Error())
+			if m, ok := container.GetErrorMessage(err); ok {
+				println(m)
+			} else {
+				println(err.Error())
+			}
 		}
 	}
 }

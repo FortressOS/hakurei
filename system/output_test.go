@@ -19,27 +19,33 @@ func TestOpError(t *testing.T) {
 		s    string
 		is   error
 		isF  error
+		msg  string
 	}{
 		{"message", newOpErrorMessage("dbus", ErrDBusConfig,
 			"attempted to create message bus proxy args without session bus config", false),
 			"attempted to create message bus proxy args without session bus config",
-			ErrDBusConfig, syscall.ENOTRECOVERABLE},
+			ErrDBusConfig, syscall.ENOTRECOVERABLE,
+			"attempted to create message bus proxy args without session bus config"},
 
 		{"apply", newOpError("tmpfile", syscall.EBADE, false),
 			"apply tmpfile: invalid exchange",
-			syscall.EBADE, syscall.EBADF},
+			syscall.EBADE, syscall.EBADF,
+			"cannot apply tmpfile: invalid exchange"},
 
 		{"revert", newOpError("wayland", syscall.EBADF, true),
 			"revert wayland: bad file descriptor",
-			syscall.EBADF, syscall.EBADE},
+			syscall.EBADF, syscall.EBADE,
+			"cannot revert wayland: bad file descriptor"},
 
 		{"path", newOpError("tmpfile", &os.PathError{Op: "stat", Path: "/run/dbus", Err: syscall.EISDIR}, false),
 			"stat /run/dbus: is a directory",
-			syscall.EISDIR, syscall.ENOTDIR},
+			syscall.EISDIR, syscall.ENOTDIR,
+			"cannot stat /run/dbus: is a directory"},
 
 		{"net", newOpError("wayland", &net.OpError{Op: "dial", Net: "unix", Addr: &net.UnixAddr{Name: "/run/user/1000/wayland-1", Net: "unix"}, Err: syscall.ENOENT}, false),
 			"dial unix /run/user/1000/wayland-1: no such file or directory",
-			syscall.ENOENT, syscall.EPERM},
+			syscall.ENOENT, syscall.EPERM,
+			"cannot dial unix /run/user/1000/wayland-1: no such file or directory"},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -48,12 +54,24 @@ func TestOpError(t *testing.T) {
 					t.Errorf("Error: %q, want %q", got, tc.s)
 				}
 			})
+
 			t.Run("is", func(t *testing.T) {
 				if !errors.Is(tc.err, tc.is) {
 					t.Error("Is: unexpected false")
 				}
 				if errors.Is(tc.err, tc.isF) {
 					t.Error("Is: unexpected true")
+				}
+			})
+
+			t.Run("msg", func(t *testing.T) {
+				if got, ok := container.GetErrorMessage(tc.err); !ok {
+					if tc.msg != "" {
+						t.Errorf("GetErrorMessage: err does not implement MessageError")
+					}
+					return
+				} else if got != tc.msg {
+					t.Errorf("GetErrorMessage: %q, want %q", got, tc.msg)
 				}
 			})
 		})
@@ -103,13 +121,39 @@ func TestPrintJoinedError(t *testing.T) {
 		want [][]any
 	}{
 		{"nil", nil, [][]any{{"not a joined error:", nil}}},
-		{"unwrapped", syscall.EINVAL, [][]any{{"not a joined error:", syscall.EINVAL}}},
 		{"single", errors.Join(syscall.EINVAL), [][]any{{"invalid argument"}}},
+
+		{"unwrapped", syscall.EINVAL, [][]any{{"not a joined error:", syscall.EINVAL}}},
+		{"unwrapped message", &OpError{
+			Op:  "meow",
+			Err: syscall.EBADFD,
+		}, [][]any{
+			{"cannot apply meow: file descriptor in bad state"},
+		}},
 
 		{"many", errors.Join(syscall.ENOTRECOVERABLE, syscall.ETIMEDOUT, syscall.EBADFD), [][]any{
 			{"state not recoverable"},
 			{"connection timed out"},
 			{"file descriptor in bad state"},
+		}},
+		{"many message", errors.Join(
+			&container.StartError{
+				Step: "meow",
+				Err:  syscall.ENOMEM,
+			},
+			&os.PathError{
+				Op:   "meow",
+				Path: "/proc/nonexistent",
+				Err:  syscall.ENOSYS,
+			},
+			&OpError{
+				Op:     "meow",
+				Err:    syscall.ENODEV,
+				Revert: true,
+			}), [][]any{
+			{"cannot meow: cannot allocate memory"},
+			{"meow /proc/nonexistent: function not implemented"},
+			{"cannot revert meow: no such device"},
 		}},
 	}
 	for _, tc := range testCases {
