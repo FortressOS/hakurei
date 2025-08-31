@@ -1,9 +1,27 @@
 package container
 
 import (
+	"errors"
 	"log"
 	"sync/atomic"
 )
+
+// MessageError is an error with a user-facing message.
+type MessageError interface {
+	// Message returns a user-facing error message.
+	Message() string
+
+	error
+}
+
+// GetErrorMessage returns whether an error implements [MessageError], and the message if it does.
+func GetErrorMessage(err error) (string, bool) {
+	var e MessageError
+	if !errors.As(err, &e) || e == nil {
+		return zeroString, false
+	}
+	return e.Message(), true
+}
 
 type Msg interface {
 	IsVerbose() bool

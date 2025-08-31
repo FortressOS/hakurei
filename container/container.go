@@ -132,6 +132,24 @@ func (e *StartError) Error() string {
 	return e.Step + ": " + e.Err.Error()
 }
 
+// Message returns a user-facing error message.
+func (e *StartError) Message() string {
+	if e.Passthrough {
+		switch {
+		case errors.As(e.Err, new(*os.PathError)),
+			errors.As(e.Err, new(*os.SyscallError)):
+			return "cannot " + e.Err.Error()
+
+		default:
+			return e.Err.Error()
+		}
+	}
+	if e.Origin {
+		return e.Step
+	}
+	return "cannot " + e.Error()
+}
+
 // Start starts the container init. The init process blocks until Serve is called.
 func (p *Container) Start() error {
 	if p.cmd != nil {

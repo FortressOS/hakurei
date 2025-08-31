@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"net"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -34,6 +35,7 @@ func TestStartError(t *testing.T) {
 		s    string
 		is   error
 		isF  error
+		msg  string
 	}{
 		{"params env", &container.StartError{
 			Fatal: true,
@@ -41,7 +43,8 @@ func TestStartError(t *testing.T) {
 			Err:   container.ErrReceiveEnv,
 		},
 			"set up params stream: environment variable not set",
-			container.ErrReceiveEnv, syscall.EBADF},
+			container.ErrReceiveEnv, syscall.EBADF,
+			"cannot set up params stream: environment variable not set"},
 
 		{"params", &container.StartError{
 			Fatal: true,
@@ -49,7 +52,8 @@ func TestStartError(t *testing.T) {
 			Err:   &os.SyscallError{Syscall: "pipe2", Err: syscall.EBADF},
 		},
 			"set up params stream pipe2: bad file descriptor",
-			syscall.EBADF, os.ErrInvalid},
+			syscall.EBADF, os.ErrInvalid,
+			"cannot set up params stream pipe2: bad file descriptor"},
 
 		{"PR_SET_NO_NEW_PRIVS", &container.StartError{
 			Fatal: true,
@@ -57,14 +61,16 @@ func TestStartError(t *testing.T) {
 			Err:   syscall.EPERM,
 		},
 			"prctl(PR_SET_NO_NEW_PRIVS): operation not permitted",
-			syscall.EPERM, syscall.EACCES},
+			syscall.EPERM, syscall.EACCES,
+			"cannot prctl(PR_SET_NO_NEW_PRIVS): operation not permitted"},
 
 		{"landlock abi", &container.StartError{
 			Step: "get landlock ABI",
 			Err:  syscall.ENOSYS,
 		},
 			"get landlock ABI: function not implemented",
-			syscall.ENOSYS, syscall.ENOEXEC},
+			syscall.ENOSYS, syscall.ENOEXEC,
+			"cannot get landlock ABI: function not implemented"},
 
 		{"landlock old", &container.StartError{
 			Step:   "kernel version too old for LANDLOCK_SCOPE_ABSTRACT_UNIX_SOCKET",
@@ -72,7 +78,8 @@ func TestStartError(t *testing.T) {
 			Origin: true,
 		},
 			"kernel version too old for LANDLOCK_SCOPE_ABSTRACT_UNIX_SOCKET",
-			syscall.ENOSYS, syscall.ENOSPC},
+			syscall.ENOSYS, syscall.ENOSPC,
+			"kernel version too old for LANDLOCK_SCOPE_ABSTRACT_UNIX_SOCKET"},
 
 		{"landlock create", &container.StartError{
 			Fatal: true,
@@ -80,7 +87,8 @@ func TestStartError(t *testing.T) {
 			Err:   syscall.EBADFD,
 		},
 			"create landlock ruleset: file descriptor in bad state",
-			syscall.EBADFD, syscall.EBADF},
+			syscall.EBADFD, syscall.EBADF,
+			"cannot create landlock ruleset: file descriptor in bad state"},
 
 		{"landlock enforce", &container.StartError{
 			Fatal: true,
@@ -88,7 +96,8 @@ func TestStartError(t *testing.T) {
 			Err:   syscall.ENOTRECOVERABLE,
 		},
 			"enforce landlock ruleset: state not recoverable",
-			syscall.ENOTRECOVERABLE, syscall.ETIMEDOUT},
+			syscall.ENOTRECOVERABLE, syscall.ETIMEDOUT,
+			"cannot enforce landlock ruleset: state not recoverable"},
 
 		{"start", &container.StartError{
 			Step: "start container init",
@@ -99,7 +108,31 @@ func TestStartError(t *testing.T) {
 			}, Passthrough: true,
 		},
 			"fork/exec /proc/nonexistent: no such file or directory",
-			syscall.ENOENT, syscall.ENOSYS},
+			syscall.ENOENT, syscall.ENOSYS,
+			"cannot fork/exec /proc/nonexistent: no such file or directory"},
+
+		{"start syscall", &container.StartError{
+			Step: "start container init",
+			Err: &os.SyscallError{
+				Syscall: "open",
+				Err:     syscall.ENOSYS,
+			}, Passthrough: true,
+		},
+			"open: function not implemented",
+			syscall.ENOSYS, syscall.ENOENT,
+			"cannot open: function not implemented"},
+
+		{"start other", &container.StartError{
+			Step: "start container init",
+			Err: &net.OpError{
+				Op:  "dial",
+				Net: "unix",
+				Err: syscall.ECONNREFUSED,
+			}, Passthrough: true,
+		},
+			"dial unix: connection refused",
+			syscall.ECONNREFUSED, syscall.ECONNABORTED,
+			"dial unix: connection refused"},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -115,6 +148,17 @@ func TestStartError(t *testing.T) {
 				}
 				if errors.Is(tc.err, tc.isF) {
 					t.Errorf("Is: unexpected true")
+				}
+			})
+
+			t.Run("msg", func(t *testing.T) {
+				if got, ok := container.GetErrorMessage(tc.err); !ok {
+					if tc.msg != "" {
+						t.Errorf("GetErrorMessage: err does not implement MessageError")
+					}
+					return
+				} else if got != tc.msg {
+					t.Errorf("GetErrorMessage: %q, want %q", got, tc.msg)
 				}
 			})
 		})

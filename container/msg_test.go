@@ -1,13 +1,42 @@
 package container_test
 
 import (
+	"errors"
 	"log"
 	"strings"
 	"sync/atomic"
+	"syscall"
 	"testing"
 
 	"hakurei.app/container"
 )
+
+func TestMessageError(t *testing.T) {
+	testCases := []struct {
+		name   string
+		err    error
+		want   string
+		wantOk bool
+	}{
+		{"nil", nil, "", false},
+		{"new", errors.New(":3"), "", false},
+		{"start", &container.StartError{
+			Step: "meow",
+			Err:  syscall.ENOTRECOVERABLE,
+		}, "cannot meow: state not recoverable", true},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got, ok := container.GetErrorMessage(tc.err)
+			if got != tc.want {
+				t.Errorf("GetErrorMessage: %q, want %q", got, tc.want)
+			}
+			if ok != tc.wantOk {
+				t.Errorf("GetErrorMessage: ok = %v, want %v", ok, tc.wantOk)
+			}
+		})
+	}
+}
 
 func TestDefaultMsg(t *testing.T) {
 	{
