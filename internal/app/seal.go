@@ -146,8 +146,11 @@ type hsuUser struct {
 }
 
 func (seal *Outcome) finalise(ctx context.Context, sys sys.State, config *hst.Config) error {
+	if ctx == nil {
+		panic("invalid call to finalise")
+	}
 	if seal.ctx != nil {
-		panic("finalise called twice")
+		panic("attempting to finalise twice")
 	}
 	seal.ctx = ctx
 
@@ -306,7 +309,7 @@ func (seal *Outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 
 	share := &shareHost{seal: seal, sc: sys.Paths()}
 	seal.runDirPath = share.sc.RunDirPath
-	seal.sys = system.New(seal.user.uid.unwrap())
+	seal.sys = system.New(seal.ctx, seal.user.uid.unwrap())
 	seal.sys.Ensure(share.sc.SharePath.String(), 0711)
 
 	{

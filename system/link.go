@@ -5,32 +5,29 @@ import (
 	"os"
 )
 
-// Link registers an Op that links dst to src.
+// Link appends [HardlinkOp] to [I] the [Process] criteria.
 func (sys *I) Link(oldname, newname string) *I { return sys.LinkFileType(Process, oldname, newname) }
 
-// LinkFileType registers a file linking Op labelled with type et.
+// LinkFileType appends [HardlinkOp] to [I].
 func (sys *I) LinkFileType(et Enablement, oldname, newname string) *I {
-	sys.lock.Lock()
-	defer sys.lock.Unlock()
-
-	sys.ops = append(sys.ops, &Hardlink{et, newname, oldname})
-
+	sys.ops = append(sys.ops, &HardlinkOp{et, newname, oldname})
 	return sys
 }
 
-type Hardlink struct {
+// HardlinkOp maintains a hardlink until its [Enablement] is no longer satisfied.
+type HardlinkOp struct {
 	et       Enablement
 	dst, src string
 }
 
-func (l *Hardlink) Type() Enablement { return l.et }
+func (l *HardlinkOp) Type() Enablement { return l.et }
 
-func (l *Hardlink) apply(*I) error {
+func (l *HardlinkOp) apply(*I) error {
 	msg.Verbose("linking", l)
 	return newOpError("hardlink", os.Link(l.src, l.dst), false)
 }
 
-func (l *Hardlink) revert(_ *I, ec *Criteria) error {
+func (l *HardlinkOp) revert(_ *I, ec *Criteria) error {
 	if ec.hasType(l) {
 		msg.Verbosef("removing hard link %q", l.dst)
 		return newOpError("hardlink", os.Remove(l.dst), true)
@@ -40,6 +37,10 @@ func (l *Hardlink) revert(_ *I, ec *Criteria) error {
 	}
 }
 
-func (l *Hardlink) Is(o Op) bool   { l0, ok := o.(*Hardlink); return ok && l0 != nil && *l == *l0 }
-func (l *Hardlink) Path() string   { return l.src }
-func (l *Hardlink) String() string { return fmt.Sprintf("%q from %q", l.dst, l.src) }
+func (l *HardlinkOp) Is(o Op) bool {
+	target, ok := o.(*HardlinkOp)
+	return ok && l != nil && target != nil && *l == *target
+}
+
+func (l *HardlinkOp) Path() string   { return l.src }
+func (l *HardlinkOp) String() string { return fmt.Sprintf("%q from %q", l.dst, l.src) }

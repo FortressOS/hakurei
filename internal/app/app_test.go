@@ -30,7 +30,7 @@ func TestApp(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			a := app.NewWithID(tc.id, tc.os)
+			a := app.NewWithID(t.Context(), tc.id, tc.os)
 			var (
 				gotSys       *system.I
 				gotContainer *container.Params

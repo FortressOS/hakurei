@@ -19,7 +19,7 @@ func TestNew(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run("sys initialised with uid "+strconv.Itoa(tc.uid), func(t *testing.T) {
-			if got := system.New(tc.uid); got.UID() != tc.uid {
+			if got := system.New(t.Context(), tc.uid); got.UID() != tc.uid {
 				t.Errorf("New(%d) uid = %d, want %d",
 					tc.uid,
 					got.UID(), tc.uid)
@@ -63,57 +63,57 @@ func TestI_Equal(t *testing.T) {
 	}{
 		{
 			"simple UID",
-			system.New(150),
-			system.New(150),
+			system.New(t.Context(), 150),
+			system.New(t.Context(), 150),
 			true,
 		},
 		{
 			"simple UID differ",
-			system.New(150),
-			system.New(151),
+			system.New(t.Context(), 150),
+			system.New(t.Context(), 151),
 			false,
 		},
 		{
 			"simple UID nil",
-			system.New(150),
+			system.New(t.Context(), 150),
 			nil,
 			false,
 		},
 		{
 			"op length mismatch",
-			system.New(150).
+			system.New(t.Context(), 150).
 				ChangeHosts("chronos"),
-			system.New(150).
+			system.New(t.Context(), 150).
 				ChangeHosts("chronos").
 				Ensure("/run", 0755),
 			false,
 		},
 		{
 			"op value mismatch",
-			system.New(150).
+			system.New(t.Context(), 150).
 				ChangeHosts("chronos").
 				Ensure("/run", 0644),
-			system.New(150).
+			system.New(t.Context(), 150).
 				ChangeHosts("chronos").
 				Ensure("/run", 0755),
 			false,
 		},
 		{
 			"op type mismatch",
-			system.New(150).
+			system.New(t.Context(), 150).
 				ChangeHosts("chronos").
 				CopyFile(new([]byte), "/home/ophestra/xdg/config/pulse/cookie", 0, 256),
-			system.New(150).
+			system.New(t.Context(), 150).
 				ChangeHosts("chronos").
 				Ensure("/run", 0755),
 			false,
 		},
 		{
 			"op equals",
-			system.New(150).
+			system.New(t.Context(), 150).
 				ChangeHosts("chronos").
 				Ensure("/run", 0755),
-			system.New(150).
+			system.New(t.Context(), 150).
 				ChangeHosts("chronos").
 				Ensure("/run", 0755),
 			true,

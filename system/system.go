@@ -1,4 +1,4 @@
-// Package system provides tools for safely interacting with the operating system.
+// Package system provides helpers to apply and revert groups of operations to the system.
 package system
 
 import (
@@ -6,11 +6,10 @@ import (
 	"errors"
 	"log"
 	"strings"
-	"sync"
 )
 
 const (
-	// User type is reverted at final launcher exit.
+	// User type is reverted at final instance exit.
 	User = EM << iota
 	// Process type is unconditionally reverted on exit.
 	Process
@@ -32,12 +31,10 @@ func (ec *Criteria) hasType(o Op) bool {
 
 // Op is a reversible system operation.
 type Op interface {
-	// Type returns Op's enablement type.
+	// Type returns [Op]'s enablement type, for matching a revert criteria.
 	Type() Enablement
 
-	// apply the Op
 	apply(sys *I) error
-	// revert reverses the Op if criteria is met
 	revert(sys *I, ec *Criteria) error
 
 	Is(o Op) bool
@@ -45,7 +42,7 @@ type Op interface {
 	String() string
 }
 
-// TypeString returns the string representation of a type stored as an [Enablement].
+// TypeString extends [Enablement.String] to support [User] and [Process].
 func TypeString(e Enablement) string {
 	switch e {
 	case User:
@@ -68,35 +65,39 @@ func TypeString(e Enablement) string {
 	}
 }
 
-// New initialises sys with no-op verbose functions.
-func New(uid int) (sys *I) {
-	sys = new(I)
-	sys.uid = uid
-	return
+// New returns the address of a new [I] targeting uid.
+func New(ctx context.Context, uid int) (sys *I) {
+	if ctx == nil || uid < 0 {
+		panic("invalid call to New")
+	}
+	return &I{ctx: ctx, uid: uid}
 }
 
-// An I provides indirect bulk operating system interaction. I must not be copied.
+// An I provides deferred operating system interaction. [I] must not be copied.
+// Methods of [I] must not be used concurrently.
 type I struct {
+	_ noCopy
+
 	uid int
 	ops []Op
 	ctx context.Context
 
-	// whether sys has been reverted
-	state bool
-
-	lock sync.Mutex
+	// the behaviour of Commit is only defined for up to one call
+	committed bool
+	// the behaviour of Revert is only defined for up to one call
+	reverted bool
 }
 
 func (sys *I) UID() int { return sys.uid }
 
-// Equal returns whether all [Op] instances held by v is identical to that of sys.
-func (sys *I) Equal(v *I) bool {
-	if v == nil || sys.uid != v.uid || len(sys.ops) != len(v.ops) {
+// Equal returns whether all [Op] instances held by sys matches that of target.
+func (sys *I) Equal(target *I) bool {
+	if target == nil || sys.uid != target.uid || len(sys.ops) != len(target.ops) {
 		return false
 	}
 
 	for i, o := range sys.ops {
-		if !o.Is(v.ops[i]) {
+		if !o.Is(target.ops[i]) {
 			return false
 		}
 	}
@@ -104,18 +105,15 @@ func (sys *I) Equal(v *I) bool {
 	return true
 }
 
-// Commit applies all [Op] held by [I] and reverts successful [Op] on first error encountered.
+// Commit applies all [Op] held by [I] and reverts all successful [Op] on first error encountered.
 // Commit must not be called more than once.
-func (sys *I) Commit(ctx context.Context) error {
-	sys.lock.Lock()
-	defer sys.lock.Unlock()
-
-	if sys.ctx != nil {
-		panic("sys instance committed twice")
+func (sys *I) Commit() error {
+	if sys.committed {
+		panic("attempting to commit twice")
 	}
-	sys.ctx = ctx
+	sys.committed = true
 
-	sp := New(sys.uid)
+	sp := New(sys.ctx, sys.uid)
 	sp.ops = make([]Op, 0, len(sys.ops)) // prevent copies during commits
 	defer func() {
 		// sp is set to nil when all ops are applied
@@ -144,13 +142,10 @@ func (sys *I) Commit(ctx context.Context) error {
 
 // Revert reverts all [Op] meeting [Criteria] held by [I].
 func (sys *I) Revert(ec *Criteria) error {
-	sys.lock.Lock()
-	defer sys.lock.Unlock()
-
-	if sys.state {
-		panic("sys instance reverted twice")
+	if sys.reverted {
+		panic("attempting to revert twice")
 	}
-	sys.state = true
+	sys.reverted = true
 
 	// collect errors
 	errs := make([]error, len(sys.ops))
@@ -162,3 +157,16 @@ func (sys *I) Revert(ec *Criteria) error {
 	// errors.Join filters nils
 	return errors.Join(errs...)
 }
+
+// noCopy may be added to structs which must not be copied
+// after the first use.
+//
+// See https://golang.org/issues/8005#issuecomment-190753527
+// for details.
+//
+// Note that it must not be embedded, due to the Lock and Unlock methods.
+type noCopy struct{}
+
+// Lock is a no-op used by -copylocks checker from `go vet`.
+func (*noCopy) Lock()   {}
+func (*noCopy) Unlock() {}

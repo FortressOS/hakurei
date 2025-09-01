@@ -1,6 +1,7 @@
 package app_test
 
 import (
+	"context"
 	"syscall"
 
 	"hakurei.app/container"
@@ -74,7 +75,7 @@ var testCasesNixos = []sealTestCase{
 			0x4c, 0xf0, 0x73, 0xbd,
 			0xb4, 0x6e, 0xb5, 0xc1,
 		},
-		system.New(1000001).
+		system.New(context.TODO(), 1000001).
 			Ensure("/tmp/hakurei.1971", 0711).
 			Ensure("/tmp/hakurei.1971/runtime", 0700).UpdatePermType(system.User, "/tmp/hakurei.1971/runtime", acl.Execute).
 			Ensure("/tmp/hakurei.1971/runtime/1", 0700).UpdatePermType(system.User, "/tmp/hakurei.1971/runtime/1", acl.Read, acl.Write, acl.Execute).

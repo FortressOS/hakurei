@@ -15,10 +15,10 @@ func TestCopyFile(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run("copy file "+tc.path+" with cap = "+strconv.Itoa(tc.cap)+" n = "+strconv.Itoa(int(tc.n)), func(t *testing.T) {
-			sys := New(150)
+			sys := New(t.Context(), 150)
 			sys.CopyFile(new([]byte), tc.path, tc.cap, tc.n)
 			tc.test(t, sys.ops, []Op{
-				&Tmpfile{nil, tc.path, tc.n, nil},
+				&TmpfileOp{nil, tc.path, tc.n, nil},
 			}, "CopyFile")
 		})
 	}
@@ -33,10 +33,10 @@ func TestLink(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run("link file "+tc.dst+" from "+tc.src, func(t *testing.T) {
-			sys := New(150)
+			sys := New(t.Context(), 150)
 			sys.Link(tc.src, tc.dst)
 			(&tcOp{Process, tc.src}).test(t, sys.ops, []Op{
-				&Hardlink{Process, tc.dst, tc.src},
+				&HardlinkOp{Process, tc.dst, tc.src},
 			}, "Link")
 		})
 	}
@@ -52,10 +52,10 @@ func TestLinkFileType(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run("link file "+tc.dst+" from "+tc.path+" with type "+TypeString(tc.et), func(t *testing.T) {
-			sys := New(150)
+			sys := New(t.Context(), 150)
 			sys.LinkFileType(tc.et, tc.path, tc.dst)
 			tc.test(t, sys.ops, []Op{
-				&Hardlink{tc.et, tc.dst, tc.path},
+				&HardlinkOp{tc.et, tc.dst, tc.path},
 			}, "LinkFileType")
 		})
 	}
@@ -73,7 +73,7 @@ func TestTmpfile_String(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.want, func(t *testing.T) {
-			if got := (&Tmpfile{src: tc.src, n: tc.n}).String(); got != tc.want {
+			if got := (&TmpfileOp{src: tc.src, n: tc.n}).String(); got != tc.want {
 				t.Errorf("String() = %v, want %v", got, tc.want)
 			}
 		})

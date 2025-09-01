@@ -9,37 +9,33 @@ import (
 	"hakurei.app/system/acl"
 )
 
-// UpdatePerm appends an ephemeral acl update Op.
+// UpdatePerm appends [ACLUpdateOp] to [I] with the [Process] criteria.
 func (sys *I) UpdatePerm(path string, perms ...acl.Perm) *I {
 	sys.UpdatePermType(Process, path, perms...)
-
 	return sys
 }
 
-// UpdatePermType appends an acl update Op.
+// UpdatePermType appends [ACLUpdateOp] to [I].
 func (sys *I) UpdatePermType(et Enablement, path string, perms ...acl.Perm) *I {
-	sys.lock.Lock()
-	defer sys.lock.Unlock()
-
-	sys.ops = append(sys.ops, &ACL{et, path, perms})
-
+	sys.ops = append(sys.ops, &ACLUpdateOp{et, path, perms})
 	return sys
 }
 
-type ACL struct {
+// ACLUpdateOp maintains [acl.Perms] on a file until its [Enablement] is no longer satisfied.
+type ACLUpdateOp struct {
 	et    Enablement
 	path  string
 	perms acl.Perms
 }
 
-func (a *ACL) Type() Enablement { return a.et }
+func (a *ACLUpdateOp) Type() Enablement { return a.et }
 
-func (a *ACL) apply(sys *I) error {
+func (a *ACLUpdateOp) apply(sys *I) error {
 	msg.Verbose("applying ACL", a)
 	return newOpError("acl", acl.Update(a.path, sys.uid, a.perms...), false)
 }
 
-func (a *ACL) revert(sys *I, ec *Criteria) error {
+func (a *ACLUpdateOp) revert(sys *I, ec *Criteria) error {
 	if ec.hasType(a) {
 		msg.Verbose("stripping ACL", a)
 		err := acl.Update(a.path, sys.uid)
@@ -55,17 +51,17 @@ func (a *ACL) revert(sys *I, ec *Criteria) error {
 	}
 }
 
-func (a *ACL) Is(o Op) bool {
-	a0, ok := o.(*ACL)
-	return ok && a0 != nil &&
-		a.et == a0.et &&
-		a.path == a0.path &&
-		slices.Equal(a.perms, a0.perms)
+func (a *ACLUpdateOp) Is(o Op) bool {
+	target, ok := o.(*ACLUpdateOp)
+	return ok && a != nil && target != nil &&
+		a.et == target.et &&
+		a.path == target.path &&
+		slices.Equal(a.perms, target.perms)
 }
 
-func (a *ACL) Path() string { return a.path }
+func (a *ACLUpdateOp) Path() string { return a.path }
 
-func (a *ACL) String() string {
+func (a *ACLUpdateOp) String() string {
 	return fmt.Sprintf("%s type: %s path: %q",
 		a.perms, TypeString(a.et), a.path)
 }

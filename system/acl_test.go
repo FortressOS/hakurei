@@ -18,9 +18,9 @@ func TestUpdatePerm(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.path+permSubTestSuffix(tc.perms), func(t *testing.T) {
-			sys := New(150)
+			sys := New(t.Context(), 150)
 			sys.UpdatePerm(tc.path, tc.perms...)
-			(&tcOp{Process, tc.path}).test(t, sys.ops, []Op{&ACL{Process, tc.path, tc.perms}}, "UpdatePerm")
+			(&tcOp{Process, tc.path}).test(t, sys.ops, []Op{&ACLUpdateOp{Process, tc.path, tc.perms}}, "UpdatePerm")
 		})
 	}
 }
@@ -40,9 +40,9 @@ func TestUpdatePermType(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.path+"_"+TypeString(tc.et)+permSubTestSuffix(tc.perms), func(t *testing.T) {
-			sys := New(150)
+			sys := New(t.Context(), 150)
 			sys.UpdatePermType(tc.et, tc.path, tc.perms...)
-			tc.test(t, sys.ops, []Op{&ACL{tc.et, tc.path, tc.perms}}, "UpdatePermType")
+			tc.test(t, sys.ops, []Op{&ACLUpdateOp{tc.et, tc.path, tc.perms}}, "UpdatePermType")
 		})
 	}
 }
@@ -65,7 +65,7 @@ func TestACLString(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.want, func(t *testing.T) {
-			a := &ACL{et: tc.et, perms: tc.perms, path: container.Nonexistent}
+			a := &ACLUpdateOp{et: tc.et, perms: tc.perms, path: container.Nonexistent}
 			if got := a.String(); got != tc.want {
 				t.Errorf("String() = %v, want %v",
 					got, tc.want)

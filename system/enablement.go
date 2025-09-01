@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-// Enablement represents optional system resources.
+// Enablement represents an optional host service to export to the target user.
 type Enablement byte
 
 const (

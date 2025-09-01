@@ -17,6 +17,7 @@ var (
 	ErrDBusConfig = errors.New("dbus config not supplied")
 )
 
+// MustProxyDBus calls ProxyDBus and panics if an error is returned.
 func (sys *I) MustProxyDBus(sessionPath string, session *dbus.Config, systemPath string, system *dbus.Config) *I {
 	if _, err := sys.ProxyDBus(session, system, sessionPath, systemPath); err != nil {
 		panic(err.Error())
@@ -25,8 +26,9 @@ func (sys *I) MustProxyDBus(sessionPath string, session *dbus.Config, systemPath
 	}
 }
 
+// ProxyDBus finalises configuration and appends [DBusProxyOp] to [I].
 func (sys *I) ProxyDBus(session, system *dbus.Config, sessionPath, systemPath string) (func(), error) {
-	d := new(DBus)
+	d := new(DBusProxyOp)
 
 	// session bus is required as otherwise this is effectively a very expensive noop
 	if session == nil {
@@ -39,7 +41,7 @@ func (sys *I) ProxyDBus(session, system *dbus.Config, sessionPath, systemPath st
 
 	d.sessionBus[0], d.systemBus[0] = dbus.Address()
 	d.sessionBus[1], d.systemBus[1] = sessionPath, systemPath
-	d.out = &scanToFmsg{msg: new(strings.Builder)}
+	d.out = &linePrefixWriter{println: log.Println, prefix: "(dbus) ", msg: new(strings.Builder)}
 	if final, err := dbus.Finalise(d.sessionBus, d.systemBus, session, system); err != nil {
 		if errors.Is(err, syscall.EINVAL) {
 			return nil, newOpErrorMessage("dbus", err,
@@ -65,20 +67,22 @@ func (sys *I) ProxyDBus(session, system *dbus.Config, sessionPath, systemPath st
 	return d.out.Dump, nil
 }
 
-type DBus struct {
+// DBusProxyOp starts xdg-dbus-proxy via [dbus] and terminates it on revert.
+// This [Op] is always [Process] scoped.
+type DBusProxyOp struct {
 	proxy *dbus.Proxy // populated during apply
 
 	final *dbus.Final
-	out   *scanToFmsg
+	out   *linePrefixWriter
 	// whether system bus proxy is enabled
 	system bool
 
 	sessionBus, systemBus dbus.ProxyPair
 }
 
-func (d *DBus) Type() Enablement { return Process }
+func (d *DBusProxyOp) Type() Enablement { return Process }
 
-func (d *DBus) apply(sys *I) error {
+func (d *DBusProxyOp) apply(sys *I) error {
 	msg.Verbosef("session bus proxy on %q for upstream %q", d.sessionBus[1], d.sessionBus[0])
 	if d.system {
 		msg.Verbosef("system bus proxy on %q for upstream %q", d.systemBus[1], d.systemBus[0])
@@ -94,7 +98,7 @@ func (d *DBus) apply(sys *I) error {
 	return nil
 }
 
-func (d *DBus) revert(*I, *Criteria) error {
+func (d *DBusProxyOp) revert(*I, *Criteria) error {
 	// criteria ignored here since dbus is always process-scoped
 	msg.Verbose("terminating message bus proxy")
 	d.proxy.Close()
@@ -108,30 +112,34 @@ func (d *DBus) revert(*I, *Criteria) error {
 		fmt.Sprintf("message bus proxy error: %v", err), true)
 }
 
-func (d *DBus) Is(o Op) bool {
-	d0, ok := o.(*DBus)
-	return ok && d0 != nil &&
-		((d.proxy == nil && d0.proxy == nil) ||
-			(d.proxy != nil && d0.proxy != nil && d.proxy.String() == d0.proxy.String()))
+func (d *DBusProxyOp) Is(o Op) bool {
+	target, ok := o.(*DBusProxyOp)
+	return ok && d != nil && target != nil &&
+		((d.proxy == nil && target.proxy == nil) ||
+			(d.proxy != nil && target.proxy != nil &&
+				d.proxy.String() == target.proxy.String()))
 }
 
-func (d *DBus) Path() string   { return "(dbus proxy)" }
-func (d *DBus) String() string { return d.proxy.String() }
+func (d *DBusProxyOp) Path() string   { return "(dbus proxy)" }
+func (d *DBusProxyOp) String() string { return d.proxy.String() }
 
-type scanToFmsg struct {
-	msg    *strings.Builder
-	msgbuf []string
+// linePrefixWriter calls println with a prefix for every line written.
+type linePrefixWriter struct {
+	prefix  string
+	println func(v ...any)
+	msg     *strings.Builder
+	msgbuf  []string
 
 	mu sync.RWMutex
 }
 
-func (s *scanToFmsg) Write(p []byte) (n int, err error) {
+func (s *linePrefixWriter) Write(p []byte) (n int, err error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return s.write(p, 0)
 }
 
-func (s *scanToFmsg) write(p []byte, a int) (int, error) {
+func (s *linePrefixWriter) write(p []byte, a int) (int, error) {
 	if i := bytes.IndexByte(p, '\n'); i == -1 {
 		n, _ := s.msg.Write(p)
 		return a + n, nil
@@ -141,7 +149,7 @@ func (s *scanToFmsg) write(p []byte, a int) (int, error) {
 		// allow container init messages through
 		v := s.msg.String()
 		if strings.HasPrefix(v, "init: ") {
-			log.Println("(dbus) " + v)
+			s.println(s.prefix + v)
 		} else {
 			s.msgbuf = append(s.msgbuf, v)
 		}
@@ -151,10 +159,10 @@ func (s *scanToFmsg) write(p []byte, a int) (int, error) {
 	}
 }
 
-func (s *scanToFmsg) Dump() {
+func (s *linePrefixWriter) Dump() {
 	s.mu.RLock()
 	for _, m := range s.msgbuf {
-		log.Println("(dbus) " + m)
+		s.println(s.prefix + m)
 	}
 	s.mu.RUnlock()
 }

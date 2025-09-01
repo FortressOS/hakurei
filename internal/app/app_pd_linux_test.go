@@ -1,6 +1,7 @@
 package app_test
 
 import (
+	"context"
 	"os"
 	"syscall"
 
@@ -23,7 +24,7 @@ var testCasesPd = []sealTestCase{
 			0xbd, 0x01, 0x78, 0x0e,
 			0xb9, 0xa6, 0x07, 0xac,
 		},
-		system.New(1000000).
+		system.New(context.TODO(), 1000000).
 			Ensure("/tmp/hakurei.1971", 0711).
 			Ensure("/tmp/hakurei.1971/runtime", 0700).UpdatePermType(system.User, "/tmp/hakurei.1971/runtime", acl.Execute).
 			Ensure("/tmp/hakurei.1971/runtime/0", 0700).UpdatePermType(system.User, "/tmp/hakurei.1971/runtime/0", acl.Read, acl.Write, acl.Execute).
@@ -115,7 +116,7 @@ var testCasesPd = []sealTestCase{
 			0x82, 0xd4, 0x13, 0x36,
 			0x9b, 0x64, 0xce, 0x7c,
 		},
-		system.New(1000009).
+		system.New(context.TODO(), 1000009).
 			Ensure("/tmp/hakurei.1971", 0711).
 			Ensure("/tmp/hakurei.1971/runtime", 0700).UpdatePermType(system.User, "/tmp/hakurei.1971/runtime", acl.Execute).
 			Ensure("/tmp/hakurei.1971/runtime/9", 0700).UpdatePermType(system.User, "/tmp/hakurei.1971/runtime/9", acl.Read, acl.Write, acl.Execute).

@@ -19,9 +19,9 @@ func TestEnsure(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name+"_"+tc.perm.String(), func(t *testing.T) {
-			sys := New(150)
+			sys := New(t.Context(), 150)
 			sys.Ensure(tc.name, tc.perm)
-			(&tcOp{User, tc.name}).test(t, sys.ops, []Op{&Mkdir{User, tc.name, tc.perm, false}}, "Ensure")
+			(&tcOp{User, tc.name}).test(t, sys.ops, []Op{&MkdirOp{User, tc.name, tc.perm, false}}, "Ensure")
 		})
 	}
 }
@@ -36,9 +36,9 @@ func TestEphemeral(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.path+"_"+tc.perm.String()+"_"+TypeString(tc.et), func(t *testing.T) {
-			sys := New(150)
+			sys := New(t.Context(), 150)
 			sys.Ephemeral(tc.et, tc.path, tc.perm)
-			tc.test(t, sys.ops, []Op{&Mkdir{tc.et, tc.path, tc.perm, true}}, "Ephemeral")
+			tc.test(t, sys.ops, []Op{&MkdirOp{tc.et, tc.path, tc.perm, true}}, "Ephemeral")
 		})
 	}
 }
@@ -60,7 +60,7 @@ func TestMkdirString(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.want, func(t *testing.T) {
-			m := &Mkdir{
+			m := &MkdirOp{
 				et:        tc.et,
 				path:      container.Nonexistent,
 				perm:      0701,

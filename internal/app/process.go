@@ -61,7 +61,7 @@ func (seal *Outcome) Run(rs *RunState) error {
 	// read comp value early to allow for early failure
 	hsuPath := internal.MustHsuPath()
 
-	if err := seal.sys.Commit(seal.ctx); err != nil {
+	if err := seal.sys.Commit(); err != nil {
 		return err
 	}
 	store := state.NewMulti(seal.runDirPath.String())
