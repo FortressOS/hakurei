@@ -128,6 +128,12 @@ func checkOpMeta(t *testing.T, testCases []opMetaTestCase) {
 	})
 }
 
+// call initialises a [stub.Call].
+// This keeps composites analysis happy without making the test cases too bloated.
+func call(name string, args stub.ExpectArgs, ret any, err error) stub.Call {
+	return stub.Call{Name: name, Args: args, Ret: ret, Err: err}
+}
+
 type simpleTestCase struct {
 	name    string
 	f       func(k syscallDispatcher) error

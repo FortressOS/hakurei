@@ -54,11 +54,11 @@ func TestMountOverlayOp(t *testing.T) {
 			},
 			Upper: MustAbs("/"),
 		}, []stub.Call{
-			{"evalSymlinks", stub.ExpectArgs{"/var/lib/planterette/base/debian:f92c9052"}, "/var/lib/planterette/base/debian:f92c9052", nil},
-			{"evalSymlinks", stub.ExpectArgs{"/var/lib/planterette/app/org.chromium.Chromium@debian:f92c9052"}, "/var/lib/planterette/app/org.chromium.Chromium@debian:f92c9052", nil},
+			call("evalSymlinks", stub.ExpectArgs{"/var/lib/planterette/base/debian:f92c9052"}, "/var/lib/planterette/base/debian:f92c9052", nil),
+			call("evalSymlinks", stub.ExpectArgs{"/var/lib/planterette/app/org.chromium.Chromium@debian:f92c9052"}, "/var/lib/planterette/app/org.chromium.Chromium@debian:f92c9052", nil),
 		}, nil, []stub.Call{
-			{"mkdirAll", stub.ExpectArgs{"/sysroot", os.FileMode(0705)}, nil, nil},
-			{"mkdirTemp", stub.ExpectArgs{"/", "overlay.upper.*"}, "overlay.upper.32768", stub.UniqueError(6)},
+			call("mkdirAll", stub.ExpectArgs{"/sysroot", os.FileMode(0705)}, nil, nil),
+			call("mkdirTemp", stub.ExpectArgs{"/", "overlay.upper.*"}, "overlay.upper.32768", stub.UniqueError(6)),
 		}, stub.UniqueError(6)},
 
 		{"mkdirTemp work ephemeral", &Params{ParentPerm: 0705}, &MountOverlayOp{
@@ -69,12 +69,12 @@ func TestMountOverlayOp(t *testing.T) {
 			},
 			Upper: MustAbs("/"),
 		}, []stub.Call{
-			{"evalSymlinks", stub.ExpectArgs{"/var/lib/planterette/base/debian:f92c9052"}, "/var/lib/planterette/base/debian:f92c9052", nil},
-			{"evalSymlinks", stub.ExpectArgs{"/var/lib/planterette/app/org.chromium.Chromium@debian:f92c9052"}, "/var/lib/planterette/app/org.chromium.Chromium@debian:f92c9052", nil},
+			call("evalSymlinks", stub.ExpectArgs{"/var/lib/planterette/base/debian:f92c9052"}, "/var/lib/planterette/base/debian:f92c9052", nil),
+			call("evalSymlinks", stub.ExpectArgs{"/var/lib/planterette/app/org.chromium.Chromium@debian:f92c9052"}, "/var/lib/planterette/app/org.chromium.Chromium@debian:f92c9052", nil),
 		}, nil, []stub.Call{
-			{"mkdirAll", stub.ExpectArgs{"/sysroot", os.FileMode(0705)}, nil, nil},
-			{"mkdirTemp", stub.ExpectArgs{"/", "overlay.upper.*"}, "overlay.upper.32768", nil},
-			{"mkdirTemp", stub.ExpectArgs{"/", "overlay.work.*"}, "overlay.work.32768", stub.UniqueError(5)},
+			call("mkdirAll", stub.ExpectArgs{"/sysroot", os.FileMode(0705)}, nil, nil),
+			call("mkdirTemp", stub.ExpectArgs{"/", "overlay.upper.*"}, "overlay.upper.32768", nil),
+			call("mkdirTemp", stub.ExpectArgs{"/", "overlay.work.*"}, "overlay.work.32768", stub.UniqueError(5)),
 		}, stub.UniqueError(5)},
 
 		{"success ephemeral", &Params{ParentPerm: 0705}, &MountOverlayOp{
@@ -85,19 +85,19 @@ func TestMountOverlayOp(t *testing.T) {
 			},
 			Upper: MustAbs("/"),
 		}, []stub.Call{
-			{"evalSymlinks", stub.ExpectArgs{"/var/lib/planterette/base/debian:f92c9052"}, "/var/lib/planterette/base/debian:f92c9052", nil},
-			{"evalSymlinks", stub.ExpectArgs{"/var/lib/planterette/app/org.chromium.Chromium@debian:f92c9052"}, "/var/lib/planterette/app/org.chromium.Chromium@debian:f92c9052", nil},
+			call("evalSymlinks", stub.ExpectArgs{"/var/lib/planterette/base/debian:f92c9052"}, "/var/lib/planterette/base/debian:f92c9052", nil),
+			call("evalSymlinks", stub.ExpectArgs{"/var/lib/planterette/app/org.chromium.Chromium@debian:f92c9052"}, "/var/lib/planterette/app/org.chromium.Chromium@debian:f92c9052", nil),
 		}, nil, []stub.Call{
-			{"mkdirAll", stub.ExpectArgs{"/sysroot", os.FileMode(0705)}, nil, nil},
-			{"mkdirTemp", stub.ExpectArgs{"/", "overlay.upper.*"}, "overlay.upper.32768", nil},
-			{"mkdirTemp", stub.ExpectArgs{"/", "overlay.work.*"}, "overlay.work.32768", nil},
-			{"mount", stub.ExpectArgs{"overlay", "/sysroot", "overlay", uintptr(0), "" +
+			call("mkdirAll", stub.ExpectArgs{"/sysroot", os.FileMode(0705)}, nil, nil),
+			call("mkdirTemp", stub.ExpectArgs{"/", "overlay.upper.*"}, "overlay.upper.32768", nil),
+			call("mkdirTemp", stub.ExpectArgs{"/", "overlay.work.*"}, "overlay.work.32768", nil),
+			call("mount", stub.ExpectArgs{"overlay", "/sysroot", "overlay", uintptr(0), "" +
 				"upperdir=overlay.upper.32768," +
 				"workdir=overlay.work.32768," +
 				"lowerdir=" +
 				`/host/var/lib/planterette/base/debian\:f92c9052:` +
 				`/host/var/lib/planterette/app/org.chromium.Chromium@debian\:f92c9052,` +
-				"userxattr"}, nil, nil},
+				"userxattr"}, nil, nil),
 		}, nil},
 
 		{"short lower ro", &Params{ParentPerm: 0755}, &MountOverlayOp{
@@ -106,9 +106,9 @@ func TestMountOverlayOp(t *testing.T) {
 				MustAbs("/mnt-root/nix/.ro-store"),
 			},
 		}, []stub.Call{
-			{"evalSymlinks", stub.ExpectArgs{"/mnt-root/nix/.ro-store"}, "/mnt-root/nix/.ro-store", nil},
+			call("evalSymlinks", stub.ExpectArgs{"/mnt-root/nix/.ro-store"}, "/mnt-root/nix/.ro-store", nil),
 		}, nil, []stub.Call{
-			{"mkdirAll", stub.ExpectArgs{"/sysroot/nix/store", os.FileMode(0755)}, nil, nil},
+			call("mkdirAll", stub.ExpectArgs{"/sysroot/nix/store", os.FileMode(0755)}, nil, nil),
 		}, &OverlayArgumentError{OverlayReadonlyLower, zeroString}},
 
 		{"success ro noPrefix", &Params{ParentPerm: 0755}, &MountOverlayOp{
@@ -119,15 +119,15 @@ func TestMountOverlayOp(t *testing.T) {
 			},
 			noPrefix: true,
 		}, []stub.Call{
-			{"evalSymlinks", stub.ExpectArgs{"/mnt-root/nix/.ro-store"}, "/mnt-root/nix/.ro-store", nil},
-			{"evalSymlinks", stub.ExpectArgs{"/mnt-root/nix/.ro-store0"}, "/mnt-root/nix/.ro-store0", nil},
+			call("evalSymlinks", stub.ExpectArgs{"/mnt-root/nix/.ro-store"}, "/mnt-root/nix/.ro-store", nil),
+			call("evalSymlinks", stub.ExpectArgs{"/mnt-root/nix/.ro-store0"}, "/mnt-root/nix/.ro-store0", nil),
 		}, nil, []stub.Call{
-			{"mkdirAll", stub.ExpectArgs{"/nix/store", os.FileMode(0755)}, nil, nil},
-			{"mount", stub.ExpectArgs{"overlay", "/nix/store", "overlay", uintptr(0), "" +
+			call("mkdirAll", stub.ExpectArgs{"/nix/store", os.FileMode(0755)}, nil, nil),
+			call("mount", stub.ExpectArgs{"overlay", "/nix/store", "overlay", uintptr(0), "" +
 				"lowerdir=" +
 				"/host/mnt-root/nix/.ro-store:" +
 				"/host/mnt-root/nix/.ro-store0," +
-				"userxattr"}, nil, nil},
+				"userxattr"}, nil, nil),
 		}, nil},
 
 		{"success ro", &Params{ParentPerm: 0755}, &MountOverlayOp{
@@ -137,15 +137,15 @@ func TestMountOverlayOp(t *testing.T) {
 				MustAbs("/mnt-root/nix/.ro-store0"),
 			},
 		}, []stub.Call{
-			{"evalSymlinks", stub.ExpectArgs{"/mnt-root/nix/.ro-store"}, "/mnt-root/nix/.ro-store", nil},
-			{"evalSymlinks", stub.ExpectArgs{"/mnt-root/nix/.ro-store0"}, "/mnt-root/nix/.ro-store0", nil},
+			call("evalSymlinks", stub.ExpectArgs{"/mnt-root/nix/.ro-store"}, "/mnt-root/nix/.ro-store", nil),
+			call("evalSymlinks", stub.ExpectArgs{"/mnt-root/nix/.ro-store0"}, "/mnt-root/nix/.ro-store0", nil),
 		}, nil, []stub.Call{
-			{"mkdirAll", stub.ExpectArgs{"/sysroot/nix/store", os.FileMode(0755)}, nil, nil},
-			{"mount", stub.ExpectArgs{"overlay", "/sysroot/nix/store", "overlay", uintptr(0), "" +
+			call("mkdirAll", stub.ExpectArgs{"/sysroot/nix/store", os.FileMode(0755)}, nil, nil),
+			call("mount", stub.ExpectArgs{"overlay", "/sysroot/nix/store", "overlay", uintptr(0), "" +
 				"lowerdir=" +
 				"/host/mnt-root/nix/.ro-store:" +
 				"/host/mnt-root/nix/.ro-store0," +
-				"userxattr"}, nil, nil},
+				"userxattr"}, nil, nil),
 		}, nil},
 
 		{"nil lower", &Params{ParentPerm: 0700}, &MountOverlayOp{
@@ -153,10 +153,10 @@ func TestMountOverlayOp(t *testing.T) {
 			Upper:  MustAbs("/mnt-root/nix/.rw-store/upper"),
 			Work:   MustAbs("/mnt-root/nix/.rw-store/work"),
 		}, []stub.Call{
-			{"evalSymlinks", stub.ExpectArgs{"/mnt-root/nix/.rw-store/upper"}, "/mnt-root/nix/.rw-store/.upper", nil},
-			{"evalSymlinks", stub.ExpectArgs{"/mnt-root/nix/.rw-store/work"}, "/mnt-root/nix/.rw-store/.work", nil},
+			call("evalSymlinks", stub.ExpectArgs{"/mnt-root/nix/.rw-store/upper"}, "/mnt-root/nix/.rw-store/.upper", nil),
+			call("evalSymlinks", stub.ExpectArgs{"/mnt-root/nix/.rw-store/work"}, "/mnt-root/nix/.rw-store/.work", nil),
 		}, nil, []stub.Call{
-			{"mkdirAll", stub.ExpectArgs{"/sysroot/nix/store", os.FileMode(0700)}, nil, nil},
+			call("mkdirAll", stub.ExpectArgs{"/sysroot/nix/store", os.FileMode(0700)}, nil, nil),
 		}, &OverlayArgumentError{OverlayEmptyLower, zeroString}},
 
 		{"evalSymlinks upper", &Params{ParentPerm: 0700}, &MountOverlayOp{
@@ -165,7 +165,7 @@ func TestMountOverlayOp(t *testing.T) {
 			Upper:  MustAbs("/mnt-root/nix/.rw-store/upper"),
 			Work:   MustAbs("/mnt-root/nix/.rw-store/work"),
 		}, []stub.Call{
-			{"evalSymlinks", stub.ExpectArgs{"/mnt-root/nix/.rw-store/upper"}, "/mnt-root/nix/.rw-store/.upper", stub.UniqueError(4)},
+			call("evalSymlinks", stub.ExpectArgs{"/mnt-root/nix/.rw-store/upper"}, "/mnt-root/nix/.rw-store/.upper", stub.UniqueError(4)),
 		}, stub.UniqueError(4), nil, nil},
 
 		{"evalSymlinks work", &Params{ParentPerm: 0700}, &MountOverlayOp{
@@ -174,8 +174,8 @@ func TestMountOverlayOp(t *testing.T) {
 			Upper:  MustAbs("/mnt-root/nix/.rw-store/upper"),
 			Work:   MustAbs("/mnt-root/nix/.rw-store/work"),
 		}, []stub.Call{
-			{"evalSymlinks", stub.ExpectArgs{"/mnt-root/nix/.rw-store/upper"}, "/mnt-root/nix/.rw-store/.upper", nil},
-			{"evalSymlinks", stub.ExpectArgs{"/mnt-root/nix/.rw-store/work"}, "/mnt-root/nix/.rw-store/.work", stub.UniqueError(3)},
+			call("evalSymlinks", stub.ExpectArgs{"/mnt-root/nix/.rw-store/upper"}, "/mnt-root/nix/.rw-store/.upper", nil),
+			call("evalSymlinks", stub.ExpectArgs{"/mnt-root/nix/.rw-store/work"}, "/mnt-root/nix/.rw-store/.work", stub.UniqueError(3)),
 		}, stub.UniqueError(3), nil, nil},
 
 		{"evalSymlinks lower", &Params{ParentPerm: 0700}, &MountOverlayOp{
@@ -184,9 +184,9 @@ func TestMountOverlayOp(t *testing.T) {
 			Upper:  MustAbs("/mnt-root/nix/.rw-store/upper"),
 			Work:   MustAbs("/mnt-root/nix/.rw-store/work"),
 		}, []stub.Call{
-			{"evalSymlinks", stub.ExpectArgs{"/mnt-root/nix/.rw-store/upper"}, "/mnt-root/nix/.rw-store/.upper", nil},
-			{"evalSymlinks", stub.ExpectArgs{"/mnt-root/nix/.rw-store/work"}, "/mnt-root/nix/.rw-store/.work", nil},
-			{"evalSymlinks", stub.ExpectArgs{"/mnt-root/nix/.ro-store"}, "/mnt-root/nix/ro-store", stub.UniqueError(2)},
+			call("evalSymlinks", stub.ExpectArgs{"/mnt-root/nix/.rw-store/upper"}, "/mnt-root/nix/.rw-store/.upper", nil),
+			call("evalSymlinks", stub.ExpectArgs{"/mnt-root/nix/.rw-store/work"}, "/mnt-root/nix/.rw-store/.work", nil),
+			call("evalSymlinks", stub.ExpectArgs{"/mnt-root/nix/.ro-store"}, "/mnt-root/nix/ro-store", stub.UniqueError(2)),
 		}, stub.UniqueError(2), nil, nil},
 
 		{"mkdirAll", &Params{ParentPerm: 0700}, &MountOverlayOp{
@@ -195,11 +195,11 @@ func TestMountOverlayOp(t *testing.T) {
 			Upper:  MustAbs("/mnt-root/nix/.rw-store/upper"),
 			Work:   MustAbs("/mnt-root/nix/.rw-store/work"),
 		}, []stub.Call{
-			{"evalSymlinks", stub.ExpectArgs{"/mnt-root/nix/.rw-store/upper"}, "/mnt-root/nix/.rw-store/.upper", nil},
-			{"evalSymlinks", stub.ExpectArgs{"/mnt-root/nix/.rw-store/work"}, "/mnt-root/nix/.rw-store/.work", nil},
-			{"evalSymlinks", stub.ExpectArgs{"/mnt-root/nix/.ro-store"}, "/mnt-root/nix/ro-store", nil},
+			call("evalSymlinks", stub.ExpectArgs{"/mnt-root/nix/.rw-store/upper"}, "/mnt-root/nix/.rw-store/.upper", nil),
+			call("evalSymlinks", stub.ExpectArgs{"/mnt-root/nix/.rw-store/work"}, "/mnt-root/nix/.rw-store/.work", nil),
+			call("evalSymlinks", stub.ExpectArgs{"/mnt-root/nix/.ro-store"}, "/mnt-root/nix/ro-store", nil),
 		}, nil, []stub.Call{
-			{"mkdirAll", stub.ExpectArgs{"/sysroot/nix/store", os.FileMode(0700)}, nil, stub.UniqueError(1)},
+			call("mkdirAll", stub.ExpectArgs{"/sysroot/nix/store", os.FileMode(0700)}, nil, stub.UniqueError(1)),
 		}, stub.UniqueError(1)},
 
 		{"mount", &Params{ParentPerm: 0700}, &MountOverlayOp{
@@ -208,12 +208,12 @@ func TestMountOverlayOp(t *testing.T) {
 			Upper:  MustAbs("/mnt-root/nix/.rw-store/upper"),
 			Work:   MustAbs("/mnt-root/nix/.rw-store/work"),
 		}, []stub.Call{
-			{"evalSymlinks", stub.ExpectArgs{"/mnt-root/nix/.rw-store/upper"}, "/mnt-root/nix/.rw-store/.upper", nil},
-			{"evalSymlinks", stub.ExpectArgs{"/mnt-root/nix/.rw-store/work"}, "/mnt-root/nix/.rw-store/.work", nil},
-			{"evalSymlinks", stub.ExpectArgs{"/mnt-root/nix/.ro-store"}, "/mnt-root/nix/ro-store", nil},
+			call("evalSymlinks", stub.ExpectArgs{"/mnt-root/nix/.rw-store/upper"}, "/mnt-root/nix/.rw-store/.upper", nil),
+			call("evalSymlinks", stub.ExpectArgs{"/mnt-root/nix/.rw-store/work"}, "/mnt-root/nix/.rw-store/.work", nil),
+			call("evalSymlinks", stub.ExpectArgs{"/mnt-root/nix/.ro-store"}, "/mnt-root/nix/ro-store", nil),
 		}, nil, []stub.Call{
-			{"mkdirAll", stub.ExpectArgs{"/sysroot/nix/store", os.FileMode(0700)}, nil, nil},
-			{"mount", stub.ExpectArgs{"overlay", "/sysroot/nix/store", "overlay", uintptr(0), "upperdir=/host/mnt-root/nix/.rw-store/.upper,workdir=/host/mnt-root/nix/.rw-store/.work,lowerdir=/host/mnt-root/nix/ro-store,userxattr"}, nil, stub.UniqueError(0)},
+			call("mkdirAll", stub.ExpectArgs{"/sysroot/nix/store", os.FileMode(0700)}, nil, nil),
+			call("mount", stub.ExpectArgs{"overlay", "/sysroot/nix/store", "overlay", uintptr(0), "upperdir=/host/mnt-root/nix/.rw-store/.upper,workdir=/host/mnt-root/nix/.rw-store/.work,lowerdir=/host/mnt-root/nix/ro-store,userxattr"}, nil, stub.UniqueError(0)),
 		}, stub.UniqueError(0)},
 
 		{"success single layer", &Params{ParentPerm: 0700}, &MountOverlayOp{
@@ -222,16 +222,16 @@ func TestMountOverlayOp(t *testing.T) {
 			Upper:  MustAbs("/mnt-root/nix/.rw-store/upper"),
 			Work:   MustAbs("/mnt-root/nix/.rw-store/work"),
 		}, []stub.Call{
-			{"evalSymlinks", stub.ExpectArgs{"/mnt-root/nix/.rw-store/upper"}, "/mnt-root/nix/.rw-store/.upper", nil},
-			{"evalSymlinks", stub.ExpectArgs{"/mnt-root/nix/.rw-store/work"}, "/mnt-root/nix/.rw-store/.work", nil},
-			{"evalSymlinks", stub.ExpectArgs{"/mnt-root/nix/.ro-store"}, "/mnt-root/nix/ro-store", nil},
+			call("evalSymlinks", stub.ExpectArgs{"/mnt-root/nix/.rw-store/upper"}, "/mnt-root/nix/.rw-store/.upper", nil),
+			call("evalSymlinks", stub.ExpectArgs{"/mnt-root/nix/.rw-store/work"}, "/mnt-root/nix/.rw-store/.work", nil),
+			call("evalSymlinks", stub.ExpectArgs{"/mnt-root/nix/.ro-store"}, "/mnt-root/nix/ro-store", nil),
 		}, nil, []stub.Call{
-			{"mkdirAll", stub.ExpectArgs{"/sysroot/nix/store", os.FileMode(0700)}, nil, nil},
-			{"mount", stub.ExpectArgs{"overlay", "/sysroot/nix/store", "overlay", uintptr(0), "" +
+			call("mkdirAll", stub.ExpectArgs{"/sysroot/nix/store", os.FileMode(0700)}, nil, nil),
+			call("mount", stub.ExpectArgs{"overlay", "/sysroot/nix/store", "overlay", uintptr(0), "" +
 				"upperdir=/host/mnt-root/nix/.rw-store/.upper," +
 				"workdir=/host/mnt-root/nix/.rw-store/.work," +
 				"lowerdir=/host/mnt-root/nix/ro-store," +
-				"userxattr"}, nil, nil},
+				"userxattr"}, nil, nil),
 		}, nil},
 
 		{"success", &Params{ParentPerm: 0700}, &MountOverlayOp{
@@ -246,16 +246,16 @@ func TestMountOverlayOp(t *testing.T) {
 			Upper: MustAbs("/mnt-root/nix/.rw-store/upper"),
 			Work:  MustAbs("/mnt-root/nix/.rw-store/work"),
 		}, []stub.Call{
-			{"evalSymlinks", stub.ExpectArgs{"/mnt-root/nix/.rw-store/upper"}, "/mnt-root/nix/.rw-store/.upper", nil},
-			{"evalSymlinks", stub.ExpectArgs{"/mnt-root/nix/.rw-store/work"}, "/mnt-root/nix/.rw-store/.work", nil},
-			{"evalSymlinks", stub.ExpectArgs{"/mnt-root/nix/.ro-store"}, "/mnt-root/nix/ro-store", nil},
-			{"evalSymlinks", stub.ExpectArgs{"/mnt-root/nix/.ro-store0"}, "/mnt-root/nix/ro-store0", nil},
-			{"evalSymlinks", stub.ExpectArgs{"/mnt-root/nix/.ro-store1"}, "/mnt-root/nix/ro-store1", nil},
-			{"evalSymlinks", stub.ExpectArgs{"/mnt-root/nix/.ro-store2"}, "/mnt-root/nix/ro-store2", nil},
-			{"evalSymlinks", stub.ExpectArgs{"/mnt-root/nix/.ro-store3"}, "/mnt-root/nix/ro-store3", nil},
+			call("evalSymlinks", stub.ExpectArgs{"/mnt-root/nix/.rw-store/upper"}, "/mnt-root/nix/.rw-store/.upper", nil),
+			call("evalSymlinks", stub.ExpectArgs{"/mnt-root/nix/.rw-store/work"}, "/mnt-root/nix/.rw-store/.work", nil),
+			call("evalSymlinks", stub.ExpectArgs{"/mnt-root/nix/.ro-store"}, "/mnt-root/nix/ro-store", nil),
+			call("evalSymlinks", stub.ExpectArgs{"/mnt-root/nix/.ro-store0"}, "/mnt-root/nix/ro-store0", nil),
+			call("evalSymlinks", stub.ExpectArgs{"/mnt-root/nix/.ro-store1"}, "/mnt-root/nix/ro-store1", nil),
+			call("evalSymlinks", stub.ExpectArgs{"/mnt-root/nix/.ro-store2"}, "/mnt-root/nix/ro-store2", nil),
+			call("evalSymlinks", stub.ExpectArgs{"/mnt-root/nix/.ro-store3"}, "/mnt-root/nix/ro-store3", nil),
 		}, nil, []stub.Call{
-			{"mkdirAll", stub.ExpectArgs{"/sysroot/nix/store", os.FileMode(0700)}, nil, nil},
-			{"mount", stub.ExpectArgs{"overlay", "/sysroot/nix/store", "overlay", uintptr(0), "" +
+			call("mkdirAll", stub.ExpectArgs{"/sysroot/nix/store", os.FileMode(0700)}, nil, nil),
+			call("mount", stub.ExpectArgs{"overlay", "/sysroot/nix/store", "overlay", uintptr(0), "" +
 				"upperdir=/host/mnt-root/nix/.rw-store/.upper," +
 				"workdir=/host/mnt-root/nix/.rw-store/.work," +
 				"lowerdir=" +
@@ -264,7 +264,7 @@ func TestMountOverlayOp(t *testing.T) {
 				"/host/mnt-root/nix/ro-store1:" +
 				"/host/mnt-root/nix/ro-store2:" +
 				"/host/mnt-root/nix/ro-store3," +
-				"userxattr"}, nil, nil},
+				"userxattr"}, nil, nil),
 		}, nil},
 	})
 

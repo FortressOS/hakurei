@@ -15,7 +15,7 @@ func TestBindMountOp(t *testing.T) {
 			Source: MustAbs("/bin/"),
 			Target: MustAbs("/bin/"),
 		}, []stub.Call{
-			{"evalSymlinks", stub.ExpectArgs{"/bin/"}, "", syscall.ENOENT},
+			call("evalSymlinks", stub.ExpectArgs{"/bin/"}, "", syscall.ENOENT),
 		}, syscall.ENOENT, nil, nil},
 
 		{"skip optional", new(Params), &BindMountOp{
@@ -23,7 +23,7 @@ func TestBindMountOp(t *testing.T) {
 			Target: MustAbs("/bin/"),
 			Flags:  BindOptional,
 		}, []stub.Call{
-			{"evalSymlinks", stub.ExpectArgs{"/bin/"}, "", syscall.ENOENT},
+			call("evalSymlinks", stub.ExpectArgs{"/bin/"}, "", syscall.ENOENT),
 		}, nil, nil, nil},
 
 		{"success optional", new(Params), &BindMountOp{
@@ -31,11 +31,11 @@ func TestBindMountOp(t *testing.T) {
 			Target: MustAbs("/bin/"),
 			Flags:  BindOptional,
 		}, []stub.Call{
-			{"evalSymlinks", stub.ExpectArgs{"/bin/"}, "/usr/bin", nil},
+			call("evalSymlinks", stub.ExpectArgs{"/bin/"}, "/usr/bin", nil),
 		}, nil, []stub.Call{
-			{"stat", stub.ExpectArgs{"/host/usr/bin"}, isDirFi(true), nil},
-			{"mkdirAll", stub.ExpectArgs{"/sysroot/bin", os.FileMode(0700)}, nil, nil},
-			{"bindMount", stub.ExpectArgs{"/host/usr/bin", "/sysroot/bin", uintptr(0x4005), false}, nil, nil},
+			call("stat", stub.ExpectArgs{"/host/usr/bin"}, isDirFi(true), nil),
+			call("mkdirAll", stub.ExpectArgs{"/sysroot/bin", os.FileMode(0700)}, nil, nil),
+			call("bindMount", stub.ExpectArgs{"/host/usr/bin", "/sysroot/bin", uintptr(0x4005), false}, nil, nil),
 		}, nil},
 
 		{"ensureFile device", new(Params), &BindMountOp{
@@ -43,10 +43,10 @@ func TestBindMountOp(t *testing.T) {
 			Target: MustAbs("/dev/null"),
 			Flags:  BindWritable | BindDevice,
 		}, []stub.Call{
-			{"evalSymlinks", stub.ExpectArgs{"/dev/null"}, "/dev/null", nil},
+			call("evalSymlinks", stub.ExpectArgs{"/dev/null"}, "/dev/null", nil),
 		}, nil, []stub.Call{
-			{"stat", stub.ExpectArgs{"/host/dev/null"}, isDirFi(false), nil},
-			{"ensureFile", stub.ExpectArgs{"/sysroot/dev/null", os.FileMode(0444), os.FileMode(0700)}, nil, stub.UniqueError(5)},
+			call("stat", stub.ExpectArgs{"/host/dev/null"}, isDirFi(false), nil),
+			call("ensureFile", stub.ExpectArgs{"/sysroot/dev/null", os.FileMode(0444), os.FileMode(0700)}, nil, stub.UniqueError(5)),
 		}, stub.UniqueError(5)},
 
 		{"mkdirAll ensure", new(Params), &BindMountOp{
@@ -54,7 +54,7 @@ func TestBindMountOp(t *testing.T) {
 			Target: MustAbs("/bin/"),
 			Flags:  BindEnsure,
 		}, []stub.Call{
-			{"mkdirAll", stub.ExpectArgs{"/bin/", os.FileMode(0700)}, nil, stub.UniqueError(4)},
+			call("mkdirAll", stub.ExpectArgs{"/bin/", os.FileMode(0700)}, nil, stub.UniqueError(4)),
 		}, stub.UniqueError(4), nil, nil},
 
 		{"success ensure", new(Params), &BindMountOp{
@@ -62,12 +62,12 @@ func TestBindMountOp(t *testing.T) {
 			Target: MustAbs("/usr/bin/"),
 			Flags:  BindEnsure,
 		}, []stub.Call{
-			{"mkdirAll", stub.ExpectArgs{"/bin/", os.FileMode(0700)}, nil, nil},
-			{"evalSymlinks", stub.ExpectArgs{"/bin/"}, "/usr/bin", nil},
+			call("mkdirAll", stub.ExpectArgs{"/bin/", os.FileMode(0700)}, nil, nil),
+			call("evalSymlinks", stub.ExpectArgs{"/bin/"}, "/usr/bin", nil),
 		}, nil, []stub.Call{
-			{"stat", stub.ExpectArgs{"/host/usr/bin"}, isDirFi(true), nil},
-			{"mkdirAll", stub.ExpectArgs{"/sysroot/usr/bin", os.FileMode(0700)}, nil, nil},
-			{"bindMount", stub.ExpectArgs{"/host/usr/bin", "/sysroot/usr/bin", uintptr(0x4005), false}, nil, nil},
+			call("stat", stub.ExpectArgs{"/host/usr/bin"}, isDirFi(true), nil),
+			call("mkdirAll", stub.ExpectArgs{"/sysroot/usr/bin", os.FileMode(0700)}, nil, nil),
+			call("bindMount", stub.ExpectArgs{"/host/usr/bin", "/sysroot/usr/bin", uintptr(0x4005), false}, nil, nil),
 		}, nil},
 
 		{"success device ro", new(Params), &BindMountOp{
@@ -75,11 +75,11 @@ func TestBindMountOp(t *testing.T) {
 			Target: MustAbs("/dev/null"),
 			Flags:  BindDevice,
 		}, []stub.Call{
-			{"evalSymlinks", stub.ExpectArgs{"/dev/null"}, "/dev/null", nil},
+			call("evalSymlinks", stub.ExpectArgs{"/dev/null"}, "/dev/null", nil),
 		}, nil, []stub.Call{
-			{"stat", stub.ExpectArgs{"/host/dev/null"}, isDirFi(false), nil},
-			{"ensureFile", stub.ExpectArgs{"/sysroot/dev/null", os.FileMode(0444), os.FileMode(0700)}, nil, nil},
-			{"bindMount", stub.ExpectArgs{"/host/dev/null", "/sysroot/dev/null", uintptr(0x4001), false}, nil, nil},
+			call("stat", stub.ExpectArgs{"/host/dev/null"}, isDirFi(false), nil),
+			call("ensureFile", stub.ExpectArgs{"/sysroot/dev/null", os.FileMode(0444), os.FileMode(0700)}, nil, nil),
+			call("bindMount", stub.ExpectArgs{"/host/dev/null", "/sysroot/dev/null", uintptr(0x4001), false}, nil, nil),
 		}, nil},
 
 		{"success device", new(Params), &BindMountOp{
@@ -87,59 +87,59 @@ func TestBindMountOp(t *testing.T) {
 			Target: MustAbs("/dev/null"),
 			Flags:  BindWritable | BindDevice,
 		}, []stub.Call{
-			{"evalSymlinks", stub.ExpectArgs{"/dev/null"}, "/dev/null", nil},
+			call("evalSymlinks", stub.ExpectArgs{"/dev/null"}, "/dev/null", nil),
 		}, nil, []stub.Call{
-			{"stat", stub.ExpectArgs{"/host/dev/null"}, isDirFi(false), nil},
-			{"ensureFile", stub.ExpectArgs{"/sysroot/dev/null", os.FileMode(0444), os.FileMode(0700)}, nil, nil},
-			{"bindMount", stub.ExpectArgs{"/host/dev/null", "/sysroot/dev/null", uintptr(0x4000), false}, nil, nil},
+			call("stat", stub.ExpectArgs{"/host/dev/null"}, isDirFi(false), nil),
+			call("ensureFile", stub.ExpectArgs{"/sysroot/dev/null", os.FileMode(0444), os.FileMode(0700)}, nil, nil),
+			call("bindMount", stub.ExpectArgs{"/host/dev/null", "/sysroot/dev/null", uintptr(0x4000), false}, nil, nil),
 		}, nil},
 
 		{"evalSymlinks", new(Params), &BindMountOp{
 			Source: MustAbs("/bin/"),
 			Target: MustAbs("/bin/"),
 		}, []stub.Call{
-			{"evalSymlinks", stub.ExpectArgs{"/bin/"}, "/usr/bin", stub.UniqueError(3)},
+			call("evalSymlinks", stub.ExpectArgs{"/bin/"}, "/usr/bin", stub.UniqueError(3)),
 		}, stub.UniqueError(3), nil, nil},
 
 		{"stat", new(Params), &BindMountOp{
 			Source: MustAbs("/bin/"),
 			Target: MustAbs("/bin/"),
 		}, []stub.Call{
-			{"evalSymlinks", stub.ExpectArgs{"/bin/"}, "/usr/bin", nil},
+			call("evalSymlinks", stub.ExpectArgs{"/bin/"}, "/usr/bin", nil),
 		}, nil, []stub.Call{
-			{"stat", stub.ExpectArgs{"/host/usr/bin"}, isDirFi(true), stub.UniqueError(2)},
+			call("stat", stub.ExpectArgs{"/host/usr/bin"}, isDirFi(true), stub.UniqueError(2)),
 		}, stub.UniqueError(2)},
 
 		{"mkdirAll", new(Params), &BindMountOp{
 			Source: MustAbs("/bin/"),
 			Target: MustAbs("/bin/"),
 		}, []stub.Call{
-			{"evalSymlinks", stub.ExpectArgs{"/bin/"}, "/usr/bin", nil},
+			call("evalSymlinks", stub.ExpectArgs{"/bin/"}, "/usr/bin", nil),
 		}, nil, []stub.Call{
-			{"stat", stub.ExpectArgs{"/host/usr/bin"}, isDirFi(true), nil},
-			{"mkdirAll", stub.ExpectArgs{"/sysroot/bin", os.FileMode(0700)}, nil, stub.UniqueError(1)},
+			call("stat", stub.ExpectArgs{"/host/usr/bin"}, isDirFi(true), nil),
+			call("mkdirAll", stub.ExpectArgs{"/sysroot/bin", os.FileMode(0700)}, nil, stub.UniqueError(1)),
 		}, stub.UniqueError(1)},
 
 		{"bindMount", new(Params), &BindMountOp{
 			Source: MustAbs("/bin/"),
 			Target: MustAbs("/bin/"),
 		}, []stub.Call{
-			{"evalSymlinks", stub.ExpectArgs{"/bin/"}, "/usr/bin", nil},
+			call("evalSymlinks", stub.ExpectArgs{"/bin/"}, "/usr/bin", nil),
 		}, nil, []stub.Call{
-			{"stat", stub.ExpectArgs{"/host/usr/bin"}, isDirFi(true), nil},
-			{"mkdirAll", stub.ExpectArgs{"/sysroot/bin", os.FileMode(0700)}, nil, nil},
-			{"bindMount", stub.ExpectArgs{"/host/usr/bin", "/sysroot/bin", uintptr(0x4005), false}, nil, stub.UniqueError(0)},
+			call("stat", stub.ExpectArgs{"/host/usr/bin"}, isDirFi(true), nil),
+			call("mkdirAll", stub.ExpectArgs{"/sysroot/bin", os.FileMode(0700)}, nil, nil),
+			call("bindMount", stub.ExpectArgs{"/host/usr/bin", "/sysroot/bin", uintptr(0x4005), false}, nil, stub.UniqueError(0)),
 		}, stub.UniqueError(0)},
 
 		{"success", new(Params), &BindMountOp{
 			Source: MustAbs("/bin/"),
 			Target: MustAbs("/bin/"),
 		}, []stub.Call{
-			{"evalSymlinks", stub.ExpectArgs{"/bin/"}, "/usr/bin", nil},
+			call("evalSymlinks", stub.ExpectArgs{"/bin/"}, "/usr/bin", nil),
 		}, nil, []stub.Call{
-			{"stat", stub.ExpectArgs{"/host/usr/bin"}, isDirFi(true), nil},
-			{"mkdirAll", stub.ExpectArgs{"/sysroot/bin", os.FileMode(0700)}, nil, nil},
-			{"bindMount", stub.ExpectArgs{"/host/usr/bin", "/sysroot/bin", uintptr(0x4005), false}, nil, nil},
+			call("stat", stub.ExpectArgs{"/host/usr/bin"}, isDirFi(true), nil),
+			call("mkdirAll", stub.ExpectArgs{"/sysroot/bin", os.FileMode(0700)}, nil, nil),
+			call("bindMount", stub.ExpectArgs{"/host/usr/bin", "/sysroot/bin", uintptr(0x4005), false}, nil, nil),
 		}, nil},
 	})
 

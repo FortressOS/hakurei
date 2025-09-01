@@ -13,7 +13,7 @@ func TestMkdirOp(t *testing.T) {
 			Path: MustAbs("/.hakurei"),
 			Perm: 0500,
 		}, nil, nil, []stub.Call{
-			{"mkdirAll", stub.ExpectArgs{"/sysroot/.hakurei", os.FileMode(0500)}, nil, nil},
+			call("mkdirAll", stub.ExpectArgs{"/sysroot/.hakurei", os.FileMode(0500)}, nil, nil),
 		}, nil},
 	})
 

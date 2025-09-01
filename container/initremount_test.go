@@ -13,7 +13,7 @@ func TestRemountOp(t *testing.T) {
 			Target: MustAbs("/"),
 			Flags:  syscall.MS_RDONLY,
 		}, nil, nil, []stub.Call{
-			{"remount", stub.ExpectArgs{"/sysroot", uintptr(1)}, nil, nil},
+			call("remount", stub.ExpectArgs{"/sysroot", uintptr(1)}, nil, nil),
 		}, nil},
 	})
 

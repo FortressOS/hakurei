@@ -233,7 +233,7 @@ func (seal *Outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 
 			Filesystem: []hst.FilesystemConfigJSON{
 				// autoroot, includes the home directory
-				{&hst.FSBind{
+				{FilesystemConfig: &hst.FSBind{
 					Target:  container.AbsFHSRoot,
 					Source:  container.AbsFHSRoot,
 					Write:   true,

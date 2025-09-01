@@ -13,7 +13,7 @@ func TestSymlinkOp(t *testing.T) {
 			Target:   MustAbs("/etc/nixos"),
 			LinkName: "/etc/static/nixos",
 		}, nil, nil, []stub.Call{
-			{"mkdirAll", stub.ExpectArgs{"/sysroot/etc", os.FileMode(0700)}, nil, stub.UniqueError(1)},
+			call("mkdirAll", stub.ExpectArgs{"/sysroot/etc", os.FileMode(0700)}, nil, stub.UniqueError(1)),
 		}, stub.UniqueError(1)},
 
 		{"abs", &Params{ParentPerm: 0755}, &SymlinkOp{
@@ -27,15 +27,15 @@ func TestSymlinkOp(t *testing.T) {
 			LinkName:    "/etc/mtab",
 			Dereference: true,
 		}, []stub.Call{
-			{"readlink", stub.ExpectArgs{"/etc/mtab"}, "/proc/mounts", stub.UniqueError(0)},
+			call("readlink", stub.ExpectArgs{"/etc/mtab"}, "/proc/mounts", stub.UniqueError(0)),
 		}, stub.UniqueError(0), nil, nil},
 
 		{"success noderef", &Params{ParentPerm: 0700}, &SymlinkOp{
 			Target:   MustAbs("/etc/nixos"),
 			LinkName: "/etc/static/nixos",
 		}, nil, nil, []stub.Call{
-			{"mkdirAll", stub.ExpectArgs{"/sysroot/etc", os.FileMode(0700)}, nil, nil},
-			{"symlink", stub.ExpectArgs{"/etc/static/nixos", "/sysroot/etc/nixos"}, nil, nil},
+			call("mkdirAll", stub.ExpectArgs{"/sysroot/etc", os.FileMode(0700)}, nil, nil),
+			call("symlink", stub.ExpectArgs{"/etc/static/nixos", "/sysroot/etc/nixos"}, nil, nil),
 		}, nil},
 
 		{"success", &Params{ParentPerm: 0755}, &SymlinkOp{
@@ -43,10 +43,10 @@ func TestSymlinkOp(t *testing.T) {
 			LinkName:    "/etc/mtab",
 			Dereference: true,
 		}, []stub.Call{
-			{"readlink", stub.ExpectArgs{"/etc/mtab"}, "/proc/mounts", nil},
+			call("readlink", stub.ExpectArgs{"/etc/mtab"}, "/proc/mounts", nil),
 		}, nil, []stub.Call{
-			{"mkdirAll", stub.ExpectArgs{"/sysroot/etc", os.FileMode(0755)}, nil, nil},
-			{"symlink", stub.ExpectArgs{"/proc/mounts", "/sysroot/etc/mtab"}, nil, nil},
+			call("mkdirAll", stub.ExpectArgs{"/sysroot/etc", os.FileMode(0755)}, nil, nil),
+			call("symlink", stub.ExpectArgs{"/proc/mounts", "/sysroot/etc/mtab"}, nil, nil),
 		}, nil},
 	})
 

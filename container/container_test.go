@@ -214,7 +214,7 @@ var containerTestCases = []struct {
 		1000, 100, nil, 0, seccomp.PresetExt},
 	{"custom rules", true, true, true, false,
 		emptyOps, emptyMnt,
-		1, 31, []seccomp.NativeRule{{seccomp.ScmpSyscall(syscall.SYS_SETUID), seccomp.ScmpErrno(syscall.EPERM), nil}}, 0, seccomp.PresetExt},
+		1, 31, []seccomp.NativeRule{{Syscall: seccomp.ScmpSyscall(syscall.SYS_SETUID), Errno: seccomp.ScmpErrno(syscall.EPERM)}}, 0, seccomp.PresetExt},
 
 	{"tmpfs", true, false, false, true,
 		earlyOps(new(container.Ops).

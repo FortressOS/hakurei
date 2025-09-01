@@ -28,13 +28,13 @@ func TestMountTmpfsOp(t *testing.T) {
 			Size:   1 << 10,
 			Perm:   0700,
 		}, nil, nil, []stub.Call{
-			{"mountTmpfs", stub.ExpectArgs{
+			call("mountTmpfs", stub.ExpectArgs{
 				"ephemeral",              // fsname
 				"/sysroot/run/user/1000", // target
 				uintptr(0),               // flags
 				0x400,                    // size
 				os.FileMode(0700),        // perm
-			}, nil, nil},
+			}, nil, nil),
 		}, nil},
 	})
 
