@@ -50,7 +50,7 @@ func (m *MkdirOp) revert(_ *I, ec *Criteria) error {
 		return nil
 	}
 
-	if ec.hasType(m) {
+	if ec.hasType(m.Type()) {
 		msg.Verbose("destroying ephemeral directory", m)
 		return newOpError("mkdir", os.Remove(m.path), true)
 	} else {

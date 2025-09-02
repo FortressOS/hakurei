@@ -59,7 +59,7 @@ func (w *WaylandOp) apply(sys *I) error {
 }
 
 func (w *WaylandOp) revert(_ *I, ec *Criteria) error {
-	if ec.hasType(w) {
+	if ec.hasType(w.Type()) {
 		msg.Verbosef("removing wayland socket on %q", w.dst)
 		if err := os.Remove(w.dst); err != nil && !errors.Is(err, os.ErrNotExist) {
 			return newOpError("wayland", err, true)

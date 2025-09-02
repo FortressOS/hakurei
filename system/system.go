@@ -20,13 +20,13 @@ const (
 // Criteria specifies types of Op to revert.
 type Criteria Enablement
 
-func (ec *Criteria) hasType(o Op) bool {
+func (ec *Criteria) hasType(t Enablement) bool {
 	// nil criteria: revert everything except User
 	if ec == nil {
-		return o.Type() != User
+		return t != User
 	}
 
-	return Enablement(*ec)&o.Type() != 0
+	return Enablement(*ec)&t != 0
 }
 
 // Op is a reversible system operation.
@@ -92,7 +92,7 @@ func (sys *I) UID() int { return sys.uid }
 
 // Equal returns whether all [Op] instances held by sys matches that of target.
 func (sys *I) Equal(target *I) bool {
-	if target == nil || sys.uid != target.uid || len(sys.ops) != len(target.ops) {
+	if sys == nil || target == nil || sys.uid != target.uid || len(sys.ops) != len(target.ops) {
 		return false
 	}
 
@@ -149,7 +149,6 @@ func (sys *I) Revert(ec *Criteria) error {
 
 	// collect errors
 	errs := make([]error, len(sys.ops))
-
 	for i := range sys.ops {
 		errs[i] = sys.ops[len(sys.ops)-i-1].revert(sys, ec)
 	}

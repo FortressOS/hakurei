@@ -36,7 +36,7 @@ func (a *ACLUpdateOp) apply(sys *I) error {
 }
 
 func (a *ACLUpdateOp) revert(sys *I, ec *Criteria) error {
-	if ec.hasType(a) {
+	if ec.hasType(a.Type()) {
 		msg.Verbose("stripping ACL", a)
 		err := acl.Update(a.path, sys.uid)
 		if errors.Is(err, os.ErrNotExist) {

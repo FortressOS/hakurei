@@ -209,18 +209,22 @@ func (ptc tcOp) test(t *testing.T, gotOps []Op, wantOps []Op, fn string) {
 		t.Run("criteria", func(t *testing.T) {
 			testCases := []struct {
 				name string
-				ec   *Criteria
+				ec   Enablement
 				want bool
 			}{
-				{"nil", nil, ptc.et != User},
-				{"self", newCriteria(ptc.et), true},
-				{"all", newCriteria(EWayland | EX11 | EDBus | EPulse | User | Process), true},
-				{"enablements", newCriteria(EWayland | EX11 | EDBus | EPulse), ptc.et != User && ptc.et != Process},
+				{"nil", 0xff, ptc.et != User},
+				{"self", ptc.et, true},
+				{"all", EWayland | EX11 | EDBus | EPulse | User | Process, true},
+				{"enablements", EWayland | EX11 | EDBus | EPulse, ptc.et != User && ptc.et != Process},
 			}
 
 			for _, tc := range testCases {
 				t.Run(tc.name, func(t *testing.T) {
-					if got := tc.ec.hasType(o); got != tc.want {
+					var criteria *Criteria
+					if tc.ec != 0xff {
+						criteria = (*Criteria)(&tc.ec)
+					}
+					if got := criteria.hasType(o.Type()); got != tc.want {
 						t.Errorf("hasType: got %v, want %v",
 							got, tc.want)
 					}
@@ -229,5 +233,3 @@ func (ptc tcOp) test(t *testing.T, gotOps []Op, wantOps []Op, fn string) {
 		})
 	}
 }
-
-func newCriteria(e Enablement) *Criteria { return (*Criteria)(&e) }

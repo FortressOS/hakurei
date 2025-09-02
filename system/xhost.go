@@ -22,7 +22,7 @@ func (x XHostOp) apply(*I) error {
 }
 
 func (x XHostOp) revert(_ *I, ec *Criteria) error {
-	if ec.hasType(x) {
+	if ec.hasType(x.Type()) {
 		msg.Verbosef("deleting entry %s from X11", x)
 		return newOpError("xhost",
 			xcb.ChangeHosts(xcb.HostModeDelete, xcb.FamilyServerInterpreted, "localuser\x00"+string(x)), false)

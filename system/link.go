@@ -28,7 +28,7 @@ func (l *HardlinkOp) apply(*I) error {
 }
 
 func (l *HardlinkOp) revert(_ *I, ec *Criteria) error {
-	if ec.hasType(l) {
+	if ec.hasType(l.Type()) {
 		msg.Verbosef("removing hard link %q", l.dst)
 		return newOpError("hardlink", os.Remove(l.dst), true)
 	} else {
