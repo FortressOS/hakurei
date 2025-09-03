@@ -650,7 +650,6 @@ func (k *kstub) wait4(pid int, wstatus *syscall.WaitStatus, options int, rusage 
 	expect := k.Expects("wait4")
 	// special case to prevent leaking the wait4 goroutine when testing initEntrypoint
 	if v, ok := expect.Args[4].(int); ok && v == stub.PanicExit {
-		k.Log("terminating current goroutine as requested by kexpect")
 		panic(stub.PanicExit)
 	}
 
