@@ -70,7 +70,7 @@ func New(ctx context.Context, uid int) (sys *I) {
 	if ctx == nil || uid < 0 {
 		panic("invalid call to New")
 	}
-	return &I{ctx: ctx, uid: uid}
+	return &I{ctx: ctx, uid: uid, syscallDispatcher: direct{}}
 }
 
 // An I provides deferred operating system interaction. [I] must not be copied.
@@ -86,6 +86,8 @@ type I struct {
 	committed bool
 	// the behaviour of Revert is only defined for up to one call
 	reverted bool
+
+	syscallDispatcher
 }
 
 func (sys *I) UID() int { return sys.uid }

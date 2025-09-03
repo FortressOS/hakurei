@@ -31,22 +31,22 @@ type ACLUpdateOp struct {
 func (a *ACLUpdateOp) Type() Enablement { return a.et }
 
 func (a *ACLUpdateOp) apply(sys *I) error {
-	msg.Verbose("applying ACL", a)
-	return newOpError("acl", acl.Update(a.path, sys.uid, a.perms...), false)
+	sys.verbose("applying ACL", a)
+	return newOpError("acl", sys.aclUpdate(a.path, sys.uid, a.perms...), false)
 }
 
 func (a *ACLUpdateOp) revert(sys *I, ec *Criteria) error {
 	if ec.hasType(a.Type()) {
-		msg.Verbose("stripping ACL", a)
-		err := acl.Update(a.path, sys.uid)
+		sys.verbose("stripping ACL", a)
+		err := sys.aclUpdate(a.path, sys.uid)
 		if errors.Is(err, os.ErrNotExist) {
 			// the ACL is effectively stripped if the file no longer exists
-			msg.Verbosef("target of ACL %s no longer exists", a)
+			sys.verbosef("target of ACL %s no longer exists", a)
 			err = nil
 		}
 		return newOpError("acl", err, true)
 	} else {
-		msg.Verbose("skipping ACL", a)
+		sys.verbose("skipping ACL", a)
 		return nil
 	}
 }
