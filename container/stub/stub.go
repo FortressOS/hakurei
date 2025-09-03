@@ -45,6 +45,13 @@ func New[K any](tb testing.TB, makeK func(s *Stub[K]) K, want Expect) *Stub[K] {
 	return &Stub[K]{TB: tb, makeK: makeK, want: want, wg: new(sync.WaitGroup)}
 }
 
+func (s *Stub[K]) FailNow()                          { panic(panicFailNow) }
+func (s *Stub[K]) Fatal(args ...any)                 { s.Error(args...); panic(panicFatal) }
+func (s *Stub[K]) Fatalf(format string, args ...any) { s.Errorf(format, args...); panic(panicFatalf) }
+func (s *Stub[K]) SkipNow()                          { panic("invalid call to SkipNow") }
+func (s *Stub[K]) Skip(...any)                       { panic("invalid call to Skip") }
+func (s *Stub[K]) Skipf(string, ...any)              { panic("invalid call to Skipf") }
+
 // New calls f in a new goroutine
 func (s *Stub[K]) New(f func(k K)) {
 	s.Helper()
@@ -61,7 +68,7 @@ func (s *Stub[K]) New(f func(k K)) {
 		s.Helper()
 
 		defer s.wg.Done()
-		defer HandleExit()
+		defer handleExit(s.TB, false)
 		f(s.makeK(ds))
 	}()
 }

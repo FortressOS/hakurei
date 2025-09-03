@@ -13,27 +13,17 @@ type stubHolder struct{ *Stub[stubHolder] }
 type overrideT struct {
 	*testing.T
 
-	fatal  atomic.Pointer[func(args ...any)]
-	fatalf atomic.Pointer[func(format string, args ...any)]
+	error  atomic.Pointer[func(args ...any)]
 	errorf atomic.Pointer[func(format string, args ...any)]
 }
 
-func (t *overrideT) Fatal(args ...any) {
-	fp := t.fatal.Load()
+func (t *overrideT) Error(args ...any) {
+	fp := t.error.Load()
 	if fp == nil || *fp == nil {
-		t.T.Fatal(args...)
+		t.T.Error(args...)
 		return
 	}
 	(*fp)(args...)
-}
-
-func (t *overrideT) Fatalf(format string, args ...any) {
-	fp := t.fatalf.Load()
-	if fp == nil || *fp == nil {
-		t.T.Fatalf(format, args...)
-		return
-	}
-	(*fp)(format, args...)
 }
 
 func (t *overrideT) Errorf(format string, args ...any) {
@@ -46,6 +36,47 @@ func (t *overrideT) Errorf(format string, args ...any) {
 }
 
 func TestStub(t *testing.T) {
+	t.Run("goexit", func(t *testing.T) {
+		t.Run("FailNow", func(t *testing.T) {
+			defer func() {
+				if r := recover(); r != panicFailNow {
+					t.Errorf("recover: %v", r)
+				}
+			}()
+			new(stubHolder).FailNow()
+		})
+
+		t.Run("SkipNow", func(t *testing.T) {
+			defer func() {
+				want := "invalid call to SkipNow"
+				if r := recover(); r != want {
+					t.Errorf("recover: %v, want %v", r, want)
+				}
+			}()
+			new(stubHolder).SkipNow()
+		})
+
+		t.Run("Skip", func(t *testing.T) {
+			defer func() {
+				want := "invalid call to Skip"
+				if r := recover(); r != want {
+					t.Errorf("recover: %v, want %v", r, want)
+				}
+			}()
+			new(stubHolder).Skip()
+		})
+
+		t.Run("Skipf", func(t *testing.T) {
+			defer func() {
+				want := "invalid call to Skipf"
+				if r := recover(); r != want {
+					t.Errorf("recover: %v, want %v", r, want)
+				}
+			}()
+			new(stubHolder).Skipf("")
+		})
+	})
+
 	t.Run("new", func(t *testing.T) {
 		t.Run("success", func(t *testing.T) {
 			s := New(t, func(s *Stub[stubHolder]) stubHolder { return stubHolder{s} }, Expect{Calls: []Call{
@@ -82,12 +113,12 @@ func TestStub(t *testing.T) {
 
 		t.Run("overrun", func(t *testing.T) {
 			ot := &overrideT{T: t}
-			ot.fatal.Store(checkFatal(t, "New: track overrun"))
+			ot.error.Store(checkError(t, "New: track overrun"))
 			s := New(ot, func(s *Stub[stubHolder]) stubHolder { return stubHolder{s} }, Expect{Calls: []Call{
 				{"New", ExpectArgs{}, nil, nil},
 				{"panic", ExpectArgs{"unreachable"}, nil, nil},
 			}})
-			func() { defer HandleExit(); s.New(func(k stubHolder) { panic("unreachable") }) }()
+			func() { defer s.HandleExit(); s.New(func(k stubHolder) { panic("unreachable") }) }()
 
 			var visit int
 			s.VisitIncomplete(func(s *Stub[stubHolder]) {
@@ -106,38 +137,38 @@ func TestStub(t *testing.T) {
 		t.Run("expects", func(t *testing.T) {
 			t.Run("overrun", func(t *testing.T) {
 				ot := &overrideT{T: t}
-				ot.fatal.Store(checkFatal(t, "Expects: advancing beyond expected calls"))
+				ot.error.Store(checkError(t, "Expects: advancing beyond expected calls"))
 				s := New(ot, func(s *Stub[stubHolder]) stubHolder { return stubHolder{s} }, Expect{})
-				func() { defer HandleExit(); s.Expects("unreachable") }()
+				func() { defer s.HandleExit(); s.Expects("unreachable") }()
 			})
 
 			t.Run("separator", func(t *testing.T) {
 				t.Run("overrun", func(t *testing.T) {
 					ot := &overrideT{T: t}
-					ot.fatalf.Store(checkFatalf(t, "Expects: func = %s, separator overrun", "meow"))
+					ot.errorf.Store(checkErrorf(t, "Expects: func = %s, separator overrun", "meow"))
 					s := New(ot, func(s *Stub[stubHolder]) stubHolder { return stubHolder{s} }, Expect{Calls: []Call{
 						{CallSeparator, ExpectArgs{}, nil, nil},
 					}})
-					func() { defer HandleExit(); s.Expects("meow") }()
+					func() { defer s.HandleExit(); s.Expects("meow") }()
 				})
 
 				t.Run("mismatch", func(t *testing.T) {
 					ot := &overrideT{T: t}
-					ot.fatalf.Store(checkFatalf(t, "Expects: separator, want %s", "panic"))
+					ot.errorf.Store(checkErrorf(t, "Expects: separator, want %s", "panic"))
 					s := New(ot, func(s *Stub[stubHolder]) stubHolder { return stubHolder{s} }, Expect{Calls: []Call{
 						{"panic", ExpectArgs{}, nil, nil},
 					}})
-					func() { defer HandleExit(); s.Expects(CallSeparator) }()
+					func() { defer s.HandleExit(); s.Expects(CallSeparator) }()
 				})
 			})
 
 			t.Run("mismatch", func(t *testing.T) {
 				ot := &overrideT{T: t}
-				ot.fatalf.Store(checkFatalf(t, "Expects: func = %s, want %s", "meow", "nya"))
+				ot.errorf.Store(checkErrorf(t, "Expects: func = %s, want %s", "meow", "nya"))
 				s := New(ot, func(s *Stub[stubHolder]) stubHolder { return stubHolder{s} }, Expect{Calls: []Call{
 					{"nya", ExpectArgs{}, nil, nil},
 				}})
-				func() { defer HandleExit(); s.Expects("meow") }()
+				func() { defer s.HandleExit(); s.Expects("meow") }()
 			})
 		})
 	})
@@ -167,9 +198,9 @@ func TestCheckArg(t *testing.T) {
 		}
 	})
 	t.Run("mismatch", func(t *testing.T) {
-		defer HandleExit()
+		defer s.HandleExit()
 		s.Expects("meow")
-		ot.errorf.Store(checkFatalf(t, "%s: %s = %#v, want %#v (%d)", "meow", "time", 0, -1, 1))
+		ot.errorf.Store(checkErrorf(t, "%s: %s = %#v, want %#v (%d)", "meow", "time", 0, -1, 1))
 		if CheckArg(s, "time", 0, 0) {
 			t.Errorf("CheckArg: unexpected true")
 		}
@@ -210,9 +241,9 @@ func TestCheckArgReflect(t *testing.T) {
 		}
 	})
 	t.Run("mismatch", func(t *testing.T) {
-		defer HandleExit()
+		defer s.HandleExit()
 		s.Expects("meow")
-		ot.errorf.Store(checkFatalf(t, "%s: %s = %#v, want %#v (%d)", "meow", "time", 0, -1, 1))
+		ot.errorf.Store(checkErrorf(t, "%s: %s = %#v, want %#v (%d)", "meow", "time", 0, -1, 1))
 		if CheckArgReflect(s, "time", 0, 0) {
 			t.Errorf("CheckArgReflect: unexpected true")
 		}
@@ -229,35 +260,35 @@ func TestCheckArgReflect(t *testing.T) {
 	})
 }
 
-func checkFatal(t *testing.T, wantArgs ...any) *func(args ...any) {
+func checkError(t *testing.T, wantArgs ...any) *func(args ...any) {
 	var called bool
 	f := func(args ...any) {
 		if called {
-			panic("invalid call to fatal")
+			panic("invalid call to error")
 		}
 		called = true
 
 		if !reflect.DeepEqual(args, wantArgs) {
-			t.Errorf("Fatal: %#v, want %#v", args, wantArgs)
+			t.Errorf("Error: %#v, want %#v", args, wantArgs)
 		}
 		panic(PanicExit)
 	}
 	return &f
 }
 
-func checkFatalf(t *testing.T, wantFormat string, wantArgs ...any) *func(format string, args ...any) {
+func checkErrorf(t *testing.T, wantFormat string, wantArgs ...any) *func(format string, args ...any) {
 	var called bool
 	f := func(format string, args ...any) {
 		if called {
-			panic("invalid call to fatalf")
+			panic("invalid call to errorf")
 		}
 		called = true
 
 		if format != wantFormat {
-			t.Errorf("Fatalf: format = %q, want %q", format, wantFormat)
+			t.Errorf("Errorf: format = %q, want %q", format, wantFormat)
 		}
 		if !reflect.DeepEqual(args, wantArgs) {
-			t.Errorf("Fatalf: args = %#v, want %#v", args, wantArgs)
+			t.Errorf("Errorf: args = %#v, want %#v", args, wantArgs)
 		}
 		panic(PanicExit)
 	}

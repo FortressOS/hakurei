@@ -148,8 +148,8 @@ func checkSimple(t *testing.T, fname string, testCases []simpleTestCase) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Helper()
 
-			defer stub.HandleExit()
 			k := &kstub{stub.New(t, func(s *stub.Stub[syscallDispatcher]) syscallDispatcher { return &kstub{s} }, tc.want)}
+			defer k.HandleExit()
 			if err := tc.f(k); !reflect.DeepEqual(err, tc.wantErr) {
 				t.Errorf("%s: error = %v, want %v", fname, err, tc.wantErr)
 			}
@@ -184,12 +184,12 @@ func checkOpBehaviour(t *testing.T, testCases []opBehaviourTestCase) {
 			t.Run(tc.name, func(t *testing.T) {
 				t.Helper()
 
-				defer stub.HandleExit()
 				state := &setupState{Params: tc.params}
 				k := &kstub{stub.New(t,
 					func(s *stub.Stub[syscallDispatcher]) syscallDispatcher { return &kstub{s} },
 					stub.Expect{Calls: slices.Concat(tc.early, []stub.Call{{Name: stub.CallSeparator}}, tc.apply)},
 				)}
+				defer k.HandleExit()
 				errEarly := tc.op.early(state, k)
 				k.Expects(stub.CallSeparator)
 				if !reflect.DeepEqual(errEarly, tc.wantErrEarly) {
