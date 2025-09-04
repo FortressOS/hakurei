@@ -2046,7 +2046,8 @@ func TestInitEntrypoint(t *testing.T) {
 				call("resume", stub.ExpectArgs{}, true, nil),
 				call("verbosef", stub.ExpectArgs{"%s after process start", []any{"terminated"}}, nil, nil),
 				call("verbose", stub.ExpectArgs{[]any{"forwarding context cancellation"}}, nil, nil),
-				call("signal", stub.ExpectArgs{"/run/current-system/sw/bin/bash", []string{"bash", "-c", "false"}, ([]string)(nil), "/.hakurei/nonexistent", os.Interrupt}, nil, stub.UniqueError(9)),
+				// magicWait4Signal as ret causes wait4 stub to unblock
+				call("signal", stub.ExpectArgs{"/run/current-system/sw/bin/bash", []string{"bash", "-c", "false"}, ([]string)(nil), "/.hakurei/nonexistent", os.Interrupt}, magicWait4Signal, stub.UniqueError(9)),
 				call("printf", stub.ExpectArgs{"cannot forward cancellation: %v", []any{stub.UniqueError(9)}}, nil, nil),
 				call("resume", stub.ExpectArgs{}, false, nil),
 				call("verbosef", stub.ExpectArgs{"initial process exited with signal %s", []any{syscall.Signal(0x4e)}}, nil, nil),
@@ -2057,9 +2058,10 @@ func TestInitEntrypoint(t *testing.T) {
 
 			/* wait4 */
 			Tracks: []stub.Expect{{Calls: []stub.Call{
-				call("wait4", stub.ExpectArgs{-1, syscall.WaitStatus(0xfade01ce), 0, nil}, 0xbad, nil),
+				// magicWait4Signal as args[4] causes this to block until simulated signal is delivered
+				call("wait4", stub.ExpectArgs{-1, syscall.WaitStatus(0xfade01ce), 0, nil, magicWait4Signal}, 0xbad, nil),
 				// this terminates the goroutine at the call, preventing it from leaking while preserving behaviour
-				call("wait4", stub.ExpectArgs{-1, nil, 0, nil, 0xdeadbeef}, 0, syscall.ECHILD),
+				call("wait4", stub.ExpectArgs{-1, nil, 0, nil, stub.PanicExit}, 0, syscall.ECHILD),
 			}}},
 		}, nil},
 
@@ -2149,7 +2151,7 @@ func TestInitEntrypoint(t *testing.T) {
 			/* wait4 */
 			Tracks: []stub.Expect{{Calls: []stub.Call{
 				// this terminates the goroutine at the call, preventing it from leaking while preserving behaviour
-				call("wait4", stub.ExpectArgs{-1, nil, 0, nil, 0xdeadbeef}, 0, syscall.ECHILD),
+				call("wait4", stub.ExpectArgs{-1, nil, 0, nil, stub.PanicExit}, 0, syscall.ECHILD),
 			}}},
 		}, nil},
 
