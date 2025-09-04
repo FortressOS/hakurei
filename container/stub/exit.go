@@ -12,22 +12,30 @@ const (
 )
 
 // HandleExit must be deferred before calling with the stub.
-func (s *Stub[K]) HandleExit() { handleExit(s.TB, true) }
-
-func handleExit(t testing.TB, root bool) {
+func HandleExit(t testing.TB) {
 	switch r := recover(); r {
 	case PanicExit:
 		break
 
 	case panicFailNow:
-		if root {
-			t.FailNow()
-		} else {
-			t.Fail()
-		}
-		break
+		t.FailNow()
 
 	case panicFatal, panicFatalf, nil:
+		break
+
+	default:
+		panic(r)
+	}
+}
+
+// handleExitNew handles exits from goroutines created by [Stub.New].
+func handleExitNew(t testing.TB) {
+	switch r := recover(); r {
+	case PanicExit, panicFatal, panicFatalf, nil:
+		break
+
+	case panicFailNow:
+		t.Fail()
 		break
 
 	default:

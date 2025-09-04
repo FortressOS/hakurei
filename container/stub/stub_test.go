@@ -118,7 +118,7 @@ func TestStub(t *testing.T) {
 				{"New", ExpectArgs{}, nil, nil},
 				{"panic", ExpectArgs{"unreachable"}, nil, nil},
 			}})
-			func() { defer s.HandleExit(); s.New(func(k stubHolder) { panic("unreachable") }) }()
+			func() { defer HandleExit(t); s.New(func(k stubHolder) { panic("unreachable") }) }()
 
 			var visit int
 			s.VisitIncomplete(func(s *Stub[stubHolder]) {
@@ -139,7 +139,7 @@ func TestStub(t *testing.T) {
 				ot := &overrideT{T: t}
 				ot.error.Store(checkError(t, "Expects: advancing beyond expected calls"))
 				s := New(ot, func(s *Stub[stubHolder]) stubHolder { return stubHolder{s} }, Expect{})
-				func() { defer s.HandleExit(); s.Expects("unreachable") }()
+				func() { defer HandleExit(t); s.Expects("unreachable") }()
 			})
 
 			t.Run("separator", func(t *testing.T) {
@@ -149,7 +149,7 @@ func TestStub(t *testing.T) {
 					s := New(ot, func(s *Stub[stubHolder]) stubHolder { return stubHolder{s} }, Expect{Calls: []Call{
 						{CallSeparator, ExpectArgs{}, nil, nil},
 					}})
-					func() { defer s.HandleExit(); s.Expects("meow") }()
+					func() { defer HandleExit(t); s.Expects("meow") }()
 				})
 
 				t.Run("mismatch", func(t *testing.T) {
@@ -158,7 +158,7 @@ func TestStub(t *testing.T) {
 					s := New(ot, func(s *Stub[stubHolder]) stubHolder { return stubHolder{s} }, Expect{Calls: []Call{
 						{"panic", ExpectArgs{}, nil, nil},
 					}})
-					func() { defer s.HandleExit(); s.Expects(CallSeparator) }()
+					func() { defer HandleExit(t); s.Expects(CallSeparator) }()
 				})
 			})
 
@@ -168,7 +168,7 @@ func TestStub(t *testing.T) {
 				s := New(ot, func(s *Stub[stubHolder]) stubHolder { return stubHolder{s} }, Expect{Calls: []Call{
 					{"nya", ExpectArgs{}, nil, nil},
 				}})
-				func() { defer s.HandleExit(); s.Expects("meow") }()
+				func() { defer HandleExit(t); s.Expects("meow") }()
 			})
 		})
 	})
@@ -198,7 +198,7 @@ func TestCheckArg(t *testing.T) {
 		}
 	})
 	t.Run("mismatch", func(t *testing.T) {
-		defer s.HandleExit()
+		defer HandleExit(t)
 		s.Expects("meow")
 		ot.errorf.Store(checkErrorf(t, "%s: %s = %#v, want %#v (%d)", "meow", "time", 0, -1, 1))
 		if CheckArg(s, "time", 0, 0) {
@@ -241,7 +241,7 @@ func TestCheckArgReflect(t *testing.T) {
 		}
 	})
 	t.Run("mismatch", func(t *testing.T) {
-		defer s.HandleExit()
+		defer HandleExit(t)
 		s.Expects("meow")
 		ot.errorf.Store(checkErrorf(t, "%s: %s = %#v, want %#v (%d)", "meow", "time", 0, -1, 1))
 		if CheckArgReflect(s, "time", 0, 0) {

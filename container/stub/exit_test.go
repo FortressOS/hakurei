@@ -7,8 +7,8 @@ import (
 	"hakurei.app/container/stub"
 )
 
-//go:linkname handleExit hakurei.app/container/stub.handleExit
-func handleExit(_ testing.TB, _ bool)
+//go:linkname handleExitNew hakurei.app/container/stub.handleExitNew
+func handleExitNew(_ testing.TB)
 
 // overrideTFailNow overrides the Fail and FailNow method.
 type overrideTFailNow struct {
@@ -33,7 +33,7 @@ func (o *overrideTFailNow) Fail() {
 
 func TestHandleExit(t *testing.T) {
 	t.Run("exit", func(t *testing.T) {
-		defer handleExit(t, true)
+		defer stub.HandleExit(t)
 		panic(stub.PanicExit)
 	})
 
@@ -45,7 +45,7 @@ func TestHandleExit(t *testing.T) {
 					t.Errorf("FailNow was never called")
 				}
 			}()
-			defer handleExit(ot, true)
+			defer stub.HandleExit(ot)
 			panic(0xcafe0000)
 		})
 
@@ -56,24 +56,38 @@ func TestHandleExit(t *testing.T) {
 					t.Errorf("Fail was never called")
 				}
 			}()
-			defer handleExit(ot, false)
+			defer handleExitNew(ot)
 			panic(0xcafe0000)
 		})
 	})
 
 	t.Run("nil", func(t *testing.T) {
-		defer handleExit(t, true)
+		defer stub.HandleExit(t)
 	})
 
 	t.Run("passthrough", func(t *testing.T) {
-		defer func() {
-			want := 0xcafebabe
-			if r := recover(); r != want {
-				t.Errorf("recover: %v, want %v", r, want)
-			}
+		t.Run("toplevel", func(t *testing.T) {
+			defer func() {
+				want := 0xcafebabe
+				if r := recover(); r != want {
+					t.Errorf("recover: %v, want %v", r, want)
+				}
 
-		}()
-		defer handleExit(t, true)
-		panic(0xcafebabe)
+			}()
+			defer stub.HandleExit(t)
+			panic(0xcafebabe)
+		})
+
+		t.Run("new", func(t *testing.T) {
+			defer func() {
+				want := 0xcafe
+				if r := recover(); r != want {
+					t.Errorf("recover: %v, want %v", r, want)
+				}
+
+			}()
+			defer handleExitNew(t)
+			panic(0xcafe)
+		})
 	})
 }

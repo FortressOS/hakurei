@@ -44,7 +44,7 @@ func checkOpBehaviour(t *testing.T, testCases []opBehaviourTestCase) {
 				}
 
 				sys, s := InternalNew(t, stub.Expect{Calls: slices.Concat(tc.apply, []stub.Call{{Name: stub.CallSeparator}}, tc.revert)}, tc.uid)
-				defer s.HandleExit()
+				defer stub.HandleExit(t)
 				errApply := tc.op.apply(sys)
 				s.Expects(stub.CallSeparator)
 				if !reflect.DeepEqual(errApply, tc.wantErrApply) {
@@ -91,7 +91,7 @@ func checkOpsBuilder(t *testing.T, fname string, testCases []opsBuilderTestCase)
 				t.Helper()
 
 				sys, s := InternalNew(t, tc.exp, tc.uid)
-				defer s.HandleExit()
+				defer stub.HandleExit(t)
 				tc.f(sys)
 				s.VisitIncomplete(func(s *stub.Stub[syscallDispatcher]) {
 					t.Helper()

@@ -68,7 +68,7 @@ func (s *Stub[K]) New(f func(k K)) {
 		s.Helper()
 
 		defer s.wg.Done()
-		defer handleExit(s.TB, false)
+		defer handleExitNew(s.TB)
 		f(s.makeK(ds))
 	}()
 }
