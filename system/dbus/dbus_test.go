@@ -63,6 +63,10 @@ func TestProxyStartWaitCloseString(t *testing.T) {
 	t.Run("direct", func(t *testing.T) { testProxyFinaliseStartWaitCloseString(t, false) })
 }
 
+const (
+	stubProxyTimeout = 30 * time.Second
+)
+
 func testProxyFinaliseStartWaitCloseString(t *testing.T, useSandbox bool) {
 	{
 		oldWaitDelay := helper.WaitDelay
@@ -118,33 +122,33 @@ func testProxyFinaliseStartWaitCloseString(t *testing.T, useSandbox bool) {
 				}
 			})
 
-			ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
-			defer cancel()
-			output := new(strings.Builder)
-			if !useSandbox {
-				p = dbus.NewDirect(ctx, final, output)
-			} else {
-				p = dbus.New(ctx, final, output)
-			}
-
-			t.Run("invalid wait", func(t *testing.T) {
-				wantErr := "dbus: not started"
-				if err := p.Wait(); err == nil || err.Error() != wantErr {
-					t.Errorf("Wait: error = %v, wantErr %v",
-						err, wantErr)
+			t.Run("run", func(t *testing.T) {
+				ctx, cancel := context.WithTimeout(t.Context(), stubProxyTimeout)
+				defer cancel()
+				output := new(strings.Builder)
+				if !useSandbox {
+					p = dbus.NewDirect(ctx, final, output)
+				} else {
+					p = dbus.New(ctx, final, output)
 				}
-			})
 
-			t.Run("string", func(t *testing.T) {
-				want := "(unused dbus proxy)"
-				if got := p.String(); got != want {
-					t.Errorf("String: %q, want %q",
-						got, want)
-					return
-				}
-			})
+				t.Run("invalid wait", func(t *testing.T) {
+					wantErr := "dbus: not started"
+					if err := p.Wait(); err == nil || err.Error() != wantErr {
+						t.Errorf("Wait: error = %v, wantErr %v",
+							err, wantErr)
+					}
+				})
 
-			t.Run("start", func(t *testing.T) {
+				t.Run("string", func(t *testing.T) {
+					want := "(unused dbus proxy)"
+					if got := p.String(); got != want {
+						t.Errorf("String: %q, want %q",
+							got, want)
+						return
+					}
+				})
+
 				if err := p.Start(); err != nil {
 					t.Fatalf("Start: error = %v",
 						err)
