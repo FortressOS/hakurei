@@ -6,10 +6,12 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"reflect"
 	"strings"
 	"sync"
 	"syscall"
 
+	"hakurei.app/container"
 	"hakurei.app/system/dbus"
 )
 
@@ -39,10 +41,11 @@ func (sys *I) ProxyDBus(session, system *dbus.Config, sessionPath, systemPath st
 	// system bus is optional
 	d.system = system != nil
 
-	d.sessionBus[0], d.systemBus[0] = dbus.Address()
-	d.sessionBus[1], d.systemBus[1] = sessionPath, systemPath
+	var sessionBus, systemBus dbus.ProxyPair
+	sessionBus[0], systemBus[0] = dbus.Address()
+	sessionBus[1], systemBus[1] = sessionPath, systemPath
 	d.out = &linePrefixWriter{println: log.Println, prefix: "(dbus) ", msg: new(strings.Builder)}
-	if final, err := dbus.Finalise(d.sessionBus, d.systemBus, session, system); err != nil {
+	if final, err := dbus.Finalise(sessionBus, systemBus, session, system); err != nil {
 		if errors.Is(err, syscall.EINVAL) {
 			return nil, newOpErrorMessage("dbus", err,
 				"message bus proxy configuration contains NUL byte", false)
@@ -51,9 +54,9 @@ func (sys *I) ProxyDBus(session, system *dbus.Config, sessionPath, systemPath st
 			fmt.Sprintf("cannot finalise message bus proxy: %v", err), false)
 	} else {
 		if msg.IsVerbose() {
-			msg.Verbose("session bus proxy:", session.Args(d.sessionBus))
+			msg.Verbose("session bus proxy:", session.Args(sessionBus))
 			if system != nil {
-				msg.Verbose("system bus proxy:", system.Args(d.systemBus))
+				msg.Verbose("system bus proxy:", system.Args(systemBus))
 			}
 
 			// this calls the argsWt String method
@@ -76,16 +79,14 @@ type DBusProxyOp struct {
 	out   *linePrefixWriter
 	// whether system bus proxy is enabled
 	system bool
-
-	sessionBus, systemBus dbus.ProxyPair
 }
 
 func (d *DBusProxyOp) Type() Enablement { return Process }
 
 func (d *DBusProxyOp) apply(sys *I) error {
-	msg.Verbosef("session bus proxy on %q for upstream %q", d.sessionBus[1], d.sessionBus[0])
+	msg.Verbosef("session bus proxy on %q for upstream %q", d.final.Session[1], d.final.Session[0])
 	if d.system {
-		msg.Verbosef("system bus proxy on %q for upstream %q", d.systemBus[1], d.systemBus[0])
+		msg.Verbosef("system bus proxy on %q for upstream %q", d.final.System[1], d.final.System[0])
 	}
 
 	d.proxy = dbus.New(sys.ctx, d.final, d.out)
@@ -115,12 +116,16 @@ func (d *DBusProxyOp) revert(*I, *Criteria) error {
 func (d *DBusProxyOp) Is(o Op) bool {
 	target, ok := o.(*DBusProxyOp)
 	return ok && d != nil && target != nil &&
-		((d.proxy == nil && target.proxy == nil) ||
-			(d.proxy != nil && target.proxy != nil &&
-				d.proxy.String() == target.proxy.String()))
+		d.system == target.system &&
+		d.final != nil && target.final != nil &&
+		d.final.Session == target.final.Session &&
+		d.final.System == target.final.System &&
+		dbus.EqualAddrEntries(d.final.SessionUpstream, target.final.SessionUpstream) &&
+		dbus.EqualAddrEntries(d.final.SystemUpstream, target.final.SystemUpstream) &&
+		reflect.DeepEqual(d.final.WriterTo, target.final.WriterTo)
 }
 
-func (d *DBusProxyOp) Path() string   { return "(dbus proxy)" }
+func (d *DBusProxyOp) Path() string   { return container.Nonexistent }
 func (d *DBusProxyOp) String() string { return d.proxy.String() }
 
 // linePrefixWriter calls println with a prefix for every line written.

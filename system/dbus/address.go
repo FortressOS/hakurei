@@ -13,6 +13,13 @@ type AddrEntry struct {
 	Values [][2]string `json:"values"`
 }
 
+// EqualAddrEntries returns whether two slices of [AddrEntry] are equal.
+func EqualAddrEntries(entries, target []AddrEntry) bool {
+	return slices.EqualFunc(entries, target, func(a AddrEntry, b AddrEntry) bool {
+		return a.Method == b.Method && slices.Equal(a.Values, b.Values)
+	})
+}
+
 // Parse parses D-Bus address according to
 // https://dbus.freedesktop.org/doc/dbus-specification.html#addresses
 func Parse(addr []byte) ([]AddrEntry, error) {
