@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"reflect"
+	"strconv"
 	"strings"
 	"sync"
 	"syscall"
@@ -44,7 +45,7 @@ func (sys *I) ProxyDBus(session, system *dbus.Config, sessionPath, systemPath st
 	var sessionBus, systemBus dbus.ProxyPair
 	sessionBus[0], systemBus[0] = dbus.Address()
 	sessionBus[1], systemBus[1] = sessionPath, systemPath
-	d.out = &linePrefixWriter{println: log.Println, prefix: "(dbus) ", msg: new(strings.Builder)}
+	d.out = &linePrefixWriter{println: log.Println, prefix: "(dbus) ", buf: new(strings.Builder)}
 	if final, err := dbus.Finalise(sessionBus, systemBus, session, system); err != nil {
 		if errors.Is(err, syscall.EINVAL) {
 			return nil, newOpErrorMessage("dbus", err,
@@ -128,12 +129,20 @@ func (d *DBusProxyOp) Is(o Op) bool {
 func (d *DBusProxyOp) Path() string   { return container.Nonexistent }
 func (d *DBusProxyOp) String() string { return d.proxy.String() }
 
+const (
+	// lpwSizeThreshold is the threshold of bytes written to linePrefixWriter which,
+	// if reached or exceeded, causes linePrefixWriter to drop all future writes.
+	lpwSizeThreshold = 1 << 24
+)
+
 // linePrefixWriter calls println with a prefix for every line written.
 type linePrefixWriter struct {
 	prefix  string
 	println func(v ...any)
-	msg     *strings.Builder
-	msgbuf  []string
+
+	n   int
+	msg []string
+	buf *strings.Builder
 
 	mu sync.RWMutex
 }
@@ -145,29 +154,45 @@ func (s *linePrefixWriter) Write(p []byte) (n int, err error) {
 }
 
 func (s *linePrefixWriter) write(p []byte, a int) (int, error) {
+	if s.n >= lpwSizeThreshold {
+		if len(p) == 0 {
+			return a, nil
+		}
+		return a, syscall.ENOMEM
+	}
+
 	if i := bytes.IndexByte(p, '\n'); i == -1 {
-		n, _ := s.msg.Write(p)
+		n, _ := s.buf.Write(p)
+		s.n += n
 		return a + n, nil
 	} else {
-		n, _ := s.msg.Write(p[:i])
+		n, _ := s.buf.Write(p[:i])
 
-		// allow container init messages through
-		v := s.msg.String()
+		v := s.buf.String()
 		if strings.HasPrefix(v, "init: ") {
+			// pass through container init messages
 			s.println(s.prefix + v)
 		} else {
-			s.msgbuf = append(s.msgbuf, v)
+			s.msg = append(s.msg, v)
 		}
 
-		s.msg.Reset()
+		s.buf.Reset()
+		s.n += n + 1
 		return s.write(p[i+1:], a+n+1)
 	}
 }
 
 func (s *linePrefixWriter) Dump() {
 	s.mu.RLock()
-	for _, m := range s.msgbuf {
+	// the final write might go past the threshold,
+	// and the buffer might still contain data
+	var n int
+	for _, m := range s.msg {
+		n += len(m)
 		s.println(s.prefix + m)
+	}
+	if s.n > lpwSizeThreshold {
+		s.println(s.prefix + "dropped " + strconv.Itoa(s.n-n) + " bytes of output")
 	}
 	s.mu.RUnlock()
 }
