@@ -162,8 +162,12 @@ func buildCommand(out io.Writer) command.Command {
 
 				// override log from configuration
 				if dbusVerbose {
-					config.SessionBus.Log = true
-					config.SystemBus.Log = true
+					if config.SessionBus != nil {
+						config.SessionBus.Log = true
+					}
+					if config.SystemBus != nil {
+						config.SystemBus.Log = true
+					}
 				}
 			}
 

@@ -149,7 +149,7 @@ silent_output_interrupt("--wayland -X --dbus --pulse ")
 print(machine.fail("sudo -u alice -i hakurei -v run --wayland true"))
 
 # Start hakurei permissive defaults within Wayland session:
-hakurei('-v run --wayland --dbus notify-send -a "NixOS Tests" "Test notification" "Notification from within sandbox." && touch /tmp/dbus-ok')
+hakurei('-v run --wayland --dbus --dbus-log notify-send -a "NixOS Tests" "Test notification" "Notification from within sandbox." && touch /tmp/dbus-ok')
 machine.wait_for_file("/tmp/dbus-ok", timeout=15)
 collect_state_ui("dbus_notify_exited")
 # not in pid namespace, verify termination
