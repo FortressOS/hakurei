@@ -43,10 +43,10 @@ func (sys *I) ProxyDBus(session, system *dbus.Config, sessionPath, systemPath st
 	d.system = system != nil
 
 	var sessionBus, systemBus dbus.ProxyPair
-	sessionBus[0], systemBus[0] = dbus.Address()
+	sessionBus[0], systemBus[0] = sys.dbusAddress()
 	sessionBus[1], systemBus[1] = sessionPath, systemPath
 	d.out = &linePrefixWriter{println: log.Println, prefix: "(dbus) ", buf: new(strings.Builder)}
-	if final, err := dbus.Finalise(sessionBus, systemBus, session, system); err != nil {
+	if final, err := sys.dbusFinalise(sessionBus, systemBus, session, system); err != nil {
 		if errors.Is(err, syscall.EINVAL) {
 			return nil, newOpErrorMessage("dbus", err,
 				"message bus proxy configuration contains NUL byte", false)
@@ -54,14 +54,14 @@ func (sys *I) ProxyDBus(session, system *dbus.Config, sessionPath, systemPath st
 		return nil, newOpErrorMessage("dbus", err,
 			fmt.Sprintf("cannot finalise message bus proxy: %v", err), false)
 	} else {
-		if msg.IsVerbose() {
-			msg.Verbose("session bus proxy:", session.Args(sessionBus))
+		if sys.isVerbose() {
+			sys.verbose("session bus proxy:", session.Args(sessionBus))
 			if system != nil {
-				msg.Verbose("system bus proxy:", system.Args(systemBus))
+				sys.verbose("system bus proxy:", system.Args(systemBus))
 			}
 
 			// this calls the argsWt String method
-			msg.Verbose("message bus proxy final args:", final.WriterTo)
+			sys.verbose("message bus proxy final args:", final.WriterTo)
 		}
 
 		d.final = final
@@ -85,29 +85,32 @@ type DBusProxyOp struct {
 func (d *DBusProxyOp) Type() Enablement { return Process }
 
 func (d *DBusProxyOp) apply(sys *I) error {
-	msg.Verbosef("session bus proxy on %q for upstream %q", d.final.Session[1], d.final.Session[0])
+	sys.verbosef("session bus proxy on %q for upstream %q", d.final.Session[1], d.final.Session[0])
 	if d.system {
-		msg.Verbosef("system bus proxy on %q for upstream %q", d.final.System[1], d.final.System[0])
+		sys.verbosef("system bus proxy on %q for upstream %q", d.final.System[1], d.final.System[0])
 	}
 
 	d.proxy = dbus.New(sys.ctx, d.final, d.out)
-	if err := d.proxy.Start(); err != nil {
+	if err := sys.dbusProxyStart(d.proxy); err != nil {
 		d.out.Dump()
 		return newOpErrorMessage("dbus", err,
 			fmt.Sprintf("cannot start message bus proxy: %v", err), false)
 	}
-	msg.Verbose("starting message bus proxy", d.proxy)
+	sys.verbose("starting message bus proxy", d.proxy)
 	return nil
 }
 
-func (d *DBusProxyOp) revert(*I, *Criteria) error {
+func (d *DBusProxyOp) revert(sys *I, _ *Criteria) error {
 	// criteria ignored here since dbus is always process-scoped
-	msg.Verbose("terminating message bus proxy")
-	d.proxy.Close()
-	defer msg.Verbose("message bus proxy exit")
-	err := d.proxy.Wait()
+	sys.verbose("terminating message bus proxy")
+	sys.dbusProxyClose(d.proxy)
+
+	exitMessage := "message bus proxy exit"
+	defer func() { sys.verbose(exitMessage) }()
+
+	err := sys.dbusProxyWait(d.proxy)
 	if errors.Is(err, context.Canceled) {
-		msg.Verbose("message bus proxy canceled upstream")
+		exitMessage = "message bus proxy canceled upstream"
 		err = nil
 	}
 	return newOpErrorMessage("dbus", err,

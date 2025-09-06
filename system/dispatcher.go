@@ -1,6 +1,9 @@
 package system
 
-import "hakurei.app/system/acl"
+import (
+	"hakurei.app/system/acl"
+	"hakurei.app/system/dbus"
+)
 
 // syscallDispatcher provides methods that make state-dependent system calls as part of their behaviour.
 // syscallDispatcher is embedded in [I], so all methods must be unexported.
@@ -13,6 +16,18 @@ type syscallDispatcher interface {
 	// aclUpdate provides [acl.Update].
 	aclUpdate(name string, uid int, perms ...acl.Perm) error
 
+	// dbusAddress provides [dbus.Address].
+	dbusAddress() (session, system string)
+	// dbusFinalise provides [dbus.Finalise].
+	dbusFinalise(sessionBus, systemBus dbus.ProxyPair, session, system *dbus.Config) (final *dbus.Final, err error)
+	// dbusProxyStart provides the Start method of [dbus.Proxy].
+	dbusProxyStart(proxy *dbus.Proxy) error
+	// dbusProxyClose provides the Close method of [dbus.Proxy].
+	dbusProxyClose(proxy *dbus.Proxy)
+	// dbusProxyWait provides the Wait method of [dbus.Proxy].
+	dbusProxyWait(proxy *dbus.Proxy) error
+
+	isVerbose() bool
 	verbose(v ...any)
 	verbosef(format string, v ...any)
 }
@@ -26,5 +41,18 @@ func (k direct) aclUpdate(name string, uid int, perms ...acl.Perm) error {
 	return acl.Update(name, uid, perms...)
 }
 
+func (k direct) dbusAddress() (session, system string) {
+	return dbus.Address()
+}
+
+func (k direct) dbusFinalise(sessionBus, systemBus dbus.ProxyPair, session, system *dbus.Config) (final *dbus.Final, err error) {
+	return dbus.Finalise(sessionBus, systemBus, session, system)
+}
+
+func (k direct) dbusProxyStart(proxy *dbus.Proxy) error { return proxy.Start() }
+func (k direct) dbusProxyClose(proxy *dbus.Proxy)       { proxy.Close() }
+func (k direct) dbusProxyWait(proxy *dbus.Proxy) error  { return proxy.Wait() }
+
+func (k direct) isVerbose() bool                { return msg.IsVerbose() }
 func (direct) verbose(v ...any)                 { msg.Verbose(v...) }
 func (direct) verbosef(format string, v ...any) { msg.Verbosef(format, v...) }

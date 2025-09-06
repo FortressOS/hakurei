@@ -1,12 +1,15 @@
 package system
 
 import (
+	"os"
 	"reflect"
 	"slices"
 	"testing"
+	"unsafe"
 
 	"hakurei.app/container/stub"
 	"hakurei.app/system/acl"
+	"hakurei.app/system/dbus"
 )
 
 // call initialises a [stub.Call].
@@ -197,9 +200,85 @@ func (k *kstub) aclUpdate(name string, uid int, perms ...acl.Perm) error {
 		stub.CheckArgReflect(k.Stub, "perms", perms, 2))
 }
 
+func (k *kstub) dbusAddress() (session, system string) {
+	k.Helper()
+	ret := k.Expects("dbusAddress").Ret.([2]string)
+	return ret[0], ret[1]
+}
+
+func (k *kstub) dbusFinalise(sessionBus, systemBus dbus.ProxyPair, session, system *dbus.Config) (final *dbus.Final, err error) {
+	k.Helper()
+	expect := k.Expects("dbusFinalise")
+
+	final = expect.Ret.(*dbus.Final)
+	err = expect.Error(
+		stub.CheckArg(k.Stub, "sessionBus", sessionBus, 0),
+		stub.CheckArg(k.Stub, "systemBus", systemBus, 1),
+		stub.CheckArgReflect(k.Stub, "session", session, 2),
+		stub.CheckArgReflect(k.Stub, "system", system, 3))
+	if err != nil {
+		final = nil
+	}
+	return
+}
+
+func (k *kstub) dbusProxyStart(proxy *dbus.Proxy) error {
+	k.Helper()
+	return k.dbusProxySCW(k.Expects("dbusProxyStart"), proxy)
+}
+func (k *kstub) dbusProxyClose(proxy *dbus.Proxy) {
+	k.Helper()
+	if k.dbusProxySCW(k.Expects("dbusProxyClose"), proxy) != nil {
+		k.Fail()
+	}
+}
+func (k *kstub) dbusProxyWait(proxy *dbus.Proxy) error {
+	k.Helper()
+	return k.dbusProxySCW(k.Expects("dbusProxyWait"), proxy)
+}
+func (k *kstub) dbusProxySCW(expect *stub.Call, proxy *dbus.Proxy) error {
+	k.Helper()
+	v := reflect.ValueOf(proxy).Elem()
+
+	if ctxV := v.FieldByName("ctx"); ctxV.IsNil() {
+		k.Errorf("proxy: ctx = %s", ctxV.String())
+		return os.ErrInvalid
+	}
+
+	finalV := v.FieldByName("final")
+	if gotFinal := reflect.NewAt(finalV.Type(), unsafe.Pointer(finalV.UnsafeAddr())).Elem().Interface().(*dbus.Final); !reflect.DeepEqual(gotFinal, expect.Args[0]) {
+		k.Errorf("proxy: final = %#v, want %#v", gotFinal, expect.Args[0])
+		return os.ErrInvalid
+	}
+
+	outputV := v.FieldByName("output")
+	if _, ok := reflect.NewAt(outputV.Type(), unsafe.Pointer(outputV.UnsafeAddr())).Elem().Interface().(*linePrefixWriter); !ok {
+		k.Errorf("proxy: output = %s", outputV.String())
+		return os.ErrInvalid
+	}
+
+	return expect.Err
+}
+
+func (k *kstub) isVerbose() bool { k.Helper(); return k.Expects("isVerbose").Ret.(bool) }
+
+// ignoreValue marks a value to be ignored by the test suite.
+type ignoreValue struct{}
+
 func (k *kstub) verbose(v ...any) {
 	k.Helper()
-	if k.Expects("verbose").Error(
+	expect := k.Expects("verbose")
+
+	// translate ignores in v
+	if want, ok := expect.Args[0].([]any); ok && len(v) == len(want) {
+		for i, a := range want {
+			if _, ok = a.(ignoreValue); ok {
+				v[i] = ignoreValue{}
+			}
+		}
+	}
+
+	if expect.Error(
 		stub.CheckArgReflect(k.Stub, "v", v, 0)) != nil {
 		k.FailNow()
 	}

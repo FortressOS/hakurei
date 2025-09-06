@@ -1,12 +1,383 @@
 package system
 
 import (
+	"context"
 	"reflect"
 	"slices"
+	"strconv"
 	"strings"
 	"syscall"
 	"testing"
+
+	"hakurei.app/container/stub"
+	"hakurei.app/helper"
+	"hakurei.app/system/dbus"
 )
+
+func TestDBusProxyOp(t *testing.T) {
+	checkOpBehaviour(t, []opBehaviourTestCase{
+		{"dbusProxyStart", 0xdeadbeef, 0xff, &DBusProxyOp{
+			final:  dbusNewFinalSample(4),
+			out:    new(linePrefixWriter), // panics on write
+			system: true,
+		}, []stub.Call{
+			call("verbosef", stub.ExpectArgs{"session bus proxy on %q for upstream %q", []any{"/tmp/hakurei.0/99dd71ee2146369514e0d10783368f8f/bus", "unix:path=/run/user/1000/bus"}}, nil, nil),
+			call("verbosef", stub.ExpectArgs{"system bus proxy on %q for upstream %q", []any{"/tmp/hakurei.0/99dd71ee2146369514e0d10783368f8f/system_bus_socket", "unix:path=/run/dbus/system_bus_socket"}}, nil, nil),
+			call("dbusProxyStart", stub.ExpectArgs{dbusNewFinalSample(4)}, nil, stub.UniqueError(2)),
+		}, &OpError{
+			Op: "dbus", Err: stub.UniqueError(2),
+			Msg: "cannot start message bus proxy: unique error 2 injected by the test suite",
+		}, nil, nil},
+
+		{"dbusProxyWait", 0xdeadbeef, 0xff, &DBusProxyOp{
+			final: dbusNewFinalSample(3),
+		}, []stub.Call{
+			call("verbosef", stub.ExpectArgs{"session bus proxy on %q for upstream %q", []any{"/tmp/hakurei.0/99dd71ee2146369514e0d10783368f8f/bus", "unix:path=/run/user/1000/bus"}}, nil, nil),
+			call("dbusProxyStart", stub.ExpectArgs{dbusNewFinalSample(3)}, nil, nil),
+			call("verbose", stub.ExpectArgs{[]any{"starting message bus proxy", ignoreValue{}}}, nil, nil),
+		}, nil, []stub.Call{
+			call("verbose", stub.ExpectArgs{[]any{"terminating message bus proxy"}}, nil, nil),
+			call("dbusProxyClose", stub.ExpectArgs{dbusNewFinalSample(3)}, nil, nil),
+			call("dbusProxyWait", stub.ExpectArgs{dbusNewFinalSample(3)}, nil, stub.UniqueError(1)),
+			call("verbose", stub.ExpectArgs{[]any{"message bus proxy exit"}}, nil, nil),
+		}, &OpError{
+			Op: "dbus", Err: stub.UniqueError(1), Revert: true,
+			Msg: "message bus proxy error: unique error 1 injected by the test suite",
+		}},
+
+		{"success dbusProxyWait cancel", 0xdeadbeef, 0xff, &DBusProxyOp{
+			final:  dbusNewFinalSample(2),
+			system: true,
+		}, []stub.Call{
+			call("verbosef", stub.ExpectArgs{"session bus proxy on %q for upstream %q", []any{"/tmp/hakurei.0/99dd71ee2146369514e0d10783368f8f/bus", "unix:path=/run/user/1000/bus"}}, nil, nil),
+			call("verbosef", stub.ExpectArgs{"system bus proxy on %q for upstream %q", []any{"/tmp/hakurei.0/99dd71ee2146369514e0d10783368f8f/system_bus_socket", "unix:path=/run/dbus/system_bus_socket"}}, nil, nil),
+			call("dbusProxyStart", stub.ExpectArgs{dbusNewFinalSample(2)}, nil, nil),
+			call("verbose", stub.ExpectArgs{[]any{"starting message bus proxy", ignoreValue{}}}, nil, nil),
+		}, nil, []stub.Call{
+			call("verbose", stub.ExpectArgs{[]any{"terminating message bus proxy"}}, nil, nil),
+			call("dbusProxyClose", stub.ExpectArgs{dbusNewFinalSample(2)}, nil, nil),
+			call("dbusProxyWait", stub.ExpectArgs{dbusNewFinalSample(2)}, nil, context.Canceled),
+			call("verbose", stub.ExpectArgs{[]any{"message bus proxy canceled upstream"}}, nil, nil),
+		}, nil},
+
+		{"success", 0xdeadbeef, 0xff, &DBusProxyOp{
+			final:  dbusNewFinalSample(1),
+			system: true,
+		}, []stub.Call{
+			call("verbosef", stub.ExpectArgs{"session bus proxy on %q for upstream %q", []any{"/tmp/hakurei.0/99dd71ee2146369514e0d10783368f8f/bus", "unix:path=/run/user/1000/bus"}}, nil, nil),
+			call("verbosef", stub.ExpectArgs{"system bus proxy on %q for upstream %q", []any{"/tmp/hakurei.0/99dd71ee2146369514e0d10783368f8f/system_bus_socket", "unix:path=/run/dbus/system_bus_socket"}}, nil, nil),
+			call("dbusProxyStart", stub.ExpectArgs{dbusNewFinalSample(1)}, nil, nil),
+			call("verbose", stub.ExpectArgs{[]any{"starting message bus proxy", ignoreValue{}}}, nil, nil),
+		}, nil, []stub.Call{
+			call("verbose", stub.ExpectArgs{[]any{"terminating message bus proxy"}}, nil, nil),
+			call("dbusProxyClose", stub.ExpectArgs{dbusNewFinalSample(1)}, nil, nil),
+			call("dbusProxyWait", stub.ExpectArgs{dbusNewFinalSample(1)}, nil, nil),
+			call("verbose", stub.ExpectArgs{[]any{"message bus proxy exit"}}, nil, nil),
+		}, nil},
+	})
+
+	checkOpsBuilder(t, "ProxyDBus", []opsBuilderTestCase{
+		{"nil session", 0xcafebabe, func(t *testing.T, sys *I) {
+			wantErr := &OpError{
+				Op: "dbus", Err: ErrDBusConfig,
+				Msg: "attempted to create message bus proxy args without session bus config",
+			}
+			if f, err := sys.ProxyDBus(nil, new(dbus.Config), "", ""); !reflect.DeepEqual(err, wantErr) {
+				t.Errorf("ProxyDBus: error = %v, want %v", err, wantErr)
+			} else if f != nil {
+				t.Errorf("ProxyDBus: f = %p", f)
+			}
+		}, nil, stub.Expect{}},
+
+		{"dbusFinalise NUL", 0xcafebabe, func(_ *testing.T, sys *I) {
+			defer func() {
+				want := "message bus proxy configuration contains NUL byte"
+				if r := recover(); r != want {
+					t.Errorf("MustProxyDBus: panic = %v, want %v", r, want)
+				}
+			}()
+
+			sys.MustProxyDBus(
+				"/tmp/hakurei.0/99dd71ee2146369514e0d10783368f8f/bus", &dbus.Config{
+					// use impossible value here as an implicit assert that it goes through the stub
+					Talk: []string{"session\x00"}, Filter: true,
+				}, "/tmp/hakurei.0/99dd71ee2146369514e0d10783368f8f/system_bus_socket", &dbus.Config{
+					// use impossible value here as an implicit assert that it goes through the stub
+					Talk: []string{"system\x00"}, Filter: true,
+				})
+		}, nil, stub.Expect{Calls: []stub.Call{
+			call("dbusAddress", stub.ExpectArgs{}, [2]string{"unix:path=/run/user/1000/bus", "unix:path=/run/dbus/system_bus_socket"}, nil),
+			call("dbusFinalise", stub.ExpectArgs{
+				dbus.ProxyPair{"unix:path=/run/user/1000/bus", "/tmp/hakurei.0/99dd71ee2146369514e0d10783368f8f/bus"},
+				dbus.ProxyPair{"unix:path=/run/dbus/system_bus_socket", "/tmp/hakurei.0/99dd71ee2146369514e0d10783368f8f/system_bus_socket"},
+				&dbus.Config{Talk: []string{"session\x00"}, Filter: true},
+				&dbus.Config{Talk: []string{"system\x00"}, Filter: true},
+			}, (*dbus.Final)(nil), syscall.EINVAL),
+		}}},
+
+		{"dbusFinalise", 0xcafebabe, func(_ *testing.T, sys *I) {
+			wantErr := &OpError{
+				Op: "dbus", Err: stub.UniqueError(0),
+				Msg: "cannot finalise message bus proxy: unique error 0 injected by the test suite",
+			}
+			if f, err := sys.ProxyDBus(
+				&dbus.Config{
+					// use impossible value here as an implicit assert that it goes through the stub
+					Talk: []string{"session\x00"}, Filter: true,
+				}, &dbus.Config{
+					// use impossible value here as an implicit assert that it goes through the stub
+					Talk: []string{"system\x00"}, Filter: true,
+				},
+				"/tmp/hakurei.0/99dd71ee2146369514e0d10783368f8f/bus",
+				"/tmp/hakurei.0/99dd71ee2146369514e0d10783368f8f/system_bus_socket"); !reflect.DeepEqual(err, wantErr) {
+				t.Errorf("ProxyDBus: error = %v", err)
+			} else if f != nil {
+				t.Errorf("ProxyDBus: f = %p", f)
+			}
+		}, nil, stub.Expect{Calls: []stub.Call{
+			call("dbusAddress", stub.ExpectArgs{}, [2]string{"unix:path=/run/user/1000/bus", "unix:path=/run/dbus/system_bus_socket"}, nil),
+			call("dbusFinalise", stub.ExpectArgs{
+				dbus.ProxyPair{"unix:path=/run/user/1000/bus", "/tmp/hakurei.0/99dd71ee2146369514e0d10783368f8f/bus"},
+				dbus.ProxyPair{"unix:path=/run/dbus/system_bus_socket", "/tmp/hakurei.0/99dd71ee2146369514e0d10783368f8f/system_bus_socket"},
+				&dbus.Config{Talk: []string{"session\x00"}, Filter: true},
+				&dbus.Config{Talk: []string{"system\x00"}, Filter: true},
+			}, (*dbus.Final)(nil), stub.UniqueError(0)),
+		}}},
+
+		{"full", 0xcafebabe, func(_ *testing.T, sys *I) {
+			sys.MustProxyDBus(
+				"/tmp/hakurei.0/99dd71ee2146369514e0d10783368f8f/bus", &dbus.Config{
+					// use impossible value here as an implicit assert that it goes through the stub
+					Talk: []string{"session\x00"}, Filter: true,
+				}, "/tmp/hakurei.0/99dd71ee2146369514e0d10783368f8f/system_bus_socket", &dbus.Config{
+					// use impossible value here as an implicit assert that it goes through the stub
+					Talk: []string{"system\x00"}, Filter: true,
+				})
+		}, []Op{
+			&DBusProxyOp{
+				final:  dbusNewFinalSample(0),
+				system: true,
+			},
+		}, stub.Expect{Calls: []stub.Call{
+			call("dbusAddress", stub.ExpectArgs{}, [2]string{"unix:path=/run/user/1000/bus", "unix:path=/run/dbus/system_bus_socket"}, nil),
+			call("dbusFinalise", stub.ExpectArgs{
+				dbus.ProxyPair{"unix:path=/run/user/1000/bus", "/tmp/hakurei.0/99dd71ee2146369514e0d10783368f8f/bus"},
+				dbus.ProxyPair{"unix:path=/run/dbus/system_bus_socket", "/tmp/hakurei.0/99dd71ee2146369514e0d10783368f8f/system_bus_socket"},
+				&dbus.Config{Talk: []string{"session\x00"}, Filter: true},
+				&dbus.Config{Talk: []string{"system\x00"}, Filter: true},
+			}, dbusNewFinalSample(0), nil),
+			call("isVerbose", stub.ExpectArgs{}, true, nil),
+			call("verbose", stub.ExpectArgs{[]any{"session bus proxy:", []string{"unix:path=/run/user/1000/bus", "/tmp/hakurei.0/99dd71ee2146369514e0d10783368f8f/bus", "--filter", "--talk=session\x00"}}}, nil, nil),
+			call("verbose", stub.ExpectArgs{[]any{"system bus proxy:", []string{"unix:path=/run/dbus/system_bus_socket", "/tmp/hakurei.0/99dd71ee2146369514e0d10783368f8f/system_bus_socket", "--filter", "--talk=system\x00"}}}, nil, nil),
+			call("verbose", stub.ExpectArgs{[]any{"message bus proxy final args:", helper.MustNewCheckedArgs([]string{"unique", "value", "0", "injected", "by", "the", "test", "suite"})}}, nil, nil),
+		}}},
+	})
+
+	checkOpIs(t, []opIsTestCase{
+		{"nil", (*DBusProxyOp)(nil), (*DBusProxyOp)(nil), false},
+		{"zero", new(DBusProxyOp), new(DBusProxyOp), false},
+
+		{"system differs", &DBusProxyOp{final: &dbus.Final{
+			Session: dbus.ProxyPair{"unix:path=/run/user/1000/bus", "/tmp/hakurei.0/b186c281d9e83a39afdc66d964ef99c6/bus"},
+			System:  dbus.ProxyPair{"unix:path=/run/dbus/system_bus_socket", "/tmp/hakurei.0/b186c281d9e83a39afdc66d964ef99c6/system_bus_socket"},
+
+			SessionUpstream: []dbus.AddrEntry{{Method: "unix", Values: [][2]string{{"path", "/run/user/1000/bus"}}}},
+			SystemUpstream:  []dbus.AddrEntry{{Method: "unix", Values: [][2]string{{"unix", "/run/dbus/system_bus_socket"}}}},
+
+			WriterTo: helper.MustNewCheckedArgs([]string{
+				"--filter", "unix:path=/run/user/1000/bus", "/tmp/hakurei.0/b186c281d9e83a39afdc66d964ef99c6/bus",
+				"--filter", "unix:path=/run/dbus/system_bus_socket", "/tmp/hakurei.0/b186c281d9e83a39afdc66d964ef99c6/system_bus_socket",
+			}),
+		}, system: false,
+		}, &DBusProxyOp{final: &dbus.Final{
+			Session: dbus.ProxyPair{"unix:path=/run/user/1000/bus", "/tmp/hakurei.0/b186c281d9e83a39afdc66d964ef99c6/bus"},
+			System:  dbus.ProxyPair{"unix:path=/run/dbus/system_bus_socket", "/tmp/hakurei.0/b186c281d9e83a39afdc66d964ef99c6/system_bus_socket"},
+
+			SessionUpstream: []dbus.AddrEntry{{Method: "unix", Values: [][2]string{{"path", "/run/user/1000/bus"}}}},
+			SystemUpstream:  []dbus.AddrEntry{{Method: "unix", Values: [][2]string{{"unix", "/run/dbus/system_bus_socket"}}}},
+
+			WriterTo: helper.MustNewCheckedArgs([]string{
+				"--filter", "unix:path=/run/user/1000/bus", "/tmp/hakurei.0/b186c281d9e83a39afdc66d964ef99c6/bus",
+				"--filter", "unix:path=/run/dbus/system_bus_socket", "/tmp/hakurei.0/b186c281d9e83a39afdc66d964ef99c6/system_bus_socket",
+			}),
+		}, system: true,
+		}, false},
+
+		{"wt differs", &DBusProxyOp{final: &dbus.Final{
+			Session: dbus.ProxyPair{"unix:path=/run/user/1000/bus", "/tmp/hakurei.0/b186c281d9e83a39afdc66d964ef99c6/bus"},
+			System:  dbus.ProxyPair{"unix:path=/run/dbus/system_bus_socket", "/tmp/hakurei.0/b186c281d9e83a39afdc66d964ef99c6/system_bus_socket"},
+
+			SessionUpstream: []dbus.AddrEntry{{Method: "unix", Values: [][2]string{{"path", "/run/user/1000/bus"}}}},
+			SystemUpstream:  []dbus.AddrEntry{{Method: "unix", Values: [][2]string{{"unix", "/run/dbus/system_bus_socket"}}}},
+
+			WriterTo: helper.MustNewCheckedArgs([]string{
+				"--filter", "unix:path=/run/user/1001/bus", "/tmp/hakurei.0/b186c281d9e83a39afdc66d964ef99c6/bus",
+				"--filter", "unix:path=/run/dbus/system_bus_socket", "/tmp/hakurei.0/b186c281d9e83a39afdc66d964ef99c6/system_bus_socket",
+			}),
+		}, system: true,
+		}, &DBusProxyOp{final: &dbus.Final{
+			Session: dbus.ProxyPair{"unix:path=/run/user/1000/bus", "/tmp/hakurei.0/b186c281d9e83a39afdc66d964ef99c6/bus"},
+			System:  dbus.ProxyPair{"unix:path=/run/dbus/system_bus_socket", "/tmp/hakurei.0/b186c281d9e83a39afdc66d964ef99c6/system_bus_socket"},
+
+			SessionUpstream: []dbus.AddrEntry{{Method: "unix", Values: [][2]string{{"path", "/run/user/1000/bus"}}}},
+			SystemUpstream:  []dbus.AddrEntry{{Method: "unix", Values: [][2]string{{"unix", "/run/dbus/system_bus_socket"}}}},
+
+			WriterTo: helper.MustNewCheckedArgs([]string{
+				"--filter", "unix:path=/run/user/1000/bus", "/tmp/hakurei.0/b186c281d9e83a39afdc66d964ef99c6/bus",
+				"--filter", "unix:path=/run/dbus/system_bus_socket", "/tmp/hakurei.0/b186c281d9e83a39afdc66d964ef99c6/system_bus_socket",
+			}),
+		}, system: true,
+		}, false},
+
+		{"final system upstream differs", &DBusProxyOp{final: &dbus.Final{
+			Session: dbus.ProxyPair{"unix:path=/run/user/1000/bus", "/tmp/hakurei.0/b186c281d9e83a39afdc66d964ef99c6/bus"},
+			System:  dbus.ProxyPair{"unix:path=/run/dbus/system_bus_socket", "/tmp/hakurei.0/b186c281d9e83a39afdc66d964ef99c6/system_bus_socket"},
+
+			SessionUpstream: []dbus.AddrEntry{{Method: "unix", Values: [][2]string{{"path", "/run/user/1000/bus"}}}},
+			SystemUpstream:  []dbus.AddrEntry{{Method: "unix", Values: [][2]string{{"unix", "/run/dbus/system_bus_socket\x00"}}}},
+
+			WriterTo: helper.MustNewCheckedArgs([]string{
+				"--filter", "unix:path=/run/user/1000/bus", "/tmp/hakurei.0/b186c281d9e83a39afdc66d964ef99c6/bus",
+				"--filter", "unix:path=/run/dbus/system_bus_socket", "/tmp/hakurei.0/b186c281d9e83a39afdc66d964ef99c6/system_bus_socket",
+			}),
+		}, system: true,
+		}, &DBusProxyOp{final: &dbus.Final{
+			Session: dbus.ProxyPair{"unix:path=/run/user/1000/bus", "/tmp/hakurei.0/b186c281d9e83a39afdc66d964ef99c6/bus"},
+			System:  dbus.ProxyPair{"unix:path=/run/dbus/system_bus_socket", "/tmp/hakurei.0/b186c281d9e83a39afdc66d964ef99c6/system_bus_socket"},
+
+			SessionUpstream: []dbus.AddrEntry{{Method: "unix", Values: [][2]string{{"path", "/run/user/1000/bus"}}}},
+			SystemUpstream:  []dbus.AddrEntry{{Method: "unix", Values: [][2]string{{"unix", "/run/dbus/system_bus_socket"}}}},
+
+			WriterTo: helper.MustNewCheckedArgs([]string{
+				"--filter", "unix:path=/run/user/1000/bus", "/tmp/hakurei.0/b186c281d9e83a39afdc66d964ef99c6/bus",
+				"--filter", "unix:path=/run/dbus/system_bus_socket", "/tmp/hakurei.0/b186c281d9e83a39afdc66d964ef99c6/system_bus_socket",
+			}),
+		}, system: true,
+		}, false},
+
+		{"final session upstream differs", &DBusProxyOp{final: &dbus.Final{
+			Session: dbus.ProxyPair{"unix:path=/run/user/1000/bus", "/tmp/hakurei.0/b186c281d9e83a39afdc66d964ef99c6/bus"},
+			System:  dbus.ProxyPair{"unix:path=/run/dbus/system_bus_socket", "/tmp/hakurei.0/b186c281d9e83a39afdc66d964ef99c6/system_bus_socket"},
+
+			SessionUpstream: []dbus.AddrEntry{{Method: "unix", Values: [][2]string{{"path", "/run/user/1001/bus"}}}},
+			SystemUpstream:  []dbus.AddrEntry{{Method: "unix", Values: [][2]string{{"unix", "/run/dbus/system_bus_socket"}}}},
+
+			WriterTo: helper.MustNewCheckedArgs([]string{
+				"--filter", "unix:path=/run/user/1000/bus", "/tmp/hakurei.0/b186c281d9e83a39afdc66d964ef99c6/bus",
+				"--filter", "unix:path=/run/dbus/system_bus_socket", "/tmp/hakurei.0/b186c281d9e83a39afdc66d964ef99c6/system_bus_socket",
+			}),
+		}, system: true,
+		}, &DBusProxyOp{final: &dbus.Final{
+			Session: dbus.ProxyPair{"unix:path=/run/user/1000/bus", "/tmp/hakurei.0/b186c281d9e83a39afdc66d964ef99c6/bus"},
+			System:  dbus.ProxyPair{"unix:path=/run/dbus/system_bus_socket", "/tmp/hakurei.0/b186c281d9e83a39afdc66d964ef99c6/system_bus_socket"},
+
+			SessionUpstream: []dbus.AddrEntry{{Method: "unix", Values: [][2]string{{"path", "/run/user/1000/bus"}}}},
+			SystemUpstream:  []dbus.AddrEntry{{Method: "unix", Values: [][2]string{{"unix", "/run/dbus/system_bus_socket"}}}},
+
+			WriterTo: helper.MustNewCheckedArgs([]string{
+				"--filter", "unix:path=/run/user/1000/bus", "/tmp/hakurei.0/b186c281d9e83a39afdc66d964ef99c6/bus",
+				"--filter", "unix:path=/run/dbus/system_bus_socket", "/tmp/hakurei.0/b186c281d9e83a39afdc66d964ef99c6/system_bus_socket",
+			}),
+		}, system: true,
+		}, false},
+
+		{"final system differs", &DBusProxyOp{final: &dbus.Final{
+			Session: dbus.ProxyPair{"unix:path=/run/user/1000/bus", "/tmp/hakurei.0/b186c281d9e83a39afdc66d964ef99c6/bus"},
+			System:  dbus.ProxyPair{"unix:path=/run/dbus/system_bus_socket", "/tmp/hakurei.1/b186c281d9e83a39afdc66d964ef99c6/system_bus_socket"},
+
+			SessionUpstream: []dbus.AddrEntry{{Method: "unix", Values: [][2]string{{"path", "/run/user/1000/bus"}}}},
+			SystemUpstream:  []dbus.AddrEntry{{Method: "unix", Values: [][2]string{{"unix", "/run/dbus/system_bus_socket"}}}},
+
+			WriterTo: helper.MustNewCheckedArgs([]string{
+				"--filter", "unix:path=/run/user/1000/bus", "/tmp/hakurei.0/b186c281d9e83a39afdc66d964ef99c6/bus",
+				"--filter", "unix:path=/run/dbus/system_bus_socket", "/tmp/hakurei.0/b186c281d9e83a39afdc66d964ef99c6/system_bus_socket",
+			}),
+		}, system: true,
+		}, &DBusProxyOp{final: &dbus.Final{
+			Session: dbus.ProxyPair{"unix:path=/run/user/1000/bus", "/tmp/hakurei.0/b186c281d9e83a39afdc66d964ef99c6/bus"},
+			System:  dbus.ProxyPair{"unix:path=/run/dbus/system_bus_socket", "/tmp/hakurei.0/b186c281d9e83a39afdc66d964ef99c6/system_bus_socket"},
+
+			SessionUpstream: []dbus.AddrEntry{{Method: "unix", Values: [][2]string{{"path", "/run/user/1000/bus"}}}},
+			SystemUpstream:  []dbus.AddrEntry{{Method: "unix", Values: [][2]string{{"unix", "/run/dbus/system_bus_socket"}}}},
+
+			WriterTo: helper.MustNewCheckedArgs([]string{
+				"--filter", "unix:path=/run/user/1000/bus", "/tmp/hakurei.0/b186c281d9e83a39afdc66d964ef99c6/bus",
+				"--filter", "unix:path=/run/dbus/system_bus_socket", "/tmp/hakurei.0/b186c281d9e83a39afdc66d964ef99c6/system_bus_socket",
+			}),
+		}, system: true,
+		}, false},
+
+		{"final session differs", &DBusProxyOp{final: &dbus.Final{
+			Session: dbus.ProxyPair{"unix:path=/run/user/1001/bus", "/tmp/hakurei.0/b186c281d9e83a39afdc66d964ef99c6/bus"},
+			System:  dbus.ProxyPair{"unix:path=/run/dbus/system_bus_socket", "/tmp/hakurei.0/b186c281d9e83a39afdc66d964ef99c6/system_bus_socket"},
+
+			SessionUpstream: []dbus.AddrEntry{{Method: "unix", Values: [][2]string{{"path", "/run/user/1000/bus"}}}},
+			SystemUpstream:  []dbus.AddrEntry{{Method: "unix", Values: [][2]string{{"unix", "/run/dbus/system_bus_socket"}}}},
+
+			WriterTo: helper.MustNewCheckedArgs([]string{
+				"--filter", "unix:path=/run/user/1000/bus", "/tmp/hakurei.0/b186c281d9e83a39afdc66d964ef99c6/bus",
+				"--filter", "unix:path=/run/dbus/system_bus_socket", "/tmp/hakurei.0/b186c281d9e83a39afdc66d964ef99c6/system_bus_socket",
+			}),
+		}, system: true,
+		}, &DBusProxyOp{final: &dbus.Final{
+			Session: dbus.ProxyPair{"unix:path=/run/user/1000/bus", "/tmp/hakurei.0/b186c281d9e83a39afdc66d964ef99c6/bus"},
+			System:  dbus.ProxyPair{"unix:path=/run/dbus/system_bus_socket", "/tmp/hakurei.0/b186c281d9e83a39afdc66d964ef99c6/system_bus_socket"},
+
+			SessionUpstream: []dbus.AddrEntry{{Method: "unix", Values: [][2]string{{"path", "/run/user/1000/bus"}}}},
+			SystemUpstream:  []dbus.AddrEntry{{Method: "unix", Values: [][2]string{{"unix", "/run/dbus/system_bus_socket"}}}},
+
+			WriterTo: helper.MustNewCheckedArgs([]string{
+				"--filter", "unix:path=/run/user/1000/bus", "/tmp/hakurei.0/b186c281d9e83a39afdc66d964ef99c6/bus",
+				"--filter", "unix:path=/run/dbus/system_bus_socket", "/tmp/hakurei.0/b186c281d9e83a39afdc66d964ef99c6/system_bus_socket",
+			}),
+		}, system: true,
+		}, false},
+
+		{"equals", &DBusProxyOp{final: &dbus.Final{
+			Session: dbus.ProxyPair{"unix:path=/run/user/1000/bus", "/tmp/hakurei.0/b186c281d9e83a39afdc66d964ef99c6/bus"},
+			System:  dbus.ProxyPair{"unix:path=/run/dbus/system_bus_socket", "/tmp/hakurei.0/b186c281d9e83a39afdc66d964ef99c6/system_bus_socket"},
+
+			SessionUpstream: []dbus.AddrEntry{{Method: "unix", Values: [][2]string{{"path", "/run/user/1000/bus"}}}},
+			SystemUpstream:  []dbus.AddrEntry{{Method: "unix", Values: [][2]string{{"unix", "/run/dbus/system_bus_socket"}}}},
+
+			WriterTo: helper.MustNewCheckedArgs([]string{
+				"--filter", "unix:path=/run/user/1000/bus", "/tmp/hakurei.0/b186c281d9e83a39afdc66d964ef99c6/bus",
+				"--filter", "unix:path=/run/dbus/system_bus_socket", "/tmp/hakurei.0/b186c281d9e83a39afdc66d964ef99c6/system_bus_socket",
+			}),
+		}, system: true,
+		}, &DBusProxyOp{final: &dbus.Final{
+			Session: dbus.ProxyPair{"unix:path=/run/user/1000/bus", "/tmp/hakurei.0/b186c281d9e83a39afdc66d964ef99c6/bus"},
+			System:  dbus.ProxyPair{"unix:path=/run/dbus/system_bus_socket", "/tmp/hakurei.0/b186c281d9e83a39afdc66d964ef99c6/system_bus_socket"},
+
+			SessionUpstream: []dbus.AddrEntry{{Method: "unix", Values: [][2]string{{"path", "/run/user/1000/bus"}}}},
+			SystemUpstream:  []dbus.AddrEntry{{Method: "unix", Values: [][2]string{{"unix", "/run/dbus/system_bus_socket"}}}},
+
+			WriterTo: helper.MustNewCheckedArgs([]string{
+				"--filter", "unix:path=/run/user/1000/bus", "/tmp/hakurei.0/b186c281d9e83a39afdc66d964ef99c6/bus",
+				"--filter", "unix:path=/run/dbus/system_bus_socket", "/tmp/hakurei.0/b186c281d9e83a39afdc66d964ef99c6/system_bus_socket",
+			}),
+		}, system: true,
+		}, true},
+	})
+
+	checkOpMeta(t, []opMetaTestCase{
+		{"dbus", new(DBusProxyOp),
+			Process, "/proc/nonexistent",
+			"(invalid dbus proxy)"},
+	})
+}
+
+func dbusNewFinalSample(v int) *dbus.Final {
+	return &dbus.Final{
+		Session: dbus.ProxyPair{"unix:path=/run/user/1000/bus", "/tmp/hakurei.0/99dd71ee2146369514e0d10783368f8f/bus"},
+		System:  dbus.ProxyPair{"unix:path=/run/dbus/system_bus_socket", "/tmp/hakurei.0/99dd71ee2146369514e0d10783368f8f/system_bus_socket"},
+
+		SessionUpstream: []dbus.AddrEntry{{Method: "unix", Values: [][2]string{{"path", "/run/user/1000/bus"}}}},
+		SystemUpstream:  []dbus.AddrEntry{{Method: "unix", Values: [][2]string{{"path", "/run/dbus/system_bus_socket"}}}},
+
+		WriterTo: helper.MustNewCheckedArgs([]string{"unique", "value", strconv.Itoa(v), "injected", "by", "the", "test", "suite"}),
+	}
+}
 
 func TestLinePrefixWriter(t *testing.T) {
 	testCases := []struct {
