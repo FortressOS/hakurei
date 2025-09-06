@@ -137,22 +137,14 @@ func TestPrintJoinedError(t *testing.T) {
 			{"file descriptor in bad state"},
 		}},
 		{"many message", errors.Join(
-			&container.StartError{
-				Step: "meow",
-				Err:  syscall.ENOMEM,
-			},
-			&os.PathError{
-				Op:   "meow",
-				Path: "/proc/nonexistent",
-				Err:  syscall.ENOSYS,
-			},
-			&OpError{
-				Op:     "meow",
-				Err:    syscall.ENODEV,
-				Revert: true,
-			}), [][]any{
+			&container.StartError{Step: "meow", Err: syscall.ENOMEM},
+			&os.PathError{Op: "meow", Path: "/proc/nonexistent", Err: syscall.ENOSYS},
+			&os.LinkError{Op: "link", Old: "/etc", New: "/proc/nonexistent", Err: syscall.ENOENT},
+			&OpError{Op: "meow", Err: syscall.ENODEV, Revert: true},
+		), [][]any{
 			{"cannot meow: cannot allocate memory"},
 			{"meow /proc/nonexistent: function not implemented"},
+			{"link /etc /proc/nonexistent: no such file or directory"},
 			{"cannot revert meow: no such device"},
 		}},
 	}
