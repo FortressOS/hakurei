@@ -57,7 +57,7 @@ func TestACLUpdateOp(t *testing.T) {
 	checkOpsBuilder(t, "UpdatePerm", []opsBuilderTestCase{
 		{"simple",
 			0xdeadbeef,
-			func(sys *I) {
+			func(_ *testing.T, sys *I) {
 				sys.
 					UpdatePerm("/run/user/1971/hakurei", acl.Execute).
 					UpdatePerm("/tmp/hakurei.0/tmpdir/150", acl.Read, acl.Write, acl.Execute)
@@ -67,25 +67,25 @@ func TestACLUpdateOp(t *testing.T) {
 			}, stub.Expect{}},
 	})
 	checkOpsBuilder(t, "UpdatePermType", []opsBuilderTestCase{
-		{"tmpdirp", 0xdeadbeef, func(sys *I) {
+		{"tmpdirp", 0xdeadbeef, func(_ *testing.T, sys *I) {
 			sys.UpdatePermType(User, "/tmp/hakurei.0/tmpdir", acl.Execute)
 		}, []Op{
 			&ACLUpdateOp{User, "/tmp/hakurei.0/tmpdir", []acl.Perm{acl.Execute}},
 		}, stub.Expect{}},
 
-		{"tmpdir", 0xdeadbeef, func(sys *I) {
+		{"tmpdir", 0xdeadbeef, func(_ *testing.T, sys *I) {
 			sys.UpdatePermType(User, "/tmp/hakurei.0/tmpdir/150", acl.Read, acl.Write, acl.Execute)
 		}, []Op{
 			&ACLUpdateOp{User, "/tmp/hakurei.0/tmpdir/150", []acl.Perm{acl.Read, acl.Write, acl.Execute}},
 		}, stub.Expect{}},
 
-		{"share", 0xdeadbeef, func(sys *I) {
+		{"share", 0xdeadbeef, func(_ *testing.T, sys *I) {
 			sys.UpdatePermType(Process, "/run/user/1971/hakurei/fcb8a12f7c482d183ade8288c3de78b5", acl.Execute)
 		}, []Op{
 			&ACLUpdateOp{Process, "/run/user/1971/hakurei/fcb8a12f7c482d183ade8288c3de78b5", []acl.Perm{acl.Execute}},
 		}, stub.Expect{}},
 
-		{"passwd", 0xdeadbeef, func(sys *I) {
+		{"passwd", 0xdeadbeef, func(_ *testing.T, sys *I) {
 			sys.
 				UpdatePermType(Process, "/tmp/hakurei.0/fcb8a12f7c482d183ade8288c3de78b5/passwd", acl.Read).
 				UpdatePermType(Process, "/tmp/hakurei.0/fcb8a12f7c482d183ade8288c3de78b5/group", acl.Read)
@@ -94,7 +94,7 @@ func TestACLUpdateOp(t *testing.T) {
 			&ACLUpdateOp{Process, "/tmp/hakurei.0/fcb8a12f7c482d183ade8288c3de78b5/group", []acl.Perm{acl.Read}},
 		}, stub.Expect{}},
 
-		{"wayland", 0xdeadbeef, func(sys *I) {
+		{"wayland", 0xdeadbeef, func(_ *testing.T, sys *I) {
 			sys.UpdatePermType(EWayland, "/run/user/1971/wayland-0", acl.Read, acl.Write, acl.Execute)
 		}, []Op{
 			&ACLUpdateOp{EWayland, "/run/user/1971/wayland-0", []acl.Perm{acl.Read, acl.Write, acl.Execute}},

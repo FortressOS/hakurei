@@ -75,7 +75,7 @@ func checkOpBehaviour(t *testing.T, testCases []opBehaviourTestCase) {
 type opsBuilderTestCase struct {
 	name string
 	uid  int
-	f    func(sys *I)
+	f    func(t *testing.T, sys *I)
 	want []Op
 	exp  stub.Expect
 }
@@ -92,7 +92,7 @@ func checkOpsBuilder(t *testing.T, fname string, testCases []opsBuilderTestCase)
 
 				sys, s := InternalNew(t, tc.exp, tc.uid)
 				defer stub.HandleExit(t)
-				tc.f(sys)
+				tc.f(t, sys)
 				s.VisitIncomplete(func(s *stub.Stub[syscallDispatcher]) {
 					t.Helper()
 
