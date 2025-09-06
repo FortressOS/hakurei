@@ -192,6 +192,20 @@ type kstub struct{ *stub.Stub[syscallDispatcher] }
 
 func (k *kstub) new(f func(k syscallDispatcher)) { k.Helper(); k.New(f) }
 
+func (k *kstub) mkdir(name string, perm os.FileMode) error {
+	k.Helper()
+	return k.Expects("mkdir").Error(
+		stub.CheckArg(k.Stub, "name", name, 0),
+		stub.CheckArg(k.Stub, "perm", perm, 1))
+}
+
+func (k *kstub) chmod(name string, mode os.FileMode) error {
+	k.Helper()
+	return k.Expects("chmod").Error(
+		stub.CheckArg(k.Stub, "name", name, 0),
+		stub.CheckArg(k.Stub, "mode", mode, 1))
+}
+
 func (k *kstub) link(oldname, newname string) error {
 	k.Helper()
 	return k.Expects("link").Error(

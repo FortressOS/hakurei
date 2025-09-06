@@ -4,72 +4,108 @@ import (
 	"os"
 	"testing"
 
-	"hakurei.app/container"
+	"hakurei.app/container/stub"
 )
 
-func TestEnsure(t *testing.T) {
-	testCases := []struct {
-		name string
-		perm os.FileMode
-	}{
-		{"/tmp/hakurei.1971", 0701},
-		{"/tmp/hakurei.1971/tmpdir", 0700},
-		{"/tmp/hakurei.1971/tmpdir/150", 0700},
-		{"/run/user/1971/hakurei", 0700},
-	}
-	for _, tc := range testCases {
-		t.Run(tc.name+"_"+tc.perm.String(), func(t *testing.T) {
-			sys := New(t.Context(), 150)
-			sys.Ensure(tc.name, tc.perm)
-			(&tcOp{User, tc.name}).test(t, sys.ops, []Op{&mkdirOp{User, tc.name, tc.perm, false}}, "Ensure")
-		})
-	}
-}
+func TestMkdirOp(t *testing.T) {
+	checkOpBehaviour(t, []opBehaviourTestCase{
+		{"mkdir", 0xdeadbeef, 0xff, &mkdirOp{User, "/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9", 0711, false}, []stub.Call{
+			call("verbose", stub.ExpectArgs{[]any{"ensuring directory", &mkdirOp{User, "/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9", 0711, false}}}, nil, nil),
+			call("mkdir", stub.ExpectArgs{"/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9", os.FileMode(0711)}, nil, stub.UniqueError(2)),
+		}, &OpError{Op: "mkdir", Err: stub.UniqueError(2)}, nil, nil},
 
-func TestEphemeral(t *testing.T) {
-	testCases := []struct {
-		perm os.FileMode
-		tcOp
-	}{
-		{0700, tcOp{Process, "/run/user/1971/hakurei/ec07546a772a07cde87389afc84ffd13"}},
-		{0701, tcOp{Process, "/tmp/hakurei.1971/ec07546a772a07cde87389afc84ffd13"}},
-	}
-	for _, tc := range testCases {
-		t.Run(tc.path+"_"+tc.perm.String()+"_"+TypeString(tc.et), func(t *testing.T) {
-			sys := New(t.Context(), 150)
-			sys.Ephemeral(tc.et, tc.path, tc.perm)
-			tc.test(t, sys.ops, []Op{&mkdirOp{tc.et, tc.path, tc.perm, true}}, "Ephemeral")
-		})
-	}
-}
+		{"chmod", 0xdeadbeef, 0xff, &mkdirOp{User, "/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9", 0711, false}, []stub.Call{
+			call("verbose", stub.ExpectArgs{[]any{"ensuring directory", &mkdirOp{User, "/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9", 0711, false}}}, nil, nil),
+			call("mkdir", stub.ExpectArgs{"/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9", os.FileMode(0711)}, nil, os.ErrExist),
+			call("chmod", stub.ExpectArgs{"/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9", os.FileMode(0711)}, nil, stub.UniqueError(1)),
+		}, &OpError{Op: "mkdir", Err: stub.UniqueError(1)}, nil, nil},
 
-func TestMkdirString(t *testing.T) {
-	testCases := []struct {
-		want      string
-		ephemeral bool
-		et        Enablement
-	}{
-		{"ensure", false, User},
-		{"ensure", false, Process},
-		{"ensure", false, EWayland},
+		{"remove", 0xdeadbeef, 0xff, &mkdirOp{Process, "/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9", 0711, true}, []stub.Call{
+			call("verbose", stub.ExpectArgs{[]any{"ensuring directory", &mkdirOp{Process, "/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9", 0711, true}}}, nil, nil),
+			call("mkdir", stub.ExpectArgs{"/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9", os.FileMode(0711)}, nil, nil),
+		}, nil, []stub.Call{
+			call("verbose", stub.ExpectArgs{[]any{"destroying ephemeral directory", &mkdirOp{Process, "/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9", 0711, true}}}, nil, nil),
+			call("remove", stub.ExpectArgs{"/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9"}, nil, stub.UniqueError(0)),
+		}, &OpError{Op: "mkdir", Err: stub.UniqueError(0), Revert: true}},
 
-		{"wayland", true, EWayland},
-		{"x11", true, EX11},
-		{"dbus", true, EDBus},
-		{"pulseaudio", true, EPulse},
-	}
-	for _, tc := range testCases {
-		t.Run(tc.want, func(t *testing.T) {
-			m := &mkdirOp{
-				et:        tc.et,
-				path:      container.Nonexistent,
-				perm:      0701,
-				ephemeral: tc.ephemeral,
-			}
-			want := "mode: " + os.FileMode(0701).String() + " type: " + tc.want + ` path: "/proc/nonexistent"`
-			if got := m.String(); got != want {
-				t.Errorf("String() = %v, want %v", got, want)
-			}
-		})
-	}
+		{"success exist chmod", 0xdeadbeef, 0xff, &mkdirOp{User, "/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9", 0711, false}, []stub.Call{
+			call("verbose", stub.ExpectArgs{[]any{"ensuring directory", &mkdirOp{User, "/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9", 0711, false}}}, nil, nil),
+			call("mkdir", stub.ExpectArgs{"/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9", os.FileMode(0711)}, nil, os.ErrExist),
+			call("chmod", stub.ExpectArgs{"/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9", os.FileMode(0711)}, nil, nil),
+		}, nil, nil, nil},
+
+		{"success ensure", 0xdeadbeef, 0xff, &mkdirOp{User, "/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9", 0711, false}, []stub.Call{
+			call("verbose", stub.ExpectArgs{[]any{"ensuring directory", &mkdirOp{User, "/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9", 0711, false}}}, nil, nil),
+			call("mkdir", stub.ExpectArgs{"/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9", os.FileMode(0711)}, nil, nil),
+		}, nil, nil, nil},
+
+		{"success skip", 0xdeadbeef, 0xff, &mkdirOp{User, "/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9", 0711, true}, []stub.Call{
+			call("verbose", stub.ExpectArgs{[]any{"ensuring directory", &mkdirOp{User, "/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9", 0711, true}}}, nil, nil),
+			call("mkdir", stub.ExpectArgs{"/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9", os.FileMode(0711)}, nil, nil),
+		}, nil, []stub.Call{
+			call("verbose", stub.ExpectArgs{[]any{"skipping ephemeral directory", &mkdirOp{User, "/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9", 0711, true}}}, nil, nil),
+		}, nil},
+
+		{"success", 0xdeadbeef, 0xff, &mkdirOp{Process, "/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9", 0711, true}, []stub.Call{
+			call("verbose", stub.ExpectArgs{[]any{"ensuring directory", &mkdirOp{Process, "/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9", 0711, true}}}, nil, nil),
+			call("mkdir", stub.ExpectArgs{"/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9", os.FileMode(0711)}, nil, nil),
+		}, nil, []stub.Call{
+			call("verbose", stub.ExpectArgs{[]any{"destroying ephemeral directory", &mkdirOp{Process, "/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9", 0711, true}}}, nil, nil),
+			call("remove", stub.ExpectArgs{"/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9"}, nil, nil),
+		}, nil},
+	})
+
+	checkOpsBuilder(t, "EnsureEphemeral", []opsBuilderTestCase{
+		{"ensure", 0xcafebabe, func(_ *testing.T, sys *I) {
+			sys.Ensure("/tmp/hakurei.0", 0700)
+		}, []Op{
+			&mkdirOp{User, "/tmp/hakurei.0", 0700, false},
+		}, stub.Expect{}},
+
+		{"ephemeral", 0xcafebabe, func(_ *testing.T, sys *I) {
+			sys.Ephemeral(Process, "/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9", 0711)
+		}, []Op{
+			&mkdirOp{Process, "/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9", 0711, true},
+		}, stub.Expect{}},
+	})
+
+	checkOpIs(t, []opIsTestCase{
+		{"nil", (*mkdirOp)(nil), (*mkdirOp)(nil), false},
+		{"zero", new(mkdirOp), new(mkdirOp), true},
+
+		{"ephemeral differs",
+			&mkdirOp{Process, "/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9", 0700, false},
+			&mkdirOp{Process, "/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9", 0700, true},
+			false},
+
+		{"perm differs",
+			&mkdirOp{Process, "/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9", 0701, true},
+			&mkdirOp{Process, "/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9", 0700, true},
+			false},
+
+		{"path differs",
+			&mkdirOp{Process, "/tmp/hakurei.1/f2f3bcd492d0266438fa9bf164fe90d9", 0700, true},
+			&mkdirOp{Process, "/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9", 0700, true},
+			false},
+
+		{"et differs",
+			&mkdirOp{User, "/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9", 0700, true},
+			&mkdirOp{Process, "/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9", 0700, true},
+			false},
+
+		{"equals",
+			&mkdirOp{Process, "/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9", 0700, true},
+			&mkdirOp{Process, "/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9", 0700, true},
+			true},
+	})
+
+	checkOpMeta(t, []opMetaTestCase{
+		{"ensure", &mkdirOp{User, "/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9", 0700, false},
+			User, "/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9",
+			`mode: -rwx------ type: ensure path: "/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9"`},
+
+		{"ephemeral", &mkdirOp{User, "/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9", 0700, true},
+			User, "/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9",
+			`mode: -rwx------ type: user path: "/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9"`},
+	})
 }

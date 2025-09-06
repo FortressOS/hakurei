@@ -15,6 +15,10 @@ type syscallDispatcher interface {
 	// just synchronising access is not enough, as this is for test instrumentation.
 	new(f func(k syscallDispatcher))
 
+	// mkdir provides os.Mkdir.
+	mkdir(name string, perm os.FileMode) error
+	// chmod provides os.Chmod.
+	chmod(name string, mode os.FileMode) error
 	// link provides os.Link.
 	link(oldname, newname string) error
 	// remove provides os.Remove.
@@ -44,8 +48,10 @@ type direct struct{}
 
 func (k direct) new(f func(k syscallDispatcher)) { go f(k) }
 
-func (k direct) link(oldname, newname string) error { return os.Link(oldname, newname) }
-func (k direct) remove(name string) error           { return os.Remove(name) }
+func (k direct) mkdir(name string, perm os.FileMode) error { return os.Mkdir(name, perm) }
+func (k direct) chmod(name string, mode os.FileMode) error { return os.Chmod(name, mode) }
+func (k direct) link(oldname, newname string) error        { return os.Link(oldname, newname) }
+func (k direct) remove(name string) error                  { return os.Remove(name) }
 
 func (k direct) aclUpdate(name string, uid int, perms ...acl.Perm) error {
 	return acl.Update(name, uid, perms...)
