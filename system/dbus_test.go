@@ -392,10 +392,11 @@ func TestLinePrefixWriter(t *testing.T) {
 	}{
 		{"nop", "(nop) ", func(func(string)) {}, nil, nil, nil, nil, ""},
 
-		{"partial", "(break) ", func(w func(string)) {
+		{"partial", "(partial) ", func(w func(string)) {
 			w("C-65533: -> ")
-		}, nil, nil, nil, nil,
-			"C-65533: -> "},
+		}, nil, nil, nil, []string{
+			"*(partial) C-65533: -> ",
+		}, "C-65533: -> "},
 
 		{"break", "(break) ", func(w func(string)) {
 			w("C-65533: -> ")
@@ -414,8 +415,10 @@ func TestLinePrefixWriter(t *testing.T) {
 		{"threshold", "(threshold) ", func(w func(s string)) {
 			w(string(make([]byte, lpwSizeThreshold)))
 			w("\n")
-		}, []error{nil, syscall.ENOMEM}, nil, nil, nil,
-			string(make([]byte, lpwSizeThreshold))},
+		}, []error{nil, syscall.ENOMEM}, nil, nil, []string{
+			"*(threshold) " + string(make([]byte, lpwSizeThreshold)),
+			"+(threshold) write threshold reached, output may be incomplete",
+		}, string(make([]byte, lpwSizeThreshold))},
 
 		{"threshold multi", "(threshold multi) ", func(w func(s string)) {
 			w(":3\n")
@@ -423,15 +426,20 @@ func TestLinePrefixWriter(t *testing.T) {
 			w("\n")
 		}, []error{nil, nil, syscall.ENOMEM}, nil, []string{
 			":3",
-		}, nil, string(make([]byte, lpwSizeThreshold-3))},
+		}, []string{
+			"*(threshold multi) " + string(make([]byte, lpwSizeThreshold-3)),
+			"+(threshold multi) write threshold reached, output may be incomplete",
+		}, string(make([]byte, lpwSizeThreshold-3))},
 
 		{"threshold multi partial", "(threshold multi partial) ", func(w func(s string)) {
 			w(":3\n")
 			w(string(make([]byte, lpwSizeThreshold-2)))
-		}, []error{nil, syscall.ENOMEM}, nil, []string{
+			w("dropped\n")
+		}, []error{nil, nil, syscall.ENOMEM}, nil, []string{
 			":3",
 		}, []string{
-			"dropped 16777215 bytes of output",
+			"*(threshold multi partial) " + string(make([]byte, lpwSizeThreshold-2)),
+			"+(threshold multi partial) write threshold reached, output may be incomplete",
 		}, string(make([]byte, lpwSizeThreshold-2))},
 
 		{"threshold exact", "(threshold exact) ", func(w func(s string)) {
@@ -439,7 +447,9 @@ func TestLinePrefixWriter(t *testing.T) {
 			w("\n")
 		}, nil, nil, []string{
 			string(make([]byte, lpwSizeThreshold-1)),
-		}, nil, ""},
+		}, []string{
+			"+(threshold exact) write threshold reached, output may be incomplete",
+		}, ""},
 
 		{"sample", "(dbus) ", func(w func(s string)) {
 			w("init: received setup parameters\n")
@@ -595,15 +605,14 @@ func TestLinePrefixWriter(t *testing.T) {
 
 			var pos int
 			tc.f(func(s string) {
-				if _, err := out.Write([]byte(s)); err != nil {
-					if tc.wantErr != nil {
-						if !reflect.DeepEqual(err, tc.wantErr[pos]) {
-							t.Fatalf("Write: error = %v, want %v", err, tc.wantErr[pos])
-						}
-					} else {
-						t.Fatalf("Write: unexpected error: %v", err)
-						return
+				_, err := out.Write([]byte(s))
+				if tc.wantErr != nil {
+					if !reflect.DeepEqual(err, tc.wantErr[pos]) {
+						t.Fatalf("Write: error = %v, want %v", err, tc.wantErr[pos])
 					}
+				} else if err != nil {
+					t.Fatalf("Write: unexpected error: %v", err)
+					return
 				}
 				pos++
 			})
@@ -629,7 +638,7 @@ func TestLinePrefixWriter(t *testing.T) {
 				wantDump[i] = tc.prefix + m
 			}
 			for i, m := range tc.wantExt {
-				wantDump[len(tc.want)+i] = tc.prefix + m
+				wantDump[len(tc.want)+i] = m
 			}
 			t.Run("dump", func(t *testing.T) {
 				got := make([]string, 0, len(wantDump))

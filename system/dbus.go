@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"log"
 	"reflect"
-	"strconv"
 	"strings"
 	"sync"
 	"syscall"
@@ -170,9 +169,11 @@ func (s *linePrefixWriter) write(p []byte, a int) (int, error) {
 		return a + n, nil
 	} else {
 		n, _ := s.buf.Write(p[:i])
+		s.n += n + 1
 
 		v := s.buf.String()
 		if strings.HasPrefix(v, "init: ") {
+			s.n -= len(v) + 1
 			// pass through container init messages
 			s.println(s.prefix + v)
 		} else {
@@ -180,22 +181,20 @@ func (s *linePrefixWriter) write(p []byte, a int) (int, error) {
 		}
 
 		s.buf.Reset()
-		s.n += n + 1
 		return s.write(p[i+1:], a+n+1)
 	}
 }
 
 func (s *linePrefixWriter) Dump() {
 	s.mu.RLock()
-	// the final write might go past the threshold,
-	// and the buffer might still contain data
-	var n int
 	for _, m := range s.msg {
-		n += len(m)
 		s.println(s.prefix + m)
 	}
-	if s.n > lpwSizeThreshold {
-		s.println(s.prefix + "dropped " + strconv.Itoa(s.n-n) + " bytes of output")
+	if s.buf != nil && s.buf.Len() != 0 {
+		s.println("*" + s.prefix + s.buf.String())
+	}
+	if s.n >= lpwSizeThreshold {
+		s.println("+" + s.prefix + "write threshold reached, output may be incomplete")
 	}
 	s.mu.RUnlock()
 }
