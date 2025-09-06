@@ -9,16 +9,16 @@ import (
 	"syscall"
 )
 
-// CopyFile appends [TmpfileOp] to [I].
-func (sys *I) CopyFile(payload *[]byte, src string, cap int, n int64) *I {
+// CopyFile reads up to n bytes from src and writes the resulting byte slice to payloadP.
+func (sys *I) CopyFile(payloadP *[]byte, src string, cap int, n int64) *I {
 	buf := new(bytes.Buffer)
 	buf.Grow(cap)
-	sys.ops = append(sys.ops, &TmpfileOp{payload, src, n, buf})
+	sys.ops = append(sys.ops, &tmpfileOp{payloadP, src, n, buf})
 	return sys
 }
 
-// TmpfileOp reads up to n bytes from src and writes the resulting byte slice to payload.
-type TmpfileOp struct {
+// tmpfileOp implements [I.CopyFile].
+type tmpfileOp struct {
 	payload *[]byte
 	src     string
 
@@ -26,8 +26,9 @@ type TmpfileOp struct {
 	buf *bytes.Buffer
 }
 
-func (t *TmpfileOp) Type() Enablement { return Process }
-func (t *TmpfileOp) apply(*I) error {
+func (t *tmpfileOp) Type() Enablement { return Process }
+
+func (t *tmpfileOp) apply(*I) error {
 	msg.Verbose("copying", t)
 
 	if t.payload == nil {
@@ -55,12 +56,12 @@ func (t *TmpfileOp) apply(*I) error {
 	*t.payload = t.buf.Bytes()
 	return nil
 }
-func (t *TmpfileOp) revert(*I, *Criteria) error { t.buf.Reset(); return nil }
+func (t *tmpfileOp) revert(*I, *Criteria) error { t.buf.Reset(); return nil }
 
-func (t *TmpfileOp) Is(o Op) bool {
-	target, ok := o.(*TmpfileOp)
+func (t *tmpfileOp) Is(o Op) bool {
+	target, ok := o.(*tmpfileOp)
 	return ok && t != nil && target != nil &&
 		t.src == target.src && t.n == target.n
 }
-func (t *TmpfileOp) Path() string   { return t.src }
-func (t *TmpfileOp) String() string { return fmt.Sprintf("up to %d bytes from %q", t.n, t.src) }
+func (t *tmpfileOp) Path() string   { return t.src }
+func (t *tmpfileOp) String() string { return fmt.Sprintf("up to %d bytes from %q", t.n, t.src) }

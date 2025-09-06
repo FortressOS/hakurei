@@ -18,7 +18,7 @@ func TestCopyFile(t *testing.T) {
 			sys := New(t.Context(), 150)
 			sys.CopyFile(new([]byte), tc.path, tc.cap, tc.n)
 			tc.test(t, sys.ops, []Op{
-				&TmpfileOp{nil, tc.path, tc.n, nil},
+				&tmpfileOp{nil, tc.path, tc.n, nil},
 			}, "CopyFile")
 		})
 	}
@@ -36,7 +36,7 @@ func TestLink(t *testing.T) {
 			sys := New(t.Context(), 150)
 			sys.Link(tc.src, tc.dst)
 			(&tcOp{Process, tc.src}).test(t, sys.ops, []Op{
-				&HardlinkOp{Process, tc.dst, tc.src},
+				&hardlinkOp{Process, tc.dst, tc.src},
 			}, "Link")
 		})
 	}
@@ -55,7 +55,7 @@ func TestLinkFileType(t *testing.T) {
 			sys := New(t.Context(), 150)
 			sys.LinkFileType(tc.et, tc.path, tc.dst)
 			tc.test(t, sys.ops, []Op{
-				&HardlinkOp{tc.et, tc.dst, tc.path},
+				&hardlinkOp{tc.et, tc.dst, tc.path},
 			}, "LinkFileType")
 		})
 	}
@@ -73,7 +73,7 @@ func TestTmpfile_String(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.want, func(t *testing.T) {
-			if got := (&TmpfileOp{src: tc.src, n: tc.n}).String(); got != tc.want {
+			if got := (&tmpfileOp{src: tc.src, n: tc.n}).String(); got != tc.want {
 				t.Errorf("String() = %v, want %v", got, tc.want)
 			}
 		})

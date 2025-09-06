@@ -28,9 +28,10 @@ func (sys *I) MustProxyDBus(sessionPath string, session *dbus.Config, systemPath
 	}
 }
 
-// ProxyDBus finalises configuration and appends [DBusProxyOp] to [I].
+// ProxyDBus finalises configuration ahead of time and starts xdg-dbus-proxy via [dbus] and terminates it on revert.
+// This [Op] is always [Process] scoped.
 func (sys *I) ProxyDBus(session, system *dbus.Config, sessionPath, systemPath string) (func(), error) {
-	d := new(DBusProxyOp)
+	d := new(dbusProxyOp)
 
 	// session bus is required as otherwise this is effectively a very expensive noop
 	if session == nil {
@@ -70,9 +71,8 @@ func (sys *I) ProxyDBus(session, system *dbus.Config, sessionPath, systemPath st
 	return d.out.Dump, nil
 }
 
-// DBusProxyOp starts xdg-dbus-proxy via [dbus] and terminates it on revert.
-// This [Op] is always [Process] scoped.
-type DBusProxyOp struct {
+// dbusProxyOp implements [I.ProxyDBus].
+type dbusProxyOp struct {
 	proxy *dbus.Proxy // populated during apply
 
 	final *dbus.Final
@@ -81,9 +81,9 @@ type DBusProxyOp struct {
 	system bool
 }
 
-func (d *DBusProxyOp) Type() Enablement { return Process }
+func (d *dbusProxyOp) Type() Enablement { return Process }
 
-func (d *DBusProxyOp) apply(sys *I) error {
+func (d *dbusProxyOp) apply(sys *I) error {
 	sys.verbosef("session bus proxy on %q for upstream %q", d.final.Session[1], d.final.Session[0])
 	if d.system {
 		sys.verbosef("system bus proxy on %q for upstream %q", d.final.System[1], d.final.System[0])
@@ -99,7 +99,7 @@ func (d *DBusProxyOp) apply(sys *I) error {
 	return nil
 }
 
-func (d *DBusProxyOp) revert(sys *I, _ *Criteria) error {
+func (d *dbusProxyOp) revert(sys *I, _ *Criteria) error {
 	// criteria ignored here since dbus is always process-scoped
 	sys.verbose("terminating message bus proxy")
 	sys.dbusProxyClose(d.proxy)
@@ -116,8 +116,8 @@ func (d *DBusProxyOp) revert(sys *I, _ *Criteria) error {
 		fmt.Sprintf("message bus proxy error: %v", err), true)
 }
 
-func (d *DBusProxyOp) Is(o Op) bool {
-	target, ok := o.(*DBusProxyOp)
+func (d *dbusProxyOp) Is(o Op) bool {
+	target, ok := o.(*dbusProxyOp)
 	return ok && d != nil && target != nil &&
 		d.system == target.system &&
 		d.final != nil && target.final != nil &&
@@ -128,8 +128,8 @@ func (d *DBusProxyOp) Is(o Op) bool {
 		reflect.DeepEqual(d.final.WriterTo, target.final.WriterTo)
 }
 
-func (d *DBusProxyOp) Path() string   { return container.Nonexistent }
-func (d *DBusProxyOp) String() string { return d.proxy.String() }
+func (d *dbusProxyOp) Path() string   { return container.Nonexistent }
+func (d *dbusProxyOp) String() string { return d.proxy.String() }
 
 const (
 	// lpwSizeThreshold is the threshold of bytes written to linePrefixWriter which,

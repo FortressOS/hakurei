@@ -9,16 +9,16 @@ import (
 	"hakurei.app/system/wayland"
 )
 
-// Wayland appends [WaylandOp] to [I].
+// Wayland maintains a wayland socket with security-context-v1 attached via [wayland].
+// The socket stops accepting connections once the pipe referred to by sync is closed.
+// The socket is pathname only and is destroyed on revert.
 func (sys *I) Wayland(syncFd **os.File, dst, src, appID, instanceID string) *I {
-	sys.ops = append(sys.ops, &WaylandOp{syncFd, dst, src, appID, instanceID, wayland.Conn{}})
+	sys.ops = append(sys.ops, &waylandOp{syncFd, dst, src, appID, instanceID, wayland.Conn{}})
 	return sys
 }
 
-// WaylandOp maintains a wayland socket with security-context-v1 attached via [wayland].
-// The socket stops accepting connections once the pipe referred to by sync is closed.
-// The socket is pathname only and is destroyed on revert.
-type WaylandOp struct {
+// waylandOp implements [I.Wayland].
+type waylandOp struct {
 	sync              **os.File
 	dst, src          string
 	appID, instanceID string
@@ -26,9 +26,9 @@ type WaylandOp struct {
 	conn wayland.Conn
 }
 
-func (w *WaylandOp) Type() Enablement { return Process }
+func (w *waylandOp) Type() Enablement { return Process }
 
-func (w *WaylandOp) apply(sys *I) error {
+func (w *waylandOp) apply(sys *I) error {
 	if w.sync == nil {
 		// this is a misuse of the API; do not return a wrapped error
 		return errors.New("invalid sync")
@@ -58,7 +58,7 @@ func (w *WaylandOp) apply(sys *I) error {
 	}
 }
 
-func (w *WaylandOp) revert(_ *I, ec *Criteria) error {
+func (w *waylandOp) revert(_ *I, ec *Criteria) error {
 	if ec.hasType(w.Type()) {
 		msg.Verbosef("removing wayland socket on %q", w.dst)
 		if err := os.Remove(w.dst); err != nil && !errors.Is(err, os.ErrNotExist) {
@@ -73,12 +73,12 @@ func (w *WaylandOp) revert(_ *I, ec *Criteria) error {
 	}
 }
 
-func (w *WaylandOp) Is(o Op) bool {
-	target, ok := o.(*WaylandOp)
+func (w *waylandOp) Is(o Op) bool {
+	target, ok := o.(*waylandOp)
 	return ok && w != nil && target != nil &&
 		w.dst == target.dst && w.src == target.src &&
 		w.appID == target.appID && w.instanceID == target.instanceID
 }
 
-func (w *WaylandOp) Path() string   { return w.dst }
-func (w *WaylandOp) String() string { return fmt.Sprintf("wayland socket at %q", w.dst) }
+func (w *waylandOp) Path() string   { return w.dst }
+func (w *waylandOp) String() string { return fmt.Sprintf("wayland socket at %q", w.dst) }

@@ -16,7 +16,7 @@ import (
 
 func TestDBusProxyOp(t *testing.T) {
 	checkOpBehaviour(t, []opBehaviourTestCase{
-		{"dbusProxyStart", 0xdeadbeef, 0xff, &DBusProxyOp{
+		{"dbusProxyStart", 0xdeadbeef, 0xff, &dbusProxyOp{
 			final:  dbusNewFinalSample(4),
 			out:    new(linePrefixWriter), // panics on write
 			system: true,
@@ -29,7 +29,7 @@ func TestDBusProxyOp(t *testing.T) {
 			Msg: "cannot start message bus proxy: unique error 2 injected by the test suite",
 		}, nil, nil},
 
-		{"dbusProxyWait", 0xdeadbeef, 0xff, &DBusProxyOp{
+		{"dbusProxyWait", 0xdeadbeef, 0xff, &dbusProxyOp{
 			final: dbusNewFinalSample(3),
 		}, []stub.Call{
 			call("verbosef", stub.ExpectArgs{"session bus proxy on %q for upstream %q", []any{"/tmp/hakurei.0/99dd71ee2146369514e0d10783368f8f/bus", "unix:path=/run/user/1000/bus"}}, nil, nil),
@@ -45,7 +45,7 @@ func TestDBusProxyOp(t *testing.T) {
 			Msg: "message bus proxy error: unique error 1 injected by the test suite",
 		}},
 
-		{"success dbusProxyWait cancel", 0xdeadbeef, 0xff, &DBusProxyOp{
+		{"success dbusProxyWait cancel", 0xdeadbeef, 0xff, &dbusProxyOp{
 			final:  dbusNewFinalSample(2),
 			system: true,
 		}, []stub.Call{
@@ -60,7 +60,7 @@ func TestDBusProxyOp(t *testing.T) {
 			call("verbose", stub.ExpectArgs{[]any{"message bus proxy canceled upstream"}}, nil, nil),
 		}, nil},
 
-		{"success", 0xdeadbeef, 0xff, &DBusProxyOp{
+		{"success", 0xdeadbeef, 0xff, &dbusProxyOp{
 			final:  dbusNewFinalSample(1),
 			system: true,
 		}, []stub.Call{
@@ -154,7 +154,7 @@ func TestDBusProxyOp(t *testing.T) {
 					Talk: []string{"system\x00"}, Filter: true,
 				})
 		}, []Op{
-			&DBusProxyOp{
+			&dbusProxyOp{
 				final:  dbusNewFinalSample(0),
 				system: true,
 			},
@@ -174,10 +174,10 @@ func TestDBusProxyOp(t *testing.T) {
 	})
 
 	checkOpIs(t, []opIsTestCase{
-		{"nil", (*DBusProxyOp)(nil), (*DBusProxyOp)(nil), false},
-		{"zero", new(DBusProxyOp), new(DBusProxyOp), false},
+		{"nil", (*dbusProxyOp)(nil), (*dbusProxyOp)(nil), false},
+		{"zero", new(dbusProxyOp), new(dbusProxyOp), false},
 
-		{"system differs", &DBusProxyOp{final: &dbus.Final{
+		{"system differs", &dbusProxyOp{final: &dbus.Final{
 			Session: dbus.ProxyPair{"unix:path=/run/user/1000/bus", "/tmp/hakurei.0/b186c281d9e83a39afdc66d964ef99c6/bus"},
 			System:  dbus.ProxyPair{"unix:path=/run/dbus/system_bus_socket", "/tmp/hakurei.0/b186c281d9e83a39afdc66d964ef99c6/system_bus_socket"},
 
@@ -189,7 +189,7 @@ func TestDBusProxyOp(t *testing.T) {
 				"--filter", "unix:path=/run/dbus/system_bus_socket", "/tmp/hakurei.0/b186c281d9e83a39afdc66d964ef99c6/system_bus_socket",
 			}),
 		}, system: false,
-		}, &DBusProxyOp{final: &dbus.Final{
+		}, &dbusProxyOp{final: &dbus.Final{
 			Session: dbus.ProxyPair{"unix:path=/run/user/1000/bus", "/tmp/hakurei.0/b186c281d9e83a39afdc66d964ef99c6/bus"},
 			System:  dbus.ProxyPair{"unix:path=/run/dbus/system_bus_socket", "/tmp/hakurei.0/b186c281d9e83a39afdc66d964ef99c6/system_bus_socket"},
 
@@ -203,7 +203,7 @@ func TestDBusProxyOp(t *testing.T) {
 		}, system: true,
 		}, false},
 
-		{"wt differs", &DBusProxyOp{final: &dbus.Final{
+		{"wt differs", &dbusProxyOp{final: &dbus.Final{
 			Session: dbus.ProxyPair{"unix:path=/run/user/1000/bus", "/tmp/hakurei.0/b186c281d9e83a39afdc66d964ef99c6/bus"},
 			System:  dbus.ProxyPair{"unix:path=/run/dbus/system_bus_socket", "/tmp/hakurei.0/b186c281d9e83a39afdc66d964ef99c6/system_bus_socket"},
 
@@ -215,7 +215,7 @@ func TestDBusProxyOp(t *testing.T) {
 				"--filter", "unix:path=/run/dbus/system_bus_socket", "/tmp/hakurei.0/b186c281d9e83a39afdc66d964ef99c6/system_bus_socket",
 			}),
 		}, system: true,
-		}, &DBusProxyOp{final: &dbus.Final{
+		}, &dbusProxyOp{final: &dbus.Final{
 			Session: dbus.ProxyPair{"unix:path=/run/user/1000/bus", "/tmp/hakurei.0/b186c281d9e83a39afdc66d964ef99c6/bus"},
 			System:  dbus.ProxyPair{"unix:path=/run/dbus/system_bus_socket", "/tmp/hakurei.0/b186c281d9e83a39afdc66d964ef99c6/system_bus_socket"},
 
@@ -229,7 +229,7 @@ func TestDBusProxyOp(t *testing.T) {
 		}, system: true,
 		}, false},
 
-		{"final system upstream differs", &DBusProxyOp{final: &dbus.Final{
+		{"final system upstream differs", &dbusProxyOp{final: &dbus.Final{
 			Session: dbus.ProxyPair{"unix:path=/run/user/1000/bus", "/tmp/hakurei.0/b186c281d9e83a39afdc66d964ef99c6/bus"},
 			System:  dbus.ProxyPair{"unix:path=/run/dbus/system_bus_socket", "/tmp/hakurei.0/b186c281d9e83a39afdc66d964ef99c6/system_bus_socket"},
 
@@ -241,7 +241,7 @@ func TestDBusProxyOp(t *testing.T) {
 				"--filter", "unix:path=/run/dbus/system_bus_socket", "/tmp/hakurei.0/b186c281d9e83a39afdc66d964ef99c6/system_bus_socket",
 			}),
 		}, system: true,
-		}, &DBusProxyOp{final: &dbus.Final{
+		}, &dbusProxyOp{final: &dbus.Final{
 			Session: dbus.ProxyPair{"unix:path=/run/user/1000/bus", "/tmp/hakurei.0/b186c281d9e83a39afdc66d964ef99c6/bus"},
 			System:  dbus.ProxyPair{"unix:path=/run/dbus/system_bus_socket", "/tmp/hakurei.0/b186c281d9e83a39afdc66d964ef99c6/system_bus_socket"},
 
@@ -255,7 +255,7 @@ func TestDBusProxyOp(t *testing.T) {
 		}, system: true,
 		}, false},
 
-		{"final session upstream differs", &DBusProxyOp{final: &dbus.Final{
+		{"final session upstream differs", &dbusProxyOp{final: &dbus.Final{
 			Session: dbus.ProxyPair{"unix:path=/run/user/1000/bus", "/tmp/hakurei.0/b186c281d9e83a39afdc66d964ef99c6/bus"},
 			System:  dbus.ProxyPair{"unix:path=/run/dbus/system_bus_socket", "/tmp/hakurei.0/b186c281d9e83a39afdc66d964ef99c6/system_bus_socket"},
 
@@ -267,7 +267,7 @@ func TestDBusProxyOp(t *testing.T) {
 				"--filter", "unix:path=/run/dbus/system_bus_socket", "/tmp/hakurei.0/b186c281d9e83a39afdc66d964ef99c6/system_bus_socket",
 			}),
 		}, system: true,
-		}, &DBusProxyOp{final: &dbus.Final{
+		}, &dbusProxyOp{final: &dbus.Final{
 			Session: dbus.ProxyPair{"unix:path=/run/user/1000/bus", "/tmp/hakurei.0/b186c281d9e83a39afdc66d964ef99c6/bus"},
 			System:  dbus.ProxyPair{"unix:path=/run/dbus/system_bus_socket", "/tmp/hakurei.0/b186c281d9e83a39afdc66d964ef99c6/system_bus_socket"},
 
@@ -281,7 +281,7 @@ func TestDBusProxyOp(t *testing.T) {
 		}, system: true,
 		}, false},
 
-		{"final system differs", &DBusProxyOp{final: &dbus.Final{
+		{"final system differs", &dbusProxyOp{final: &dbus.Final{
 			Session: dbus.ProxyPair{"unix:path=/run/user/1000/bus", "/tmp/hakurei.0/b186c281d9e83a39afdc66d964ef99c6/bus"},
 			System:  dbus.ProxyPair{"unix:path=/run/dbus/system_bus_socket", "/tmp/hakurei.1/b186c281d9e83a39afdc66d964ef99c6/system_bus_socket"},
 
@@ -293,7 +293,7 @@ func TestDBusProxyOp(t *testing.T) {
 				"--filter", "unix:path=/run/dbus/system_bus_socket", "/tmp/hakurei.0/b186c281d9e83a39afdc66d964ef99c6/system_bus_socket",
 			}),
 		}, system: true,
-		}, &DBusProxyOp{final: &dbus.Final{
+		}, &dbusProxyOp{final: &dbus.Final{
 			Session: dbus.ProxyPair{"unix:path=/run/user/1000/bus", "/tmp/hakurei.0/b186c281d9e83a39afdc66d964ef99c6/bus"},
 			System:  dbus.ProxyPair{"unix:path=/run/dbus/system_bus_socket", "/tmp/hakurei.0/b186c281d9e83a39afdc66d964ef99c6/system_bus_socket"},
 
@@ -307,7 +307,7 @@ func TestDBusProxyOp(t *testing.T) {
 		}, system: true,
 		}, false},
 
-		{"final session differs", &DBusProxyOp{final: &dbus.Final{
+		{"final session differs", &dbusProxyOp{final: &dbus.Final{
 			Session: dbus.ProxyPair{"unix:path=/run/user/1001/bus", "/tmp/hakurei.0/b186c281d9e83a39afdc66d964ef99c6/bus"},
 			System:  dbus.ProxyPair{"unix:path=/run/dbus/system_bus_socket", "/tmp/hakurei.0/b186c281d9e83a39afdc66d964ef99c6/system_bus_socket"},
 
@@ -319,7 +319,7 @@ func TestDBusProxyOp(t *testing.T) {
 				"--filter", "unix:path=/run/dbus/system_bus_socket", "/tmp/hakurei.0/b186c281d9e83a39afdc66d964ef99c6/system_bus_socket",
 			}),
 		}, system: true,
-		}, &DBusProxyOp{final: &dbus.Final{
+		}, &dbusProxyOp{final: &dbus.Final{
 			Session: dbus.ProxyPair{"unix:path=/run/user/1000/bus", "/tmp/hakurei.0/b186c281d9e83a39afdc66d964ef99c6/bus"},
 			System:  dbus.ProxyPair{"unix:path=/run/dbus/system_bus_socket", "/tmp/hakurei.0/b186c281d9e83a39afdc66d964ef99c6/system_bus_socket"},
 
@@ -333,7 +333,7 @@ func TestDBusProxyOp(t *testing.T) {
 		}, system: true,
 		}, false},
 
-		{"equals", &DBusProxyOp{final: &dbus.Final{
+		{"equals", &dbusProxyOp{final: &dbus.Final{
 			Session: dbus.ProxyPair{"unix:path=/run/user/1000/bus", "/tmp/hakurei.0/b186c281d9e83a39afdc66d964ef99c6/bus"},
 			System:  dbus.ProxyPair{"unix:path=/run/dbus/system_bus_socket", "/tmp/hakurei.0/b186c281d9e83a39afdc66d964ef99c6/system_bus_socket"},
 
@@ -345,7 +345,7 @@ func TestDBusProxyOp(t *testing.T) {
 				"--filter", "unix:path=/run/dbus/system_bus_socket", "/tmp/hakurei.0/b186c281d9e83a39afdc66d964ef99c6/system_bus_socket",
 			}),
 		}, system: true,
-		}, &DBusProxyOp{final: &dbus.Final{
+		}, &dbusProxyOp{final: &dbus.Final{
 			Session: dbus.ProxyPair{"unix:path=/run/user/1000/bus", "/tmp/hakurei.0/b186c281d9e83a39afdc66d964ef99c6/bus"},
 			System:  dbus.ProxyPair{"unix:path=/run/dbus/system_bus_socket", "/tmp/hakurei.0/b186c281d9e83a39afdc66d964ef99c6/system_bus_socket"},
 
@@ -361,7 +361,7 @@ func TestDBusProxyOp(t *testing.T) {
 	})
 
 	checkOpMeta(t, []opMetaTestCase{
-		{"dbus", new(DBusProxyOp),
+		{"dbus", new(dbusProxyOp),
 			Process, "/proc/nonexistent",
 			"(invalid dbus proxy)"},
 	})
