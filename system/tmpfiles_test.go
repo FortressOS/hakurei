@@ -24,43 +24,6 @@ func TestCopyFile(t *testing.T) {
 	}
 }
 
-func TestLink(t *testing.T) {
-	testCases := []struct {
-		dst, src string
-	}{
-		{"/tmp/hakurei.1971/f587afe9fce3c8e1ad5b64deb6c41ad5/pulse-cookie", "/home/ophestra/xdg/config/pulse/cookie"},
-		{"/tmp/hakurei.1971/62154f708b5184ab01f9dcc2bbe7a33b/pulse-cookie", "/home/ophestra/xdg/config/pulse/cookie"},
-	}
-	for _, tc := range testCases {
-		t.Run("link file "+tc.dst+" from "+tc.src, func(t *testing.T) {
-			sys := New(t.Context(), 150)
-			sys.Link(tc.src, tc.dst)
-			(&tcOp{Process, tc.src}).test(t, sys.ops, []Op{
-				&hardlinkOp{Process, tc.dst, tc.src},
-			}, "Link")
-		})
-	}
-}
-
-func TestLinkFileType(t *testing.T) {
-	testCases := []struct {
-		tcOp
-		dst string
-	}{
-		{tcOp{User, "/tmp/hakurei.1971/f587afe9fce3c8e1ad5b64deb6c41ad5/pulse-cookie"}, "/home/ophestra/xdg/config/pulse/cookie"},
-		{tcOp{Process, "/tmp/hakurei.1971/62154f708b5184ab01f9dcc2bbe7a33b/pulse-cookie"}, "/home/ophestra/xdg/config/pulse/cookie"},
-	}
-	for _, tc := range testCases {
-		t.Run("link file "+tc.dst+" from "+tc.path+" with type "+TypeString(tc.et), func(t *testing.T) {
-			sys := New(t.Context(), 150)
-			sys.LinkFileType(tc.et, tc.path, tc.dst)
-			tc.test(t, sys.ops, []Op{
-				&hardlinkOp{tc.et, tc.dst, tc.path},
-			}, "LinkFileType")
-		})
-	}
-}
-
 func TestTmpfile_String(t *testing.T) {
 	testCases := []struct {
 		src  string

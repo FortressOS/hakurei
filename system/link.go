@@ -2,7 +2,6 @@ package system
 
 import (
 	"fmt"
-	"os"
 )
 
 // Link calls LinkFileType with the [Process] criteria.
@@ -22,17 +21,17 @@ type hardlinkOp struct {
 
 func (l *hardlinkOp) Type() Enablement { return l.et }
 
-func (l *hardlinkOp) apply(*I) error {
-	msg.Verbose("linking", l)
-	return newOpError("hardlink", os.Link(l.src, l.dst), false)
+func (l *hardlinkOp) apply(sys *I) error {
+	sys.verbose("linking", l)
+	return newOpError("hardlink", sys.link(l.src, l.dst), false)
 }
 
-func (l *hardlinkOp) revert(_ *I, ec *Criteria) error {
+func (l *hardlinkOp) revert(sys *I, ec *Criteria) error {
 	if ec.hasType(l.Type()) {
-		msg.Verbosef("removing hard link %q", l.dst)
-		return newOpError("hardlink", os.Remove(l.dst), true)
+		sys.verbosef("removing hard link %q", l.dst)
+		return newOpError("hardlink", sys.remove(l.dst), true)
 	} else {
-		msg.Verbosef("skipping hard link %q", l.dst)
+		sys.verbosef("skipping hard link %q", l.dst)
 		return nil
 	}
 }

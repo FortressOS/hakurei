@@ -192,6 +192,19 @@ type kstub struct{ *stub.Stub[syscallDispatcher] }
 
 func (k *kstub) new(f func(k syscallDispatcher)) { k.Helper(); k.New(f) }
 
+func (k *kstub) link(oldname, newname string) error {
+	k.Helper()
+	return k.Expects("link").Error(
+		stub.CheckArg(k.Stub, "oldname", oldname, 0),
+		stub.CheckArg(k.Stub, "newname", newname, 1))
+}
+
+func (k *kstub) remove(name string) error {
+	k.Helper()
+	return k.Expects("remove").Error(
+		stub.CheckArg(k.Stub, "name", name, 0))
+}
+
 func (k *kstub) aclUpdate(name string, uid int, perms ...acl.Perm) error {
 	k.Helper()
 	return k.Expects("aclUpdate").Error(

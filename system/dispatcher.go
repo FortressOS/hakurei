@@ -1,6 +1,8 @@
 package system
 
 import (
+	"os"
+
 	"hakurei.app/system/acl"
 	"hakurei.app/system/dbus"
 )
@@ -12,6 +14,11 @@ type syscallDispatcher interface {
 	// A syscallDispatcher must never be used in any goroutine other than the one owning it,
 	// just synchronising access is not enough, as this is for test instrumentation.
 	new(f func(k syscallDispatcher))
+
+	// link provides os.Link.
+	link(oldname, newname string) error
+	// remove provides os.Remove.
+	remove(name string) error
 
 	// aclUpdate provides [acl.Update].
 	aclUpdate(name string, uid int, perms ...acl.Perm) error
@@ -36,6 +43,9 @@ type syscallDispatcher interface {
 type direct struct{}
 
 func (k direct) new(f func(k syscallDispatcher)) { go f(k) }
+
+func (k direct) link(oldname, newname string) error { return os.Link(oldname, newname) }
+func (k direct) remove(name string) error           { return os.Remove(name) }
 
 func (k direct) aclUpdate(name string, uid int, perms ...acl.Perm) error {
 	return acl.Update(name, uid, perms...)

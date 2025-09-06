@@ -54,7 +54,7 @@ func TestACLUpdateOp(t *testing.T) {
 			}, nil},
 	})
 
-	checkOpsBuilder(t, "UpdatePerm", []opsBuilderTestCase{
+	checkOpsBuilder(t, "UpdatePermType", []opsBuilderTestCase{
 		{"simple",
 			0xdeadbeef,
 			func(_ *testing.T, sys *I) {
@@ -65,8 +65,7 @@ func TestACLUpdateOp(t *testing.T) {
 				&aclUpdateOp{Process, "/run/user/1971/hakurei", []acl.Perm{acl.Execute}},
 				&aclUpdateOp{Process, "/tmp/hakurei.0/tmpdir/150", []acl.Perm{acl.Read, acl.Write, acl.Execute}},
 			}, stub.Expect{}},
-	})
-	checkOpsBuilder(t, "UpdatePermType", []opsBuilderTestCase{
+
 		{"tmpdirp", 0xdeadbeef, func(_ *testing.T, sys *I) {
 			sys.UpdatePermType(User, "/tmp/hakurei.0/tmpdir", acl.Execute)
 		}, []Op{
