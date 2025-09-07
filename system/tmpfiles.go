@@ -28,15 +28,15 @@ type tmpfileOp struct {
 
 func (t *tmpfileOp) Type() Enablement { return Process }
 
-func (t *tmpfileOp) apply(*I) error {
-	msg.Verbose("copying", t)
-
+func (t *tmpfileOp) apply(sys *I) error {
 	if t.payload == nil {
-		// this is a misuse of the API; do not return an error message
+		// this is a misuse of the API; do not return a wrapped error
 		return errors.New("invalid payload")
 	}
 
-	if b, err := os.Stat(t.src); err != nil {
+	sys.verbose("copying", t)
+
+	if b, err := sys.stat(t.src); err != nil {
 		return newOpError("tmpfile", err, false)
 	} else {
 		if b.IsDir() {
@@ -47,9 +47,20 @@ func (t *tmpfileOp) apply(*I) error {
 		}
 	}
 
-	if f, err := os.Open(t.src); err != nil {
+	var r io.ReadCloser
+	if f, err := sys.open(t.src); err != nil {
 		return newOpError("tmpfile", err, false)
-	} else if _, err = io.CopyN(t.buf, f, t.n); err != nil {
+	} else {
+		r = f
+	}
+	if n, err := io.CopyN(t.buf, r, t.n); err != nil {
+		if !errors.Is(err, io.EOF) {
+			_ = r.Close()
+			return newOpError("tmpfile", err, false)
+		}
+		sys.verbosef("copied %d bytes from %q", n, t.src)
+	}
+	if err := r.Close(); err != nil {
 		return newOpError("tmpfile", err, false)
 	}
 

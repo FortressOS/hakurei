@@ -1,10 +1,13 @@
 package system
 
 import (
+	"io"
+	"io/fs"
 	"os"
 	"reflect"
 	"slices"
 	"testing"
+	"time"
 	"unsafe"
 
 	"hakurei.app/container/stub"
@@ -180,6 +183,34 @@ func checkOpMeta(t *testing.T, testCases []opMetaTestCase) {
 	})
 }
 
+type stubFi struct {
+	size  int64
+	isDir bool
+}
+
+func (stubFi) Name() string       { panic("unreachable") }
+func (fi stubFi) Size() int64     { return fi.size }
+func (stubFi) Mode() fs.FileMode  { panic("unreachable") }
+func (stubFi) ModTime() time.Time { panic("unreachable") }
+func (fi stubFi) IsDir() bool     { return fi.isDir }
+func (stubFi) Sys() any           { panic("unreachable") }
+
+type readerOsFile struct {
+	closed bool
+	io.Reader
+}
+
+func (*readerOsFile) Name() string               { panic("unreachable") }
+func (*readerOsFile) Write([]byte) (int, error)  { panic("unreachable") }
+func (*readerOsFile) Stat() (fs.FileInfo, error) { panic("unreachable") }
+func (r *readerOsFile) Close() error {
+	if r.closed {
+		return os.ErrClosed
+	}
+	r.closed = true
+	return nil
+}
+
 // InternalNew initialises [I] with a stub syscallDispatcher.
 func InternalNew(t *testing.T, want stub.Expect, uid int) (*I, *stub.Stub[syscallDispatcher]) {
 	k := stub.New(t, func(s *stub.Stub[syscallDispatcher]) syscallDispatcher { return &kstub{s} }, want)
@@ -191,6 +222,28 @@ func InternalNew(t *testing.T, want stub.Expect, uid int) (*I, *stub.Stub[syscal
 type kstub struct{ *stub.Stub[syscallDispatcher] }
 
 func (k *kstub) new(f func(k syscallDispatcher)) { k.Helper(); k.New(f) }
+
+func (k *kstub) stat(name string) (fi os.FileInfo, err error) {
+	k.Helper()
+	expect := k.Expects("stat")
+	err = expect.Error(
+		stub.CheckArg(k.Stub, "name", name, 0))
+	if err == nil {
+		fi = expect.Ret.(os.FileInfo)
+	}
+	return
+}
+
+func (k *kstub) open(name string) (f osFile, err error) {
+	k.Helper()
+	expect := k.Expects("open")
+	err = expect.Error(
+		stub.CheckArg(k.Stub, "name", name, 0))
+	if err == nil {
+		f = expect.Ret.(osFile)
+	}
+	return
+}
 
 func (k *kstub) mkdir(name string, perm os.FileMode) error {
 	k.Helper()
