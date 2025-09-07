@@ -7,6 +7,7 @@ import (
 
 	"hakurei.app/system/acl"
 	"hakurei.app/system/dbus"
+	"hakurei.app/system/internal/xcb"
 )
 
 type osFile interface {
@@ -39,6 +40,9 @@ type syscallDispatcher interface {
 	// aclUpdate provides [acl.Update].
 	aclUpdate(name string, uid int, perms ...acl.Perm) error
 
+	// xcbChangeHosts provides [xcb.ChangeHosts].
+	xcbChangeHosts(mode xcb.HostMode, family xcb.Family, address string) error
+
 	// dbusAddress provides [dbus.Address].
 	dbusAddress() (session, system string)
 	// dbusFinalise provides [dbus.Finalise].
@@ -69,6 +73,10 @@ func (k direct) remove(name string) error                  { return os.Remove(na
 
 func (k direct) aclUpdate(name string, uid int, perms ...acl.Perm) error {
 	return acl.Update(name, uid, perms...)
+}
+
+func (k direct) xcbChangeHosts(mode xcb.HostMode, family xcb.Family, address string) error {
+	return xcb.ChangeHosts(mode, family, address)
 }
 
 func (k direct) dbusAddress() (session, system string) {

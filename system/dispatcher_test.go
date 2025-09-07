@@ -13,6 +13,7 @@ import (
 	"hakurei.app/container/stub"
 	"hakurei.app/system/acl"
 	"hakurei.app/system/dbus"
+	"hakurei.app/system/internal/xcb"
 )
 
 // call initialises a [stub.Call].
@@ -278,6 +279,14 @@ func (k *kstub) aclUpdate(name string, uid int, perms ...acl.Perm) error {
 		stub.CheckArg(k.Stub, "name", name, 0),
 		stub.CheckArg(k.Stub, "uid", uid, 1),
 		stub.CheckArgReflect(k.Stub, "perms", perms, 2))
+}
+
+func (k *kstub) xcbChangeHosts(mode xcb.HostMode, family xcb.Family, address string) error {
+	k.Helper()
+	return k.Expects("xcbChangeHosts").Error(
+		stub.CheckArg(k.Stub, "mode", mode, 0),
+		stub.CheckArg(k.Stub, "family", family, 1),
+		stub.CheckArg(k.Stub, "address", address, 2))
 }
 
 func (k *kstub) dbusAddress() (session, system string) {
