@@ -4,7 +4,6 @@ package system
 import (
 	"context"
 	"errors"
-	"log"
 	"strings"
 )
 
@@ -116,14 +115,15 @@ func (sys *I) Commit() error {
 	sys.committed = true
 
 	sp := New(sys.ctx, sys.uid)
+	sp.syscallDispatcher = sys.syscallDispatcher
 	sp.ops = make([]Op, 0, len(sys.ops)) // prevent copies during commits
 	defer func() {
 		// sp is set to nil when all ops are applied
 		if sp != nil {
 			// rollback partial commit
-			msg.Verbosef("commit faulted after %d ops, rolling back partial commit", len(sp.ops))
+			sys.verbosef("commit faulted after %d ops, rolling back partial commit", len(sp.ops))
 			if err := sp.Revert(nil); err != nil {
-				printJoinedError(log.Println, "cannot revert partial commit:", err)
+				printJoinedError(sys.println, "cannot revert partial commit:", err)
 			}
 		}
 	}()
