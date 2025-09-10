@@ -273,6 +273,14 @@ func (k *kstub) remove(name string) error {
 		stub.CheckArg(k.Stub, "name", name, 0))
 }
 
+func (k *kstub) println(v ...any) {
+	k.Helper()
+	k.Expects("println")
+	if !stub.CheckArgReflect(k.Stub, "v", v, 0) {
+		k.FailNow()
+	}
+}
+
 func (k *kstub) aclUpdate(name string, uid int, perms ...acl.Perm) error {
 	k.Helper()
 	return k.Expects("aclUpdate").Error(

@@ -3,6 +3,7 @@ package system
 import (
 	"io"
 	"io/fs"
+	"log"
 	"os"
 
 	"hakurei.app/system/acl"
@@ -37,6 +38,9 @@ type syscallDispatcher interface {
 	// remove provides os.Remove.
 	remove(name string) error
 
+	// println provides [log.Println].
+	println(v ...any)
+
 	// aclUpdate provides [acl.Update].
 	aclUpdate(name string, uid int, perms ...acl.Perm) error
 
@@ -70,6 +74,8 @@ func (k direct) mkdir(name string, perm os.FileMode) error { return os.Mkdir(nam
 func (k direct) chmod(name string, mode os.FileMode) error { return os.Chmod(name, mode) }
 func (k direct) link(oldname, newname string) error        { return os.Link(oldname, newname) }
 func (k direct) remove(name string) error                  { return os.Remove(name) }
+
+func (k direct) println(v ...any) { log.Println(v...) }
 
 func (k direct) aclUpdate(name string, uid int, perms ...acl.Perm) error {
 	return acl.Update(name, uid, perms...)
