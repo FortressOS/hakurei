@@ -12,6 +12,7 @@ import (
 	"hakurei.app/internal/sys"
 )
 
+// New returns the address of a newly initialised [App] struct.
 func New(ctx context.Context, os sys.State) (*App, error) {
 	a := new(App)
 	a.sys = os
@@ -24,6 +25,7 @@ func New(ctx context.Context, os sys.State) (*App, error) {
 	return a, err
 }
 
+// MustNew calls [New] and panics if an error is returned.
 func MustNew(ctx context.Context, os sys.State) *App {
 	a, err := New(ctx, os)
 	if err != nil {
@@ -32,6 +34,7 @@ func MustNew(ctx context.Context, os sys.State) *App {
 	return a
 }
 
+// An App keeps track of the hakurei container lifecycle.
 type App struct {
 	outcome *Outcome
 
@@ -46,7 +49,7 @@ func (a *App) ID() state.ID { a.mu.RLock(); defer a.mu.RUnlock(); return a.id.un
 
 func (a *App) String() string {
 	if a == nil {
-		return "(invalid app)"
+		return "<nil>"
 	}
 
 	a.mu.RLock()
@@ -54,12 +57,12 @@ func (a *App) String() string {
 
 	if a.outcome != nil {
 		if a.outcome.user.uid == nil {
-			return fmt.Sprintf("(sealed app %s with invalid uid)", a.id)
+			return "<invalid>"
 		}
-		return fmt.Sprintf("(sealed app %s as uid %s)", a.id, a.outcome.user.uid)
+		return fmt.Sprintf("sealed app %s as uid %s", a.id, a.outcome.user.uid)
 	}
 
-	return fmt.Sprintf("(unsealed app %s)", a.id)
+	return fmt.Sprintf("unsealed app %s", a.id)
 }
 
 // Seal determines the [Outcome] of [hst.Config].
@@ -69,7 +72,7 @@ func (a *App) Seal(config *hst.Config) (*Outcome, error) {
 	defer a.mu.Unlock()
 
 	if a.outcome != nil {
-		panic("app sealed twice")
+		panic("attempting to seal app twice")
 	}
 
 	seal := new(Outcome)

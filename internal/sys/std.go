@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"log"
 	"os"
 	"os/exec"
 	"os/user"
@@ -51,7 +52,14 @@ const xdgRuntimeDir = "XDG_RUNTIME_DIR"
 func (s *Std) Paths() hst.Paths {
 	s.pathsOnce.Do(func() {
 		if userid, err := GetUserID(s); err != nil {
-			hlog.PrintBaseError(err, "cannot obtain user id from hsu:")
+			// TODO(ophestra): this duplicates code in cmd/hakurei/command.go, keep this up to date until removal
+			if m, ok := container.GetErrorMessage(err); ok {
+				if m != "\x00" {
+					log.Print(m)
+				}
+			} else {
+				log.Println("cannot obtain user id from hsu:", err)
+			}
 			hlog.BeforeExit()
 			s.Exit(1)
 		} else {
@@ -60,6 +68,16 @@ func (s *Std) Paths() hst.Paths {
 	})
 	return s.paths
 }
+
+// this is a temporary placeholder until this package is removed
+type wrappedError struct {
+	Err error
+	Msg string
+}
+
+func (e *wrappedError) Error() string   { return e.Err.Error() }
+func (e *wrappedError) Unwrap() error   { return e.Err }
+func (e *wrappedError) Message() string { return e.Msg }
 
 func (s *Std) Uid(identity int) (int, error) {
 	s.uidOnce.Do(func() {
@@ -103,12 +121,13 @@ func (s *Std) Uid(identity int) (int, error) {
 	if p, u.err = cmd.Output(); u.err == nil {
 		u.uid, u.err = strconv.Atoi(string(p))
 		if u.err != nil {
-			u.err = hlog.WrapErr(u.err, "invalid uid string from hsu")
+			u.err = &wrappedError{u.err, "invalid uid string from hsu"}
 		}
 	} else if errors.As(u.err, &exitError) && exitError != nil && exitError.ExitCode() == 1 {
-		u.err = hlog.WrapErr(syscall.EACCES, "") // hsu prints to stderr in this case
+		// hsu prints an error message in this case
+		u.err = &wrappedError{syscall.EACCES, "\x00"} // this drops the message, handled in cmd/hakurei/command.go
 	} else if os.IsNotExist(u.err) {
-		u.err = hlog.WrapErr(os.ErrNotExist, fmt.Sprintf("the setuid helper is missing: %s", hsuPath))
+		u.err = &wrappedError{os.ErrNotExist, fmt.Sprintf("the setuid helper is missing: %s", hsuPath)}
 	}
 	return u.uid, u.err
 }

@@ -4,48 +4,33 @@ import (
 	"errors"
 	"log"
 
+	"hakurei.app/container"
 	"hakurei.app/internal/hlog"
 )
 
+// PrintRunStateErr prints an error message via [log] if runErr is not nil, and returns an appropriate exit code.
+//
+// TODO(ophestra): remove this function once RunState has been replaced
 func PrintRunStateErr(rs *RunState, runErr error) (code int) {
 	code = rs.ExitStatus()
 
 	if runErr != nil {
 		if rs.Time == nil {
-			hlog.PrintBaseError(runErr, "cannot start app:")
+			// no process has been created
+			printMessageError("cannot start app:", runErr)
 		} else {
-			var e *hlog.BaseError
-			if !hlog.AsBaseError(runErr, &e) {
-				log.Println("wait failed:", runErr)
+			if m, ok := container.GetErrorMessage(runErr); !ok {
+				// catch-all for unexpected errors
+				log.Println("run returned error:", runErr)
 			} else {
-				// Wait only returns either *app.ProcessError or *app.StateStoreError wrapped in a *app.BaseError
 				var se *StateStoreError
 				if !errors.As(runErr, &se) {
-					// does not need special handling
-					log.Print(e.Message())
+					// this could only be returned from a shim setup failure path
+					log.Print(m)
 				} else {
-					// inner error are either unwrapped store errors
-					// or joined errors returned by *appSealTx revert
-					// wrapped in *app.BaseError
-					var ej RevertCompoundError
-					if !errors.As(se.InnerErr, &ej) {
-						// does not require special handling
-						log.Print(e.Message())
-					} else {
-						errs := ej.Unwrap()
-
-						// every error here is wrapped in *app.BaseError
-						for _, ei := range errs {
-							var eb *hlog.BaseError
-							if !errors.As(ei, &eb) {
-								// unreachable
-								log.Println("invalid error type returned by revert:", ei)
-							} else {
-								// print inner *app.BaseError message
-								log.Print(eb.Message())
-							}
-						}
-					}
+					// InnerErr is returned by c.Save(&sd, seal.ct), and are always unwrapped
+					printMessageError("error returned during revert:",
+						&FinaliseError{Step: "save process state", Err: se.InnerErr})
 				}
 			}
 		}
@@ -58,43 +43,45 @@ func PrintRunStateErr(rs *RunState, runErr error) (code int) {
 	if rs.RevertErr != nil {
 		var stateStoreError *StateStoreError
 		if !errors.As(rs.RevertErr, &stateStoreError) || stateStoreError == nil {
-			hlog.PrintBaseError(rs.RevertErr, "generic fault during cleanup:")
+			printMessageError("cannot clean up:", rs.RevertErr)
 			goto out
 		}
 
-		if stateStoreError.Err != nil {
-			if len(stateStoreError.Err) == 2 {
-				if stateStoreError.Err[0] != nil {
-					if joinedErrs, ok := stateStoreError.Err[0].(interface{ Unwrap() []error }); !ok {
-						hlog.PrintBaseError(stateStoreError.Err[0], "generic fault during revert:")
+		if stateStoreError.Errs != nil {
+			if len(stateStoreError.Errs) == 2 { // storeErr.save(revertErr, store.Close())
+				if stateStoreError.Errs[0] != nil { // revertErr is MessageError joined by errors.Join
+					var joinedErrors interface {
+						Unwrap() []error
+						error
+					}
+					if !errors.As(stateStoreError.Errs[0], &joinedErrors) {
+						printMessageError("cannot revert:", stateStoreError.Errs[0])
 					} else {
-						for _, err := range joinedErrs.Unwrap() {
+						for _, err := range joinedErrors.Unwrap() {
 							if err != nil {
-								hlog.PrintBaseError(err, "fault during revert:")
+								printMessageError("cannot revert:", err)
 							}
 						}
 					}
 				}
-				if stateStoreError.Err[1] != nil {
-					log.Printf("cannot close store: %v", stateStoreError.Err[1])
+				if stateStoreError.Errs[1] != nil { // store.Close() is joined by errors.Join
+					log.Printf("cannot close store: %v", stateStoreError.Errs[1])
 				}
 			} else {
-				log.Printf("fault during cleanup: %v",
-					errors.Join(stateStoreError.Err...))
+				log.Printf("fault during cleanup: %v", errors.Join(stateStoreError.Errs...))
 			}
 		}
 
 		if stateStoreError.OpErr != nil {
-			log.Printf("blind revert due to store fault: %v",
-				stateStoreError.OpErr)
+			log.Printf("blind revert due to store fault: %v", stateStoreError.OpErr)
 		}
 
 		if stateStoreError.DoErr != nil {
-			hlog.PrintBaseError(stateStoreError.DoErr, "state store operation unsuccessful:")
+			printMessageError("state store operation unsuccessful:", stateStoreError.DoErr)
 		}
 
 		if stateStoreError.Inner && stateStoreError.InnerErr != nil {
-			hlog.PrintBaseError(stateStoreError.InnerErr, "cannot destroy state entry:")
+			printMessageError("cannot destroy state entry:", stateStoreError.InnerErr)
 		}
 
 	out:
@@ -108,7 +95,18 @@ func PrintRunStateErr(rs *RunState, runErr error) (code int) {
 	return
 }
 
-// StateStoreError is returned for a failed state save
+// TODO(ophestra): this duplicates code in cmd/hakurei/command.go, keep this up to date until removal
+func printMessageError(fallback string, err error) {
+	if m, ok := container.GetErrorMessage(err); ok {
+		if m != "\x00" {
+			log.Print(m)
+		}
+	} else {
+		log.Println(fallback, err)
+	}
+}
+
+// StateStoreError is returned for a failed state save.
 type StateStoreError struct {
 	// whether inner function was called
 	Inner bool
@@ -119,22 +117,23 @@ type StateStoreError struct {
 	// stores an arbitrary store operation error
 	OpErr error
 	// stores arbitrary errors
-	Err []error
+	Errs []error
 }
 
-// save saves arbitrary errors in [StateStoreError] once.
+// save saves arbitrary errors in [StateStoreError.Errs] once.
 func (e *StateStoreError) save(errs ...error) {
-	if len(errs) == 0 || e.Err != nil {
+	if len(errs) == 0 || e.Errs != nil {
 		panic("invalid call to save")
 	}
-	e.Err = errs
+	e.Errs = errs
 }
 
-func (e *StateStoreError) equiv(a ...any) error {
-	if e.Inner && e.InnerErr == nil && e.DoErr == nil && e.OpErr == nil && errors.Join(e.Err...) == nil {
+// equiv returns an error that [StateStoreError] is equivalent to, including nil.
+func (e *StateStoreError) equiv(step string) error {
+	if e.Inner && e.InnerErr == nil && e.DoErr == nil && e.OpErr == nil && errors.Join(e.Errs...) == nil {
 		return nil
 	} else {
-		return hlog.WrapErrSuffix(e, a...)
+		return &FinaliseError{Step: step, Err: e}
 	}
 }
 
@@ -148,7 +147,7 @@ func (e *StateStoreError) Error() string {
 	if e.OpErr != nil {
 		return e.OpErr.Error()
 	}
-	if err := errors.Join(e.Err...); err != nil {
+	if err := errors.Join(e.Errs...); err != nil {
 		return err.Error()
 	}
 
@@ -157,7 +156,7 @@ func (e *StateStoreError) Error() string {
 }
 
 func (e *StateStoreError) Unwrap() (errs []error) {
-	errs = make([]error, 0, 3)
+	errs = make([]error, 0, 3+len(e.Errs))
 	if e.InnerErr != nil {
 		errs = append(errs, e.InnerErr)
 	}
@@ -167,15 +166,10 @@ func (e *StateStoreError) Unwrap() (errs []error) {
 	if e.OpErr != nil {
 		errs = append(errs, e.OpErr)
 	}
-	if err := errors.Join(e.Err...); err != nil {
-		errs = append(errs, err)
+	for _, err := range e.Errs {
+		if err != nil {
+			errs = append(errs, err)
+		}
 	}
 	return
-}
-
-// A RevertCompoundError encapsulates errors returned by
-// the Revert method of [system.I].
-type RevertCompoundError interface {
-	Error() string
-	Unwrap() []error
 }

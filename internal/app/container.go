@@ -11,7 +11,6 @@ import (
 	"hakurei.app/container"
 	"hakurei.app/container/seccomp"
 	"hakurei.app/hst"
-	"hakurei.app/internal/hlog"
 	"hakurei.app/internal/sys"
 	"hakurei.app/system/dbus"
 )
@@ -23,7 +22,7 @@ const preallocateOpsCount = 1 << 5
 // Note that remaining container setup must be queued by the caller.
 func newContainer(s *hst.ContainerConfig, os sys.State, prefix string, uid, gid *int) (*container.Params, map[string]string, error) {
 	if s == nil {
-		return nil, nil, hlog.WrapErr(syscall.EBADE, "invalid container configuration")
+		return nil, nil, newWithMessage("invalid container configuration")
 	}
 
 	params := &container.Params{

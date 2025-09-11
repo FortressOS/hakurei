@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"os"
 	"slices"
 	"strconv"
 	"strings"
@@ -14,7 +13,6 @@ import (
 
 	"hakurei.app/hst"
 	"hakurei.app/internal/app/state"
-	"hakurei.app/internal/hlog"
 	"hakurei.app/system/dbus"
 )
 
@@ -26,8 +24,7 @@ func printShowSystem(output io.Writer, short, flagJSON bool) {
 
 	// get hid by querying uid of identity 0
 	if uid, err := std.Uid(0); err != nil {
-		hlog.PrintBaseError(err, "cannot obtain uid from setuid wrapper:")
-		os.Exit(1)
+		fatal("cannot obtain uid from setuid wrapper:", err)
 	} else {
 		info.User = (uid / 10000) - 100
 	}

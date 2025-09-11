@@ -155,11 +155,11 @@ func ShimMain() {
 	}
 
 	if err := z.Start(); err != nil {
-		hlog.PrintBaseError(err, "cannot start container:")
+		printMessageError("cannot start container:", err)
 		os.Exit(1)
 	}
 	if err := z.Serve(); err != nil {
-		hlog.PrintBaseError(err, "cannot configure container:")
+		printMessageError("cannot configure container:", err)
 	}
 
 	if err := seccomp.Load(

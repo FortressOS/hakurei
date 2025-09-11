@@ -106,7 +106,7 @@ func (seal *Outcome) Run(rs *RunState) error {
 			}()
 		})
 		storeErr.save(revertErr, store.Close())
-		rs.RevertErr = storeErr.equiv("error during cleanup:")
+		rs.RevertErr = storeErr.equiv("clean up")
 	}()
 
 	ctx, cancel := context.WithCancel(seal.ctx)
@@ -119,8 +119,7 @@ func (seal *Outcome) Run(rs *RunState) error {
 
 	var e *gob.Encoder
 	if fd, encoder, err := container.Setup(&cmd.ExtraFiles); err != nil {
-		return hlog.WrapErrSuffix(err,
-			"cannot create shim setup pipe:")
+		return &FinaliseError{Step: "create shim setup pipe", Err: err}
 	} else {
 		e = encoder
 		cmd.Env = []string{
@@ -140,8 +139,7 @@ func (seal *Outcome) Run(rs *RunState) error {
 	hlog.Verbosef("setuid helper at %s", hsuPath)
 	hlog.Suspend()
 	if err := cmd.Start(); err != nil {
-		return hlog.WrapErrSuffix(err,
-			"cannot start setuid wrapper:")
+		return &FinaliseError{Step: "start setuid wrapper", Err: err}
 	}
 	rs.setStart()
 
@@ -161,14 +159,12 @@ func (seal *Outcome) Run(rs *RunState) error {
 	case err := <-setupErr:
 		if err != nil {
 			hlog.Resume()
-			return hlog.WrapErrSuffix(err,
-				"cannot transmit shim config:")
+			return &FinaliseError{Step: "transmit shim config", Err: err}
 		}
 
 	case <-ctx.Done():
 		hlog.Resume()
-		return hlog.WrapErr(syscall.ECANCELED,
-			"shim setup canceled")
+		return newWithMessageError("shim setup canceled", syscall.ECANCELED)
 	}
 
 	// returned after blocking on waitErr
@@ -225,5 +221,5 @@ func (seal *Outcome) Run(rs *RunState) error {
 		seal.dbusMsg()
 	}
 
-	return earlyStoreErr.equiv("cannot save process state:")
+	return earlyStoreErr.equiv("save process state")
 }

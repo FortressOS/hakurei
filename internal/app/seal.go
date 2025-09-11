@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"net"
 	"os"
-	"path"
 	"slices"
 	"strconv"
 	"strings"
@@ -28,35 +28,36 @@ import (
 	"hakurei.app/system/wayland"
 )
 
-const (
-	home  = "HOME"
-	shell = "SHELL"
+// A FinaliseError is returned while finalising a [hst.Config] outcome.
+type FinaliseError struct {
+	Step string
+	Err  error
+	Msg  string
+}
 
-	xdgConfigHome   = "XDG_CONFIG_HOME"
-	xdgRuntimeDir   = "XDG_RUNTIME_DIR"
-	xdgSessionClass = "XDG_SESSION_CLASS"
-	xdgSessionType  = "XDG_SESSION_TYPE"
+func (e *FinaliseError) Error() string { return e.Err.Error() }
+func (e *FinaliseError) Unwrap() error { return e.Err }
+func (e *FinaliseError) Message() string {
+	if e.Msg != "" {
+		return e.Msg
+	}
 
-	term    = "TERM"
-	display = "DISPLAY"
+	switch {
+	case errors.As(e.Err, new(*os.PathError)),
+		errors.As(e.Err, new(*os.LinkError)),
+		errors.As(e.Err, new(*os.SyscallError)),
+		errors.As(e.Err, new(*net.OpError)):
+		return "cannot " + e.Error()
 
-	pulseServer = "PULSE_SERVER"
-	pulseCookie = "PULSE_COOKIE"
+	default:
+		return "cannot " + e.Step + ": " + e.Error()
+	}
+}
 
-	dbusSessionBusAddress = "DBUS_SESSION_BUS_ADDRESS"
-	dbusSystemBusAddress  = "DBUS_SYSTEM_BUS_ADDRESS"
-)
-
-var (
-	ErrIdent = errors.New("invalid identity")
-	ErrName  = errors.New("invalid username")
-
-	ErrXDisplay = errors.New(display + " unset")
-
-	ErrPulseCookie = errors.New("pulse cookie not present")
-	ErrPulseSocket = errors.New("pulse socket not present")
-	ErrPulseMode   = errors.New("unexpected pulse socket mode")
-)
+func newWithMessage(msg string) error { return newWithMessageError(msg, os.ErrInvalid) }
+func newWithMessageError(msg string, err error) error {
+	return &FinaliseError{Step: "finalise", Err: err, Msg: msg}
+}
 
 // An Outcome is the runnable state of a hakurei container via [hst.Config].
 type Outcome struct {
@@ -146,35 +147,55 @@ type hsuUser struct {
 }
 
 func (seal *Outcome) finalise(ctx context.Context, sys sys.State, config *hst.Config) error {
+	const (
+		home  = "HOME"
+		shell = "SHELL"
+
+		xdgConfigHome   = "XDG_CONFIG_HOME"
+		xdgRuntimeDir   = "XDG_RUNTIME_DIR"
+		xdgSessionClass = "XDG_SESSION_CLASS"
+		xdgSessionType  = "XDG_SESSION_TYPE"
+
+		term    = "TERM"
+		display = "DISPLAY"
+
+		pulseServer = "PULSE_SERVER"
+		pulseCookie = "PULSE_COOKIE"
+
+		dbusSessionBusAddress = "DBUS_SESSION_BUS_ADDRESS"
+		dbusSystemBusAddress  = "DBUS_SYSTEM_BUS_ADDRESS"
+	)
+
 	if ctx == nil {
+		// unreachable
 		panic("invalid call to finalise")
 	}
 	if seal.ctx != nil {
+		// unreachable
 		panic("attempting to finalise twice")
 	}
 	seal.ctx = ctx
 
 	if config == nil {
-		return hlog.WrapErr(syscall.EINVAL, syscall.EINVAL.Error())
+		// unreachable
+		return newWithMessage("invalid configuration")
 	}
 	if config.Home == nil {
-		return hlog.WrapErr(os.ErrInvalid, "invalid path to home directory")
+		return newWithMessage("invalid path to home directory")
 	}
 
 	{
 		// encode initial configuration for state tracking
 		ct := new(bytes.Buffer)
 		if err := gob.NewEncoder(ct).Encode(config); err != nil {
-			return hlog.WrapErrSuffix(err,
-				"cannot encode initial config:")
+			return &FinaliseError{Step: "encode initial config", Err: err}
 		}
 		seal.ct = ct
 	}
 
 	// allowed identity range 0 to 9999, this is checked again in hsu
 	if config.Identity < 0 || config.Identity > 9999 {
-		return hlog.WrapErr(ErrIdent,
-			fmt.Sprintf("identity %d out of range", config.Identity))
+		return newWithMessage(fmt.Sprintf("identity %d out of range", config.Identity))
 	}
 
 	seal.user = hsuUser{
@@ -185,8 +206,7 @@ func (seal *Outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 	if seal.user.username == "" {
 		seal.user.username = "chronos"
 	} else if !isValidUsername(seal.user.username) {
-		return hlog.WrapErr(ErrName,
-			fmt.Sprintf("invalid user name %q", seal.user.username))
+		return newWithMessage(fmt.Sprintf("invalid user name %q", seal.user.username))
 	}
 	if u, err := sys.Uid(seal.user.identity.unwrap()); err != nil {
 		return err
@@ -196,8 +216,7 @@ func (seal *Outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 	seal.user.supp = make([]string, len(config.Groups))
 	for i, name := range config.Groups {
 		if g, err := sys.LookupGroup(name); err != nil {
-			return hlog.WrapErr(err,
-				fmt.Sprintf("unknown group %q", name))
+			return newWithMessageError(fmt.Sprintf("unknown group %q", name), err)
 		} else {
 			seal.user.supp[i] = g.Gid
 		}
@@ -219,9 +238,9 @@ func (seal *Outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 		if config.Path == nil {
 			if len(config.Args) > 0 {
 				if p, err := sys.LookPath(config.Args[0]); err != nil {
-					return hlog.WrapErr(err, err.Error())
+					return &FinaliseError{Step: "look up executable file", Err: err}
 				} else if config.Path, err = container.NewAbs(p); err != nil {
-					return hlog.WrapErr(err, err.Error())
+					return newWithMessageError(err.Error(), err)
 				}
 			} else {
 				config.Path = config.Shell
@@ -272,10 +291,10 @@ func (seal *Outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 
 	// late nil checks for pd behaviour
 	if config.Shell == nil {
-		return hlog.WrapErr(syscall.EINVAL, "invalid shell path")
+		return newWithMessage("invalid shell path")
 	}
 	if config.Path == nil {
-		return hlog.WrapErr(syscall.EINVAL, "invalid program path")
+		return newWithMessage("invalid program path")
 	}
 
 	var mapuid, mapgid *stringPair[int]
@@ -285,8 +304,7 @@ func (seal *Outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 		seal.container, seal.env, err = newContainer(config.Container, sys, seal.id.String(), &uid, &gid)
 		seal.waitDelay = config.Container.WaitDelay
 		if err != nil {
-			return hlog.WrapErrSuffix(err,
-				"cannot initialise container configuration:")
+			return &FinaliseError{Step: "initialise container configuration", Err: err}
 		}
 		if len(config.Args) == 0 {
 			config.Args = []string{config.Path.String()}
@@ -390,8 +408,7 @@ func (seal *Outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 
 	if config.Enablements.Unwrap()&system.EX11 != 0 {
 		if d, ok := sys.LookupEnv(display); !ok {
-			return hlog.WrapErr(ErrXDisplay,
-				"DISPLAY is not set")
+			return newWithMessage("DISPLAY is not set")
 		} else {
 			socketDir := container.AbsFHSTmp.Append(".X11-unix")
 
@@ -410,8 +427,7 @@ func (seal *Outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 			if socketPath != nil {
 				if _, err := sys.Stat(socketPath.String()); err != nil {
 					if !errors.Is(err, fs.ErrNotExist) {
-						return hlog.WrapErrSuffix(err,
-							fmt.Sprintf("cannot access X11 socket %q:", socketPath))
+						return &FinaliseError{Step: fmt.Sprintf("access X11 socket %q", socketPath), Err: err}
 					}
 				} else {
 					seal.sys.UpdatePermType(system.EX11, socketPath.String(), acl.Read, acl.Write, acl.Execute)
@@ -435,24 +451,19 @@ func (seal *Outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 
 		if _, err := sys.Stat(pulseRuntimeDir.String()); err != nil {
 			if !errors.Is(err, fs.ErrNotExist) {
-				return hlog.WrapErrSuffix(err,
-					fmt.Sprintf("cannot access PulseAudio directory %q:", pulseRuntimeDir))
+				return &FinaliseError{Step: fmt.Sprintf("access PulseAudio directory %q", pulseRuntimeDir), Err: err}
 			}
-			return hlog.WrapErr(ErrPulseSocket,
-				fmt.Sprintf("PulseAudio directory %q not found", pulseRuntimeDir))
+			return newWithMessage(fmt.Sprintf("PulseAudio directory %q not found", pulseRuntimeDir))
 		}
 
 		if s, err := sys.Stat(pulseSocket.String()); err != nil {
 			if !errors.Is(err, fs.ErrNotExist) {
-				return hlog.WrapErrSuffix(err,
-					fmt.Sprintf("cannot access PulseAudio socket %q:", pulseSocket))
+				return &FinaliseError{Step: fmt.Sprintf("access PulseAudio socket %q", pulseSocket), Err: err}
 			}
-			return hlog.WrapErr(ErrPulseSocket,
-				fmt.Sprintf("PulseAudio directory %q found but socket does not exist", pulseRuntimeDir))
+			return newWithMessage(fmt.Sprintf("PulseAudio directory %q found but socket does not exist", pulseRuntimeDir))
 		} else {
 			if m := s.Mode(); m&0o006 != 0o006 {
-				return hlog.WrapErr(ErrPulseMode,
-					fmt.Sprintf("unexpected permissions on %q:", pulseSocket), m)
+				return newWithMessage(fmt.Sprintf("unexpected permissions on %q: %s", pulseSocket, m))
 			}
 		}
 
@@ -464,15 +475,75 @@ func (seal *Outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 		seal.env[pulseServer] = "unix:" + innerPulseSocket.String()
 
 		// publish current user's pulse cookie for target user
-		if src, err := discoverPulseCookie(sys); err != nil {
-			// not fatal
-			hlog.Verbose(strings.TrimSpace(err.(*hlog.BaseError).Message()))
-		} else {
+		var paCookiePath *container.Absolute
+		{
+			const paLocateStep = "locate PulseAudio cookie"
+
+			// from environment
+			if p, ok := sys.LookupEnv(pulseCookie); ok {
+				if a, err := container.NewAbs(p); err != nil {
+					return &FinaliseError{Step: paLocateStep, Err: err}
+				} else {
+					// this takes precedence, do not verify whether the file is accessible
+					paCookiePath = a
+					goto out
+				}
+			}
+
+			// $HOME/.pulse-cookie
+			if p, ok := sys.LookupEnv(home); ok {
+				if a, err := container.NewAbs(p); err != nil {
+					return &FinaliseError{Step: paLocateStep, Err: err}
+				} else {
+					paCookiePath = a.Append(".pulse-cookie")
+				}
+
+				if s, err := sys.Stat(paCookiePath.String()); err != nil {
+					paCookiePath = nil
+					if !errors.Is(err, fs.ErrNotExist) {
+						return &FinaliseError{Step: "access PulseAudio cookie", Err: err}
+					}
+					// fallthrough
+				} else if s.IsDir() {
+					paCookiePath = nil
+				} else {
+					goto out
+				}
+			}
+
+			// $XDG_CONFIG_HOME/pulse/cookie
+			if p, ok := sys.LookupEnv(xdgConfigHome); ok {
+				if a, err := container.NewAbs(p); err != nil {
+					return &FinaliseError{Step: paLocateStep, Err: err}
+				} else {
+					paCookiePath = a.Append("pulse", "cookie")
+				}
+				if s, err := sys.Stat(paCookiePath.String()); err != nil {
+					paCookiePath = nil
+					if !errors.Is(err, fs.ErrNotExist) {
+						return &FinaliseError{Step: "access PulseAudio cookie", Err: err}
+					}
+					// fallthrough
+				} else if s.IsDir() {
+					paCookiePath = nil
+				} else {
+					goto out
+				}
+			}
+		out:
+		}
+
+		if paCookiePath != nil {
 			innerDst := hst.AbsTmp.Append("/pulse-cookie")
 			seal.env[pulseCookie] = innerDst.String()
 			var payload *[]byte
 			seal.container.PlaceP(innerDst, &payload)
-			seal.sys.CopyFile(payload, src, 256, 256)
+			seal.sys.CopyFile(payload, paCookiePath.String(), 256, 256)
+		} else {
+			hlog.Verbose("cannot locate PulseAudio cookie (tried " +
+				"$PULSE_COOKIE, " +
+				"$XDG_CONFIG_HOME/pulse/cookie, " +
+				"$HOME/.pulse-cookie)")
 		}
 	}
 
@@ -538,8 +609,8 @@ func (seal *Outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 	seal.container.Env = make([]string, 0, len(seal.env))
 	for k, v := range seal.env {
 		if strings.IndexByte(k, '=') != -1 {
-			return hlog.WrapErr(syscall.EINVAL,
-				fmt.Sprintf("invalid environment variable %s", k))
+			return &FinaliseError{Step: "flatten environment", Err: syscall.EINVAL,
+				Msg: fmt.Sprintf("invalid environment variable %s", k)}
 		}
 		seal.container.Env = append(seal.container.Env, k+"="+v)
 	}
@@ -551,43 +622,4 @@ func (seal *Outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 	}
 
 	return nil
-}
-
-// discoverPulseCookie attempts various standard methods to discover the current user's PulseAudio authentication cookie
-func discoverPulseCookie(sys sys.State) (string, error) {
-	if p, ok := sys.LookupEnv(pulseCookie); ok {
-		return p, nil
-	}
-
-	// dotfile $HOME/.pulse-cookie
-	if p, ok := sys.LookupEnv(home); ok {
-		p = path.Join(p, ".pulse-cookie")
-		if s, err := sys.Stat(p); err != nil {
-			if !errors.Is(err, fs.ErrNotExist) {
-				return p, hlog.WrapErrSuffix(err,
-					fmt.Sprintf("cannot access PulseAudio cookie %q:", p))
-			}
-			// not found, try next method
-		} else if !s.IsDir() {
-			return p, nil
-		}
-	}
-
-	// $XDG_CONFIG_HOME/pulse/cookie
-	if p, ok := sys.LookupEnv(xdgConfigHome); ok {
-		p = path.Join(p, "pulse", "cookie")
-		if s, err := sys.Stat(p); err != nil {
-			if !errors.Is(err, fs.ErrNotExist) {
-				return p, hlog.WrapErrSuffix(err,
-					fmt.Sprintf("cannot access PulseAudio cookie %q:", p))
-			}
-			// not found, try next method
-		} else if !s.IsDir() {
-			return p, nil
-		}
-	}
-
-	return "", hlog.WrapErr(ErrPulseCookie,
-		fmt.Sprintf("cannot locate PulseAudio cookie (tried $%s, $%s/pulse/cookie, $%s/.pulse-cookie)",
-			pulseCookie, xdgConfigHome, home))
 }

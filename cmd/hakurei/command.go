@@ -82,8 +82,7 @@ func buildCommand(out io.Writer) command.Command {
 				passwdFunc = func() {
 					var us string
 					if uid, err := std.Uid(aid); err != nil {
-						hlog.PrintBaseError(err, "cannot obtain uid from setuid wrapper:")
-						os.Exit(1)
+						fatal("cannot obtain uid from setuid wrapper:", err)
 					} else {
 						us = strconv.Itoa(uid)
 					}
@@ -260,11 +259,33 @@ func runApp(config *hst.Config) {
 
 	rs := new(app.RunState)
 	if sa, err := a.Seal(config); err != nil {
-		hlog.PrintBaseError(err, "cannot seal app:")
-		internal.Exit(1)
+		hlog.BeforeExit()
+		fatal("cannot seal app:", err)
 	} else {
-		internal.Exit(app.PrintRunStateErr(rs, sa.Run(rs)))
+		hlog.BeforeExit()
+		os.Exit(app.PrintRunStateErr(rs, sa.Run(rs)))
 	}
 
 	*(*int)(nil) = 0 // not reached
+}
+
+// fatal prints the error message according to [container.GetErrorMessage], or fallback
+// prepended to err if an error message is not available, followed by a call to [os.Exit](1).
+func fatal(fallback string, err error) {
+	m, ok := container.GetErrorMessage(err)
+	if !ok {
+		log.Fatal(fallback, err)
+		return
+	}
+
+	// this indicates the error message has already reached stderr, outside the current process's control;
+	// this is only reached when hsu fails for any reason, as we do not want a second error message following hsu
+	// TODO(ophestra): handle the hsu error here instead of relying on a magic string
+	if m == "\x00" {
+		hlog.Verbose("*"+fallback, err)
+		os.Exit(1)
+		return
+	}
+
+	log.Fatal(m)
 }
