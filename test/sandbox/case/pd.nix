@@ -36,7 +36,7 @@
         ptmx = fs "80001ff" null null;
         pts = fs "800001ed" { ptmx = fs "42001b6" null null; } null;
         random = fs "42001b6" null null;
-        shm = fs "801001ff" { } null;
+        shm = fs "801001ff" { ".hakurei-check" = fs "180" null null; } null;
         stderr = fs "80001ff" null null;
         stdin = fs "80001ff" null null;
         stdout = fs "80001ff" null null;
@@ -180,12 +180,12 @@
       (ent "/" "/dev/pts" "rw,nosuid,noexec,relatime" "devpts" "devpts" "rw,mode=620,ptmxmode=666")
       (ent ignore "/dev/console" "rw,nosuid,noexec,relatime" "devpts" "devpts" "rw,gid=3,mode=620,ptmxmode=666")
       (ent "/" "/dev/mqueue" "rw,nosuid,nodev,noexec,relatime" "mqueue" "mqueue" "rw")
+      (ent "/" "/dev/shm" "rw,nosuid,nodev,relatime" "tmpfs" "ephemeral" "rw,uid=1000000,gid=1000000")
       (ent "/kvm" "/dev/kvm" "rw,nosuid" "devtmpfs" "devtmpfs" ignore)
       (ent "/" "/run/nscd" "ro,nosuid,nodev,relatime" "tmpfs" "readonly" "ro,mode=755,uid=1000000,gid=1000000")
       (ent "/etc" ignore "ro,nosuid,nodev,relatime" "ext4" "/dev/disk/by-label/nixos" "rw")
       (ent "/" "/run/user/1000" "rw,nosuid,nodev,relatime" "tmpfs" "ephemeral" "rw,size=8k,mode=755,uid=1000000,gid=1000000")
       (ent "/" "/run/dbus" "rw,nosuid,nodev,relatime" "tmpfs" "ephemeral" "rw,size=8k,mode=755,uid=1000000,gid=1000000")
-      (ent "/" "/dev/shm" "rw,nosuid,nodev,relatime" "tmpfs" "ephemeral" "rw,uid=1000000,gid=1000000")
       (ent "/" "/run/user" "rw,nosuid,nodev,relatime" "tmpfs" "ephemeral" "rw,size=4k,mode=755,uid=1000000,gid=1000000")
       (ent "/tmp/hakurei.0/runtime/0" "/run/user/65534" "rw,nosuid,nodev,relatime" "ext4" "/dev/disk/by-label/nixos" "rw")
       (ent "/tmp/hakurei.0/tmpdir/0" "/tmp" "rw,nosuid,nodev,relatime" "ext4" "/dev/disk/by-label/nixos" "rw")

@@ -98,6 +98,8 @@ func newContainer(s *hst.ContainerConfig, os sys.State, prefix string, uid, gid 
 	} else {
 		params.Bind(container.AbsFHSDev, container.AbsFHSDev, container.BindWritable|container.BindDevice)
 	}
+	// /dev is mounted readonly later on, this prevents /dev/shm from going readonly with it
+	params.Tmpfs(container.AbsFHSDev.Append("shm"), 0, 01777)
 
 	/* retrieve paths and hide them if they're made available in the sandbox;
 
@@ -230,9 +232,7 @@ func newContainer(s *hst.ContainerConfig, os sys.State, prefix string, uid, gid 
 
 	// no more ContainerConfig paths beyond this point
 	if !s.Device {
-		params.
-			Remount(container.AbsFHSDev, syscall.MS_RDONLY).
-			Tmpfs(container.AbsFHSDev.Append("shm"), 0, 01777)
+		params.Remount(container.AbsFHSDev, syscall.MS_RDONLY)
 	}
 
 	return params, maps.Clone(s.Env), nil

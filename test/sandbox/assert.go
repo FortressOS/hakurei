@@ -53,6 +53,13 @@ func (t *T) MustCheckFile(wantFilePath string) {
 }
 
 func (t *T) MustCheck(want *TestCase) {
+	// check /dev/shm writable
+	if err := os.WriteFile("/dev/shm/.hakurei-check", make([]byte, 1<<8), 0600); err != nil {
+		fatalf("[FAIL] %s", err)
+	} else {
+		printf("[ OK ] /dev/shm is writable")
+	}
+
 	if want.Env != nil {
 		var (
 			fail bool

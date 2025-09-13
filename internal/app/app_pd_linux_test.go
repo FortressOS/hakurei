@@ -48,13 +48,13 @@ var testCasesPd = []sealTestCase{
 				Proc(m("/proc/")).
 				Tmpfs(hst.AbsTmp, 4096, 0755).
 				DevWritable(m("/dev/"), true).
+				Tmpfs(m("/dev/shm"), 0, 01777).
 				Bind(m("/dev/kvm"), m("/dev/kvm"), container.BindWritable|container.BindDevice|container.BindOptional).
 				Readonly(m("/var/run/nscd"), 0755).
 				Etc(m("/etc/"), "4a450b6596d7bc15bd01780eb9a607ac").
 				Tmpfs(m("/run/user/1971"), 8192, 0755).
 				Tmpfs(m("/run/dbus"), 8192, 0755).
 				Remount(m("/dev/"), syscall.MS_RDONLY).
-				Tmpfs(m("/dev/shm"), 0, 01777).
 				Tmpfs(m("/run/user/"), 4096, 0755).
 				Bind(m("/tmp/hakurei.1971/runtime/0"), m("/run/user/65534"), container.BindWritable).
 				Bind(m("/tmp/hakurei.1971/tmpdir/0"), m("/tmp/"), container.BindWritable).
@@ -184,6 +184,7 @@ var testCasesPd = []sealTestCase{
 				Proc(m("/proc/")).
 				Tmpfs(hst.AbsTmp, 4096, 0755).
 				DevWritable(m("/dev/"), true).
+				Tmpfs(m("/dev/shm"), 0, 01777).
 				Bind(m("/dev/dri"), m("/dev/dri"), container.BindWritable|container.BindDevice|container.BindOptional).
 				Bind(m("/dev/kvm"), m("/dev/kvm"), container.BindWritable|container.BindDevice|container.BindOptional).
 				Readonly(m("/var/run/nscd"), 0755).
@@ -191,7 +192,6 @@ var testCasesPd = []sealTestCase{
 				Tmpfs(m("/run/user/1971"), 8192, 0755).
 				Tmpfs(m("/run/dbus"), 8192, 0755).
 				Remount(m("/dev/"), syscall.MS_RDONLY).
-				Tmpfs(m("/dev/shm"), 0, 01777).
 				Tmpfs(m("/run/user/"), 4096, 0755).
 				Bind(m("/tmp/hakurei.1971/runtime/9"), m("/run/user/65534"), container.BindWritable).
 				Bind(m("/tmp/hakurei.1971/tmpdir/9"), m("/tmp/"), container.BindWritable).

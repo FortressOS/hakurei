@@ -99,7 +99,7 @@ print(denyOutputVerbose)
 # Fail direct hsu call:
 print(machine.fail("sudo -u alice -i hsu"))
 
-# Verify PrintBaseError behaviour:
+# Verify hsu fault behaviour:
 if denyOutput != "hsu: uid 1001 is not in the hsurc file\n":
     raise Exception(f"unexpected deny output:\n{denyOutput}")
 if denyOutputVerbose != "hsu: uid 1001 is not in the hsurc file\nhakurei: *cannot obtain uid from setuid wrapper: permission denied\n":

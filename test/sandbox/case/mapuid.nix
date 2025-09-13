@@ -73,7 +73,7 @@ in
         ptmx = fs "80001ff" null null;
         pts = fs "800001ed" { ptmx = fs "42001b6" null null; } null;
         random = fs "42001b6" null null;
-        shm = fs "801001ff" { } null;
+        shm = fs "801001ff" { ".hakurei-check" = fs "180" null null; } null;
         stderr = fs "80001ff" null null;
         stdin = fs "80001ff" null null;
         stdout = fs "80001ff" null null;
@@ -243,6 +243,7 @@ in
       (ent "/tty" "/dev/tty" "rw,nosuid" "devtmpfs" "devtmpfs" ignore)
       (ent "/" "/dev/pts" "rw,nosuid,noexec,relatime" "devpts" "devpts" "rw,mode=620,ptmxmode=666")
       (ent "/" "/dev/mqueue" "rw,nosuid,nodev,noexec,relatime" "mqueue" "mqueue" "rw")
+      (ent "/" "/dev/shm" "rw,nosuid,nodev,relatime" "tmpfs" "ephemeral" "rw,uid=1000003,gid=1000003")
       (ent "/bin" "/bin" "ro,nosuid,nodev,relatime" "ext4" "/dev/disk/by-label/nixos" "rw")
       (ent "/usr/bin" "/usr/bin" "ro,nosuid,nodev,relatime" "ext4" "/dev/disk/by-label/nixos" "rw")
       (ent "/" "/nix/store" "ro,nosuid,nodev,relatime" "overlay" "overlay" "rw,lowerdir=/mnt-root/nix/.ro-store,upperdir=/mnt-root/nix/.rw-store/upper,workdir=/mnt-root/nix/.rw-store/work,uuid=on")
@@ -257,7 +258,6 @@ in
       (ent "/" "/.hakurei/store" "rw,relatime" "overlay" "overlay" "rw,lowerdir=/host/nix/.ro-store:/host/nix/.rw-store/upper,upperdir=/host/tmp/.hakurei-store-rw/upper,workdir=/host/tmp/.hakurei-store-rw/work,redirect_dir=nofollow,userxattr")
       (ent "/etc" ignore "ro,nosuid,nodev,relatime" "ext4" "/dev/disk/by-label/nixos" "rw")
       (ent "/var/lib/hakurei/u0/a3" "/var/lib/hakurei/u0/a3" "rw,nosuid,nodev,relatime" "ext4" "/dev/disk/by-label/nixos" "rw")
-      (ent "/" "/dev/shm" "rw,nosuid,nodev,relatime" "tmpfs" "ephemeral" "rw,uid=1000003,gid=1000003")
       (ent "/" "/run/user" "rw,nosuid,nodev,relatime" "tmpfs" "ephemeral" "rw,size=4k,mode=755,uid=1000003,gid=1000003")
       (ent "/tmp/hakurei.0/runtime/3" "/run/user/1000" "rw,nosuid,nodev,relatime" "ext4" "/dev/disk/by-label/nixos" "rw")
       (ent "/tmp/hakurei.0/tmpdir/3" "/tmp" "rw,nosuid,nodev,relatime" "ext4" "/dev/disk/by-label/nixos" "rw")

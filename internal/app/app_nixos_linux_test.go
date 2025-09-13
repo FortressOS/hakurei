@@ -135,6 +135,7 @@ var testCasesNixos = []sealTestCase{
 				Proc(m("/proc/")).
 				Tmpfs(hst.AbsTmp, 4096, 0755).
 				DevWritable(m("/dev/"), true).
+				Tmpfs(m("/dev/shm"), 0, 01777).
 				Bind(m("/bin"), m("/bin"), 0).
 				Bind(m("/usr/bin/"), m("/usr/bin/"), 0).
 				Bind(m("/nix/store"), m("/nix/store"), 0).
@@ -149,7 +150,6 @@ var testCasesNixos = []sealTestCase{
 				Etc(m("/etc/"), "8e2c76b066dabe574cf073bdb46eb5c1").
 				Bind(m("/var/lib/persist/module/hakurei/0/1"), m("/var/lib/persist/module/hakurei/0/1"), container.BindWritable|container.BindEnsure).
 				Remount(m("/dev/"), syscall.MS_RDONLY).
-				Tmpfs(m("/dev/shm"), 0, 01777).
 				Tmpfs(m("/run/user/"), 4096, 0755).
 				Bind(m("/tmp/hakurei.1971/runtime/1"), m("/run/user/1971"), container.BindWritable).
 				Bind(m("/tmp/hakurei.1971/tmpdir/1"), m("/tmp/"), container.BindWritable).
