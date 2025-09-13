@@ -11,10 +11,10 @@ import (
 )
 
 func TestContainer(t *testing.T) {
-	t.Run("start empty container", func(t *testing.T) {
+	t.Run("start invalid container", func(t *testing.T) {
 		h := helper.New(t.Context(), container.MustAbs(container.Nonexistent), "hakurei", argsWt, false, argF, nil, nil)
 
-		wantErr := "container: starting an empty container"
+		wantErr := "container: starting an invalid container"
 		if err := h.Start(); err == nil || err.Error() != wantErr {
 			t.Errorf("Start: error = %v, wantErr %q",
 				err, wantErr)

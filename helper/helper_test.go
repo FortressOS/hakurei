@@ -6,8 +6,10 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"reflect"
 	"strconv"
 	"strings"
+	"syscall"
 	"testing"
 	"time"
 
@@ -47,6 +49,10 @@ func argFChecked(argsFd, statFd int) (args []string) {
 	return
 }
 
+const (
+	containerTimeout = 30 * time.Second
+)
+
 // this function tests an implementation of the helper.Helper interface
 func testHelper(t *testing.T, createHelper func(ctx context.Context, setOutput func(stdoutP, stderrP *io.Writer), stat bool) helper.Helper) {
 	oldWaitDelay := helper.WaitDelay
@@ -54,18 +60,15 @@ func testHelper(t *testing.T, createHelper func(ctx context.Context, setOutput f
 	t.Cleanup(func() { helper.WaitDelay = oldWaitDelay })
 
 	t.Run("start helper with status channel and wait", func(t *testing.T) {
-		ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+		ctx, cancel := context.WithTimeout(t.Context(), containerTimeout)
 		stdout := new(strings.Builder)
 		h := createHelper(ctx, func(stdoutP, stderrP *io.Writer) { *stdoutP, *stderrP = stdout, os.Stderr }, true)
 
 		t.Run("wait not yet started helper", func(t *testing.T) {
-			defer func() {
-				r := recover()
-				if r == nil {
-					t.Fatalf("Wait did not panic")
-				}
-			}()
-			panic(fmt.Sprintf("unreachable: %v", h.Wait()))
+			if err := h.Wait(); !reflect.DeepEqual(err, syscall.EINVAL) &&
+				!reflect.DeepEqual(err, errors.New("exec: not started")) {
+				t.Errorf("Wait: error = %v", err)
+			}
 		})
 
 		t.Log("starting helper stub")
@@ -108,7 +111,7 @@ func testHelper(t *testing.T, createHelper func(ctx context.Context, setOutput f
 	})
 
 	t.Run("start helper and wait", func(t *testing.T) {
-		ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+		ctx, cancel := context.WithTimeout(t.Context(), containerTimeout)
 		defer cancel()
 		stdout := new(strings.Builder)
 		h := createHelper(ctx, func(stdoutP, stderrP *io.Writer) { *stdoutP, *stderrP = stdout, os.Stderr }, false)

@@ -64,7 +64,7 @@ type (
 		Args []string
 		// Deliver SIGINT to the initial process on context cancellation.
 		ForwardCancel bool
-		// time to wait for linger processes after death of initial process
+		// Time to wait for processes lingering after the initial process terminates.
 		AdoptWaitDelay time.Duration
 
 		// Mapped Uid in user namespace.
@@ -152,15 +152,13 @@ func (e *StartError) Message() string {
 
 // Start starts the container init. The init process blocks until Serve is called.
 func (p *Container) Start() error {
-	if p.cmd != nil {
+	if p == nil || p.cmd == nil ||
+		p.Ops == nil || len(*p.Ops) == 0 {
+		return errors.New("container: starting an invalid container")
+	}
+	if p.cmd.Process != nil {
 		return errors.New("container: already started")
 	}
-	if p.Ops == nil || len(*p.Ops) == 0 {
-		return errors.New("container: starting an empty container")
-	}
-
-	ctx, cancel := context.WithCancel(p.ctx)
-	p.cancel = cancel
 
 	// map to overflow id to work around ownership checks
 	if p.Uid < 1 {
@@ -182,9 +180,17 @@ func (p *Container) Start() error {
 		p.AdoptWaitDelay = 0
 	}
 
-	p.cmd = exec.CommandContext(ctx, MustExecutable())
+	if p.cmd.Stdin == nil {
+		p.cmd.Stdin = p.Stdin
+	}
+	if p.cmd.Stdout == nil {
+		p.cmd.Stdout = p.Stdout
+	}
+	if p.cmd.Stderr == nil {
+		p.cmd.Stderr = p.Stderr
+	}
+
 	p.cmd.Args = []string{initName}
-	p.cmd.Stdin, p.cmd.Stdout, p.cmd.Stderr = p.Stdin, p.Stdout, p.Stderr
 	p.cmd.WaitDelay = p.WaitDelay
 	if p.Cancel != nil {
 		p.cmd.Cancel = func() error { return p.Cancel(p.cmd) }
@@ -330,7 +336,7 @@ func (p *Container) Serve() error {
 
 // Wait waits for the container init process to exit and releases any resources associated with the [Container].
 func (p *Container) Wait() error {
-	if p.cmd == nil {
+	if p.cmd == nil || p.cmd.Process == nil {
 		return EINVAL
 	}
 
@@ -340,6 +346,36 @@ func (p *Container) Wait() error {
 		close(p.wait)
 	}
 	return err
+}
+
+// StdinPipe calls the [exec.Cmd] method with the same name.
+func (p *Container) StdinPipe() (w io.WriteCloser, err error) {
+	if p.Stdin != nil {
+		return nil, errors.New("container: Stdin already set")
+	}
+	w, err = p.cmd.StdinPipe()
+	p.Stdin = p.cmd.Stdin
+	return
+}
+
+// StdoutPipe calls the [exec.Cmd] method with the same name.
+func (p *Container) StdoutPipe() (r io.ReadCloser, err error) {
+	if p.Stdout != nil {
+		return nil, errors.New("container: Stdout already set")
+	}
+	r, err = p.cmd.StdoutPipe()
+	p.Stdout = p.cmd.Stdout
+	return
+}
+
+// StderrPipe calls the [exec.Cmd] method with the same name.
+func (p *Container) StderrPipe() (r io.ReadCloser, err error) {
+	if p.Stderr != nil {
+		return nil, errors.New("container: Stderr already set")
+	}
+	r, err = p.cmd.StderrPipe()
+	p.Stderr = p.cmd.Stderr
+	return
 }
 
 func (p *Container) String() string {
@@ -357,7 +393,11 @@ func (p *Container) ProcessState() *os.ProcessState {
 
 // New returns the address to a new instance of [Container] that requires further initialisation before use.
 func New(ctx context.Context) *Container {
-	return &Container{ctx: ctx, Params: Params{Ops: new(Ops)}}
+	p := &Container{ctx: ctx, Params: Params{Ops: new(Ops)}}
+	c, cancel := context.WithCancel(ctx)
+	p.cancel = cancel
+	p.cmd = exec.CommandContext(c, MustExecutable())
+	return p
 }
 
 // NewCommand calls [New] and initialises the [Params.Path] and [Params.Args] fields.
