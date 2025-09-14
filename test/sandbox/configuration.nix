@@ -31,6 +31,7 @@ in
       # For checking pd outcome:
       (pkgs.writeShellScriptBin "check-sandbox-pd" ''
         hakurei -v run hakurei-test \
+          -p "/var/tmp/.hakurei-check-ok.0" \
           -t ${toString (builtins.toFile "hakurei-pd-want.json" (builtins.toJSON testCases.pd.want))} \
           -s ${testCases.pd.expectedFilter.${pkgs.system}} "$@"
       '')

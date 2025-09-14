@@ -58,7 +58,9 @@ let
       packages = [ ];
       path = "${testProgram}/bin/hakurei-test";
       args = [
-        "test"
+        "hakurei-test"
+        "-p"
+        "/var/tmp/.hakurei-check-ok.${toString identity}"
         "-t"
         (toString (builtins.toFile "hakurei-${tc.name}-want.json" (builtins.toJSON tc.want)))
         "-s"
