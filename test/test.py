@@ -8,9 +8,7 @@ NODE_GROUPS = ["nodes", "floating_nodes"]
 def swaymsg(command: str = "", succeed=True, type="command"):
     assert command != "" or type != "command", "Must specify command or type"
     shell = q(f"swaymsg -t {q(type)} -- {q(command)}")
-    with machine.nested(
-            f"sending swaymsg {shell!r}" + " (allowed to fail)" * (not succeed)
-    ):
+    with machine.nested(f"sending swaymsg {shell!r}" + " (allowed to fail)" * (not succeed)):
         ret = (machine.succeed if succeed else machine.execute)(
             f"su - alice -c {shell}"
         )
@@ -102,7 +100,7 @@ print(machine.fail("sudo -u alice -i hsu"))
 # Verify hsu fault behaviour:
 if denyOutput != "hsu: uid 1001 is not in the hsurc file\n":
     raise Exception(f"unexpected deny output:\n{denyOutput}")
-if denyOutputVerbose != "hsu: uid 1001 is not in the hsurc file\nhakurei: *cannot obtain uid from setuid wrapper: permission denied\n":
+if denyOutputVerbose != "hsu: uid 1001 is not in the hsurc file\nhakurei: *cannot obtain uid from setuid wrapper: current user is not in the hsurc file\n":
     raise Exception(f"unexpected deny verbose output:\n{denyOutputVerbose}")
 
 check_offset = 0

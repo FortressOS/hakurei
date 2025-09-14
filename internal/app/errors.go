@@ -7,6 +7,7 @@ import (
 	"hakurei.app/container"
 	"hakurei.app/hst"
 	"hakurei.app/internal/hlog"
+	"hakurei.app/internal/sys"
 )
 
 // PrintRunStateErr prints an error message via [log] if runErr is not nil, and returns an appropriate exit code.
@@ -98,13 +99,20 @@ func PrintRunStateErr(rs *RunState, runErr error) (code int) {
 
 // TODO(ophestra): this duplicates code in cmd/hakurei/command.go, keep this up to date until removal
 func printMessageError(fallback string, err error) {
-	if m, ok := container.GetErrorMessage(err); ok {
-		if m != "\x00" {
-			log.Print(m)
-		}
-	} else {
-		log.Println(fallback, err)
+	// this indicates the error message has already reached stderr, outside the current process's control;
+	// this is only reached when hsu fails for any reason, as a second error message following hsu is confusing
+	if errors.Is(err, sys.ErrHsuAccess) {
+		hlog.Verbose("*"+fallback, err)
+		return
 	}
+
+	m, ok := container.GetErrorMessage(err)
+	if !ok {
+		log.Println(fallback, err)
+		return
+	}
+
+	log.Print(m)
 }
 
 // StateStoreError is returned for a failed state save.

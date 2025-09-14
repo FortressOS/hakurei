@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -20,6 +21,7 @@ import (
 	"hakurei.app/internal/app"
 	"hakurei.app/internal/app/state"
 	"hakurei.app/internal/hlog"
+	"hakurei.app/internal/sys"
 	"hakurei.app/system"
 	"hakurei.app/system/dbus"
 )
@@ -272,18 +274,17 @@ func runApp(config *hst.Config) {
 // fatal prints the error message according to [container.GetErrorMessage], or fallback
 // prepended to err if an error message is not available, followed by a call to [os.Exit](1).
 func fatal(fallback string, err error) {
-	m, ok := container.GetErrorMessage(err)
-	if !ok {
-		log.Fatal(fallback, err)
+	// this indicates the error message has already reached stderr, outside the current process's control;
+	// this is only reached when hsu fails for any reason, as a second error message following hsu is confusing
+	if errors.Is(err, sys.ErrHsuAccess) {
+		hlog.Verbose("*"+fallback, err)
+		os.Exit(1)
 		return
 	}
 
-	// this indicates the error message has already reached stderr, outside the current process's control;
-	// this is only reached when hsu fails for any reason, as we do not want a second error message following hsu
-	// TODO(ophestra): handle the hsu error here instead of relying on a magic string
-	if m == "\x00" {
-		hlog.Verbose("*"+fallback, err)
-		os.Exit(1)
+	m, ok := container.GetErrorMessage(err)
+	if !ok {
+		log.Fatalln(fallback, err)
 		return
 	}
 
