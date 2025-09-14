@@ -203,7 +203,7 @@ in
               };
 
               extraPaths = mkOption {
-                type = anything;
+                type = listOf (attrsOf anything);
                 default = [ ];
                 description = ''
                   Extra paths to make available to the container.
@@ -261,7 +261,7 @@ in
       };
 
       commonPaths = mkOption {
-        type = types.anything;
+        type = types.listOf (types.attrsOf types.anything);
         default = [ ];
         description = ''
           Common extra paths to make available to the container.
