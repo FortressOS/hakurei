@@ -75,7 +75,7 @@ in
         ptmx = fs "80001ff" null null;
         pts = fs "800001ed" { ptmx = fs "42001b6" null null; } null;
         random = fs "42001b6" null null;
-        shm = fs "801001ff" { ".hakurei-check" = fs "180" null null; } null;
+        shm = fs "801001ff" { } null;
         stderr = fs "80001ff" null null;
         stdin = fs "80001ff" null null;
         stdout = fs "80001ff" null null;

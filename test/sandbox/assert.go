@@ -17,6 +17,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"path"
 	"syscall"
 )
 
@@ -52,12 +53,29 @@ func (t *T) MustCheckFile(wantFilePath string) {
 	t.MustCheck(want)
 }
 
+func mustAbs(s string) string {
+	if !path.IsAbs(s) {
+		fatalf("[FAIL] %q is not absolute", s)
+		panic("unreachable")
+	}
+	return s
+}
+
 func (t *T) MustCheck(want *TestCase) {
-	// check /dev/shm writable
-	if err := os.WriteFile("/dev/shm/.hakurei-check", make([]byte, 1<<8), 0600); err != nil {
-		fatalf("[FAIL] %s", err)
-	} else {
-		printf("[ OK ] /dev/shm is writable")
+	checkWritableDirPaths := []string{
+		"/dev/shm",
+		"/tmp",
+		os.Getenv("XDG_RUNTIME_DIR"),
+	}
+	for _, a := range checkWritableDirPaths {
+		pathname := path.Join(mustAbs(a), ".hakurei-check")
+		if err := os.WriteFile(pathname, make([]byte, 1<<8), 0600); err != nil {
+			fatalf("[FAIL] %s", err)
+		} else if err = os.Remove(pathname); err != nil {
+			fatalf("[FAIL] %s", err)
+		} else {
+			printf("[ OK ] %s is writable", a)
+		}
 	}
 
 	if want.Env != nil {
