@@ -16,11 +16,13 @@ import (
 )
 
 var (
-	flagTestCase string
-	flagBpfHash  string
+	flagMarkerPath string
+	flagTestCase   string
+	flagBpfHash    string
 )
 
 func init() {
+	flag.StringVar(&flagMarkerPath, "p", "/tmp/sandbox-ok", "Pathname of completion marker")
 	flag.StringVar(&flagTestCase, "t", "", "Nix store path to test case file")
 	flag.StringVar(&flagBpfHash, "s", "", "String representation of expected bpf sha512 hash")
 }
@@ -37,10 +39,10 @@ func main() {
 		go func() { <-s; log.Println("exiting on signal (likely from verifier)"); os.Exit(0) }()
 
 		(&sandbox.T{FS: os.DirFS("/")}).MustCheckFile(flagTestCase)
-		if _, err := os.Create("/tmp/sandbox-ok"); err != nil {
+		if _, err := os.Create(flagMarkerPath); err != nil {
 			log.Fatalf("cannot create success marker: %v", err)
 		}
-		log.Println("blocking for seccomp check")
+		log.Printf("blocking for seccomp check (%s)", flagMarkerPath)
 		select {}
 		return
 	}
