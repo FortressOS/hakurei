@@ -64,6 +64,18 @@ let
         "-s"
         tc.expectedFilter.${system}
       ];
+
+      extraPaths =
+        if tc.useCommonPaths then
+          [ ]
+        else
+          [
+            {
+              type = "bind";
+              src = "/var/tmp";
+              write = true;
+            }
+          ];
     };
 
   testCaseName = name: "cat.gensokyo.hakurei.test." + name;

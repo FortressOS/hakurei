@@ -196,6 +196,7 @@ in
       } null;
       usr = fs "800001c0" { bin = fs "800001ed" { env = fs "80001ff" null null; } null; } null;
       var = fs "800001c0" {
+        tmp = fs "801001ff" null null;
         lib = fs "800001c0" {
           hakurei = fs "800001c0" {
             u0 = fs "800001c0" {
@@ -258,6 +259,7 @@ in
       (ent "/dev" "/sys/dev" "ro,nosuid,nodev,noexec,relatime" "sysfs" "sysfs" "rw")
       (ent "/devices" "/sys/devices" "ro,nosuid,nodev,noexec,relatime" "sysfs" "sysfs" "rw")
       (ent "/dri" "/dev/dri" "rw,nosuid" "devtmpfs" "devtmpfs" ignore)
+      (ent "/var/tmp" "/var/tmp" "rw,nosuid,nodev,relatime" "ext4" "/dev/disk/by-label/nixos" "rw")
       (ent "/var/cache" "/var/cache" "rw,nosuid,nodev,relatime" "ext4" "/dev/disk/by-label/nixos" "rw")
       (ent "/" "/.hakurei/.ro-store" "rw,relatime" "overlay" "overlay" "ro,lowerdir=/host/nix/.ro-store:/host/nix/.rw-store/upper,redirect_dir=nofollow,userxattr")
       (ent "/" "/.hakurei/store" "rw,relatime" "overlay" "overlay" "rw,lowerdir=/host/nix/.ro-store:/host/nix/.rw-store/upper,upperdir=/host/tmp/.hakurei-store-rw/upper,workdir=/host/tmp/.hakurei-store-rw/work,redirect_dir=nofollow,uuid=on,userxattr")

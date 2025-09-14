@@ -79,6 +79,11 @@ in
     commonPaths = [
       {
         type = "bind";
+        src = "/var/tmp";
+        write = true;
+      }
+      {
+        type = "bind";
         src = "/var/cache";
         write = true;
       }

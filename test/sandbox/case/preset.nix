@@ -189,6 +189,7 @@ in
       tmp = fs "800001f8" { } null;
       usr = fs "800001c0" { bin = fs "800001ed" { env = fs "80001ff" null null; } null; } null;
       var = fs "800001c0" {
+        tmp = fs "801001ff" null null;
         lib = fs "800001c0" {
           hakurei = fs "800001c0" {
             u0 = fs "800001c0" {
@@ -249,6 +250,7 @@ in
       (ent "/dev" "/sys/dev" "ro,nosuid,nodev,noexec,relatime" "sysfs" "sysfs" "rw")
       (ent "/devices" "/sys/devices" "ro,nosuid,nodev,noexec,relatime" "sysfs" "sysfs" "rw")
       (ent "/dri" "/dev/dri" "rw,nosuid" "devtmpfs" "devtmpfs" ignore)
+      (ent "/var/tmp" "/var/tmp" "rw,nosuid,nodev,relatime" "ext4" "/dev/disk/by-label/nixos" "rw")
       (ent "/etc" ignore "ro,nosuid,nodev,relatime" "ext4" "/dev/disk/by-label/nixos" "rw")
       (ent "/var/lib/hakurei/u0/a1" "/var/lib/hakurei/u0/a1" "rw,nosuid,nodev,relatime" "ext4" "/dev/disk/by-label/nixos" "rw")
       (ent "/" "/run/user" "rw,nosuid,nodev,relatime" "tmpfs" "ephemeral" "rw,size=4k,mode=755,uid=1000001,gid=1000001")
