@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"hakurei.app/container"
+	"hakurei.app/hst"
 	"hakurei.app/internal/hlog"
 )
 
@@ -30,7 +31,7 @@ func PrintRunStateErr(rs *RunState, runErr error) (code int) {
 				} else {
 					// InnerErr is returned by c.Save(&sd, seal.ct), and are always unwrapped
 					printMessageError("error returned during revert:",
-						&FinaliseError{Step: "save process state", Err: se.InnerErr})
+						&hst.AppError{Step: "save process state", Err: se.InnerErr})
 				}
 			}
 		}
@@ -133,7 +134,7 @@ func (e *StateStoreError) equiv(step string) error {
 	if e.Inner && e.InnerErr == nil && e.DoErr == nil && e.OpErr == nil && errors.Join(e.Errs...) == nil {
 		return nil
 	} else {
-		return &FinaliseError{Step: step, Err: e}
+		return &hst.AppError{Step: step, Err: e}
 	}
 }
 

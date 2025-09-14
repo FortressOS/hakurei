@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
-	"net"
 	"os"
 	"slices"
 	"strconv"
@@ -28,35 +27,9 @@ import (
 	"hakurei.app/system/wayland"
 )
 
-// A FinaliseError is returned while finalising a [hst.Config] outcome.
-type FinaliseError struct {
-	Step string
-	Err  error
-	Msg  string
-}
-
-func (e *FinaliseError) Error() string { return e.Err.Error() }
-func (e *FinaliseError) Unwrap() error { return e.Err }
-func (e *FinaliseError) Message() string {
-	if e.Msg != "" {
-		return e.Msg
-	}
-
-	switch {
-	case errors.As(e.Err, new(*os.PathError)),
-		errors.As(e.Err, new(*os.LinkError)),
-		errors.As(e.Err, new(*os.SyscallError)),
-		errors.As(e.Err, new(*net.OpError)):
-		return "cannot " + e.Error()
-
-	default:
-		return "cannot " + e.Step + ": " + e.Error()
-	}
-}
-
 func newWithMessage(msg string) error { return newWithMessageError(msg, os.ErrInvalid) }
 func newWithMessageError(msg string, err error) error {
-	return &FinaliseError{Step: "finalise", Err: err, Msg: msg}
+	return &hst.AppError{Step: "finalise", Err: err, Msg: msg}
 }
 
 // An Outcome is the runnable state of a hakurei container via [hst.Config].
@@ -188,7 +161,7 @@ func (seal *Outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 		// encode initial configuration for state tracking
 		ct := new(bytes.Buffer)
 		if err := gob.NewEncoder(ct).Encode(config); err != nil {
-			return &FinaliseError{Step: "encode initial config", Err: err}
+			return &hst.AppError{Step: "encode initial config", Err: err}
 		}
 		seal.ct = ct
 	}
@@ -238,7 +211,7 @@ func (seal *Outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 		if config.Path == nil {
 			if len(config.Args) > 0 {
 				if p, err := sys.LookPath(config.Args[0]); err != nil {
-					return &FinaliseError{Step: "look up executable file", Err: err}
+					return &hst.AppError{Step: "look up executable file", Err: err}
 				} else if config.Path, err = container.NewAbs(p); err != nil {
 					return newWithMessageError(err.Error(), err)
 				}
@@ -304,7 +277,7 @@ func (seal *Outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 		seal.container, seal.env, err = newContainer(config.Container, sys, seal.id.String(), &uid, &gid)
 		seal.waitDelay = config.Container.WaitDelay
 		if err != nil {
-			return &FinaliseError{Step: "initialise container configuration", Err: err}
+			return &hst.AppError{Step: "initialise container configuration", Err: err}
 		}
 		if len(config.Args) == 0 {
 			config.Args = []string{config.Path.String()}
@@ -427,7 +400,7 @@ func (seal *Outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 			if socketPath != nil {
 				if _, err := sys.Stat(socketPath.String()); err != nil {
 					if !errors.Is(err, fs.ErrNotExist) {
-						return &FinaliseError{Step: fmt.Sprintf("access X11 socket %q", socketPath), Err: err}
+						return &hst.AppError{Step: fmt.Sprintf("access X11 socket %q", socketPath), Err: err}
 					}
 				} else {
 					seal.sys.UpdatePermType(system.EX11, socketPath.String(), acl.Read, acl.Write, acl.Execute)
@@ -451,14 +424,14 @@ func (seal *Outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 
 		if _, err := sys.Stat(pulseRuntimeDir.String()); err != nil {
 			if !errors.Is(err, fs.ErrNotExist) {
-				return &FinaliseError{Step: fmt.Sprintf("access PulseAudio directory %q", pulseRuntimeDir), Err: err}
+				return &hst.AppError{Step: fmt.Sprintf("access PulseAudio directory %q", pulseRuntimeDir), Err: err}
 			}
 			return newWithMessage(fmt.Sprintf("PulseAudio directory %q not found", pulseRuntimeDir))
 		}
 
 		if s, err := sys.Stat(pulseSocket.String()); err != nil {
 			if !errors.Is(err, fs.ErrNotExist) {
-				return &FinaliseError{Step: fmt.Sprintf("access PulseAudio socket %q", pulseSocket), Err: err}
+				return &hst.AppError{Step: fmt.Sprintf("access PulseAudio socket %q", pulseSocket), Err: err}
 			}
 			return newWithMessage(fmt.Sprintf("PulseAudio directory %q found but socket does not exist", pulseRuntimeDir))
 		} else {
@@ -482,7 +455,7 @@ func (seal *Outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 			// from environment
 			if p, ok := sys.LookupEnv(pulseCookie); ok {
 				if a, err := container.NewAbs(p); err != nil {
-					return &FinaliseError{Step: paLocateStep, Err: err}
+					return &hst.AppError{Step: paLocateStep, Err: err}
 				} else {
 					// this takes precedence, do not verify whether the file is accessible
 					paCookiePath = a
@@ -493,7 +466,7 @@ func (seal *Outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 			// $HOME/.pulse-cookie
 			if p, ok := sys.LookupEnv(home); ok {
 				if a, err := container.NewAbs(p); err != nil {
-					return &FinaliseError{Step: paLocateStep, Err: err}
+					return &hst.AppError{Step: paLocateStep, Err: err}
 				} else {
 					paCookiePath = a.Append(".pulse-cookie")
 				}
@@ -501,7 +474,7 @@ func (seal *Outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 				if s, err := sys.Stat(paCookiePath.String()); err != nil {
 					paCookiePath = nil
 					if !errors.Is(err, fs.ErrNotExist) {
-						return &FinaliseError{Step: "access PulseAudio cookie", Err: err}
+						return &hst.AppError{Step: "access PulseAudio cookie", Err: err}
 					}
 					// fallthrough
 				} else if s.IsDir() {
@@ -514,14 +487,14 @@ func (seal *Outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 			// $XDG_CONFIG_HOME/pulse/cookie
 			if p, ok := sys.LookupEnv(xdgConfigHome); ok {
 				if a, err := container.NewAbs(p); err != nil {
-					return &FinaliseError{Step: paLocateStep, Err: err}
+					return &hst.AppError{Step: paLocateStep, Err: err}
 				} else {
 					paCookiePath = a.Append("pulse", "cookie")
 				}
 				if s, err := sys.Stat(paCookiePath.String()); err != nil {
 					paCookiePath = nil
 					if !errors.Is(err, fs.ErrNotExist) {
-						return &FinaliseError{Step: "access PulseAudio cookie", Err: err}
+						return &hst.AppError{Step: "access PulseAudio cookie", Err: err}
 					}
 					// fallthrough
 				} else if s.IsDir() {
@@ -609,7 +582,7 @@ func (seal *Outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 	seal.container.Env = make([]string, 0, len(seal.env))
 	for k, v := range seal.env {
 		if strings.IndexByte(k, '=') != -1 {
-			return &FinaliseError{Step: "flatten environment", Err: syscall.EINVAL,
+			return &hst.AppError{Step: "flatten environment", Err: syscall.EINVAL,
 				Msg: fmt.Sprintf("invalid environment variable %s", k)}
 		}
 		seal.container.Env = append(seal.container.Env, k+"="+v)

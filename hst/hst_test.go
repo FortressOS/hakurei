@@ -2,10 +2,92 @@ package hst_test
 
 import (
 	"encoding/json"
+	"errors"
+	"net"
+	"os"
+	"syscall"
 	"testing"
 
+	"hakurei.app/container"
+	"hakurei.app/container/stub"
 	"hakurei.app/hst"
 )
+
+func TestAppError(t *testing.T) {
+	testCases := []struct {
+		name    string
+		err     error
+		s       string
+		message string
+		is, isF error
+	}{
+		{"message", &hst.AppError{Step: "obtain uid from hsu", Err: stub.UniqueError(0),
+			Msg: "the setuid helper is missing: /run/wrappers/bin/hsu"},
+			"unique error 0 injected by the test suite",
+			"the setuid helper is missing: /run/wrappers/bin/hsu",
+			stub.UniqueError(0), os.ErrNotExist},
+
+		{"os.PathError", &hst.AppError{Step: "passthrough os.PathError",
+			Err: &os.PathError{Op: "stat", Path: "/proc/nonexistent", Err: os.ErrNotExist}},
+			"stat /proc/nonexistent: file does not exist",
+			"cannot stat /proc/nonexistent: file does not exist",
+			os.ErrNotExist, stub.UniqueError(0xdeadbeef)},
+
+		{"os.LinkError", &hst.AppError{Step: "passthrough os.LinkError",
+			Err: &os.LinkError{Op: "link", Old: "/proc/self", New: "/proc/nonexistent", Err: os.ErrNotExist}},
+			"link /proc/self /proc/nonexistent: file does not exist",
+			"cannot link /proc/self /proc/nonexistent: file does not exist",
+			os.ErrNotExist, stub.UniqueError(0xdeadbeef)},
+
+		{"os.SyscallError", &hst.AppError{Step: "passthrough os.SyscallError",
+			Err: &os.SyscallError{Syscall: "meow", Err: syscall.ENOSYS}},
+			"meow: function not implemented",
+			"cannot meow: function not implemented",
+			syscall.ENOSYS, syscall.ENOTRECOVERABLE},
+
+		{"net.OpError", &hst.AppError{Step: "passthrough net.OpError",
+			Err: &net.OpError{Op: "dial", Net: "cat", Err: net.UnknownNetworkError("cat")}},
+			"dial cat: unknown network cat",
+			"cannot dial cat: unknown network cat",
+			net.UnknownNetworkError("cat"), syscall.ENOTRECOVERABLE},
+
+		{"default", &hst.AppError{Step: "initialise container configuration", Err: stub.UniqueError(1)},
+			"unique error 1 injected by the test suite",
+			"cannot initialise container configuration: unique error 1 injected by the test suite",
+			stub.UniqueError(1), os.ErrInvalid},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Run("error", func(t *testing.T) {
+				if got := tc.err.Error(); got != tc.s {
+					t.Errorf("Error: %s, want %s", got, tc.s)
+				}
+			})
+
+			t.Run("message", func(t *testing.T) {
+				gotMessage, gotMessageOk := container.GetErrorMessage(tc.err)
+				if want := tc.message != "\x00"; gotMessageOk != want {
+					t.Errorf("GetErrorMessage: ok = %v, want %v", gotMessage, want)
+				}
+
+				if gotMessageOk {
+					if gotMessage != tc.message {
+						t.Errorf("GetErrorMessage: %s, want %s", gotMessage, tc.message)
+					}
+				}
+			})
+
+			t.Run("is", func(t *testing.T) {
+				if !errors.Is(tc.err, tc.is) {
+					t.Errorf("Is: unexpected false for %v", tc.is)
+				}
+				if errors.Is(tc.err, tc.isF) {
+					t.Errorf("Is: unexpected true for %v", tc.isF)
+				}
+			})
+		})
+	}
+}
 
 func TestTemplate(t *testing.T) {
 	const want = `{

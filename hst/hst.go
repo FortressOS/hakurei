@@ -2,11 +2,41 @@
 package hst
 
 import (
+	"errors"
+	"net"
+	"os"
+
 	"hakurei.app/container"
 	"hakurei.app/container/seccomp"
 	"hakurei.app/system"
 	"hakurei.app/system/dbus"
 )
+
+// An AppError is returned while starting an app according to [hst.Config].
+type AppError struct {
+	Step string
+	Err  error
+	Msg  string
+}
+
+func (e *AppError) Error() string { return e.Err.Error() }
+func (e *AppError) Unwrap() error { return e.Err }
+func (e *AppError) Message() string {
+	if e.Msg != "" {
+		return e.Msg
+	}
+
+	switch {
+	case errors.As(e.Err, new(*os.PathError)),
+		errors.As(e.Err, new(*os.LinkError)),
+		errors.As(e.Err, new(*os.SyscallError)),
+		errors.As(e.Err, new(*net.OpError)):
+		return "cannot " + e.Error()
+
+	default:
+		return "cannot " + e.Step + ": " + e.Error()
+	}
+}
 
 // Paths contains environment-dependent paths used by hakurei.
 type Paths struct {

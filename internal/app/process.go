@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"hakurei.app/container"
+	"hakurei.app/hst"
 	"hakurei.app/internal"
 	"hakurei.app/internal/app/state"
 	"hakurei.app/internal/hlog"
@@ -119,7 +120,7 @@ func (seal *Outcome) Run(rs *RunState) error {
 
 	var e *gob.Encoder
 	if fd, encoder, err := container.Setup(&cmd.ExtraFiles); err != nil {
-		return &FinaliseError{Step: "create shim setup pipe", Err: err}
+		return &hst.AppError{Step: "create shim setup pipe", Err: err}
 	} else {
 		e = encoder
 		cmd.Env = []string{
@@ -139,7 +140,7 @@ func (seal *Outcome) Run(rs *RunState) error {
 	hlog.Verbosef("setuid helper at %s", hsuPath)
 	hlog.Suspend()
 	if err := cmd.Start(); err != nil {
-		return &FinaliseError{Step: "start setuid wrapper", Err: err}
+		return &hst.AppError{Step: "start setuid wrapper", Err: err}
 	}
 	rs.setStart()
 
@@ -159,7 +160,7 @@ func (seal *Outcome) Run(rs *RunState) error {
 	case err := <-setupErr:
 		if err != nil {
 			hlog.Resume()
-			return &FinaliseError{Step: "transmit shim config", Err: err}
+			return &hst.AppError{Step: "transmit shim config", Err: err}
 		}
 
 	case <-ctx.Done():
