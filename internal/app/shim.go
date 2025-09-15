@@ -45,8 +45,10 @@ const (
 	// ShimExitOrphan is returned when the shim is orphaned before monitor delivers a signal.
 	ShimExitOrphan = 3
 
+	// DefaultShimWaitDelay is used when WaitDelay has its zero value.
 	DefaultShimWaitDelay = 5 * time.Second
-	MaxShimWaitDelay     = 30 * time.Second
+	// MaxShimWaitDelay is used instead if WaitDelay exceeds its value.
+	MaxShimWaitDelay = 30 * time.Second
 )
 
 // ShimMain is the main function of the shim process and runs as the unconstrained target user.

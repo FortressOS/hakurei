@@ -20,7 +20,13 @@ import (
 	"hakurei.app/system"
 )
 
+// duration to wait for shim to exit, after container WaitDelay has elapsed.
 const shimWaitTimeout = 5 * time.Second
+
+// ErrShimTimeout is returned when shim did not exit within shimWaitTimeout, after its WaitDelay has elapsed.
+// This is different from the container failing to terminate within its timeout period, as that is enforced
+// by the shim. This error is instead returned when there is a lockup in shim preventing it from completing.
+var ErrShimTimeout = errors.New("shim did not exit")
 
 // RunState stores the outcome of a call to [Outcome.Run].
 type RunState struct {
@@ -186,7 +192,14 @@ func (seal *Outcome) Run(rs *RunState) error {
 	deferredStoreFunc = func(c state.Cursor) error { return c.Destroy(seal.id.unwrap()) }
 
 	waitTimeout := make(chan struct{})
-	go func() { <-seal.ctx.Done(); time.Sleep(shimWaitTimeout); close(waitTimeout) }()
+	// TODO(ophestra): enforce this limit early so it does not have to be done twice
+	shimTimeoutCompensated := shimWaitTimeout
+	if seal.waitDelay > MaxShimWaitDelay {
+		shimTimeoutCompensated += MaxShimWaitDelay
+	} else {
+		shimTimeoutCompensated += seal.waitDelay
+	}
+	go func() { <-seal.ctx.Done(); time.Sleep(shimTimeoutCompensated); close(waitTimeout) }()
 
 	select {
 	case rs.WaitErr = <-waitErr:
@@ -206,9 +219,11 @@ func (seal *Outcome) Run(rs *RunState) error {
 				hlog.Verbosef("process %d exited with status %#x", cmd.Process.Pid, rs.WaitStatus)
 			}
 		}
+
 	case <-waitTimeout:
-		rs.WaitErr = syscall.ETIMEDOUT
+		rs.WaitErr = ErrShimTimeout
 		hlog.Resume()
+		// TODO(ophestra): verify this behaviour in vm tests
 		log.Printf("process %d did not terminate", cmd.Process.Pid)
 	}
 
