@@ -103,6 +103,15 @@ if denyOutput != "hsu: uid 1001 is not in the hsurc file\n":
 if denyOutputVerbose != "hsu: uid 1001 is not in the hsurc file\nhakurei: *cannot obtain uid from setuid wrapper: current user is not in the hsurc file\n":
     raise Exception(f"unexpected deny verbose output:\n{denyOutputVerbose}")
 
+# Verify timeout behaviour:
+machine.succeed('sudo -u alice -i hakurei-check-linger-timeout > /var/tmp/linger-stdout 2> /var/tmp/linger-stderr')
+linger_stdout = machine.succeed("cat /var/tmp/linger-stdout")
+linger_stderr = machine.succeed("cat /var/tmp/linger-stderr")
+if linger_stdout != "":
+    raise Exception(f"unexpected stdout: {linger_stdout}")
+if linger_stderr != "init: timeout exceeded waiting for lingering processes\n":
+    raise Exception(f"unexpected stderr: {linger_stderr}")
+
 check_offset = 0
 
 

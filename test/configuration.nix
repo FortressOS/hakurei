@@ -112,7 +112,31 @@
         };
       };
 
+    commonPaths = [
+      {
+        type = "bind";
+        src = "/var/tmp";
+        write = true;
+      }
+    ];
+
     apps = {
+      "cat.gensokyo.extern.bash.linger-timeout" = {
+        name = "hakurei-check-linger-timeout";
+        identity = 9999;
+        share = pkgs.bash;
+        packages = [ pkgs.bash ];
+        command = ''
+          sleep infinity & disown
+          exit
+        '';
+        wait_delay = 1;
+        enablements = {
+          wayland = false;
+          pulse = false;
+        };
+      };
+
       "cat.gensokyo.extern.foot.noEnablements" = {
         name = "ne-foot";
         identity = 1;
