@@ -68,7 +68,7 @@ Flags:
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			out := new(bytes.Buffer)
-			c := buildCommand(out)
+			c := buildCommand(t.Context(), out)
 			if err := c.Parse(tc.args); !errors.Is(err, command.ErrHelp) && !errors.Is(err, flag.ErrHelp) {
 				t.Errorf("Parse: error = %v; want %v",
 					err, command.ErrHelp)

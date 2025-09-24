@@ -4,10 +4,13 @@ package main
 //go:generate cp ../../LICENSE .
 
 import (
+	"context"
 	_ "embed"
 	"errors"
 	"log"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"hakurei.app/container"
 	"hakurei.app/internal"
@@ -44,7 +47,11 @@ func main() {
 		log.Fatal("this program must not run as root")
 	}
 
-	buildCommand(os.Stderr).MustParse(os.Args[1:], func(err error) {
+	ctx, stop := signal.NotifyContext(context.Background(),
+		syscall.SIGINT, syscall.SIGTERM)
+	defer stop() // unreachable
+
+	buildCommand(ctx, os.Stderr).MustParse(os.Args[1:], func(err error) {
 		hlog.Verbosef("command returned %v", err)
 		if errors.Is(err, errSuccess) {
 			hlog.BeforeExit()

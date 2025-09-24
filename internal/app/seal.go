@@ -32,8 +32,8 @@ func newWithMessageError(msg string, err error) error {
 	return &hst.AppError{Step: "finalise", Err: err, Msg: msg}
 }
 
-// An Outcome is the runnable state of a hakurei container via [hst.Config].
-type Outcome struct {
+// An outcome is the runnable state of a hakurei container via [hst.Config].
+type outcome struct {
 	// copied from initialising [app]
 	id *stringPair[state.ID]
 	// copied from [sys.State]
@@ -66,7 +66,7 @@ type shareHost struct {
 	// process-specific directory in XDG_RUNTIME_DIR, empty if unused
 	runtimeSharePath *container.Absolute
 
-	seal *Outcome
+	seal *outcome
 	sc   hst.Paths
 }
 
@@ -119,7 +119,7 @@ type hsuUser struct {
 	username string
 }
 
-func (seal *Outcome) finalise(ctx context.Context, k sys.State, config *hst.Config) error {
+func (seal *outcome) finalise(ctx context.Context, k sys.State, config *hst.Config) error {
 	const (
 		home  = "HOME"
 		shell = "SHELL"

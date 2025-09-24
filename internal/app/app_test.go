@@ -16,12 +16,12 @@ import (
 )
 
 type sealTestCase struct {
-	name          string
-	os            sys.State
-	config        *hst.Config
-	id            state.ID
-	wantSys       *system.I
-	wantContainer *container.Params
+	name       string
+	os         sys.State
+	config     *hst.Config
+	id         state.ID
+	wantSys    *system.I
+	wantParams *container.Params
 }
 
 func TestApp(t *testing.T) {
@@ -29,38 +29,27 @@ func TestApp(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			a := app.NewWithID(t.Context(), tc.id, tc.os)
-			var (
-				gotSys       *system.I
-				gotContainer *container.Params
-			)
-			if !t.Run("seal", func(t *testing.T) {
-				if sa, err := a.Seal(tc.config); err != nil {
+			t.Run("finalise", func(t *testing.T) {
+				sys, params, err := app.FinaliseIParams(t.Context(), tc.os, tc.config, &tc.id)
+				if err != nil {
 					if s, ok := container.GetErrorMessage(err); !ok {
-						t.Errorf("Seal: error = %v", err)
+						t.Fatalf("Seal: error = %v", err)
 					} else {
-						t.Errorf("Seal: %s", s)
+						t.Fatalf("Seal: %s", s)
 					}
-					return
-				} else {
-					gotSys, gotContainer = app.AppIParams(a, sa)
 				}
-			}) {
-				return
-			}
 
-			t.Run("compare sys", func(t *testing.T) {
-				if !gotSys.Equal(tc.wantSys) {
-					t.Errorf("Seal: sys = %#v, want %#v",
-						gotSys, tc.wantSys)
-				}
-			})
+				t.Run("sys", func(t *testing.T) {
+					if !sys.Equal(tc.wantSys) {
+						t.Errorf("Seal: sys = %#v, want %#v", sys, tc.wantSys)
+					}
+				})
 
-			t.Run("compare params", func(t *testing.T) {
-				if !reflect.DeepEqual(gotContainer, tc.wantContainer) {
-					t.Errorf("seal: params =\n%s\n, want\n%s",
-						mustMarshal(gotContainer), mustMarshal(tc.wantContainer))
-				}
+				t.Run("params", func(t *testing.T) {
+					if !reflect.DeepEqual(params, tc.wantParams) {
+						t.Errorf("seal: params =\n%s\n, want\n%s", mustMarshal(params), mustMarshal(tc.wantParams))
+					}
+				})
 			})
 		})
 	}

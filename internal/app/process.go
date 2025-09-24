@@ -22,7 +22,7 @@ import (
 // duration to wait for shim to exit, after container WaitDelay has elapsed.
 const shimWaitTimeout = 5 * time.Second
 
-// mainState holds persistent state bound to [Outcome.Main].
+// mainState holds persistent state bound to outcome.main.
 type mainState struct {
 	// done is whether beforeExit has been called already.
 	done bool
@@ -33,7 +33,7 @@ type mainState struct {
 	// Time is nil if no process was ever created.
 	Time *time.Time
 
-	seal    *Outcome
+	seal    *outcome
 	store   state.Store
 	cancel  context.CancelFunc
 	cmd     *exec.Cmd
@@ -218,9 +218,8 @@ func (ms mainState) fatal(fallback string, ferr error) {
 	os.Exit(1)
 }
 
-// Main commits deferred system setup, runs the container, reverts changes to the system, and terminates the program.
-// Main does not return.
-func (seal *Outcome) Main() {
+// main carries out outcome and terminates. main does not return.
+func (seal *outcome) main() {
 	if !seal.f.CompareAndSwap(false, true) {
 		panic("outcome: attempted to run twice")
 	}

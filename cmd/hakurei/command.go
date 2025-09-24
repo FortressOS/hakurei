@@ -6,11 +6,9 @@ import (
 	"io"
 	"log"
 	"os"
-	"os/signal"
 	"os/user"
 	"strconv"
 	"sync"
-	"syscall"
 	"time"
 
 	"hakurei.app/command"
@@ -25,7 +23,7 @@ import (
 	"hakurei.app/system/dbus"
 )
 
-func buildCommand(out io.Writer) command.Command {
+func buildCommand(ctx context.Context, out io.Writer) command.Command {
 	var (
 		flagVerbose bool
 		flagJSON    bool
@@ -45,7 +43,7 @@ func buildCommand(out io.Writer) command.Command {
 		config := tryPath(args[0])
 		config.Args = append(config.Args, args[1:]...)
 
-		runApp(config)
+		app.Main(ctx, std, config)
 		panic("unreachable")
 	})
 
@@ -165,8 +163,7 @@ func buildCommand(out io.Writer) command.Command {
 				}
 			}
 
-			// invoke app
-			runApp(config)
+			app.Main(ctx, std, config)
 			panic("unreachable")
 		}).
 			Flag(&flagDBusConfigSession, "dbus-config", command.StringFlag("builtin"),
@@ -248,23 +245,4 @@ func buildCommand(out io.Writer) command.Command {
 	})
 
 	return c
-}
-
-func runApp(config *hst.Config) {
-	ctx, stop := signal.NotifyContext(context.Background(),
-		syscall.SIGINT, syscall.SIGTERM)
-	defer stop() // unreachable
-	a := app.MustNew(ctx, std)
-
-	if sa, err := a.Seal(config); err != nil {
-		hlog.BeforeExit()
-		if m, ok := container.GetErrorMessage(err); ok {
-			log.Fatal(m)
-		} else {
-			log.Fatalln("cannot seal app:", err)
-		}
-	} else {
-		sa.Main()
-		panic("unreachable")
-	}
 }
