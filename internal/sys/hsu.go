@@ -24,7 +24,8 @@ type Hsu struct {
 
 var ErrHsuAccess = errors.New("current user is not in the hsurc file")
 
-func (h *Hsu) Uid(identity int) (int, error) {
+// ID returns the current user hsurc identifier. ErrHsuAccess is returned if the current user is not in hsurc.
+func (h *Hsu) ID() (int, error) {
 	h.idOnce.Do(func() {
 		h.id = -1
 		hsuPath := internal.MustHsuPath()
@@ -54,11 +55,15 @@ func (h *Hsu) Uid(identity int) (int, error) {
 		}
 	})
 
-	uid := -1
-	if h.id >= 0 {
-		uid = 1000000 + h.id*10000 + identity
+	return h.id, h.idErr
+}
+
+func (h *Hsu) Uid(identity int) (int, error) {
+	id, err := h.ID()
+	if err == nil {
+		return 1000000 + id*10000 + identity, nil
 	}
-	return uid, h.idErr
+	return id, err
 }
 
 // MustUid calls [State.Uid] and terminates on error.
