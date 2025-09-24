@@ -3,6 +3,7 @@ package sys
 import (
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"os/exec"
 	"strconv"
@@ -11,6 +12,7 @@ import (
 	"hakurei.app/container"
 	"hakurei.app/hst"
 	"hakurei.app/internal"
+	"hakurei.app/internal/hlog"
 )
 
 // Hsu caches responses from cmd/hsu.
@@ -78,4 +80,25 @@ func (h *Hsu) Uid(identity int) (int, error) {
 			Msg: fmt.Sprintf("the setuid helper is missing: %s", hsuPath)}
 	}
 	return u.uid, u.err
+}
+
+// MustUid calls [State.Uid] and terminates on error.
+func MustUid(s State, identity int) int {
+	uid, err := s.Uid(identity)
+	if err == nil {
+		return uid
+	}
+
+	const fallback = "cannot obtain uid from setuid wrapper:"
+	if errors.Is(err, ErrHsuAccess) {
+		hlog.Verbose("*"+fallback, err)
+		os.Exit(1)
+		return -0xdeadbeef
+	} else if m, ok := container.GetErrorMessage(err); ok {
+		log.Fatal(m)
+		return -0xdeadbeef
+	} else {
+		log.Fatalln(fallback, err)
+		return -0xdeadbeef
+	}
 }

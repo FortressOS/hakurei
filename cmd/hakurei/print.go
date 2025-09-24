@@ -13,6 +13,7 @@ import (
 
 	"hakurei.app/hst"
 	"hakurei.app/internal/app/state"
+	"hakurei.app/internal/sys"
 	"hakurei.app/system/dbus"
 )
 
@@ -20,13 +21,9 @@ func printShowSystem(output io.Writer, short, flagJSON bool) {
 	t := newPrinter(output)
 	defer t.MustFlush()
 
-	info := &hst.Info{Paths: std.Paths()}
-
-	// get hid by querying uid of identity 0
-	if uid, err := std.Uid(0); err != nil {
-		fatal("cannot obtain uid from setuid wrapper:", err)
-	} else {
-		info.User = (uid / 10000) - 100
+	info := &hst.Info{
+		Paths: std.Paths(),
+		User:  sys.MustGetUserID(std),
 	}
 
 	if flagJSON {

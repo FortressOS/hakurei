@@ -17,7 +17,7 @@ type Store interface {
 	// Do calls f exactly once and ensures store exclusivity until f returns.
 	// Returns whether f is called and any errors during the locking process.
 	// Cursor provided to f becomes invalid as soon as f returns.
-	Do(aid int, f func(c Cursor)) (ok bool, err error)
+	Do(identity int, f func(c Cursor)) (ok bool, err error)
 
 	// List queries the store and returns a list of aids known to the store.
 	// Note that some or all returned aids might not have any active apps.

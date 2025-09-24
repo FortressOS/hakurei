@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -52,29 +51,29 @@ func buildCommand(out io.Writer) command.Command {
 
 	{
 		var (
-			dbusConfigSession string
-			dbusConfigSystem  string
-			mpris             bool
-			dbusVerbose       bool
+			flagDBusConfigSession string
+			flagDBusConfigSystem  string
+			flagDBusMpris         bool
+			flagDBusVerbose       bool
 
-			fid      string
-			aid      int
-			groups   command.RepeatableFlag
-			homeDir  string
-			userName string
+			flagID       string
+			flagIdentity int
+			flagGroups   command.RepeatableFlag
+			flagHomeDir  string
+			flagUserName string
 
-			wayland, x11, dBus, pulse bool
+			flagWayland, flagX11, flagDBus, flagPulse bool
 		)
 
 		c.NewCommand("run", "Configure and start a permissive default sandbox", func(args []string) error {
 			// initialise config from flags
 			config := &hst.Config{
-				ID:   fid,
+				ID:   flagID,
 				Args: args,
 			}
 
-			if aid < 0 || aid > 9999 {
-				log.Fatalf("aid %d out of range", aid)
+			if flagIdentity < 0 || flagIdentity > 9999 {
+				log.Fatalf("identity %d out of range", flagIdentity)
 			}
 
 			// resolve home/username from os when flag is unset
@@ -82,13 +81,7 @@ func buildCommand(out io.Writer) command.Command {
 				passwd     *user.User
 				passwdOnce sync.Once
 				passwdFunc = func() {
-					var us string
-					if uid, err := std.Uid(aid); err != nil {
-						fatal("cannot obtain uid from setuid wrapper:", err)
-					} else {
-						us = strconv.Itoa(uid)
-					}
-
+					us := strconv.Itoa(sys.MustUid(std, flagIdentity))
 					if u, err := user.LookupId(us); err != nil {
 						hlog.Verbosef("cannot look up uid %s", us)
 						passwd = &user.User{
@@ -104,21 +97,21 @@ func buildCommand(out io.Writer) command.Command {
 				}
 			)
 
-			if homeDir == "os" {
+			if flagHomeDir == "os" {
 				passwdOnce.Do(passwdFunc)
-				homeDir = passwd.HomeDir
+				flagHomeDir = passwd.HomeDir
 			}
 
-			if userName == "chronos" {
+			if flagUserName == "chronos" {
 				passwdOnce.Do(passwdFunc)
-				userName = passwd.Username
+				flagUserName = passwd.Username
 			}
 
-			config.Identity = aid
-			config.Groups = groups
-			config.Username = userName
+			config.Identity = flagIdentity
+			config.Groups = flagGroups
+			config.Username = flagUserName
 
-			if a, err := container.NewAbs(homeDir); err != nil {
+			if a, err := container.NewAbs(flagHomeDir); err != nil {
 				log.Fatal(err.Error())
 				return err
 			} else {
@@ -126,43 +119,43 @@ func buildCommand(out io.Writer) command.Command {
 			}
 
 			var e system.Enablement
-			if wayland {
+			if flagWayland {
 				e |= system.EWayland
 			}
-			if x11 {
+			if flagX11 {
 				e |= system.EX11
 			}
-			if dBus {
+			if flagDBus {
 				e |= system.EDBus
 			}
-			if pulse {
+			if flagPulse {
 				e |= system.EPulse
 			}
 			config.Enablements = hst.NewEnablements(e)
 
 			// parse D-Bus config file from flags if applicable
-			if dBus {
-				if dbusConfigSession == "builtin" {
-					config.SessionBus = dbus.NewConfig(fid, true, mpris)
+			if flagDBus {
+				if flagDBusConfigSession == "builtin" {
+					config.SessionBus = dbus.NewConfig(flagID, true, flagDBusMpris)
 				} else {
-					if conf, err := dbus.NewConfigFromFile(dbusConfigSession); err != nil {
-						log.Fatalf("cannot load session bus proxy config from %q: %s", dbusConfigSession, err)
+					if conf, err := dbus.NewConfigFromFile(flagDBusConfigSession); err != nil {
+						log.Fatalf("cannot load session bus proxy config from %q: %s", flagDBusConfigSession, err)
 					} else {
 						config.SessionBus = conf
 					}
 				}
 
 				// system bus proxy is optional
-				if dbusConfigSystem != "nil" {
-					if conf, err := dbus.NewConfigFromFile(dbusConfigSystem); err != nil {
-						log.Fatalf("cannot load system bus proxy config from %q: %s", dbusConfigSystem, err)
+				if flagDBusConfigSystem != "nil" {
+					if conf, err := dbus.NewConfigFromFile(flagDBusConfigSystem); err != nil {
+						log.Fatalf("cannot load system bus proxy config from %q: %s", flagDBusConfigSystem, err)
 					} else {
 						config.SystemBus = conf
 					}
 				}
 
 				// override log from configuration
-				if dbusVerbose {
+				if flagDBusVerbose {
 					if config.SessionBus != nil {
 						config.SessionBus.Log = true
 					}
@@ -176,59 +169,63 @@ func buildCommand(out io.Writer) command.Command {
 			runApp(config)
 			panic("unreachable")
 		}).
-			Flag(&dbusConfigSession, "dbus-config", command.StringFlag("builtin"),
+			Flag(&flagDBusConfigSession, "dbus-config", command.StringFlag("builtin"),
 				"Path to session bus proxy config file, or \"builtin\" for defaults").
-			Flag(&dbusConfigSystem, "dbus-system", command.StringFlag("nil"),
+			Flag(&flagDBusConfigSystem, "dbus-system", command.StringFlag("nil"),
 				"Path to system bus proxy config file, or \"nil\" to disable").
-			Flag(&mpris, "mpris", command.BoolFlag(false),
+			Flag(&flagDBusMpris, "mpris", command.BoolFlag(false),
 				"Allow owning MPRIS D-Bus path, has no effect if custom config is available").
-			Flag(&dbusVerbose, "dbus-log", command.BoolFlag(false),
+			Flag(&flagDBusVerbose, "dbus-log", command.BoolFlag(false),
 				"Force buffered logging in the D-Bus proxy").
-			Flag(&fid, "id", command.StringFlag(""),
+			Flag(&flagID, "id", command.StringFlag(""),
 				"Reverse-DNS style Application identifier, leave empty to inherit instance identifier").
-			Flag(&aid, "a", command.IntFlag(0),
+			Flag(&flagIdentity, "a", command.IntFlag(0),
 				"Application identity").
-			Flag(nil, "g", &groups,
+			Flag(nil, "g", &flagGroups,
 				"Groups inherited by all container processes").
-			Flag(&homeDir, "d", command.StringFlag("os"),
+			Flag(&flagHomeDir, "d", command.StringFlag("os"),
 				"Container home directory").
-			Flag(&userName, "u", command.StringFlag("chronos"),
+			Flag(&flagUserName, "u", command.StringFlag("chronos"),
 				"Passwd user name within sandbox").
-			Flag(&wayland, "wayland", command.BoolFlag(false),
+			Flag(&flagWayland, "wayland", command.BoolFlag(false),
 				"Enable connection to Wayland via security-context-v1").
-			Flag(&x11, "X", command.BoolFlag(false),
+			Flag(&flagX11, "X", command.BoolFlag(false),
 				"Enable direct connection to X11").
-			Flag(&dBus, "dbus", command.BoolFlag(false),
+			Flag(&flagDBus, "dbus", command.BoolFlag(false),
 				"Enable proxied connection to D-Bus").
-			Flag(&pulse, "pulse", command.BoolFlag(false),
+			Flag(&flagPulse, "pulse", command.BoolFlag(false),
 				"Enable direct connection to PulseAudio")
 	}
 
-	var showFlagShort bool
-	c.NewCommand("show", "Show live or local app configuration", func(args []string) error {
-		switch len(args) {
-		case 0: // system
-			printShowSystem(os.Stdout, showFlagShort, flagJSON)
+	{
+		var flagShort bool
+		c.NewCommand("show", "Show live or local app configuration", func(args []string) error {
+			switch len(args) {
+			case 0: // system
+				printShowSystem(os.Stdout, flagShort, flagJSON)
 
-		case 1: // instance
-			name := args[0]
-			config, entry := tryShort(name)
-			if config == nil {
-				config = tryPath(name)
+			case 1: // instance
+				name := args[0]
+				config, entry := tryShort(name)
+				if config == nil {
+					config = tryPath(name)
+				}
+				printShowInstance(os.Stdout, time.Now().UTC(), entry, config, flagShort, flagJSON)
+
+			default:
+				log.Fatal("show requires 1 argument")
 			}
-			printShowInstance(os.Stdout, time.Now().UTC(), entry, config, showFlagShort, flagJSON)
+			return errSuccess
+		}).Flag(&flagShort, "short", command.BoolFlag(false), "Omit filesystem information")
+	}
 
-		default:
-			log.Fatal("show requires 1 argument")
-		}
-		return errSuccess
-	}).Flag(&showFlagShort, "short", command.BoolFlag(false), "Omit filesystem information")
-
-	var psFlagShort bool
-	c.NewCommand("ps", "List active instances", func(args []string) error {
-		printPs(os.Stdout, time.Now().UTC(), state.NewMulti(std.Paths().RunDirPath.String()), psFlagShort, flagJSON)
-		return errSuccess
-	}).Flag(&psFlagShort, "short", command.BoolFlag(false), "Print instance id")
+	{
+		var flagShort bool
+		c.NewCommand("ps", "List active instances", func(args []string) error {
+			printPs(os.Stdout, time.Now().UTC(), state.NewMulti(std.Paths().RunDirPath.String()), flagShort, flagJSON)
+			return errSuccess
+		}).Flag(&flagShort, "short", command.BoolFlag(false), "Print instance id")
+	}
 
 	c.Command("version", "Display version information", func(args []string) error {
 		fmt.Println(internal.Version())
@@ -259,34 +256,15 @@ func runApp(config *hst.Config) {
 	defer stop() // unreachable
 	a := app.MustNew(ctx, std)
 
-	rs := new(app.RunState)
 	if sa, err := a.Seal(config); err != nil {
 		hlog.BeforeExit()
-		fatal("cannot seal app:", err)
+		if m, ok := container.GetErrorMessage(err); ok {
+			log.Fatal(m)
+		} else {
+			log.Fatalln("cannot seal app:", err)
+		}
 	} else {
-		hlog.BeforeExit()
-		os.Exit(app.PrintRunStateErr(rs, sa.Run(rs)))
+		sa.Main()
+		panic("unreachable")
 	}
-
-	*(*int)(nil) = 0 // not reached
-}
-
-// fatal prints the error message according to [container.GetErrorMessage], or fallback
-// prepended to err if an error message is not available, followed by a call to [os.Exit](1).
-func fatal(fallback string, err error) {
-	// this indicates the error message has already reached stderr, outside the current process's control;
-	// this is only reached when hsu fails for any reason, as a second error message following hsu is confusing
-	if errors.Is(err, sys.ErrHsuAccess) {
-		hlog.Verbose("*"+fallback, err)
-		os.Exit(1)
-		return
-	}
-
-	m, ok := container.GetErrorMessage(err)
-	if !ok {
-		log.Fatalln(fallback, err)
-		return
-	}
-
-	log.Fatal(m)
 }

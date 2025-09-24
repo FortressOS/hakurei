@@ -119,7 +119,7 @@ type hsuUser struct {
 	username string
 }
 
-func (seal *Outcome) finalise(ctx context.Context, sys sys.State, config *hst.Config) error {
+func (seal *Outcome) finalise(ctx context.Context, k sys.State, config *hst.Config) error {
 	const (
 		home  = "HOME"
 		shell = "SHELL"
@@ -176,19 +176,17 @@ func (seal *Outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 		home:     config.Home,
 		username: config.Username,
 	}
+
 	if seal.user.username == "" {
 		seal.user.username = "chronos"
 	} else if !isValidUsername(seal.user.username) {
 		return newWithMessage(fmt.Sprintf("invalid user name %q", seal.user.username))
 	}
-	if u, err := sys.Uid(seal.user.identity.unwrap()); err != nil {
-		return err
-	} else {
-		seal.user.uid = newInt(u)
-	}
+	seal.user.uid = newInt(sys.MustUid(k, seal.user.identity.unwrap()))
+
 	seal.user.supp = make([]string, len(config.Groups))
 	for i, name := range config.Groups {
-		if g, err := sys.LookupGroup(name); err != nil {
+		if g, err := k.LookupGroup(name); err != nil {
 			return newWithMessageError(fmt.Sprintf("unknown group %q", name), err)
 		} else {
 			seal.user.supp[i] = g.Gid
@@ -201,7 +199,7 @@ func (seal *Outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 
 		if config.Shell == nil {
 			config.Shell = container.AbsFHSRoot.Append("bin", "sh")
-			s, _ := sys.LookupEnv(shell)
+			s, _ := k.LookupEnv(shell)
 			if a, err := container.NewAbs(s); err == nil {
 				config.Shell = a
 			}
@@ -210,7 +208,7 @@ func (seal *Outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 		// hsu clears the environment so resolve paths early
 		if config.Path == nil {
 			if len(config.Args) > 0 {
-				if p, err := sys.LookPath(config.Args[0]); err != nil {
+				if p, err := k.LookPath(config.Args[0]); err != nil {
 					return &hst.AppError{Step: "look up executable file", Err: err}
 				} else if config.Path, err = container.NewAbs(p); err != nil {
 					return newWithMessageError(err.Error(), err)
@@ -246,7 +244,7 @@ func (seal *Outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 
 		// hide nscd from container if present
 		nscd := container.AbsFHSVar.Append("run/nscd")
-		if _, err := sys.Stat(nscd.String()); !errors.Is(err, fs.ErrNotExist) {
+		if _, err := k.Stat(nscd.String()); !errors.Is(err, fs.ErrNotExist) {
 			conf.Filesystem = append(conf.Filesystem, hst.FilesystemConfigJSON{FilesystemConfig: &hst.FSEphemeral{Target: nscd}})
 		}
 
@@ -274,7 +272,7 @@ func (seal *Outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 	{
 		var uid, gid int
 		var err error
-		seal.container, seal.env, err = newContainer(config.Container, sys, seal.id.String(), &uid, &gid)
+		seal.container, seal.env, err = newContainer(config.Container, k, seal.id.String(), &uid, &gid)
 		seal.waitDelay = config.Container.WaitDelay
 		if err != nil {
 			return &hst.AppError{Step: "initialise container configuration", Err: err}
@@ -298,7 +296,7 @@ func (seal *Outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 	seal.env[xdgSessionClass] = "user"
 	seal.env[xdgSessionType] = "tty"
 
-	share := &shareHost{seal: seal, sc: sys.Paths()}
+	share := &shareHost{seal: seal, sc: k.Paths()}
 	seal.runDirPath = share.sc.RunDirPath
 	seal.sys = system.New(seal.ctx, seal.user.uid.unwrap())
 	seal.sys.Ensure(share.sc.SharePath.String(), 0711)
@@ -342,14 +340,14 @@ func (seal *Outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 	}
 
 	// pass TERM for proper terminal I/O in initial process
-	if t, ok := sys.LookupEnv(term); ok {
+	if t, ok := k.LookupEnv(term); ok {
 		seal.env[term] = t
 	}
 
 	if config.Enablements.Unwrap()&system.EWayland != 0 {
 		// outer wayland socket (usually `/run/user/%d/wayland-%d`)
 		var socketPath *container.Absolute
-		if name, ok := sys.LookupEnv(wayland.WaylandDisplay); !ok {
+		if name, ok := k.LookupEnv(wayland.WaylandDisplay); !ok {
 			hlog.Verbose(wayland.WaylandDisplay + " is not set, assuming " + wayland.FallbackName)
 			socketPath = share.sc.RuntimePath.Append(wayland.FallbackName)
 		} else if a, err := container.NewAbs(name); err != nil {
@@ -380,7 +378,7 @@ func (seal *Outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 	}
 
 	if config.Enablements.Unwrap()&system.EX11 != 0 {
-		if d, ok := sys.LookupEnv(display); !ok {
+		if d, ok := k.LookupEnv(display); !ok {
 			return newWithMessage("DISPLAY is not set")
 		} else {
 			socketDir := container.AbsFHSTmp.Append(".X11-unix")
@@ -398,7 +396,7 @@ func (seal *Outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 				}
 			}
 			if socketPath != nil {
-				if _, err := sys.Stat(socketPath.String()); err != nil {
+				if _, err := k.Stat(socketPath.String()); err != nil {
 					if !errors.Is(err, fs.ErrNotExist) {
 						return &hst.AppError{Step: fmt.Sprintf("access X11 socket %q", socketPath), Err: err}
 					}
@@ -422,14 +420,14 @@ func (seal *Outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 		// PulseAudio socket (usually `/run/user/%d/pulse/native`)
 		pulseSocket := pulseRuntimeDir.Append("native")
 
-		if _, err := sys.Stat(pulseRuntimeDir.String()); err != nil {
+		if _, err := k.Stat(pulseRuntimeDir.String()); err != nil {
 			if !errors.Is(err, fs.ErrNotExist) {
 				return &hst.AppError{Step: fmt.Sprintf("access PulseAudio directory %q", pulseRuntimeDir), Err: err}
 			}
 			return newWithMessage(fmt.Sprintf("PulseAudio directory %q not found", pulseRuntimeDir))
 		}
 
-		if s, err := sys.Stat(pulseSocket.String()); err != nil {
+		if s, err := k.Stat(pulseSocket.String()); err != nil {
 			if !errors.Is(err, fs.ErrNotExist) {
 				return &hst.AppError{Step: fmt.Sprintf("access PulseAudio socket %q", pulseSocket), Err: err}
 			}
@@ -453,7 +451,7 @@ func (seal *Outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 			const paLocateStep = "locate PulseAudio cookie"
 
 			// from environment
-			if p, ok := sys.LookupEnv(pulseCookie); ok {
+			if p, ok := k.LookupEnv(pulseCookie); ok {
 				if a, err := container.NewAbs(p); err != nil {
 					return &hst.AppError{Step: paLocateStep, Err: err}
 				} else {
@@ -464,14 +462,14 @@ func (seal *Outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 			}
 
 			// $HOME/.pulse-cookie
-			if p, ok := sys.LookupEnv(home); ok {
+			if p, ok := k.LookupEnv(home); ok {
 				if a, err := container.NewAbs(p); err != nil {
 					return &hst.AppError{Step: paLocateStep, Err: err}
 				} else {
 					paCookiePath = a.Append(".pulse-cookie")
 				}
 
-				if s, err := sys.Stat(paCookiePath.String()); err != nil {
+				if s, err := k.Stat(paCookiePath.String()); err != nil {
 					paCookiePath = nil
 					if !errors.Is(err, fs.ErrNotExist) {
 						return &hst.AppError{Step: "access PulseAudio cookie", Err: err}
@@ -485,13 +483,13 @@ func (seal *Outcome) finalise(ctx context.Context, sys sys.State, config *hst.Co
 			}
 
 			// $XDG_CONFIG_HOME/pulse/cookie
-			if p, ok := sys.LookupEnv(xdgConfigHome); ok {
+			if p, ok := k.LookupEnv(xdgConfigHome); ok {
 				if a, err := container.NewAbs(p); err != nil {
 					return &hst.AppError{Step: paLocateStep, Err: err}
 				} else {
 					paCookiePath = a.Append("pulse", "cookie")
 				}
-				if s, err := sys.Stat(paCookiePath.String()); err != nil {
+				if s, err := k.Stat(paCookiePath.String()); err != nil {
 					paCookiePath = nil
 					if !errors.Is(err, fs.ErrNotExist) {
 						return &hst.AppError{Step: "access PulseAudio cookie", Err: err}

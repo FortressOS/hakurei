@@ -1,9 +1,7 @@
 package sys
 
 import (
-	"errors"
 	"io/fs"
-	"log"
 	"os"
 	"os/exec"
 	"os/user"
@@ -41,30 +39,6 @@ func (s *Std) Printf(format string, v ...any)               { hlog.Verbosef(form
 const xdgRuntimeDir = "XDG_RUNTIME_DIR"
 
 func (s *Std) Paths() hst.Paths {
-	s.pathsOnce.Do(func() {
-		if userid, err := GetUserID(s); err != nil {
-			// TODO(ophestra): this duplicates code in cmd/hakurei/command.go, keep this up to date until removal
-			hlog.BeforeExit()
-			const fallback = "cannot obtain user id from hsu:"
-
-			// this indicates the error message has already reached stderr, outside the current process's control;
-			// this is only reached when hsu fails for any reason, as a second error message following hsu is confusing
-			if errors.Is(err, ErrHsuAccess) {
-				hlog.Verbose("*"+fallback, err)
-				os.Exit(1)
-				return
-			}
-
-			m, ok := container.GetErrorMessage(err)
-			if !ok {
-				log.Fatalln(fallback, err)
-				return
-			}
-
-			log.Fatal(m)
-		} else {
-			CopyPaths(s, &s.paths, userid)
-		}
-	})
+	s.pathsOnce.Do(func() { CopyPaths(s, &s.paths, MustGetUserID(s)) })
 	return s.paths
 }

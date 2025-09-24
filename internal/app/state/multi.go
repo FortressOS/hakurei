@@ -27,27 +27,27 @@ type multiStore struct {
 	lock sync.RWMutex
 }
 
-func (s *multiStore) Do(aid int, f func(c Cursor)) (bool, error) {
+func (s *multiStore) Do(identity int, f func(c Cursor)) (bool, error) {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 
 	// load or initialise new backend
 	b := new(multiBackend)
 	b.lock.Lock()
-	if v, ok := s.backends.LoadOrStore(aid, b); ok {
+	if v, ok := s.backends.LoadOrStore(identity, b); ok {
 		b = v.(*multiBackend)
 	} else {
-		b.path = path.Join(s.base, strconv.Itoa(aid))
+		b.path = path.Join(s.base, strconv.Itoa(identity))
 
 		// ensure directory
 		if err := os.MkdirAll(b.path, 0700); err != nil && !errors.Is(err, fs.ErrExist) {
-			s.backends.CompareAndDelete(aid, b)
+			s.backends.CompareAndDelete(identity, b)
 			return false, err
 		}
 
 		// open locker file
 		if l, err := os.OpenFile(b.path+".lock", os.O_RDWR|os.O_CREATE, 0600); err != nil {
-			s.backends.CompareAndDelete(aid, b)
+			s.backends.CompareAndDelete(identity, b)
 			return false, err
 		} else {
 			b.lockfile = l

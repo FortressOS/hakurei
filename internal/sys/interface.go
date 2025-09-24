@@ -49,14 +49,8 @@ type State interface {
 	Uid(identity int) (int, error)
 }
 
-// GetUserID obtains user id from hsu by querying uid of identity 0.
-func GetUserID(os State) (int, error) {
-	if uid, err := os.Uid(0); err != nil {
-		return -1, err
-	} else {
-		return (uid / 10000) - 100, nil
-	}
-}
+// MustGetUserID obtains user id from hsu by querying uid of identity 0.
+func MustGetUserID(os State) int { return (MustUid(os, 0) / 10000) - 100 }
 
 // CopyPaths is a generic implementation of [hst.Paths].
 func CopyPaths(os State, v *hst.Paths, userid int) {
