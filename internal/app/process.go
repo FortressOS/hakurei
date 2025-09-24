@@ -255,7 +255,7 @@ func (seal *outcome) main() {
 			// passed through to shim by hsu
 			shimEnv + "=" + strconv.Itoa(fd),
 			// interpreted by hsu
-			"HAKUREI_APP_ID=" + seal.user.identity.String(),
+			"HAKUREI_IDENTITY=" + seal.user.identity.String(),
 		}
 	}
 

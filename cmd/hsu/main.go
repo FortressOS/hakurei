@@ -15,7 +15,7 @@ import (
 const (
 	hsuConfFile = "/etc/hsurc"
 	envShim     = "HAKUREI_SHIM"
-	envAID      = "HAKUREI_APP_ID"
+	envIdentity = "HAKUREI_IDENTITY"
 	envGroups   = "HAKUREI_GROUPS"
 
 	PR_SET_NO_NEW_PRIVS = 0x26
@@ -48,8 +48,8 @@ func main() {
 	}
 
 	// uid = 1000000 +
-	//   fid * 10000 +
-	//           aid
+	//    id * 10000 +
+	//      identity
 	uid := 1000000
 
 	// refuse to run if hsurc is not protected correctly
@@ -62,34 +62,39 @@ func main() {
 	}
 
 	// authenticate before accepting user input
+	var id int
 	if f, err := os.Open(hsuConfFile); err != nil {
 		log.Fatal(err)
-	} else if fid, ok := mustParseConfig(f, puid); !ok {
+	} else if v, ok := mustParseConfig(f, puid); !ok {
 		log.Fatalf("uid %d is not in the hsurc file", puid)
 	} else {
-		uid += fid * 10000
-	}
+		id = v
+		if err = f.Close(); err != nil {
+			log.Fatal(err)
+		}
 
-	// allowed aid range 0 to 9999
-	if as, ok := os.LookupEnv(envAID); !ok {
-		log.Fatal("HAKUREI_APP_ID not set")
-	} else if aid, err := parseUint32Fast(as); err != nil || aid < 0 || aid > 9999 {
-		log.Fatal("invalid aid")
-	} else {
-		uid += aid
+		uid += id * 10000
 	}
 
 	// pass through setup fd to shim
 	var shimSetupFd string
 	if s, ok := os.LookupEnv(envShim); !ok {
-		// hakurei requests target uid
-		// print resolved uid and exit
-		fmt.Print(uid)
+		// hakurei requests hsurc user id
+		fmt.Print(id)
 		os.Exit(0)
 	} else if len(s) != 1 || s[0] > '9' || s[0] < '3' {
 		log.Fatal("HAKUREI_SHIM holds an invalid value")
 	} else {
 		shimSetupFd = s
+	}
+
+	// allowed identity range 0 to 9999
+	if as, ok := os.LookupEnv(envIdentity); !ok {
+		log.Fatal("HAKUREI_IDENTITY not set")
+	} else if identity, err := parseUint32Fast(as); err != nil || identity < 0 || identity > 9999 {
+		log.Fatal("invalid identity")
+	} else {
+		uid += identity
 	}
 
 	// supplementary groups
