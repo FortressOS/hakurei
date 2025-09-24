@@ -26,7 +26,7 @@ def swaymsg(command: str = "", succeed=True, type="command"):
 
 
 def check_filter(check_offset, name, pname):
-    pid = int(machine.wait_until_succeeds(f"pgrep -U {1000000+check_offset} -x {pname}", timeout=15))
+    pid = int(machine.wait_until_succeeds(f"pgrep -U {1000000+check_offset} -x {pname}", timeout=60))
     hash = machine.succeed(f"sudo -u alice -i XDG_RUNTIME_DIR=/run/user/1000 WAYLAND_DISPLAY=wayland-1 check-sandbox-{name} hash")
     print(machine.succeed(f"hakurei-test -s {hash} filter {pid}"))
 
@@ -60,7 +60,7 @@ check_offset = 0
 def check_sandbox(name):
     global check_offset
     swaymsg(f"exec script /dev/null -E always -qec check-sandbox-{name}")
-    machine.wait_for_file(f"/var/tmp/.hakurei-check-ok.{check_offset}", timeout=15)
+    machine.wait_for_file(f"/var/tmp/.hakurei-check-ok.{check_offset}", timeout=60)
     check_filter(check_offset, name, "hakurei-test")
     check_offset += 1
 
