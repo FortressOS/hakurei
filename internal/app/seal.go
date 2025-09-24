@@ -9,6 +9,7 @@ import (
 	"io"
 	"io/fs"
 	"os"
+	"os/user"
 	"slices"
 	"strconv"
 	"strings"
@@ -187,7 +188,12 @@ func (seal *outcome) finalise(ctx context.Context, k sys.State, config *hst.Conf
 	seal.user.supp = make([]string, len(config.Groups))
 	for i, name := range config.Groups {
 		if g, err := k.LookupGroup(name); err != nil {
-			return newWithMessageError(fmt.Sprintf("unknown group %q", name), err)
+			var unknownGroupError user.UnknownGroupError
+			if errors.As(err, &unknownGroupError) {
+				return newWithMessageError(fmt.Sprintf("unknown group %q", name), unknownGroupError)
+			} else {
+				return &hst.AppError{Step: "look up group by name", Err: err}
+			}
 		} else {
 			seal.user.supp[i] = g.Gid
 		}
