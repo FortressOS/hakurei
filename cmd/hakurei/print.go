@@ -12,8 +12,8 @@ import (
 	"time"
 
 	"hakurei.app/hst"
+	"hakurei.app/internal/app"
 	"hakurei.app/internal/app/state"
-	"hakurei.app/internal/sys"
 	"hakurei.app/system/dbus"
 )
 
@@ -21,10 +21,8 @@ func printShowSystem(output io.Writer, short, flagJSON bool) {
 	t := newPrinter(output)
 	defer t.MustFlush()
 
-	info := &hst.Info{
-		Paths: std.Paths(),
-		User:  sys.MustGetUserID(std),
-	}
+	info := &hst.Info{User: new(app.Hsu).MustID()}
+	app.CopyPaths(&info.Paths, info.User)
 
 	if flagJSON {
 		printJSON(output, short, info)

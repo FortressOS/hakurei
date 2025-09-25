@@ -33,12 +33,12 @@ type mainState struct {
 	// Time is nil if no process was ever created.
 	Time *time.Time
 
-	seal    *outcome
 	store   state.Store
 	cancel  context.CancelFunc
 	cmd     *exec.Cmd
 	cmdWait chan error
 
+	k *outcome
 	uintptr
 }
 
@@ -79,13 +79,13 @@ func (ms mainState) beforeExit(isFault bool) {
 		waitDone := make(chan struct{})
 		// TODO(ophestra): enforce this limit early so it does not have to be done twice
 		shimTimeoutCompensated := shimWaitTimeout
-		if ms.seal.waitDelay > MaxShimWaitDelay {
+		if ms.k.waitDelay > MaxShimWaitDelay {
 			shimTimeoutCompensated += MaxShimWaitDelay
 		} else {
-			shimTimeoutCompensated += ms.seal.waitDelay
+			shimTimeoutCompensated += ms.k.waitDelay
 		}
 		// this ties waitDone to ctx with the additional compensated timeout duration
-		go func() { <-ms.seal.ctx.Done(); time.Sleep(shimTimeoutCompensated); close(waitDone) }()
+		go func() { <-ms.k.ctx.Done(); time.Sleep(shimTimeoutCompensated); close(waitDone) }()
 
 		select {
 		case err := <-ms.cmdWait:
@@ -128,20 +128,20 @@ func (ms mainState) beforeExit(isFault bool) {
 		}
 
 		hlog.Resume()
-		if ms.seal.sync != nil {
-			if err := ms.seal.sync.Close(); err != nil {
+		if ms.k.sync != nil {
+			if err := ms.k.sync.Close(); err != nil {
 				perror(err, "close wayland security context")
 			}
 		}
-		if ms.seal.dbusMsg != nil {
-			ms.seal.dbusMsg()
+		if ms.k.dbusMsg != nil {
+			ms.k.dbusMsg()
 		}
 	}
 
 	if ms.uintptr&mainNeedsRevert != 0 {
-		if ok, err := ms.store.Do(ms.seal.user.identity.unwrap(), func(c state.Cursor) {
+		if ok, err := ms.store.Do(ms.k.user.identity.unwrap(), func(c state.Cursor) {
 			if ms.uintptr&mainNeedsDestroy != 0 {
-				if err := c.Destroy(ms.seal.id.unwrap()); err != nil {
+				if err := c.Destroy(ms.k.id.unwrap()); err != nil {
 					perror(err, "destroy state entry")
 				}
 			}
@@ -151,7 +151,7 @@ func (ms mainState) beforeExit(isFault bool) {
 				// it is impossible to continue from this point;
 				// revert per-process state here to limit damage
 				ec := system.Process
-				if revertErr := ms.seal.sys.Revert((*system.Criteria)(&ec)); revertErr != nil {
+				if revertErr := ms.k.sys.Revert((*system.Criteria)(&ec)); revertErr != nil {
 					var joinError interface {
 						Unwrap() []error
 						error
@@ -189,7 +189,7 @@ func (ms mainState) beforeExit(isFault bool) {
 					}
 				}
 
-				if err = ms.seal.sys.Revert((*system.Criteria)(&ec)); err != nil {
+				if err = ms.k.sys.Revert((*system.Criteria)(&ec)); err != nil {
 					perror(err, "revert system setup")
 				}
 			}
@@ -219,8 +219,8 @@ func (ms mainState) fatal(fallback string, ferr error) {
 }
 
 // main carries out outcome and terminates. main does not return.
-func (seal *outcome) main() {
-	if !seal.f.CompareAndSwap(false, true) {
+func (k *outcome) main() {
+	if !k.active.CompareAndSwap(false, true) {
 		panic("outcome: attempted to run twice")
 	}
 
@@ -228,15 +228,15 @@ func (seal *outcome) main() {
 	hsuPath := internal.MustHsuPath()
 
 	// ms.beforeExit required beyond this point
-	ms := &mainState{seal: seal}
+	ms := &mainState{k: k}
 
-	if err := seal.sys.Commit(); err != nil {
+	if err := k.sys.Commit(); err != nil {
 		ms.fatal("cannot commit system setup:", err)
 	}
 	ms.uintptr |= mainNeedsRevert
-	ms.store = state.NewMulti(seal.runDirPath.String())
+	ms.store = state.NewMulti(k.runDirPath.String())
 
-	ctx, cancel := context.WithCancel(seal.ctx)
+	ctx, cancel := context.WithCancel(k.ctx)
 	defer cancel()
 	ms.cancel = cancel
 
@@ -255,14 +255,14 @@ func (seal *outcome) main() {
 			// passed through to shim by hsu
 			shimEnv + "=" + strconv.Itoa(fd),
 			// interpreted by hsu
-			"HAKUREI_IDENTITY=" + seal.user.identity.String(),
+			"HAKUREI_IDENTITY=" + k.user.identity.String(),
 		}
 	}
 
-	if len(seal.user.supp) > 0 {
-		hlog.Verbosef("attaching supplementary group ids %s", seal.user.supp)
+	if len(k.user.supp) > 0 {
+		hlog.Verbosef("attaching supplementary group ids %s", k.user.supp)
 		// interpreted by hsu
-		ms.cmd.Env = append(ms.cmd.Env, "HAKUREI_GROUPS="+strings.Join(seal.user.supp, " "))
+		ms.cmd.Env = append(ms.cmd.Env, "HAKUREI_GROUPS="+strings.Join(k.user.supp, " "))
 	}
 
 	hlog.Verbosef("setuid helper at %s", hsuPath)
@@ -284,8 +284,8 @@ func (seal *outcome) main() {
 		go func() {
 			setupErr <- e.Encode(&shimParams{
 				os.Getpid(),
-				seal.waitDelay,
-				seal.container,
+				k.waitDelay,
+				k.container,
 				hlog.Load(),
 			})
 		}()
@@ -302,12 +302,12 @@ func (seal *outcome) main() {
 	}
 
 	// shim accepted setup payload, create process state
-	if ok, err := ms.store.Do(seal.user.identity.unwrap(), func(c state.Cursor) {
+	if ok, err := ms.store.Do(k.user.identity.unwrap(), func(c state.Cursor) {
 		if err := c.Save(&state.State{
-			ID:   seal.id.unwrap(),
+			ID:   k.id.unwrap(),
 			PID:  ms.cmd.Process.Pid,
 			Time: *ms.Time,
-		}, seal.ct); err != nil {
+		}, k.ct); err != nil {
 			ms.fatal("cannot save state entry:", err)
 		}
 	}); err != nil {

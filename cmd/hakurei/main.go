@@ -15,7 +15,6 @@ import (
 	"hakurei.app/container"
 	"hakurei.app/internal"
 	"hakurei.app/internal/hlog"
-	"hakurei.app/internal/sys"
 )
 
 var (
@@ -26,8 +25,6 @@ var (
 )
 
 func init() { hlog.Prepare("hakurei") }
-
-var std sys.State = new(sys.Std)
 
 func main() {
 	// early init path, skips root check and duplicate PR_SET_DUMPABLE

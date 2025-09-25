@@ -11,7 +11,6 @@ import (
 	"hakurei.app/container"
 	"hakurei.app/container/seccomp"
 	"hakurei.app/hst"
-	"hakurei.app/internal/sys"
 	"hakurei.app/system/dbus"
 )
 
@@ -20,7 +19,13 @@ const preallocateOpsCount = 1 << 5
 
 // newContainer initialises [container.Params] via [hst.ContainerConfig].
 // Note that remaining container setup must be queued by the caller.
-func newContainer(s *hst.ContainerConfig, os sys.State, prefix string, uid, gid *int) (*container.Params, map[string]string, error) {
+func newContainer(
+	k syscallDispatcher,
+	s *hst.ContainerConfig,
+	prefix string,
+	sc *hst.Paths,
+	uid, gid *int,
+) (*container.Params, map[string]string, error) {
 	if s == nil {
 		return nil, nil, newWithMessage("invalid container configuration")
 	}
@@ -38,9 +43,7 @@ func newContainer(s *hst.ContainerConfig, os sys.State, prefix string, uid, gid 
 		ForwardCancel: s.WaitDelay >= 0,
 	}
 
-	as := &hst.ApplyState{
-		AutoEtcPrefix: prefix,
-	}
+	as := &hst.ApplyState{AutoEtcPrefix: prefix}
 	{
 		ops := make(container.Ops, 0, preallocateOpsCount+len(s.Filesystem))
 		params.Ops = &ops
@@ -65,13 +68,13 @@ func newContainer(s *hst.ContainerConfig, os sys.State, prefix string, uid, gid 
 	}
 
 	if s.MapRealUID {
-		params.Uid = os.Getuid()
+		params.Uid = k.getuid()
 		*uid = params.Uid
-		params.Gid = os.Getgid()
+		params.Gid = k.getgid()
 		*gid = params.Gid
 	} else {
-		*uid = container.OverflowUid()
-		*gid = container.OverflowGid()
+		*uid = k.overflowUid()
+		*gid = k.overflowGid()
 	}
 
 	filesystem := s.Filesystem
@@ -107,7 +110,6 @@ func newContainer(s *hst.ContainerConfig, os sys.State, prefix string, uid, gid 
 	to warn about issues in custom configuration; it is NOT a security feature
 	and should not be treated as such, ALWAYS be careful with what you bind */
 	var hidePaths []string
-	sc := os.Paths()
 	hidePaths = append(hidePaths, sc.RuntimePath.String(), sc.SharePath.String())
 	_, systemBusAddr := dbus.Address()
 	if entries, err := dbus.Parse([]byte(systemBusAddr)); err != nil {
@@ -124,11 +126,11 @@ func newContainer(s *hst.ContainerConfig, os sys.State, prefix string, uid, gid 
 						// get parent dir of socket
 						dir := path.Dir(pair[1])
 						if dir == "." || dir == container.FHSRoot {
-							os.Printf("dbus socket %q is in an unusual location", pair[1])
+							k.verbosef("dbus socket %q is in an unusual location", pair[1])
 						}
 						hidePaths = append(hidePaths, dir)
 					} else {
-						os.Printf("dbus socket %q is not absolute", pair[1])
+						k.verbosef("dbus socket %q is not absolute", pair[1])
 					}
 				}
 			}
@@ -136,7 +138,7 @@ func newContainer(s *hst.ContainerConfig, os sys.State, prefix string, uid, gid 
 	}
 	hidePathMatch := make([]bool, len(hidePaths))
 	for i := range hidePaths {
-		if err := evalSymlinks(os, &hidePaths[i]); err != nil {
+		if err := evalSymlinks(k, &hidePaths[i]); err != nil {
 			return nil, nil, err
 		}
 	}
@@ -155,7 +157,7 @@ func newContainer(s *hst.ContainerConfig, os sys.State, prefix string, uid, gid 
 	// AutoRootOp is a collection of many BindMountOp internally
 	var autoRootEntries []fs.DirEntry
 	if autoroot != nil {
-		if d, err := os.ReadDir(autoroot.Source.String()); err != nil {
+		if d, err := k.readdir(autoroot.Source.String()); err != nil {
 			return nil, nil, err
 		} else {
 			// autoroot counter
@@ -191,7 +193,7 @@ func newContainer(s *hst.ContainerConfig, os sys.State, prefix string, uid, gid 
 		}
 
 		hidePathSourceEval[i] = [2]string{a.String(), a.String()}
-		if err := evalSymlinks(os, &hidePathSourceEval[i][0]); err != nil {
+		if err := evalSymlinks(k, &hidePathSourceEval[i][0]); err != nil {
 			return nil, nil, err
 		}
 	}
@@ -207,7 +209,7 @@ func newContainer(s *hst.ContainerConfig, os sys.State, prefix string, uid, gid 
 				return nil, nil, err
 			} else if ok {
 				hidePathMatch[i] = true
-				os.Printf("hiding path %q from %q", hidePaths[i], p[1])
+				k.verbosef("hiding path %q from %q", hidePaths[i], p[1])
 			}
 		}
 	}
@@ -238,12 +240,13 @@ func newContainer(s *hst.ContainerConfig, os sys.State, prefix string, uid, gid 
 	return params, maps.Clone(s.Env), nil
 }
 
-func evalSymlinks(os sys.State, v *string) error {
-	if p, err := os.EvalSymlinks(*v); err != nil {
+// evalSymlinks calls syscallDispatcher.evalSymlinks but discards errors unwrapping to [fs.ErrNotExist].
+func evalSymlinks(k syscallDispatcher, v *string) error {
+	if p, err := k.evalSymlinks(*v); err != nil {
 		if !errors.Is(err, fs.ErrNotExist) {
 			return err
 		}
-		os.Printf("path %q does not yet exist", *v)
+		k.verbosef("path %q does not yet exist", *v)
 	} else {
 		*v = p
 	}

@@ -18,7 +18,6 @@ import (
 	"hakurei.app/internal/app"
 	"hakurei.app/internal/app/state"
 	"hakurei.app/internal/hlog"
-	"hakurei.app/internal/sys"
 	"hakurei.app/system"
 	"hakurei.app/system/dbus"
 )
@@ -43,7 +42,7 @@ func buildCommand(ctx context.Context, out io.Writer) command.Command {
 		config := tryPath(args[0])
 		config.Args = append(config.Args, args[1:]...)
 
-		app.Main(ctx, std, config)
+		app.Main(ctx, config)
 		panic("unreachable")
 	})
 
@@ -79,7 +78,7 @@ func buildCommand(ctx context.Context, out io.Writer) command.Command {
 				passwd     *user.User
 				passwdOnce sync.Once
 				passwdFunc = func() {
-					us := strconv.Itoa(sys.MustUid(std, flagIdentity))
+					us := strconv.Itoa(app.HsuUid(new(app.Hsu).MustID(), flagIdentity))
 					if u, err := user.LookupId(us); err != nil {
 						hlog.Verbosef("cannot look up uid %s", us)
 						passwd = &user.User{
@@ -163,7 +162,7 @@ func buildCommand(ctx context.Context, out io.Writer) command.Command {
 				}
 			}
 
-			app.Main(ctx, std, config)
+			app.Main(ctx, config)
 			panic("unreachable")
 		}).
 			Flag(&flagDBusConfigSession, "dbus-config", command.StringFlag("builtin"),
@@ -219,7 +218,9 @@ func buildCommand(ctx context.Context, out io.Writer) command.Command {
 	{
 		var flagShort bool
 		c.NewCommand("ps", "List active instances", func(args []string) error {
-			printPs(os.Stdout, time.Now().UTC(), state.NewMulti(std.Paths().RunDirPath.String()), flagShort, flagJSON)
+			var sc hst.Paths
+			app.CopyPaths(&sc, new(app.Hsu).MustID())
+			printPs(os.Stdout, time.Now().UTC(), state.NewMulti(sc.RunDirPath.String()), flagShort, flagJSON)
 			return errSuccess
 		}).Flag(&flagShort, "short", command.BoolFlag(false), "Print instance id")
 	}

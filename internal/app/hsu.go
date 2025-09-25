@@ -1,4 +1,4 @@
-package sys
+package app
 
 import (
 	"errors"
@@ -11,7 +11,6 @@ import (
 
 	"hakurei.app/container"
 	"hakurei.app/hst"
-	"hakurei.app/internal"
 	"hakurei.app/internal/hlog"
 )
 
@@ -20,15 +19,28 @@ type Hsu struct {
 	idOnce sync.Once
 	idErr  error
 	id     int
+
+	kOnce sync.Once
+	k     syscallDispatcher
 }
 
 var ErrHsuAccess = errors.New("current user is not in the hsurc file")
 
+// ensureDispatcher ensures Hsu.k is not nil.
+func (h *Hsu) ensureDispatcher() {
+	h.kOnce.Do(func() {
+		if h.k == nil {
+			h.k = direct{}
+		}
+	})
+}
+
 // ID returns the current user hsurc identifier. ErrHsuAccess is returned if the current user is not in hsurc.
 func (h *Hsu) ID() (int, error) {
+	h.ensureDispatcher()
 	h.idOnce.Do(func() {
 		h.id = -1
-		hsuPath := internal.MustHsuPath()
+		hsuPath := h.k.mustHsuPath()
 
 		cmd := exec.Command(hsuPath)
 		cmd.Path = hsuPath
@@ -41,7 +53,7 @@ func (h *Hsu) ID() (int, error) {
 		)
 
 		const step = "obtain uid from hsu"
-		if p, h.idErr = cmd.Output(); h.idErr == nil {
+		if p, h.idErr = h.k.cmdOutput(cmd); h.idErr == nil {
 			h.id, h.idErr = strconv.Atoi(string(p))
 			if h.idErr != nil {
 				h.idErr = &hst.AppError{Step: step, Err: h.idErr, Msg: "invalid uid string from hsu"}
@@ -58,22 +70,14 @@ func (h *Hsu) ID() (int, error) {
 	return h.id, h.idErr
 }
 
-func (h *Hsu) Uid(identity int) (int, error) {
+// MustID calls [Hsu.ID] and terminates on error.
+func (h *Hsu) MustID() int {
 	id, err := h.ID()
 	if err == nil {
-		return 1000000 + id*10000 + identity, nil
-	}
-	return id, err
-}
-
-// MustUid calls [State.Uid] and terminates on error.
-func MustUid(s State, identity int) int {
-	uid, err := s.Uid(identity)
-	if err == nil {
-		return uid
+		return id
 	}
 
-	const fallback = "cannot obtain uid from setuid wrapper:"
+	const fallback = "cannot retrieve user id from setuid wrapper:"
 	if errors.Is(err, ErrHsuAccess) {
 		hlog.Verbose("*"+fallback, err)
 		os.Exit(1)
@@ -86,3 +90,7 @@ func MustUid(s State, identity int) int {
 		return -0xdeadbeef
 	}
 }
+
+// HsuUid returns target uid for the stable hsu uid format.
+// No bounds check is performed, a value retrieved from hsu is expected.
+func HsuUid(id, identity int) int { return 1000000 + id*10000 + identity }

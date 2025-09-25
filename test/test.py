@@ -100,7 +100,7 @@ print(machine.fail("sudo -u alice -i hsu"))
 # Verify hsu fault behaviour:
 if denyOutput != "hsu: uid 1001 is not in the hsurc file\n":
     raise Exception(f"unexpected deny output:\n{denyOutput}")
-if denyOutputVerbose != "hsu: uid 1001 is not in the hsurc file\nhakurei: *cannot obtain uid from setuid wrapper: current user is not in the hsurc file\n":
+if denyOutputVerbose != "hsu: uid 1001 is not in the hsurc file\nhakurei: *cannot retrieve user id from setuid wrapper: current user is not in the hsurc file\n":
     raise Exception(f"unexpected deny verbose output:\n{denyOutputVerbose}")
 
 # Verify timeout behaviour:

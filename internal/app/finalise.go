@@ -21,7 +21,6 @@ import (
 	"hakurei.app/hst"
 	"hakurei.app/internal/app/state"
 	"hakurei.app/internal/hlog"
-	"hakurei.app/internal/sys"
 	"hakurei.app/system"
 	"hakurei.app/system/acl"
 	"hakurei.app/system/dbus"
@@ -54,8 +53,9 @@ type outcome struct {
 	container *container.Params
 	env       map[string]string
 	sync      *os.File
+	active    atomic.Bool
 
-	f atomic.Bool
+	syscallDispatcher
 }
 
 // shareHost holds optional share directory state that must not be accessed directly
@@ -120,7 +120,7 @@ type hsuUser struct {
 	username string
 }
 
-func (seal *outcome) finalise(ctx context.Context, k sys.State, config *hst.Config) error {
+func (k *outcome) finalise(ctx context.Context, config *hst.Config) error {
 	const (
 		home  = "HOME"
 		shell = "SHELL"
@@ -144,14 +144,13 @@ func (seal *outcome) finalise(ctx context.Context, k sys.State, config *hst.Conf
 		// unreachable
 		panic("invalid call to finalise")
 	}
-	if seal.ctx != nil {
+	if k.ctx != nil {
 		// unreachable
 		panic("attempting to finalise twice")
 	}
-	seal.ctx = ctx
+	k.ctx = ctx
 
 	if config == nil {
-		// unreachable
 		return newWithMessage("invalid configuration")
 	}
 	if config.Home == nil {
@@ -164,7 +163,7 @@ func (seal *outcome) finalise(ctx context.Context, k sys.State, config *hst.Conf
 		if err := gob.NewEncoder(ct).Encode(config); err != nil {
 			return &hst.AppError{Step: "encode initial config", Err: err}
 		}
-		seal.ct = ct
+		k.ct = ct
 	}
 
 	// allowed identity range 0 to 9999, this is checked again in hsu
@@ -172,22 +171,23 @@ func (seal *outcome) finalise(ctx context.Context, k sys.State, config *hst.Conf
 		return newWithMessage(fmt.Sprintf("identity %d out of range", config.Identity))
 	}
 
-	seal.user = hsuUser{
+	k.user = hsuUser{
 		identity: newInt(config.Identity),
 		home:     config.Home,
 		username: config.Username,
 	}
 
-	if seal.user.username == "" {
-		seal.user.username = "chronos"
-	} else if !isValidUsername(seal.user.username) {
-		return newWithMessage(fmt.Sprintf("invalid user name %q", seal.user.username))
+	hsu := Hsu{k: k}
+	if k.user.username == "" {
+		k.user.username = "chronos"
+	} else if !isValidUsername(k.user.username) {
+		return newWithMessage(fmt.Sprintf("invalid user name %q", k.user.username))
 	}
-	seal.user.uid = newInt(sys.MustUid(k, seal.user.identity.unwrap()))
+	k.user.uid = newInt(HsuUid(hsu.MustID(), k.user.identity.unwrap()))
 
-	seal.user.supp = make([]string, len(config.Groups))
+	k.user.supp = make([]string, len(config.Groups))
 	for i, name := range config.Groups {
-		if g, err := k.LookupGroup(name); err != nil {
+		if gid, err := k.lookupGroupId(name); err != nil {
 			var unknownGroupError user.UnknownGroupError
 			if errors.As(err, &unknownGroupError) {
 				return newWithMessageError(fmt.Sprintf("unknown group %q", name), unknownGroupError)
@@ -195,7 +195,7 @@ func (seal *outcome) finalise(ctx context.Context, k sys.State, config *hst.Conf
 				return &hst.AppError{Step: "look up group by name", Err: err}
 			}
 		} else {
-			seal.user.supp[i] = g.Gid
+			k.user.supp[i] = gid
 		}
 	}
 
@@ -205,7 +205,7 @@ func (seal *outcome) finalise(ctx context.Context, k sys.State, config *hst.Conf
 
 		if config.Shell == nil {
 			config.Shell = container.AbsFHSRoot.Append("bin", "sh")
-			s, _ := k.LookupEnv(shell)
+			s, _ := k.lookupEnv(shell)
 			if a, err := container.NewAbs(s); err == nil {
 				config.Shell = a
 			}
@@ -214,7 +214,7 @@ func (seal *outcome) finalise(ctx context.Context, k sys.State, config *hst.Conf
 		// hsu clears the environment so resolve paths early
 		if config.Path == nil {
 			if len(config.Args) > 0 {
-				if p, err := k.LookPath(config.Args[0]); err != nil {
+				if p, err := k.lookPath(config.Args[0]); err != nil {
 					return &hst.AppError{Step: "look up executable file", Err: err}
 				} else if config.Path, err = container.NewAbs(p); err != nil {
 					return newWithMessageError(err.Error(), err)
@@ -250,7 +250,7 @@ func (seal *outcome) finalise(ctx context.Context, k sys.State, config *hst.Conf
 
 		// hide nscd from container if present
 		nscd := container.AbsFHSVar.Append("run/nscd")
-		if _, err := k.Stat(nscd.String()); !errors.Is(err, fs.ErrNotExist) {
+		if _, err := k.stat(nscd.String()); !errors.Is(err, fs.ErrNotExist) {
 			conf.Filesystem = append(conf.Filesystem, hst.FilesystemConfigJSON{FilesystemConfig: &hst.FSEphemeral{Target: nscd}})
 		}
 
@@ -274,86 +274,89 @@ func (seal *outcome) finalise(ctx context.Context, k sys.State, config *hst.Conf
 		return newWithMessage("invalid program path")
 	}
 
+	// TODO(ophestra): revert this after params to shim
+	share := &shareHost{seal: k}
+	copyPaths(k.syscallDispatcher, &share.sc, hsu.MustID())
+
 	var mapuid, mapgid *stringPair[int]
 	{
 		var uid, gid int
 		var err error
-		seal.container, seal.env, err = newContainer(config.Container, k, seal.id.String(), &uid, &gid)
-		seal.waitDelay = config.Container.WaitDelay
+		k.container, k.env, err = newContainer(k, config.Container, k.id.String(), &share.sc, &uid, &gid)
+		k.waitDelay = config.Container.WaitDelay
 		if err != nil {
 			return &hst.AppError{Step: "initialise container configuration", Err: err}
 		}
 		if len(config.Args) == 0 {
 			config.Args = []string{config.Path.String()}
 		}
-		seal.container.Path = config.Path
-		seal.container.Args = config.Args
+		k.container.Path = config.Path
+		k.container.Args = config.Args
 
 		mapuid = newInt(uid)
 		mapgid = newInt(gid)
-		if seal.env == nil {
-			seal.env = make(map[string]string, 1<<6)
+		if k.env == nil {
+			k.env = make(map[string]string, 1<<6)
 		}
 	}
 
 	// inner XDG_RUNTIME_DIR default formatting of `/run/user/%d` as mapped uid
 	innerRuntimeDir := container.AbsFHSRunUser.Append(mapuid.String())
-	seal.env[xdgRuntimeDir] = innerRuntimeDir.String()
-	seal.env[xdgSessionClass] = "user"
-	seal.env[xdgSessionType] = "tty"
+	k.env[xdgRuntimeDir] = innerRuntimeDir.String()
+	k.env[xdgSessionClass] = "user"
+	k.env[xdgSessionType] = "tty"
 
-	share := &shareHost{seal: seal, sc: k.Paths()}
-	seal.runDirPath = share.sc.RunDirPath
-	seal.sys = system.New(seal.ctx, seal.user.uid.unwrap())
-	seal.sys.Ensure(share.sc.SharePath.String(), 0711)
+	k.runDirPath = share.sc.RunDirPath
+	k.sys = system.New(k.ctx, k.user.uid.unwrap())
+	k.sys.Ensure(share.sc.SharePath.String(), 0711)
 
 	{
 		runtimeDir := share.sc.SharePath.Append("runtime")
-		seal.sys.Ensure(runtimeDir.String(), 0700)
-		seal.sys.UpdatePermType(system.User, runtimeDir.String(), acl.Execute)
-		runtimeDirInst := runtimeDir.Append(seal.user.identity.String())
-		seal.sys.Ensure(runtimeDirInst.String(), 0700)
-		seal.sys.UpdatePermType(system.User, runtimeDirInst.String(), acl.Read, acl.Write, acl.Execute)
-		seal.container.Tmpfs(container.AbsFHSRunUser, 1<<12, 0755)
-		seal.container.Bind(runtimeDirInst, innerRuntimeDir, container.BindWritable)
+		k.sys.Ensure(runtimeDir.String(), 0700)
+		k.sys.UpdatePermType(system.User, runtimeDir.String(), acl.Execute)
+		runtimeDirInst := runtimeDir.Append(k.user.identity.String())
+		k.sys.Ensure(runtimeDirInst.String(), 0700)
+		k.sys.UpdatePermType(system.User, runtimeDirInst.String(), acl.Read, acl.Write, acl.Execute)
+		k.container.Tmpfs(container.AbsFHSRunUser, 1<<12, 0755)
+		k.container.Bind(runtimeDirInst, innerRuntimeDir, container.BindWritable)
 	}
 
 	{
 		tmpdir := share.sc.SharePath.Append("tmpdir")
-		seal.sys.Ensure(tmpdir.String(), 0700)
-		seal.sys.UpdatePermType(system.User, tmpdir.String(), acl.Execute)
-		tmpdirInst := tmpdir.Append(seal.user.identity.String())
-		seal.sys.Ensure(tmpdirInst.String(), 01700)
-		seal.sys.UpdatePermType(system.User, tmpdirInst.String(), acl.Read, acl.Write, acl.Execute)
+		k.sys.Ensure(tmpdir.String(), 0700)
+		k.sys.UpdatePermType(system.User, tmpdir.String(), acl.Execute)
+		tmpdirInst := tmpdir.Append(k.user.identity.String())
+		k.sys.Ensure(tmpdirInst.String(), 01700)
+		k.sys.UpdatePermType(system.User, tmpdirInst.String(), acl.Read, acl.Write, acl.Execute)
 		// mount inner /tmp from share so it shares persistence and storage behaviour of host /tmp
-		seal.container.Bind(tmpdirInst, container.AbsFHSTmp, container.BindWritable)
+		k.container.Bind(tmpdirInst, container.AbsFHSTmp, container.BindWritable)
 	}
 
 	{
 		username := "chronos"
-		if seal.user.username != "" {
-			username = seal.user.username
+		if k.user.username != "" {
+			username = k.user.username
 		}
-		seal.container.Dir = seal.user.home
-		seal.env["HOME"] = seal.user.home.String()
-		seal.env["USER"] = username
-		seal.env[shell] = config.Shell.String()
+		k.container.Dir = k.user.home
+		k.env["HOME"] = k.user.home.String()
+		k.env["USER"] = username
+		k.env[shell] = config.Shell.String()
 
-		seal.container.Place(container.AbsFHSEtc.Append("passwd"),
-			[]byte(username+":x:"+mapuid.String()+":"+mapgid.String()+":Hakurei:"+seal.user.home.String()+":"+config.Shell.String()+"\n"))
-		seal.container.Place(container.AbsFHSEtc.Append("group"),
+		k.container.Place(container.AbsFHSEtc.Append("passwd"),
+			[]byte(username+":x:"+mapuid.String()+":"+mapgid.String()+":Hakurei:"+k.user.home.String()+":"+config.Shell.String()+"\n"))
+		k.container.Place(container.AbsFHSEtc.Append("group"),
 			[]byte("hakurei:x:"+mapgid.String()+":\n"))
 	}
 
 	// pass TERM for proper terminal I/O in initial process
-	if t, ok := k.LookupEnv(term); ok {
-		seal.env[term] = t
+	if t, ok := k.lookupEnv(term); ok {
+		k.env[term] = t
 	}
 
 	if config.Enablements.Unwrap()&system.EWayland != 0 {
 		// outer wayland socket (usually `/run/user/%d/wayland-%d`)
 		var socketPath *container.Absolute
-		if name, ok := k.LookupEnv(wayland.WaylandDisplay); !ok {
+		if name, ok := k.lookupEnv(wayland.WaylandDisplay); !ok {
 			hlog.Verbose(wayland.WaylandDisplay + " is not set, assuming " + wayland.FallbackName)
 			socketPath = share.sc.RuntimePath.Append(wayland.FallbackName)
 		} else if a, err := container.NewAbs(name); err != nil {
@@ -363,28 +366,28 @@ func (seal *outcome) finalise(ctx context.Context, k sys.State, config *hst.Conf
 		}
 
 		innerPath := innerRuntimeDir.Append(wayland.FallbackName)
-		seal.env[wayland.WaylandDisplay] = wayland.FallbackName
+		k.env[wayland.WaylandDisplay] = wayland.FallbackName
 
 		if !config.DirectWayland { // set up security-context-v1
 			appID := config.ID
 			if appID == "" {
 				// use instance ID in case app id is not set
-				appID = "app.hakurei." + seal.id.String()
+				appID = "app.hakurei." + k.id.String()
 			}
 			// downstream socket paths
 			outerPath := share.instance().Append("wayland")
-			seal.sys.Wayland(&seal.sync, outerPath.String(), socketPath.String(), appID, seal.id.String())
-			seal.container.Bind(outerPath, innerPath, 0)
+			k.sys.Wayland(&k.sync, outerPath.String(), socketPath.String(), appID, k.id.String())
+			k.container.Bind(outerPath, innerPath, 0)
 		} else { // bind mount wayland socket (insecure)
 			hlog.Verbose("direct wayland access, PROCEED WITH CAUTION")
 			share.ensureRuntimeDir()
-			seal.container.Bind(socketPath, innerPath, 0)
-			seal.sys.UpdatePermType(system.EWayland, socketPath.String(), acl.Read, acl.Write, acl.Execute)
+			k.container.Bind(socketPath, innerPath, 0)
+			k.sys.UpdatePermType(system.EWayland, socketPath.String(), acl.Read, acl.Write, acl.Execute)
 		}
 	}
 
 	if config.Enablements.Unwrap()&system.EX11 != 0 {
-		if d, ok := k.LookupEnv(display); !ok {
+		if d, ok := k.lookupEnv(display); !ok {
 			return newWithMessage("DISPLAY is not set")
 		} else {
 			socketDir := container.AbsFHSTmp.Append(".X11-unix")
@@ -402,21 +405,21 @@ func (seal *outcome) finalise(ctx context.Context, k sys.State, config *hst.Conf
 				}
 			}
 			if socketPath != nil {
-				if _, err := k.Stat(socketPath.String()); err != nil {
+				if _, err := k.stat(socketPath.String()); err != nil {
 					if !errors.Is(err, fs.ErrNotExist) {
 						return &hst.AppError{Step: fmt.Sprintf("access X11 socket %q", socketPath), Err: err}
 					}
 				} else {
-					seal.sys.UpdatePermType(system.EX11, socketPath.String(), acl.Read, acl.Write, acl.Execute)
+					k.sys.UpdatePermType(system.EX11, socketPath.String(), acl.Read, acl.Write, acl.Execute)
 					if !config.Container.HostAbstract {
 						d = "unix:" + socketPath.String()
 					}
 				}
 			}
 
-			seal.sys.ChangeHosts("#" + seal.user.uid.String())
-			seal.env[display] = d
-			seal.container.Bind(socketDir, socketDir, 0)
+			k.sys.ChangeHosts("#" + k.user.uid.String())
+			k.env[display] = d
+			k.container.Bind(socketDir, socketDir, 0)
 		}
 	}
 
@@ -426,14 +429,14 @@ func (seal *outcome) finalise(ctx context.Context, k sys.State, config *hst.Conf
 		// PulseAudio socket (usually `/run/user/%d/pulse/native`)
 		pulseSocket := pulseRuntimeDir.Append("native")
 
-		if _, err := k.Stat(pulseRuntimeDir.String()); err != nil {
+		if _, err := k.stat(pulseRuntimeDir.String()); err != nil {
 			if !errors.Is(err, fs.ErrNotExist) {
 				return &hst.AppError{Step: fmt.Sprintf("access PulseAudio directory %q", pulseRuntimeDir), Err: err}
 			}
 			return newWithMessage(fmt.Sprintf("PulseAudio directory %q not found", pulseRuntimeDir))
 		}
 
-		if s, err := k.Stat(pulseSocket.String()); err != nil {
+		if s, err := k.stat(pulseSocket.String()); err != nil {
 			if !errors.Is(err, fs.ErrNotExist) {
 				return &hst.AppError{Step: fmt.Sprintf("access PulseAudio socket %q", pulseSocket), Err: err}
 			}
@@ -447,9 +450,9 @@ func (seal *outcome) finalise(ctx context.Context, k sys.State, config *hst.Conf
 		// hard link pulse socket into target-executable share
 		innerPulseRuntimeDir := share.runtime().Append("pulse")
 		innerPulseSocket := innerRuntimeDir.Append("pulse", "native")
-		seal.sys.Link(pulseSocket.String(), innerPulseRuntimeDir.String())
-		seal.container.Bind(innerPulseRuntimeDir, innerPulseSocket, 0)
-		seal.env[pulseServer] = "unix:" + innerPulseSocket.String()
+		k.sys.Link(pulseSocket.String(), innerPulseRuntimeDir.String())
+		k.container.Bind(innerPulseRuntimeDir, innerPulseSocket, 0)
+		k.env[pulseServer] = "unix:" + innerPulseSocket.String()
 
 		// publish current user's pulse cookie for target user
 		var paCookiePath *container.Absolute
@@ -457,7 +460,7 @@ func (seal *outcome) finalise(ctx context.Context, k sys.State, config *hst.Conf
 			const paLocateStep = "locate PulseAudio cookie"
 
 			// from environment
-			if p, ok := k.LookupEnv(pulseCookie); ok {
+			if p, ok := k.lookupEnv(pulseCookie); ok {
 				if a, err := container.NewAbs(p); err != nil {
 					return &hst.AppError{Step: paLocateStep, Err: err}
 				} else {
@@ -468,14 +471,14 @@ func (seal *outcome) finalise(ctx context.Context, k sys.State, config *hst.Conf
 			}
 
 			// $HOME/.pulse-cookie
-			if p, ok := k.LookupEnv(home); ok {
+			if p, ok := k.lookupEnv(home); ok {
 				if a, err := container.NewAbs(p); err != nil {
 					return &hst.AppError{Step: paLocateStep, Err: err}
 				} else {
 					paCookiePath = a.Append(".pulse-cookie")
 				}
 
-				if s, err := k.Stat(paCookiePath.String()); err != nil {
+				if s, err := k.stat(paCookiePath.String()); err != nil {
 					paCookiePath = nil
 					if !errors.Is(err, fs.ErrNotExist) {
 						return &hst.AppError{Step: "access PulseAudio cookie", Err: err}
@@ -489,13 +492,13 @@ func (seal *outcome) finalise(ctx context.Context, k sys.State, config *hst.Conf
 			}
 
 			// $XDG_CONFIG_HOME/pulse/cookie
-			if p, ok := k.LookupEnv(xdgConfigHome); ok {
+			if p, ok := k.lookupEnv(xdgConfigHome); ok {
 				if a, err := container.NewAbs(p); err != nil {
 					return &hst.AppError{Step: paLocateStep, Err: err}
 				} else {
 					paCookiePath = a.Append("pulse", "cookie")
 				}
-				if s, err := k.Stat(paCookiePath.String()); err != nil {
+				if s, err := k.stat(paCookiePath.String()); err != nil {
 					paCookiePath = nil
 					if !errors.Is(err, fs.ErrNotExist) {
 						return &hst.AppError{Step: "access PulseAudio cookie", Err: err}
@@ -512,10 +515,10 @@ func (seal *outcome) finalise(ctx context.Context, k sys.State, config *hst.Conf
 
 		if paCookiePath != nil {
 			innerDst := hst.AbsTmp.Append("/pulse-cookie")
-			seal.env[pulseCookie] = innerDst.String()
+			k.env[pulseCookie] = innerDst.String()
 			var payload *[]byte
-			seal.container.PlaceP(innerDst, &payload)
-			seal.sys.CopyFile(payload, paCookiePath.String(), 256, 256)
+			k.container.PlaceP(innerDst, &payload)
+			k.sys.CopyFile(payload, paCookiePath.String(), 256, 256)
 		} else {
 			hlog.Verbose("cannot locate PulseAudio cookie (tried " +
 				"$PULSE_COOKIE, " +
@@ -534,30 +537,30 @@ func (seal *outcome) finalise(ctx context.Context, k sys.State, config *hst.Conf
 		sessionPath, systemPath := share.instance().Append("bus"), share.instance().Append("system_bus_socket")
 
 		// configure dbus proxy
-		if f, err := seal.sys.ProxyDBus(
+		if f, err := k.sys.ProxyDBus(
 			config.SessionBus, config.SystemBus,
 			sessionPath.String(), systemPath.String(),
 		); err != nil {
 			return err
 		} else {
-			seal.dbusMsg = f
+			k.dbusMsg = f
 		}
 
 		// share proxy sockets
 		sessionInner := innerRuntimeDir.Append("bus")
-		seal.env[dbusSessionBusAddress] = "unix:path=" + sessionInner.String()
-		seal.container.Bind(sessionPath, sessionInner, 0)
-		seal.sys.UpdatePerm(sessionPath.String(), acl.Read, acl.Write)
+		k.env[dbusSessionBusAddress] = "unix:path=" + sessionInner.String()
+		k.container.Bind(sessionPath, sessionInner, 0)
+		k.sys.UpdatePerm(sessionPath.String(), acl.Read, acl.Write)
 		if config.SystemBus != nil {
 			systemInner := container.AbsFHSRun.Append("dbus/system_bus_socket")
-			seal.env[dbusSystemBusAddress] = "unix:path=" + systemInner.String()
-			seal.container.Bind(systemPath, systemInner, 0)
-			seal.sys.UpdatePerm(systemPath.String(), acl.Read, acl.Write)
+			k.env[dbusSystemBusAddress] = "unix:path=" + systemInner.String()
+			k.container.Bind(systemPath, systemInner, 0)
+			k.sys.UpdatePerm(systemPath.String(), acl.Read, acl.Write)
 		}
 	}
 
 	// mount root read-only as the final setup Op
-	seal.container.Remount(container.AbsFHSRoot, syscall.MS_RDONLY)
+	k.container.Remount(container.AbsFHSRoot, syscall.MS_RDONLY)
 
 	// append ExtraPerms last
 	for _, p := range config.ExtraPerms {
@@ -566,7 +569,7 @@ func (seal *outcome) finalise(ctx context.Context, k sys.State, config *hst.Conf
 		}
 
 		if p.Ensure {
-			seal.sys.Ensure(p.Path.String(), 0700)
+			k.sys.Ensure(p.Path.String(), 0700)
 		}
 
 		perms := make(acl.Perms, 0, 3)
@@ -579,23 +582,23 @@ func (seal *outcome) finalise(ctx context.Context, k sys.State, config *hst.Conf
 		if p.Execute {
 			perms = append(perms, acl.Execute)
 		}
-		seal.sys.UpdatePermType(system.User, p.Path.String(), perms...)
+		k.sys.UpdatePermType(system.User, p.Path.String(), perms...)
 	}
 
 	// flatten and sort env for deterministic behaviour
-	seal.container.Env = make([]string, 0, len(seal.env))
-	for k, v := range seal.env {
-		if strings.IndexByte(k, '=') != -1 {
+	k.container.Env = make([]string, 0, len(k.env))
+	for key, value := range k.env {
+		if strings.IndexByte(key, '=') != -1 {
 			return &hst.AppError{Step: "flatten environment", Err: syscall.EINVAL,
-				Msg: fmt.Sprintf("invalid environment variable %s", k)}
+				Msg: fmt.Sprintf("invalid environment variable %s", key)}
 		}
-		seal.container.Env = append(seal.container.Env, k+"="+v)
+		k.container.Env = append(k.container.Env, key+"="+value)
 	}
-	slices.Sort(seal.container.Env)
+	slices.Sort(k.container.Env)
 
 	if hlog.Load() {
 		hlog.Verbosef("created application seal for uid %s (%s) groups: %v, argv: %s, ops: %d",
-			seal.user.uid, seal.user.username, config.Groups, seal.container.Args, len(*seal.container.Ops))
+			k.user.uid, k.user.username, config.Groups, k.container.Args, len(*k.container.Ops))
 	}
 
 	return nil

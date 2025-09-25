@@ -11,6 +11,7 @@ import (
 	"syscall"
 
 	"hakurei.app/hst"
+	"hakurei.app/internal/app"
 	"hakurei.app/internal/app/state"
 	"hakurei.app/internal/hlog"
 )
@@ -87,7 +88,9 @@ func tryShort(name string) (config *hst.Config, entry *state.State) {
 	if likePrefix && len(name) >= 8 {
 		hlog.Verbose("argument looks like prefix")
 
-		s := state.NewMulti(std.Paths().RunDirPath.String())
+		var sc hst.Paths
+		app.CopyPaths(&sc, new(app.Hsu).MustID())
+		s := state.NewMulti(sc.RunDirPath.String())
 		if entries, err := state.Join(s); err != nil {
 			log.Printf("cannot join store: %v", err)
 			// drop to fetch from file
