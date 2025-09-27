@@ -50,3 +50,18 @@ func (msg *DefaultMsg) Verbosef(format string, v ...any) {
 func (msg *DefaultMsg) Suspend()     { msg.inactive.Store(true) }
 func (msg *DefaultMsg) Resume() bool { return msg.inactive.CompareAndSwap(true, false) }
 func (msg *DefaultMsg) BeforeExit()  {}
+
+// msg is the [Msg] implemented used by all exported [container] functions.
+var msg Msg = new(DefaultMsg)
+
+// GetOutput returns the current active [Msg] implementation.
+func GetOutput() Msg { return msg }
+
+// SetOutput replaces the current active [Msg] implementation.
+func SetOutput(v Msg) {
+	if v == nil {
+		msg = new(DefaultMsg)
+	} else {
+		msg = v
+	}
+}

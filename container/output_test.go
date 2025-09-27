@@ -1,4 +1,4 @@
-package container
+package container_test
 
 import (
 	"bytes"
@@ -8,10 +8,14 @@ import (
 	"syscall"
 	"testing"
 
+	"hakurei.app/container"
 	"hakurei.app/container/stub"
 )
 
 func TestSuspendable(t *testing.T) {
+	// copied from output.go
+	const suspendBufMax = 1 << 24
+
 	const (
 		// equivalent to len(want.pt)
 		nSpecialPtEquiv = -iota - 1
@@ -70,7 +74,7 @@ func TestSuspendable(t *testing.T) {
 
 	var dw expectWriter
 
-	w := Suspendable{Downstream: &dw}
+	w := container.Suspendable{Downstream: &dw}
 	for _, tc := range testCases {
 		// these share the same writer, so cannot be subtests
 		t.Logf("writing step %q", tc.name)
@@ -149,39 +153,3 @@ func (w *expectWriter) Write(p []byte) (n int, err error) {
 	}
 	return
 }
-
-func TestGetSetOutput(t *testing.T) {
-	{
-		out := GetOutput()
-		t.Cleanup(func() { SetOutput(out) })
-	}
-
-	t.Run("default", func(t *testing.T) {
-		SetOutput(new(stubOutput))
-		if v, ok := GetOutput().(*DefaultMsg); ok {
-			t.Fatalf("SetOutput: got unexpected output %#v", v)
-		}
-		SetOutput(nil)
-		if _, ok := GetOutput().(*DefaultMsg); !ok {
-			t.Fatalf("SetOutput: got unexpected output %#v", GetOutput())
-		}
-	})
-
-	t.Run("stub", func(t *testing.T) {
-		SetOutput(new(stubOutput))
-		if _, ok := GetOutput().(*stubOutput); !ok {
-			t.Fatalf("SetOutput: got unexpected output %#v", GetOutput())
-		}
-	})
-}
-
-type stubOutput struct {
-	wrapF func(error, ...any) error
-}
-
-func (*stubOutput) IsVerbose() bool         { panic("unreachable") }
-func (*stubOutput) Verbose(...any)          { panic("unreachable") }
-func (*stubOutput) Verbosef(string, ...any) { panic("unreachable") }
-func (*stubOutput) Suspend()                { panic("unreachable") }
-func (*stubOutput) Resume() bool            { panic("unreachable") }
-func (*stubOutput) BeforeExit()             { panic("unreachable") }

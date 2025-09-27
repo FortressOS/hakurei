@@ -75,14 +75,3 @@ func (s *Suspendable) Resume() (resumed bool, dropped uintptr, n int64, err erro
 	}
 	return
 }
-
-var msg Msg = new(DefaultMsg)
-
-func GetOutput() Msg { return msg }
-func SetOutput(v Msg) {
-	if v == nil {
-		msg = new(DefaultMsg)
-	} else {
-		msg = v
-	}
-}

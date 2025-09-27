@@ -146,3 +146,39 @@ func (out *testOutput) Resume() bool {
 }
 
 func (out *testOutput) BeforeExit() { out.Verbose("beforeExit called") }
+
+func TestGetSetOutput(t *testing.T) {
+	{
+		out := container.GetOutput()
+		t.Cleanup(func() { container.SetOutput(out) })
+	}
+
+	t.Run("default", func(t *testing.T) {
+		container.SetOutput(new(stubOutput))
+		if v, ok := container.GetOutput().(*container.DefaultMsg); ok {
+			t.Fatalf("SetOutput: got unexpected output %#v", v)
+		}
+		container.SetOutput(nil)
+		if _, ok := container.GetOutput().(*container.DefaultMsg); !ok {
+			t.Fatalf("SetOutput: got unexpected output %#v", container.GetOutput())
+		}
+	})
+
+	t.Run("stub", func(t *testing.T) {
+		container.SetOutput(new(stubOutput))
+		if _, ok := container.GetOutput().(*stubOutput); !ok {
+			t.Fatalf("SetOutput: got unexpected output %#v", container.GetOutput())
+		}
+	})
+}
+
+type stubOutput struct {
+	wrapF func(error, ...any) error
+}
+
+func (*stubOutput) IsVerbose() bool         { panic("unreachable") }
+func (*stubOutput) Verbose(...any)          { panic("unreachable") }
+func (*stubOutput) Verbosef(string, ...any) { panic("unreachable") }
+func (*stubOutput) Suspend()                { panic("unreachable") }
+func (*stubOutput) Resume() bool            { panic("unreachable") }
+func (*stubOutput) BeforeExit()             { panic("unreachable") }
