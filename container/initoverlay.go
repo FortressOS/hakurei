@@ -209,7 +209,7 @@ func (o *MountOverlayOp) Is(op Op) bool {
 		slices.EqualFunc(o.Lower, vo.Lower, func(a *Absolute, v *Absolute) bool { return a.Is(v) }) &&
 		o.Upper.Is(vo.Upper) && o.Work.Is(vo.Work)
 }
-func (*MountOverlayOp) prefix() string { return "mounting" }
+func (*MountOverlayOp) prefix() (string, bool) { return "mounting", true }
 func (o *MountOverlayOp) String() string {
 	return fmt.Sprintf("overlay on %q with %d layers", o.Target, len(o.Lower))
 }

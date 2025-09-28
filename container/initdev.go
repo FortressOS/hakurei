@@ -49,7 +49,6 @@ func (d *MountDevOp) apply(state *setupState, k syscallDispatcher) error {
 			toHost(FHSDev+name),
 			targetPath,
 			0,
-			true,
 		); err != nil {
 			return err
 		}
@@ -97,7 +96,6 @@ func (d *MountDevOp) apply(state *setupState, k syscallDispatcher) error {
 				toHost(name),
 				consolePath,
 				0,
-				false,
 			); err != nil {
 				return err
 			}
@@ -131,7 +129,7 @@ func (d *MountDevOp) Is(op Op) bool {
 		d.Mqueue == vd.Mqueue &&
 		d.Write == vd.Write
 }
-func (*MountDevOp) prefix() string { return "mounting" }
+func (*MountDevOp) prefix() (string, bool) { return "mounting", true }
 func (d *MountDevOp) String() string {
 	if d.Mqueue {
 		return fmt.Sprintf("dev on %q with mqueue", d.Target)

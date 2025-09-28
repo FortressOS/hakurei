@@ -47,7 +47,9 @@ type (
 		// apply is called in intermediate root.
 		apply(state *setupState, k syscallDispatcher) error
 
-		prefix() string
+		// prefix returns a log message prefix, and whether this Op prints no identifying message on its own.
+		prefix() (string, bool)
+
 		Is(op Op) bool
 		Valid() bool
 		fmt.Stringer
@@ -223,7 +225,9 @@ func initEntrypoint(k syscallDispatcher, prepareLogger func(prefix string), setV
 	chdir is allowed but discouraged */
 	for i, op := range *params.Ops {
 		// ops already checked during early setup
-		k.verbosef("%s %s", op.prefix(), op)
+		if prefix, ok := op.prefix(); ok {
+			k.verbosef("%s %s", prefix, op)
+		}
 		if err := op.apply(state, k); err != nil {
 			if m, ok := messageFromError(err); ok {
 				k.fatal(m)

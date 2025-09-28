@@ -22,7 +22,7 @@ type AutoRootOp struct {
 	// obtained during early;
 	// these wrap the underlying Op because BindMountOp is relatively complex,
 	// so duplicating that code would be unwise
-	resolved []Op
+	resolved []*BindMountOp
 }
 
 func (r *AutoRootOp) Valid() bool { return r != nil && r.Host != nil }
@@ -31,10 +31,11 @@ func (r *AutoRootOp) early(state *setupState, k syscallDispatcher) error {
 	if d, err := k.readdir(r.Host.String()); err != nil {
 		return err
 	} else {
-		r.resolved = make([]Op, 0, len(d))
+		r.resolved = make([]*BindMountOp, 0, len(d))
 		for _, ent := range d {
 			name := ent.Name()
 			if IsAutoRootBindable(name) {
+				// careful: the Valid method is skipped, make sure this is always valid
 				op := &BindMountOp{
 					Source: r.Host.Append(name),
 					Target: AbsFHSRoot.Append(name),
@@ -57,7 +58,7 @@ func (r *AutoRootOp) apply(state *setupState, k syscallDispatcher) error {
 	state.nonrepeatable |= nrAutoRoot
 
 	for _, op := range r.resolved {
-		k.verbosef("%s %s", op.prefix(), op)
+		// these are exclusively BindMountOp, do not attempt to print identifying message
 		if err := op.apply(state, k); err != nil {
 			return err
 		}
@@ -71,7 +72,7 @@ func (r *AutoRootOp) Is(op Op) bool {
 		r.Host.Is(vr.Host) &&
 		r.Flags == vr.Flags
 }
-func (*AutoRootOp) prefix() string { return "setting up" }
+func (*AutoRootOp) prefix() (string, bool) { return "setting up", true }
 func (r *AutoRootOp) String() string {
 	return fmt.Sprintf("auto root %q flags %#x", r.Host, r.Flags)
 }

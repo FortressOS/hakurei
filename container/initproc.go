@@ -32,5 +32,5 @@ func (p *MountProcOp) Is(op Op) bool {
 	return ok && p.Valid() && vp.Valid() &&
 		p.Target.Is(vp.Target)
 }
-func (*MountProcOp) prefix() string   { return "mounting" }
-func (p *MountProcOp) String() string { return fmt.Sprintf("proc on %q", p.Target) }
+func (*MountProcOp) prefix() (string, bool) { return "mounting", true }
+func (p *MountProcOp) String() string       { return fmt.Sprintf("proc on %q", p.Target) }

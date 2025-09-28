@@ -56,5 +56,5 @@ func (t *MountTmpfsOp) Is(op Op) bool {
 		t.Size == vt.Size &&
 		t.Perm == vt.Perm
 }
-func (*MountTmpfsOp) prefix() string   { return "mounting" }
-func (t *MountTmpfsOp) String() string { return fmt.Sprintf("tmpfs on %q size %d", t.Path, t.Size) }
+func (*MountTmpfsOp) prefix() (string, bool) { return "mounting", true }
+func (t *MountTmpfsOp) String() string       { return fmt.Sprintf("tmpfs on %q size %d", t.Path, t.Size) }

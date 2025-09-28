@@ -53,7 +53,7 @@ type syscallDispatcher interface {
 	receive(key string, e any, fdp *uintptr) (closeFunc func() error, err error)
 
 	// bindMount provides procPaths.bindMount.
-	bindMount(source, target string, flags uintptr, eq bool) error
+	bindMount(source, target string, flags uintptr) error
 	// remount provides procPaths.remount.
 	remount(target string, flags uintptr) error
 	// mountTmpfs provides mountTmpfs.
@@ -161,8 +161,8 @@ func (direct) receive(key string, e any, fdp *uintptr) (func() error, error) {
 	return Receive(key, e, fdp)
 }
 
-func (direct) bindMount(source, target string, flags uintptr, eq bool) error {
-	return hostProc.bindMount(source, target, flags, eq)
+func (direct) bindMount(source, target string, flags uintptr) error {
+	return hostProc.bindMount(source, target, flags)
 }
 func (direct) remount(target string, flags uintptr) error {
 	return hostProc.remount(target, flags)

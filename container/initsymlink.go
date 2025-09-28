@@ -55,7 +55,7 @@ func (l *SymlinkOp) Is(op Op) bool {
 		l.LinkName == vl.LinkName &&
 		l.Dereference == vl.Dereference
 }
-func (*SymlinkOp) prefix() string { return "creating" }
+func (*SymlinkOp) prefix() (string, bool) { return "creating", true }
 func (l *SymlinkOp) String() string {
 	return fmt.Sprintf("symlink on %q linkname %q", l.Target, l.LinkName)
 }

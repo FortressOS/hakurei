@@ -31,5 +31,5 @@ func (r *RemountOp) Is(op Op) bool {
 		r.Target.Is(vr.Target) &&
 		r.Flags == vr.Flags
 }
-func (*RemountOp) prefix() string   { return "remounting" }
-func (r *RemountOp) String() string { return fmt.Sprintf("%q flags %#x", r.Target, r.Flags) }
+func (*RemountOp) prefix() (string, bool) { return "remounting", true }
+func (r *RemountOp) String() string       { return fmt.Sprintf("%q flags %#x", r.Target, r.Flags) }

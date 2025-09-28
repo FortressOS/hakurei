@@ -111,7 +111,7 @@ func checkOpMeta(t *testing.T, testCases []opMetaTestCase) {
 				t.Run("prefix", func(t *testing.T) {
 					t.Helper()
 
-					if got := tc.op.prefix(); got != tc.wantPrefix {
+					if got, _ := tc.op.prefix(); got != tc.wantPrefix {
 						t.Errorf("prefix: %q, want %q", got, tc.wantPrefix)
 					}
 				})
@@ -403,13 +403,12 @@ func (k *kstub) receive(key string, e any, fdp *uintptr) (closeFunc func() error
 	return
 }
 
-func (k *kstub) bindMount(source, target string, flags uintptr, eq bool) error {
+func (k *kstub) bindMount(source, target string, flags uintptr) error {
 	k.Helper()
 	return k.Expects("bindMount").Error(
 		stub.CheckArg(k.Stub, "source", source, 0),
 		stub.CheckArg(k.Stub, "target", target, 1),
-		stub.CheckArg(k.Stub, "flags", flags, 2),
-		stub.CheckArg(k.Stub, "eq", eq, 3))
+		stub.CheckArg(k.Stub, "flags", flags, 2))
 }
 
 func (k *kstub) remount(target string, flags uintptr) error {

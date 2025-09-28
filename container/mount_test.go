@@ -12,24 +12,21 @@ import (
 func TestBindMount(t *testing.T) {
 	checkSimple(t, "bindMount", []simpleTestCase{
 		{"mount", func(k syscallDispatcher) error {
-			return newProcPaths(k, hostPath).bindMount("/host/nix", "/sysroot/nix", syscall.MS_RDONLY, true)
+			return newProcPaths(k, hostPath).bindMount("/host/nix", "/sysroot/nix", syscall.MS_RDONLY)
 		}, stub.Expect{Calls: []stub.Call{
-			call("verbosef", stub.ExpectArgs{"resolved %q flags %#x", []any{"/sysroot/nix", uintptr(1)}}, nil, nil),
 			call("mount", stub.ExpectArgs{"/host/nix", "/sysroot/nix", "", uintptr(0x9000), ""}, nil, stub.UniqueError(0xbad)),
 		}}, stub.UniqueError(0xbad)},
 
 		{"success ne", func(k syscallDispatcher) error {
-			return newProcPaths(k, hostPath).bindMount("/host/nix", "/sysroot/.host-nix", syscall.MS_RDONLY, false)
+			return newProcPaths(k, hostPath).bindMount("/host/nix", "/sysroot/.host-nix", syscall.MS_RDONLY)
 		}, stub.Expect{Calls: []stub.Call{
-			call("verbosef", stub.ExpectArgs{"resolved %q on %q flags %#x", []any{"/host/nix", "/sysroot/.host-nix", uintptr(1)}}, nil, nil),
 			call("mount", stub.ExpectArgs{"/host/nix", "/sysroot/.host-nix", "", uintptr(0x9000), ""}, nil, nil),
 			call("remount", stub.ExpectArgs{"/sysroot/.host-nix", uintptr(1)}, nil, nil),
 		}}, nil},
 
 		{"success", func(k syscallDispatcher) error {
-			return newProcPaths(k, hostPath).bindMount("/host/nix", "/sysroot/nix", syscall.MS_RDONLY, true)
+			return newProcPaths(k, hostPath).bindMount("/host/nix", "/sysroot/nix", syscall.MS_RDONLY)
 		}, stub.Expect{Calls: []stub.Call{
-			call("verbosef", stub.ExpectArgs{"resolved %q flags %#x", []any{"/sysroot/nix", uintptr(1)}}, nil, nil),
 			call("mount", stub.ExpectArgs{"/host/nix", "/sysroot/nix", "", uintptr(0x9000), ""}, nil, nil),
 			call("remount", stub.ExpectArgs{"/sysroot/nix", uintptr(1)}, nil, nil),
 		}}, nil},

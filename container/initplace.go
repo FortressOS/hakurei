@@ -55,7 +55,6 @@ func (t *TmpfileOp) apply(state *setupState, k syscallDispatcher) error {
 		tmpPath,
 		target,
 		syscall.MS_RDONLY|syscall.MS_NODEV,
-		false,
 	); err != nil {
 		return err
 	} else if err = k.remove(tmpPath); err != nil {
@@ -70,7 +69,7 @@ func (t *TmpfileOp) Is(op Op) bool {
 		t.Path.Is(vt.Path) &&
 		string(t.Data) == string(vt.Data)
 }
-func (*TmpfileOp) prefix() string { return "placing" }
+func (*TmpfileOp) prefix() (string, bool) { return "placing", true }
 func (t *TmpfileOp) String() string {
 	return fmt.Sprintf("tmpfile %q (%d bytes)", t.Path, len(t.Data))
 }

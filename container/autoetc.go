@@ -64,5 +64,5 @@ func (e *AutoEtcOp) Is(op Op) bool {
 	ve, ok := op.(*AutoEtcOp)
 	return ok && e.Valid() && ve.Valid() && *e == *ve
 }
-func (*AutoEtcOp) prefix() string   { return "setting up" }
-func (e *AutoEtcOp) String() string { return fmt.Sprintf("auto etc %s", e.Prefix) }
+func (*AutoEtcOp) prefix() (string, bool) { return "setting up", true }
+func (e *AutoEtcOp) String() string       { return fmt.Sprintf("auto etc %s", e.Prefix) }

@@ -32,5 +32,5 @@ func (m *MkdirOp) Is(op Op) bool {
 		m.Path.Is(vm.Path) &&
 		m.Perm == vm.Perm
 }
-func (*MkdirOp) prefix() string   { return "creating" }
-func (m *MkdirOp) String() string { return fmt.Sprintf("directory %q perm %s", m.Path, m.Perm) }
+func (*MkdirOp) prefix() (string, bool) { return "creating", true }
+func (m *MkdirOp) String() string       { return fmt.Sprintf("directory %q perm %s", m.Path, m.Perm) }

@@ -96,14 +96,8 @@ const (
 )
 
 // bindMount mounts source on target and recursively applies flags if MS_REC is set.
-func (p *procPaths) bindMount(source, target string, flags uintptr, eq bool) error {
+func (p *procPaths) bindMount(source, target string, flags uintptr) error {
 	// syscallDispatcher.bindMount and procPaths.remount must not be called from this function
-
-	if eq {
-		p.k.verbosef("resolved %q flags %#x", target, flags)
-	} else {
-		p.k.verbosef("resolved %q on %q flags %#x", source, target, flags)
-	}
 
 	if err := p.k.mount(source, target, FstypeNULL, MS_SILENT|MS_BIND|flags&MS_REC, zeroString); err != nil {
 		return err

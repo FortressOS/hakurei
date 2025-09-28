@@ -91,7 +91,12 @@ func (b *BindMountOp) apply(_ *setupState, k syscallDispatcher) error {
 		flags |= syscall.MS_NODEV
 	}
 
-	return k.bindMount(source, target, flags, b.sourceFinal == b.Target)
+	if b.sourceFinal.String() == b.Target.String() {
+		k.verbosef("mounting %q flags %#x", target, flags)
+	} else {
+		k.verbosef("mounting %q on %q flags %#x", source, target, flags)
+	}
+	return k.bindMount(source, target, flags)
 }
 
 func (b *BindMountOp) Is(op Op) bool {
@@ -101,7 +106,7 @@ func (b *BindMountOp) Is(op Op) bool {
 		b.Target.Is(vb.Target) &&
 		b.Flags == vb.Flags
 }
-func (*BindMountOp) prefix() string { return "mounting" }
+func (*BindMountOp) prefix() (string, bool) { return "mounting", false }
 func (b *BindMountOp) String() string {
 	if b.Source == nil || b.Target == nil {
 		return "<invalid>"
