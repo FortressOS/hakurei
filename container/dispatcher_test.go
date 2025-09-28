@@ -2,8 +2,10 @@ package container
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"io/fs"
+	"log"
 	"os"
 	"os/exec"
 	"reflect"
@@ -136,7 +138,7 @@ func call(name string, args stub.ExpectArgs, ret any, err error) stub.Call {
 
 type simpleTestCase struct {
 	name    string
-	f       func(k syscallDispatcher) error
+	f       func(k *kstub) error
 	want    stub.Expect
 	wantErr error
 }
@@ -185,11 +187,11 @@ func checkOpBehaviour(t *testing.T, testCases []opBehaviourTestCase) {
 			t.Run(tc.name, func(t *testing.T) {
 				t.Helper()
 
-				state := &setupState{Params: tc.params}
 				k := &kstub{nil, stub.New(t,
 					func(s *stub.Stub[syscallDispatcher]) syscallDispatcher { return &kstub{nil, s} },
 					stub.Expect{Calls: slices.Concat(tc.early, []stub.Call{{Name: stub.CallSeparator}}, tc.apply)},
 				)}
+				state := &setupState{Params: tc.params, Msg: k}
 				defer stub.HandleExit(t)
 				errEarly := tc.op.early(state, k)
 				k.Expects(stub.CallSeparator)
@@ -327,7 +329,11 @@ func (k *kstub) setDumpable(dumpable uintptr) error {
 }
 
 func (k *kstub) setNoNewPrivs() error { k.Helper(); return k.Expects("setNoNewPrivs").Err }
-func (k *kstub) lastcap() uintptr     { k.Helper(); return k.Expects("lastcap").Ret.(uintptr) }
+func (k *kstub) lastcap(msg Msg) uintptr {
+	k.Helper()
+	k.checkMsg(msg)
+	return k.Expects("lastcap").Ret.(uintptr)
+}
 
 func (k *kstub) capset(hdrp *capHeader, datap *[2]capData) error {
 	k.Helper()
@@ -403,16 +409,18 @@ func (k *kstub) receive(key string, e any, fdp *uintptr) (closeFunc func() error
 	return
 }
 
-func (k *kstub) bindMount(source, target string, flags uintptr) error {
+func (k *kstub) bindMount(msg Msg, source, target string, flags uintptr) error {
 	k.Helper()
+	k.checkMsg(msg)
 	return k.Expects("bindMount").Error(
 		stub.CheckArg(k.Stub, "source", source, 0),
 		stub.CheckArg(k.Stub, "target", target, 1),
 		stub.CheckArg(k.Stub, "flags", flags, 2))
 }
 
-func (k *kstub) remount(target string, flags uintptr) error {
+func (k *kstub) remount(msg Msg, target string, flags uintptr) error {
 	k.Helper()
+	k.checkMsg(msg)
 	return k.Expects("remount").Error(
 		stub.CheckArg(k.Stub, "target", target, 0),
 		stub.CheckArg(k.Stub, "flags", flags, 1))
@@ -694,7 +702,7 @@ func (k *kstub) wait4(pid int, wstatus *syscall.WaitStatus, options int, rusage 
 	return
 }
 
-func (k *kstub) printf(format string, v ...any) {
+func (k *kstub) printf(_ Msg, format string, v ...any) {
 	k.Helper()
 	if k.Expects("printf").Error(
 		stub.CheckArg(k.Stub, "format", format, 0),
@@ -703,7 +711,7 @@ func (k *kstub) printf(format string, v ...any) {
 	}
 }
 
-func (k *kstub) fatal(v ...any) {
+func (k *kstub) fatal(_ Msg, v ...any) {
 	k.Helper()
 	if k.Expects("fatal").Error(
 		stub.CheckArgReflect(k.Stub, "v", v, 0)) != nil {
@@ -712,7 +720,7 @@ func (k *kstub) fatal(v ...any) {
 	panic(stub.PanicExit)
 }
 
-func (k *kstub) fatalf(format string, v ...any) {
+func (k *kstub) fatalf(_ Msg, format string, v ...any) {
 	k.Helper()
 	if k.Expects("fatalf").Error(
 		stub.CheckArg(k.Stub, "format", format, 0),
@@ -722,7 +730,35 @@ func (k *kstub) fatalf(format string, v ...any) {
 	panic(stub.PanicExit)
 }
 
-func (k *kstub) verbose(v ...any) {
+func (k *kstub) checkMsg(msg Msg) {
+	k.Helper()
+	var target *kstub
+
+	if state, ok := msg.(*setupState); ok {
+		target = state.Msg.(*kstub)
+	} else {
+		target = msg.(*kstub)
+	}
+
+	if k != target {
+		panic(fmt.Sprintf("unexpected Msg: %#v", msg))
+	}
+}
+
+func (k *kstub) GetLogger() *log.Logger { panic("unreachable") }
+func (k *kstub) IsVerbose() bool        { panic("unreachable") }
+
+func (k *kstub) SwapVerbose(verbose bool) bool {
+	k.Helper()
+	expect := k.Expects("swapVerbose")
+	if expect.Error(
+		stub.CheckArg(k.Stub, "verbose", verbose, 0)) != nil {
+		k.FailNow()
+	}
+	return expect.Ret.(bool)
+}
+
+func (k *kstub) Verbose(v ...any) {
 	k.Helper()
 	if k.Expects("verbose").Error(
 		stub.CheckArgReflect(k.Stub, "v", v, 0)) != nil {
@@ -730,7 +766,7 @@ func (k *kstub) verbose(v ...any) {
 	}
 }
 
-func (k *kstub) verbosef(format string, v ...any) {
+func (k *kstub) Verbosef(format string, v ...any) {
 	k.Helper()
 	if k.Expects("verbosef").Error(
 		stub.CheckArg(k.Stub, "format", format, 0),
@@ -739,6 +775,6 @@ func (k *kstub) verbosef(format string, v ...any) {
 	}
 }
 
-func (k *kstub) suspend()     { k.Helper(); k.Expects("suspend") }
-func (k *kstub) resume() bool { k.Helper(); return k.Expects("resume").Ret.(bool) }
-func (k *kstub) beforeExit()  { k.Helper(); k.Expects("beforeExit") }
+func (k *kstub) Suspend() bool { k.Helper(); return k.Expects("suspend").Ret.(bool) }
+func (k *kstub) Resume() bool  { k.Helper(); return k.Expects("resume").Ret.(bool) }
+func (k *kstub) BeforeExit()   { k.Helper(); k.Expects("beforeExit") }

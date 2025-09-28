@@ -57,10 +57,6 @@ type syscallDispatcher interface {
 	dbusProxyClose(proxy *dbus.Proxy)
 	// dbusProxyWait provides the Wait method of [dbus.Proxy].
 	dbusProxyWait(proxy *dbus.Proxy) error
-
-	isVerbose() bool
-	verbose(v ...any)
-	verbosef(format string, v ...any)
 }
 
 // direct implements syscallDispatcher on the current kernel.
@@ -96,7 +92,3 @@ func (k direct) dbusFinalise(sessionBus, systemBus dbus.ProxyPair, session, syst
 func (k direct) dbusProxyStart(proxy *dbus.Proxy) error { return proxy.Start() }
 func (k direct) dbusProxyClose(proxy *dbus.Proxy)       { proxy.Close() }
 func (k direct) dbusProxyWait(proxy *dbus.Proxy) error  { return proxy.Wait() }
-
-func (k direct) isVerbose() bool                { return msg.IsVerbose() }
-func (direct) verbose(v ...any)                 { msg.Verbose(v...) }
-func (direct) verbosef(format string, v ...any) { msg.Verbosef(format, v...) }

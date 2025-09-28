@@ -13,22 +13,21 @@ import (
 	"hakurei.app/command"
 	"hakurei.app/container"
 	"hakurei.app/hst"
-	"hakurei.app/internal"
-	"hakurei.app/internal/hlog"
 )
 
 var (
 	errSuccess = errors.New("success")
 )
 
-func init() {
-	hlog.Prepare("hpkg")
+func main() {
+	log.SetPrefix("hpkg: ")
+	log.SetFlags(0)
+	msg := container.NewMsg(log.Default())
+
 	if err := os.Setenv("SHELL", pathShell.String()); err != nil {
 		log.Fatalf("cannot set $SHELL: %v", err)
 	}
-}
 
-func main() {
 	if os.Geteuid() == 0 {
 		log.Fatal("this program must not run as root")
 	}
@@ -41,7 +40,7 @@ func main() {
 		flagVerbose   bool
 		flagDropShell bool
 	)
-	c := command.New(os.Stderr, log.Printf, "hpkg", func([]string) error { internal.InstallOutput(flagVerbose); return nil }).
+	c := command.New(os.Stderr, log.Printf, "hpkg", func([]string) error { msg.SwapVerbose(flagVerbose); return nil }).
 		Flag(&flagVerbose, "v", command.BoolFlag(false), "Print debug messages to the console").
 		Flag(&flagDropShell, "s", command.BoolFlag(false), "Drop to a shell in place of next hakurei action")
 
@@ -90,12 +89,12 @@ func main() {
 			}
 			cleanup := func() {
 				// should be faster than a native implementation
-				mustRun(chmod, "-R", "+w", workDir.String())
-				mustRun(rm, "-rf", workDir.String())
+				mustRun(msg, chmod, "-R", "+w", workDir.String())
+				mustRun(msg, rm, "-rf", workDir.String())
 			}
 			beforeRunFail.Store(&cleanup)
 
-			mustRun(tar, "-C", workDir.String(), "-xf", pkgPath)
+			mustRun(msg, tar, "-C", workDir.String(), "-xf", pkgPath)
 
 			/*
 				Parse bundle and app metadata, do pre-install checks.
@@ -148,10 +147,10 @@ func main() {
 				}
 
 				// sec: should compare version string
-				hlog.Verbosef("installing application %q version %q over local %q",
+				msg.Verbosef("installing application %q version %q over local %q",
 					bundle.ID, bundle.Version, a.Version)
 			} else {
-				hlog.Verbosef("application %q clean installation", bundle.ID)
+				msg.Verbosef("application %q clean installation", bundle.ID)
 				// sec: should install credentials
 			}
 
@@ -159,7 +158,7 @@ func main() {
 				Setup steps for files owned by the target user.
 			*/
 
-			withCacheDir(ctx, "install", []string{
+			withCacheDir(ctx, msg, "install", []string{
 				// export inner bundle path in the environment
 				"export BUNDLE=" + hst.Tmp + "/bundle",
 				// replace inner /etc
@@ -181,7 +180,7 @@ func main() {
 			}, workDir, bundle, pathSet, flagDropShell, cleanup)
 
 			if bundle.GPU {
-				withCacheDir(ctx, "mesa-wrappers", []string{
+				withCacheDir(ctx, msg, "mesa-wrappers", []string{
 					// link nixGL mesa wrappers
 					"mkdir -p nix/.nixGL",
 					"ln -s " + bundle.Mesa + "/bin/nixGLIntel nix/.nixGL/nixGL",
@@ -193,7 +192,7 @@ func main() {
 				Activate home-manager generation.
 			*/
 
-			withNixDaemon(ctx, "activate", []string{
+			withNixDaemon(ctx, msg, "activate", []string{
 				// clean up broken links
 				"mkdir -p .local/state/{nix,home-manager}",
 				"chmod -R +w .local/state/{nix,home-manager}",
@@ -261,7 +260,7 @@ func main() {
 			*/
 
 			if a.GPU && flagAutoDrivers {
-				withNixDaemon(ctx, "nix-gl", []string{
+				withNixDaemon(ctx, msg, "nix-gl", []string{
 					"mkdir -p /nix/.nixGL/auto",
 					"rm -rf /nix/.nixGL/auto",
 					"export NIXPKGS_ALLOW_UNFREE=1",
@@ -316,7 +315,7 @@ func main() {
 				Spawn app.
 			*/
 
-			mustRunApp(ctx, config, func() {})
+			mustRunApp(ctx, msg, config, func() {})
 			return errSuccess
 		}).
 			Flag(&flagDropShellNixGL, "s", command.BoolFlag(false), "Drop to a shell on nixGL build").
@@ -324,9 +323,9 @@ func main() {
 	}
 
 	c.MustParse(os.Args[1:], func(err error) {
-		hlog.Verbosef("command returned %v", err)
+		msg.Verbosef("command returned %v", err)
 		if errors.Is(err, errSuccess) {
-			hlog.BeforeExit()
+			msg.BeforeExit()
 			os.Exit(0)
 		}
 	})

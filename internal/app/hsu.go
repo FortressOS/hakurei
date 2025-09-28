@@ -11,7 +11,6 @@ import (
 
 	"hakurei.app/container"
 	"hakurei.app/hst"
-	"hakurei.app/internal/hlog"
 )
 
 // Hsu caches responses from cmd/hsu.
@@ -40,7 +39,7 @@ func (h *Hsu) ID() (int, error) {
 	h.ensureDispatcher()
 	h.idOnce.Do(func() {
 		h.id = -1
-		hsuPath := h.k.mustHsuPath()
+		hsuPath := h.k.mustHsuPath().String()
 
 		cmd := exec.Command(hsuPath)
 		cmd.Path = hsuPath
@@ -71,7 +70,10 @@ func (h *Hsu) ID() (int, error) {
 }
 
 // MustID calls [Hsu.ID] and terminates on error.
-func (h *Hsu) MustID() int {
+func (h *Hsu) MustID() int { return h.MustIDMsg(nil) }
+
+// MustIDMsg implements MustID with a custom [container.Msg].
+func (h *Hsu) MustIDMsg(msg container.Msg) int {
 	id, err := h.ID()
 	if err == nil {
 		return id
@@ -79,7 +81,9 @@ func (h *Hsu) MustID() int {
 
 	const fallback = "cannot retrieve user id from setuid wrapper:"
 	if errors.Is(err, ErrHsuAccess) {
-		hlog.Verbose("*"+fallback, err)
+		if msg != nil {
+			msg.Verbose("*"+fallback, err)
+		}
 		os.Exit(1)
 		return -0xdeadbeef
 	} else if m, ok := container.GetErrorMessage(err); ok {

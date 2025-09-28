@@ -11,18 +11,19 @@ import (
 	"text/tabwriter"
 	"time"
 
+	"hakurei.app/container"
 	"hakurei.app/hst"
 	"hakurei.app/internal/app"
 	"hakurei.app/internal/app/state"
 	"hakurei.app/system/dbus"
 )
 
-func printShowSystem(output io.Writer, short, flagJSON bool) {
+func printShowSystem(msg container.Msg, output io.Writer, short, flagJSON bool) {
 	t := newPrinter(output)
 	defer t.MustFlush()
 
 	info := &hst.Info{User: new(app.Hsu).MustID()}
-	app.CopyPaths(&info.Paths, info.User)
+	app.CopyPaths(msg, &info.Paths, info.User)
 
 	if flagJSON {
 		printJSON(output, short, info)

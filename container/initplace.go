@@ -52,6 +52,7 @@ func (t *TmpfileOp) apply(state *setupState, k syscallDispatcher) error {
 	if err := k.ensureFile(target, 0444, state.ParentPerm); err != nil {
 		return err
 	} else if err = k.bindMount(
+		state,
 		tmpPath,
 		target,
 		syscall.MS_RDONLY|syscall.MS_NODEV,

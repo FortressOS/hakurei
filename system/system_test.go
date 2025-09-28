@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"testing"
 
+	"hakurei.app/container"
 	"hakurei.app/container/stub"
 	"hakurei.app/system/internal/xcb"
 )
@@ -71,7 +72,17 @@ func TestNew(t *testing.T) {
 					t.Errorf("recover: %v, want %v", r, want)
 				}
 			}()
-			New(nil, 0)
+			New(nil, container.NewMsg(nil), 0)
+		})
+
+		t.Run("msg", func(t *testing.T) {
+			defer func() {
+				want := "invalid call to New"
+				if r := recover(); r != want {
+					t.Errorf("recover: %v, want %v", r, want)
+				}
+			}()
+			New(t.Context(), nil, 0)
 		})
 
 		t.Run("uid", func(t *testing.T) {
@@ -81,11 +92,11 @@ func TestNew(t *testing.T) {
 					t.Errorf("recover: %v, want %v", r, want)
 				}
 			}()
-			New(t.Context(), -1)
+			New(t.Context(), container.NewMsg(nil), -1)
 		})
 	})
 
-	sys := New(t.Context(), 0xdeadbeef)
+	sys := New(t.Context(), container.NewMsg(nil), 0xdeadbeef)
 	if sys.ctx == nil {
 		t.Error("New: ctx = nil")
 	}
@@ -102,51 +113,51 @@ func TestEqual(t *testing.T) {
 		want bool
 	}{
 		{"simple UID",
-			New(t.Context(), 150),
-			New(t.Context(), 150),
+			New(t.Context(), container.NewMsg(nil), 150),
+			New(t.Context(), container.NewMsg(nil), 150),
 			true},
 
 		{"simple UID differ",
-			New(t.Context(), 150),
-			New(t.Context(), 151),
+			New(t.Context(), container.NewMsg(nil), 150),
+			New(t.Context(), container.NewMsg(nil), 151),
 			false},
 
 		{"simple UID nil",
-			New(t.Context(), 150),
+			New(t.Context(), container.NewMsg(nil), 150),
 			nil,
 			false},
 
 		{"op length mismatch",
-			New(t.Context(), 150).
+			New(t.Context(), container.NewMsg(nil), 150).
 				ChangeHosts("chronos"),
-			New(t.Context(), 150).
+			New(t.Context(), container.NewMsg(nil), 150).
 				ChangeHosts("chronos").
 				Ensure("/run", 0755),
 			false},
 
 		{"op value mismatch",
-			New(t.Context(), 150).
+			New(t.Context(), container.NewMsg(nil), 150).
 				ChangeHosts("chronos").
 				Ensure("/run", 0644),
-			New(t.Context(), 150).
+			New(t.Context(), container.NewMsg(nil), 150).
 				ChangeHosts("chronos").
 				Ensure("/run", 0755),
 			false},
 
 		{"op type mismatch",
-			New(t.Context(), 150).
+			New(t.Context(), container.NewMsg(nil), 150).
 				ChangeHosts("chronos").
 				CopyFile(new([]byte), "/home/ophestra/xdg/config/pulse/cookie", 0, 256),
-			New(t.Context(), 150).
+			New(t.Context(), container.NewMsg(nil), 150).
 				ChangeHosts("chronos").
 				Ensure("/run", 0755),
 			false},
 
 		{"op equals",
-			New(t.Context(), 150).
+			New(t.Context(), container.NewMsg(nil), 150).
 				ChangeHosts("chronos").
 				Ensure("/run", 0755),
-			New(t.Context(), 150).
+			New(t.Context(), container.NewMsg(nil), 150).
 				ChangeHosts("chronos").
 				Ensure("/run", 0755),
 			true},

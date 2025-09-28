@@ -15,8 +15,6 @@ import (
 
 	"hakurei.app/container"
 	"hakurei.app/container/seccomp"
-	"hakurei.app/internal"
-	"hakurei.app/internal/hlog"
 )
 
 //#include "shim-signal.h"
@@ -53,7 +51,9 @@ const (
 
 // ShimMain is the main function of the shim process and runs as the unconstrained target user.
 func ShimMain() {
-	hlog.Prepare("shim")
+	log.SetPrefix("shim: ")
+	log.SetFlags(0)
+	msg := container.NewMsg(log.Default())
 
 	if err := container.SetDumpable(container.SUID_DUMP_DISABLE); err != nil {
 		log.Fatalf("cannot set SUID_DUMP_DISABLE: %s", err)
@@ -73,7 +73,7 @@ func ShimMain() {
 
 		log.Fatalf("cannot receive shim setup params: %v", err)
 	} else {
-		internal.InstallOutput(params.Verbose)
+		msg.SwapVerbose(params.Verbose)
 		closeSetup = f
 	}
 
@@ -111,12 +111,12 @@ func ShimMain() {
 				}
 
 				// setup has not completed, terminate immediately
-				hlog.Resume()
+				msg.Resume()
 				os.Exit(ShimExitRequest)
 				return
 
 			case 1: // got SIGCONT after adoption: monitor died before delivering signal
-				hlog.BeforeExit()
+				msg.BeforeExit()
 				os.Exit(ShimExitOrphan)
 				return
 
@@ -144,7 +144,7 @@ func ShimMain() {
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	cancelContainer.Store(&stop)
-	z := container.New(ctx)
+	z := container.New(ctx, msg)
 	z.Params = *params.Container
 	z.Stdin, z.Stdout, z.Stderr = os.Stdin, os.Stdout, os.Stderr
 

@@ -9,14 +9,14 @@ import (
 	"os"
 	"os/exec"
 
+	"hakurei.app/container"
 	"hakurei.app/hst"
 	"hakurei.app/internal"
-	"hakurei.app/internal/hlog"
 )
 
 var hakureiPath = internal.MustHakureiPath()
 
-func mustRunApp(ctx context.Context, config *hst.Config, beforeFail func()) {
+func mustRunApp(ctx context.Context, msg container.Msg, config *hst.Config, beforeFail func()) {
 	var (
 		cmd *exec.Cmd
 		st  io.WriteCloser
@@ -26,10 +26,10 @@ func mustRunApp(ctx context.Context, config *hst.Config, beforeFail func()) {
 		beforeFail()
 		log.Fatalf("cannot pipe: %v", err)
 	} else {
-		if hlog.Load() {
-			cmd = exec.CommandContext(ctx, hakureiPath, "-v", "app", "3")
+		if msg.IsVerbose() {
+			cmd = exec.CommandContext(ctx, hakureiPath.String(), "-v", "app", "3")
 		} else {
-			cmd = exec.CommandContext(ctx, hakureiPath, "app", "3")
+			cmd = exec.CommandContext(ctx, hakureiPath.String(), "app", "3")
 		}
 		cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
 		cmd.ExtraFiles = []*os.File{r}
@@ -51,7 +51,8 @@ func mustRunApp(ctx context.Context, config *hst.Config, beforeFail func()) {
 		var exitError *exec.ExitError
 		if errors.As(err, &exitError) {
 			beforeFail()
-			internal.Exit(exitError.ExitCode())
+			msg.BeforeExit()
+			os.Exit(exitError.ExitCode())
 		} else {
 			beforeFail()
 			log.Fatalf("cannot wait: %v", err)

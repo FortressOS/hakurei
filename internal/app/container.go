@@ -20,6 +20,7 @@ const preallocateOpsCount = 1 << 5
 // newContainer initialises [container.Params] via [hst.ContainerConfig].
 // Note that remaining container setup must be queued by the caller.
 func newContainer(
+	msg container.Msg,
 	k syscallDispatcher,
 	s *hst.ContainerConfig,
 	prefix string,
@@ -73,8 +74,8 @@ func newContainer(
 		params.Gid = k.getgid()
 		*gid = params.Gid
 	} else {
-		*uid = k.overflowUid()
-		*gid = k.overflowGid()
+		*uid = k.overflowUid(msg)
+		*gid = k.overflowGid(msg)
 	}
 
 	filesystem := s.Filesystem
@@ -126,11 +127,11 @@ func newContainer(
 						// get parent dir of socket
 						dir := path.Dir(pair[1])
 						if dir == "." || dir == container.FHSRoot {
-							k.verbosef("dbus socket %q is in an unusual location", pair[1])
+							msg.Verbosef("dbus socket %q is in an unusual location", pair[1])
 						}
 						hidePaths = append(hidePaths, dir)
 					} else {
-						k.verbosef("dbus socket %q is not absolute", pair[1])
+						msg.Verbosef("dbus socket %q is not absolute", pair[1])
 					}
 				}
 			}
@@ -138,7 +139,7 @@ func newContainer(
 	}
 	hidePathMatch := make([]bool, len(hidePaths))
 	for i := range hidePaths {
-		if err := evalSymlinks(k, &hidePaths[i]); err != nil {
+		if err := evalSymlinks(msg, k, &hidePaths[i]); err != nil {
 			return nil, nil, err
 		}
 	}
@@ -178,7 +179,7 @@ func newContainer(
 	if autoroot != nil {
 		for _, ent := range autoRootEntries {
 			name := ent.Name()
-			if container.IsAutoRootBindable(name) {
+			if container.IsAutoRootBindable(msg, name) {
 				hidePathSource = append(hidePathSource, autoroot.Source.Append(name))
 			}
 		}
@@ -193,7 +194,7 @@ func newContainer(
 		}
 
 		hidePathSourceEval[i] = [2]string{a.String(), a.String()}
-		if err := evalSymlinks(k, &hidePathSourceEval[i][0]); err != nil {
+		if err := evalSymlinks(msg, k, &hidePathSourceEval[i][0]); err != nil {
 			return nil, nil, err
 		}
 	}
@@ -209,7 +210,7 @@ func newContainer(
 				return nil, nil, err
 			} else if ok {
 				hidePathMatch[i] = true
-				k.verbosef("hiding path %q from %q", hidePaths[i], p[1])
+				msg.Verbosef("hiding path %q from %q", hidePaths[i], p[1])
 			}
 		}
 	}
@@ -241,12 +242,12 @@ func newContainer(
 }
 
 // evalSymlinks calls syscallDispatcher.evalSymlinks but discards errors unwrapping to [fs.ErrNotExist].
-func evalSymlinks(k syscallDispatcher, v *string) error {
+func evalSymlinks(msg container.Msg, k syscallDispatcher, v *string) error {
 	if p, err := k.evalSymlinks(*v); err != nil {
 		if !errors.Is(err, fs.ErrNotExist) {
 			return err
 		}
-		k.verbosef("path %q does not yet exist", *v)
+		msg.Verbosef("path %q does not yet exist", *v)
 	} else {
 		*v = p
 	}

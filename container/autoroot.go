@@ -34,7 +34,7 @@ func (r *AutoRootOp) early(state *setupState, k syscallDispatcher) error {
 		r.resolved = make([]*BindMountOp, 0, len(d))
 		for _, ent := range d {
 			name := ent.Name()
-			if IsAutoRootBindable(name) {
+			if IsAutoRootBindable(state, name) {
 				// careful: the Valid method is skipped, make sure this is always valid
 				op := &BindMountOp{
 					Source: r.Host.Append(name),
@@ -78,7 +78,7 @@ func (r *AutoRootOp) String() string {
 }
 
 // IsAutoRootBindable returns whether a dir entry name is selected for AutoRoot.
-func IsAutoRootBindable(name string) bool {
+func IsAutoRootBindable(msg Msg, name string) bool {
 	switch name {
 	case "proc", "dev", "tmp", "mnt", "etc":
 

@@ -2,9 +2,8 @@ package internal
 
 import (
 	"log"
-	"path"
 
-	"hakurei.app/internal/hlog"
+	"hakurei.app/container"
 )
 
 var (
@@ -12,22 +11,23 @@ var (
 	hsu   = compPoison
 )
 
-func MustHakureiPath() string {
-	if name, ok := checkPath(hmain); ok {
-		return name
-	}
-	hlog.BeforeExit()
-	log.Fatal("invalid hakurei path, this program is compiled incorrectly")
-	return compPoison // unreachable
-}
+// MustHakureiPath returns the absolute path to hakurei, configured at compile time.
+func MustHakureiPath() *container.Absolute { return mustCheckPath(log.Fatal, "hakurei", hmain) }
 
-func MustHsuPath() string {
-	if name, ok := checkPath(hsu); ok {
-		return name
-	}
-	hlog.BeforeExit()
-	log.Fatal("invalid hsu path, this program is compiled incorrectly")
-	return compPoison // unreachable
-}
+// MustHsuPath returns the absolute path to hakurei, configured at compile time.
+func MustHsuPath() *container.Absolute { return mustCheckPath(log.Fatal, "hsu", hsu) }
 
-func checkPath(p string) (string, bool) { return p, p != compPoison && p != "" && path.IsAbs(p) }
+// mustCheckPath checks a pathname against compPoison, then [container.NewAbs], calling fatal if either step fails.
+func mustCheckPath(fatal func(v ...any), name, pathname string) *container.Absolute {
+	if pathname != compPoison && pathname != "" {
+		if a, err := container.NewAbs(pathname); err != nil {
+			fatal(err.Error())
+			return nil // unreachable
+		} else {
+			return a
+		}
+	} else {
+		fatal("invalid " + name + " path, this program is compiled incorrectly")
+		return nil // unreachable
+	}
+}

@@ -59,7 +59,7 @@ func (b *BindMountOp) early(_ *setupState, k syscallDispatcher) error {
 	}
 }
 
-func (b *BindMountOp) apply(_ *setupState, k syscallDispatcher) error {
+func (b *BindMountOp) apply(state *setupState, k syscallDispatcher) error {
 	if b.sourceFinal == nil {
 		if b.Flags&BindOptional == 0 {
 			// unreachable
@@ -92,11 +92,11 @@ func (b *BindMountOp) apply(_ *setupState, k syscallDispatcher) error {
 	}
 
 	if b.sourceFinal.String() == b.Target.String() {
-		k.verbosef("mounting %q flags %#x", target, flags)
+		state.Verbosef("mounting %q flags %#x", target, flags)
 	} else {
-		k.verbosef("mounting %q on %q flags %#x", source, target, flags)
+		state.Verbosef("mounting %q on %q flags %#x", source, target, flags)
 	}
-	return k.bindMount(source, target, flags)
+	return k.bindMount(state, source, target, flags)
 }
 
 func (b *BindMountOp) Is(op Op) bool {

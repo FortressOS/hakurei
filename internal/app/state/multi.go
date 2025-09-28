@@ -13,8 +13,8 @@ import (
 	"sync"
 	"syscall"
 
+	"hakurei.app/container"
 	"hakurei.app/hst"
-	"hakurei.app/internal/hlog"
 )
 
 // fine-grained locking and access
@@ -24,16 +24,17 @@ type multiStore struct {
 	// initialised backends
 	backends *sync.Map
 
-	lock sync.RWMutex
+	msg container.Msg
+	mu  sync.RWMutex
 }
 
 func (s *multiStore) Do(identity int, f func(c Cursor)) (bool, error) {
-	s.lock.RLock()
-	defer s.lock.RUnlock()
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 
 	// load or initialise new backend
 	b := new(multiBackend)
-	b.lock.Lock()
+	b.mu.Lock()
 	if v, ok := s.backends.LoadOrStore(identity, b); ok {
 		b = v.(*multiBackend)
 	} else {
@@ -52,7 +53,7 @@ func (s *multiStore) Do(identity int, f func(c Cursor)) (bool, error) {
 		} else {
 			b.lockfile = l
 		}
-		b.lock.Unlock()
+		b.mu.Unlock()
 	}
 
 	// lock backend
@@ -85,17 +86,17 @@ func (s *multiStore) List() ([]int, error) {
 	for _, e := range entries {
 		// skip non-directories
 		if !e.IsDir() {
-			hlog.Verbosef("skipped non-directory entry %q", e.Name())
+			s.msg.Verbosef("skipped non-directory entry %q", e.Name())
 			continue
 		}
 
 		// skip non-numerical names
 		if v, err := strconv.Atoi(e.Name()); err != nil {
-			hlog.Verbosef("skipped non-aid entry %q", e.Name())
+			s.msg.Verbosef("skipped non-aid entry %q", e.Name())
 			continue
 		} else {
 			if v < 0 || v > 9999 {
-				hlog.Verbosef("skipped out of bounds entry %q", e.Name())
+				s.msg.Verbosef("skipped out of bounds entry %q", e.Name())
 				continue
 			}
 
@@ -107,8 +108,8 @@ func (s *multiStore) List() ([]int, error) {
 }
 
 func (s *multiStore) Close() error {
-	s.lock.Lock()
-	defer s.lock.Unlock()
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
 	var errs []error
 	s.backends.Range(func(_, value any) bool {
@@ -126,7 +127,7 @@ type multiBackend struct {
 	// created/opened by prepare
 	lockfile *os.File
 
-	lock sync.RWMutex
+	mu sync.RWMutex
 }
 
 func (b *multiBackend) filename(id *ID) string {
@@ -169,8 +170,8 @@ func (b *multiBackend) unlockFile() error {
 // reads all launchers in simpleBackend
 // file contents are ignored if decode is false
 func (b *multiBackend) load(decode bool) (Entries, error) {
-	b.lock.RLock()
-	defer b.lock.RUnlock()
+	b.mu.RLock()
+	defer b.mu.RUnlock()
 
 	// read directory contents, should only contain files named after ids
 	var entries []os.DirEntry
@@ -280,8 +281,8 @@ func (b *multiBackend) decodeState(r io.ReadSeeker, state *State) error {
 
 // Save writes process state to filesystem
 func (b *multiBackend) Save(state *State, configWriter io.WriterTo) error {
-	b.lock.Lock()
-	defer b.lock.Unlock()
+	b.mu.Lock()
+	defer b.mu.Unlock()
 
 	if configWriter == nil && state.Config == nil {
 		return ErrNoConfig
@@ -336,8 +337,8 @@ func (b *multiBackend) encodeState(w io.WriteSeeker, state *State, configWriter 
 }
 
 func (b *multiBackend) Destroy(id ID) error {
-	b.lock.Lock()
-	defer b.lock.Unlock()
+	b.mu.Lock()
+	defer b.mu.Unlock()
 
 	return os.Remove(b.filename(&id))
 }
@@ -353,8 +354,8 @@ func (b *multiBackend) Len() (int, error) {
 }
 
 func (b *multiBackend) close() error {
-	b.lock.Lock()
-	defer b.lock.Unlock()
+	b.mu.Lock()
+	defer b.mu.Unlock()
 
 	err := b.lockfile.Close()
 	if err == nil || errors.Is(err, os.ErrInvalid) || errors.Is(err, os.ErrClosed) {
@@ -364,9 +365,10 @@ func (b *multiBackend) close() error {
 }
 
 // NewMulti returns an instance of the multi-file store.
-func NewMulti(runDir string) Store {
-	b := new(multiStore)
-	b.base = path.Join(runDir, "state")
-	b.backends = new(sync.Map)
-	return b
+func NewMulti(msg container.Msg, runDir string) Store {
+	return &multiStore{
+		msg:      msg,
+		base:     path.Join(runDir, "state"),
+		backends: new(sync.Map),
+	}
 }

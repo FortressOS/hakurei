@@ -6,6 +6,8 @@ import (
 	"log"
 	"os/exec"
 	"os/user"
+
+	"hakurei.app/container"
 )
 
 type stubNixOS struct {
@@ -187,10 +189,10 @@ func (k *stubNixOS) cmdOutput(cmd *exec.Cmd) ([]byte, error) {
 	}
 }
 
-func (k *stubNixOS) overflowUid() int { return 65534 }
-func (k *stubNixOS) overflowGid() int { return 65534 }
+func (k *stubNixOS) overflowUid(container.Msg) int { return 65534 }
+func (k *stubNixOS) overflowGid(container.Msg) int { return 65534 }
 
-func (k *stubNixOS) mustHsuPath() string { return "/proc/nonexistent/hsu" }
+func (k *stubNixOS) mustHsuPath() *container.Absolute { return m("/proc/nonexistent/hsu") }
 
 func (k *stubNixOS) fatalf(format string, v ...any) { panic(fmt.Sprintf(format, v...)) }
 

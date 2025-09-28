@@ -17,17 +17,30 @@ import (
 	"hakurei.app/internal"
 	"hakurei.app/internal/app"
 	"hakurei.app/internal/app/state"
-	"hakurei.app/internal/hlog"
 	"hakurei.app/system"
 	"hakurei.app/system/dbus"
 )
 
-func buildCommand(ctx context.Context, out io.Writer) command.Command {
+func buildCommand(ctx context.Context, msg container.Msg, early *earlyHardeningErrs, out io.Writer) command.Command {
 	var (
 		flagVerbose bool
 		flagJSON    bool
 	)
-	c := command.New(out, log.Printf, "hakurei", func([]string) error { internal.InstallOutput(flagVerbose); return nil }).
+	c := command.New(out, log.Printf, "hakurei", func([]string) error {
+		msg.SwapVerbose(flagVerbose)
+
+		if early.yamaLSM != nil {
+			msg.Verbosef("cannot enable ptrace protection via Yama LSM: %v", early.yamaLSM)
+			// not fatal
+		}
+
+		if early.dumpable != nil {
+			log.Printf("cannot set SUID_DUMP_DISABLE: %s", early.dumpable)
+			// not fatal
+		}
+
+		return nil
+	}).
 		Flag(&flagVerbose, "v", command.BoolFlag(false), "Increase log verbosity").
 		Flag(&flagJSON, "json", command.BoolFlag(false), "Serialise output in JSON when applicable")
 
@@ -39,10 +52,10 @@ func buildCommand(ctx context.Context, out io.Writer) command.Command {
 		}
 
 		// config extraArgs...
-		config := tryPath(args[0])
+		config := tryPath(msg, args[0])
 		config.Args = append(config.Args, args[1:]...)
 
-		app.Main(ctx, config)
+		app.Main(ctx, msg, config)
 		panic("unreachable")
 	})
 
@@ -78,9 +91,9 @@ func buildCommand(ctx context.Context, out io.Writer) command.Command {
 				passwd     *user.User
 				passwdOnce sync.Once
 				passwdFunc = func() {
-					us := strconv.Itoa(app.HsuUid(new(app.Hsu).MustID(), flagIdentity))
+					us := strconv.Itoa(app.HsuUid(new(app.Hsu).MustIDMsg(msg), flagIdentity))
 					if u, err := user.LookupId(us); err != nil {
-						hlog.Verbosef("cannot look up uid %s", us)
+						msg.Verbosef("cannot look up uid %s", us)
 						passwd = &user.User{
 							Uid:      us,
 							Gid:      us,
@@ -162,7 +175,7 @@ func buildCommand(ctx context.Context, out io.Writer) command.Command {
 				}
 			}
 
-			app.Main(ctx, config)
+			app.Main(ctx, msg, config)
 			panic("unreachable")
 		}).
 			Flag(&flagDBusConfigSession, "dbus-config", command.StringFlag("builtin"),
@@ -198,13 +211,13 @@ func buildCommand(ctx context.Context, out io.Writer) command.Command {
 		c.NewCommand("show", "Show live or local app configuration", func(args []string) error {
 			switch len(args) {
 			case 0: // system
-				printShowSystem(os.Stdout, flagShort, flagJSON)
+				printShowSystem(msg, os.Stdout, flagShort, flagJSON)
 
 			case 1: // instance
 				name := args[0]
-				config, entry := tryShort(name)
+				config, entry := tryShort(msg, name)
 				if config == nil {
-					config = tryPath(name)
+					config = tryPath(msg, name)
 				}
 				printShowInstance(os.Stdout, time.Now().UTC(), entry, config, flagShort, flagJSON)
 
@@ -219,8 +232,8 @@ func buildCommand(ctx context.Context, out io.Writer) command.Command {
 		var flagShort bool
 		c.NewCommand("ps", "List active instances", func(args []string) error {
 			var sc hst.Paths
-			app.CopyPaths(&sc, new(app.Hsu).MustID())
-			printPs(os.Stdout, time.Now().UTC(), state.NewMulti(sc.RunDirPath.String()), flagShort, flagJSON)
+			app.CopyPaths(msg, &sc, new(app.Hsu).MustID())
+			printPs(os.Stdout, time.Now().UTC(), state.NewMulti(msg, sc.RunDirPath.String()), flagShort, flagJSON)
 			return errSuccess
 		}).Flag(&flagShort, "short", command.BoolFlag(false), "Print instance id")
 	}

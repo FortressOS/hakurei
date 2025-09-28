@@ -34,7 +34,7 @@ func (t *tmpfileOp) apply(sys *I) error {
 		return errors.New("invalid payload")
 	}
 
-	sys.verbose("copying", t)
+	sys.msg.Verbose("copying", t)
 
 	if b, err := sys.stat(t.src); err != nil {
 		return newOpError("tmpfile", err, false)
@@ -58,7 +58,7 @@ func (t *tmpfileOp) apply(sys *I) error {
 			_ = r.Close()
 			return newOpError("tmpfile", err, false)
 		}
-		sys.verbosef("copied %d bytes from %q", n, t.src)
+		sys.msg.Verbosef("copied %d bytes from %q", n, t.src)
 	}
 	if err := r.Close(); err != nil {
 		return newOpError("tmpfile", err, false)

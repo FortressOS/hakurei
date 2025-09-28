@@ -6,12 +6,10 @@ import (
 
 	"hakurei.app/container"
 	"hakurei.app/helper"
-	"hakurei.app/internal"
-	"hakurei.app/internal/hlog"
 )
 
 func TestMain(m *testing.M) {
-	container.TryArgv0(hlog.Output{}, hlog.Prepare, internal.InstallOutput)
+	container.TryArgv0(nil)
 	helper.InternalHelperStub()
 	os.Exit(m.Run())
 }

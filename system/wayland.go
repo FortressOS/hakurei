@@ -43,14 +43,14 @@ func (w *waylandOp) apply(sys *I) error {
 	if err := w.conn.Attach(w.src); err != nil {
 		return newOpError("wayland", err, false)
 	} else {
-		sys.verbosef("wayland attached on %q", w.src)
+		sys.msg.Verbosef("wayland attached on %q", w.src)
 	}
 
 	if sp, err := w.conn.Bind(w.dst, w.appID, w.instanceID); err != nil {
 		return newOpError("wayland", err, false)
 	} else {
 		*w.sync = sp
-		sys.verbosef("wayland listening on %q", w.dst)
+		sys.msg.Verbosef("wayland listening on %q", w.dst)
 		if err = sys.chmod(w.dst, 0); err != nil {
 			return newOpError("wayland", err, false)
 		}
@@ -59,12 +59,12 @@ func (w *waylandOp) apply(sys *I) error {
 }
 
 func (w *waylandOp) revert(sys *I, _ *Criteria) error {
-	sys.verbosef("removing wayland socket on %q", w.dst)
+	sys.msg.Verbosef("removing wayland socket on %q", w.dst)
 	if err := sys.remove(w.dst); err != nil && !errors.Is(err, os.ErrNotExist) {
 		return newOpError("wayland", err, true)
 	}
 
-	sys.verbosef("detaching from wayland on %q", w.src)
+	sys.msg.Verbosef("detaching from wayland on %q", w.src)
 	return newOpError("wayland", w.conn.Close(), true)
 }
 

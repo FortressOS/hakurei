@@ -28,7 +28,7 @@ func TestSuspendable(t *testing.T) {
 	)
 
 	// shares the same writer
-	testCases := []struct {
+	steps := []struct {
 		name    string
 		w, pt   []byte
 		err     error
@@ -75,25 +75,25 @@ func TestSuspendable(t *testing.T) {
 	var dw expectWriter
 
 	w := container.Suspendable{Downstream: &dw}
-	for _, tc := range testCases {
+	for _, step := range steps {
 		// these share the same writer, so cannot be subtests
-		t.Logf("writing step %q", tc.name)
-		dw.expect, dw.err = tc.pt, tc.err
+		t.Logf("writing step %q", step.name)
+		dw.expect, dw.err = step.pt, step.err
 
 		var (
 			gotN   int
 			gotErr error
 		)
 
-		wantN := tc.n
+		wantN := step.n
 		switch wantN {
 		case nSpecialPtEquiv:
-			wantN = len(tc.pt)
-			gotN, gotErr = w.Write(tc.w)
+			wantN = len(step.pt)
+			gotN, gotErr = w.Write(step.w)
 
 		case nSpecialWEquiv:
-			wantN = len(tc.w)
-			gotN, gotErr = w.Write(tc.w)
+			wantN = len(step.w)
+			gotN, gotErr = w.Write(step.w)
 
 		case nSpecialSuspend:
 			s := w.IsSuspended()
@@ -101,8 +101,8 @@ func TestSuspendable(t *testing.T) {
 				t.Fatal("Suspend: unexpected success")
 			}
 
-			wantN = len(tc.w)
-			gotN, gotErr = w.Write(tc.w)
+			wantN = len(step.w)
+			gotN, gotErr = w.Write(step.w)
 
 		default:
 			if wantN <= nSpecialDump {
@@ -118,10 +118,10 @@ func TestSuspendable(t *testing.T) {
 					t.Errorf("Resume: dropped = %d, want %d", dropped, wantDropped)
 				}
 
-				wantN = len(tc.pt)
+				wantN = len(step.pt)
 				gotN, gotErr = int(n), err
 			} else {
-				gotN, gotErr = w.Write(tc.w)
+				gotN, gotErr = w.Write(step.w)
 			}
 		}
 
@@ -129,8 +129,12 @@ func TestSuspendable(t *testing.T) {
 			t.Errorf("Write: n = %d, want %d", gotN, wantN)
 		}
 
-		if !reflect.DeepEqual(gotErr, tc.wantErr) {
+		if !reflect.DeepEqual(gotErr, step.wantErr) {
 			t.Errorf("Write: %v", gotErr)
+		}
+
+		if dw.expect != nil {
+			t.Errorf("expect: %q", string(dw.expect))
 		}
 	}
 }
@@ -139,17 +143,31 @@ func TestSuspendable(t *testing.T) {
 type expectWriter struct {
 	expect []byte
 	err    error
+
+	// optional consecutive write
+	next []byte
+
+	// optional, calls Error on failure if not nil
+	t *testing.T
 }
 
 func (w *expectWriter) Write(p []byte) (n int, err error) {
-	defer func() { w.expect = nil }()
+	defer func() { w.expect = w.next; w.next = nil }()
 
 	n, err = len(p), w.err
 	if w.expect == nil {
-		return 0, errors.New("unexpected call to Write: " + strconv.Quote(string(p)))
+		n, err = 0, errors.New("unexpected call to Write: "+strconv.Quote(string(p)))
+		if w.t != nil {
+			w.t.Error(err.Error())
+		}
+		return
 	}
 	if string(p) != string(w.expect) {
-		return 0, errors.New("p = " + strconv.Quote(string(p)) + ", want " + strconv.Quote(string(w.expect)))
+		n, err = 0, errors.New("p = "+strconv.Quote(string(p))+", want "+strconv.Quote(string(w.expect)))
+		if w.t != nil {
+			w.t.Error(err.Error())
+		}
+		return
 	}
 	return
 }

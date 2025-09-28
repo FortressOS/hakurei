@@ -3,6 +3,7 @@ package container
 import (
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"os/exec"
 	"path"
@@ -59,6 +60,7 @@ type (
 	setupState struct {
 		nonrepeatable uintptr
 		*Params
+		Msg
 	}
 )
 
@@ -91,20 +93,23 @@ type initParams struct {
 	Verbose bool
 }
 
-func Init(prepareLogger func(prefix string), setVerbose func(verbose bool)) {
-	initEntrypoint(direct{}, prepareLogger, setVerbose)
+// Init is called by [TryArgv0] if the current process is the container init.
+func Init(msg Msg) {
+	if msg == nil {
+		panic("attempting to call initEntrypoint with nil msg")
+	}
+	initEntrypoint(direct{}, msg)
 }
 
-func initEntrypoint(k syscallDispatcher, prepareLogger func(prefix string), setVerbose func(verbose bool)) {
+func initEntrypoint(k syscallDispatcher, msg Msg) {
 	k.lockOSThread()
-	prepareLogger("init")
 
 	if k.getpid() != 1 {
-		k.fatal("this process must run as pid 1")
+		k.fatal(msg, "this process must run as pid 1")
 	}
 
 	if err := k.setPtracer(0); err != nil {
-		k.verbosef("cannot enable ptrace protection via Yama LSM: %v", err)
+		msg.Verbosef("cannot enable ptrace protection via Yama LSM: %v", err)
 		// not fatal: this program has no additional privileges at initial program start
 	}
 
@@ -116,65 +121,65 @@ func initEntrypoint(k syscallDispatcher, prepareLogger func(prefix string), setV
 	)
 	if f, err := k.receive(setupEnv, &params, &setupFd); err != nil {
 		if errors.Is(err, EBADF) {
-			k.fatal("invalid setup descriptor")
+			k.fatal(msg, "invalid setup descriptor")
 		}
 		if errors.Is(err, ErrReceiveEnv) {
-			k.fatal("HAKUREI_SETUP not set")
+			k.fatal(msg, "HAKUREI_SETUP not set")
 		}
 
-		k.fatalf("cannot decode init setup payload: %v", err)
+		k.fatalf(msg, "cannot decode init setup payload: %v", err)
 	} else {
 		if params.Ops == nil {
-			k.fatal("invalid setup parameters")
+			k.fatal(msg, "invalid setup parameters")
 		}
 		if params.ParentPerm == 0 {
 			params.ParentPerm = 0755
 		}
 
-		setVerbose(params.Verbose)
-		k.verbose("received setup parameters")
+		msg.SwapVerbose(params.Verbose)
+		msg.Verbose("received setup parameters")
 		closeSetup = f
 		offsetSetup = int(setupFd + 1)
 	}
 
 	// write uid/gid map here so parent does not need to set dumpable
 	if err := k.setDumpable(SUID_DUMP_USER); err != nil {
-		k.fatalf("cannot set SUID_DUMP_USER: %v", err)
+		k.fatalf(msg, "cannot set SUID_DUMP_USER: %v", err)
 	}
 	if err := k.writeFile(FHSProc+"self/uid_map",
 		append([]byte{}, strconv.Itoa(params.Uid)+" "+strconv.Itoa(params.HostUid)+" 1\n"...),
 		0); err != nil {
-		k.fatalf("%v", err)
+		k.fatalf(msg, "%v", err)
 	}
 	if err := k.writeFile(FHSProc+"self/setgroups",
 		[]byte("deny\n"),
 		0); err != nil && !os.IsNotExist(err) {
-		k.fatalf("%v", err)
+		k.fatalf(msg, "%v", err)
 	}
 	if err := k.writeFile(FHSProc+"self/gid_map",
 		append([]byte{}, strconv.Itoa(params.Gid)+" "+strconv.Itoa(params.HostGid)+" 1\n"...),
 		0); err != nil {
-		k.fatalf("%v", err)
+		k.fatalf(msg, "%v", err)
 	}
 	if err := k.setDumpable(SUID_DUMP_DISABLE); err != nil {
-		k.fatalf("cannot set SUID_DUMP_DISABLE: %v", err)
+		k.fatalf(msg, "cannot set SUID_DUMP_DISABLE: %v", err)
 	}
 
 	oldmask := k.umask(0)
 	if params.Hostname != "" {
 		if err := k.sethostname([]byte(params.Hostname)); err != nil {
-			k.fatalf("cannot set hostname: %v", err)
+			k.fatalf(msg, "cannot set hostname: %v", err)
 		}
 	}
 
 	// cache sysctl before pivot_root
-	lastcap := k.lastcap()
+	lastcap := k.lastcap(msg)
 
 	if err := k.mount(zeroString, FHSRoot, zeroString, MS_SILENT|MS_SLAVE|MS_REC, zeroString); err != nil {
-		k.fatalf("cannot make / rslave: %v", err)
+		k.fatalf(msg, "cannot make / rslave: %v", err)
 	}
 
-	state := &setupState{Params: &params.Params}
+	state := &setupState{Params: &params.Params, Msg: msg}
 
 	/* early is called right before pivot_root into intermediate root;
 	this step is mostly for gathering information that would otherwise be difficult to obtain
@@ -182,41 +187,41 @@ func initEntrypoint(k syscallDispatcher, prepareLogger func(prefix string), setV
 	the state of the mount namespace */
 	for i, op := range *params.Ops {
 		if op == nil || !op.Valid() {
-			k.fatalf("invalid op at index %d", i)
+			k.fatalf(msg, "invalid op at index %d", i)
 		}
 
 		if err := op.early(state, k); err != nil {
 			if m, ok := messageFromError(err); ok {
-				k.fatal(m)
+				k.fatal(msg, m)
 			} else {
-				k.fatalf("cannot prepare op at index %d: %v", i, err)
+				k.fatalf(msg, "cannot prepare op at index %d: %v", i, err)
 			}
 		}
 	}
 
 	if err := k.mount(SourceTmpfsRootfs, intermediateHostPath, FstypeTmpfs, MS_NODEV|MS_NOSUID, zeroString); err != nil {
-		k.fatalf("cannot mount intermediate root: %v", err)
+		k.fatalf(msg, "cannot mount intermediate root: %v", err)
 	}
 	if err := k.chdir(intermediateHostPath); err != nil {
-		k.fatalf("cannot enter intermediate host path: %v", err)
+		k.fatalf(msg, "cannot enter intermediate host path: %v", err)
 	}
 
 	if err := k.mkdir(sysrootDir, 0755); err != nil {
-		k.fatalf("%v", err)
+		k.fatalf(msg, "%v", err)
 	}
 	if err := k.mount(sysrootDir, sysrootDir, zeroString, MS_SILENT|MS_BIND|MS_REC, zeroString); err != nil {
-		k.fatalf("cannot bind sysroot: %v", err)
+		k.fatalf(msg, "cannot bind sysroot: %v", err)
 	}
 
 	if err := k.mkdir(hostDir, 0755); err != nil {
-		k.fatalf("%v", err)
+		k.fatalf(msg, "%v", err)
 	}
 	// pivot_root uncovers intermediateHostPath in hostDir
 	if err := k.pivotRoot(intermediateHostPath, hostDir); err != nil {
-		k.fatalf("cannot pivot into intermediate root: %v", err)
+		k.fatalf(msg, "cannot pivot into intermediate root: %v", err)
 	}
 	if err := k.chdir(FHSRoot); err != nil {
-		k.fatalf("cannot enter intermediate root: %v", err)
+		k.fatalf(msg, "cannot enter intermediate root: %v", err)
 	}
 
 	/* apply is called right after pivot_root and entering the new root;
@@ -226,23 +231,23 @@ func initEntrypoint(k syscallDispatcher, prepareLogger func(prefix string), setV
 	for i, op := range *params.Ops {
 		// ops already checked during early setup
 		if prefix, ok := op.prefix(); ok {
-			k.verbosef("%s %s", prefix, op)
+			msg.Verbosef("%s %s", prefix, op)
 		}
 		if err := op.apply(state, k); err != nil {
 			if m, ok := messageFromError(err); ok {
-				k.fatal(m)
+				k.fatal(msg, m)
 			} else {
-				k.fatalf("cannot apply op at index %d: %v", i, err)
+				k.fatalf(msg, "cannot apply op at index %d: %v", i, err)
 			}
 		}
 	}
 
 	// setup requiring host root complete at this point
 	if err := k.mount(hostDir, hostDir, zeroString, MS_SILENT|MS_REC|MS_PRIVATE, zeroString); err != nil {
-		k.fatalf("cannot make host root rprivate: %v", err)
+		k.fatalf(msg, "cannot make host root rprivate: %v", err)
 	}
 	if err := k.unmount(hostDir, MNT_DETACH); err != nil {
-		k.fatalf("cannot unmount host root: %v", err)
+		k.fatalf(msg, "cannot unmount host root: %v", err)
 	}
 
 	{
@@ -251,39 +256,39 @@ func initEntrypoint(k syscallDispatcher, prepareLogger func(prefix string), setV
 			fd, err = k.open(FHSRoot, O_DIRECTORY|O_RDONLY, 0)
 			return
 		}); err != nil {
-			k.fatalf("cannot open intermediate root: %v", err)
+			k.fatalf(msg, "cannot open intermediate root: %v", err)
 		}
 		if err := k.chdir(sysrootPath); err != nil {
-			k.fatalf("cannot enter sysroot: %v", err)
+			k.fatalf(msg, "cannot enter sysroot: %v", err)
 		}
 
 		if err := k.pivotRoot(".", "."); err != nil {
-			k.fatalf("cannot pivot into sysroot: %v", err)
+			k.fatalf(msg, "cannot pivot into sysroot: %v", err)
 		}
 		if err := k.fchdir(fd); err != nil {
-			k.fatalf("cannot re-enter intermediate root: %v", err)
+			k.fatalf(msg, "cannot re-enter intermediate root: %v", err)
 		}
 		if err := k.unmount(".", MNT_DETACH); err != nil {
-			k.fatalf("cannot unmount intermediate root: %v", err)
+			k.fatalf(msg, "cannot unmount intermediate root: %v", err)
 		}
 		if err := k.chdir(FHSRoot); err != nil {
-			k.fatalf("cannot enter root: %v", err)
+			k.fatalf(msg, "cannot enter root: %v", err)
 		}
 
 		if err := k.close(fd); err != nil {
-			k.fatalf("cannot close intermediate root: %v", err)
+			k.fatalf(msg, "cannot close intermediate root: %v", err)
 		}
 	}
 
 	if err := k.capAmbientClearAll(); err != nil {
-		k.fatalf("cannot clear the ambient capability set: %v", err)
+		k.fatalf(msg, "cannot clear the ambient capability set: %v", err)
 	}
 	for i := uintptr(0); i <= lastcap; i++ {
 		if params.Privileged && i == CAP_SYS_ADMIN {
 			continue
 		}
 		if err := k.capBoundingSetDrop(i); err != nil {
-			k.fatalf("cannot drop capability from bounding set: %v", err)
+			k.fatalf(msg, "cannot drop capability from bounding set: %v", err)
 		}
 	}
 
@@ -292,29 +297,29 @@ func initEntrypoint(k syscallDispatcher, prepareLogger func(prefix string), setV
 		keep[capToIndex(CAP_SYS_ADMIN)] |= capToMask(CAP_SYS_ADMIN)
 
 		if err := k.capAmbientRaise(CAP_SYS_ADMIN); err != nil {
-			k.fatalf("cannot raise CAP_SYS_ADMIN: %v", err)
+			k.fatalf(msg, "cannot raise CAP_SYS_ADMIN: %v", err)
 		}
 	}
 	if err := k.capset(
 		&capHeader{_LINUX_CAPABILITY_VERSION_3, 0},
 		&[2]capData{{0, keep[0], keep[0]}, {0, keep[1], keep[1]}},
 	); err != nil {
-		k.fatalf("cannot capset: %v", err)
+		k.fatalf(msg, "cannot capset: %v", err)
 	}
 
 	if !params.SeccompDisable {
 		rules := params.SeccompRules
 		if len(rules) == 0 { // non-empty rules slice always overrides presets
-			k.verbosef("resolving presets %#x", params.SeccompPresets)
+			msg.Verbosef("resolving presets %#x", params.SeccompPresets)
 			rules = seccomp.Preset(params.SeccompPresets, params.SeccompFlags)
 		}
 		if err := k.seccompLoad(rules, params.SeccompFlags); err != nil {
 			// this also indirectly asserts PR_SET_NO_NEW_PRIVS
-			k.fatalf("cannot load syscall filter: %v", err)
+			k.fatalf(msg, "cannot load syscall filter: %v", err)
 		}
-		k.verbosef("%d filter rules loaded", len(rules))
+		msg.Verbosef("%d filter rules loaded", len(rules))
 	} else {
-		k.verbose("syscall filter not configured")
+		msg.Verbose("syscall filter not configured")
 	}
 
 	extraFiles := make([]*os.File, params.Count)
@@ -331,14 +336,14 @@ func initEntrypoint(k syscallDispatcher, prepareLogger func(prefix string), setV
 	cmd.ExtraFiles = extraFiles
 	cmd.Dir = params.Dir.String()
 
-	k.verbosef("starting initial program %s", params.Path)
+	msg.Verbosef("starting initial program %s", params.Path)
 	if err := k.start(cmd); err != nil {
-		k.fatalf("%v", err)
+		k.fatalf(msg, "%v", err)
 	}
-	k.suspend()
+	msg.Suspend()
 
 	if err := closeSetup(); err != nil {
-		k.printf("cannot close setup pipe: %v", err)
+		k.printf(msg, "cannot close setup pipe: %v", err)
 		// not fatal
 	}
 
@@ -372,7 +377,7 @@ func initEntrypoint(k syscallDispatcher, prepareLogger func(prefix string), setV
 			}
 		}
 		if !errors.Is(err, ECHILD) {
-			k.printf("unexpected wait4 response: %v", err)
+			k.printf(msg, "unexpected wait4 response: %v", err)
 		}
 
 		close(done)
@@ -389,50 +394,50 @@ func initEntrypoint(k syscallDispatcher, prepareLogger func(prefix string), setV
 	for {
 		select {
 		case s := <-sig:
-			if k.resume() {
-				k.verbosef("%s after process start", s.String())
+			if msg.Resume() {
+				msg.Verbosef("%s after process start", s.String())
 			} else {
-				k.verbosef("got %s", s.String())
+				msg.Verbosef("got %s", s.String())
 			}
 			if s == CancelSignal && params.ForwardCancel && cmd.Process != nil {
-				k.verbose("forwarding context cancellation")
+				msg.Verbose("forwarding context cancellation")
 				if err := k.signal(cmd, os.Interrupt); err != nil {
-					k.printf("cannot forward cancellation: %v", err)
+					k.printf(msg, "cannot forward cancellation: %v", err)
 				}
 				continue
 			}
-			k.beforeExit()
+			msg.BeforeExit()
 			k.exit(0)
 
 		case w := <-info:
 			if w.wpid == cmd.Process.Pid {
 				// initial process exited, output is most likely available again
-				k.resume()
+				msg.Resume()
 
 				switch {
 				case w.wstatus.Exited():
 					r = w.wstatus.ExitStatus()
-					k.verbosef("initial process exited with code %d", w.wstatus.ExitStatus())
+					msg.Verbosef("initial process exited with code %d", w.wstatus.ExitStatus())
 
 				case w.wstatus.Signaled():
 					r = 128 + int(w.wstatus.Signal())
-					k.verbosef("initial process exited with signal %s", w.wstatus.Signal())
+					msg.Verbosef("initial process exited with signal %s", w.wstatus.Signal())
 
 				default:
 					r = 255
-					k.verbosef("initial process exited with status %#x", w.wstatus)
+					msg.Verbosef("initial process exited with status %#x", w.wstatus)
 				}
 
 				go func() { time.Sleep(params.AdoptWaitDelay); close(timeout) }()
 			}
 
 		case <-done:
-			k.beforeExit()
+			msg.BeforeExit()
 			k.exit(r)
 
 		case <-timeout:
-			k.printf("timeout exceeded waiting for lingering processes")
-			k.beforeExit()
+			k.printf(msg, "timeout exceeded waiting for lingering processes")
+			msg.BeforeExit()
 			k.exit(r)
 		}
 	}
@@ -441,10 +446,16 @@ func initEntrypoint(k syscallDispatcher, prepareLogger func(prefix string), setV
 const initName = "init"
 
 // TryArgv0 calls [Init] if the last element of argv0 is "init".
-func TryArgv0(v Msg, prepare func(prefix string), setVerbose func(verbose bool)) {
+// If a nil msg is passed, the system logger is used instead.
+func TryArgv0(msg Msg) {
+	if msg == nil {
+		log.SetPrefix(initName + ": ")
+		log.SetFlags(0)
+		msg = NewMsg(log.Default())
+	}
+
 	if len(os.Args) > 0 && path.Base(os.Args[0]) == initName {
-		msg = v
-		Init(prepare, setVerbose)
+		Init(msg)
 		msg.BeforeExit()
 		os.Exit(0)
 	}

@@ -20,7 +20,6 @@ import (
 	"hakurei.app/container"
 	"hakurei.app/hst"
 	"hakurei.app/internal/app/state"
-	"hakurei.app/internal/hlog"
 	"hakurei.app/system"
 	"hakurei.app/system/acl"
 	"hakurei.app/system/dbus"
@@ -120,7 +119,7 @@ type hsuUser struct {
 	username string
 }
 
-func (k *outcome) finalise(ctx context.Context, config *hst.Config) error {
+func (k *outcome) finalise(ctx context.Context, msg container.Msg, config *hst.Config) error {
 	const (
 		home  = "HOME"
 		shell = "SHELL"
@@ -183,7 +182,7 @@ func (k *outcome) finalise(ctx context.Context, config *hst.Config) error {
 	} else if !isValidUsername(k.user.username) {
 		return newWithMessage(fmt.Sprintf("invalid user name %q", k.user.username))
 	}
-	k.user.uid = newInt(HsuUid(hsu.MustID(), k.user.identity.unwrap()))
+	k.user.uid = newInt(HsuUid(hsu.MustIDMsg(msg), k.user.identity.unwrap()))
 
 	k.user.supp = make([]string, len(config.Groups))
 	for i, name := range config.Groups {
@@ -201,7 +200,7 @@ func (k *outcome) finalise(ctx context.Context, config *hst.Config) error {
 
 	// permissive defaults
 	if config.Container == nil {
-		hlog.Verbose("container configuration not supplied, PROCEED WITH CAUTION")
+		msg.Verbose("container configuration not supplied, PROCEED WITH CAUTION")
 
 		if config.Shell == nil {
 			config.Shell = container.AbsFHSRoot.Append("bin", "sh")
@@ -276,13 +275,14 @@ func (k *outcome) finalise(ctx context.Context, config *hst.Config) error {
 
 	// TODO(ophestra): revert this after params to shim
 	share := &shareHost{seal: k}
-	copyPaths(k.syscallDispatcher, &share.sc, hsu.MustID())
+	copyPaths(k.syscallDispatcher, msg, &share.sc, hsu.MustIDMsg(msg))
+	msg.Verbosef("process share directory at %q, runtime directory at %q", share.sc.SharePath, share.sc.RunDirPath)
 
 	var mapuid, mapgid *stringPair[int]
 	{
 		var uid, gid int
 		var err error
-		k.container, k.env, err = newContainer(k, config.Container, k.id.String(), &share.sc, &uid, &gid)
+		k.container, k.env, err = newContainer(msg, k, config.Container, k.id.String(), &share.sc, &uid, &gid)
 		k.waitDelay = config.Container.WaitDelay
 		if err != nil {
 			return &hst.AppError{Step: "initialise container configuration", Err: err}
@@ -307,7 +307,7 @@ func (k *outcome) finalise(ctx context.Context, config *hst.Config) error {
 	k.env[xdgSessionType] = "tty"
 
 	k.runDirPath = share.sc.RunDirPath
-	k.sys = system.New(k.ctx, k.user.uid.unwrap())
+	k.sys = system.New(k.ctx, msg, k.user.uid.unwrap())
 	k.sys.Ensure(share.sc.SharePath.String(), 0711)
 
 	{
@@ -357,7 +357,7 @@ func (k *outcome) finalise(ctx context.Context, config *hst.Config) error {
 		// outer wayland socket (usually `/run/user/%d/wayland-%d`)
 		var socketPath *container.Absolute
 		if name, ok := k.lookupEnv(wayland.WaylandDisplay); !ok {
-			hlog.Verbose(wayland.WaylandDisplay + " is not set, assuming " + wayland.FallbackName)
+			msg.Verbose(wayland.WaylandDisplay + " is not set, assuming " + wayland.FallbackName)
 			socketPath = share.sc.RuntimePath.Append(wayland.FallbackName)
 		} else if a, err := container.NewAbs(name); err != nil {
 			socketPath = share.sc.RuntimePath.Append(name)
@@ -379,7 +379,7 @@ func (k *outcome) finalise(ctx context.Context, config *hst.Config) error {
 			k.sys.Wayland(&k.sync, outerPath.String(), socketPath.String(), appID, k.id.String())
 			k.container.Bind(outerPath, innerPath, 0)
 		} else { // bind mount wayland socket (insecure)
-			hlog.Verbose("direct wayland access, PROCEED WITH CAUTION")
+			msg.Verbose("direct wayland access, PROCEED WITH CAUTION")
 			share.ensureRuntimeDir()
 			k.container.Bind(socketPath, innerPath, 0)
 			k.sys.UpdatePermType(system.EWayland, socketPath.String(), acl.Read, acl.Write, acl.Execute)
@@ -520,7 +520,7 @@ func (k *outcome) finalise(ctx context.Context, config *hst.Config) error {
 			k.container.PlaceP(innerDst, &payload)
 			k.sys.CopyFile(payload, paCookiePath.String(), 256, 256)
 		} else {
-			hlog.Verbose("cannot locate PulseAudio cookie (tried " +
+			msg.Verbose("cannot locate PulseAudio cookie (tried " +
 				"$PULSE_COOKIE, " +
 				"$XDG_CONFIG_HOME/pulse/cookie, " +
 				"$HOME/.pulse-cookie)")
@@ -596,8 +596,8 @@ func (k *outcome) finalise(ctx context.Context, config *hst.Config) error {
 	}
 	slices.Sort(k.container.Env)
 
-	if hlog.Load() {
-		hlog.Verbosef("created application seal for uid %s (%s) groups: %v, argv: %s, ops: %d",
+	if msg.IsVerbose() {
+		msg.Verbosef("created application seal for uid %s (%s) groups: %v, argv: %s, ops: %d",
 			k.user.uid, k.user.username, config.Groups, k.container.Args, len(*k.container.Ops))
 	}
 

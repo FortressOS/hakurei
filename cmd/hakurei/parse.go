@@ -10,20 +10,20 @@ import (
 	"strings"
 	"syscall"
 
+	"hakurei.app/container"
 	"hakurei.app/hst"
 	"hakurei.app/internal/app"
 	"hakurei.app/internal/app/state"
-	"hakurei.app/internal/hlog"
 )
 
-func tryPath(name string) (config *hst.Config) {
+func tryPath(msg container.Msg, name string) (config *hst.Config) {
 	var r io.Reader
 	config = new(hst.Config)
 
 	if name != "-" {
-		r = tryFd(name)
+		r = tryFd(msg, name)
 		if r == nil {
-			hlog.Verbose("load configuration from file")
+			msg.Verbose("load configuration from file")
 
 			if f, err := os.Open(name); err != nil {
 				log.Fatalf("cannot access configuration file %q: %s", name, err)
@@ -49,14 +49,14 @@ func tryPath(name string) (config *hst.Config) {
 	return
 }
 
-func tryFd(name string) io.ReadCloser {
+func tryFd(msg container.Msg, name string) io.ReadCloser {
 	if v, err := strconv.Atoi(name); err != nil {
 		if !errors.Is(err, strconv.ErrSyntax) {
-			hlog.Verbosef("name cannot be interpreted as int64: %v", err)
+			msg.Verbosef("name cannot be interpreted as int64: %v", err)
 		}
 		return nil
 	} else {
-		hlog.Verbosef("trying config stream from %d", v)
+		msg.Verbosef("trying config stream from %d", v)
 		fd := uintptr(v)
 		if _, _, errno := syscall.Syscall(syscall.SYS_FCNTL, fd, syscall.F_GETFD, 0); errno != 0 {
 			if errors.Is(errno, syscall.EBADF) {
@@ -68,7 +68,7 @@ func tryFd(name string) io.ReadCloser {
 	}
 }
 
-func tryShort(name string) (config *hst.Config, entry *state.State) {
+func tryShort(msg container.Msg, name string) (config *hst.Config, entry *state.State) {
 	likePrefix := false
 	if len(name) <= 32 {
 		likePrefix = true
@@ -86,11 +86,11 @@ func tryShort(name string) (config *hst.Config, entry *state.State) {
 
 	// try to match from state store
 	if likePrefix && len(name) >= 8 {
-		hlog.Verbose("argument looks like prefix")
+		msg.Verbose("argument looks like prefix")
 
 		var sc hst.Paths
-		app.CopyPaths(&sc, new(app.Hsu).MustID())
-		s := state.NewMulti(sc.RunDirPath.String())
+		app.CopyPaths(msg, &sc, new(app.Hsu).MustID())
+		s := state.NewMulti(msg, sc.RunDirPath.String())
 		if entries, err := state.Join(s); err != nil {
 			log.Printf("cannot join store: %v", err)
 			// drop to fetch from file
@@ -104,7 +104,7 @@ func tryShort(name string) (config *hst.Config, entry *state.State) {
 					break
 				}
 
-				hlog.Verbosef("instance %s skipped", v)
+				msg.Verbosef("instance %s skipped", v)
 			}
 		}
 	}

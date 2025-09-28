@@ -9,7 +9,6 @@ import (
 
 	"hakurei.app/container"
 	"hakurei.app/hst"
-	"hakurei.app/internal/hlog"
 )
 
 const bash = "bash"
@@ -51,8 +50,8 @@ func lookPath(file string) string {
 
 var beforeRunFail = new(atomic.Pointer[func()])
 
-func mustRun(name string, arg ...string) {
-	hlog.Verbosef("spawning process: %q %q", name, arg)
+func mustRun(msg container.Msg, name string, arg ...string) {
+	msg.Verbosef("spawning process: %q %q", name, arg)
 	cmd := exec.Command(name, arg...)
 	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
 	if err := cmd.Run(); err != nil {

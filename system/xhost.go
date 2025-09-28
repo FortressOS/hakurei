@@ -16,18 +16,18 @@ type xhostOp string
 func (x xhostOp) Type() Enablement { return EX11 }
 
 func (x xhostOp) apply(sys *I) error {
-	sys.verbosef("inserting entry %s to X11", x)
+	sys.msg.Verbosef("inserting entry %s to X11", x)
 	return newOpError("xhost",
 		sys.xcbChangeHosts(xcb.HostModeInsert, xcb.FamilyServerInterpreted, "localuser\x00"+string(x)), false)
 }
 
 func (x xhostOp) revert(sys *I, ec *Criteria) error {
 	if ec.hasType(x.Type()) {
-		sys.verbosef("deleting entry %s from X11", x)
+		sys.msg.Verbosef("deleting entry %s from X11", x)
 		return newOpError("xhost",
 			sys.xcbChangeHosts(xcb.HostModeDelete, xcb.FamilyServerInterpreted, "localuser\x00"+string(x)), true)
 	} else {
-		sys.verbosef("skipping entry %s in X11", x)
+		sys.msg.Verbosef("skipping entry %s in X11", x)
 		return nil
 	}
 }

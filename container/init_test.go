@@ -11,25 +11,9 @@ import (
 )
 
 func TestInitEntrypoint(t *testing.T) {
-	assertPrefix := func(prefix string) {
-		if prefix != "init" {
-			t.Fatalf("prepareLogger: prefix = %q", prefix)
-		}
-	}
-
-	assertVerboseFalse := func(verbose bool) {
-		if verbose {
-			t.Fatal("setVerbose: verbose = true, want false")
-		}
-	}
-	assertVerboseTrue := func(verbose bool) {
-		if !verbose {
-			t.Fatal("setVerbose: verbose = false, want true")
-		}
-	}
 
 	checkSimple(t, "initEntrypoint", []simpleTestCase{
-		{"getpid", func(k syscallDispatcher) error { initEntrypoint(k, assertPrefix, assertVerboseTrue); return nil }, stub.Expect{
+		{"getpid", func(k *kstub) error { initEntrypoint(k, k); return nil }, stub.Expect{
 			Calls: []stub.Call{
 				call("lockOSThread", stub.ExpectArgs{}, nil, nil),
 				call("getpid", stub.ExpectArgs{}, 1<<10, nil),
@@ -37,7 +21,7 @@ func TestInitEntrypoint(t *testing.T) {
 			},
 		}, nil},
 
-		{"receive bad fd", func(k syscallDispatcher) error { initEntrypoint(k, assertPrefix, assertVerboseTrue); return nil }, stub.Expect{
+		{"receive bad fd", func(k *kstub) error { initEntrypoint(k, k); return nil }, stub.Expect{
 			Calls: []stub.Call{
 				call("lockOSThread", stub.ExpectArgs{}, nil, nil),
 				call("getpid", stub.ExpectArgs{}, 1, nil),
@@ -47,7 +31,7 @@ func TestInitEntrypoint(t *testing.T) {
 			},
 		}, nil},
 
-		{"receive not set", func(k syscallDispatcher) error { initEntrypoint(k, assertPrefix, assertVerboseTrue); return nil }, stub.Expect{
+		{"receive not set", func(k *kstub) error { initEntrypoint(k, k); return nil }, stub.Expect{
 			Calls: []stub.Call{
 				call("lockOSThread", stub.ExpectArgs{}, nil, nil),
 				call("getpid", stub.ExpectArgs{}, 1, nil),
@@ -57,7 +41,7 @@ func TestInitEntrypoint(t *testing.T) {
 			},
 		}, nil},
 
-		{"receive payload decode", func(k syscallDispatcher) error { initEntrypoint(k, assertPrefix, assertVerboseTrue); return nil }, stub.Expect{
+		{"receive payload decode", func(k *kstub) error { initEntrypoint(k, k); return nil }, stub.Expect{
 			Calls: []stub.Call{
 				call("lockOSThread", stub.ExpectArgs{}, nil, nil),
 				call("getpid", stub.ExpectArgs{}, 1, nil),
@@ -67,7 +51,7 @@ func TestInitEntrypoint(t *testing.T) {
 			},
 		}, nil},
 
-		{"receive invalid params", func(k syscallDispatcher) error { initEntrypoint(k, assertPrefix, assertVerboseTrue); return nil }, stub.Expect{
+		{"receive invalid params", func(k *kstub) error { initEntrypoint(k, k); return nil }, stub.Expect{
 			Calls: []stub.Call{
 				call("lockOSThread", stub.ExpectArgs{}, nil, nil),
 				call("getpid", stub.ExpectArgs{}, 1, nil),
@@ -91,7 +75,7 @@ func TestInitEntrypoint(t *testing.T) {
 			},
 		}, nil},
 
-		{"setDumpable user", func(k syscallDispatcher) error { initEntrypoint(k, assertPrefix, assertVerboseTrue); return nil }, stub.Expect{
+		{"setDumpable user", func(k *kstub) error { initEntrypoint(k, k); return nil }, stub.Expect{
 			Calls: []stub.Call{
 				call("lockOSThread", stub.ExpectArgs{}, nil, nil),
 				call("getpid", stub.ExpectArgs{}, 1, nil),
@@ -112,13 +96,14 @@ func TestInitEntrypoint(t *testing.T) {
 					RetainSession:  true,
 					Privileged:     true,
 				}, 1000, 100, 3, true}, uintptr(9)}, stub.UniqueError(78), nil),
+				call("swapVerbose", stub.ExpectArgs{true}, false, nil),
 				call("verbose", stub.ExpectArgs{[]any{"received setup parameters"}}, nil, nil),
 				call("setDumpable", stub.ExpectArgs{uintptr(1)}, nil, stub.UniqueError(77)),
 				call("fatalf", stub.ExpectArgs{"cannot set SUID_DUMP_USER: %v", []any{stub.UniqueError(77)}}, nil, nil),
 			},
 		}, nil},
 
-		{"writeFile uid_map", func(k syscallDispatcher) error { initEntrypoint(k, assertPrefix, assertVerboseTrue); return nil }, stub.Expect{
+		{"writeFile uid_map", func(k *kstub) error { initEntrypoint(k, k); return nil }, stub.Expect{
 			Calls: []stub.Call{
 				call("lockOSThread", stub.ExpectArgs{}, nil, nil),
 				call("getpid", stub.ExpectArgs{}, 1, nil),
@@ -139,6 +124,7 @@ func TestInitEntrypoint(t *testing.T) {
 					RetainSession:  true,
 					Privileged:     true,
 				}, 1000, 100, 3, true}, uintptr(9)}, stub.UniqueError(76), nil),
+				call("swapVerbose", stub.ExpectArgs{true}, false, nil),
 				call("verbose", stub.ExpectArgs{[]any{"received setup parameters"}}, nil, nil),
 				call("setDumpable", stub.ExpectArgs{uintptr(1)}, nil, nil),
 				call("writeFile", stub.ExpectArgs{"/proc/self/uid_map", []byte("4294967296 1000 1\n"), os.FileMode(0)}, nil, stub.UniqueError(75)),
@@ -146,7 +132,7 @@ func TestInitEntrypoint(t *testing.T) {
 			},
 		}, nil},
 
-		{"writeFile setgroups", func(k syscallDispatcher) error { initEntrypoint(k, assertPrefix, assertVerboseTrue); return nil }, stub.Expect{
+		{"writeFile setgroups", func(k *kstub) error { initEntrypoint(k, k); return nil }, stub.Expect{
 			Calls: []stub.Call{
 				call("lockOSThread", stub.ExpectArgs{}, nil, nil),
 				call("getpid", stub.ExpectArgs{}, 1, nil),
@@ -167,6 +153,7 @@ func TestInitEntrypoint(t *testing.T) {
 					RetainSession:  true,
 					Privileged:     true,
 				}, 1000, 100, 3, true}, uintptr(9)}, stub.UniqueError(74), nil),
+				call("swapVerbose", stub.ExpectArgs{true}, false, nil),
 				call("verbose", stub.ExpectArgs{[]any{"received setup parameters"}}, nil, nil),
 				call("setDumpable", stub.ExpectArgs{uintptr(1)}, nil, nil),
 				call("writeFile", stub.ExpectArgs{"/proc/self/uid_map", []byte("4294967296 1000 1\n"), os.FileMode(0)}, nil, nil),
@@ -175,7 +162,7 @@ func TestInitEntrypoint(t *testing.T) {
 			},
 		}, nil},
 
-		{"writeFile gid_map", func(k syscallDispatcher) error { initEntrypoint(k, assertPrefix, assertVerboseTrue); return nil }, stub.Expect{
+		{"writeFile gid_map", func(k *kstub) error { initEntrypoint(k, k); return nil }, stub.Expect{
 			Calls: []stub.Call{
 				call("lockOSThread", stub.ExpectArgs{}, nil, nil),
 				call("getpid", stub.ExpectArgs{}, 1, nil),
@@ -196,6 +183,7 @@ func TestInitEntrypoint(t *testing.T) {
 					RetainSession:  true,
 					Privileged:     true,
 				}, 1000, 100, 3, true}, uintptr(9)}, stub.UniqueError(72), nil),
+				call("swapVerbose", stub.ExpectArgs{true}, false, nil),
 				call("verbose", stub.ExpectArgs{[]any{"received setup parameters"}}, nil, nil),
 				call("setDumpable", stub.ExpectArgs{uintptr(1)}, nil, nil),
 				call("writeFile", stub.ExpectArgs{"/proc/self/uid_map", []byte("4294967296 1000 1\n"), os.FileMode(0)}, nil, nil),
@@ -205,7 +193,7 @@ func TestInitEntrypoint(t *testing.T) {
 			},
 		}, nil},
 
-		{"setDumpable disable", func(k syscallDispatcher) error { initEntrypoint(k, assertPrefix, assertVerboseTrue); return nil }, stub.Expect{
+		{"setDumpable disable", func(k *kstub) error { initEntrypoint(k, k); return nil }, stub.Expect{
 			Calls: []stub.Call{
 				call("lockOSThread", stub.ExpectArgs{}, nil, nil),
 				call("getpid", stub.ExpectArgs{}, 1, nil),
@@ -226,6 +214,7 @@ func TestInitEntrypoint(t *testing.T) {
 					RetainSession:  true,
 					Privileged:     true,
 				}, 1000, 100, 3, true}, uintptr(9)}, stub.UniqueError(70), nil),
+				call("swapVerbose", stub.ExpectArgs{true}, false, nil),
 				call("verbose", stub.ExpectArgs{[]any{"received setup parameters"}}, nil, nil),
 				call("setDumpable", stub.ExpectArgs{uintptr(1)}, nil, nil),
 				call("writeFile", stub.ExpectArgs{"/proc/self/uid_map", []byte("4294967296 1000 1\n"), os.FileMode(0)}, nil, nil),
@@ -236,7 +225,7 @@ func TestInitEntrypoint(t *testing.T) {
 			},
 		}, nil},
 
-		{"sethostname", func(k syscallDispatcher) error { initEntrypoint(k, assertPrefix, assertVerboseTrue); return nil }, stub.Expect{
+		{"sethostname", func(k *kstub) error { initEntrypoint(k, k); return nil }, stub.Expect{
 			Calls: []stub.Call{
 				call("lockOSThread", stub.ExpectArgs{}, nil, nil),
 				call("getpid", stub.ExpectArgs{}, 1, nil),
@@ -257,6 +246,7 @@ func TestInitEntrypoint(t *testing.T) {
 					RetainSession:  true,
 					Privileged:     true,
 				}, 1000, 100, 3, true}, uintptr(9)}, stub.UniqueError(68), nil),
+				call("swapVerbose", stub.ExpectArgs{true}, false, nil),
 				call("verbose", stub.ExpectArgs{[]any{"received setup parameters"}}, nil, nil),
 				call("setDumpable", stub.ExpectArgs{uintptr(1)}, nil, nil),
 				call("writeFile", stub.ExpectArgs{"/proc/self/uid_map", []byte("4294967296 1000 1\n"), os.FileMode(0)}, nil, nil),
@@ -269,7 +259,7 @@ func TestInitEntrypoint(t *testing.T) {
 			},
 		}, nil},
 
-		{"mount rslave root", func(k syscallDispatcher) error { initEntrypoint(k, assertPrefix, assertVerboseTrue); return nil }, stub.Expect{
+		{"mount rslave root", func(k *kstub) error { initEntrypoint(k, k); return nil }, stub.Expect{
 			Calls: []stub.Call{
 				call("lockOSThread", stub.ExpectArgs{}, nil, nil),
 				call("getpid", stub.ExpectArgs{}, 1, nil),
@@ -290,6 +280,7 @@ func TestInitEntrypoint(t *testing.T) {
 					RetainSession:  true,
 					Privileged:     true,
 				}, 1000, 100, 3, true}, uintptr(9)}, stub.UniqueError(66), nil),
+				call("swapVerbose", stub.ExpectArgs{true}, false, nil),
 				call("verbose", stub.ExpectArgs{[]any{"received setup parameters"}}, nil, nil),
 				call("setDumpable", stub.ExpectArgs{uintptr(1)}, nil, nil),
 				call("writeFile", stub.ExpectArgs{"/proc/self/uid_map", []byte("4294967296 1000 1\n"), os.FileMode(0)}, nil, nil),
@@ -304,7 +295,7 @@ func TestInitEntrypoint(t *testing.T) {
 			},
 		}, nil},
 
-		{"nil op", func(k syscallDispatcher) error { initEntrypoint(k, assertPrefix, assertVerboseTrue); return nil }, stub.Expect{
+		{"nil op", func(k *kstub) error { initEntrypoint(k, k); return nil }, stub.Expect{
 			Calls: []stub.Call{
 				call("lockOSThread", stub.ExpectArgs{}, nil, nil),
 				call("getpid", stub.ExpectArgs{}, 1, nil),
@@ -325,6 +316,7 @@ func TestInitEntrypoint(t *testing.T) {
 					RetainSession:  true,
 					Privileged:     true,
 				}, 1000, 100, 3, true}, uintptr(9)}, stub.UniqueError(64), nil),
+				call("swapVerbose", stub.ExpectArgs{true}, false, nil),
 				call("verbose", stub.ExpectArgs{[]any{"received setup parameters"}}, nil, nil),
 				call("setDumpable", stub.ExpectArgs{uintptr(1)}, nil, nil),
 				call("writeFile", stub.ExpectArgs{"/proc/self/uid_map", []byte("4294967296 1000 1\n"), os.FileMode(0)}, nil, nil),
@@ -341,7 +333,7 @@ func TestInitEntrypoint(t *testing.T) {
 			},
 		}, nil},
 
-		{"invalid op", func(k syscallDispatcher) error { initEntrypoint(k, assertPrefix, assertVerboseTrue); return nil }, stub.Expect{
+		{"invalid op", func(k *kstub) error { initEntrypoint(k, k); return nil }, stub.Expect{
 			Calls: []stub.Call{
 				call("lockOSThread", stub.ExpectArgs{}, nil, nil),
 				call("getpid", stub.ExpectArgs{}, 1, nil),
@@ -362,6 +354,7 @@ func TestInitEntrypoint(t *testing.T) {
 					RetainSession:  true,
 					Privileged:     true,
 				}, 1000, 100, 3, true}, uintptr(9)}, stub.UniqueError(63), nil),
+				call("swapVerbose", stub.ExpectArgs{true}, false, nil),
 				call("verbose", stub.ExpectArgs{[]any{"received setup parameters"}}, nil, nil),
 				call("setDumpable", stub.ExpectArgs{uintptr(1)}, nil, nil),
 				call("writeFile", stub.ExpectArgs{"/proc/self/uid_map", []byte("4294967296 1000 1\n"), os.FileMode(0)}, nil, nil),
@@ -378,7 +371,7 @@ func TestInitEntrypoint(t *testing.T) {
 			},
 		}, nil},
 
-		{"early unhandled error", func(k syscallDispatcher) error { initEntrypoint(k, assertPrefix, assertVerboseTrue); return nil }, stub.Expect{
+		{"early unhandled error", func(k *kstub) error { initEntrypoint(k, k); return nil }, stub.Expect{
 			Calls: []stub.Call{
 				call("lockOSThread", stub.ExpectArgs{}, nil, nil),
 				call("getpid", stub.ExpectArgs{}, 1, nil),
@@ -399,6 +392,7 @@ func TestInitEntrypoint(t *testing.T) {
 					RetainSession:  true,
 					Privileged:     true,
 				}, 1000, 100, 3, true}, uintptr(9)}, stub.UniqueError(62), nil),
+				call("swapVerbose", stub.ExpectArgs{true}, false, nil),
 				call("verbose", stub.ExpectArgs{[]any{"received setup parameters"}}, nil, nil),
 				call("setDumpable", stub.ExpectArgs{uintptr(1)}, nil, nil),
 				call("writeFile", stub.ExpectArgs{"/proc/self/uid_map", []byte("4294967296 1000 1\n"), os.FileMode(0)}, nil, nil),
@@ -416,7 +410,7 @@ func TestInitEntrypoint(t *testing.T) {
 			},
 		}, nil},
 
-		{"early", func(k syscallDispatcher) error { initEntrypoint(k, assertPrefix, assertVerboseTrue); return nil }, stub.Expect{
+		{"early", func(k *kstub) error { initEntrypoint(k, k); return nil }, stub.Expect{
 			Calls: []stub.Call{
 				call("lockOSThread", stub.ExpectArgs{}, nil, nil),
 				call("getpid", stub.ExpectArgs{}, 1, nil),
@@ -437,6 +431,7 @@ func TestInitEntrypoint(t *testing.T) {
 					RetainSession:  true,
 					Privileged:     true,
 				}, 1000, 100, 3, true}, uintptr(9)}, stub.UniqueError(60), nil),
+				call("swapVerbose", stub.ExpectArgs{true}, false, nil),
 				call("verbose", stub.ExpectArgs{[]any{"received setup parameters"}}, nil, nil),
 				call("setDumpable", stub.ExpectArgs{uintptr(1)}, nil, nil),
 				call("writeFile", stub.ExpectArgs{"/proc/self/uid_map", []byte("4294967296 1000 1\n"), os.FileMode(0)}, nil, nil),
@@ -454,7 +449,7 @@ func TestInitEntrypoint(t *testing.T) {
 			},
 		}, nil},
 
-		{"mount ih", func(k syscallDispatcher) error { initEntrypoint(k, assertPrefix, assertVerboseTrue); return nil }, stub.Expect{
+		{"mount ih", func(k *kstub) error { initEntrypoint(k, k); return nil }, stub.Expect{
 			Calls: []stub.Call{
 				call("lockOSThread", stub.ExpectArgs{}, nil, nil),
 				call("getpid", stub.ExpectArgs{}, 1, nil),
@@ -475,6 +470,7 @@ func TestInitEntrypoint(t *testing.T) {
 					RetainSession:  true,
 					Privileged:     true,
 				}, 1000, 100, 3, true}, uintptr(9)}, stub.UniqueError(59), nil),
+				call("swapVerbose", stub.ExpectArgs{true}, false, nil),
 				call("verbose", stub.ExpectArgs{[]any{"received setup parameters"}}, nil, nil),
 				call("setDumpable", stub.ExpectArgs{uintptr(1)}, nil, nil),
 				call("writeFile", stub.ExpectArgs{"/proc/self/uid_map", []byte("4294967296 1000 1\n"), os.FileMode(0)}, nil, nil),
@@ -493,7 +489,7 @@ func TestInitEntrypoint(t *testing.T) {
 			},
 		}, nil},
 
-		{"chdir ih", func(k syscallDispatcher) error { initEntrypoint(k, assertPrefix, assertVerboseTrue); return nil }, stub.Expect{
+		{"chdir ih", func(k *kstub) error { initEntrypoint(k, k); return nil }, stub.Expect{
 			Calls: []stub.Call{
 				call("lockOSThread", stub.ExpectArgs{}, nil, nil),
 				call("getpid", stub.ExpectArgs{}, 1, nil),
@@ -514,6 +510,7 @@ func TestInitEntrypoint(t *testing.T) {
 					RetainSession:  true,
 					Privileged:     true,
 				}, 1000, 100, 3, true}, uintptr(9)}, stub.UniqueError(57), nil),
+				call("swapVerbose", stub.ExpectArgs{true}, false, nil),
 				call("verbose", stub.ExpectArgs{[]any{"received setup parameters"}}, nil, nil),
 				call("setDumpable", stub.ExpectArgs{uintptr(1)}, nil, nil),
 				call("writeFile", stub.ExpectArgs{"/proc/self/uid_map", []byte("4294967296 1000 1\n"), os.FileMode(0)}, nil, nil),
@@ -533,7 +530,7 @@ func TestInitEntrypoint(t *testing.T) {
 			},
 		}, nil},
 
-		{"mkdir sysroot", func(k syscallDispatcher) error { initEntrypoint(k, assertPrefix, assertVerboseTrue); return nil }, stub.Expect{
+		{"mkdir sysroot", func(k *kstub) error { initEntrypoint(k, k); return nil }, stub.Expect{
 			Calls: []stub.Call{
 				call("lockOSThread", stub.ExpectArgs{}, nil, nil),
 				call("getpid", stub.ExpectArgs{}, 1, nil),
@@ -554,6 +551,7 @@ func TestInitEntrypoint(t *testing.T) {
 					RetainSession:  true,
 					Privileged:     true,
 				}, 1000, 100, 3, true}, uintptr(9)}, stub.UniqueError(55), nil),
+				call("swapVerbose", stub.ExpectArgs{true}, false, nil),
 				call("verbose", stub.ExpectArgs{[]any{"received setup parameters"}}, nil, nil),
 				call("setDumpable", stub.ExpectArgs{uintptr(1)}, nil, nil),
 				call("writeFile", stub.ExpectArgs{"/proc/self/uid_map", []byte("4294967296 1000 1\n"), os.FileMode(0)}, nil, nil),
@@ -574,7 +572,7 @@ func TestInitEntrypoint(t *testing.T) {
 			},
 		}, nil},
 
-		{"mount bind sysroot", func(k syscallDispatcher) error { initEntrypoint(k, assertPrefix, assertVerboseTrue); return nil }, stub.Expect{
+		{"mount bind sysroot", func(k *kstub) error { initEntrypoint(k, k); return nil }, stub.Expect{
 			Calls: []stub.Call{
 				call("lockOSThread", stub.ExpectArgs{}, nil, nil),
 				call("getpid", stub.ExpectArgs{}, 1, nil),
@@ -595,6 +593,7 @@ func TestInitEntrypoint(t *testing.T) {
 					RetainSession:  true,
 					Privileged:     true,
 				}, 1000, 100, 3, true}, uintptr(9)}, stub.UniqueError(53), nil),
+				call("swapVerbose", stub.ExpectArgs{true}, false, nil),
 				call("verbose", stub.ExpectArgs{[]any{"received setup parameters"}}, nil, nil),
 				call("setDumpable", stub.ExpectArgs{uintptr(1)}, nil, nil),
 				call("writeFile", stub.ExpectArgs{"/proc/self/uid_map", []byte("4294967296 1000 1\n"), os.FileMode(0)}, nil, nil),
@@ -616,7 +615,7 @@ func TestInitEntrypoint(t *testing.T) {
 			},
 		}, nil},
 
-		{"mkdir host", func(k syscallDispatcher) error { initEntrypoint(k, assertPrefix, assertVerboseTrue); return nil }, stub.Expect{
+		{"mkdir host", func(k *kstub) error { initEntrypoint(k, k); return nil }, stub.Expect{
 			Calls: []stub.Call{
 				call("lockOSThread", stub.ExpectArgs{}, nil, nil),
 				call("getpid", stub.ExpectArgs{}, 1, nil),
@@ -637,6 +636,7 @@ func TestInitEntrypoint(t *testing.T) {
 					RetainSession:  true,
 					Privileged:     true,
 				}, 1000, 100, 3, true}, uintptr(9)}, stub.UniqueError(51), nil),
+				call("swapVerbose", stub.ExpectArgs{true}, false, nil),
 				call("verbose", stub.ExpectArgs{[]any{"received setup parameters"}}, nil, nil),
 				call("setDumpable", stub.ExpectArgs{uintptr(1)}, nil, nil),
 				call("writeFile", stub.ExpectArgs{"/proc/self/uid_map", []byte("4294967296 1000 1\n"), os.FileMode(0)}, nil, nil),
@@ -659,7 +659,7 @@ func TestInitEntrypoint(t *testing.T) {
 			},
 		}, nil},
 
-		{"pivotRoot ir", func(k syscallDispatcher) error { initEntrypoint(k, assertPrefix, assertVerboseTrue); return nil }, stub.Expect{
+		{"pivotRoot ir", func(k *kstub) error { initEntrypoint(k, k); return nil }, stub.Expect{
 			Calls: []stub.Call{
 				call("lockOSThread", stub.ExpectArgs{}, nil, nil),
 				call("getpid", stub.ExpectArgs{}, 1, nil),
@@ -680,6 +680,7 @@ func TestInitEntrypoint(t *testing.T) {
 					RetainSession:  true,
 					Privileged:     true,
 				}, 1000, 100, 3, true}, uintptr(9)}, stub.UniqueError(49), nil),
+				call("swapVerbose", stub.ExpectArgs{true}, false, nil),
 				call("verbose", stub.ExpectArgs{[]any{"received setup parameters"}}, nil, nil),
 				call("setDumpable", stub.ExpectArgs{uintptr(1)}, nil, nil),
 				call("writeFile", stub.ExpectArgs{"/proc/self/uid_map", []byte("4294967296 1000 1\n"), os.FileMode(0)}, nil, nil),
@@ -703,7 +704,7 @@ func TestInitEntrypoint(t *testing.T) {
 			},
 		}, nil},
 
-		{"chdir ir", func(k syscallDispatcher) error { initEntrypoint(k, assertPrefix, assertVerboseTrue); return nil }, stub.Expect{
+		{"chdir ir", func(k *kstub) error { initEntrypoint(k, k); return nil }, stub.Expect{
 			Calls: []stub.Call{
 				call("lockOSThread", stub.ExpectArgs{}, nil, nil),
 				call("getpid", stub.ExpectArgs{}, 1, nil),
@@ -724,6 +725,7 @@ func TestInitEntrypoint(t *testing.T) {
 					RetainSession:  true,
 					Privileged:     true,
 				}, 1000, 100, 3, true}, uintptr(9)}, stub.UniqueError(47), nil),
+				call("swapVerbose", stub.ExpectArgs{true}, false, nil),
 				call("verbose", stub.ExpectArgs{[]any{"received setup parameters"}}, nil, nil),
 				call("setDumpable", stub.ExpectArgs{uintptr(1)}, nil, nil),
 				call("writeFile", stub.ExpectArgs{"/proc/self/uid_map", []byte("4294967296 1000 1\n"), os.FileMode(0)}, nil, nil),
@@ -748,7 +750,7 @@ func TestInitEntrypoint(t *testing.T) {
 			},
 		}, nil},
 
-		{"apply unhandled error", func(k syscallDispatcher) error { initEntrypoint(k, assertPrefix, assertVerboseTrue); return nil }, stub.Expect{
+		{"apply unhandled error", func(k *kstub) error { initEntrypoint(k, k); return nil }, stub.Expect{
 			Calls: []stub.Call{
 				call("lockOSThread", stub.ExpectArgs{}, nil, nil),
 				call("getpid", stub.ExpectArgs{}, 1, nil),
@@ -769,6 +771,7 @@ func TestInitEntrypoint(t *testing.T) {
 					RetainSession:  true,
 					Privileged:     true,
 				}, 1000, 100, 3, true}, uintptr(9)}, stub.UniqueError(45), nil),
+				call("swapVerbose", stub.ExpectArgs{true}, false, nil),
 				call("verbose", stub.ExpectArgs{[]any{"received setup parameters"}}, nil, nil),
 				call("setDumpable", stub.ExpectArgs{uintptr(1)}, nil, nil),
 				call("writeFile", stub.ExpectArgs{"/proc/self/uid_map", []byte("4294967296 1000 1\n"), os.FileMode(0)}, nil, nil),
@@ -802,7 +805,7 @@ func TestInitEntrypoint(t *testing.T) {
 			},
 		}, nil},
 
-		{"apply", func(k syscallDispatcher) error { initEntrypoint(k, assertPrefix, assertVerboseTrue); return nil }, stub.Expect{
+		{"apply", func(k *kstub) error { initEntrypoint(k, k); return nil }, stub.Expect{
 			Calls: []stub.Call{
 				call("lockOSThread", stub.ExpectArgs{}, nil, nil),
 				call("getpid", stub.ExpectArgs{}, 1, nil),
@@ -823,6 +826,7 @@ func TestInitEntrypoint(t *testing.T) {
 					RetainSession:  true,
 					Privileged:     true,
 				}, 1000, 100, 3, true}, uintptr(9)}, stub.UniqueError(43), nil),
+				call("swapVerbose", stub.ExpectArgs{true}, false, nil),
 				call("verbose", stub.ExpectArgs{[]any{"received setup parameters"}}, nil, nil),
 				call("setDumpable", stub.ExpectArgs{uintptr(1)}, nil, nil),
 				call("writeFile", stub.ExpectArgs{"/proc/self/uid_map", []byte("4294967296 1000 1\n"), os.FileMode(0)}, nil, nil),
@@ -856,7 +860,7 @@ func TestInitEntrypoint(t *testing.T) {
 			},
 		}, nil},
 
-		{"mount rprivate host", func(k syscallDispatcher) error { initEntrypoint(k, assertPrefix, assertVerboseTrue); return nil }, stub.Expect{
+		{"mount rprivate host", func(k *kstub) error { initEntrypoint(k, k); return nil }, stub.Expect{
 			Calls: []stub.Call{
 				call("lockOSThread", stub.ExpectArgs{}, nil, nil),
 				call("getpid", stub.ExpectArgs{}, 1, nil),
@@ -877,6 +881,7 @@ func TestInitEntrypoint(t *testing.T) {
 					RetainSession:  true,
 					Privileged:     true,
 				}, 1000, 100, 3, true}, uintptr(9)}, stub.UniqueError(42), nil),
+				call("swapVerbose", stub.ExpectArgs{true}, false, nil),
 				call("verbose", stub.ExpectArgs{[]any{"received setup parameters"}}, nil, nil),
 				call("setDumpable", stub.ExpectArgs{uintptr(1)}, nil, nil),
 				call("writeFile", stub.ExpectArgs{"/proc/self/uid_map", []byte("4294967296 1000 1\n"), os.FileMode(0)}, nil, nil),
@@ -911,7 +916,7 @@ func TestInitEntrypoint(t *testing.T) {
 			},
 		}, nil},
 
-		{"unmount host", func(k syscallDispatcher) error { initEntrypoint(k, assertPrefix, assertVerboseTrue); return nil }, stub.Expect{
+		{"unmount host", func(k *kstub) error { initEntrypoint(k, k); return nil }, stub.Expect{
 			Calls: []stub.Call{
 				call("lockOSThread", stub.ExpectArgs{}, nil, nil),
 				call("getpid", stub.ExpectArgs{}, 1, nil),
@@ -932,6 +937,7 @@ func TestInitEntrypoint(t *testing.T) {
 					RetainSession:  true,
 					Privileged:     true,
 				}, 1000, 100, 3, true}, uintptr(9)}, stub.UniqueError(40), nil),
+				call("swapVerbose", stub.ExpectArgs{true}, false, nil),
 				call("verbose", stub.ExpectArgs{[]any{"received setup parameters"}}, nil, nil),
 				call("setDumpable", stub.ExpectArgs{uintptr(1)}, nil, nil),
 				call("writeFile", stub.ExpectArgs{"/proc/self/uid_map", []byte("4294967296 1000 1\n"), os.FileMode(0)}, nil, nil),
@@ -967,7 +973,7 @@ func TestInitEntrypoint(t *testing.T) {
 			},
 		}, nil},
 
-		{"open ir", func(k syscallDispatcher) error { initEntrypoint(k, assertPrefix, assertVerboseTrue); return nil }, stub.Expect{
+		{"open ir", func(k *kstub) error { initEntrypoint(k, k); return nil }, stub.Expect{
 			Calls: []stub.Call{
 				call("lockOSThread", stub.ExpectArgs{}, nil, nil),
 				call("getpid", stub.ExpectArgs{}, 1, nil),
@@ -988,6 +994,7 @@ func TestInitEntrypoint(t *testing.T) {
 					RetainSession:  true,
 					Privileged:     true,
 				}, 1000, 100, 3, true}, uintptr(9)}, stub.UniqueError(38), nil),
+				call("swapVerbose", stub.ExpectArgs{true}, false, nil),
 				call("verbose", stub.ExpectArgs{[]any{"received setup parameters"}}, nil, nil),
 				call("setDumpable", stub.ExpectArgs{uintptr(1)}, nil, nil),
 				call("writeFile", stub.ExpectArgs{"/proc/self/uid_map", []byte("4294967296 1000 1\n"), os.FileMode(0)}, nil, nil),
@@ -1025,7 +1032,7 @@ func TestInitEntrypoint(t *testing.T) {
 			},
 		}, nil},
 
-		{"chdir sysroot", func(k syscallDispatcher) error { initEntrypoint(k, assertPrefix, assertVerboseTrue); return nil }, stub.Expect{
+		{"chdir sysroot", func(k *kstub) error { initEntrypoint(k, k); return nil }, stub.Expect{
 			Calls: []stub.Call{
 				call("lockOSThread", stub.ExpectArgs{}, nil, nil),
 				call("getpid", stub.ExpectArgs{}, 1, nil),
@@ -1046,6 +1053,7 @@ func TestInitEntrypoint(t *testing.T) {
 					RetainSession:  true,
 					Privileged:     true,
 				}, 1000, 100, 3, true}, uintptr(9)}, stub.UniqueError(36), nil),
+				call("swapVerbose", stub.ExpectArgs{true}, false, nil),
 				call("verbose", stub.ExpectArgs{[]any{"received setup parameters"}}, nil, nil),
 				call("setDumpable", stub.ExpectArgs{uintptr(1)}, nil, nil),
 				call("writeFile", stub.ExpectArgs{"/proc/self/uid_map", []byte("4294967296 1000 1\n"), os.FileMode(0)}, nil, nil),
@@ -1084,7 +1092,7 @@ func TestInitEntrypoint(t *testing.T) {
 			},
 		}, nil},
 
-		{"pivotRoot sysroot", func(k syscallDispatcher) error { initEntrypoint(k, assertPrefix, assertVerboseTrue); return nil }, stub.Expect{
+		{"pivotRoot sysroot", func(k *kstub) error { initEntrypoint(k, k); return nil }, stub.Expect{
 			Calls: []stub.Call{
 				call("lockOSThread", stub.ExpectArgs{}, nil, nil),
 				call("getpid", stub.ExpectArgs{}, 1, nil),
@@ -1105,6 +1113,7 @@ func TestInitEntrypoint(t *testing.T) {
 					RetainSession:  true,
 					Privileged:     true,
 				}, 1000, 100, 3, true}, uintptr(9)}, stub.UniqueError(34), nil),
+				call("swapVerbose", stub.ExpectArgs{true}, false, nil),
 				call("verbose", stub.ExpectArgs{[]any{"received setup parameters"}}, nil, nil),
 				call("setDumpable", stub.ExpectArgs{uintptr(1)}, nil, nil),
 				call("writeFile", stub.ExpectArgs{"/proc/self/uid_map", []byte("4294967296 1000 1\n"), os.FileMode(0)}, nil, nil),
@@ -1144,7 +1153,7 @@ func TestInitEntrypoint(t *testing.T) {
 			},
 		}, nil},
 
-		{"fchdir ir", func(k syscallDispatcher) error { initEntrypoint(k, assertPrefix, assertVerboseTrue); return nil }, stub.Expect{
+		{"fchdir ir", func(k *kstub) error { initEntrypoint(k, k); return nil }, stub.Expect{
 			Calls: []stub.Call{
 				call("lockOSThread", stub.ExpectArgs{}, nil, nil),
 				call("getpid", stub.ExpectArgs{}, 1, nil),
@@ -1165,6 +1174,7 @@ func TestInitEntrypoint(t *testing.T) {
 					RetainSession:  true,
 					Privileged:     true,
 				}, 1000, 100, 3, true}, uintptr(9)}, stub.UniqueError(32), nil),
+				call("swapVerbose", stub.ExpectArgs{true}, false, nil),
 				call("verbose", stub.ExpectArgs{[]any{"received setup parameters"}}, nil, nil),
 				call("setDumpable", stub.ExpectArgs{uintptr(1)}, nil, nil),
 				call("writeFile", stub.ExpectArgs{"/proc/self/uid_map", []byte("4294967296 1000 1\n"), os.FileMode(0)}, nil, nil),
@@ -1205,7 +1215,7 @@ func TestInitEntrypoint(t *testing.T) {
 			},
 		}, nil},
 
-		{"unmount ir", func(k syscallDispatcher) error { initEntrypoint(k, assertPrefix, assertVerboseTrue); return nil }, stub.Expect{
+		{"unmount ir", func(k *kstub) error { initEntrypoint(k, k); return nil }, stub.Expect{
 			Calls: []stub.Call{
 				call("lockOSThread", stub.ExpectArgs{}, nil, nil),
 				call("getpid", stub.ExpectArgs{}, 1, nil),
@@ -1226,6 +1236,7 @@ func TestInitEntrypoint(t *testing.T) {
 					RetainSession:  true,
 					Privileged:     true,
 				}, 1000, 100, 3, true}, uintptr(9)}, stub.UniqueError(30), nil),
+				call("swapVerbose", stub.ExpectArgs{true}, false, nil),
 				call("verbose", stub.ExpectArgs{[]any{"received setup parameters"}}, nil, nil),
 				call("setDumpable", stub.ExpectArgs{uintptr(1)}, nil, nil),
 				call("writeFile", stub.ExpectArgs{"/proc/self/uid_map", []byte("4294967296 1000 1\n"), os.FileMode(0)}, nil, nil),
@@ -1267,7 +1278,7 @@ func TestInitEntrypoint(t *testing.T) {
 			},
 		}, nil},
 
-		{"chdir ir", func(k syscallDispatcher) error { initEntrypoint(k, assertPrefix, assertVerboseTrue); return nil }, stub.Expect{
+		{"chdir ir", func(k *kstub) error { initEntrypoint(k, k); return nil }, stub.Expect{
 			Calls: []stub.Call{
 				call("lockOSThread", stub.ExpectArgs{}, nil, nil),
 				call("getpid", stub.ExpectArgs{}, 1, nil),
@@ -1288,6 +1299,7 @@ func TestInitEntrypoint(t *testing.T) {
 					RetainSession:  true,
 					Privileged:     true,
 				}, 1000, 100, 3, true}, uintptr(9)}, stub.UniqueError(28), nil),
+				call("swapVerbose", stub.ExpectArgs{true}, false, nil),
 				call("verbose", stub.ExpectArgs{[]any{"received setup parameters"}}, nil, nil),
 				call("setDumpable", stub.ExpectArgs{uintptr(1)}, nil, nil),
 				call("writeFile", stub.ExpectArgs{"/proc/self/uid_map", []byte("4294967296 1000 1\n"), os.FileMode(0)}, nil, nil),
@@ -1330,7 +1342,7 @@ func TestInitEntrypoint(t *testing.T) {
 			},
 		}, nil},
 
-		{"close ir", func(k syscallDispatcher) error { initEntrypoint(k, assertPrefix, assertVerboseTrue); return nil }, stub.Expect{
+		{"close ir", func(k *kstub) error { initEntrypoint(k, k); return nil }, stub.Expect{
 			Calls: []stub.Call{
 				call("lockOSThread", stub.ExpectArgs{}, nil, nil),
 				call("getpid", stub.ExpectArgs{}, 1, nil),
@@ -1351,6 +1363,7 @@ func TestInitEntrypoint(t *testing.T) {
 					RetainSession:  true,
 					Privileged:     true,
 				}, 1000, 100, 3, true}, uintptr(9)}, stub.UniqueError(26), nil),
+				call("swapVerbose", stub.ExpectArgs{true}, false, nil),
 				call("verbose", stub.ExpectArgs{[]any{"received setup parameters"}}, nil, nil),
 				call("setDumpable", stub.ExpectArgs{uintptr(1)}, nil, nil),
 				call("writeFile", stub.ExpectArgs{"/proc/self/uid_map", []byte("4294967296 1000 1\n"), os.FileMode(0)}, nil, nil),
@@ -1394,7 +1407,7 @@ func TestInitEntrypoint(t *testing.T) {
 			},
 		}, nil},
 
-		{"capAmbientClearAll", func(k syscallDispatcher) error { initEntrypoint(k, assertPrefix, assertVerboseTrue); return nil }, stub.Expect{
+		{"capAmbientClearAll", func(k *kstub) error { initEntrypoint(k, k); return nil }, stub.Expect{
 			Calls: []stub.Call{
 				call("lockOSThread", stub.ExpectArgs{}, nil, nil),
 				call("getpid", stub.ExpectArgs{}, 1, nil),
@@ -1415,6 +1428,7 @@ func TestInitEntrypoint(t *testing.T) {
 					RetainSession:  true,
 					Privileged:     true,
 				}, 1000, 100, 3, true}, uintptr(9)}, stub.UniqueError(24), nil),
+				call("swapVerbose", stub.ExpectArgs{true}, false, nil),
 				call("verbose", stub.ExpectArgs{[]any{"received setup parameters"}}, nil, nil),
 				call("setDumpable", stub.ExpectArgs{uintptr(1)}, nil, nil),
 				call("writeFile", stub.ExpectArgs{"/proc/self/uid_map", []byte("4294967296 1000 1\n"), os.FileMode(0)}, nil, nil),
@@ -1459,7 +1473,7 @@ func TestInitEntrypoint(t *testing.T) {
 			},
 		}, nil},
 
-		{"capBoundingSetDrop", func(k syscallDispatcher) error { initEntrypoint(k, assertPrefix, assertVerboseTrue); return nil }, stub.Expect{
+		{"capBoundingSetDrop", func(k *kstub) error { initEntrypoint(k, k); return nil }, stub.Expect{
 			Calls: []stub.Call{
 				call("lockOSThread", stub.ExpectArgs{}, nil, nil),
 				call("getpid", stub.ExpectArgs{}, 1, nil),
@@ -1480,6 +1494,7 @@ func TestInitEntrypoint(t *testing.T) {
 					RetainSession:  true,
 					Privileged:     true,
 				}, 1000, 100, 3, true}, uintptr(9)}, stub.UniqueError(22), nil),
+				call("swapVerbose", stub.ExpectArgs{true}, false, nil),
 				call("verbose", stub.ExpectArgs{[]any{"received setup parameters"}}, nil, nil),
 				call("setDumpable", stub.ExpectArgs{uintptr(1)}, nil, nil),
 				call("writeFile", stub.ExpectArgs{"/proc/self/uid_map", []byte("4294967296 1000 1\n"), os.FileMode(0)}, nil, nil),
@@ -1532,7 +1547,7 @@ func TestInitEntrypoint(t *testing.T) {
 			},
 		}, nil},
 
-		{"capAmbientRaise", func(k syscallDispatcher) error { initEntrypoint(k, assertPrefix, assertVerboseTrue); return nil }, stub.Expect{
+		{"capAmbientRaise", func(k *kstub) error { initEntrypoint(k, k); return nil }, stub.Expect{
 			Calls: []stub.Call{
 				call("lockOSThread", stub.ExpectArgs{}, nil, nil),
 				call("getpid", stub.ExpectArgs{}, 1, nil),
@@ -1553,6 +1568,7 @@ func TestInitEntrypoint(t *testing.T) {
 					RetainSession:  true,
 					Privileged:     true,
 				}, 1000, 100, 3, true}, uintptr(9)}, stub.UniqueError(20), nil),
+				call("swapVerbose", stub.ExpectArgs{true}, false, nil),
 				call("verbose", stub.ExpectArgs{[]any{"received setup parameters"}}, nil, nil),
 				call("setDumpable", stub.ExpectArgs{uintptr(1)}, nil, nil),
 				call("writeFile", stub.ExpectArgs{"/proc/self/uid_map", []byte("4294967296 1000 1\n"), os.FileMode(0)}, nil, nil),
@@ -1638,7 +1654,7 @@ func TestInitEntrypoint(t *testing.T) {
 			},
 		}, nil},
 
-		{"capset", func(k syscallDispatcher) error { initEntrypoint(k, assertPrefix, assertVerboseTrue); return nil }, stub.Expect{
+		{"capset", func(k *kstub) error { initEntrypoint(k, k); return nil }, stub.Expect{
 			Calls: []stub.Call{
 				call("lockOSThread", stub.ExpectArgs{}, nil, nil),
 				call("getpid", stub.ExpectArgs{}, 1, nil),
@@ -1659,6 +1675,7 @@ func TestInitEntrypoint(t *testing.T) {
 					RetainSession:  true,
 					Privileged:     true,
 				}, 1000, 100, 3, true}, uintptr(9)}, stub.UniqueError(18), nil),
+				call("swapVerbose", stub.ExpectArgs{true}, false, nil),
 				call("verbose", stub.ExpectArgs{[]any{"received setup parameters"}}, nil, nil),
 				call("setDumpable", stub.ExpectArgs{uintptr(1)}, nil, nil),
 				call("writeFile", stub.ExpectArgs{"/proc/self/uid_map", []byte("4294967296 1000 1\n"), os.FileMode(0)}, nil, nil),
@@ -1745,7 +1762,7 @@ func TestInitEntrypoint(t *testing.T) {
 			},
 		}, nil},
 
-		{"seccompLoad", func(k syscallDispatcher) error { initEntrypoint(k, assertPrefix, assertVerboseTrue); return nil }, stub.Expect{
+		{"seccompLoad", func(k *kstub) error { initEntrypoint(k, k); return nil }, stub.Expect{
 			Calls: []stub.Call{
 				call("lockOSThread", stub.ExpectArgs{}, nil, nil),
 				call("getpid", stub.ExpectArgs{}, 1, nil),
@@ -1766,6 +1783,7 @@ func TestInitEntrypoint(t *testing.T) {
 					RetainSession:  true,
 					Privileged:     true,
 				}, 1000, 100, 3, true}, uintptr(9)}, stub.UniqueError(16), nil),
+				call("swapVerbose", stub.ExpectArgs{true}, false, nil),
 				call("verbose", stub.ExpectArgs{[]any{"received setup parameters"}}, nil, nil),
 				call("setDumpable", stub.ExpectArgs{uintptr(1)}, nil, nil),
 				call("writeFile", stub.ExpectArgs{"/proc/self/uid_map", []byte("4294967296 1000 1\n"), os.FileMode(0)}, nil, nil),
@@ -1854,7 +1872,7 @@ func TestInitEntrypoint(t *testing.T) {
 			},
 		}, nil},
 
-		{"start", func(k syscallDispatcher) error { initEntrypoint(k, assertPrefix, assertVerboseFalse); return nil }, stub.Expect{
+		{"start", func(k *kstub) error { initEntrypoint(k, k); return nil }, stub.Expect{
 			Calls: []stub.Call{
 				call("lockOSThread", stub.ExpectArgs{}, nil, nil),
 				call("getpid", stub.ExpectArgs{}, 1, nil),
@@ -1874,6 +1892,7 @@ func TestInitEntrypoint(t *testing.T) {
 					SeccompDisable: true,
 					ParentPerm:     0750,
 				}, 1971, 127, 2, false}, uintptr(0x39)}, stub.UniqueError(13), nil),
+				call("swapVerbose", stub.ExpectArgs{false}, false, nil),
 				call("verbose", stub.ExpectArgs{[]any{"received setup parameters"}}, nil, nil),
 				call("setDumpable", stub.ExpectArgs{uintptr(1)}, nil, nil),
 				call("writeFile", stub.ExpectArgs{"/proc/self/uid_map", []byte("16777216 1971 1\n"), os.FileMode(0)}, nil, nil),
@@ -1966,7 +1985,7 @@ func TestInitEntrypoint(t *testing.T) {
 			},
 		}, nil},
 
-		{"lowlastcap signaled cancel forward error", func(k syscallDispatcher) error { initEntrypoint(k, assertPrefix, assertVerboseFalse); return nil }, stub.Expect{
+		{"lowlastcap signaled cancel forward error", func(k *kstub) error { initEntrypoint(k, k); return nil }, stub.Expect{
 			/* entrypoint */
 			Calls: []stub.Call{
 				call("lockOSThread", stub.ExpectArgs{}, nil, nil),
@@ -1987,6 +2006,7 @@ func TestInitEntrypoint(t *testing.T) {
 					SeccompDisable: true,
 					ParentPerm:     0750,
 				}, 1971, 127, 2, false}, uintptr(0x39)}, stub.UniqueError(10), nil),
+				call("swapVerbose", stub.ExpectArgs{false}, false, nil),
 				call("verbose", stub.ExpectArgs{[]any{"received setup parameters"}}, nil, nil),
 				call("setDumpable", stub.ExpectArgs{uintptr(1)}, nil, nil),
 				call("writeFile", stub.ExpectArgs{"/proc/self/uid_map", []byte("16777216 1971 1\n"), os.FileMode(0)}, nil, nil),
@@ -2039,7 +2059,7 @@ func TestInitEntrypoint(t *testing.T) {
 				call("umask", stub.ExpectArgs{022}, 0, nil),
 				call("verbosef", stub.ExpectArgs{"starting initial program %s", []any{MustAbs("/run/current-system/sw/bin/bash")}}, nil, nil),
 				call("start", stub.ExpectArgs{"/run/current-system/sw/bin/bash", []string{"bash", "-c", "false"}, ([]string)(nil), "/.hakurei/nonexistent"}, &os.Process{Pid: 0xbad}, nil),
-				call("suspend", stub.ExpectArgs{}, nil, nil),
+				call("suspend", stub.ExpectArgs{}, true, nil),
 				call("printf", stub.ExpectArgs{"cannot close setup pipe: %v", []any{stub.UniqueError(10)}}, nil, nil),
 				call("New", stub.ExpectArgs{}, nil, nil),
 				call("notify", stub.ExpectArgs{func(c chan<- os.Signal) { c <- CancelSignal }, []os.Signal{syscall.SIGINT, syscall.SIGTERM}}, nil, nil),
@@ -2065,7 +2085,7 @@ func TestInitEntrypoint(t *testing.T) {
 			}}},
 		}, nil},
 
-		{"lowlastcap signaled cancel", func(k syscallDispatcher) error { initEntrypoint(k, assertPrefix, assertVerboseFalse); return nil }, stub.Expect{
+		{"lowlastcap signaled cancel", func(k *kstub) error { initEntrypoint(k, k); return nil }, stub.Expect{
 			/* entrypoint */
 			Calls: []stub.Call{
 				call("lockOSThread", stub.ExpectArgs{}, nil, nil),
@@ -2086,6 +2106,7 @@ func TestInitEntrypoint(t *testing.T) {
 					SeccompDisable: true,
 					ParentPerm:     0750,
 				}, 1971, 127, 2, false}, uintptr(0x39)}, stub.UniqueError(7), nil),
+				call("swapVerbose", stub.ExpectArgs{false}, false, nil),
 				call("verbose", stub.ExpectArgs{[]any{"received setup parameters"}}, nil, nil),
 				call("setDumpable", stub.ExpectArgs{uintptr(1)}, nil, nil),
 				call("writeFile", stub.ExpectArgs{"/proc/self/uid_map", []byte("16777216 1971 1\n"), os.FileMode(0)}, nil, nil),
@@ -2138,7 +2159,7 @@ func TestInitEntrypoint(t *testing.T) {
 				call("umask", stub.ExpectArgs{022}, 0, nil),
 				call("verbosef", stub.ExpectArgs{"starting initial program %s", []any{MustAbs("/run/current-system/sw/bin/bash")}}, nil, nil),
 				call("start", stub.ExpectArgs{"/run/current-system/sw/bin/bash", []string{"bash", "-c", "false"}, ([]string)(nil), "/.hakurei/nonexistent"}, &os.Process{Pid: 0xbad}, nil),
-				call("suspend", stub.ExpectArgs{}, nil, nil),
+				call("suspend", stub.ExpectArgs{}, true, nil),
 				call("printf", stub.ExpectArgs{"cannot close setup pipe: %v", []any{stub.UniqueError(7)}}, nil, nil),
 				call("New", stub.ExpectArgs{}, nil, nil),
 				call("notify", stub.ExpectArgs{func(c chan<- os.Signal) { c <- os.Interrupt }, []os.Signal{syscall.SIGINT, syscall.SIGTERM}}, nil, nil),
@@ -2155,7 +2176,7 @@ func TestInitEntrypoint(t *testing.T) {
 			}}},
 		}, nil},
 
-		{"lowlastcap signaled timeout", func(k syscallDispatcher) error { initEntrypoint(k, assertPrefix, assertVerboseFalse); return nil }, stub.Expect{
+		{"lowlastcap signaled timeout", func(k *kstub) error { initEntrypoint(k, k); return nil }, stub.Expect{
 			/* entrypoint */
 			Calls: []stub.Call{
 				call("lockOSThread", stub.ExpectArgs{}, nil, nil),
@@ -2176,6 +2197,7 @@ func TestInitEntrypoint(t *testing.T) {
 					SeccompDisable: true,
 					ParentPerm:     0750,
 				}, 1971, 127, 2, false}, uintptr(0x39)}, stub.UniqueError(5), nil),
+				call("swapVerbose", stub.ExpectArgs{false}, false, nil),
 				call("verbose", stub.ExpectArgs{[]any{"received setup parameters"}}, nil, nil),
 				call("setDumpable", stub.ExpectArgs{uintptr(1)}, nil, nil),
 				call("writeFile", stub.ExpectArgs{"/proc/self/uid_map", []byte("16777216 1971 1\n"), os.FileMode(0)}, nil, nil),
@@ -2228,7 +2250,7 @@ func TestInitEntrypoint(t *testing.T) {
 				call("umask", stub.ExpectArgs{022}, 0, nil),
 				call("verbosef", stub.ExpectArgs{"starting initial program %s", []any{MustAbs("/run/current-system/sw/bin/bash")}}, nil, nil),
 				call("start", stub.ExpectArgs{"/run/current-system/sw/bin/bash", []string{"bash", "-c", "false"}, ([]string)(nil), "/.hakurei/nonexistent"}, &os.Process{Pid: 0xbad}, nil),
-				call("suspend", stub.ExpectArgs{}, nil, nil),
+				call("suspend", stub.ExpectArgs{}, true, nil),
 				call("printf", stub.ExpectArgs{"cannot close setup pipe: %v", []any{stub.UniqueError(5)}}, nil, nil),
 				call("New", stub.ExpectArgs{}, nil, nil),
 				call("notify", stub.ExpectArgs{nil, []os.Signal{syscall.SIGINT, syscall.SIGTERM}}, nil, nil),
@@ -2247,7 +2269,7 @@ func TestInitEntrypoint(t *testing.T) {
 			}}},
 		}, nil},
 
-		{"lowlastcap signaled", func(k syscallDispatcher) error { initEntrypoint(k, assertPrefix, assertVerboseFalse); return nil }, stub.Expect{
+		{"lowlastcap signaled", func(k *kstub) error { initEntrypoint(k, k); return nil }, stub.Expect{
 			/* entrypoint */
 			Calls: []stub.Call{
 				call("lockOSThread", stub.ExpectArgs{}, nil, nil),
@@ -2268,6 +2290,7 @@ func TestInitEntrypoint(t *testing.T) {
 					SeccompDisable: true,
 					ParentPerm:     0750,
 				}, 1971, 127, 2, false}, uintptr(0x39)}, stub.UniqueError(3), nil),
+				call("swapVerbose", stub.ExpectArgs{false}, false, nil),
 				call("verbose", stub.ExpectArgs{[]any{"received setup parameters"}}, nil, nil),
 				call("setDumpable", stub.ExpectArgs{uintptr(1)}, nil, nil),
 				call("writeFile", stub.ExpectArgs{"/proc/self/uid_map", []byte("16777216 1971 1\n"), os.FileMode(0)}, nil, nil),
@@ -2320,7 +2343,7 @@ func TestInitEntrypoint(t *testing.T) {
 				call("umask", stub.ExpectArgs{022}, 0, nil),
 				call("verbosef", stub.ExpectArgs{"starting initial program %s", []any{MustAbs("/run/current-system/sw/bin/bash")}}, nil, nil),
 				call("start", stub.ExpectArgs{"/run/current-system/sw/bin/bash", []string{"bash", "-c", "false"}, ([]string)(nil), "/.hakurei/nonexistent"}, &os.Process{Pid: 0xbad}, nil),
-				call("suspend", stub.ExpectArgs{}, nil, nil),
+				call("suspend", stub.ExpectArgs{}, true, nil),
 				call("printf", stub.ExpectArgs{"cannot close setup pipe: %v", []any{stub.UniqueError(3)}}, nil, nil),
 				call("New", stub.ExpectArgs{}, nil, nil),
 				call("notify", stub.ExpectArgs{nil, []os.Signal{syscall.SIGINT, syscall.SIGTERM}}, nil, nil),
@@ -2346,7 +2369,7 @@ func TestInitEntrypoint(t *testing.T) {
 			}}},
 		}, nil},
 
-		{"strangewait nopriv notty noseccomp yamafault", func(k syscallDispatcher) error { initEntrypoint(k, assertPrefix, assertVerboseFalse); return nil }, stub.Expect{
+		{"strangewait nopriv notty noseccomp yamafault", func(k *kstub) error { initEntrypoint(k, k); return nil }, stub.Expect{
 			/* entrypoint */
 			Calls: []stub.Call{
 				call("lockOSThread", stub.ExpectArgs{}, nil, nil),
@@ -2367,6 +2390,7 @@ func TestInitEntrypoint(t *testing.T) {
 					SeccompDisable: true,
 					ParentPerm:     0750,
 				}, 1971, 127, 2, false}, uintptr(0x39)}, stub.UniqueError(1), nil),
+				call("swapVerbose", stub.ExpectArgs{false}, false, nil),
 				call("verbose", stub.ExpectArgs{[]any{"received setup parameters"}}, nil, nil),
 				call("setDumpable", stub.ExpectArgs{uintptr(1)}, nil, nil),
 				call("writeFile", stub.ExpectArgs{"/proc/self/uid_map", []byte("16777216 1971 1\n"), os.FileMode(0)}, nil, nil),
@@ -2455,7 +2479,7 @@ func TestInitEntrypoint(t *testing.T) {
 				call("umask", stub.ExpectArgs{022}, 0, nil),
 				call("verbosef", stub.ExpectArgs{"starting initial program %s", []any{MustAbs("/run/current-system/sw/bin/bash")}}, nil, nil),
 				call("start", stub.ExpectArgs{"/run/current-system/sw/bin/bash", []string{"bash", "-c", "false"}, ([]string)(nil), "/.hakurei/nonexistent"}, &os.Process{Pid: 0xbad}, nil),
-				call("suspend", stub.ExpectArgs{}, nil, nil),
+				call("suspend", stub.ExpectArgs{}, true, nil),
 				call("printf", stub.ExpectArgs{"cannot close setup pipe: %v", []any{stub.UniqueError(1)}}, nil, nil),
 				call("New", stub.ExpectArgs{}, nil, nil),
 				call("notify", stub.ExpectArgs{nil, []os.Signal{syscall.SIGINT, syscall.SIGTERM}}, nil, nil),
@@ -2481,7 +2505,7 @@ func TestInitEntrypoint(t *testing.T) {
 			}}},
 		}, nil},
 
-		{"success", func(k syscallDispatcher) error { initEntrypoint(k, assertPrefix, assertVerboseTrue); return nil }, stub.Expect{
+		{"success", func(k *kstub) error { initEntrypoint(k, k); return nil }, stub.Expect{
 			/* entrypoint */
 			Calls: []stub.Call{
 				call("lockOSThread", stub.ExpectArgs{}, nil, nil),
@@ -2503,6 +2527,7 @@ func TestInitEntrypoint(t *testing.T) {
 					RetainSession:  true,
 					Privileged:     true,
 				}, 1000, 100, 3, true}, uintptr(9)}, stub.UniqueError(0), nil),
+				call("swapVerbose", stub.ExpectArgs{true}, false, nil),
 				call("verbose", stub.ExpectArgs{[]any{"received setup parameters"}}, nil, nil),
 				call("setDumpable", stub.ExpectArgs{uintptr(1)}, nil, nil),
 				call("writeFile", stub.ExpectArgs{"/proc/self/uid_map", []byte("4294967296 1000 1\n"), os.FileMode(0)}, nil, nil),
@@ -2594,7 +2619,7 @@ func TestInitEntrypoint(t *testing.T) {
 				call("umask", stub.ExpectArgs{022}, 0, nil),
 				call("verbosef", stub.ExpectArgs{"starting initial program %s", []any{MustAbs("/bin/zsh")}}, nil, nil),
 				call("start", stub.ExpectArgs{"/bin/zsh", []string{"zsh", "-c", "exec vim"}, []string{"DISPLAY=:0"}, "/.hakurei"}, &os.Process{Pid: 0xcafe}, nil),
-				call("suspend", stub.ExpectArgs{}, nil, nil),
+				call("suspend", stub.ExpectArgs{}, true, nil),
 				call("printf", stub.ExpectArgs{"cannot close setup pipe: %v", []any{stub.UniqueError(0)}}, nil, nil),
 				call("New", stub.ExpectArgs{}, nil, nil),
 				call("notify", stub.ExpectArgs{nil, []os.Signal{syscall.SIGINT, syscall.SIGTERM}}, nil, nil),

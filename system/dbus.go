@@ -54,14 +54,14 @@ func (sys *I) ProxyDBus(session, system *dbus.Config, sessionPath, systemPath st
 		return nil, newOpErrorMessage("dbus", err,
 			fmt.Sprintf("cannot finalise message bus proxy: %v", err), false)
 	} else {
-		if sys.isVerbose() {
-			sys.verbose("session bus proxy:", session.Args(sessionBus))
+		if sys.msg.IsVerbose() {
+			sys.msg.Verbose("session bus proxy:", session.Args(sessionBus))
 			if system != nil {
-				sys.verbose("system bus proxy:", system.Args(systemBus))
+				sys.msg.Verbose("system bus proxy:", system.Args(systemBus))
 			}
 
 			// this calls the argsWt String method
-			sys.verbose("message bus proxy final args:", final.WriterTo)
+			sys.msg.Verbose("message bus proxy final args:", final.WriterTo)
 		}
 
 		d.final = final
@@ -84,28 +84,28 @@ type dbusProxyOp struct {
 func (d *dbusProxyOp) Type() Enablement { return Process }
 
 func (d *dbusProxyOp) apply(sys *I) error {
-	sys.verbosef("session bus proxy on %q for upstream %q", d.final.Session[1], d.final.Session[0])
+	sys.msg.Verbosef("session bus proxy on %q for upstream %q", d.final.Session[1], d.final.Session[0])
 	if d.system {
-		sys.verbosef("system bus proxy on %q for upstream %q", d.final.System[1], d.final.System[0])
+		sys.msg.Verbosef("system bus proxy on %q for upstream %q", d.final.System[1], d.final.System[0])
 	}
 
-	d.proxy = dbus.New(sys.ctx, d.final, d.out)
+	d.proxy = dbus.New(sys.ctx, sys.msg, d.final, d.out)
 	if err := sys.dbusProxyStart(d.proxy); err != nil {
 		d.out.Dump()
 		return newOpErrorMessage("dbus", err,
 			fmt.Sprintf("cannot start message bus proxy: %v", err), false)
 	}
-	sys.verbose("starting message bus proxy", d.proxy)
+	sys.msg.Verbose("starting message bus proxy", d.proxy)
 	return nil
 }
 
 func (d *dbusProxyOp) revert(sys *I, _ *Criteria) error {
 	// criteria ignored here since dbus is always process-scoped
-	sys.verbose("terminating message bus proxy")
+	sys.msg.Verbose("terminating message bus proxy")
 	sys.dbusProxyClose(d.proxy)
 
 	exitMessage := "message bus proxy exit"
-	defer func() { sys.verbose(exitMessage) }()
+	defer func() { sys.msg.Verbose(exitMessage) }()
 
 	err := sys.dbusProxyWait(d.proxy)
 	if errors.Is(err, context.Canceled) {

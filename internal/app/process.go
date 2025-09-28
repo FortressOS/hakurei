@@ -15,7 +15,6 @@ import (
 	"hakurei.app/container"
 	"hakurei.app/internal"
 	"hakurei.app/internal/app/state"
-	"hakurei.app/internal/hlog"
 	"hakurei.app/system"
 )
 
@@ -39,6 +38,7 @@ type mainState struct {
 	cmdWait chan error
 
 	k *outcome
+	container.Msg
 	uintptr
 }
 
@@ -55,7 +55,7 @@ func (ms mainState) beforeExit(isFault bool) {
 		panic("attempting to call beforeExit twice")
 	}
 	ms.done = true
-	defer hlog.BeforeExit()
+	defer ms.BeforeExit()
 
 	if isFault && ms.cancel != nil {
 		ms.cancel()
@@ -97,37 +97,37 @@ func (ms mainState) beforeExit(isFault bool) {
 				}
 			}
 
-			if hlog.Load() {
+			if ms.IsVerbose() {
 				if !ok {
 					if err != nil {
-						hlog.Verbosef("wait: %v", err)
+						ms.Verbosef("wait: %v", err)
 					}
 				} else {
 					switch {
 					case wstatus.Exited():
-						hlog.Verbosef("process %d exited with code %d", ms.cmd.Process.Pid, wstatus.ExitStatus())
+						ms.Verbosef("process %d exited with code %d", ms.cmd.Process.Pid, wstatus.ExitStatus())
 
 					case wstatus.CoreDump():
-						hlog.Verbosef("process %d dumped core", ms.cmd.Process.Pid)
+						ms.Verbosef("process %d dumped core", ms.cmd.Process.Pid)
 
 					case wstatus.Signaled():
-						hlog.Verbosef("process %d got %s", ms.cmd.Process.Pid, wstatus.Signal())
+						ms.Verbosef("process %d got %s", ms.cmd.Process.Pid, wstatus.Signal())
 
 					default:
-						hlog.Verbosef("process %d exited with status %#x", ms.cmd.Process.Pid, wstatus)
+						ms.Verbosef("process %d exited with status %#x", ms.cmd.Process.Pid, wstatus)
 					}
 				}
 			}
 
 		case <-waitDone:
-			hlog.Resume()
+			ms.Resume()
 			// this is only reachable when shim did not exit within shimWaitTimeout, after its WaitDelay has elapsed.
 			// This is different from the container failing to terminate within its timeout period, as that is enforced
 			// by the shim. This path is instead reached when there is a lockup in shim preventing it from completing.
 			log.Printf("process %d did not terminate", ms.cmd.Process.Pid)
 		}
 
-		hlog.Resume()
+		ms.Resume()
 		if ms.k.sync != nil {
 			if err := ms.k.sync.Close(); err != nil {
 				perror(err, "close wayland security context")
@@ -170,7 +170,7 @@ func (ms mainState) beforeExit(isFault bool) {
 				if l := len(states); l == 0 {
 					ec |= system.User
 				} else {
-					hlog.Verbosef("found %d instances, cleaning up without user-scoped operations", l)
+					ms.Verbosef("found %d instances, cleaning up without user-scoped operations", l)
 				}
 
 				// accumulate enablements of remaining launchers
@@ -183,9 +183,9 @@ func (ms mainState) beforeExit(isFault bool) {
 				}
 
 				ec |= rt ^ (system.EWayland | system.EX11 | system.EDBus | system.EPulse)
-				if hlog.Load() {
+				if ms.IsVerbose() {
 					if ec > 0 {
-						hlog.Verbose("reverting operations scope", system.TypeString(ec))
+						ms.Verbose("reverting operations scope", system.TypeString(ec))
 					}
 				}
 
@@ -219,7 +219,7 @@ func (ms mainState) fatal(fallback string, ferr error) {
 }
 
 // main carries out outcome and terminates. main does not return.
-func (k *outcome) main() {
+func (k *outcome) main(msg container.Msg) {
 	if !k.active.CompareAndSwap(false, true) {
 		panic("outcome: attempted to run twice")
 	}
@@ -228,19 +228,19 @@ func (k *outcome) main() {
 	hsuPath := internal.MustHsuPath()
 
 	// ms.beforeExit required beyond this point
-	ms := &mainState{k: k}
+	ms := &mainState{Msg: msg, k: k}
 
 	if err := k.sys.Commit(); err != nil {
 		ms.fatal("cannot commit system setup:", err)
 	}
 	ms.uintptr |= mainNeedsRevert
-	ms.store = state.NewMulti(k.runDirPath.String())
+	ms.store = state.NewMulti(msg, k.runDirPath.String())
 
 	ctx, cancel := context.WithCancel(k.ctx)
 	defer cancel()
 	ms.cancel = cancel
 
-	ms.cmd = exec.CommandContext(ctx, hsuPath)
+	ms.cmd = exec.CommandContext(ctx, hsuPath.String())
 	ms.cmd.Stdin, ms.cmd.Stdout, ms.cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
 	ms.cmd.Dir = container.FHSRoot // container init enters final working directory
 	// shim runs in the same session as monitor; see shim.go for behaviour
@@ -260,13 +260,13 @@ func (k *outcome) main() {
 	}
 
 	if len(k.user.supp) > 0 {
-		hlog.Verbosef("attaching supplementary group ids %s", k.user.supp)
+		msg.Verbosef("attaching supplementary group ids %s", k.user.supp)
 		// interpreted by hsu
 		ms.cmd.Env = append(ms.cmd.Env, "HAKUREI_GROUPS="+strings.Join(k.user.supp, " "))
 	}
 
-	hlog.Verbosef("setuid helper at %s", hsuPath)
-	hlog.Suspend()
+	msg.Verbosef("setuid helper at %s", hsuPath)
+	msg.Suspend()
 	if err := ms.cmd.Start(); err != nil {
 		ms.fatal("cannot start setuid wrapper:", err)
 	}
@@ -286,18 +286,18 @@ func (k *outcome) main() {
 				os.Getpid(),
 				k.waitDelay,
 				k.container,
-				hlog.Load(),
+				msg.IsVerbose(),
 			})
 		}()
 		return
 	}():
 		if err != nil {
-			hlog.Resume()
+			msg.Resume()
 			ms.fatal("cannot transmit shim config:", err)
 		}
 
 	case <-ctx.Done():
-		hlog.Resume()
+		msg.Resume()
 		ms.fatal("shim context canceled:", newWithMessageError("shim setup canceled", ctx.Err()))
 	}
 

@@ -2,7 +2,6 @@ package container
 
 import (
 	"bytes"
-	"log"
 	"os"
 	"strconv"
 	"sync"
@@ -22,26 +21,28 @@ const (
 	kernelCapLastCapPath  = FHSProcSys + "kernel/cap_last_cap"
 )
 
-func mustReadSysctl() {
-	if v, err := os.ReadFile(kernelOverflowuidPath); err != nil {
-		log.Fatalf("cannot read %q: %v", kernelOverflowuidPath, err)
-	} else if kernelOverflowuid, err = strconv.Atoi(string(bytes.TrimSpace(v))); err != nil {
-		log.Fatalf("cannot interpret %q: %v", kernelOverflowuidPath, err)
-	}
+func mustReadSysctl(msg Msg) {
+	sysctlOnce.Do(func() {
+		if v, err := os.ReadFile(kernelOverflowuidPath); err != nil {
+			msg.GetLogger().Fatalf("cannot read %q: %v", kernelOverflowuidPath, err)
+		} else if kernelOverflowuid, err = strconv.Atoi(string(bytes.TrimSpace(v))); err != nil {
+			msg.GetLogger().Fatalf("cannot interpret %q: %v", kernelOverflowuidPath, err)
+		}
 
-	if v, err := os.ReadFile(kernelOverflowgidPath); err != nil {
-		log.Fatalf("cannot read %q: %v", kernelOverflowgidPath, err)
-	} else if kernelOverflowgid, err = strconv.Atoi(string(bytes.TrimSpace(v))); err != nil {
-		log.Fatalf("cannot interpret %q: %v", kernelOverflowgidPath, err)
-	}
+		if v, err := os.ReadFile(kernelOverflowgidPath); err != nil {
+			msg.GetLogger().Fatalf("cannot read %q: %v", kernelOverflowgidPath, err)
+		} else if kernelOverflowgid, err = strconv.Atoi(string(bytes.TrimSpace(v))); err != nil {
+			msg.GetLogger().Fatalf("cannot interpret %q: %v", kernelOverflowgidPath, err)
+		}
 
-	if v, err := os.ReadFile(kernelCapLastCapPath); err != nil {
-		log.Fatalf("cannot read %q: %v", kernelCapLastCapPath, err)
-	} else if kernelCapLastCap, err = strconv.Atoi(string(bytes.TrimSpace(v))); err != nil {
-		log.Fatalf("cannot interpret %q: %v", kernelCapLastCapPath, err)
-	}
+		if v, err := os.ReadFile(kernelCapLastCapPath); err != nil {
+			msg.GetLogger().Fatalf("cannot read %q: %v", kernelCapLastCapPath, err)
+		} else if kernelCapLastCap, err = strconv.Atoi(string(bytes.TrimSpace(v))); err != nil {
+			msg.GetLogger().Fatalf("cannot interpret %q: %v", kernelCapLastCapPath, err)
+		}
+	})
 }
 
-func OverflowUid() int { sysctlOnce.Do(mustReadSysctl); return kernelOverflowuid }
-func OverflowGid() int { sysctlOnce.Do(mustReadSysctl); return kernelOverflowgid }
-func LastCap() uintptr { sysctlOnce.Do(mustReadSysctl); return uintptr(kernelCapLastCap) }
+func OverflowUid(msg Msg) int { mustReadSysctl(msg); return kernelOverflowuid }
+func OverflowGid(msg Msg) int { mustReadSysctl(msg); return kernelOverflowgid }
+func LastCap(msg Msg) uintptr { mustReadSysctl(msg); return uintptr(kernelCapLastCap) }

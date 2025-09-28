@@ -7,6 +7,7 @@ import (
 	"sync"
 	"syscall"
 
+	"hakurei.app/container"
 	"hakurei.app/helper"
 )
 
@@ -27,6 +28,7 @@ func (e *BadInterfaceError) Error() string {
 type Proxy struct {
 	helper helper.Helper
 	ctx    context.Context
+	msg    container.Msg
 
 	cancel context.CancelCauseFunc
 	cause  func() error
@@ -107,6 +109,6 @@ func Finalise(sessionBus, systemBus ProxyPair, session, system *Config) (final *
 }
 
 // New returns a new instance of [Proxy].
-func New(ctx context.Context, final *Final, output io.Writer) *Proxy {
-	return &Proxy{name: ProxyName, ctx: ctx, final: final, output: output, useSandbox: true}
+func New(ctx context.Context, msg container.Msg, final *Final, output io.Writer) *Proxy {
+	return &Proxy{name: ProxyName, ctx: ctx, msg: msg, final: final, output: output, useSandbox: true}
 }

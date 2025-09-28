@@ -5,6 +5,8 @@ import (
 	"context"
 	"errors"
 	"strings"
+
+	"hakurei.app/container"
 )
 
 const (
@@ -65,11 +67,11 @@ func TypeString(e Enablement) string {
 }
 
 // New returns the address of a new [I] targeting uid.
-func New(ctx context.Context, uid int) (sys *I) {
-	if ctx == nil || uid < 0 {
+func New(ctx context.Context, msg container.Msg, uid int) (sys *I) {
+	if ctx == nil || msg == nil || uid < 0 {
 		panic("invalid call to New")
 	}
-	return &I{ctx: ctx, uid: uid, syscallDispatcher: direct{}}
+	return &I{ctx: ctx, msg: msg, uid: uid, syscallDispatcher: direct{}}
 }
 
 // An I provides deferred operating system interaction. [I] must not be copied.
@@ -86,6 +88,7 @@ type I struct {
 	// the behaviour of Revert is only defined for up to one call
 	reverted bool
 
+	msg container.Msg
 	syscallDispatcher
 }
 
@@ -114,14 +117,14 @@ func (sys *I) Commit() error {
 	}
 	sys.committed = true
 
-	sp := New(sys.ctx, sys.uid)
+	sp := New(sys.ctx, sys.msg, sys.uid)
 	sp.syscallDispatcher = sys.syscallDispatcher
 	sp.ops = make([]Op, 0, len(sys.ops)) // prevent copies during commits
 	defer func() {
 		// sp is set to nil when all ops are applied
 		if sp != nil {
 			// rollback partial commit
-			sys.verbosef("commit faulted after %d ops, rolling back partial commit", len(sp.ops))
+			sys.msg.Verbosef("commit faulted after %d ops, rolling back partial commit", len(sp.ops))
 			if err := sp.Revert(nil); err != nil {
 				printJoinedError(sys.println, "cannot revert partial commit:", err)
 			}

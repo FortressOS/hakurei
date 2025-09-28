@@ -16,10 +16,10 @@ import (
 
 func testStore(t *testing.T, s state.Store) {
 	t.Run("list empty store", func(t *testing.T) {
-		if aids, err := s.List(); err != nil {
+		if identities, err := s.List(); err != nil {
 			t.Fatalf("List: error = %v", err)
-		} else if len(aids) != 0 {
-			t.Fatalf("List: aids = %#v", aids)
+		} else if len(identities) != 0 {
+			t.Fatalf("List: identities = %#v", identities)
 		}
 	})
 
@@ -39,22 +39,22 @@ func testStore(t *testing.T, s state.Store) {
 		makeState(t, &tc[i].state, &tc[i].ct)
 	}
 
-	do := func(aid int, f func(c state.Cursor)) {
-		if ok, err := s.Do(aid, f); err != nil {
+	do := func(identity int, f func(c state.Cursor)) {
+		if ok, err := s.Do(identity, f); err != nil {
 			t.Fatalf("Do: ok = %v, error = %v", ok, err)
 		}
 	}
 
-	insert := func(i, aid int) {
-		do(aid, func(c state.Cursor) {
+	insert := func(i, identity int) {
+		do(identity, func(c state.Cursor) {
 			if err := c.Save(&tc[i].state, &tc[i].ct); err != nil {
 				t.Fatalf("Save(&tc[%v]): error = %v", i, err)
 			}
 		})
 	}
 
-	check := func(i, aid int) {
-		do(aid, func(c state.Cursor) {
+	check := func(i, identity int) {
+		do(identity, func(c state.Cursor) {
 			if entries, err := c.Load(); err != nil {
 				t.Fatalf("Load: error = %v", err)
 			} else if got, ok := entries[tc[i].state.ID]; !ok {
@@ -81,7 +81,7 @@ func testStore(t *testing.T, s state.Store) {
 		insert(insertEntryNoCheck, 0)
 	})
 
-	t.Run("insert entry different aid", func(t *testing.T) {
+	t.Run("insert entry different identity", func(t *testing.T) {
 		insert(insertEntryOtherApp, 1)
 		check(insertEntryOtherApp, 1)
 	})
@@ -90,14 +90,14 @@ func testStore(t *testing.T, s state.Store) {
 		check(insertEntryNoCheck, 0)
 	})
 
-	t.Run("list aids", func(t *testing.T) {
-		if aids, err := s.List(); err != nil {
+	t.Run("list identities", func(t *testing.T) {
+		if identities, err := s.List(); err != nil {
 			t.Fatalf("List: error = %v", err)
 		} else {
-			slices.Sort(aids)
+			slices.Sort(identities)
 			want := []int{0, 1}
-			if !slices.Equal(aids, want) {
-				t.Fatalf("List() = %#v, want %#v", aids, want)
+			if !slices.Equal(identities, want) {
+				t.Fatalf("List() = %#v, want %#v", identities, want)
 			}
 		}
 	})
@@ -110,7 +110,7 @@ func testStore(t *testing.T, s state.Store) {
 		}
 	})
 
-	t.Run("clear aid 1", func(t *testing.T) {
+	t.Run("clear identity 1", func(t *testing.T) {
 		do(1, func(c state.Cursor) {
 			if err := c.Destroy(tc[insertEntryOtherApp].state.ID); err != nil {
 				t.Fatalf("Destroy: error = %v", err)

@@ -96,18 +96,17 @@ const (
 )
 
 // bindMount mounts source on target and recursively applies flags if MS_REC is set.
-func (p *procPaths) bindMount(source, target string, flags uintptr) error {
+func (p *procPaths) bindMount(msg Msg, source, target string, flags uintptr) error {
 	// syscallDispatcher.bindMount and procPaths.remount must not be called from this function
 
 	if err := p.k.mount(source, target, FstypeNULL, MS_SILENT|MS_BIND|flags&MS_REC, zeroString); err != nil {
 		return err
 	}
-
-	return p.k.remount(target, flags)
+	return p.k.remount(msg, target, flags)
 }
 
 // remount applies flags on target, recursively if MS_REC is set.
-func (p *procPaths) remount(target string, flags uintptr) error {
+func (p *procPaths) remount(msg Msg, target string, flags uintptr) error {
 	// syscallDispatcher methods bindMount, remount must not be called from this function
 
 	var targetFinal string
@@ -116,7 +115,7 @@ func (p *procPaths) remount(target string, flags uintptr) error {
 	} else {
 		targetFinal = v
 		if targetFinal != target {
-			p.k.verbosef("target resolves to %q", targetFinal)
+			msg.Verbosef("target resolves to %q", targetFinal)
 		}
 	}
 
@@ -146,7 +145,7 @@ func (p *procPaths) remount(target string, flags uintptr) error {
 			return err
 		}
 
-		if err = remountWithFlags(p.k, n, mf); err != nil {
+		if err = remountWithFlags(p.k, msg, n, mf); err != nil {
 			return err
 		}
 		if flags&MS_REC == 0 {
@@ -159,7 +158,7 @@ func (p *procPaths) remount(target string, flags uintptr) error {
 				continue
 			}
 
-			if err = remountWithFlags(p.k, cur, mf); err != nil && !errors.Is(err, EACCES) {
+			if err = remountWithFlags(p.k, msg, cur, mf); err != nil && !errors.Is(err, EACCES) {
 				return err
 			}
 		}
@@ -169,12 +168,12 @@ func (p *procPaths) remount(target string, flags uintptr) error {
 }
 
 // remountWithFlags remounts mount point described by [vfs.MountInfoNode].
-func remountWithFlags(k syscallDispatcher, n *vfs.MountInfoNode, mf uintptr) error {
+func remountWithFlags(k syscallDispatcher, msg Msg, n *vfs.MountInfoNode, mf uintptr) error {
 	// syscallDispatcher methods bindMount, remount must not be called from this function
 
 	kf, unmatched := n.Flags()
 	if len(unmatched) != 0 {
-		k.verbosef("unmatched vfs options: %q", unmatched)
+		msg.Verbosef("unmatched vfs options: %q", unmatched)
 	}
 
 	if kf&mf != mf {

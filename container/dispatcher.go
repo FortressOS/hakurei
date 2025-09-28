@@ -3,7 +3,6 @@ package container
 import (
 	"io"
 	"io/fs"
-	"log"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -38,7 +37,7 @@ type syscallDispatcher interface {
 	setNoNewPrivs() error
 
 	// lastcap provides [LastCap].
-	lastcap() uintptr
+	lastcap(msg Msg) uintptr
 	// capset provides capset.
 	capset(hdrp *capHeader, datap *[2]capData) error
 	// capBoundingSetDrop provides capBoundingSetDrop.
@@ -53,9 +52,9 @@ type syscallDispatcher interface {
 	receive(key string, e any, fdp *uintptr) (closeFunc func() error, err error)
 
 	// bindMount provides procPaths.bindMount.
-	bindMount(source, target string, flags uintptr) error
+	bindMount(msg Msg, source, target string, flags uintptr) error
 	// remount provides procPaths.remount.
-	remount(target string, flags uintptr) error
+	remount(msg Msg, target string, flags uintptr) error
 	// mountTmpfs provides mountTmpfs.
 	mountTmpfs(fsname, target string, flags uintptr, size int, perm os.FileMode) error
 	// ensureFile provides ensureFile.
@@ -122,22 +121,12 @@ type syscallDispatcher interface {
 	// wait4 provides syscall.Wait4
 	wait4(pid int, wstatus *syscall.WaitStatus, options int, rusage *syscall.Rusage) (wpid int, err error)
 
-	// printf provides [log.Printf].
-	printf(format string, v ...any)
-	// fatal provides [log.Fatal]
-	fatal(v ...any)
-	// fatalf provides [log.Fatalf]
-	fatalf(format string, v ...any)
-	// verbose provides [Msg.Verbose].
-	verbose(v ...any)
-	// verbosef provides [Msg.Verbosef].
-	verbosef(format string, v ...any)
-	// suspend provides [Msg.Suspend].
-	suspend()
-	// resume provides [Msg.Resume].
-	resume() bool
-	// beforeExit provides [Msg.BeforeExit].
-	beforeExit()
+	// printf provides the Printf method of [log.Logger].
+	printf(msg Msg, format string, v ...any)
+	// fatal provides the Fatal method of [log.Logger]
+	fatal(msg Msg, v ...any)
+	// fatalf provides the Fatalf method of [log.Logger]
+	fatalf(msg Msg, format string, v ...any)
 }
 
 // direct implements syscallDispatcher on the current kernel.
@@ -151,7 +140,7 @@ func (direct) setPtracer(pid uintptr) error       { return SetPtracer(pid) }
 func (direct) setDumpable(dumpable uintptr) error { return SetDumpable(dumpable) }
 func (direct) setNoNewPrivs() error               { return SetNoNewPrivs() }
 
-func (direct) lastcap() uintptr                                { return LastCap() }
+func (direct) lastcap(msg Msg) uintptr                         { return LastCap(msg) }
 func (direct) capset(hdrp *capHeader, datap *[2]capData) error { return capset(hdrp, datap) }
 func (direct) capBoundingSetDrop(cap uintptr) error            { return capBoundingSetDrop(cap) }
 func (direct) capAmbientClearAll() error                       { return capAmbientClearAll() }
@@ -161,11 +150,11 @@ func (direct) receive(key string, e any, fdp *uintptr) (func() error, error) {
 	return Receive(key, e, fdp)
 }
 
-func (direct) bindMount(source, target string, flags uintptr) error {
-	return hostProc.bindMount(source, target, flags)
+func (direct) bindMount(msg Msg, source, target string, flags uintptr) error {
+	return hostProc.bindMount(msg, source, target, flags)
 }
-func (direct) remount(target string, flags uintptr) error {
-	return hostProc.remount(target, flags)
+func (direct) remount(msg Msg, target string, flags uintptr) error {
+	return hostProc.remount(msg, target, flags)
 }
 func (k direct) mountTmpfs(fsname, target string, flags uintptr, size int, perm os.FileMode) error {
 	return mountTmpfs(k, fsname, target, flags, size, perm)
@@ -232,11 +221,6 @@ func (direct) wait4(pid int, wstatus *syscall.WaitStatus, options int, rusage *s
 	return syscall.Wait4(pid, wstatus, options, rusage)
 }
 
-func (direct) printf(format string, v ...any)   { log.Printf(format, v...) }
-func (direct) fatal(v ...any)                   { log.Fatal(v...) }
-func (direct) fatalf(format string, v ...any)   { log.Fatalf(format, v...) }
-func (direct) verbose(v ...any)                 { msg.Verbose(v...) }
-func (direct) verbosef(format string, v ...any) { msg.Verbosef(format, v...) }
-func (direct) suspend()                         { msg.Suspend() }
-func (direct) resume() bool                     { return msg.Resume() }
-func (direct) beforeExit()                      { msg.BeforeExit() }
+func (direct) printf(msg Msg, format string, v ...any) { msg.GetLogger().Printf(format, v...) }
+func (direct) fatal(msg Msg, v ...any)                 { msg.GetLogger().Fatal(v...) }
+func (direct) fatalf(msg Msg, format string, v ...any) { msg.GetLogger().Fatalf(format, v...) }

@@ -19,9 +19,9 @@ type Store interface {
 	// Cursor provided to f becomes invalid as soon as f returns.
 	Do(identity int, f func(c Cursor)) (ok bool, err error)
 
-	// List queries the store and returns a list of aids known to the store.
-	// Note that some or all returned aids might not have any active apps.
-	List() (aids []int, err error)
+	// List queries the store and returns a list of identities known to the store.
+	// Note that some or all returned identities might not have any active apps.
+	List() (identities []int, err error)
 
 	// Close releases any resources held by Store.
 	Close() error

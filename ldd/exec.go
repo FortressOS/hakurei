@@ -22,7 +22,7 @@ var (
 	msgStaticGlibc = []byte("not a dynamic executable")
 )
 
-func Exec(ctx context.Context, p string) ([]*Entry, error) {
+func Exec(ctx context.Context, msg container.Msg, p string) ([]*Entry, error) {
 	c, cancel := context.WithTimeout(ctx, lddTimeout)
 	defer cancel()
 
@@ -33,7 +33,7 @@ func Exec(ctx context.Context, p string) ([]*Entry, error) {
 		return nil, err
 	}
 
-	z := container.NewCommand(c, toolPath, lddName, p)
+	z := container.NewCommand(c, msg, toolPath, lddName, p)
 	z.Hostname = "hakurei-" + lddName
 	z.SeccompFlags |= seccomp.AllowMultiarch
 	z.SeccompPresets |= seccomp.PresetStrict

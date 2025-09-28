@@ -180,19 +180,26 @@ func TestIsAutoRootBindable(t *testing.T) {
 	testCases := []struct {
 		name string
 		want bool
+		log  bool
 	}{
-		{"proc", false},
-		{"dev", false},
-		{"tmp", false},
-		{"mnt", false},
-		{"etc", false},
-		{"", false},
+		{"proc", false, false},
+		{"dev", false, false},
+		{"tmp", false, false},
+		{"mnt", false, false},
+		{"etc", false, false},
+		{"", false, true},
 
-		{"var", true},
+		{"var", true, false},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			if got := IsAutoRootBindable(tc.name); got != tc.want {
+			var msg Msg
+			if tc.log {
+				msg = &kstub{nil, stub.New(t, func(s *stub.Stub[syscallDispatcher]) syscallDispatcher { panic("unreachable") }, stub.Expect{Calls: []stub.Call{
+					call("verbose", stub.ExpectArgs{[]any{"got unexpected root entry"}}, nil, nil),
+				}})}
+			}
+			if got := IsAutoRootBindable(msg, tc.name); got != tc.want {
 				t.Errorf("IsAutoRootBindable: %v, want %v", got, tc.want)
 			}
 		})

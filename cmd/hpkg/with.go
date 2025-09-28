@@ -2,20 +2,21 @@ package main
 
 import (
 	"context"
+	"os"
 	"strings"
 
 	"hakurei.app/container"
 	"hakurei.app/container/seccomp"
 	"hakurei.app/hst"
-	"hakurei.app/internal"
 )
 
 func withNixDaemon(
 	ctx context.Context,
+	msg container.Msg,
 	action string, command []string, net bool, updateConfig func(config *hst.Config) *hst.Config,
 	app *appInfo, pathSet *appPathSet, dropShell bool, beforeFail func(),
 ) {
-	mustRunAppDropShell(ctx, updateConfig(&hst.Config{
+	mustRunAppDropShell(ctx, msg, updateConfig(&hst.Config{
 		ID: app.ID,
 
 		Path: pathShell,
@@ -61,9 +62,10 @@ func withNixDaemon(
 
 func withCacheDir(
 	ctx context.Context,
+	msg container.Msg,
 	action string, command []string, workDir *container.Absolute,
 	app *appInfo, pathSet *appPathSet, dropShell bool, beforeFail func()) {
-	mustRunAppDropShell(ctx, &hst.Config{
+	mustRunAppDropShell(ctx, msg, &hst.Config{
 		ID: app.ID,
 
 		Path: pathShell,
@@ -97,12 +99,13 @@ func withCacheDir(
 	}, dropShell, beforeFail)
 }
 
-func mustRunAppDropShell(ctx context.Context, config *hst.Config, dropShell bool, beforeFail func()) {
+func mustRunAppDropShell(ctx context.Context, msg container.Msg, config *hst.Config, dropShell bool, beforeFail func()) {
 	if dropShell {
 		config.Args = []string{bash, "-l"}
-		mustRunApp(ctx, config, beforeFail)
+		mustRunApp(ctx, msg, config, beforeFail)
 		beforeFail()
-		internal.Exit(0)
+		msg.BeforeExit()
+		os.Exit(0)
 	}
-	mustRunApp(ctx, config, beforeFail)
+	mustRunApp(ctx, msg, config, beforeFail)
 }

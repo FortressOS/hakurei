@@ -49,6 +49,7 @@ type (
 
 		cmd *exec.Cmd
 		ctx context.Context
+		msg Msg
 		Params
 	}
 
@@ -162,10 +163,10 @@ func (p *Container) Start() error {
 
 	// map to overflow id to work around ownership checks
 	if p.Uid < 1 {
-		p.Uid = OverflowUid()
+		p.Uid = OverflowUid(p.msg)
 	}
 	if p.Gid < 1 {
-		p.Gid = OverflowGid()
+		p.Gid = OverflowGid(p.msg)
 	}
 
 	if !p.RetainSession {
@@ -263,19 +264,19 @@ func (p *Container) Start() error {
 					}
 					return &StartError{false, "kernel version too old for LANDLOCK_SCOPE_ABSTRACT_UNIX_SOCKET", ENOSYS, true, false}
 				} else {
-					msg.Verbosef("landlock abi version %d", abi)
+					p.msg.Verbosef("landlock abi version %d", abi)
 				}
 
 				if rulesetFd, err := rulesetAttr.Create(0); err != nil {
 					return &StartError{true, "create landlock ruleset", err, false, false}
 				} else {
-					msg.Verbosef("enforcing landlock ruleset %s", rulesetAttr)
+					p.msg.Verbosef("enforcing landlock ruleset %s", rulesetAttr)
 					if err = LandlockRestrictSelf(rulesetFd, 0); err != nil {
 						_ = Close(rulesetFd)
 						return &StartError{true, "enforce landlock ruleset", err, false, false}
 					}
 					if err = Close(rulesetFd); err != nil {
-						msg.Verbosef("cannot close landlock ruleset: %v", err)
+						p.msg.Verbosef("cannot close landlock ruleset: %v", err)
 						// not fatal
 					}
 				}
@@ -283,7 +284,7 @@ func (p *Container) Start() error {
 			landlockOut:
 			}
 
-			msg.Verbose("starting container init")
+			p.msg.Verbose("starting container init")
 			if err := p.cmd.Start(); err != nil {
 				return &StartError{false, "start container init", err, false, true}
 			}
@@ -325,7 +326,7 @@ func (p *Container) Serve() error {
 			Getuid(),
 			Getgid(),
 			len(p.ExtraFiles),
-			msg.IsVerbose(),
+			p.msg.IsVerbose(),
 		},
 	)
 	if err != nil {
@@ -392,17 +393,21 @@ func (p *Container) ProcessState() *os.ProcessState {
 }
 
 // New returns the address to a new instance of [Container] that requires further initialisation before use.
-func New(ctx context.Context) *Container {
-	p := &Container{ctx: ctx, Params: Params{Ops: new(Ops)}}
+func New(ctx context.Context, msg Msg) *Container {
+	if msg == nil {
+		msg = NewMsg(nil)
+	}
+
+	p := &Container{ctx: ctx, msg: msg, Params: Params{Ops: new(Ops)}}
 	c, cancel := context.WithCancel(ctx)
 	p.cancel = cancel
-	p.cmd = exec.CommandContext(c, MustExecutable())
+	p.cmd = exec.CommandContext(c, MustExecutable(msg))
 	return p
 }
 
 // NewCommand calls [New] and initialises the [Params.Path] and [Params.Args] fields.
-func NewCommand(ctx context.Context, pathname *Absolute, name string, args ...string) *Container {
-	z := New(ctx)
+func NewCommand(ctx context.Context, msg Msg, pathname *Absolute, name string, args ...string) *Container {
+	z := New(ctx, msg)
 	z.Path = pathname
 	z.Args = append([]string{name}, args...)
 	return z

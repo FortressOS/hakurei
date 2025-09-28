@@ -9,7 +9,6 @@ import (
 
 	"hakurei.app/container"
 	"hakurei.app/internal"
-	"hakurei.app/internal/hlog"
 )
 
 // syscallDispatcher provides methods that make state-dependent system calls as part of their behaviour.
@@ -45,19 +44,15 @@ type syscallDispatcher interface {
 	cmdOutput(cmd *exec.Cmd) ([]byte, error)
 
 	// overflowUid provides [container.OverflowUid].
-	overflowUid() int
+	overflowUid(msg container.Msg) int
 	// overflowGid provides [container.OverflowGid].
-	overflowGid() int
+	overflowGid(msg container.Msg) int
 
 	// mustHsuPath provides [internal.MustHsuPath].
-	mustHsuPath() string
+	mustHsuPath() *container.Absolute
 
 	// fatalf provides [log.Fatalf].
 	fatalf(format string, v ...any)
-
-	isVerbose() bool
-	verbose(v ...any)
-	verbosef(format string, v ...any)
 }
 
 // direct implements syscallDispatcher on the current kernel.
@@ -87,13 +82,9 @@ func (direct) lookupGroupId(name string) (gid string, err error) {
 
 func (direct) cmdOutput(cmd *exec.Cmd) ([]byte, error) { return cmd.Output() }
 
-func (direct) overflowUid() int { return container.OverflowUid() }
-func (direct) overflowGid() int { return container.OverflowGid() }
+func (direct) overflowUid(msg container.Msg) int { return container.OverflowUid(msg) }
+func (direct) overflowGid(msg container.Msg) int { return container.OverflowGid(msg) }
 
-func (direct) mustHsuPath() string { return internal.MustHsuPath() }
+func (direct) mustHsuPath() *container.Absolute { return internal.MustHsuPath() }
 
 func (direct) fatalf(format string, v ...any) { log.Fatalf(format, v...) }
-
-func (k direct) isVerbose() bool                { return hlog.Load() }
-func (direct) verbose(v ...any)                 { hlog.Verbose(v...) }
-func (direct) verbosef(format string, v ...any) { hlog.Verbosef(format, v...) }

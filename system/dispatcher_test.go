@@ -3,6 +3,7 @@ package system
 import (
 	"io"
 	"io/fs"
+	"log"
 	"os"
 	"reflect"
 	"slices"
@@ -214,10 +215,10 @@ func (r *readerOsFile) Close() error {
 
 // InternalNew initialises [I] with a stub syscallDispatcher.
 func InternalNew(t *testing.T, want stub.Expect, uid int) (*I, *stub.Stub[syscallDispatcher]) {
-	k := stub.New(t, func(s *stub.Stub[syscallDispatcher]) syscallDispatcher { return &kstub{s} }, want)
-	sys := New(t.Context(), uid)
-	sys.syscallDispatcher = &kstub{k}
-	return sys, k
+	k := &kstub{stub.New(t, func(s *stub.Stub[syscallDispatcher]) syscallDispatcher { return &kstub{s} }, want)}
+	sys := New(t.Context(), k, uid)
+	sys.syscallDispatcher = k
+	return sys, k.Stub
 }
 
 type kstub struct{ *stub.Stub[syscallDispatcher] }
@@ -357,12 +358,23 @@ func (k *kstub) dbusProxySCW(expect *stub.Call, proxy *dbus.Proxy) error {
 	return expect.Err
 }
 
-func (k *kstub) isVerbose() bool { k.Helper(); return k.Expects("isVerbose").Ret.(bool) }
+func (k *kstub) GetLogger() *log.Logger { panic("unreachable") }
+
+func (k *kstub) IsVerbose() bool { k.Helper(); return k.Expects("isVerbose").Ret.(bool) }
+func (k *kstub) SwapVerbose(verbose bool) bool {
+	k.Helper()
+	expect := k.Expects("swapVerbose")
+	if expect.Error(
+		stub.CheckArg(k.Stub, "verbose", verbose, 0)) != nil {
+		k.FailNow()
+	}
+	return expect.Ret.(bool)
+}
 
 // ignoreValue marks a value to be ignored by the test suite.
 type ignoreValue struct{}
 
-func (k *kstub) verbose(v ...any) {
+func (k *kstub) Verbose(v ...any) {
 	k.Helper()
 	expect := k.Expects("verbose")
 
@@ -381,7 +393,7 @@ func (k *kstub) verbose(v ...any) {
 	}
 }
 
-func (k *kstub) verbosef(format string, v ...any) {
+func (k *kstub) Verbosef(format string, v ...any) {
 	k.Helper()
 	if k.Expects("verbosef").Error(
 		stub.CheckArg(k.Stub, "format", format, 0),
@@ -389,3 +401,7 @@ func (k *kstub) verbosef(format string, v ...any) {
 		k.FailNow()
 	}
 }
+
+func (k *kstub) Suspend() bool { k.Helper(); return k.Expects("suspend").Ret.(bool) }
+func (k *kstub) Resume() bool  { k.Helper(); return k.Expects("resume").Ret.(bool) }
+func (k *kstub) BeforeExit()   { k.Helper(); k.Expects("beforeExit") }

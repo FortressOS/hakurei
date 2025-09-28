@@ -46,6 +46,7 @@ func (d *MountDevOp) apply(state *setupState, k syscallDispatcher) error {
 			return err
 		}
 		if err := k.bindMount(
+			state,
 			toHost(FHSDev+name),
 			targetPath,
 			0,
@@ -93,6 +94,7 @@ func (d *MountDevOp) apply(state *setupState, k syscallDispatcher) error {
 			if name, err := k.readlink(hostProc.stdout()); err != nil {
 				return err
 			} else if err = k.bindMount(
+				state,
 				toHost(name),
 				consolePath,
 				0,
@@ -116,7 +118,7 @@ func (d *MountDevOp) apply(state *setupState, k syscallDispatcher) error {
 		return nil
 	}
 
-	if err := k.remount(target, MS_RDONLY); err != nil {
+	if err := k.remount(state, target, MS_RDONLY); err != nil {
 		return err
 	}
 	return k.mountTmpfs(SourceTmpfs, devShmPath, MS_NOSUID|MS_NODEV, 0, 01777)

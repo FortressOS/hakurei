@@ -37,7 +37,7 @@ func TestApp(t *testing.T) {
 				0xbd, 0x01, 0x78, 0x0e,
 				0xb9, 0xa6, 0x07, 0xac,
 			},
-			system.New(context.TODO(), 1000000).
+			system.New(context.TODO(), container.NewMsg(nil), 1000000).
 				Ensure("/tmp/hakurei.0", 0711).
 				Ensure("/tmp/hakurei.0/runtime", 0700).UpdatePermType(system.User, "/tmp/hakurei.0/runtime", acl.Execute).
 				Ensure("/tmp/hakurei.0/runtime/0", 0700).UpdatePermType(system.User, "/tmp/hakurei.0/runtime/0", acl.Read, acl.Write, acl.Execute).
@@ -129,7 +129,7 @@ func TestApp(t *testing.T) {
 				0x82, 0xd4, 0x13, 0x36,
 				0x9b, 0x64, 0xce, 0x7c,
 			},
-			system.New(context.TODO(), 1000009).
+			system.New(context.TODO(), container.NewMsg(nil), 1000009).
 				Ensure("/tmp/hakurei.0", 0711).
 				Ensure("/tmp/hakurei.0/runtime", 0700).UpdatePermType(system.User, "/tmp/hakurei.0/runtime", acl.Execute).
 				Ensure("/tmp/hakurei.0/runtime/9", 0700).UpdatePermType(system.User, "/tmp/hakurei.0/runtime/9", acl.Read, acl.Write, acl.Execute).
@@ -280,7 +280,7 @@ func TestApp(t *testing.T) {
 				0x4c, 0xf0, 0x73, 0xbd,
 				0xb4, 0x6e, 0xb5, 0xc1,
 			},
-			system.New(context.TODO(), 1000001).
+			system.New(context.TODO(), container.NewMsg(nil), 1000001).
 				Ensure("/tmp/hakurei.0", 0711).
 				Ensure("/tmp/hakurei.0/runtime", 0700).UpdatePermType(system.User, "/tmp/hakurei.0/runtime", acl.Execute).
 				Ensure("/tmp/hakurei.0/runtime/1", 0700).UpdatePermType(system.User, "/tmp/hakurei.0/runtime/1", acl.Read, acl.Write, acl.Execute).
@@ -377,7 +377,7 @@ func TestApp(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Run("finalise", func(t *testing.T) {
 				seal := outcome{syscallDispatcher: tc.k, id: &stringPair[state.ID]{tc.id, tc.id.String()}}
-				err := seal.finalise(t.Context(), tc.config)
+				err := seal.finalise(t.Context(), container.NewMsg(nil), tc.config)
 				if err != nil {
 					if s, ok := container.GetErrorMessage(err); !ok {
 						t.Fatalf("Seal: error = %v", err)

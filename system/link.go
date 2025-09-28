@@ -22,16 +22,16 @@ type hardlinkOp struct {
 func (l *hardlinkOp) Type() Enablement { return l.et }
 
 func (l *hardlinkOp) apply(sys *I) error {
-	sys.verbose("linking", l)
+	sys.msg.Verbose("linking", l)
 	return newOpError("hardlink", sys.link(l.src, l.dst), false)
 }
 
 func (l *hardlinkOp) revert(sys *I, ec *Criteria) error {
 	if ec.hasType(l.Type()) {
-		sys.verbosef("removing hard link %q", l.dst)
+		sys.msg.Verbosef("removing hard link %q", l.dst)
 		return newOpError("hardlink", sys.remove(l.dst), true)
 	} else {
-		sys.verbosef("skipping hard link %q", l.dst)
+		sys.msg.Verbosef("skipping hard link %q", l.dst)
 		return nil
 	}
 }

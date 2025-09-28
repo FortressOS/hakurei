@@ -29,7 +29,7 @@ type mkdirOp struct {
 func (m *mkdirOp) Type() Enablement { return m.et }
 
 func (m *mkdirOp) apply(sys *I) error {
-	sys.verbose("ensuring directory", m)
+	sys.msg.Verbose("ensuring directory", m)
 
 	if err := sys.mkdir(m.path, m.perm); err != nil {
 		if !errors.Is(err, os.ErrExist) {
@@ -49,10 +49,10 @@ func (m *mkdirOp) revert(sys *I, ec *Criteria) error {
 	}
 
 	if ec.hasType(m.Type()) {
-		sys.verbose("destroying ephemeral directory", m)
+		sys.msg.Verbose("destroying ephemeral directory", m)
 		return newOpError("mkdir", sys.remove(m.path), true)
 	} else {
-		sys.verbose("skipping ephemeral directory", m)
+		sys.msg.Verbose("skipping ephemeral directory", m)
 		return nil
 	}
 }

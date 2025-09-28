@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	"hakurei.app/container"
-	"hakurei.app/internal/hlog"
 )
 
 func TestOpError(t *testing.T) {
@@ -83,33 +82,6 @@ func TestOpError(t *testing.T) {
 		}
 		if err := newOpErrorMessage("check", nil, "", false); err != nil {
 			t.Errorf("newOpErrorMessage: %v", err)
-		}
-	})
-}
-
-func TestSetOutput(t *testing.T) {
-	oldmsg := msg
-	t.Cleanup(func() { msg = oldmsg })
-	msg = nil
-
-	t.Run("nil", func(t *testing.T) {
-		SetOutput(nil)
-		if _, ok := msg.(*container.DefaultMsg); !ok {
-			t.Errorf("SetOutput: %#v", msg)
-		}
-	})
-
-	t.Run("hlog", func(t *testing.T) {
-		SetOutput(hlog.Output{})
-		if _, ok := msg.(hlog.Output); !ok {
-			t.Errorf("SetOutput: %#v", msg)
-		}
-	})
-
-	t.Run("reset", func(t *testing.T) {
-		SetOutput(nil)
-		if _, ok := msg.(*container.DefaultMsg); !ok {
-			t.Errorf("SetOutput: %#v", msg)
 		}
 	})
 }

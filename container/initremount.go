@@ -21,8 +21,8 @@ type RemountOp struct {
 
 func (r *RemountOp) Valid() bool                              { return r != nil && r.Target != nil }
 func (*RemountOp) early(*setupState, syscallDispatcher) error { return nil }
-func (r *RemountOp) apply(_ *setupState, k syscallDispatcher) error {
-	return k.remount(toSysroot(r.Target.String()), r.Flags)
+func (r *RemountOp) apply(state *setupState, k syscallDispatcher) error {
+	return k.remount(state, toSysroot(r.Target.String()), r.Flags)
 }
 
 func (r *RemountOp) Is(op Op) bool {

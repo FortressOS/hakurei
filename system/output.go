@@ -8,16 +8,6 @@ import (
 	"hakurei.app/container"
 )
 
-var msg container.Msg = new(container.DefaultMsg)
-
-func SetOutput(v container.Msg) {
-	if v == nil {
-		msg = new(container.DefaultMsg)
-	} else {
-		msg = v
-	}
-}
-
 // OpError is returned by [I.Commit] and [I.Revert].
 type OpError struct {
 	Op     string

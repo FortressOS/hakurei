@@ -52,14 +52,14 @@ func (p *Proxy) Start() error {
 		}
 
 		var libPaths []*container.Absolute
-		if entries, err := ldd.Exec(ctx, toolPath.String()); err != nil {
+		if entries, err := ldd.Exec(ctx, p.msg, toolPath.String()); err != nil {
 			return err
 		} else {
 			libPaths = ldd.Path(entries)
 		}
 
 		p.helper = helper.New(
-			ctx, toolPath, "xdg-dbus-proxy",
+			ctx, p.msg, toolPath, "xdg-dbus-proxy",
 			p.final, true,
 			argF, func(z *container.Container) {
 				z.SeccompFlags |= seccomp.AllowMultiarch

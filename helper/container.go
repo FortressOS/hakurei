@@ -16,6 +16,7 @@ import (
 // New initialises a Helper instance with wt as the null-terminated argument writer.
 func New(
 	ctx context.Context,
+	msg container.Msg,
 	pathname *container.Absolute, name string,
 	wt io.WriterTo,
 	stat bool,
@@ -26,7 +27,7 @@ func New(
 	var args []string
 	h := new(helperContainer)
 	h.helperFiles, args = newHelperFiles(ctx, wt, stat, argF, extraFiles)
-	h.Container = container.NewCommand(ctx, pathname, name, args...)
+	h.Container = container.NewCommand(ctx, msg, pathname, name, args...)
 	h.WaitDelay = WaitDelay
 	if cmdF != nil {
 		cmdF(h.Container)

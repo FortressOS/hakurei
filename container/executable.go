@@ -1,7 +1,6 @@
 package container
 
 import (
-	"log"
 	"os"
 	"sync"
 )
@@ -11,16 +10,16 @@ var (
 	executableOnce sync.Once
 )
 
-func copyExecutable() {
+func copyExecutable(msg Msg) {
 	if name, err := os.Executable(); err != nil {
 		msg.BeforeExit()
-		log.Fatalf("cannot read executable path: %v", err)
+		msg.GetLogger().Fatalf("cannot read executable path: %v", err)
 	} else {
 		executable = name
 	}
 }
 
-func MustExecutable() string {
-	executableOnce.Do(copyExecutable)
+func MustExecutable(msg Msg) string {
+	executableOnce.Do(func() { copyExecutable(msg) })
 	return executable
 }

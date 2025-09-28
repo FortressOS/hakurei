@@ -23,8 +23,6 @@ import (
 	"hakurei.app/container/seccomp"
 	"hakurei.app/container/vfs"
 	"hakurei.app/hst"
-	"hakurei.app/internal"
-	"hakurei.app/internal/hlog"
 	"hakurei.app/ldd"
 )
 
@@ -351,8 +349,6 @@ var containerTestCases = []struct {
 }
 
 func TestContainer(t *testing.T) {
-	replaceOutput(t)
-
 	t.Run("cancel", testContainerCancel(nil, func(t *testing.T, c *container.Container) {
 		wantErr := context.Canceled
 		wantExitCode := 0
@@ -547,7 +543,8 @@ func testContainerCancel(
 }
 
 func TestContainerString(t *testing.T) {
-	c := container.NewCommand(t.Context(), container.MustAbs("/run/current-system/sw/bin/ldd"), "ldd", "/usr/bin/env")
+	msg := container.NewMsg(nil)
+	c := container.NewCommand(t.Context(), msg, container.MustAbs("/run/current-system/sw/bin/ldd"), "ldd", "/usr/bin/env")
 	c.SeccompFlags |= seccomp.AllowMultiarch
 	c.SeccompRules = seccomp.Preset(
 		seccomp.PresetExt|seccomp.PresetDenyNS|seccomp.PresetDenyTTY,
@@ -689,7 +686,7 @@ var (
 var helperCommands []func(c command.Command)
 
 func TestMain(m *testing.M) {
-	container.TryArgv0(hlog.Output{}, hlog.Prepare, internal.InstallOutput)
+	container.TryArgv0(nil)
 
 	if os.Getenv(envDoCheck) == "1" {
 		c := command.New(os.Stderr, log.Printf, "helper", func(args []string) error {
@@ -712,12 +709,13 @@ func TestMain(m *testing.M) {
 }
 
 func helperNewContainerLibPaths(ctx context.Context, libPaths *[]*container.Absolute, args ...string) (c *container.Container) {
-	c = container.NewCommand(ctx, absHelperInnerPath, "helper", args...)
+	msg := container.NewMsg(nil)
+	c = container.NewCommand(ctx, msg, absHelperInnerPath, "helper", args...)
 	c.Env = append(c.Env, envDoCheck+"=1")
 	c.Bind(container.MustAbs(os.Args[0]), absHelperInnerPath, 0)
 
 	// in case test has cgo enabled
-	if entries, err := ldd.Exec(ctx, os.Args[0]); err != nil {
+	if entries, err := ldd.Exec(ctx, msg, os.Args[0]); err != nil {
 		log.Fatalf("ldd: %v", err)
 	} else {
 		*libPaths = ldd.Path(entries)

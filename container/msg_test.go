@@ -1,14 +1,16 @@
 package container_test
 
 import (
+	"bytes"
 	"errors"
+	"io"
 	"log"
 	"strings"
-	"sync/atomic"
 	"syscall"
 	"testing"
 
 	"hakurei.app/container"
+	"hakurei.app/container/stub"
 )
 
 func TestMessageError(t *testing.T) {
@@ -39,146 +41,137 @@ func TestMessageError(t *testing.T) {
 }
 
 func TestDefaultMsg(t *testing.T) {
-	{
-		w := log.Writer()
-		f := log.Flags()
-		t.Cleanup(func() { log.SetOutput(w); log.SetFlags(f) })
-	}
-	msg := new(container.DefaultMsg)
+	// copied from output.go
+	const suspendBufMax = 1 << 24
 
-	t.Run("is verbose", func(t *testing.T) {
-		if !msg.IsVerbose() {
-			t.Error("IsVerbose unexpected outcome")
-		}
-	})
+	t.Run("logger", func(t *testing.T) {
+		t.Run("nil", func(t *testing.T) {
+			got := container.NewMsg(nil).GetLogger()
 
-	t.Run("verbose", func(t *testing.T) {
-		log.SetOutput(panicWriter{})
-		msg.Suspend()
-		msg.Verbose()
-		msg.Verbosef("\x00")
-		msg.Resume()
-
-		buf := new(strings.Builder)
-		log.SetOutput(buf)
-		log.SetFlags(0)
-		msg.Verbose()
-		msg.Verbosef("\x00")
-
-		want := "\n\x00\n"
-		if buf.String() != want {
-			t.Errorf("Verbose: %q, want %q", buf.String(), want)
-		}
-	})
-
-	t.Run("inactive", func(t *testing.T) {
-		{
-			inactive := msg.Resume()
-			if inactive {
-				t.Cleanup(func() { msg.Suspend() })
+			if out := got.Writer().(*container.Suspendable).Downstream; out != log.Writer() {
+				t.Errorf("GetLogger: Downstream = %#v", out)
 			}
-		}
 
-		if msg.Resume() {
-			t.Error("Resume unexpected outcome")
-		}
+			if prefix := got.Prefix(); prefix != "container: " {
+				t.Errorf("GetLogger: prefix = %q", prefix)
+			}
+		})
 
-		msg.Suspend()
-		if !msg.Resume() {
-			t.Error("Resume unexpected outcome")
-		}
+		t.Run("takeover", func(t *testing.T) {
+			l := log.New(io.Discard, "\x00", 0xdeadbeef)
+			got := container.NewMsg(l)
+
+			if logger := got.GetLogger(); logger != l {
+				t.Errorf("GetLogger: %#v, want %#v", logger, l)
+			}
+
+			if ds := l.Writer().(*container.Suspendable).Downstream; ds != io.Discard {
+				t.Errorf("GetLogger: Downstream = %#v", ds)
+			}
+		})
 	})
 
-	// the function is a noop
-	t.Run("beforeExit", func(t *testing.T) { msg.BeforeExit() })
-}
+	dw := expectWriter{t: t}
 
-type panicWriter struct{}
+	steps := []struct {
+		name     string
+		pt, next []byte
+		err      error
 
-func (panicWriter) Write([]byte) (int, error) { panic("unreachable") }
+		f func(t *testing.T, msg container.Msg)
+	}{
+		{"zero verbose", nil, nil, nil, func(t *testing.T, msg container.Msg) {
+			if msg.IsVerbose() {
+				t.Error("IsVerbose unexpected true")
+			}
+		}},
 
-func saveRestoreOutput(t *testing.T) {
-	out := container.GetOutput()
-	t.Cleanup(func() { container.SetOutput(out) })
-}
+		{"swap false", nil, nil, nil, func(t *testing.T, msg container.Msg) {
+			if msg.SwapVerbose(false) {
+				t.Error("SwapVerbose unexpected true")
+			}
+		}},
+		{"write discard", nil, nil, nil, func(_ *testing.T, msg container.Msg) {
+			msg.Verbose("\x00")
+			msg.Verbosef("\x00")
+		}},
+		{"verbose false", nil, nil, nil, func(t *testing.T, msg container.Msg) {
+			if msg.IsVerbose() {
+				t.Error("IsVerbose unexpected true")
+			}
+		}},
 
-func replaceOutput(t *testing.T) {
-	saveRestoreOutput(t)
-	container.SetOutput(&testOutput{t: t})
-}
+		{"swap true", nil, nil, nil, func(t *testing.T, msg container.Msg) {
+			if msg.SwapVerbose(true) {
+				t.Error("SwapVerbose unexpected true")
+			}
+		}},
+		{"write verbose", []byte("test: \x00\n"), nil, nil, func(_ *testing.T, msg container.Msg) {
+			msg.Verbose("\x00")
+		}},
+		{"write verbosef", []byte(`test: "\x00"` + "\n"), nil, nil, func(_ *testing.T, msg container.Msg) {
+			msg.Verbosef("%q", "\x00")
+		}},
+		{"verbose true", nil, nil, nil, func(t *testing.T, msg container.Msg) {
+			if !msg.IsVerbose() {
+				t.Error("IsVerbose unexpected false")
+			}
+		}},
 
-type testOutput struct {
-	t         *testing.T
-	suspended atomic.Bool
-}
+		{"resume noop", nil, nil, nil, func(t *testing.T, msg container.Msg) {
+			if msg.Resume() {
+				t.Error("Resume unexpected success")
+			}
+		}},
+		{"beforeExit noop", nil, nil, nil, func(_ *testing.T, msg container.Msg) {
+			msg.BeforeExit()
+		}},
 
-func (out *testOutput) IsVerbose() bool { return testing.Verbose() }
+		{"beforeExit suspend", nil, nil, nil, func(_ *testing.T, msg container.Msg) {
+			msg.Suspend()
+		}},
+		{"beforeExit message", []byte("test: beforeExit reached on suspended output\n"), nil, nil, func(_ *testing.T, msg container.Msg) {
+			msg.BeforeExit()
+		}},
+		{"post beforeExit resume noop", nil, nil, nil, func(t *testing.T, msg container.Msg) {
+			if msg.Resume() {
+				t.Error("Resume unexpected success")
+			}
+		}},
 
-func (out *testOutput) Verbose(v ...any) {
-	if !out.IsVerbose() {
-		return
+		{"suspend", nil, nil, nil, func(_ *testing.T, msg container.Msg) {
+			msg.Suspend()
+		}},
+		{"suspend write", nil, nil, nil, func(_ *testing.T, msg container.Msg) {
+			msg.GetLogger().Print("\x00")
+		}},
+		{"resume error", []byte("test: \x00\n"), []byte("test: cannot dump buffer on resume: unique error 0 injected by the test suite\n"), stub.UniqueError(0), func(t *testing.T, msg container.Msg) {
+			if !msg.Resume() {
+				t.Error("Resume unexpected failure")
+			}
+		}},
+
+		{"suspend drop", nil, nil, nil, func(_ *testing.T, msg container.Msg) {
+			msg.Suspend()
+		}},
+		{"suspend write fill", nil, nil, nil, func(_ *testing.T, msg container.Msg) {
+			msg.GetLogger().Print(strings.Repeat("\x00", suspendBufMax))
+		}},
+		{"resume dropped", append([]byte("test: "), bytes.Repeat([]byte{0}, suspendBufMax-6)...), []byte("test: dropped 7 bytes while output is suspended\n"), nil, func(t *testing.T, msg container.Msg) {
+			if !msg.Resume() {
+				t.Error("Resume unexpected failure")
+			}
+		}},
 	}
-	out.t.Log(v...)
-}
 
-func (out *testOutput) Verbosef(format string, v ...any) {
-	if !out.IsVerbose() {
-		return
-	}
-	out.t.Logf(format, v...)
-}
-
-func (out *testOutput) Suspend() {
-	if out.suspended.CompareAndSwap(false, true) {
-		out.Verbose("suspend called")
-		return
-	}
-	out.Verbose("suspend called on suspended output")
-}
-
-func (out *testOutput) Resume() bool {
-	if out.suspended.CompareAndSwap(true, false) {
-		out.Verbose("resume called")
-		return true
-	}
-	out.Verbose("resume called on unsuspended output")
-	return false
-}
-
-func (out *testOutput) BeforeExit() { out.Verbose("beforeExit called") }
-
-func TestGetSetOutput(t *testing.T) {
-	{
-		out := container.GetOutput()
-		t.Cleanup(func() { container.SetOutput(out) })
-	}
-
-	t.Run("default", func(t *testing.T) {
-		container.SetOutput(new(stubOutput))
-		if v, ok := container.GetOutput().(*container.DefaultMsg); ok {
-			t.Fatalf("SetOutput: got unexpected output %#v", v)
+	msg := container.NewMsg(log.New(&dw, "test: ", 0))
+	for _, step := range steps {
+		// these share the same writer, so cannot be subtests
+		t.Logf("running step %q", step.name)
+		dw.expect, dw.next, dw.err = step.pt, step.next, step.err
+		step.f(t, msg)
+		if dw.expect != nil {
+			t.Errorf("expect: %q", string(dw.expect))
 		}
-		container.SetOutput(nil)
-		if _, ok := container.GetOutput().(*container.DefaultMsg); !ok {
-			t.Fatalf("SetOutput: got unexpected output %#v", container.GetOutput())
-		}
-	})
-
-	t.Run("stub", func(t *testing.T) {
-		container.SetOutput(new(stubOutput))
-		if _, ok := container.GetOutput().(*stubOutput); !ok {
-			t.Fatalf("SetOutput: got unexpected output %#v", container.GetOutput())
-		}
-	})
+	}
 }
-
-type stubOutput struct {
-	wrapF func(error, ...any) error
-}
-
-func (*stubOutput) IsVerbose() bool         { panic("unreachable") }
-func (*stubOutput) Verbose(...any)          { panic("unreachable") }
-func (*stubOutput) Verbosef(string, ...any) { panic("unreachable") }
-func (*stubOutput) Suspend()                { panic("unreachable") }
-func (*stubOutput) Resume() bool            { panic("unreachable") }
-func (*stubOutput) BeforeExit()             { panic("unreachable") }
