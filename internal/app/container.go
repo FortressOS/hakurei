@@ -32,12 +32,10 @@ func newContainer(
 	}
 
 	params := &container.Params{
-		Hostname:       s.Hostname,
-		SeccompFlags:   s.SeccompFlags,
-		SeccompPresets: s.SeccompPresets,
-		RetainSession:  s.Tty,
-		HostNet:        s.HostNet,
-		HostAbstract:   s.HostAbstract,
+		Hostname:      s.Hostname,
+		RetainSession: s.Tty,
+		HostNet:       s.HostNet,
+		HostAbstract:  s.HostAbstract,
 
 		// the container is canceled when shim is requested to exit or receives an interrupt or termination signal;
 		// this behaviour is implemented in the shim

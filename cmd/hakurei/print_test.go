@@ -259,8 +259,6 @@ App
     "container": {
       "hostname": "localhost",
       "wait_delay": -1,
-      "seccomp_flags": 1,
-      "seccomp_presets": 1,
       "seccomp_compat": true,
       "devel": true,
       "userns": true,
@@ -415,8 +413,6 @@ App
   "container": {
     "hostname": "localhost",
     "wait_delay": -1,
-    "seccomp_flags": 1,
-    "seccomp_presets": 1,
     "seccomp_compat": true,
     "devel": true,
     "userns": true,
@@ -625,8 +621,6 @@ func Test_printPs(t *testing.T) {
       "container": {
         "hostname": "localhost",
         "wait_delay": -1,
-        "seccomp_flags": 1,
-        "seccomp_presets": 1,
         "seccomp_compat": true,
         "devel": true,
         "userns": true,

@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"hakurei.app/container"
-	"hakurei.app/container/seccomp"
 	"hakurei.app/system/dbus"
 )
 
@@ -66,10 +65,6 @@ type (
 		// a negative value causes the container to be terminated immediately on cancellation
 		WaitDelay time.Duration `json:"wait_delay,omitempty"`
 
-		// extra seccomp flags
-		SeccompFlags seccomp.ExportFlag `json:"seccomp_flags"`
-		// extra seccomp presets
-		SeccompPresets seccomp.FilterPreset `json:"seccomp_presets"`
 		// disable project-specific filter extensions
 		SeccompCompat bool `json:"seccomp_compat,omitempty"`
 		// allow ptrace and friends

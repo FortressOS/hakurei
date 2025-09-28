@@ -6,7 +6,6 @@ import (
 	"os"
 
 	"hakurei.app/container"
-	"hakurei.app/container/seccomp"
 	"hakurei.app/hst"
 	"hakurei.app/system/dbus"
 )
@@ -92,6 +91,7 @@ func (app *appInfo) toHst(pathSet *appPathSet, pathname *container.Absolute, arg
 			Device:       app.Device,
 			Tty:          app.Tty || flagDropShell,
 			MapRealUID:   app.MapRealUID,
+			Multiarch:    app.Multiarch,
 			Filesystem: []hst.FilesystemConfigJSON{
 				{FilesystemConfig: &hst.FSBind{Target: container.AbsFHSEtc, Source: pathSet.cacheDir.Append("etc"), Special: true}},
 				{FilesystemConfig: &hst.FSBind{Source: pathSet.nixPath.Append("store"), Target: pathNixStore}},
@@ -112,12 +112,6 @@ func (app *appInfo) toHst(pathSet *appPathSet, pathname *container.Absolute, arg
 			{Path: dataHome, Execute: true},
 			{Ensure: true, Path: pathSet.baseDir, Read: true, Write: true, Execute: true},
 		},
-	}
-	if app.Multiarch {
-		config.Container.SeccompFlags |= seccomp.AllowMultiarch
-	}
-	if app.Bluetooth {
-		config.Container.SeccompFlags |= seccomp.AllowBluetooth
 	}
 	return config
 }

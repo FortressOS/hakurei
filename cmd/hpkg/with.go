@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"hakurei.app/container"
-	"hakurei.app/container/seccomp"
 	"hakurei.app/hst"
 )
 
@@ -43,11 +42,11 @@ func withNixDaemon(
 		Identity: app.Identity,
 
 		Container: &hst.ContainerConfig{
-			Hostname:     formatHostname(app.Name) + "-" + action,
-			Userns:       true, // nix sandbox requires userns
-			HostNet:      net,
-			SeccompFlags: seccomp.AllowMultiarch,
-			Tty:          dropShell,
+			Hostname:  formatHostname(app.Name) + "-" + action,
+			Userns:    true, // nix sandbox requires userns
+			HostNet:   net,
+			Multiarch: true,
+			Tty:       dropShell,
 			Filesystem: []hst.FilesystemConfigJSON{
 				{FilesystemConfig: &hst.FSBind{Target: container.AbsFHSEtc, Source: pathSet.cacheDir.Append("etc"), Special: true}},
 				{FilesystemConfig: &hst.FSBind{Source: pathSet.nixPath, Target: pathNix, Write: true}},
@@ -83,9 +82,9 @@ func withCacheDir(
 		Identity: app.Identity,
 
 		Container: &hst.ContainerConfig{
-			Hostname:     formatHostname(app.Name) + "-" + action,
-			SeccompFlags: seccomp.AllowMultiarch,
-			Tty:          dropShell,
+			Hostname:  formatHostname(app.Name) + "-" + action,
+			Multiarch: true,
+			Tty:       dropShell,
 			Filesystem: []hst.FilesystemConfigJSON{
 				{FilesystemConfig: &hst.FSBind{Target: container.AbsFHSEtc, Source: workDir.Append(container.FHSEtc), Special: true}},
 				{FilesystemConfig: &hst.FSBind{Source: workDir.Append("nix"), Target: pathNix}},
