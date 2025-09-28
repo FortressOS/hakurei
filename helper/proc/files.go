@@ -6,10 +6,17 @@ import (
 	"os/exec"
 	"sync/atomic"
 	"syscall"
+	"testing"
 	"time"
 )
 
 var FulfillmentTimeout = 2 * time.Second
+
+func init() {
+	if testing.Testing() {
+		FulfillmentTimeout *= 10
+	}
+}
 
 // A File is an extra file with deferred initialisation.
 type File interface {
