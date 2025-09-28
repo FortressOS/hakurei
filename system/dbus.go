@@ -12,6 +12,7 @@ import (
 	"syscall"
 
 	"hakurei.app/container"
+	"hakurei.app/hst"
 	"hakurei.app/system/dbus"
 )
 
@@ -81,7 +82,7 @@ type dbusProxyOp struct {
 	system bool
 }
 
-func (d *dbusProxyOp) Type() Enablement { return Process }
+func (d *dbusProxyOp) Type() hst.Enablement { return Process }
 
 func (d *dbusProxyOp) apply(sys *I) error {
 	sys.msg.Verbosef("session bus proxy on %q for upstream %q", d.final.Session[1], d.final.Session[0])

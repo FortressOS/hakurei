@@ -121,7 +121,7 @@ func TestApp(t *testing.T) {
 					},
 					Filter: true,
 				},
-				Enablements: hst.NewEnablements(system.EWayland | system.EDBus | system.EPulse),
+				Enablements: hst.NewEnablements(hst.EWayland | hst.EDBus | hst.EPulse),
 			},
 			state.ID{
 				0xeb, 0xf0, 0x83, 0xd1,
@@ -229,7 +229,7 @@ func TestApp(t *testing.T) {
 			&hst.Config{
 				ID:          "org.chromium.Chromium",
 				Path:        m("/nix/store/yqivzpzzn7z5x0lq9hmbzygh45d8rhqd-chromium-start"),
-				Enablements: hst.NewEnablements(system.EWayland | system.EDBus | system.EPulse),
+				Enablements: hst.NewEnablements(hst.EWayland | hst.EDBus | hst.EPulse),
 				Shell:       m("/run/current-system/sw/bin/zsh"),
 
 				Container: &hst.ContainerConfig{
@@ -288,7 +288,7 @@ func TestApp(t *testing.T) {
 				Ensure("/tmp/hakurei.0/tmpdir/1", 01700).UpdatePermType(system.User, "/tmp/hakurei.0/tmpdir/1", acl.Read, acl.Write, acl.Execute).
 				Ensure("/run/user/1971/hakurei", 0700).UpdatePermType(system.User, "/run/user/1971/hakurei", acl.Execute).
 				Ensure("/run/user/1971", 0700).UpdatePermType(system.User, "/run/user/1971", acl.Execute). // this is ordered as is because the previous Ensure only calls mkdir if XDG_RUNTIME_DIR is unset
-				UpdatePermType(system.EWayland, "/run/user/1971/wayland-0", acl.Read, acl.Write, acl.Execute).
+				UpdatePermType(hst.EWayland, "/run/user/1971/wayland-0", acl.Read, acl.Write, acl.Execute).
 				Ephemeral(system.Process, "/run/user/1971/hakurei/8e2c76b066dabe574cf073bdb46eb5c1", 0700).UpdatePermType(system.Process, "/run/user/1971/hakurei/8e2c76b066dabe574cf073bdb46eb5c1", acl.Execute).
 				Link("/run/user/1971/pulse/native", "/run/user/1971/hakurei/8e2c76b066dabe574cf073bdb46eb5c1/pulse").
 				CopyFile(nil, "/home/ophestra/xdg/config/pulse/cookie", 256, 256).

@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"os"
+
+	"hakurei.app/hst"
 )
 
 // Ensure ensures the existence of a directory.
@@ -13,20 +15,20 @@ func (sys *I) Ensure(name string, perm os.FileMode) *I {
 }
 
 // Ephemeral ensures the existence of a directory until its [Enablement] is no longer satisfied.
-func (sys *I) Ephemeral(et Enablement, name string, perm os.FileMode) *I {
+func (sys *I) Ephemeral(et hst.Enablement, name string, perm os.FileMode) *I {
 	sys.ops = append(sys.ops, &mkdirOp{et, name, perm, true})
 	return sys
 }
 
 // mkdirOp implements [I.Ensure] and [I.Ephemeral].
 type mkdirOp struct {
-	et        Enablement
+	et        hst.Enablement
 	path      string
 	perm      os.FileMode
 	ephemeral bool
 }
 
-func (m *mkdirOp) Type() Enablement { return m.et }
+func (m *mkdirOp) Type() hst.Enablement { return m.et }
 
 func (m *mkdirOp) apply(sys *I) error {
 	sys.msg.Verbose("ensuring directory", m)

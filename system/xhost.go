@@ -1,6 +1,7 @@
 package system
 
 import (
+	"hakurei.app/hst"
 	"hakurei.app/system/internal/xcb"
 )
 
@@ -13,7 +14,7 @@ func (sys *I) ChangeHosts(username string) *I {
 // xhostOp implements [I.ChangeHosts].
 type xhostOp string
 
-func (x xhostOp) Type() Enablement { return EX11 }
+func (x xhostOp) Type() hst.Enablement { return hst.EX11 }
 
 func (x xhostOp) apply(sys *I) error {
 	sys.msg.Verbosef("inserting entry %s to X11", x)

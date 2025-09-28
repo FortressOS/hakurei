@@ -2,15 +2,56 @@ package hst
 
 import (
 	"encoding/json"
+	"fmt"
+	"strings"
 	"syscall"
-
-	"hakurei.app/system"
 )
 
-// NewEnablements returns the address of [system.Enablement] as [Enablements].
-func NewEnablements(e system.Enablement) *Enablements { return (*Enablements)(&e) }
+// Enablement represents an optional host service to export to the target user.
+type Enablement byte
 
-// enablementsJSON is the [json] representation of the [system.Enablement] bit field.
+const (
+	EWayland Enablement = 1 << iota
+	EX11
+	EDBus
+	EPulse
+
+	EM
+)
+
+func (e Enablement) String() string {
+	switch e {
+	case 0:
+		return "(no enablements)"
+	case EWayland:
+		return "wayland"
+	case EX11:
+		return "x11"
+	case EDBus:
+		return "dbus"
+	case EPulse:
+		return "pulseaudio"
+	default:
+		buf := new(strings.Builder)
+		buf.Grow(32)
+
+		for i := Enablement(1); i < EM; i <<= 1 {
+			if e&i != 0 {
+				buf.WriteString(", " + i.String())
+			}
+		}
+
+		if buf.Len() == 0 {
+			return fmt.Sprintf("e%x", byte(e))
+		}
+		return strings.TrimPrefix(buf.String(), ", ")
+	}
+}
+
+// NewEnablements returns the address of [Enablement] as [Enablements].
+func NewEnablements(e Enablement) *Enablements { return (*Enablements)(&e) }
+
+// enablementsJSON is the [json] representation of the [Enablement] bit field.
 type enablementsJSON struct {
 	Wayland bool `json:"wayland,omitempty"`
 	X11     bool `json:"x11,omitempty"`
@@ -18,15 +59,15 @@ type enablementsJSON struct {
 	Pulse   bool `json:"pulse,omitempty"`
 }
 
-// Enablements is the [json] adapter for [system.Enablement].
-type Enablements system.Enablement
+// Enablements is the [json] adapter for [Enablement].
+type Enablements Enablement
 
-// Unwrap returns the underlying [system.Enablement].
-func (e *Enablements) Unwrap() system.Enablement {
+// Unwrap returns the underlying [Enablement].
+func (e *Enablements) Unwrap() Enablement {
 	if e == nil {
 		return 0
 	}
-	return system.Enablement(*e)
+	return Enablement(*e)
 }
 
 func (e *Enablements) MarshalJSON() ([]byte, error) {
@@ -34,10 +75,10 @@ func (e *Enablements) MarshalJSON() ([]byte, error) {
 		return nil, syscall.EINVAL
 	}
 	return json.Marshal(&enablementsJSON{
-		Wayland: system.Enablement(*e)&system.EWayland != 0,
-		X11:     system.Enablement(*e)&system.EX11 != 0,
-		DBus:    system.Enablement(*e)&system.EDBus != 0,
-		Pulse:   system.Enablement(*e)&system.EPulse != 0,
+		Wayland: Enablement(*e)&EWayland != 0,
+		X11:     Enablement(*e)&EX11 != 0,
+		DBus:    Enablement(*e)&EDBus != 0,
+		Pulse:   Enablement(*e)&EPulse != 0,
 	})
 }
 
@@ -51,18 +92,18 @@ func (e *Enablements) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
-	var ve system.Enablement
+	var ve Enablement
 	if v.Wayland {
-		ve |= system.EWayland
+		ve |= EWayland
 	}
 	if v.X11 {
-		ve |= system.EX11
+		ve |= EX11
 	}
 	if v.DBus {
-		ve |= system.EDBus
+		ve |= EDBus
 	}
 	if v.Pulse {
-		ve |= system.EPulse
+		ve |= EPulse
 	}
 	*e = Enablements(ve)
 	return nil

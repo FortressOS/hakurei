@@ -7,6 +7,8 @@ import (
 	"io"
 	"os"
 	"syscall"
+
+	"hakurei.app/hst"
 )
 
 // CopyFile reads up to n bytes from src and writes the resulting byte slice to payloadP.
@@ -26,7 +28,7 @@ type tmpfileOp struct {
 	buf *bytes.Buffer
 }
 
-func (t *tmpfileOp) Type() Enablement { return Process }
+func (t *tmpfileOp) Type() hst.Enablement { return Process }
 
 func (t *tmpfileOp) apply(sys *I) error {
 	if t.payload == nil {

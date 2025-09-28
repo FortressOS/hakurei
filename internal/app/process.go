@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"hakurei.app/container"
+	"hakurei.app/hst"
 	"hakurei.app/internal"
 	"hakurei.app/internal/app/state"
 	"hakurei.app/system"
@@ -146,7 +147,7 @@ func (ms mainState) beforeExit(isFault bool) {
 				}
 			}
 
-			var rt system.Enablement
+			var rt hst.Enablement
 			if states, err := c.Load(); err != nil {
 				// it is impossible to continue from this point;
 				// revert per-process state here to limit damage
@@ -182,7 +183,7 @@ func (ms mainState) beforeExit(isFault bool) {
 					}
 				}
 
-				ec |= rt ^ (system.EWayland | system.EX11 | system.EDBus | system.EPulse)
+				ec |= rt ^ (hst.EWayland | hst.EX11 | hst.EDBus | hst.EPulse)
 				if ms.IsVerbose() {
 					if ec > 0 {
 						ms.Verbose("reverting operations scope", system.TypeString(ec))

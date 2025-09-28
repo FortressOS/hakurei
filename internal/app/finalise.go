@@ -241,7 +241,7 @@ func (k *outcome) finalise(ctx context.Context, msg container.Msg, config *hst.C
 		}
 
 		// bind GPU stuff
-		if config.Enablements.Unwrap()&(system.EX11|system.EWayland) != 0 {
+		if config.Enablements.Unwrap()&(hst.EX11|hst.EWayland) != 0 {
 			conf.Filesystem = append(conf.Filesystem, hst.FilesystemConfigJSON{FilesystemConfig: &hst.FSBind{Source: container.AbsFHSDev.Append("dri"), Device: true, Optional: true}})
 		}
 		// opportunistically bind kvm
@@ -353,7 +353,7 @@ func (k *outcome) finalise(ctx context.Context, msg container.Msg, config *hst.C
 		k.env[term] = t
 	}
 
-	if config.Enablements.Unwrap()&system.EWayland != 0 {
+	if config.Enablements.Unwrap()&hst.EWayland != 0 {
 		// outer wayland socket (usually `/run/user/%d/wayland-%d`)
 		var socketPath *container.Absolute
 		if name, ok := k.lookupEnv(wayland.WaylandDisplay); !ok {
@@ -382,11 +382,11 @@ func (k *outcome) finalise(ctx context.Context, msg container.Msg, config *hst.C
 			msg.Verbose("direct wayland access, PROCEED WITH CAUTION")
 			share.ensureRuntimeDir()
 			k.container.Bind(socketPath, innerPath, 0)
-			k.sys.UpdatePermType(system.EWayland, socketPath.String(), acl.Read, acl.Write, acl.Execute)
+			k.sys.UpdatePermType(hst.EWayland, socketPath.String(), acl.Read, acl.Write, acl.Execute)
 		}
 	}
 
-	if config.Enablements.Unwrap()&system.EX11 != 0 {
+	if config.Enablements.Unwrap()&hst.EX11 != 0 {
 		if d, ok := k.lookupEnv(display); !ok {
 			return newWithMessage("DISPLAY is not set")
 		} else {
@@ -410,7 +410,7 @@ func (k *outcome) finalise(ctx context.Context, msg container.Msg, config *hst.C
 						return &hst.AppError{Step: fmt.Sprintf("access X11 socket %q", socketPath), Err: err}
 					}
 				} else {
-					k.sys.UpdatePermType(system.EX11, socketPath.String(), acl.Read, acl.Write, acl.Execute)
+					k.sys.UpdatePermType(hst.EX11, socketPath.String(), acl.Read, acl.Write, acl.Execute)
 					if !config.Container.HostAbstract {
 						d = "unix:" + socketPath.String()
 					}
@@ -423,7 +423,7 @@ func (k *outcome) finalise(ctx context.Context, msg container.Msg, config *hst.C
 		}
 	}
 
-	if config.Enablements.Unwrap()&system.EPulse != 0 {
+	if config.Enablements.Unwrap()&hst.EPulse != 0 {
 		// PulseAudio runtime directory (usually `/run/user/%d/pulse`)
 		pulseRuntimeDir := share.sc.RuntimePath.Append("pulse")
 		// PulseAudio socket (usually `/run/user/%d/pulse/native`)
@@ -527,7 +527,7 @@ func (k *outcome) finalise(ctx context.Context, msg container.Msg, config *hst.C
 		}
 	}
 
-	if config.Enablements.Unwrap()&system.EDBus != 0 {
+	if config.Enablements.Unwrap()&hst.EDBus != 0 {
 		// ensure dbus session bus defaults
 		if config.SessionBus == nil {
 			config.SessionBus = dbus.NewConfig(config.ID, true, true)

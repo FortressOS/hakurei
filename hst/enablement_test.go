@@ -7,8 +7,43 @@ import (
 	"testing"
 
 	"hakurei.app/hst"
-	"hakurei.app/system"
 )
+
+func TestEnablementString(t *testing.T) {
+	testCases := []struct {
+		flags hst.Enablement
+		want  string
+	}{
+		{0, "(no enablements)"},
+		{hst.EWayland, "wayland"},
+		{hst.EX11, "x11"},
+		{hst.EDBus, "dbus"},
+		{hst.EPulse, "pulseaudio"},
+		{hst.EWayland | hst.EX11, "wayland, x11"},
+		{hst.EWayland | hst.EDBus, "wayland, dbus"},
+		{hst.EWayland | hst.EPulse, "wayland, pulseaudio"},
+		{hst.EX11 | hst.EDBus, "x11, dbus"},
+		{hst.EX11 | hst.EPulse, "x11, pulseaudio"},
+		{hst.EDBus | hst.EPulse, "dbus, pulseaudio"},
+		{hst.EWayland | hst.EX11 | hst.EDBus, "wayland, x11, dbus"},
+		{hst.EWayland | hst.EX11 | hst.EPulse, "wayland, x11, pulseaudio"},
+		{hst.EWayland | hst.EDBus | hst.EPulse, "wayland, dbus, pulseaudio"},
+		{hst.EX11 | hst.EDBus | hst.EPulse, "x11, dbus, pulseaudio"},
+		{hst.EWayland | hst.EX11 | hst.EDBus | hst.EPulse, "wayland, x11, dbus, pulseaudio"},
+
+		{1 << 5, "e20"},
+		{1 << 6, "e40"},
+		{1 << 7, "e80"},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.want, func(t *testing.T) {
+			if got := tc.flags.String(); got != tc.want {
+				t.Errorf("String: %q, want %q", got, tc.want)
+			}
+		})
+	}
+}
 
 func TestEnablements(t *testing.T) {
 	testCases := []struct {
@@ -19,11 +54,11 @@ func TestEnablements(t *testing.T) {
 	}{
 		{"nil", nil, "null", `{"value":null,"magic":3236757504}`},
 		{"zero", hst.NewEnablements(0), `{}`, `{"value":{},"magic":3236757504}`},
-		{"wayland", hst.NewEnablements(system.EWayland), `{"wayland":true}`, `{"value":{"wayland":true},"magic":3236757504}`},
-		{"x11", hst.NewEnablements(system.EX11), `{"x11":true}`, `{"value":{"x11":true},"magic":3236757504}`},
-		{"dbus", hst.NewEnablements(system.EDBus), `{"dbus":true}`, `{"value":{"dbus":true},"magic":3236757504}`},
-		{"pulse", hst.NewEnablements(system.EPulse), `{"pulse":true}`, `{"value":{"pulse":true},"magic":3236757504}`},
-		{"all", hst.NewEnablements(system.EWayland | system.EX11 | system.EDBus | system.EPulse), `{"wayland":true,"x11":true,"dbus":true,"pulse":true}`, `{"value":{"wayland":true,"x11":true,"dbus":true,"pulse":true},"magic":3236757504}`},
+		{"wayland", hst.NewEnablements(hst.EWayland), `{"wayland":true}`, `{"value":{"wayland":true},"magic":3236757504}`},
+		{"x11", hst.NewEnablements(hst.EX11), `{"x11":true}`, `{"value":{"x11":true},"magic":3236757504}`},
+		{"dbus", hst.NewEnablements(hst.EDBus), `{"dbus":true}`, `{"value":{"dbus":true},"magic":3236757504}`},
+		{"pulse", hst.NewEnablements(hst.EPulse), `{"pulse":true}`, `{"value":{"pulse":true},"magic":3236757504}`},
+		{"all", hst.NewEnablements(hst.EWayland | hst.EX11 | hst.EDBus | hst.EPulse), `{"wayland":true,"x11":true,"dbus":true,"pulse":true}`, `{"value":{"wayland":true,"x11":true,"dbus":true,"pulse":true},"magic":3236757504}`},
 	}
 
 	for _, tc := range testCases {
@@ -88,7 +123,7 @@ func TestEnablements(t *testing.T) {
 		})
 
 		t.Run("val", func(t *testing.T) {
-			if got := hst.NewEnablements(system.EWayland | system.EPulse).Unwrap(); got != system.EWayland|system.EPulse {
+			if got := hst.NewEnablements(hst.EWayland | hst.EPulse).Unwrap(); got != hst.EWayland|hst.EPulse {
 				t.Errorf("Unwrap: %v", got)
 			}
 		})

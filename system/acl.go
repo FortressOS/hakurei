@@ -6,6 +6,7 @@ import (
 	"os"
 	"slices"
 
+	"hakurei.app/hst"
 	"hakurei.app/system/acl"
 )
 
@@ -16,19 +17,19 @@ func (sys *I) UpdatePerm(path string, perms ...acl.Perm) *I {
 }
 
 // UpdatePermType maintains [acl.Perms] on a file until its [Enablement] is no longer satisfied.
-func (sys *I) UpdatePermType(et Enablement, path string, perms ...acl.Perm) *I {
+func (sys *I) UpdatePermType(et hst.Enablement, path string, perms ...acl.Perm) *I {
 	sys.ops = append(sys.ops, &aclUpdateOp{et, path, perms})
 	return sys
 }
 
 // aclUpdateOp implements [I.UpdatePermType].
 type aclUpdateOp struct {
-	et    Enablement
+	et    hst.Enablement
 	path  string
 	perms acl.Perms
 }
 
-func (a *aclUpdateOp) Type() Enablement { return a.et }
+func (a *aclUpdateOp) Type() hst.Enablement { return a.et }
 
 func (a *aclUpdateOp) apply(sys *I) error {
 	sys.msg.Verbose("applying ACL", a)

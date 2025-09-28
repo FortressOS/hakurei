@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"hakurei.app/container/stub"
+	"hakurei.app/hst"
 	"hakurei.app/system/acl"
 )
 
@@ -94,9 +95,9 @@ func TestACLUpdateOp(t *testing.T) {
 		}, stub.Expect{}},
 
 		{"wayland", 0xdeadbeef, func(_ *testing.T, sys *I) {
-			sys.UpdatePermType(EWayland, "/run/user/1971/wayland-0", acl.Read, acl.Write, acl.Execute)
+			sys.UpdatePermType(hst.EWayland, "/run/user/1971/wayland-0", acl.Read, acl.Write, acl.Execute)
 		}, []Op{
-			&aclUpdateOp{EWayland, "/run/user/1971/wayland-0", []acl.Perm{acl.Read, acl.Write, acl.Execute}},
+			&aclUpdateOp{hst.EWayland, "/run/user/1971/wayland-0", []acl.Perm{acl.Read, acl.Write, acl.Execute}},
 		}, stub.Expect{}},
 	})
 
@@ -106,34 +107,34 @@ func TestACLUpdateOp(t *testing.T) {
 
 		{"et differs",
 			&aclUpdateOp{
-				EWayland, "/run/user/1971/wayland-0",
+				hst.EWayland, "/run/user/1971/wayland-0",
 				[]acl.Perm{acl.Read, acl.Write, acl.Execute},
 			}, &aclUpdateOp{
-				EX11, "/run/user/1971/wayland-0",
+				hst.EX11, "/run/user/1971/wayland-0",
 				[]acl.Perm{acl.Read, acl.Write, acl.Execute},
 			}, false},
 
 		{"path differs", &aclUpdateOp{
-			EWayland, "/run/user/1971/wayland-0",
+			hst.EWayland, "/run/user/1971/wayland-0",
 			[]acl.Perm{acl.Read, acl.Write, acl.Execute},
 		}, &aclUpdateOp{
-			EWayland, "/run/user/1971/wayland-1",
+			hst.EWayland, "/run/user/1971/wayland-1",
 			[]acl.Perm{acl.Read, acl.Write, acl.Execute},
 		}, false},
 
 		{"perms differs", &aclUpdateOp{
-			EWayland, "/run/user/1971/wayland-0",
+			hst.EWayland, "/run/user/1971/wayland-0",
 			[]acl.Perm{acl.Read, acl.Write, acl.Execute},
 		}, &aclUpdateOp{
-			EWayland, "/run/user/1971/wayland-0",
+			hst.EWayland, "/run/user/1971/wayland-0",
 			[]acl.Perm{acl.Read, acl.Write},
 		}, false},
 
 		{"equals", &aclUpdateOp{
-			EWayland, "/run/user/1971/wayland-0",
+			hst.EWayland, "/run/user/1971/wayland-0",
 			[]acl.Perm{acl.Read, acl.Write, acl.Execute},
 		}, &aclUpdateOp{
-			EWayland, "/run/user/1971/wayland-0",
+			hst.EWayland, "/run/user/1971/wayland-0",
 			[]acl.Perm{acl.Read, acl.Write, acl.Execute},
 		}, true},
 	})
@@ -160,23 +161,23 @@ func TestACLUpdateOp(t *testing.T) {
 			`--x type: user path: "/tmp/hakurei.0/27d81d567f8fae7f33278eec45da9446/2"`},
 
 		{"wayland",
-			&aclUpdateOp{EWayland, "/tmp/hakurei.0/27d81d567f8fae7f33278eec45da9446/wayland", []acl.Perm{acl.Read, acl.Write}},
-			EWayland, "/tmp/hakurei.0/27d81d567f8fae7f33278eec45da9446/wayland",
+			&aclUpdateOp{hst.EWayland, "/tmp/hakurei.0/27d81d567f8fae7f33278eec45da9446/wayland", []acl.Perm{acl.Read, acl.Write}},
+			hst.EWayland, "/tmp/hakurei.0/27d81d567f8fae7f33278eec45da9446/wayland",
 			`rw- type: wayland path: "/tmp/hakurei.0/27d81d567f8fae7f33278eec45da9446/wayland"`},
 
 		{"x11",
-			&aclUpdateOp{EX11, "/tmp/.X11-unix/X0", []acl.Perm{acl.Read, acl.Execute}},
-			EX11, "/tmp/.X11-unix/X0",
+			&aclUpdateOp{hst.EX11, "/tmp/.X11-unix/X0", []acl.Perm{acl.Read, acl.Execute}},
+			hst.EX11, "/tmp/.X11-unix/X0",
 			`r-x type: x11 path: "/tmp/.X11-unix/X0"`},
 
 		{"dbus",
-			&aclUpdateOp{EDBus, "/tmp/hakurei.0/27d81d567f8fae7f33278eec45da9446/bus", []acl.Perm{acl.Write, acl.Execute}},
-			EDBus, "/tmp/hakurei.0/27d81d567f8fae7f33278eec45da9446/bus",
+			&aclUpdateOp{hst.EDBus, "/tmp/hakurei.0/27d81d567f8fae7f33278eec45da9446/bus", []acl.Perm{acl.Write, acl.Execute}},
+			hst.EDBus, "/tmp/hakurei.0/27d81d567f8fae7f33278eec45da9446/bus",
 			`-wx type: dbus path: "/tmp/hakurei.0/27d81d567f8fae7f33278eec45da9446/bus"`},
 
 		{"pulseaudio",
-			&aclUpdateOp{EPulse, "/run/user/1971/hakurei/27d81d567f8fae7f33278eec45da9446/pulse", []acl.Perm{acl.Read, acl.Write, acl.Execute}},
-			EPulse, "/run/user/1971/hakurei/27d81d567f8fae7f33278eec45da9446/pulse",
+			&aclUpdateOp{hst.EPulse, "/run/user/1971/hakurei/27d81d567f8fae7f33278eec45da9446/pulse", []acl.Perm{acl.Read, acl.Write, acl.Execute}},
+			hst.EPulse, "/run/user/1971/hakurei/27d81d567f8fae7f33278eec45da9446/pulse",
 			`rwx type: pulseaudio path: "/run/user/1971/hakurei/27d81d567f8fae7f33278eec45da9446/pulse"`},
 	})
 }

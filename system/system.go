@@ -7,11 +7,12 @@ import (
 	"strings"
 
 	"hakurei.app/container"
+	"hakurei.app/hst"
 )
 
 const (
 	// User type is reverted at final instance exit.
-	User = EM << iota
+	User = hst.EM << iota
 	// Process type is unconditionally reverted on exit.
 	Process
 
@@ -19,21 +20,21 @@ const (
 )
 
 // Criteria specifies types of Op to revert.
-type Criteria Enablement
+type Criteria hst.Enablement
 
-func (ec *Criteria) hasType(t Enablement) bool {
+func (ec *Criteria) hasType(t hst.Enablement) bool {
 	// nil criteria: revert everything except User
 	if ec == nil {
 		return t != User
 	}
 
-	return Enablement(*ec)&t != 0
+	return hst.Enablement(*ec)&t != 0
 }
 
 // Op is a reversible system operation.
 type Op interface {
 	// Type returns [Op]'s enablement type, for matching a revert criteria.
-	Type() Enablement
+	Type() hst.Enablement
 
 	apply(sys *I) error
 	revert(sys *I, ec *Criteria) error
@@ -44,7 +45,7 @@ type Op interface {
 }
 
 // TypeString extends [Enablement.String] to support [User] and [Process].
-func TypeString(e Enablement) string {
+func TypeString(e hst.Enablement) string {
 	switch e {
 	case User:
 		return "user"

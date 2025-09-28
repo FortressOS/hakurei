@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	"hakurei.app/hst"
 	"hakurei.app/system/acl"
 	"hakurei.app/system/wayland"
 )
@@ -32,7 +33,7 @@ type waylandOp struct {
 	conn waylandConn
 }
 
-func (w *waylandOp) Type() Enablement { return Process }
+func (w *waylandOp) Type() hst.Enablement { return Process }
 
 func (w *waylandOp) apply(sys *I) error {
 	if w.sync == nil {

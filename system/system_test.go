@@ -10,18 +10,19 @@ import (
 
 	"hakurei.app/container"
 	"hakurei.app/container/stub"
+	"hakurei.app/hst"
 	"hakurei.app/system/internal/xcb"
 )
 
 func TestCriteria(t *testing.T) {
 	testCases := []struct {
 		name  string
-		ec, t Enablement
+		ec, t hst.Enablement
 		want  bool
 	}{
-		{"nil", 0xff, EWayland, true},
+		{"nil", 0xff, hst.EWayland, true},
 		{"nil user", 0xff, User, false},
-		{"all", EWayland | EX11 | EDBus | EPulse | User | Process, Process, true},
+		{"all", hst.EWayland | hst.EX11 | hst.EDBus | hst.EPulse | User | Process, Process, true},
 	}
 
 	for _, tc := range testCases {
@@ -40,18 +41,18 @@ func TestCriteria(t *testing.T) {
 
 func TestTypeString(t *testing.T) {
 	testCases := []struct {
-		e    Enablement
+		e    hst.Enablement
 		want string
 	}{
-		{EWayland, EWayland.String()},
-		{EX11, EX11.String()},
-		{EDBus, EDBus.String()},
-		{EPulse, EPulse.String()},
+		{hst.EWayland, hst.EWayland.String()},
+		{hst.EX11, hst.EX11.String()},
+		{hst.EDBus, hst.EDBus.String()},
+		{hst.EPulse, hst.EPulse.String()},
 		{User, "user"},
 		{Process, "process"},
 		{User | Process, "user, process"},
-		{EWayland | User | Process, "wayland, user, process"},
-		{EX11 | Process, "x11, process"},
+		{hst.EWayland | User | Process, "wayland, user, process"},
+		{hst.EX11 | Process, "x11, process"},
 	}
 
 	for _, tc := range testCases {
@@ -176,7 +177,7 @@ func TestCommitRevert(t *testing.T) {
 	testCases := []struct {
 		name string
 		f    func(sys *I)
-		ec   Enablement
+		ec   hst.Enablement
 
 		commit        []stub.Call
 		wantErrCommit error

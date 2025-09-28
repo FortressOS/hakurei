@@ -12,6 +12,7 @@ import (
 	"unsafe"
 
 	"hakurei.app/container/stub"
+	"hakurei.app/hst"
 	"hakurei.app/system/acl"
 	"hakurei.app/system/dbus"
 	"hakurei.app/system/internal/xcb"
@@ -26,7 +27,7 @@ func call(name string, args stub.ExpectArgs, ret any, err error) stub.Call {
 type opBehaviourTestCase struct {
 	name string
 	uid  int
-	ec   Enablement
+	ec   hst.Enablement
 	op   Op
 
 	apply        []stub.Call
@@ -142,7 +143,7 @@ type opMetaTestCase struct {
 	name string
 	op   Op
 
-	wantType   Enablement
+	wantType   hst.Enablement
 	wantPath   string
 	wantString string
 }

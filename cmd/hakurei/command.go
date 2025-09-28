@@ -17,7 +17,6 @@ import (
 	"hakurei.app/internal"
 	"hakurei.app/internal/app"
 	"hakurei.app/internal/app/state"
-	"hakurei.app/system"
 	"hakurei.app/system/dbus"
 )
 
@@ -128,18 +127,18 @@ func buildCommand(ctx context.Context, msg container.Msg, early *earlyHardeningE
 				config.Home = a
 			}
 
-			var e system.Enablement
+			var e hst.Enablement
 			if flagWayland {
-				e |= system.EWayland
+				e |= hst.EWayland
 			}
 			if flagX11 {
-				e |= system.EX11
+				e |= hst.EX11
 			}
 			if flagDBus {
-				e |= system.EDBus
+				e |= hst.EDBus
 			}
 			if flagPulse {
-				e |= system.EPulse
+				e |= hst.EPulse
 			}
 			config.Enablements = hst.NewEnablements(e)
 

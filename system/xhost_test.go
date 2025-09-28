@@ -4,17 +4,18 @@ import (
 	"testing"
 
 	"hakurei.app/container/stub"
+	"hakurei.app/hst"
 	"hakurei.app/system/internal/xcb"
 )
 
 func TestXHostOp(t *testing.T) {
 	checkOpBehaviour(t, []opBehaviourTestCase{
-		{"xcbChangeHosts revert", 0xbeef, EX11, xhostOp("chronos"), []stub.Call{
+		{"xcbChangeHosts revert", 0xbeef, hst.EX11, xhostOp("chronos"), []stub.Call{
 			call("verbosef", stub.ExpectArgs{"inserting entry %s to X11", []any{xhostOp("chronos")}}, nil, nil),
 			call("xcbChangeHosts", stub.ExpectArgs{xcb.HostMode(xcb.HostModeInsert), xcb.Family(xcb.FamilyServerInterpreted), "localuser\x00chronos"}, nil, stub.UniqueError(1)),
 		}, &OpError{Op: "xhost", Err: stub.UniqueError(1)}, nil, nil},
 
-		{"xcbChangeHosts revert", 0xbeef, EX11, xhostOp("chronos"), []stub.Call{
+		{"xcbChangeHosts revert", 0xbeef, hst.EX11, xhostOp("chronos"), []stub.Call{
 			call("verbosef", stub.ExpectArgs{"inserting entry %s to X11", []any{xhostOp("chronos")}}, nil, nil),
 			call("xcbChangeHosts", stub.ExpectArgs{xcb.HostMode(xcb.HostModeInsert), xcb.Family(xcb.FamilyServerInterpreted), "localuser\x00chronos"}, nil, nil),
 		}, nil, []stub.Call{
@@ -29,7 +30,7 @@ func TestXHostOp(t *testing.T) {
 			call("verbosef", stub.ExpectArgs{"skipping entry %s in X11", []any{xhostOp("chronos")}}, nil, nil),
 		}, nil},
 
-		{"success", 0xbeef, EX11, xhostOp("chronos"), []stub.Call{
+		{"success", 0xbeef, hst.EX11, xhostOp("chronos"), []stub.Call{
 			call("verbosef", stub.ExpectArgs{"inserting entry %s to X11", []any{xhostOp("chronos")}}, nil, nil),
 			call("xcbChangeHosts", stub.ExpectArgs{xcb.HostMode(xcb.HostModeInsert), xcb.Family(xcb.FamilyServerInterpreted), "localuser\x00chronos"}, nil, nil),
 		}, nil, []stub.Call{
@@ -52,6 +53,6 @@ func TestXHostOp(t *testing.T) {
 	})
 
 	checkOpMeta(t, []opMetaTestCase{
-		{"xhost", xhostOp("chronos"), EX11, "/tmp/.X11-unix", "SI:localuser:chronos"},
+		{"xhost", xhostOp("chronos"), hst.EX11, "/tmp/.X11-unix", "SI:localuser:chronos"},
 	})
 }

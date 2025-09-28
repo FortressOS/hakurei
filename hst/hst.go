@@ -8,7 +8,6 @@ import (
 
 	"hakurei.app/container"
 	"hakurei.app/container/seccomp"
-	"hakurei.app/system"
 	"hakurei.app/system/dbus"
 )
 
@@ -71,7 +70,7 @@ func Template() *Config {
 			"--ozone-platform=wayland",
 		},
 
-		Enablements: NewEnablements(system.EWayland | system.EDBus | system.EPulse),
+		Enablements: NewEnablements(EWayland | EDBus | EPulse),
 
 		SessionBus: &dbus.Config{
 			See: nil,
