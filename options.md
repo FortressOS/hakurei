@@ -35,7 +35,7 @@ package
 
 
 *Default:*
-` <derivation hakurei-static-x86_64-unknown-linux-musl-0.2.1> `
+` <derivation hakurei-static-x86_64-unknown-linux-musl-0.2.2> `
 
 
 
@@ -313,7 +313,7 @@ Extra paths to make available to the container\.
 
 
 *Type:*
-anything
+list of attribute set of anything
 
 
 
@@ -723,7 +723,7 @@ Common extra paths to make available to the container\.
 
 
 *Type:*
-anything
+list of attribute set of anything
 
 
 
@@ -759,7 +759,7 @@ package
 
 
 *Default:*
-` <derivation hakurei-hsu-0.2.1> `
+` <derivation hakurei-hsu-0.2.2> `
 
 
 
