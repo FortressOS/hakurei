@@ -7,28 +7,53 @@ import (
 	"hakurei.app/hst"
 )
 
-// CopyPaths populates a [hst.Paths] struct.
-func CopyPaths(v *hst.Paths, userid int) { copyPaths(direct{}, v, userid) }
+// EnvPaths holds paths copied from the environment and is used to create [hst.Paths].
+type EnvPaths struct {
+	// TempDir is returned by [os.TempDir].
+	TempDir *container.Absolute
+	// RuntimePath is copied from $XDG_RUNTIME_DIR.
+	RuntimePath *container.Absolute
+}
 
-// copyPaths populates a [hst.Paths] struct.
-func copyPaths(k syscallDispatcher, v *hst.Paths, userid int) {
-	const xdgRuntimeDir = "XDG_RUNTIME_DIR"
-
-	if tempDir, err := container.NewAbs(k.tempdir()); err != nil {
-		k.fatalf("invalid TMPDIR: %v", err)
-	} else {
-		v.TempDir = tempDir
+// Copy expands [EnvPaths] into [hst.Paths].
+func (env *EnvPaths) Copy(v *hst.Paths, userid int) {
+	if env == nil || env.TempDir == nil || v == nil {
+		panic("attempting to use an invalid EnvPaths")
 	}
 
-	v.SharePath = v.TempDir.Append("hakurei." + strconv.Itoa(userid))
+	v.TempDir = env.TempDir
+	v.SharePath = env.TempDir.Append("hakurei." + strconv.Itoa(userid))
 
-	r, _ := k.lookupEnv(xdgRuntimeDir)
-	if a, err := container.NewAbs(r); err != nil {
+	if env.RuntimePath == nil {
 		// fall back to path in share since hakurei has no hard XDG dependency
 		v.RunDirPath = v.SharePath.Append("run")
 		v.RuntimePath = v.RunDirPath.Append("compat")
 	} else {
-		v.RuntimePath = a
-		v.RunDirPath = v.RuntimePath.Append("hakurei")
+		v.RuntimePath = env.RuntimePath
+		v.RunDirPath = env.RuntimePath.Append("hakurei")
 	}
+}
+
+// CopyPaths returns a populated [EnvPaths].
+func CopyPaths() *EnvPaths { return copyPaths(direct{}) }
+
+// copyPaths returns a populated [EnvPaths].
+func copyPaths(k syscallDispatcher) *EnvPaths {
+	const xdgRuntimeDir = "XDG_RUNTIME_DIR"
+
+	var env EnvPaths
+
+	if tempDir, err := container.NewAbs(k.tempdir()); err != nil {
+		k.fatalf("invalid TMPDIR: %v", err)
+		panic("unreachable")
+	} else {
+		env.TempDir = tempDir
+	}
+
+	r, _ := k.lookupEnv(xdgRuntimeDir)
+	if a, err := container.NewAbs(r); err == nil {
+		env.RuntimePath = a
+	}
+
+	return &env
 }

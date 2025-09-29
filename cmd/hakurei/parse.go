@@ -89,7 +89,7 @@ func tryShort(msg container.Msg, name string) (config *hst.Config, entry *state.
 		msg.Verbose("argument looks like prefix")
 
 		var sc hst.Paths
-		app.CopyPaths(&sc, new(app.Hsu).MustID())
+		app.CopyPaths().Copy(&sc, new(app.Hsu).MustID())
 		s := state.NewMulti(msg, sc.RunDirPath.String())
 		if entries, err := state.Join(s); err != nil {
 			log.Printf("cannot join store: %v", err)

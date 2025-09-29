@@ -22,7 +22,7 @@ func printShowSystem(output io.Writer, short, flagJSON bool) {
 	defer t.MustFlush()
 
 	info := &hst.Info{User: new(app.Hsu).MustID()}
-	app.CopyPaths(&info.Paths, info.User)
+	app.CopyPaths().Copy(&info.Paths, info.User)
 
 	if flagJSON {
 		printJSON(output, short, info)

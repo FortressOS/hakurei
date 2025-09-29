@@ -231,7 +231,7 @@ func buildCommand(ctx context.Context, msg container.Msg, early *earlyHardeningE
 		var flagShort bool
 		c.NewCommand("ps", "List active instances", func(args []string) error {
 			var sc hst.Paths
-			app.CopyPaths(&sc, new(app.Hsu).MustID())
+			app.CopyPaths().Copy(&sc, new(app.Hsu).MustID())
 			printPs(os.Stdout, time.Now().UTC(), state.NewMulti(msg, sc.RunDirPath.String()), flagShort, flagJSON)
 			return errSuccess
 		}).Flag(&flagShort, "short", command.BoolFlag(false), "Print instance id")
