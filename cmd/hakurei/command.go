@@ -210,7 +210,7 @@ func buildCommand(ctx context.Context, msg container.Msg, early *earlyHardeningE
 		c.NewCommand("show", "Show live or local app configuration", func(args []string) error {
 			switch len(args) {
 			case 0: // system
-				printShowSystem(msg, os.Stdout, flagShort, flagJSON)
+				printShowSystem(os.Stdout, flagShort, flagJSON)
 
 			case 1: // instance
 				name := args[0]
@@ -231,7 +231,7 @@ func buildCommand(ctx context.Context, msg container.Msg, early *earlyHardeningE
 		var flagShort bool
 		c.NewCommand("ps", "List active instances", func(args []string) error {
 			var sc hst.Paths
-			app.CopyPaths(msg, &sc, new(app.Hsu).MustID())
+			app.CopyPaths(&sc, new(app.Hsu).MustID())
 			printPs(os.Stdout, time.Now().UTC(), state.NewMulti(msg, sc.RunDirPath.String()), flagShort, flagJSON)
 			return errSuccess
 		}).Flag(&flagShort, "short", command.BoolFlag(false), "Print instance id")

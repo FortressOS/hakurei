@@ -275,7 +275,7 @@ func (k *outcome) finalise(ctx context.Context, msg container.Msg, config *hst.C
 
 	// TODO(ophestra): revert this after params to shim
 	share := &shareHost{seal: k}
-	copyPaths(k.syscallDispatcher, msg, &share.sc, hsu.MustIDMsg(msg))
+	copyPaths(k.syscallDispatcher, &share.sc, hsu.MustIDMsg(msg))
 	msg.Verbosef("process share directory at %q, runtime directory at %q", share.sc.SharePath, share.sc.RunDirPath)
 
 	var mapuid, mapgid *stringPair[int]

@@ -8,10 +8,10 @@ import (
 )
 
 // CopyPaths populates a [hst.Paths] struct.
-func CopyPaths(msg container.Msg, v *hst.Paths, userid int) { copyPaths(direct{}, msg, v, userid) }
+func CopyPaths(v *hst.Paths, userid int) { copyPaths(direct{}, v, userid) }
 
 // copyPaths populates a [hst.Paths] struct.
-func copyPaths(k syscallDispatcher, msg container.Msg, v *hst.Paths, userid int) {
+func copyPaths(k syscallDispatcher, v *hst.Paths, userid int) {
 	const xdgRuntimeDir = "XDG_RUNTIME_DIR"
 
 	if tempDir, err := container.NewAbs(k.tempdir()); err != nil {
@@ -21,7 +21,6 @@ func copyPaths(k syscallDispatcher, msg container.Msg, v *hst.Paths, userid int)
 	}
 
 	v.SharePath = v.TempDir.Append("hakurei." + strconv.Itoa(userid))
-	msg.Verbosef("process share directory at %q", v.SharePath)
 
 	r, _ := k.lookupEnv(xdgRuntimeDir)
 	if a, err := container.NewAbs(r); err != nil {
@@ -32,5 +31,4 @@ func copyPaths(k syscallDispatcher, msg container.Msg, v *hst.Paths, userid int)
 		v.RuntimePath = a
 		v.RunDirPath = v.RuntimePath.Append("hakurei")
 	}
-	msg.Verbosef("runtime directory at %q", v.RunDirPath)
 }
