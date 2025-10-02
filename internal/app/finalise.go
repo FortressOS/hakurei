@@ -76,10 +76,10 @@ func (share *shareHost) ensureRuntimeDir() {
 		return
 	}
 	share.useRuntimeDir = true
-	share.seal.sys.Ensure(share.sc.RunDirPath.String(), 0700)
-	share.seal.sys.UpdatePermType(system.User, share.sc.RunDirPath.String(), acl.Execute)
-	share.seal.sys.Ensure(share.sc.RuntimePath.String(), 0700) // ensure this dir in case XDG_RUNTIME_DIR is unset
-	share.seal.sys.UpdatePermType(system.User, share.sc.RuntimePath.String(), acl.Execute)
+	share.seal.sys.Ensure(share.sc.RunDirPath, 0700)
+	share.seal.sys.UpdatePermType(system.User, share.sc.RunDirPath, acl.Execute)
+	share.seal.sys.Ensure(share.sc.RuntimePath, 0700) // ensure this dir in case XDG_RUNTIME_DIR is unset
+	share.seal.sys.UpdatePermType(system.User, share.sc.RuntimePath, acl.Execute)
 }
 
 // instance returns a process-specific share path within tmpdir
@@ -88,7 +88,7 @@ func (share *shareHost) instance() *container.Absolute {
 		return share.sharePath
 	}
 	share.sharePath = share.sc.SharePath.Append(share.seal.id.String())
-	share.seal.sys.Ephemeral(system.Process, share.sharePath.String(), 0711)
+	share.seal.sys.Ephemeral(system.Process, share.sharePath, 0711)
 	return share.sharePath
 }
 
@@ -99,8 +99,8 @@ func (share *shareHost) runtime() *container.Absolute {
 	}
 	share.ensureRuntimeDir()
 	share.runtimeSharePath = share.sc.RunDirPath.Append(share.seal.id.String())
-	share.seal.sys.Ephemeral(system.Process, share.runtimeSharePath.String(), 0700)
-	share.seal.sys.UpdatePerm(share.runtimeSharePath.String(), acl.Execute)
+	share.seal.sys.Ephemeral(system.Process, share.runtimeSharePath, 0700)
+	share.seal.sys.UpdatePerm(share.runtimeSharePath, acl.Execute)
 	return share.runtimeSharePath
 }
 
@@ -308,26 +308,26 @@ func (k *outcome) finalise(ctx context.Context, msg container.Msg, config *hst.C
 
 	k.runDirPath = share.sc.RunDirPath
 	k.sys = system.New(k.ctx, msg, k.user.uid.unwrap())
-	k.sys.Ensure(share.sc.SharePath.String(), 0711)
+	k.sys.Ensure(share.sc.SharePath, 0711)
 
 	{
 		runtimeDir := share.sc.SharePath.Append("runtime")
-		k.sys.Ensure(runtimeDir.String(), 0700)
-		k.sys.UpdatePermType(system.User, runtimeDir.String(), acl.Execute)
+		k.sys.Ensure(runtimeDir, 0700)
+		k.sys.UpdatePermType(system.User, runtimeDir, acl.Execute)
 		runtimeDirInst := runtimeDir.Append(k.user.identity.String())
-		k.sys.Ensure(runtimeDirInst.String(), 0700)
-		k.sys.UpdatePermType(system.User, runtimeDirInst.String(), acl.Read, acl.Write, acl.Execute)
+		k.sys.Ensure(runtimeDirInst, 0700)
+		k.sys.UpdatePermType(system.User, runtimeDirInst, acl.Read, acl.Write, acl.Execute)
 		k.container.Tmpfs(container.AbsFHSRunUser, 1<<12, 0755)
 		k.container.Bind(runtimeDirInst, innerRuntimeDir, container.BindWritable)
 	}
 
 	{
 		tmpdir := share.sc.SharePath.Append("tmpdir")
-		k.sys.Ensure(tmpdir.String(), 0700)
-		k.sys.UpdatePermType(system.User, tmpdir.String(), acl.Execute)
+		k.sys.Ensure(tmpdir, 0700)
+		k.sys.UpdatePermType(system.User, tmpdir, acl.Execute)
 		tmpdirInst := tmpdir.Append(k.user.identity.String())
-		k.sys.Ensure(tmpdirInst.String(), 01700)
-		k.sys.UpdatePermType(system.User, tmpdirInst.String(), acl.Read, acl.Write, acl.Execute)
+		k.sys.Ensure(tmpdirInst, 01700)
+		k.sys.UpdatePermType(system.User, tmpdirInst, acl.Read, acl.Write, acl.Execute)
 		// mount inner /tmp from share so it shares persistence and storage behaviour of host /tmp
 		k.container.Bind(tmpdirInst, container.AbsFHSTmp, container.BindWritable)
 	}
@@ -376,13 +376,13 @@ func (k *outcome) finalise(ctx context.Context, msg container.Msg, config *hst.C
 			}
 			// downstream socket paths
 			outerPath := share.instance().Append("wayland")
-			k.sys.Wayland(&k.sync, outerPath.String(), socketPath.String(), appID, k.id.String())
+			k.sys.Wayland(&k.sync, outerPath, socketPath, appID, k.id.String())
 			k.container.Bind(outerPath, innerPath, 0)
 		} else { // bind mount wayland socket (insecure)
 			msg.Verbose("direct wayland access, PROCEED WITH CAUTION")
 			share.ensureRuntimeDir()
 			k.container.Bind(socketPath, innerPath, 0)
-			k.sys.UpdatePermType(hst.EWayland, socketPath.String(), acl.Read, acl.Write, acl.Execute)
+			k.sys.UpdatePermType(hst.EWayland, socketPath, acl.Read, acl.Write, acl.Execute)
 		}
 	}
 
@@ -410,7 +410,7 @@ func (k *outcome) finalise(ctx context.Context, msg container.Msg, config *hst.C
 						return &hst.AppError{Step: fmt.Sprintf("access X11 socket %q", socketPath), Err: err}
 					}
 				} else {
-					k.sys.UpdatePermType(hst.EX11, socketPath.String(), acl.Read, acl.Write, acl.Execute)
+					k.sys.UpdatePermType(hst.EX11, socketPath, acl.Read, acl.Write, acl.Execute)
 					if !config.Container.HostAbstract {
 						d = "unix:" + socketPath.String()
 					}
@@ -450,7 +450,7 @@ func (k *outcome) finalise(ctx context.Context, msg container.Msg, config *hst.C
 		// hard link pulse socket into target-executable share
 		innerPulseRuntimeDir := share.runtime().Append("pulse")
 		innerPulseSocket := innerRuntimeDir.Append("pulse", "native")
-		k.sys.Link(pulseSocket.String(), innerPulseRuntimeDir.String())
+		k.sys.Link(pulseSocket, innerPulseRuntimeDir)
 		k.container.Bind(innerPulseRuntimeDir, innerPulseSocket, 0)
 		k.env[pulseServer] = "unix:" + innerPulseSocket.String()
 
@@ -518,7 +518,7 @@ func (k *outcome) finalise(ctx context.Context, msg container.Msg, config *hst.C
 			k.env[pulseCookie] = innerDst.String()
 			var payload *[]byte
 			k.container.PlaceP(innerDst, &payload)
-			k.sys.CopyFile(payload, paCookiePath.String(), 256, 256)
+			k.sys.CopyFile(payload, paCookiePath, 256, 256)
 		} else {
 			msg.Verbose("cannot locate PulseAudio cookie (tried " +
 				"$PULSE_COOKIE, " +
@@ -539,7 +539,7 @@ func (k *outcome) finalise(ctx context.Context, msg container.Msg, config *hst.C
 		// configure dbus proxy
 		if f, err := k.sys.ProxyDBus(
 			config.SessionBus, config.SystemBus,
-			sessionPath.String(), systemPath.String(),
+			sessionPath, systemPath,
 		); err != nil {
 			return err
 		} else {
@@ -550,12 +550,12 @@ func (k *outcome) finalise(ctx context.Context, msg container.Msg, config *hst.C
 		sessionInner := innerRuntimeDir.Append("bus")
 		k.env[dbusSessionBusAddress] = "unix:path=" + sessionInner.String()
 		k.container.Bind(sessionPath, sessionInner, 0)
-		k.sys.UpdatePerm(sessionPath.String(), acl.Read, acl.Write)
+		k.sys.UpdatePerm(sessionPath, acl.Read, acl.Write)
 		if config.SystemBus != nil {
 			systemInner := container.AbsFHSRun.Append("dbus/system_bus_socket")
 			k.env[dbusSystemBusAddress] = "unix:path=" + systemInner.String()
 			k.container.Bind(systemPath, systemInner, 0)
-			k.sys.UpdatePerm(systemPath.String(), acl.Read, acl.Write)
+			k.sys.UpdatePerm(systemPath, acl.Read, acl.Write)
 		}
 	}
 
@@ -569,7 +569,7 @@ func (k *outcome) finalise(ctx context.Context, msg container.Msg, config *hst.C
 		}
 
 		if p.Ensure {
-			k.sys.Ensure(p.Path.String(), 0700)
+			k.sys.Ensure(p.Path, 0700)
 		}
 
 		perms := make(acl.Perms, 0, 3)
@@ -582,7 +582,7 @@ func (k *outcome) finalise(ctx context.Context, msg container.Msg, config *hst.C
 		if p.Execute {
 			perms = append(perms, acl.Execute)
 		}
-		k.sys.UpdatePermType(system.User, p.Path.String(), perms...)
+		k.sys.UpdatePermType(system.User, p.Path, perms...)
 	}
 
 	// flatten and sort env for deterministic behaviour

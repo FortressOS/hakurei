@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	"hakurei.app/container"
 	"hakurei.app/hst"
 	"hakurei.app/system/acl"
 	"hakurei.app/system/wayland"
@@ -19,8 +20,8 @@ type waylandConn interface {
 // Wayland maintains a wayland socket with security-context-v1 attached via [wayland].
 // The socket stops accepting connections once the pipe referred to by sync is closed.
 // The socket is pathname only and is destroyed on revert.
-func (sys *I) Wayland(syncFd **os.File, dst, src, appID, instanceID string) *I {
-	sys.ops = append(sys.ops, &waylandOp{syncFd, dst, src, appID, instanceID, new(wayland.Conn)})
+func (sys *I) Wayland(syncFd **os.File, dst, src *container.Absolute, appID, instanceID string) *I {
+	sys.ops = append(sys.ops, &waylandOp{syncFd, dst.String(), src.String(), appID, instanceID, new(wayland.Conn)})
 	return sys
 }
 

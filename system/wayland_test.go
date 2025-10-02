@@ -218,8 +218,8 @@ func TestWaylandOp(t *testing.T) {
 		{"chromium", 0xcafe, func(_ *testing.T, sys *I) {
 			sys.Wayland(
 				new(*os.File),
-				"/tmp/hakurei.1971/ebf083d1b175911782d413369b64ce7c/wayland",
-				"/run/user/1971/wayland-0",
+				m("/tmp/hakurei.1971/ebf083d1b175911782d413369b64ce7c/wayland"),
+				m("/run/user/1971/wayland-0"),
 				"org.chromium.Chromium",
 				"ebf083d1b175911782d413369b64ce7c",
 			)

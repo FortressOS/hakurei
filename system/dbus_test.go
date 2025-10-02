@@ -82,7 +82,7 @@ func TestDBusProxyOp(t *testing.T) {
 				Op: "dbus", Err: ErrDBusConfig,
 				Msg: "attempted to create message bus proxy args without session bus config",
 			}
-			if f, err := sys.ProxyDBus(nil, new(dbus.Config), "", ""); !reflect.DeepEqual(err, wantErr) {
+			if f, err := sys.ProxyDBus(nil, new(dbus.Config), nil, nil); !reflect.DeepEqual(err, wantErr) {
 				t.Errorf("ProxyDBus: error = %v, want %v", err, wantErr)
 			} else if f != nil {
 				t.Errorf("ProxyDBus: f = %p", f)
@@ -98,10 +98,10 @@ func TestDBusProxyOp(t *testing.T) {
 			}()
 
 			sys.MustProxyDBus(
-				"/tmp/hakurei.0/99dd71ee2146369514e0d10783368f8f/bus", &dbus.Config{
+				m("/tmp/hakurei.0/99dd71ee2146369514e0d10783368f8f/bus"), &dbus.Config{
 					// use impossible value here as an implicit assert that it goes through the stub
 					Talk: []string{"session\x00"}, Filter: true,
-				}, "/tmp/hakurei.0/99dd71ee2146369514e0d10783368f8f/system_bus_socket", &dbus.Config{
+				}, m("/tmp/hakurei.0/99dd71ee2146369514e0d10783368f8f/system_bus_socket"), &dbus.Config{
 					// use impossible value here as an implicit assert that it goes through the stub
 					Talk: []string{"system\x00"}, Filter: true,
 				})
@@ -128,8 +128,8 @@ func TestDBusProxyOp(t *testing.T) {
 					// use impossible value here as an implicit assert that it goes through the stub
 					Talk: []string{"system\x00"}, Filter: true,
 				},
-				"/tmp/hakurei.0/99dd71ee2146369514e0d10783368f8f/bus",
-				"/tmp/hakurei.0/99dd71ee2146369514e0d10783368f8f/system_bus_socket"); !reflect.DeepEqual(err, wantErr) {
+				m("/tmp/hakurei.0/99dd71ee2146369514e0d10783368f8f/bus"),
+				m("/tmp/hakurei.0/99dd71ee2146369514e0d10783368f8f/system_bus_socket")); !reflect.DeepEqual(err, wantErr) {
 				t.Errorf("ProxyDBus: error = %v", err)
 			} else if f != nil {
 				t.Errorf("ProxyDBus: f = %p", f)
@@ -146,10 +146,10 @@ func TestDBusProxyOp(t *testing.T) {
 
 		{"full", 0xcafebabe, func(_ *testing.T, sys *I) {
 			sys.MustProxyDBus(
-				"/tmp/hakurei.0/99dd71ee2146369514e0d10783368f8f/bus", &dbus.Config{
+				m("/tmp/hakurei.0/99dd71ee2146369514e0d10783368f8f/bus"), &dbus.Config{
 					// use impossible value here as an implicit assert that it goes through the stub
 					Talk: []string{"session\x00"}, Filter: true,
-				}, "/tmp/hakurei.0/99dd71ee2146369514e0d10783368f8f/system_bus_socket", &dbus.Config{
+				}, m("/tmp/hakurei.0/99dd71ee2146369514e0d10783368f8f/system_bus_socket"), &dbus.Config{
 					// use impossible value here as an implicit assert that it goes through the stub
 					Talk: []string{"system\x00"}, Filter: true,
 				})

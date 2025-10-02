@@ -57,13 +57,13 @@ func TestMkdirOp(t *testing.T) {
 
 	checkOpsBuilder(t, "EnsureEphemeral", []opsBuilderTestCase{
 		{"ensure", 0xcafebabe, func(_ *testing.T, sys *I) {
-			sys.Ensure("/tmp/hakurei.0", 0700)
+			sys.Ensure(m("/tmp/hakurei.0"), 0700)
 		}, []Op{
 			&mkdirOp{User, "/tmp/hakurei.0", 0700, false},
 		}, stub.Expect{}},
 
 		{"ephemeral", 0xcafebabe, func(_ *testing.T, sys *I) {
-			sys.Ephemeral(Process, "/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9", 0711)
+			sys.Ephemeral(Process, m("/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9"), 0711)
 		}, []Op{
 			&mkdirOp{Process, "/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9", 0711, true},
 		}, stub.Expect{}},

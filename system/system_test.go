@@ -133,34 +133,34 @@ func TestEqual(t *testing.T) {
 				ChangeHosts("chronos"),
 			New(t.Context(), container.NewMsg(nil), 150).
 				ChangeHosts("chronos").
-				Ensure("/run", 0755),
+				Ensure(m("/run"), 0755),
 			false},
 
 		{"op value mismatch",
 			New(t.Context(), container.NewMsg(nil), 150).
 				ChangeHosts("chronos").
-				Ensure("/run", 0644),
+				Ensure(m("/run"), 0644),
 			New(t.Context(), container.NewMsg(nil), 150).
 				ChangeHosts("chronos").
-				Ensure("/run", 0755),
+				Ensure(m("/run"), 0755),
 			false},
 
 		{"op type mismatch",
 			New(t.Context(), container.NewMsg(nil), 150).
 				ChangeHosts("chronos").
-				CopyFile(new([]byte), "/home/ophestra/xdg/config/pulse/cookie", 0, 256),
+				CopyFile(new([]byte), m("/home/ophestra/xdg/config/pulse/cookie"), 0, 256),
 			New(t.Context(), container.NewMsg(nil), 150).
 				ChangeHosts("chronos").
-				Ensure("/run", 0755),
+				Ensure(m("/run"), 0755),
 			false},
 
 		{"op equals",
 			New(t.Context(), container.NewMsg(nil), 150).
 				ChangeHosts("chronos").
-				Ensure("/run", 0755),
+				Ensure(m("/run"), 0755),
 			New(t.Context(), container.NewMsg(nil), 150).
 				ChangeHosts("chronos").
-				Ensure("/run", 0755),
+				Ensure(m("/run"), 0755),
 			true},
 	}
 
@@ -187,7 +187,7 @@ func TestCommitRevert(t *testing.T) {
 	}{
 		{"apply xhost partial mkdir", func(sys *I) {
 			sys.
-				Ephemeral(Process, "/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9", 0711).
+				Ephemeral(Process, m("/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9"), 0711).
 				ChangeHosts("chronos")
 		}, 0xff, []stub.Call{
 			call("verbose", stub.ExpectArgs{[]any{"ensuring directory", &mkdirOp{Process, "/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9", 0711, true}}}, nil, nil),
@@ -202,7 +202,7 @@ func TestCommitRevert(t *testing.T) {
 
 		{"apply xhost", func(sys *I) {
 			sys.
-				Ephemeral(Process, "/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9", 0711).
+				Ephemeral(Process, m("/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9"), 0711).
 				ChangeHosts("chronos")
 		}, 0xff, []stub.Call{
 			call("verbose", stub.ExpectArgs{[]any{"ensuring directory", &mkdirOp{Process, "/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9", 0711, true}}}, nil, nil),
@@ -216,7 +216,7 @@ func TestCommitRevert(t *testing.T) {
 
 		{"revert multi", func(sys *I) {
 			sys.
-				Ephemeral(Process, "/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9", 0711).
+				Ephemeral(Process, m("/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9"), 0711).
 				ChangeHosts("chronos")
 		}, 0xff, []stub.Call{
 			call("verbose", stub.ExpectArgs{[]any{"ensuring directory", &mkdirOp{Process, "/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9", 0711, true}}}, nil, nil),
@@ -234,7 +234,7 @@ func TestCommitRevert(t *testing.T) {
 
 		{"success", func(sys *I) {
 			sys.
-				Ephemeral(Process, "/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9", 0711).
+				Ephemeral(Process, m("/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9"), 0711).
 				ChangeHosts("chronos")
 		}, 0xff, []stub.Call{
 			call("verbose", stub.ExpectArgs{[]any{"ensuring directory", &mkdirOp{Process, "/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9", 0711, true}}}, nil, nil),
@@ -312,3 +312,5 @@ func TestNop(t *testing.T) {
 	new(noCopy).Unlock()
 	new(noCopy).Lock()
 }
+
+func m(pathname string) *container.Absolute { return container.MustAbs(pathname) }

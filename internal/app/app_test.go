@@ -1,7 +1,6 @@
 package app
 
 import (
-	"context"
 	"encoding/json"
 	"io/fs"
 	"os"
@@ -37,12 +36,12 @@ func TestApp(t *testing.T) {
 				0xbd, 0x01, 0x78, 0x0e,
 				0xb9, 0xa6, 0x07, 0xac,
 			},
-			system.New(context.TODO(), container.NewMsg(nil), 1000000).
-				Ensure("/tmp/hakurei.0", 0711).
-				Ensure("/tmp/hakurei.0/runtime", 0700).UpdatePermType(system.User, "/tmp/hakurei.0/runtime", acl.Execute).
-				Ensure("/tmp/hakurei.0/runtime/0", 0700).UpdatePermType(system.User, "/tmp/hakurei.0/runtime/0", acl.Read, acl.Write, acl.Execute).
-				Ensure("/tmp/hakurei.0/tmpdir", 0700).UpdatePermType(system.User, "/tmp/hakurei.0/tmpdir", acl.Execute).
-				Ensure("/tmp/hakurei.0/tmpdir/0", 01700).UpdatePermType(system.User, "/tmp/hakurei.0/tmpdir/0", acl.Read, acl.Write, acl.Execute),
+			system.New(t.Context(), container.NewMsg(nil), 1000000).
+				Ensure(m("/tmp/hakurei.0"), 0711).
+				Ensure(m("/tmp/hakurei.0/runtime"), 0700).UpdatePermType(system.User, m("/tmp/hakurei.0/runtime"), acl.Execute).
+				Ensure(m("/tmp/hakurei.0/runtime/0"), 0700).UpdatePermType(system.User, m("/tmp/hakurei.0/runtime/0"), acl.Read, acl.Write, acl.Execute).
+				Ensure(m("/tmp/hakurei.0/tmpdir"), 0700).UpdatePermType(system.User, m("/tmp/hakurei.0/tmpdir"), acl.Execute).
+				Ensure(m("/tmp/hakurei.0/tmpdir/0"), 01700).UpdatePermType(system.User, m("/tmp/hakurei.0/tmpdir/0"), acl.Read, acl.Write, acl.Execute),
 			&container.Params{
 				Dir:  m("/home/chronos"),
 				Path: m("/run/current-system/sw/bin/zsh"),
@@ -129,20 +128,20 @@ func TestApp(t *testing.T) {
 				0x82, 0xd4, 0x13, 0x36,
 				0x9b, 0x64, 0xce, 0x7c,
 			},
-			system.New(context.TODO(), container.NewMsg(nil), 1000009).
-				Ensure("/tmp/hakurei.0", 0711).
-				Ensure("/tmp/hakurei.0/runtime", 0700).UpdatePermType(system.User, "/tmp/hakurei.0/runtime", acl.Execute).
-				Ensure("/tmp/hakurei.0/runtime/9", 0700).UpdatePermType(system.User, "/tmp/hakurei.0/runtime/9", acl.Read, acl.Write, acl.Execute).
-				Ensure("/tmp/hakurei.0/tmpdir", 0700).UpdatePermType(system.User, "/tmp/hakurei.0/tmpdir", acl.Execute).
-				Ensure("/tmp/hakurei.0/tmpdir/9", 01700).UpdatePermType(system.User, "/tmp/hakurei.0/tmpdir/9", acl.Read, acl.Write, acl.Execute).
-				Ephemeral(system.Process, "/tmp/hakurei.0/ebf083d1b175911782d413369b64ce7c", 0711).
-				Wayland(new(*os.File), "/tmp/hakurei.0/ebf083d1b175911782d413369b64ce7c/wayland", "/run/user/1971/wayland-0", "org.chromium.Chromium", "ebf083d1b175911782d413369b64ce7c").
-				Ensure("/run/user/1971/hakurei", 0700).UpdatePermType(system.User, "/run/user/1971/hakurei", acl.Execute).
-				Ensure("/run/user/1971", 0700).UpdatePermType(system.User, "/run/user/1971", acl.Execute). // this is ordered as is because the previous Ensure only calls mkdir if XDG_RUNTIME_DIR is unset
-				Ephemeral(system.Process, "/run/user/1971/hakurei/ebf083d1b175911782d413369b64ce7c", 0700).UpdatePermType(system.Process, "/run/user/1971/hakurei/ebf083d1b175911782d413369b64ce7c", acl.Execute).
-				Link("/run/user/1971/pulse/native", "/run/user/1971/hakurei/ebf083d1b175911782d413369b64ce7c/pulse").
-				CopyFile(new([]byte), "/home/ophestra/xdg/config/pulse/cookie", 256, 256).
-				MustProxyDBus("/tmp/hakurei.0/ebf083d1b175911782d413369b64ce7c/bus", &dbus.Config{
+			system.New(t.Context(), container.NewMsg(nil), 1000009).
+				Ensure(m("/tmp/hakurei.0"), 0711).
+				Ensure(m("/tmp/hakurei.0/runtime"), 0700).UpdatePermType(system.User, m("/tmp/hakurei.0/runtime"), acl.Execute).
+				Ensure(m("/tmp/hakurei.0/runtime/9"), 0700).UpdatePermType(system.User, m("/tmp/hakurei.0/runtime/9"), acl.Read, acl.Write, acl.Execute).
+				Ensure(m("/tmp/hakurei.0/tmpdir"), 0700).UpdatePermType(system.User, m("/tmp/hakurei.0/tmpdir"), acl.Execute).
+				Ensure(m("/tmp/hakurei.0/tmpdir/9"), 01700).UpdatePermType(system.User, m("/tmp/hakurei.0/tmpdir/9"), acl.Read, acl.Write, acl.Execute).
+				Ephemeral(system.Process, m("/tmp/hakurei.0/ebf083d1b175911782d413369b64ce7c"), 0711).
+				Wayland(new(*os.File), m("/tmp/hakurei.0/ebf083d1b175911782d413369b64ce7c/wayland"), m("/run/user/1971/wayland-0"), "org.chromium.Chromium", "ebf083d1b175911782d413369b64ce7c").
+				Ensure(m("/run/user/1971/hakurei"), 0700).UpdatePermType(system.User, m("/run/user/1971/hakurei"), acl.Execute).
+				Ensure(m("/run/user/1971"), 0700).UpdatePermType(system.User, m("/run/user/1971"), acl.Execute). // this is ordered as is because the previous Ensure only calls mkdir if XDG_RUNTIME_DIR is unset
+				Ephemeral(system.Process, m("/run/user/1971/hakurei/ebf083d1b175911782d413369b64ce7c"), 0700).UpdatePermType(system.Process, m("/run/user/1971/hakurei/ebf083d1b175911782d413369b64ce7c"), acl.Execute).
+				Link(m("/run/user/1971/pulse/native"), m("/run/user/1971/hakurei/ebf083d1b175911782d413369b64ce7c/pulse")).
+				CopyFile(new([]byte), m("/home/ophestra/xdg/config/pulse/cookie"), 256, 256).
+				MustProxyDBus(m("/tmp/hakurei.0/ebf083d1b175911782d413369b64ce7c/bus"), &dbus.Config{
 					Talk: []string{
 						"org.freedesktop.Notifications",
 						"org.freedesktop.FileManager1",
@@ -164,7 +163,7 @@ func TestApp(t *testing.T) {
 						"org.freedesktop.portal.*": "@/org/freedesktop/portal/*",
 					},
 					Filter: true,
-				}, "/tmp/hakurei.0/ebf083d1b175911782d413369b64ce7c/system_bus_socket", &dbus.Config{
+				}, m("/tmp/hakurei.0/ebf083d1b175911782d413369b64ce7c/system_bus_socket"), &dbus.Config{
 					Talk: []string{
 						"org.bluez",
 						"org.freedesktop.Avahi",
@@ -172,8 +171,8 @@ func TestApp(t *testing.T) {
 					},
 					Filter: true,
 				}).
-				UpdatePerm("/tmp/hakurei.0/ebf083d1b175911782d413369b64ce7c/bus", acl.Read, acl.Write).
-				UpdatePerm("/tmp/hakurei.0/ebf083d1b175911782d413369b64ce7c/system_bus_socket", acl.Read, acl.Write),
+				UpdatePerm(m("/tmp/hakurei.0/ebf083d1b175911782d413369b64ce7c/bus"), acl.Read, acl.Write).
+				UpdatePerm(m("/tmp/hakurei.0/ebf083d1b175911782d413369b64ce7c/system_bus_socket"), acl.Read, acl.Write),
 			&container.Params{
 				Dir:  m("/home/chronos"),
 				Path: m("/run/current-system/sw/bin/zsh"),
@@ -280,20 +279,20 @@ func TestApp(t *testing.T) {
 				0x4c, 0xf0, 0x73, 0xbd,
 				0xb4, 0x6e, 0xb5, 0xc1,
 			},
-			system.New(context.TODO(), container.NewMsg(nil), 1000001).
-				Ensure("/tmp/hakurei.0", 0711).
-				Ensure("/tmp/hakurei.0/runtime", 0700).UpdatePermType(system.User, "/tmp/hakurei.0/runtime", acl.Execute).
-				Ensure("/tmp/hakurei.0/runtime/1", 0700).UpdatePermType(system.User, "/tmp/hakurei.0/runtime/1", acl.Read, acl.Write, acl.Execute).
-				Ensure("/tmp/hakurei.0/tmpdir", 0700).UpdatePermType(system.User, "/tmp/hakurei.0/tmpdir", acl.Execute).
-				Ensure("/tmp/hakurei.0/tmpdir/1", 01700).UpdatePermType(system.User, "/tmp/hakurei.0/tmpdir/1", acl.Read, acl.Write, acl.Execute).
-				Ensure("/run/user/1971/hakurei", 0700).UpdatePermType(system.User, "/run/user/1971/hakurei", acl.Execute).
-				Ensure("/run/user/1971", 0700).UpdatePermType(system.User, "/run/user/1971", acl.Execute). // this is ordered as is because the previous Ensure only calls mkdir if XDG_RUNTIME_DIR is unset
-				UpdatePermType(hst.EWayland, "/run/user/1971/wayland-0", acl.Read, acl.Write, acl.Execute).
-				Ephemeral(system.Process, "/run/user/1971/hakurei/8e2c76b066dabe574cf073bdb46eb5c1", 0700).UpdatePermType(system.Process, "/run/user/1971/hakurei/8e2c76b066dabe574cf073bdb46eb5c1", acl.Execute).
-				Link("/run/user/1971/pulse/native", "/run/user/1971/hakurei/8e2c76b066dabe574cf073bdb46eb5c1/pulse").
-				CopyFile(nil, "/home/ophestra/xdg/config/pulse/cookie", 256, 256).
-				Ephemeral(system.Process, "/tmp/hakurei.0/8e2c76b066dabe574cf073bdb46eb5c1", 0711).
-				MustProxyDBus("/tmp/hakurei.0/8e2c76b066dabe574cf073bdb46eb5c1/bus", &dbus.Config{
+			system.New(t.Context(), container.NewMsg(nil), 1000001).
+				Ensure(m("/tmp/hakurei.0"), 0711).
+				Ensure(m("/tmp/hakurei.0/runtime"), 0700).UpdatePermType(system.User, m("/tmp/hakurei.0/runtime"), acl.Execute).
+				Ensure(m("/tmp/hakurei.0/runtime/1"), 0700).UpdatePermType(system.User, m("/tmp/hakurei.0/runtime/1"), acl.Read, acl.Write, acl.Execute).
+				Ensure(m("/tmp/hakurei.0/tmpdir"), 0700).UpdatePermType(system.User, m("/tmp/hakurei.0/tmpdir"), acl.Execute).
+				Ensure(m("/tmp/hakurei.0/tmpdir/1"), 01700).UpdatePermType(system.User, m("/tmp/hakurei.0/tmpdir/1"), acl.Read, acl.Write, acl.Execute).
+				Ensure(m("/run/user/1971/hakurei"), 0700).UpdatePermType(system.User, m("/run/user/1971/hakurei"), acl.Execute).
+				Ensure(m("/run/user/1971"), 0700).UpdatePermType(system.User, m("/run/user/1971"), acl.Execute). // this is ordered as is because the previous Ensure only calls mkdir if XDG_RUNTIME_DIR is unset
+				UpdatePermType(hst.EWayland, m("/run/user/1971/wayland-0"), acl.Read, acl.Write, acl.Execute).
+				Ephemeral(system.Process, m("/run/user/1971/hakurei/8e2c76b066dabe574cf073bdb46eb5c1"), 0700).UpdatePermType(system.Process, m("/run/user/1971/hakurei/8e2c76b066dabe574cf073bdb46eb5c1"), acl.Execute).
+				Link(m("/run/user/1971/pulse/native"), m("/run/user/1971/hakurei/8e2c76b066dabe574cf073bdb46eb5c1/pulse")).
+				CopyFile(nil, m("/home/ophestra/xdg/config/pulse/cookie"), 256, 256).
+				Ephemeral(system.Process, m("/tmp/hakurei.0/8e2c76b066dabe574cf073bdb46eb5c1"), 0711).
+				MustProxyDBus(m("/tmp/hakurei.0/8e2c76b066dabe574cf073bdb46eb5c1/bus"), &dbus.Config{
 					Talk: []string{
 						"org.freedesktop.FileManager1", "org.freedesktop.Notifications",
 						"org.freedesktop.ScreenSaver", "org.freedesktop.secrets",
@@ -306,7 +305,7 @@ func TestApp(t *testing.T) {
 					},
 					Call: map[string]string{}, Broadcast: map[string]string{},
 					Filter: true,
-				}, "/tmp/hakurei.0/8e2c76b066dabe574cf073bdb46eb5c1/system_bus_socket", &dbus.Config{
+				}, m("/tmp/hakurei.0/8e2c76b066dabe574cf073bdb46eb5c1/system_bus_socket"), &dbus.Config{
 					Talk: []string{
 						"org.bluez",
 						"org.freedesktop.Avahi",
@@ -314,8 +313,8 @@ func TestApp(t *testing.T) {
 					},
 					Filter: true,
 				}).
-				UpdatePerm("/tmp/hakurei.0/8e2c76b066dabe574cf073bdb46eb5c1/bus", acl.Read, acl.Write).
-				UpdatePerm("/tmp/hakurei.0/8e2c76b066dabe574cf073bdb46eb5c1/system_bus_socket", acl.Read, acl.Write),
+				UpdatePerm(m("/tmp/hakurei.0/8e2c76b066dabe574cf073bdb46eb5c1/bus"), acl.Read, acl.Write).
+				UpdatePerm(m("/tmp/hakurei.0/8e2c76b066dabe574cf073bdb46eb5c1/system_bus_socket"), acl.Read, acl.Write),
 			&container.Params{
 				Uid:  1971,
 				Gid:  100,

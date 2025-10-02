@@ -60,42 +60,42 @@ func TestACLUpdateOp(t *testing.T) {
 			0xdeadbeef,
 			func(_ *testing.T, sys *I) {
 				sys.
-					UpdatePerm("/run/user/1971/hakurei", acl.Execute).
-					UpdatePerm("/tmp/hakurei.0/tmpdir/150", acl.Read, acl.Write, acl.Execute)
+					UpdatePerm(m("/run/user/1971/hakurei"), acl.Execute).
+					UpdatePerm(m("/tmp/hakurei.0/tmpdir/150"), acl.Read, acl.Write, acl.Execute)
 			}, []Op{
 				&aclUpdateOp{Process, "/run/user/1971/hakurei", []acl.Perm{acl.Execute}},
 				&aclUpdateOp{Process, "/tmp/hakurei.0/tmpdir/150", []acl.Perm{acl.Read, acl.Write, acl.Execute}},
 			}, stub.Expect{}},
 
 		{"tmpdirp", 0xdeadbeef, func(_ *testing.T, sys *I) {
-			sys.UpdatePermType(User, "/tmp/hakurei.0/tmpdir", acl.Execute)
+			sys.UpdatePermType(User, m("/tmp/hakurei.0/tmpdir"), acl.Execute)
 		}, []Op{
 			&aclUpdateOp{User, "/tmp/hakurei.0/tmpdir", []acl.Perm{acl.Execute}},
 		}, stub.Expect{}},
 
 		{"tmpdir", 0xdeadbeef, func(_ *testing.T, sys *I) {
-			sys.UpdatePermType(User, "/tmp/hakurei.0/tmpdir/150", acl.Read, acl.Write, acl.Execute)
+			sys.UpdatePermType(User, m("/tmp/hakurei.0/tmpdir/150"), acl.Read, acl.Write, acl.Execute)
 		}, []Op{
 			&aclUpdateOp{User, "/tmp/hakurei.0/tmpdir/150", []acl.Perm{acl.Read, acl.Write, acl.Execute}},
 		}, stub.Expect{}},
 
 		{"share", 0xdeadbeef, func(_ *testing.T, sys *I) {
-			sys.UpdatePermType(Process, "/run/user/1971/hakurei/fcb8a12f7c482d183ade8288c3de78b5", acl.Execute)
+			sys.UpdatePermType(Process, m("/run/user/1971/hakurei/fcb8a12f7c482d183ade8288c3de78b5"), acl.Execute)
 		}, []Op{
 			&aclUpdateOp{Process, "/run/user/1971/hakurei/fcb8a12f7c482d183ade8288c3de78b5", []acl.Perm{acl.Execute}},
 		}, stub.Expect{}},
 
 		{"passwd", 0xdeadbeef, func(_ *testing.T, sys *I) {
 			sys.
-				UpdatePermType(Process, "/tmp/hakurei.0/fcb8a12f7c482d183ade8288c3de78b5/passwd", acl.Read).
-				UpdatePermType(Process, "/tmp/hakurei.0/fcb8a12f7c482d183ade8288c3de78b5/group", acl.Read)
+				UpdatePermType(Process, m("/tmp/hakurei.0/fcb8a12f7c482d183ade8288c3de78b5/passwd"), acl.Read).
+				UpdatePermType(Process, m("/tmp/hakurei.0/fcb8a12f7c482d183ade8288c3de78b5/group"), acl.Read)
 		}, []Op{
 			&aclUpdateOp{Process, "/tmp/hakurei.0/fcb8a12f7c482d183ade8288c3de78b5/passwd", []acl.Perm{acl.Read}},
 			&aclUpdateOp{Process, "/tmp/hakurei.0/fcb8a12f7c482d183ade8288c3de78b5/group", []acl.Perm{acl.Read}},
 		}, stub.Expect{}},
 
 		{"wayland", 0xdeadbeef, func(_ *testing.T, sys *I) {
-			sys.UpdatePermType(hst.EWayland, "/run/user/1971/wayland-0", acl.Read, acl.Write, acl.Execute)
+			sys.UpdatePermType(hst.EWayland, m("/run/user/1971/wayland-0"), acl.Read, acl.Write, acl.Execute)
 		}, []Op{
 			&aclUpdateOp{hst.EWayland, "/run/user/1971/wayland-0", []acl.Perm{acl.Read, acl.Write, acl.Execute}},
 		}, stub.Expect{}},

@@ -40,13 +40,13 @@ func TestHardlinkOp(t *testing.T) {
 
 	checkOpsBuilder(t, "LinkFileType", []opsBuilderTestCase{
 		{"type", 0xcafebabe, func(_ *testing.T, sys *I) {
-			sys.LinkFileType(User, "/run/user/1000/pulse/native", "/run/user/1000/hakurei/9663730666a44cfc2a81610379e02ed6/pulse")
+			sys.LinkFileType(User, m("/run/user/1000/pulse/native"), m("/run/user/1000/hakurei/9663730666a44cfc2a81610379e02ed6/pulse"))
 		}, []Op{
 			&hardlinkOp{User, "/run/user/1000/hakurei/9663730666a44cfc2a81610379e02ed6/pulse", "/run/user/1000/pulse/native"},
 		}, stub.Expect{}},
 
 		{"link", 0xcafebabe, func(_ *testing.T, sys *I) {
-			sys.Link("/run/user/1000/pulse/native", "/run/user/1000/hakurei/9663730666a44cfc2a81610379e02ed6/pulse")
+			sys.Link(m("/run/user/1000/pulse/native"), m("/run/user/1000/hakurei/9663730666a44cfc2a81610379e02ed6/pulse"))
 		}, []Op{
 			&hardlinkOp{Process, "/run/user/1000/hakurei/9663730666a44cfc2a81610379e02ed6/pulse", "/run/user/1000/pulse/native"},
 		}, stub.Expect{}},

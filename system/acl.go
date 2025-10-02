@@ -6,19 +6,20 @@ import (
 	"os"
 	"slices"
 
+	"hakurei.app/container"
 	"hakurei.app/hst"
 	"hakurei.app/system/acl"
 )
 
 // UpdatePerm calls UpdatePermType with the [Process] criteria.
-func (sys *I) UpdatePerm(path string, perms ...acl.Perm) *I {
+func (sys *I) UpdatePerm(path *container.Absolute, perms ...acl.Perm) *I {
 	sys.UpdatePermType(Process, path, perms...)
 	return sys
 }
 
 // UpdatePermType maintains [acl.Perms] on a file until its [Enablement] is no longer satisfied.
-func (sys *I) UpdatePermType(et hst.Enablement, path string, perms ...acl.Perm) *I {
-	sys.ops = append(sys.ops, &aclUpdateOp{et, path, perms})
+func (sys *I) UpdatePermType(et hst.Enablement, path *container.Absolute, perms ...acl.Perm) *I {
+	sys.ops = append(sys.ops, &aclUpdateOp{et, path.String(), perms})
 	return sys
 }
 

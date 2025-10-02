@@ -21,7 +21,7 @@ var (
 )
 
 // MustProxyDBus calls ProxyDBus and panics if an error is returned.
-func (sys *I) MustProxyDBus(sessionPath string, session *dbus.Config, systemPath string, system *dbus.Config) *I {
+func (sys *I) MustProxyDBus(sessionPath *container.Absolute, session *dbus.Config, systemPath *container.Absolute, system *dbus.Config) *I {
 	if _, err := sys.ProxyDBus(session, system, sessionPath, systemPath); err != nil {
 		panic(err.Error())
 	} else {
@@ -31,7 +31,7 @@ func (sys *I) MustProxyDBus(sessionPath string, session *dbus.Config, systemPath
 
 // ProxyDBus finalises configuration ahead of time and starts xdg-dbus-proxy via [dbus] and terminates it on revert.
 // This [Op] is always [Process] scoped.
-func (sys *I) ProxyDBus(session, system *dbus.Config, sessionPath, systemPath string) (func(), error) {
+func (sys *I) ProxyDBus(session, system *dbus.Config, sessionPath, systemPath *container.Absolute) (func(), error) {
 	d := new(dbusProxyOp)
 
 	// session bus is required as otherwise this is effectively a very expensive noop
@@ -45,7 +45,7 @@ func (sys *I) ProxyDBus(session, system *dbus.Config, sessionPath, systemPath st
 
 	var sessionBus, systemBus dbus.ProxyPair
 	sessionBus[0], systemBus[0] = sys.dbusAddress()
-	sessionBus[1], systemBus[1] = sessionPath, systemPath
+	sessionBus[1], systemBus[1] = sessionPath.String(), systemPath.String()
 	d.out = &linePrefixWriter{println: log.Println, prefix: "(dbus) ", buf: new(strings.Builder)}
 	if final, err := sys.dbusFinalise(sessionBus, systemBus, session, system); err != nil {
 		if errors.Is(err, syscall.EINVAL) {

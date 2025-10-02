@@ -5,18 +5,19 @@ import (
 	"fmt"
 	"os"
 
+	"hakurei.app/container"
 	"hakurei.app/hst"
 )
 
 // Ensure ensures the existence of a directory.
-func (sys *I) Ensure(name string, perm os.FileMode) *I {
-	sys.ops = append(sys.ops, &mkdirOp{User, name, perm, false})
+func (sys *I) Ensure(name *container.Absolute, perm os.FileMode) *I {
+	sys.ops = append(sys.ops, &mkdirOp{User, name.String(), perm, false})
 	return sys
 }
 
 // Ephemeral ensures the existence of a directory until its [Enablement] is no longer satisfied.
-func (sys *I) Ephemeral(et hst.Enablement, name string, perm os.FileMode) *I {
-	sys.ops = append(sys.ops, &mkdirOp{et, name, perm, true})
+func (sys *I) Ephemeral(et hst.Enablement, name *container.Absolute, perm os.FileMode) *I {
+	sys.ops = append(sys.ops, &mkdirOp{et, name.String(), perm, true})
 	return sys
 }
 

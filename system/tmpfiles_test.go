@@ -98,7 +98,7 @@ func TestTmpfileOp(t *testing.T) {
 
 	checkOpsBuilder(t, "CopyFile", []opsBuilderTestCase{
 		{"pulse", 0xcafebabe, func(_ *testing.T, sys *I) {
-			sys.CopyFile(new([]byte), "/home/ophestra/xdg/config/pulse/cookie", 1<<8, 1<<8)
+			sys.CopyFile(new([]byte), m("/home/ophestra/xdg/config/pulse/cookie"), 1<<8, 1<<8)
 		}, []Op{&tmpfileOp{
 			new([]byte), "/home/ophestra/xdg/config/pulse/cookie", 1 << 8,
 			func() *bytes.Buffer { buf := new(bytes.Buffer); buf.Grow(1 << 8); return buf }(),
