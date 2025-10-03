@@ -237,25 +237,10 @@ func buildCommand(ctx context.Context, msg container.Msg, early *earlyHardeningE
 		}).Flag(&flagShort, "short", command.BoolFlag(false), "Print instance id")
 	}
 
-	c.Command("version", "Display version information", func(args []string) error {
-		fmt.Println(internal.Version())
-		return errSuccess
-	})
-
-	c.Command("license", "Show full license text", func(args []string) error {
-		fmt.Println(license)
-		return errSuccess
-	})
-
-	c.Command("template", "Produce a config template", func(args []string) error {
-		printJSON(os.Stdout, false, hst.Template())
-		return errSuccess
-	})
-
-	c.Command("help", "Show this help message", func([]string) error {
-		c.PrintHelp()
-		return errSuccess
-	})
+	c.Command("version", "Display version information", func(args []string) error { fmt.Println(internal.Version()); return errSuccess })
+	c.Command("license", "Show full license text", func(args []string) error { fmt.Println(license); return errSuccess })
+	c.Command("template", "Produce a config template", func(args []string) error { printJSON(os.Stdout, false, hst.Template()); return errSuccess })
+	c.Command("help", "Show this help message", func([]string) error { c.PrintHelp(); return errSuccess })
 
 	return c
 }
