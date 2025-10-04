@@ -39,9 +39,6 @@ type outcome struct {
 
 	container container.Params
 
-	// TODO(ophestra): move this to the system op
-	sync *os.File
-
 	// Populated during outcome.finalise.
 	proc *finaliseProcess
 
@@ -227,7 +224,7 @@ func (k *outcome) finalise(ctx context.Context, msg container.Msg, id *state.ID,
 
 		et := config.Enablements.Unwrap()
 		if et&hst.EWayland != 0 {
-			ops = append(ops, &spWaylandOp{sync: &k.sync})
+			ops = append(ops, &spWaylandOp{})
 		}
 		if et&hst.EX11 != 0 {
 			ops = append(ops, &spX11Op{})

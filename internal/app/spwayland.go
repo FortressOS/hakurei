@@ -1,8 +1,6 @@
 package app
 
 import (
-	"os"
-
 	"hakurei.app/container"
 	"hakurei.app/hst"
 	"hakurei.app/system/acl"
@@ -13,10 +11,6 @@ import (
 type spWaylandOp struct {
 	// Path to host wayland socket. Populated during toSystem if DirectWayland is true.
 	SocketPath *container.Absolute
-
-	// Address to write the security-context-v1 synchronisation fd [os.File] address to.
-	// Only populated for toSystem.
-	sync **os.File
 }
 
 func (s *spWaylandOp) toSystem(state *outcomeStateSys, config *hst.Config) error {
@@ -38,7 +32,7 @@ func (s *spWaylandOp) toSystem(state *outcomeStateSys, config *hst.Config) error
 			appID = "app.hakurei." + state.id.String()
 		}
 		// downstream socket paths
-		state.sys.Wayland(s.sync, state.instance().Append("wayland"), socketPath, appID, state.id.String())
+		state.sys.Wayland(state.instance().Append("wayland"), socketPath, appID, state.id.String())
 	} else { // bind mount wayland socket (insecure)
 		state.msg.Verbose("direct wayland access, PROCEED WITH CAUTION")
 		state.ensureRuntimeDir()

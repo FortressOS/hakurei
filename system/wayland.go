@@ -20,14 +20,17 @@ type waylandConn interface {
 // Wayland maintains a wayland socket with security-context-v1 attached via [wayland].
 // The socket stops accepting connections once the pipe referred to by sync is closed.
 // The socket is pathname only and is destroyed on revert.
-func (sys *I) Wayland(syncFd **os.File, dst, src *container.Absolute, appID, instanceID string) *I {
-	sys.ops = append(sys.ops, &waylandOp{syncFd, dst.String(), src.String(), appID, instanceID, new(wayland.Conn)})
+func (sys *I) Wayland(dst, src *container.Absolute, appID, instanceID string) *I {
+	sys.ops = append(sys.ops, &waylandOp{nil,
+		dst.String(), src.String(),
+		appID, instanceID,
+		new(wayland.Conn)})
 	return sys
 }
 
 // waylandOp implements [I.Wayland].
 type waylandOp struct {
-	sync              **os.File
+	sync              *os.File
 	dst, src          string
 	appID, instanceID string
 
@@ -37,11 +40,6 @@ type waylandOp struct {
 func (w *waylandOp) Type() hst.Enablement { return Process }
 
 func (w *waylandOp) apply(sys *I) error {
-	if w.sync == nil {
-		// this is a misuse of the API; do not return a wrapped error
-		return errors.New("invalid sync")
-	}
-
 	if err := w.conn.Attach(w.src); err != nil {
 		return newOpError("wayland", err, false)
 	} else {
@@ -51,7 +49,7 @@ func (w *waylandOp) apply(sys *I) error {
 	if sp, err := w.conn.Bind(w.dst, w.appID, w.instanceID); err != nil {
 		return newOpError("wayland", err, false)
 	} else {
-		*w.sync = sp
+		w.sync = sp
 		sys.msg.Verbosef("wayland listening on %q", w.dst)
 		if err = sys.chmod(w.dst, 0); err != nil {
 			return newOpError("wayland", err, false)
@@ -61,13 +59,24 @@ func (w *waylandOp) apply(sys *I) error {
 }
 
 func (w *waylandOp) revert(sys *I, _ *Criteria) error {
-	sys.msg.Verbosef("removing wayland socket on %q", w.dst)
-	if err := sys.remove(w.dst); err != nil && !errors.Is(err, os.ErrNotExist) {
-		return newOpError("wayland", err, true)
-	}
+	var (
+		hangupErr error
+		closeErr  error
+		removeErr error
+	)
 
 	sys.msg.Verbosef("detaching from wayland on %q", w.src)
-	return newOpError("wayland", w.conn.Close(), true)
+	if w.sync != nil {
+		hangupErr = w.sync.Close()
+	}
+	closeErr = w.conn.Close()
+
+	sys.msg.Verbosef("removing wayland socket on %q", w.dst)
+	if err := sys.remove(w.dst); err != nil && !errors.Is(err, os.ErrNotExist) {
+		removeErr = err
+	}
+
+	return newOpError("wayland", errors.Join(hangupErr, closeErr, removeErr), true)
 }
 
 func (w *waylandOp) Is(o Op) bool {

@@ -124,11 +124,6 @@ func (ms mainState) beforeExit(isFault bool) {
 		}
 
 		ms.Resume()
-		if ms.k.sync != nil {
-			if err := ms.k.sync.Close(); err != nil {
-				perror(err, "close wayland security context")
-			}
-		}
 	}
 
 	if ms.uintptr&mainNeedsRevert != 0 {
