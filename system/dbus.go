@@ -22,7 +22,7 @@ var (
 
 // MustProxyDBus calls ProxyDBus and panics if an error is returned.
 func (sys *I) MustProxyDBus(sessionPath *container.Absolute, session *dbus.Config, systemPath *container.Absolute, system *dbus.Config) *I {
-	if _, err := sys.ProxyDBus(session, system, sessionPath, systemPath); err != nil {
+	if err := sys.ProxyDBus(session, system, sessionPath, systemPath); err != nil {
 		panic(err.Error())
 	} else {
 		return sys
@@ -31,12 +31,12 @@ func (sys *I) MustProxyDBus(sessionPath *container.Absolute, session *dbus.Confi
 
 // ProxyDBus finalises configuration ahead of time and starts xdg-dbus-proxy via [dbus] and terminates it on revert.
 // This [Op] is always [Process] scoped.
-func (sys *I) ProxyDBus(session, system *dbus.Config, sessionPath, systemPath *container.Absolute) (func(), error) {
+func (sys *I) ProxyDBus(session, system *dbus.Config, sessionPath, systemPath *container.Absolute) error {
 	d := new(dbusProxyOp)
 
 	// session bus is required as otherwise this is effectively a very expensive noop
 	if session == nil {
-		return nil, newOpErrorMessage("dbus", ErrDBusConfig,
+		return newOpErrorMessage("dbus", ErrDBusConfig,
 			"attempted to create message bus proxy args without session bus config", false)
 	}
 
@@ -49,10 +49,10 @@ func (sys *I) ProxyDBus(session, system *dbus.Config, sessionPath, systemPath *c
 	d.out = &linePrefixWriter{println: log.Println, prefix: "(dbus) ", buf: new(strings.Builder)}
 	if final, err := sys.dbusFinalise(sessionBus, systemBus, session, system); err != nil {
 		if errors.Is(err, syscall.EINVAL) {
-			return nil, newOpErrorMessage("dbus", err,
+			return newOpErrorMessage("dbus", err,
 				"message bus proxy configuration contains NUL byte", false)
 		}
-		return nil, newOpErrorMessage("dbus", err,
+		return newOpErrorMessage("dbus", err,
 			fmt.Sprintf("cannot finalise message bus proxy: %v", err), false)
 	} else {
 		if sys.msg.IsVerbose() {
@@ -69,7 +69,7 @@ func (sys *I) ProxyDBus(session, system *dbus.Config, sessionPath, systemPath *c
 	}
 
 	sys.ops = append(sys.ops, d)
-	return d.out.Dump, nil
+	return nil
 }
 
 // dbusProxyOp implements [I.ProxyDBus].
@@ -107,6 +107,10 @@ func (d *dbusProxyOp) revert(sys *I, _ *Criteria) error {
 
 	exitMessage := "message bus proxy exit"
 	defer func() { sys.msg.Verbose(exitMessage) }()
+
+	if d.out != nil {
+		d.out.Dump()
+	}
 
 	err := sys.dbusProxyWait(d.proxy)
 	if errors.Is(err, context.Canceled) {

@@ -52,8 +52,6 @@ type outcome struct {
 	// initial [hst.Config] gob stream for state data;
 	// this is prepared ahead of time as config is clobbered during seal creation
 	ct io.WriterTo
-	// dump dbus proxy message buffer
-	dbusMsg func()
 
 	user hsuUser
 	sys  *system.I
@@ -548,13 +546,11 @@ func (k *outcome) finalise(ctx context.Context, msg container.Msg, config *hst.C
 		sessionPath, systemPath := share.instance().Append("bus"), share.instance().Append("system_bus_socket")
 
 		// configure dbus proxy
-		if f, err := k.sys.ProxyDBus(
+		if err := k.sys.ProxyDBus(
 			config.SessionBus, config.SystemBus,
 			sessionPath, systemPath,
 		); err != nil {
 			return err
-		} else {
-			k.dbusMsg = f
 		}
 
 		// share proxy sockets

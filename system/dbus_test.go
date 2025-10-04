@@ -82,10 +82,8 @@ func TestDBusProxyOp(t *testing.T) {
 				Op: "dbus", Err: ErrDBusConfig,
 				Msg: "attempted to create message bus proxy args without session bus config",
 			}
-			if f, err := sys.ProxyDBus(nil, new(dbus.Config), nil, nil); !reflect.DeepEqual(err, wantErr) {
+			if err := sys.ProxyDBus(nil, new(dbus.Config), nil, nil); !reflect.DeepEqual(err, wantErr) {
 				t.Errorf("ProxyDBus: error = %v, want %v", err, wantErr)
-			} else if f != nil {
-				t.Errorf("ProxyDBus: f = %p", f)
 			}
 		}, nil, stub.Expect{}},
 
@@ -120,7 +118,7 @@ func TestDBusProxyOp(t *testing.T) {
 				Op: "dbus", Err: stub.UniqueError(0),
 				Msg: "cannot finalise message bus proxy: unique error 0 injected by the test suite",
 			}
-			if f, err := sys.ProxyDBus(
+			if err := sys.ProxyDBus(
 				&dbus.Config{
 					// use impossible value here as an implicit assert that it goes through the stub
 					Talk: []string{"session\x00"}, Filter: true,
@@ -131,8 +129,6 @@ func TestDBusProxyOp(t *testing.T) {
 				m("/tmp/hakurei.0/99dd71ee2146369514e0d10783368f8f/bus"),
 				m("/tmp/hakurei.0/99dd71ee2146369514e0d10783368f8f/system_bus_socket")); !reflect.DeepEqual(err, wantErr) {
 				t.Errorf("ProxyDBus: error = %v", err)
-			} else if f != nil {
-				t.Errorf("ProxyDBus: f = %p", f)
 			}
 		}, nil, stub.Expect{Calls: []stub.Call{
 			call("dbusAddress", stub.ExpectArgs{}, [2]string{"unix:path=/run/user/1000/bus", "unix:path=/run/dbus/system_bus_socket"}, nil),

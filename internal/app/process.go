@@ -134,9 +134,6 @@ func (ms mainState) beforeExit(isFault bool) {
 				perror(err, "close wayland security context")
 			}
 		}
-		if ms.k.dbusMsg != nil {
-			ms.k.dbusMsg()
-		}
 	}
 
 	if ms.uintptr&mainNeedsRevert != 0 {
