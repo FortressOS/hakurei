@@ -1,7 +1,9 @@
 package app
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 	"io/fs"
 	"log"
 	"os/exec"
@@ -52,9 +54,18 @@ func (k *stubNixOS) stat(name string) (fs.FileInfo, error) {
 	case "/home/ophestra/.pulse-cookie":
 		return stubFileInfoIsDir(true), nil
 	case "/home/ophestra/xdg/config/pulse/cookie":
-		return stubFileInfoIsDir(false), nil
+		return stubFileInfoPulseCookie{false}, nil
 	default:
 		panic(fmt.Sprintf("attempted to stat unexpected path %q", name))
+	}
+}
+
+func (k *stubNixOS) open(name string) (osFile, error) {
+	switch name {
+	case "/home/ophestra/xdg/config/pulse/cookie":
+		return stubOsFileReadCloser{io.NopCloser(bytes.NewReader(bytes.Repeat([]byte{0}, pulseCookieSizeMax)))}, nil
+	default:
+		panic(fmt.Sprintf("attempted to open unexpected path %q", name))
 	}
 }
 

@@ -1,7 +1,9 @@
 package app
 
 import (
+	"bytes"
 	"encoding/json"
+	"io"
 	"io/fs"
 	"os"
 	"reflect"
@@ -19,6 +21,9 @@ import (
 )
 
 func TestApp(t *testing.T) {
+	msg := container.NewMsg(nil)
+	msg.SwapVerbose(testing.Verbose())
+
 	testCases := []struct {
 		name       string
 		k          syscallDispatcher
@@ -36,7 +41,7 @@ func TestApp(t *testing.T) {
 				0xbd, 0x01, 0x78, 0x0e,
 				0xb9, 0xa6, 0x07, 0xac,
 			},
-			system.New(t.Context(), container.NewMsg(nil), 1000000).
+			system.New(t.Context(), msg, 1000000).
 				Ensure(m("/tmp/hakurei.0"), 0711).
 				Ensure(m("/tmp/hakurei.0/runtime"), 0700).UpdatePermType(system.User, m("/tmp/hakurei.0/runtime"), acl.Execute).
 				Ensure(m("/tmp/hakurei.0/runtime/0"), 0700).UpdatePermType(system.User, m("/tmp/hakurei.0/runtime/0"), acl.Read, acl.Write, acl.Execute).
@@ -128,7 +133,7 @@ func TestApp(t *testing.T) {
 				0x82, 0xd4, 0x13, 0x36,
 				0x9b, 0x64, 0xce, 0x7c,
 			},
-			system.New(t.Context(), container.NewMsg(nil), 1000009).
+			system.New(t.Context(), msg, 1000009).
 				Ensure(m("/tmp/hakurei.0"), 0711).
 				Ensure(m("/tmp/hakurei.0/runtime"), 0700).UpdatePermType(system.User, m("/tmp/hakurei.0/runtime"), acl.Execute).
 				Ensure(m("/tmp/hakurei.0/runtime/9"), 0700).UpdatePermType(system.User, m("/tmp/hakurei.0/runtime/9"), acl.Read, acl.Write, acl.Execute).
@@ -140,7 +145,6 @@ func TestApp(t *testing.T) {
 				Ensure(m("/run/user/1971"), 0700).UpdatePermType(system.User, m("/run/user/1971"), acl.Execute). // this is ordered as is because the previous Ensure only calls mkdir if XDG_RUNTIME_DIR is unset
 				Ephemeral(system.Process, m("/run/user/1971/hakurei/ebf083d1b175911782d413369b64ce7c"), 0700).UpdatePermType(system.Process, m("/run/user/1971/hakurei/ebf083d1b175911782d413369b64ce7c"), acl.Execute).
 				Link(m("/run/user/1971/pulse/native"), m("/run/user/1971/hakurei/ebf083d1b175911782d413369b64ce7c/pulse")).
-				CopyFile(new([]byte), m("/home/ophestra/xdg/config/pulse/cookie"), 256, 256).
 				MustProxyDBus(m("/tmp/hakurei.0/ebf083d1b175911782d413369b64ce7c/bus"), &dbus.Config{
 					Talk: []string{
 						"org.freedesktop.Notifications",
@@ -211,7 +215,7 @@ func TestApp(t *testing.T) {
 					Place(m("/etc/group"), []byte("hakurei:x:65534:\n")).
 					Bind(m("/tmp/hakurei.0/ebf083d1b175911782d413369b64ce7c/wayland"), m("/run/user/65534/wayland-0"), 0).
 					Bind(m("/run/user/1971/hakurei/ebf083d1b175911782d413369b64ce7c/pulse"), m("/run/user/65534/pulse/native"), 0).
-					Place(m(hst.Tmp+"/pulse-cookie"), nil).
+					Place(m(hst.Tmp+"/pulse-cookie"), bytes.Repeat([]byte{0}, pulseCookieSizeMax)).
 					Bind(m("/tmp/hakurei.0/ebf083d1b175911782d413369b64ce7c/bus"), m("/run/user/65534/bus"), 0).
 					Bind(m("/tmp/hakurei.0/ebf083d1b175911782d413369b64ce7c/system_bus_socket"), m("/run/dbus/system_bus_socket"), 0).
 					Remount(m("/"), syscall.MS_RDONLY),
@@ -279,7 +283,7 @@ func TestApp(t *testing.T) {
 				0x4c, 0xf0, 0x73, 0xbd,
 				0xb4, 0x6e, 0xb5, 0xc1,
 			},
-			system.New(t.Context(), container.NewMsg(nil), 1000001).
+			system.New(t.Context(), msg, 1000001).
 				Ensure(m("/tmp/hakurei.0"), 0711).
 				Ensure(m("/tmp/hakurei.0/runtime"), 0700).UpdatePermType(system.User, m("/tmp/hakurei.0/runtime"), acl.Execute).
 				Ensure(m("/tmp/hakurei.0/runtime/1"), 0700).UpdatePermType(system.User, m("/tmp/hakurei.0/runtime/1"), acl.Read, acl.Write, acl.Execute).
@@ -290,7 +294,6 @@ func TestApp(t *testing.T) {
 				UpdatePermType(hst.EWayland, m("/run/user/1971/wayland-0"), acl.Read, acl.Write, acl.Execute).
 				Ephemeral(system.Process, m("/run/user/1971/hakurei/8e2c76b066dabe574cf073bdb46eb5c1"), 0700).UpdatePermType(system.Process, m("/run/user/1971/hakurei/8e2c76b066dabe574cf073bdb46eb5c1"), acl.Execute).
 				Link(m("/run/user/1971/pulse/native"), m("/run/user/1971/hakurei/8e2c76b066dabe574cf073bdb46eb5c1/pulse")).
-				CopyFile(nil, m("/home/ophestra/xdg/config/pulse/cookie"), 256, 256).
 				Ephemeral(system.Process, m("/tmp/hakurei.0/8e2c76b066dabe574cf073bdb46eb5c1"), 0711).
 				MustProxyDBus(m("/tmp/hakurei.0/8e2c76b066dabe574cf073bdb46eb5c1/bus"), &dbus.Config{
 					Talk: []string{
@@ -361,7 +364,7 @@ func TestApp(t *testing.T) {
 					Place(m("/etc/group"), []byte("hakurei:x:100:\n")).
 					Bind(m("/run/user/1971/wayland-0"), m("/run/user/1971/wayland-0"), 0).
 					Bind(m("/run/user/1971/hakurei/8e2c76b066dabe574cf073bdb46eb5c1/pulse"), m("/run/user/1971/pulse/native"), 0).
-					Place(m(hst.Tmp+"/pulse-cookie"), nil).
+					Place(m(hst.Tmp+"/pulse-cookie"), bytes.Repeat([]byte{0}, pulseCookieSizeMax)).
 					Bind(m("/tmp/hakurei.0/8e2c76b066dabe574cf073bdb46eb5c1/bus"), m("/run/user/1971/bus"), 0).
 					Bind(m("/tmp/hakurei.0/8e2c76b066dabe574cf073bdb46eb5c1/system_bus_socket"), m("/run/dbus/system_bus_socket"), 0).
 					Remount(m("/"), syscall.MS_RDONLY),
@@ -375,8 +378,8 @@ func TestApp(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Run("finalise", func(t *testing.T) {
-				seal := outcome{syscallDispatcher: tc.k, id: &stringPair[state.ID]{tc.id, tc.id.String()}}
-				err := seal.finalise(t.Context(), container.NewMsg(nil), tc.config)
+				seal := outcome{syscallDispatcher: tc.k}
+				err := seal.finalise(t.Context(), msg, &tc.id, tc.config)
 				if err != nil {
 					if s, ok := container.GetErrorMessage(err); !ok {
 						t.Fatalf("Seal: error = %v", err)
@@ -392,8 +395,8 @@ func TestApp(t *testing.T) {
 				})
 
 				t.Run("params", func(t *testing.T) {
-					if !reflect.DeepEqual(seal.container, tc.wantParams) {
-						t.Errorf("seal: container =\n%s\n, want\n%s", mustMarshal(seal.container), mustMarshal(tc.wantParams))
+					if !reflect.DeepEqual(&seal.container, tc.wantParams) {
+						t.Errorf("seal: container =\n%s\n, want\n%s", mustMarshal(&seal.container), mustMarshal(tc.wantParams))
 					}
 				})
 			})
@@ -441,6 +444,16 @@ func (s stubFileInfoIsDir) Mode() fs.FileMode  { panic("attempted to call Mode")
 func (s stubFileInfoIsDir) ModTime() time.Time { panic("attempted to call ModTime") }
 func (s stubFileInfoIsDir) IsDir() bool        { return bool(s) }
 func (s stubFileInfoIsDir) Sys() any           { panic("attempted to call Sys") }
+
+type stubFileInfoPulseCookie struct{ stubFileInfoIsDir }
+
+func (s stubFileInfoPulseCookie) Size() int64 { return pulseCookieSizeMax }
+
+type stubOsFileReadCloser struct{ io.ReadCloser }
+
+func (s stubOsFileReadCloser) Name() string               { panic("attempting to call Name") }
+func (s stubOsFileReadCloser) Write([]byte) (int, error)  { panic("attempting to call Write") }
+func (s stubOsFileReadCloser) Stat() (fs.FileInfo, error) { panic("attempting to call Stat") }
 
 func m(pathname string) *container.Absolute {
 	return container.MustAbs(pathname)

@@ -1,6 +1,8 @@
 package app
 
 import (
+	"io"
+	"io/fs"
 	"log"
 	"os"
 	"os/exec"
@@ -10,6 +12,13 @@ import (
 	"hakurei.app/container"
 	"hakurei.app/internal"
 )
+
+// osFile represents [os.File].
+type osFile interface {
+	Name() string
+	io.Writer
+	fs.File
+}
 
 // syscallDispatcher provides methods that make state-dependent system calls as part of their behaviour.
 type syscallDispatcher interface {
@@ -26,6 +35,8 @@ type syscallDispatcher interface {
 	lookupEnv(key string) (string, bool)
 	// stat provides [os.Stat].
 	stat(name string) (os.FileInfo, error)
+	// open provides [os.Open].
+	open(name string) (osFile, error)
 	// readdir provides [os.ReadDir].
 	readdir(name string) ([]os.DirEntry, error)
 	// tempdir provides [os.TempDir].
@@ -64,6 +75,7 @@ func (direct) getuid() int                                { return os.Getuid() }
 func (direct) getgid() int                                { return os.Getgid() }
 func (direct) lookupEnv(key string) (string, bool)        { return os.LookupEnv(key) }
 func (direct) stat(name string) (os.FileInfo, error)      { return os.Stat(name) }
+func (direct) open(name string) (osFile, error)           { return os.Open(name) }
 func (direct) readdir(name string) ([]os.DirEntry, error) { return os.ReadDir(name) }
 func (direct) tempdir() string                            { return os.TempDir() }
 

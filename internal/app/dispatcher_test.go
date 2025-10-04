@@ -14,6 +14,7 @@ func (panicDispatcher) getuid() int                           { panic("unreachab
 func (panicDispatcher) getgid() int                           { panic("unreachable") }
 func (panicDispatcher) lookupEnv(string) (string, bool)       { panic("unreachable") }
 func (panicDispatcher) stat(string) (os.FileInfo, error)      { panic("unreachable") }
+func (panicDispatcher) open(string) (osFile, error)           { panic("unreachable") }
 func (panicDispatcher) readdir(string) ([]os.DirEntry, error) { panic("unreachable") }
 func (panicDispatcher) tempdir() string                       { panic("unreachable") }
 func (panicDispatcher) evalSymlinks(string) (string, error)   { panic("unreachable") }

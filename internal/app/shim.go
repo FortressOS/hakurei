@@ -148,13 +148,8 @@ func ShimMain() {
 	z.Params = *params.Container
 	z.Stdin, z.Stdout, z.Stderr = os.Stdin, os.Stdout, os.Stderr
 
+	// bounds and default enforced in finalise.go
 	z.WaitDelay = params.WaitDelay
-	if z.WaitDelay == 0 {
-		z.WaitDelay = DefaultShimWaitDelay
-	}
-	if z.WaitDelay > MaxShimWaitDelay {
-		z.WaitDelay = MaxShimWaitDelay
-	}
 
 	if err := z.Start(); err != nil {
 		printMessageError("cannot start container:", err)

@@ -8,34 +8,20 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"maps"
 	"os"
 	"os/user"
 	"slices"
-	"strconv"
 	"strings"
 	"sync/atomic"
 	"syscall"
-	"time"
 
 	"hakurei.app/container"
 	"hakurei.app/hst"
 	"hakurei.app/internal/app/state"
 	"hakurei.app/system"
 	"hakurei.app/system/acl"
-	"hakurei.app/system/dbus"
-	"hakurei.app/system/wayland"
 )
-
-func newInt(v int) *stringPair[int] { return &stringPair[int]{v, strconv.Itoa(v)} }
-
-// stringPair stores a value and its string representation.
-type stringPair[T comparable] struct {
-	v T
-	s string
-}
-
-func (s *stringPair[T]) unwrap() T      { return s.v }
-func (s *stringPair[T]) String() string { return s.s }
 
 func newWithMessage(msg string) error { return newWithMessageError(msg, os.ErrInvalid) }
 func newWithMessageError(msg string, err error) error {
@@ -44,115 +30,40 @@ func newWithMessageError(msg string, err error) error {
 
 // An outcome is the runnable state of a hakurei container via [hst.Config].
 type outcome struct {
-	// copied from initialising [app]
-	id *stringPair[state.ID]
-	// copied from [sys.State]
-	runDirPath *container.Absolute
-
 	// initial [hst.Config] gob stream for state data;
 	// this is prepared ahead of time as config is clobbered during seal creation
 	ct io.WriterTo
 
-	user hsuUser
-	sys  *system.I
-	ctx  context.Context
+	sys *system.I
+	ctx context.Context
 
-	waitDelay time.Duration
-	container *container.Params
-	env       map[string]string
-	sync      *os.File
-	active    atomic.Bool
+	container container.Params
+
+	// TODO(ophestra): move this to the system op
+	sync *os.File
+
+	// Populated during outcome.finalise.
+	proc *finaliseProcess
+
+	// Whether the current process is in outcome.main.
+	active atomic.Bool
 
 	syscallDispatcher
 }
 
-// shareHost holds optional share directory state that must not be accessed directly
-type shareHost struct {
-	// whether XDG_RUNTIME_DIR is used post hsu
-	useRuntimeDir bool
-	// process-specific directory in tmpdir, empty if unused
-	sharePath *container.Absolute
-	// process-specific directory in XDG_RUNTIME_DIR, empty if unused
-	runtimeSharePath *container.Absolute
-
-	seal *outcome
-	sc   hst.Paths
-}
-
-// ensureRuntimeDir must be called if direct access to paths within XDG_RUNTIME_DIR is required
-func (share *shareHost) ensureRuntimeDir() {
-	if share.useRuntimeDir {
-		return
-	}
-	share.useRuntimeDir = true
-	share.seal.sys.Ensure(share.sc.RunDirPath, 0700)
-	share.seal.sys.UpdatePermType(system.User, share.sc.RunDirPath, acl.Execute)
-	share.seal.sys.Ensure(share.sc.RuntimePath, 0700) // ensure this dir in case XDG_RUNTIME_DIR is unset
-	share.seal.sys.UpdatePermType(system.User, share.sc.RuntimePath, acl.Execute)
-}
-
-// instance returns a process-specific share path within tmpdir
-func (share *shareHost) instance() *container.Absolute {
-	if share.sharePath != nil {
-		return share.sharePath
-	}
-	share.sharePath = share.sc.SharePath.Append(share.seal.id.String())
-	share.seal.sys.Ephemeral(system.Process, share.sharePath, 0711)
-	return share.sharePath
-}
-
-// runtime returns a process-specific share path within XDG_RUNTIME_DIR
-func (share *shareHost) runtime() *container.Absolute {
-	if share.runtimeSharePath != nil {
-		return share.runtimeSharePath
-	}
-	share.ensureRuntimeDir()
-	share.runtimeSharePath = share.sc.RunDirPath.Append(share.seal.id.String())
-	share.seal.sys.Ephemeral(system.Process, share.runtimeSharePath, 0700)
-	share.seal.sys.UpdatePerm(share.runtimeSharePath, acl.Execute)
-	return share.runtimeSharePath
-}
-
-// hsuUser stores post-hsu credentials and metadata
-type hsuUser struct {
-	identity *stringPair[int]
-	// target uid resolved by hid:aid
-	uid *stringPair[int]
-
-	// supplementary group ids
-	supp []string
-
-	// app user home directory
-	home *container.Absolute
-	// passwd database username
-	username string
-}
-
-func (k *outcome) finalise(ctx context.Context, msg container.Msg, config *hst.Config) error {
+func (k *outcome) finalise(ctx context.Context, msg container.Msg, id *state.ID, config *hst.Config) error {
 	const (
-		home  = "HOME"
-		shell = "SHELL"
-
-		xdgConfigHome   = "XDG_CONFIG_HOME"
-		xdgRuntimeDir   = "XDG_RUNTIME_DIR"
-		xdgSessionClass = "XDG_SESSION_CLASS"
-		xdgSessionType  = "XDG_SESSION_TYPE"
-
-		term    = "TERM"
-		display = "DISPLAY"
-
-		pulseServer = "PULSE_SERVER"
-		pulseCookie = "PULSE_COOKIE"
-
-		dbusSessionBusAddress = "DBUS_SESSION_BUS_ADDRESS"
-		dbusSystemBusAddress  = "DBUS_SYSTEM_BUS_ADDRESS"
+		// only used for a nil configured env map
+		envAllocSize = 1 << 6
 	)
 
-	if ctx == nil {
+	var kp finaliseProcess
+
+	if ctx == nil || id == nil {
 		// unreachable
 		panic("invalid call to finalise")
 	}
-	if k.ctx != nil {
+	if k.ctx != nil || k.proc != nil {
 		// unreachable
 		panic("attempting to finalise twice")
 	}
@@ -165,6 +76,7 @@ func (k *outcome) finalise(ctx context.Context, msg container.Msg, config *hst.C
 		return newWithMessage("invalid path to home directory")
 	}
 
+	// TODO(ophestra): do not clobber during finalise
 	{
 		// encode initial configuration for state tracking
 		ct := new(bytes.Buffer)
@@ -179,21 +91,7 @@ func (k *outcome) finalise(ctx context.Context, msg container.Msg, config *hst.C
 		return newWithMessage(fmt.Sprintf("identity %d out of range", config.Identity))
 	}
 
-	k.user = hsuUser{
-		identity: newInt(config.Identity),
-		home:     config.Home,
-		username: config.Username,
-	}
-
-	hsu := Hsu{k: k}
-	if k.user.username == "" {
-		k.user.username = "chronos"
-	} else if !isValidUsername(k.user.username) {
-		return newWithMessage(fmt.Sprintf("invalid user name %q", k.user.username))
-	}
-	k.user.uid = newInt(HsuUid(hsu.MustIDMsg(msg), k.user.identity.unwrap()))
-
-	k.user.supp = make([]string, len(config.Groups))
+	kp.supp = make([]string, len(config.Groups))
 	for i, name := range config.Groups {
 		if gid, err := k.lookupGroupId(name); err != nil {
 			var unknownGroupError user.UnknownGroupError
@@ -203,7 +101,7 @@ func (k *outcome) finalise(ctx context.Context, msg container.Msg, config *hst.C
 				return &hst.AppError{Step: "look up group by name", Err: err}
 			}
 		} else {
-			k.user.supp[i] = gid
+			kp.supp[i] = gid
 		}
 	}
 
@@ -213,7 +111,7 @@ func (k *outcome) finalise(ctx context.Context, msg container.Msg, config *hst.C
 
 		if config.Shell == nil {
 			config.Shell = container.AbsFHSRoot.Append("bin", "sh")
-			s, _ := k.lookupEnv(shell)
+			s, _ := k.lookupEnv("SHELL")
 			if a, err := container.NewAbs(s); err == nil {
 				config.Shell = a
 			}
@@ -282,291 +180,98 @@ func (k *outcome) finalise(ctx context.Context, msg container.Msg, config *hst.C
 		return newWithMessage("invalid program path")
 	}
 
-	// TODO(ophestra): revert this after params to shim
-	share := &shareHost{seal: k}
-	copyPaths(k.syscallDispatcher).Copy(&share.sc, hsu.MustIDMsg(msg))
-	msg.Verbosef("process share directory at %q, runtime directory at %q", share.sc.SharePath, share.sc.RunDirPath)
-
-	var mapuid, mapgid *stringPair[int]
-	{
-		var uid, gid int
-		var err error
-		k.container, k.env, err = newContainer(msg, k, config.Container, k.id.String(), &share.sc, &uid, &gid)
-		k.waitDelay = config.Container.WaitDelay
-		if err != nil {
-			return &hst.AppError{Step: "initialise container configuration", Err: err}
-		}
-		if len(config.Args) == 0 {
-			config.Args = []string{config.Path.String()}
-		}
-		k.container.Path = config.Path
-		k.container.Args = config.Args
-
-		mapuid = newInt(uid)
-		mapgid = newInt(gid)
-		if k.env == nil {
-			k.env = make(map[string]string, 1<<6)
-		}
+	// enforce bounds and default early
+	kp.waitDelay = shimWaitTimeout
+	if config.Container.WaitDelay <= 0 {
+		kp.waitDelay += DefaultShimWaitDelay
+	} else if config.Container.WaitDelay > MaxShimWaitDelay {
+		kp.waitDelay += MaxShimWaitDelay
+	} else {
+		kp.waitDelay += config.Container.WaitDelay
 	}
 
-	// inner XDG_RUNTIME_DIR default formatting of `/run/user/%d` as mapped uid
-	innerRuntimeDir := container.AbsFHSRunUser.Append(mapuid.String())
-	k.env[xdgRuntimeDir] = innerRuntimeDir.String()
-	k.env[xdgSessionClass] = "user"
-	k.env[xdgSessionType] = "tty"
+	s := outcomeState{
+		ID:       id,
+		Identity: config.Identity,
+		UserID:   (&Hsu{k: k}).MustIDMsg(msg),
+		EnvPaths: copyPaths(k.syscallDispatcher),
 
-	k.runDirPath = share.sc.RunDirPath
-	k.sys = system.New(k.ctx, msg, k.user.uid.unwrap())
-	k.sys.Ensure(share.sc.SharePath, 0711)
+		// TODO(ophestra): apply pd behaviour here instead of clobbering hst.Config
+		Container: config.Container,
+	}
+	if s.Container.MapRealUID {
+		s.Mapuid, s.Mapgid = k.getuid(), k.getgid()
+	} else {
+		s.Mapuid, s.Mapgid = k.overflowUid(msg), k.overflowGid(msg)
+	}
+
+	// TODO(ophestra): duplicate in shim (params to shim)
+	if err := s.populateLocal(k.syscallDispatcher, msg); err != nil {
+		return err
+	}
+	kp.runDirPath, kp.identity, kp.id = s.sc.RunDirPath, s.identity, s.id
+	k.sys = system.New(k.ctx, msg, s.uid.unwrap())
 
 	{
-		runtimeDir := share.sc.SharePath.Append("runtime")
-		k.sys.Ensure(runtimeDir, 0700)
-		k.sys.UpdatePermType(system.User, runtimeDir, acl.Execute)
-		runtimeDirInst := runtimeDir.Append(k.user.identity.String())
-		k.sys.Ensure(runtimeDirInst, 0700)
-		k.sys.UpdatePermType(system.User, runtimeDirInst, acl.Read, acl.Write, acl.Execute)
-		k.container.Tmpfs(container.AbsFHSRunUser, 1<<12, 0755)
-		k.container.Bind(runtimeDirInst, innerRuntimeDir, container.BindWritable)
-	}
+		ops := []outcomeOp{
+			// must run first
+			&spParamsOp{Path: config.Path, Args: config.Args},
 
-	{
-		tmpdir := share.sc.SharePath.Append("tmpdir")
-		k.sys.Ensure(tmpdir, 0700)
-		k.sys.UpdatePermType(system.User, tmpdir, acl.Execute)
-		tmpdirInst := tmpdir.Append(k.user.identity.String())
-		k.sys.Ensure(tmpdirInst, 01700)
-		k.sys.UpdatePermType(system.User, tmpdirInst, acl.Read, acl.Write, acl.Execute)
-		// mount inner /tmp from share so it shares persistence and storage behaviour of host /tmp
-		k.container.Bind(tmpdirInst, container.AbsFHSTmp, container.BindWritable)
-	}
+			// TODO(ophestra): move this late for #8 and #9
+			spFilesystemOp{},
 
-	{
-		username := "chronos"
-		if k.user.username != "" {
-			username = k.user.username
+			spRuntimeOp{},
+			spTmpdirOp{},
+			&spAccountOp{Home: config.Home, Username: config.Username, Shell: config.Shell},
 		}
-		k.container.Dir = k.user.home
-		k.env["HOME"] = k.user.home.String()
-		k.env["USER"] = username
-		k.env[shell] = config.Shell.String()
 
-		k.container.Place(container.AbsFHSEtc.Append("passwd"),
-			[]byte(username+":x:"+mapuid.String()+":"+mapgid.String()+":Hakurei:"+k.user.home.String()+":"+config.Shell.String()+"\n"))
-		k.container.Place(container.AbsFHSEtc.Append("group"),
-			[]byte("hakurei:x:"+mapgid.String()+":\n"))
-	}
+		et := config.Enablements.Unwrap()
+		if et&hst.EWayland != 0 {
+			ops = append(ops, &spWaylandOp{sync: &k.sync})
+		}
+		if et&hst.EX11 != 0 {
+			ops = append(ops, &spX11Op{})
+		}
+		if et&hst.EPulse != 0 {
+			ops = append(ops, &spPulseOp{})
+		}
+		if et&hst.EDBus != 0 {
+			ops = append(ops, &spDBusOp{})
+		}
 
-	// pass TERM for proper terminal I/O in initial process
-	if t, ok := k.lookupEnv(term); ok {
-		k.env[term] = t
-	}
+		stateSys := outcomeStateSys{sys: k.sys, outcomeState: &s}
+		for _, op := range ops {
+			if err := op.toSystem(&stateSys, config); err != nil {
+				return err
+			}
+		}
 
-	if config.Enablements.Unwrap()&hst.EWayland != 0 {
-		// outer wayland socket (usually `/run/user/%d/wayland-%d`)
-		var socketPath *container.Absolute
-		if name, ok := k.lookupEnv(wayland.WaylandDisplay); !ok {
-			msg.Verbose(wayland.WaylandDisplay + " is not set, assuming " + wayland.FallbackName)
-			socketPath = share.sc.RuntimePath.Append(wayland.FallbackName)
-		} else if a, err := container.NewAbs(name); err != nil {
-			socketPath = share.sc.RuntimePath.Append(name)
+		// TODO(ophestra): move to shim
+		stateParams := outcomeStateParams{params: &k.container, outcomeState: &s}
+		if s.Container.Env == nil {
+			stateParams.env = make(map[string]string, envAllocSize)
 		} else {
-			socketPath = a
+			stateParams.env = maps.Clone(s.Container.Env)
 		}
-
-		innerPath := innerRuntimeDir.Append(wayland.FallbackName)
-		k.env[wayland.WaylandDisplay] = wayland.FallbackName
-
-		if !config.DirectWayland { // set up security-context-v1
-			appID := config.ID
-			if appID == "" {
-				// use instance ID in case app id is not set
-				appID = "app.hakurei." + k.id.String()
-			}
-			// downstream socket paths
-			outerPath := share.instance().Append("wayland")
-			k.sys.Wayland(&k.sync, outerPath, socketPath, appID, k.id.String())
-			k.container.Bind(outerPath, innerPath, 0)
-		} else { // bind mount wayland socket (insecure)
-			msg.Verbose("direct wayland access, PROCEED WITH CAUTION")
-			share.ensureRuntimeDir()
-			k.container.Bind(socketPath, innerPath, 0)
-			k.sys.UpdatePermType(hst.EWayland, socketPath, acl.Read, acl.Write, acl.Execute)
-		}
-	}
-
-	if config.Enablements.Unwrap()&hst.EX11 != 0 {
-		if d, ok := k.lookupEnv(display); !ok {
-			return newWithMessage("DISPLAY is not set")
-		} else {
-			socketDir := container.AbsFHSTmp.Append(".X11-unix")
-
-			// the socket file at `/tmp/.X11-unix/X%d` is typically owned by the priv user
-			// and not accessible by the target user
-			var socketPath *container.Absolute
-			if len(d) > 1 && d[0] == ':' { // `:%d`
-				if n, err := strconv.Atoi(d[1:]); err == nil && n >= 0 {
-					socketPath = socketDir.Append("X" + strconv.Itoa(n))
-				}
-			} else if len(d) > 5 && strings.HasPrefix(d, "unix:") { // `unix:%s`
-				if a, err := container.NewAbs(d[5:]); err == nil {
-					socketPath = a
-				}
-			}
-			if socketPath != nil {
-				if _, err := k.stat(socketPath.String()); err != nil {
-					if !errors.Is(err, fs.ErrNotExist) {
-						return &hst.AppError{Step: fmt.Sprintf("access X11 socket %q", socketPath), Err: err}
-					}
-				} else {
-					k.sys.UpdatePermType(hst.EX11, socketPath, acl.Read, acl.Write, acl.Execute)
-					if !config.Container.HostAbstract {
-						d = "unix:" + socketPath.String()
-					}
-				}
-			}
-
-			k.sys.ChangeHosts("#" + k.user.uid.String())
-			k.env[display] = d
-			k.container.Bind(socketDir, socketDir, 0)
-		}
-	}
-
-	if config.Enablements.Unwrap()&hst.EPulse != 0 {
-		// PulseAudio runtime directory (usually `/run/user/%d/pulse`)
-		pulseRuntimeDir := share.sc.RuntimePath.Append("pulse")
-		// PulseAudio socket (usually `/run/user/%d/pulse/native`)
-		pulseSocket := pulseRuntimeDir.Append("native")
-
-		if _, err := k.stat(pulseRuntimeDir.String()); err != nil {
-			if !errors.Is(err, fs.ErrNotExist) {
-				return &hst.AppError{Step: fmt.Sprintf("access PulseAudio directory %q", pulseRuntimeDir), Err: err}
-			}
-			return newWithMessage(fmt.Sprintf("PulseAudio directory %q not found", pulseRuntimeDir))
-		}
-
-		if s, err := k.stat(pulseSocket.String()); err != nil {
-			if !errors.Is(err, fs.ErrNotExist) {
-				return &hst.AppError{Step: fmt.Sprintf("access PulseAudio socket %q", pulseSocket), Err: err}
-			}
-			return newWithMessage(fmt.Sprintf("PulseAudio directory %q found but socket does not exist", pulseRuntimeDir))
-		} else {
-			if m := s.Mode(); m&0o006 != 0o006 {
-				return newWithMessage(fmt.Sprintf("unexpected permissions on %q: %s", pulseSocket, m))
+		for _, op := range ops {
+			if err := op.toContainer(&stateParams); err != nil {
+				return err
 			}
 		}
-
-		// hard link pulse socket into target-executable share
-		innerPulseRuntimeDir := share.runtime().Append("pulse")
-		innerPulseSocket := innerRuntimeDir.Append("pulse", "native")
-		k.sys.Link(pulseSocket, innerPulseRuntimeDir)
-		k.container.Bind(innerPulseRuntimeDir, innerPulseSocket, 0)
-		k.env[pulseServer] = "unix:" + innerPulseSocket.String()
-
-		// publish current user's pulse cookie for target user
-		var paCookiePath *container.Absolute
-		{
-			const paLocateStep = "locate PulseAudio cookie"
-
-			// from environment
-			if p, ok := k.lookupEnv(pulseCookie); ok {
-				if a, err := container.NewAbs(p); err != nil {
-					return &hst.AppError{Step: paLocateStep, Err: err}
-				} else {
-					// this takes precedence, do not verify whether the file is accessible
-					paCookiePath = a
-					goto out
-				}
+		// flatten and sort env for deterministic behaviour
+		k.container.Env = make([]string, 0, len(stateParams.env))
+		for key, value := range stateParams.env {
+			if strings.IndexByte(key, '=') != -1 {
+				return &hst.AppError{Step: "flatten environment", Err: syscall.EINVAL,
+					Msg: fmt.Sprintf("invalid environment variable %s", key)}
 			}
-
-			// $HOME/.pulse-cookie
-			if p, ok := k.lookupEnv(home); ok {
-				if a, err := container.NewAbs(p); err != nil {
-					return &hst.AppError{Step: paLocateStep, Err: err}
-				} else {
-					paCookiePath = a.Append(".pulse-cookie")
-				}
-
-				if s, err := k.stat(paCookiePath.String()); err != nil {
-					paCookiePath = nil
-					if !errors.Is(err, fs.ErrNotExist) {
-						return &hst.AppError{Step: "access PulseAudio cookie", Err: err}
-					}
-					// fallthrough
-				} else if s.IsDir() {
-					paCookiePath = nil
-				} else {
-					goto out
-				}
-			}
-
-			// $XDG_CONFIG_HOME/pulse/cookie
-			if p, ok := k.lookupEnv(xdgConfigHome); ok {
-				if a, err := container.NewAbs(p); err != nil {
-					return &hst.AppError{Step: paLocateStep, Err: err}
-				} else {
-					paCookiePath = a.Append("pulse", "cookie")
-				}
-				if s, err := k.stat(paCookiePath.String()); err != nil {
-					paCookiePath = nil
-					if !errors.Is(err, fs.ErrNotExist) {
-						return &hst.AppError{Step: "access PulseAudio cookie", Err: err}
-					}
-					// fallthrough
-				} else if s.IsDir() {
-					paCookiePath = nil
-				} else {
-					goto out
-				}
-			}
-		out:
+			k.container.Env = append(k.container.Env, key+"="+value)
 		}
-
-		if paCookiePath != nil {
-			innerDst := hst.AbsTmp.Append("/pulse-cookie")
-			k.env[pulseCookie] = innerDst.String()
-			var payload *[]byte
-			k.container.PlaceP(innerDst, &payload)
-			k.sys.CopyFile(payload, paCookiePath, 256, 256)
-		} else {
-			msg.Verbose("cannot locate PulseAudio cookie (tried " +
-				"$PULSE_COOKIE, " +
-				"$XDG_CONFIG_HOME/pulse/cookie, " +
-				"$HOME/.pulse-cookie)")
-		}
-	}
-
-	if config.Enablements.Unwrap()&hst.EDBus != 0 {
-		// ensure dbus session bus defaults
-		if config.SessionBus == nil {
-			config.SessionBus = dbus.NewConfig(config.ID, true, true)
-		}
-
-		// downstream socket paths
-		sessionPath, systemPath := share.instance().Append("bus"), share.instance().Append("system_bus_socket")
-
-		// configure dbus proxy
-		if err := k.sys.ProxyDBus(
-			config.SessionBus, config.SystemBus,
-			sessionPath, systemPath,
-		); err != nil {
-			return err
-		}
-
-		// share proxy sockets
-		sessionInner := innerRuntimeDir.Append("bus")
-		k.env[dbusSessionBusAddress] = "unix:path=" + sessionInner.String()
-		k.container.Bind(sessionPath, sessionInner, 0)
-		k.sys.UpdatePerm(sessionPath, acl.Read, acl.Write)
-		if config.SystemBus != nil {
-			systemInner := container.AbsFHSRun.Append("dbus/system_bus_socket")
-			k.env[dbusSystemBusAddress] = "unix:path=" + systemInner.String()
-			k.container.Bind(systemPath, systemInner, 0)
-			k.sys.UpdatePerm(systemPath, acl.Read, acl.Write)
-		}
+		slices.Sort(k.container.Env)
 	}
 
 	// mount root read-only as the final setup Op
+	// TODO(ophestra): move this to spFilesystemOp after #8 and #9
 	k.container.Remount(container.AbsFHSRoot, syscall.MS_RDONLY)
 
 	// append ExtraPerms last
@@ -592,21 +297,6 @@ func (k *outcome) finalise(ctx context.Context, msg container.Msg, config *hst.C
 		k.sys.UpdatePermType(system.User, p.Path, perms...)
 	}
 
-	// flatten and sort env for deterministic behaviour
-	k.container.Env = make([]string, 0, len(k.env))
-	for key, value := range k.env {
-		if strings.IndexByte(key, '=') != -1 {
-			return &hst.AppError{Step: "flatten environment", Err: syscall.EINVAL,
-				Msg: fmt.Sprintf("invalid environment variable %s", key)}
-		}
-		k.container.Env = append(k.container.Env, key+"="+value)
-	}
-	slices.Sort(k.container.Env)
-
-	if msg.IsVerbose() {
-		msg.Verbosef("created application seal for uid %s (%s) groups: %v, argv: %s, ops: %d",
-			k.user.uid, k.user.username, config.Groups, k.container.Args, len(*k.container.Ops))
-	}
-
+	k.proc = &kp
 	return nil
 }
