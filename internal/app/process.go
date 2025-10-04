@@ -19,7 +19,7 @@ import (
 	"hakurei.app/system"
 )
 
-// duration to wait for shim to exit, after container WaitDelay has elapsed.
+// Duration to wait for shim to exit on top of container WaitDelay.
 const shimWaitTimeout = 5 * time.Second
 
 // mainState holds persistent state bound to outcome.main.
@@ -81,7 +81,7 @@ func (ms mainState) beforeExit(isFault bool) {
 		waitDone := make(chan struct{})
 
 		// this ties waitDone to ctx with the additional compensated timeout duration
-		go func() { <-ms.k.ctx.Done(); time.Sleep(ms.waitDelay); close(waitDone) }()
+		go func() { <-ms.k.ctx.Done(); time.Sleep(ms.waitDelay + shimWaitTimeout); close(waitDone) }()
 
 		select {
 		case err := <-ms.cmdWait:

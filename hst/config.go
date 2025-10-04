@@ -11,6 +11,13 @@ const Tmp = "/.hakurei"
 
 var AbsTmp = container.MustAbs(Tmp)
 
+const (
+	// DefaultWaitDelay is used when WaitDelay has its zero value.
+	DefaultWaitDelay = 5 * time.Second
+	// MaxWaitDelay is used if WaitDelay exceeds its value.
+	MaxWaitDelay = 30 * time.Second
+)
+
 // Config is used to seal an app implementation.
 type (
 	Config struct {

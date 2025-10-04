@@ -186,13 +186,12 @@ func (k *outcome) finalise(ctx context.Context, msg container.Msg, id *state.ID,
 	}
 
 	// enforce bounds and default early
-	kp.waitDelay = shimWaitTimeout
 	if s.Container.WaitDelay <= 0 {
-		kp.waitDelay += DefaultShimWaitDelay
-	} else if s.Container.WaitDelay > MaxShimWaitDelay {
-		kp.waitDelay += MaxShimWaitDelay
+		kp.waitDelay = hst.DefaultWaitDelay
+	} else if s.Container.WaitDelay > hst.MaxWaitDelay {
+		kp.waitDelay = hst.MaxWaitDelay
 	} else {
-		kp.waitDelay += s.Container.WaitDelay
+		kp.waitDelay = s.Container.WaitDelay
 	}
 
 	if s.Container.MapRealUID {
