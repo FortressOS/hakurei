@@ -20,7 +20,7 @@ type spX11Op struct {
 	Display string
 }
 
-func (s *spX11Op) toSystem(state *outcomeStateSys, config *hst.Config) error {
+func (s *spX11Op) toSystem(state *outcomeStateSys, _ *hst.Config) error {
 	if d, ok := state.k.lookupEnv("DISPLAY"); !ok {
 		return newWithMessage("DISPLAY is not set")
 	} else {
@@ -46,7 +46,7 @@ func (s *spX11Op) toSystem(state *outcomeStateSys, config *hst.Config) error {
 			}
 		} else {
 			state.sys.UpdatePermType(hst.EX11, socketPath, acl.Read, acl.Write, acl.Execute)
-			if !config.Container.HostAbstract {
+			if !state.Container.HostAbstract {
 				s.Display = "unix:" + socketPath.String()
 			}
 		}

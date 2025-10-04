@@ -102,14 +102,22 @@ func (k *outcome) finalise(ctx context.Context, msg container.Msg, id *state.ID,
 		}
 	}
 
+	s := outcomeState{
+		ID:        id,
+		Identity:  config.Identity,
+		UserID:    (&Hsu{k: k}).MustIDMsg(msg),
+		EnvPaths:  copyPaths(k.syscallDispatcher),
+		Container: config.Container,
+	}
+
 	// permissive defaults
-	if config.Container == nil {
+	if s.Container == nil {
 		msg.Verbose("container configuration not supplied, PROCEED WITH CAUTION")
 
 		if config.Shell == nil {
 			config.Shell = container.AbsFHSRoot.Append("bin", "sh")
-			s, _ := k.lookupEnv("SHELL")
-			if a, err := container.NewAbs(s); err == nil {
+			shell, _ := k.lookupEnv("SHELL")
+			if a, err := container.NewAbs(shell); err == nil {
 				config.Shell = a
 			}
 		}
@@ -166,7 +174,7 @@ func (k *outcome) finalise(ctx context.Context, msg container.Msg, id *state.ID,
 			}},
 		)
 
-		config.Container = conf
+		s.Container = conf
 	}
 
 	// late nil checks for pd behaviour
@@ -179,23 +187,14 @@ func (k *outcome) finalise(ctx context.Context, msg container.Msg, id *state.ID,
 
 	// enforce bounds and default early
 	kp.waitDelay = shimWaitTimeout
-	if config.Container.WaitDelay <= 0 {
+	if s.Container.WaitDelay <= 0 {
 		kp.waitDelay += DefaultShimWaitDelay
-	} else if config.Container.WaitDelay > MaxShimWaitDelay {
+	} else if s.Container.WaitDelay > MaxShimWaitDelay {
 		kp.waitDelay += MaxShimWaitDelay
 	} else {
-		kp.waitDelay += config.Container.WaitDelay
+		kp.waitDelay += s.Container.WaitDelay
 	}
 
-	s := outcomeState{
-		ID:       id,
-		Identity: config.Identity,
-		UserID:   (&Hsu{k: k}).MustIDMsg(msg),
-		EnvPaths: copyPaths(k.syscallDispatcher),
-
-		// TODO(ophestra): apply pd behaviour here instead of clobbering hst.Config
-		Container: config.Container,
-	}
 	if s.Container.MapRealUID {
 		s.Mapuid, s.Mapgid = k.getuid(), k.getgid()
 	} else {
