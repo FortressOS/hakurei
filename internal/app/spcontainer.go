@@ -13,6 +13,8 @@ import (
 	"hakurei.app/system/dbus"
 )
 
+const varRunNscd = container.FHSVar + "run/nscd"
+
 // spParamsOp initialises unordered fields of [container.Params] and the optional root filesystem.
 // This outcomeOp is hardcoded to always run first.
 type spParamsOp struct {
@@ -121,8 +123,14 @@ func (s spFilesystemOp) toSystem(state *outcomeStateSys, _ *hst.Config) error {
 	this feature tries to improve user experience of permissive defaults, and
 	to warn about issues in custom configuration; it is NOT a security feature
 	and should not be treated as such, ALWAYS be careful with what you bind */
-	var hidePaths []string
-	hidePaths = append(hidePaths, state.sc.RuntimePath.String(), state.sc.SharePath.String())
+	hidePaths := []string{
+		state.sc.RuntimePath.String(),
+		state.sc.SharePath.String(),
+
+		// this causes emulated passwd database to be bypassed on some /etc/ setups
+		varRunNscd,
+	}
+
 	_, systemBusAddr := dbus.Address()
 	if entries, err := dbus.Parse([]byte(systemBusAddr)); err != nil {
 		return &hst.AppError{Step: "parse dbus address", Err: err}

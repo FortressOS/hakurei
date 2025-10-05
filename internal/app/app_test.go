@@ -73,6 +73,7 @@ func TestApp(t *testing.T) {
 					Readonly(m("/var/run/nscd"), 0755).
 					Etc(m("/etc/"), "4a450b6596d7bc15bd01780eb9a607ac").
 					Tmpfs(m("/run/user/1971"), 8192, 0755).
+					Tmpfs(m("/run/nscd"), 8192, 0755).
 					Tmpfs(m("/run/dbus"), 8192, 0755).
 					Remount(m("/dev/"), syscall.MS_RDONLY).
 					Tmpfs(m("/run/user/"), 4096, 0755).
@@ -209,6 +210,7 @@ func TestApp(t *testing.T) {
 					Readonly(m("/var/run/nscd"), 0755).
 					Etc(m("/etc/"), "ebf083d1b175911782d413369b64ce7c").
 					Tmpfs(m("/run/user/1971"), 8192, 0755).
+					Tmpfs(m("/run/nscd"), 8192, 0755).
 					Tmpfs(m("/run/dbus"), 8192, 0755).
 					Remount(m("/dev/"), syscall.MS_RDONLY).
 					Tmpfs(m("/run/user/"), 4096, 0755).
@@ -552,6 +554,8 @@ func (k *stubNixOS) tempdir() string { return "/tmp/" }
 
 func (k *stubNixOS) evalSymlinks(path string) (string, error) {
 	switch path {
+	case "/var/run/nscd":
+		return "/run/nscd", nil
 	case "/run/user/1971":
 		return "/run/user/1971", nil
 	case "/tmp/hakurei.0":
