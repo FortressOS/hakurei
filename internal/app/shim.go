@@ -15,6 +15,7 @@ import (
 
 	"hakurei.app/container"
 	"hakurei.app/container/seccomp"
+	"hakurei.app/hst"
 )
 
 //#include "shim-signal.h"
@@ -23,26 +24,20 @@ import "C"
 const shimEnv = "HAKUREI_SHIM"
 
 type shimParams struct {
-	// monitor pid, checked against ppid in signal handler
+	// Priv side pid, checked against ppid in signal handler for the syscall.SIGCONT hack.
 	Monitor int
 
-	// duration to wait for after interrupting a container's initial process before the container is killed;
-	// zero value defaults to [DefaultShimWaitDelay], values exceeding [MaxShimWaitDelay] becomes [MaxShimWaitDelay]
+	// Duration to wait for after interrupting a container's initial process before the container is killed.
+	// Limits are enforced on the priv side.
 	WaitDelay time.Duration
 
-	// finalised container params
+	// Finalised container params.
+	// TODO(ophestra): transmit outcomeState instead (params to shim)
 	Container *container.Params
 
-	// verbosity pass through
+	// Verbosity pass through.
 	Verbose bool
 }
-
-const (
-	// ShimExitRequest is returned when the monitor process requests shim exit.
-	ShimExitRequest = 254
-	// ShimExitOrphan is returned when the shim is orphaned before monitor delivers a signal.
-	ShimExitOrphan = 3
-)
 
 // ShimMain is the main function of the shim process and runs as the unconstrained target user.
 func ShimMain() {
@@ -107,12 +102,12 @@ func ShimMain() {
 
 				// setup has not completed, terminate immediately
 				msg.Resume()
-				os.Exit(ShimExitRequest)
+				os.Exit(hst.ShimExitRequest)
 				return
 
 			case 1: // got SIGCONT after adoption: monitor died before delivering signal
 				msg.BeforeExit()
-				os.Exit(ShimExitOrphan)
+				os.Exit(hst.ShimExitOrphan)
 				return
 
 			case 2: // unreachable

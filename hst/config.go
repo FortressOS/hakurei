@@ -12,10 +12,20 @@ const Tmp = "/.hakurei"
 var AbsTmp = container.MustAbs(Tmp)
 
 const (
-	// DefaultWaitDelay is used when WaitDelay has its zero value.
-	DefaultWaitDelay = 5 * time.Second
-	// MaxWaitDelay is used if WaitDelay exceeds its value.
-	MaxWaitDelay = 30 * time.Second
+	// WaitDelayDefault is used when WaitDelay has its zero value.
+	WaitDelayDefault = 5 * time.Second
+	// WaitDelayMax is used if WaitDelay exceeds its value.
+	WaitDelayMax = 30 * time.Second
+
+	// IdentityMin is the minimum value of [Config.Identity]. This is enforced by cmd/hsu.
+	IdentityMin = 0
+	// IdentityMax is the maximum value of [Config.Identity]. This is enforced by cmd/hsu.
+	IdentityMax = 9999
+
+	// ShimExitRequest is returned when the priv side process requests shim exit.
+	ShimExitRequest = 254
+	// ShimExitOrphan is returned when the shim is orphaned before priv side delivers a signal.
+	ShimExitOrphan = 3
 )
 
 type (
@@ -69,8 +79,8 @@ type (
 		Hostname string `json:"hostname,omitempty"`
 
 		// Duration in nanoseconds to wait for after interrupting the initial process.
-		// Defaults to [DefaultWaitDelay] if less than or equals to zero,
-		// or [MaxWaitDelay] if greater than [MaxWaitDelay].
+		// Defaults to [WaitDelayDefault] if less than or equals to zero,
+		// or [WaitDelayMax] if greater than [WaitDelayMax].
 		WaitDelay time.Duration `json:"wait_delay,omitempty"`
 
 		// Emit Flatpak-compatible seccomp filter programs.

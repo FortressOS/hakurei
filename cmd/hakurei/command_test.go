@@ -21,8 +21,8 @@ func TestHelp(t *testing.T) {
 Usage:	hakurei [-h | --help] [-v] [--json] COMMAND [OPTIONS]
 
 Commands:
-    app         Load app from configuration file
-    run         Configure and start a permissive default sandbox
+    app         Load and start container from configuration file
+    run         Configure and start a permissive container
     show        Show live or local app configuration
     ps          List active instances
     version     Display version information

@@ -45,7 +45,7 @@ func buildCommand(ctx context.Context, msg container.Msg, early *earlyHardeningE
 
 	c.Command("shim", command.UsageInternal, func([]string) error { app.ShimMain(); return errSuccess })
 
-	c.Command("app", "Load app from configuration file", func(args []string) error {
+	c.Command("app", "Load and start container from configuration file", func(args []string) error {
 		if len(args) < 1 {
 			log.Fatal("app requires at least 1 argument")
 		}
@@ -74,14 +74,14 @@ func buildCommand(ctx context.Context, msg container.Msg, early *earlyHardeningE
 			flagWayland, flagX11, flagDBus, flagPulse bool
 		)
 
-		c.NewCommand("run", "Configure and start a permissive default sandbox", func(args []string) error {
+		c.NewCommand("run", "Configure and start a permissive container", func(args []string) error {
 			// initialise config from flags
 			config := &hst.Config{
 				ID:   flagID,
 				Args: args,
 			}
 
-			if flagIdentity < 0 || flagIdentity > 9999 {
+			if flagIdentity < hst.IdentityMin || flagIdentity > hst.IdentityMax {
 				log.Fatalf("identity %d out of range", flagIdentity)
 			}
 

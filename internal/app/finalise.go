@@ -83,8 +83,8 @@ func (k *outcome) finalise(ctx context.Context, msg container.Msg, id *state.ID,
 		k.ct = ct
 	}
 
-	// allowed identity range 0 to 9999, this is checked again in hsu
-	if config.Identity < 0 || config.Identity > 9999 {
+	// this is checked again in hsu
+	if config.Identity < hst.IdentityMin || config.Identity > hst.IdentityMax {
 		return newWithMessage(fmt.Sprintf("identity %d out of range", config.Identity))
 	}
 
@@ -187,9 +187,9 @@ func (k *outcome) finalise(ctx context.Context, msg container.Msg, id *state.ID,
 
 	// enforce bounds and default early
 	if s.Container.WaitDelay <= 0 {
-		kp.waitDelay = hst.DefaultWaitDelay
-	} else if s.Container.WaitDelay > hst.MaxWaitDelay {
-		kp.waitDelay = hst.MaxWaitDelay
+		kp.waitDelay = hst.WaitDelayDefault
+	} else if s.Container.WaitDelay > hst.WaitDelayMax {
+		kp.waitDelay = hst.WaitDelayMax
 	} else {
 		kp.waitDelay = s.Container.WaitDelay
 	}

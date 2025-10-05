@@ -1,5 +1,7 @@
 package main
 
+// minimise imports to avoid inadvertently calling init or global variable functions
+
 import (
 	"bytes"
 	"fmt"
@@ -19,6 +21,9 @@ const (
 	envGroups   = "HAKUREI_GROUPS"
 
 	PR_SET_NO_NEW_PRIVS = 0x26
+
+	identityMin = 0
+	identityMax = 9999
 )
 
 func main() {
@@ -91,7 +96,7 @@ func main() {
 	// allowed identity range 0 to 9999
 	if as, ok := os.LookupEnv(envIdentity); !ok {
 		log.Fatal("HAKUREI_IDENTITY not set")
-	} else if identity, err := parseUint32Fast(as); err != nil || identity < 0 || identity > 9999 {
+	} else if identity, err := parseUint32Fast(as); err != nil || identity < identityMin || identity > identityMax {
 		log.Fatal("invalid identity")
 	} else {
 		uid += identity
