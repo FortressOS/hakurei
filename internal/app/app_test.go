@@ -37,7 +37,35 @@ func TestApp(t *testing.T) {
 	}{
 		{
 			"nixos permissive defaults no enablements", new(stubNixOS),
-			&hst.Config{Username: "chronos", Home: m("/home/chronos")},
+			&hst.Config{Container: &hst.ContainerConfig{
+				Userns: true, HostNet: true, HostAbstract: true, Tty: true,
+
+				Filesystem: []hst.FilesystemConfigJSON{
+					{FilesystemConfig: &hst.FSBind{
+						Target:  container.AbsFHSRoot,
+						Source:  container.AbsFHSRoot,
+						Write:   true,
+						Special: true,
+					}},
+					{FilesystemConfig: &hst.FSBind{
+						Source:   container.AbsFHSDev.Append("kvm"),
+						Device:   true,
+						Optional: true,
+					}},
+					{FilesystemConfig: &hst.FSBind{
+						Target:  container.AbsFHSEtc,
+						Source:  container.AbsFHSEtc,
+						Special: true,
+					}},
+				},
+
+				Username: "chronos",
+				Shell:    m("/run/current-system/sw/bin/zsh"),
+				Home:     m("/home/chronos"),
+
+				Path: m("/run/current-system/sw/bin/zsh"),
+				Args: []string{"/run/current-system/sw/bin/zsh"},
+			}},
 			state.ID{
 				0x4a, 0x45, 0x0b, 0x65,
 				0x96, 0xd7, 0xbc, 0x15,
@@ -70,7 +98,6 @@ func TestApp(t *testing.T) {
 					DevWritable(m("/dev/"), true).
 					Tmpfs(m("/dev/shm"), 0, 01777).
 					Bind(m("/dev/kvm"), m("/dev/kvm"), container.BindWritable|container.BindDevice|container.BindOptional).
-					Readonly(m("/var/run/nscd"), 0755).
 					Etc(m("/etc/"), "4a450b6596d7bc15bd01780eb9a607ac").
 					Tmpfs(m("/run/user/1971"), 8192, 0755).
 					Tmpfs(m("/run/nscd"), 8192, 0755).
@@ -93,11 +120,8 @@ func TestApp(t *testing.T) {
 			"nixos permissive defaults chromium", new(stubNixOS),
 			&hst.Config{
 				ID:       "org.chromium.Chromium",
-				Args:     []string{"zsh", "-c", "exec chromium "},
 				Identity: 9,
 				Groups:   []string{"video"},
-				Username: "chronos",
-				Home:     m("/home/chronos"),
 				SessionBus: &dbus.Config{
 					Talk: []string{
 						"org.freedesktop.Notifications",
@@ -130,6 +154,41 @@ func TestApp(t *testing.T) {
 					Filter: true,
 				},
 				Enablements: hst.NewEnablements(hst.EWayland | hst.EDBus | hst.EPulse),
+
+				Container: &hst.ContainerConfig{
+					Userns: true, HostNet: true, HostAbstract: true, Tty: true,
+
+					Filesystem: []hst.FilesystemConfigJSON{
+						{FilesystemConfig: &hst.FSBind{
+							Target:  container.AbsFHSRoot,
+							Source:  container.AbsFHSRoot,
+							Write:   true,
+							Special: true,
+						}},
+						{FilesystemConfig: &hst.FSBind{
+							Source:   container.AbsFHSDev.Append("dri"),
+							Device:   true,
+							Optional: true,
+						}},
+						{FilesystemConfig: &hst.FSBind{
+							Source:   container.AbsFHSDev.Append("kvm"),
+							Device:   true,
+							Optional: true,
+						}},
+						{FilesystemConfig: &hst.FSBind{
+							Target:  container.AbsFHSEtc,
+							Source:  container.AbsFHSEtc,
+							Special: true,
+						}},
+					},
+
+					Username: "chronos",
+					Shell:    m("/run/current-system/sw/bin/zsh"),
+					Home:     m("/home/chronos"),
+
+					Path: m("/run/current-system/sw/bin/zsh"),
+					Args: []string{"zsh", "-c", "exec chromium "},
+				},
 			},
 			state.ID{
 				0xeb, 0xf0, 0x83, 0xd1,
@@ -207,7 +266,6 @@ func TestApp(t *testing.T) {
 					Tmpfs(m("/dev/shm"), 0, 01777).
 					Bind(m("/dev/dri"), m("/dev/dri"), container.BindWritable|container.BindDevice|container.BindOptional).
 					Bind(m("/dev/kvm"), m("/dev/kvm"), container.BindWritable|container.BindDevice|container.BindOptional).
-					Readonly(m("/var/run/nscd"), 0755).
 					Etc(m("/etc/"), "ebf083d1b175911782d413369b64ce7c").
 					Tmpfs(m("/run/user/1971"), 8192, 0755).
 					Tmpfs(m("/run/nscd"), 8192, 0755).
@@ -236,10 +294,7 @@ func TestApp(t *testing.T) {
 			"nixos chromium direct wayland", new(stubNixOS),
 			&hst.Config{
 				ID:          "org.chromium.Chromium",
-				Path:        m("/nix/store/yqivzpzzn7z5x0lq9hmbzygh45d8rhqd-chromium-start"),
 				Enablements: hst.NewEnablements(hst.EWayland | hst.EDBus | hst.EPulse),
-				Shell:       m("/run/current-system/sw/bin/zsh"),
-
 				Container: &hst.ContainerConfig{
 					Userns: true, HostNet: true, MapRealUID: true, Env: nil,
 					Filesystem: []hst.FilesystemConfigJSON{
@@ -257,6 +312,12 @@ func TestApp(t *testing.T) {
 						f(&hst.FSBind{Source: m("/etc/"), Target: m("/etc/"), Special: true}),
 						f(&hst.FSBind{Source: m("/var/lib/persist/module/hakurei/0/1"), Write: true, Ensure: true}),
 					},
+
+					Username: "u0_a1",
+					Shell:    m("/run/current-system/sw/bin/zsh"),
+					Home:     m("/var/lib/persist/module/hakurei/0/1"),
+
+					Path: m("/nix/store/yqivzpzzn7z5x0lq9hmbzygh45d8rhqd-chromium-start"),
 				},
 				SystemBus: &dbus.Config{
 					Talk:   []string{"org.bluez", "org.freedesktop.Avahi", "org.freedesktop.UPower"},
@@ -278,8 +339,6 @@ func TestApp(t *testing.T) {
 				},
 				DirectWayland: true,
 
-				Username: "u0_a1",
-				Home:     m("/var/lib/persist/module/hakurei/0/1"),
 				Identity: 1, Groups: []string{},
 			},
 			state.ID{
@@ -461,7 +520,6 @@ func (s stubOsFileReadCloser) Write([]byte) (int, error)  { panic("attempting to
 func (s stubOsFileReadCloser) Stat() (fs.FileInfo, error) { panic("attempting to call Stat") }
 
 type stubNixOS struct {
-	lookPathErr map[string]error
 	usernameErr map[string]error
 }
 
@@ -614,21 +672,6 @@ func (k *stubNixOS) evalSymlinks(path string) (string, error) {
 		return "/var/lib/persist/module/hakurei/0/1", nil
 	default:
 		panic(fmt.Sprintf("attempted to evaluate unexpected path %q", path))
-	}
-}
-
-func (k *stubNixOS) lookPath(file string) (string, error) {
-	if k.lookPathErr != nil {
-		if err, ok := k.lookPathErr[file]; ok {
-			return "", err
-		}
-	}
-
-	switch file {
-	case "zsh":
-		return "/run/current-system/sw/bin/zsh", nil
-	default:
-		panic(fmt.Sprintf("attempted to look up unexpected executable %q", file))
 	}
 }
 

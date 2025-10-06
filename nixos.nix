@@ -105,26 +105,10 @@ in
                   isGraphical = if app.gpu != null then app.gpu else app.enablements.wayland || app.enablements.x11;
 
                   conf = {
-                    path =
-                      if app.path == null then
-                        pkgs.writeScript "${app.name}-start" ''
-                          #!${pkgs.zsh}${pkgs.zsh.shellPath}
-                          ${script}
-                        ''
-                      else
-                        app.path;
-                    args = if app.args == null then [ "${app.name}-start" ] else app.args;
-
                     inherit id;
-
+                    inherit (app) identity groups enablements;
                     inherit (dbusConfig) session_bus system_bus;
                     direct_wayland = app.insecureWayland;
-
-                    username = getsubname fid app.identity;
-                    home = getsubhome fid app.identity;
-
-                    inherit (cfg) shell;
-                    inherit (app) identity groups enablements;
 
                     container = {
                       inherit (app)
@@ -219,6 +203,20 @@ in
                             ensure = true;
                           }
                         ];
+
+                      username = getsubname fid app.identity;
+                      inherit (cfg) shell;
+                      home = getsubhome fid app.identity;
+
+                      path =
+                        if app.path == null then
+                          pkgs.writeScript "${app.name}-start" ''
+                            #!${pkgs.zsh}${pkgs.zsh.shellPath}
+                            ${script}
+                          ''
+                        else
+                          app.path;
+                      args = if app.args == null then [ "${app.name}-start" ] else app.args;
                     };
                   };
 

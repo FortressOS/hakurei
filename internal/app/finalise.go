@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/fs"
 	"maps"
 	"os"
 	"os/user"
@@ -66,11 +65,8 @@ func (k *outcome) finalise(ctx context.Context, msg container.Msg, id *state.ID,
 	}
 	k.ctx = ctx
 
-	if config == nil {
-		return newWithMessage("invalid configuration")
-	}
-	if config.Home == nil {
-		return newWithMessage("invalid path to home directory")
+	if err := config.Validate(); err != nil {
+		return err
 	}
 
 	// TODO(ophestra): do not clobber during finalise
@@ -102,87 +98,13 @@ func (k *outcome) finalise(ctx context.Context, msg container.Msg, id *state.ID,
 		}
 	}
 
+	// validation complete at this point
 	s := outcomeState{
 		ID:        id,
 		Identity:  config.Identity,
 		UserID:    (&Hsu{k: k}).MustIDMsg(msg),
 		EnvPaths:  copyPaths(k.syscallDispatcher),
 		Container: config.Container,
-	}
-
-	// permissive defaults
-	if s.Container == nil {
-		msg.Verbose("container configuration not supplied, PROCEED WITH CAUTION")
-
-		if config.Shell == nil {
-			config.Shell = container.AbsFHSRoot.Append("bin", "sh")
-			shell, _ := k.lookupEnv("SHELL")
-			if a, err := container.NewAbs(shell); err == nil {
-				config.Shell = a
-			}
-		}
-
-		// hsu clears the environment so resolve paths early
-		if config.Path == nil {
-			if len(config.Args) > 0 {
-				if p, err := k.lookPath(config.Args[0]); err != nil {
-					return &hst.AppError{Step: "look up executable file", Err: err}
-				} else if config.Path, err = container.NewAbs(p); err != nil {
-					return newWithMessageError(err.Error(), err)
-				}
-			} else {
-				config.Path = config.Shell
-			}
-		}
-
-		conf := &hst.ContainerConfig{
-			Userns:       true,
-			HostNet:      true,
-			HostAbstract: true,
-			Tty:          true,
-
-			Filesystem: []hst.FilesystemConfigJSON{
-				// autoroot, includes the home directory
-				{FilesystemConfig: &hst.FSBind{
-					Target:  container.AbsFHSRoot,
-					Source:  container.AbsFHSRoot,
-					Write:   true,
-					Special: true,
-				}},
-			},
-		}
-
-		// bind GPU stuff
-		if config.Enablements.Unwrap()&(hst.EX11|hst.EWayland) != 0 {
-			conf.Filesystem = append(conf.Filesystem, hst.FilesystemConfigJSON{FilesystemConfig: &hst.FSBind{Source: container.AbsFHSDev.Append("dri"), Device: true, Optional: true}})
-		}
-		// opportunistically bind kvm
-		conf.Filesystem = append(conf.Filesystem, hst.FilesystemConfigJSON{FilesystemConfig: &hst.FSBind{Source: container.AbsFHSDev.Append("kvm"), Device: true, Optional: true}})
-
-		// hide nscd from container if present
-		nscd := container.AbsFHSVar.Append("run/nscd")
-		if _, err := k.stat(nscd.String()); !errors.Is(err, fs.ErrNotExist) {
-			conf.Filesystem = append(conf.Filesystem, hst.FilesystemConfigJSON{FilesystemConfig: &hst.FSEphemeral{Target: nscd}})
-		}
-
-		// do autoetc last
-		conf.Filesystem = append(conf.Filesystem,
-			hst.FilesystemConfigJSON{FilesystemConfig: &hst.FSBind{
-				Target:  container.AbsFHSEtc,
-				Source:  container.AbsFHSEtc,
-				Special: true,
-			}},
-		)
-
-		s.Container = conf
-	}
-
-	// late nil checks for pd behaviour
-	if config.Shell == nil {
-		return newWithMessage("invalid shell path")
-	}
-	if config.Path == nil {
-		return newWithMessage("invalid program path")
 	}
 
 	// enforce bounds and default early
@@ -210,14 +132,14 @@ func (k *outcome) finalise(ctx context.Context, msg container.Msg, id *state.ID,
 	{
 		ops := []outcomeOp{
 			// must run first
-			&spParamsOp{Path: config.Path, Args: config.Args},
+			&spParamsOp{},
 
 			// TODO(ophestra): move this late for #8 and #9
 			spFilesystemOp{},
 
 			spRuntimeOp{},
 			spTmpdirOp{},
-			&spAccountOp{Home: config.Home, Username: config.Username, Shell: config.Shell},
+			spAccountOp{},
 		}
 
 		et := config.Enablements.Unwrap()

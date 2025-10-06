@@ -9,45 +9,38 @@ import (
 )
 
 // spAccountOp sets up user account emulation inside the container.
-type spAccountOp struct {
-	// Inner directory to use as the home directory of the emulated user.
-	Home *container.Absolute
-	// String matching the default NAME_REGEX value from adduser to use as the username of the emulated user.
-	Username string
-	// Pathname of shell to use for the emulated user.
-	Shell *container.Absolute
-}
+type spAccountOp struct{}
 
-func (s *spAccountOp) toSystem(*outcomeStateSys, *hst.Config) error {
+func (s spAccountOp) toSystem(state *outcomeStateSys, _ *hst.Config) error {
 	const fallbackUsername = "chronos"
 
 	// do checks here to fail before fork/exec
-	if s.Home == nil || s.Shell == nil {
+	if state.Container == nil || state.Container.Home == nil || state.Container.Shell == nil {
 		// unreachable
 		return syscall.ENOTRECOVERABLE
 	}
-	if s.Username == "" {
-		s.Username = fallbackUsername
-	} else if !isValidUsername(s.Username) {
-		return newWithMessage(fmt.Sprintf("invalid user name %q", s.Username))
+	if state.Container.Username == "" {
+		state.Container.Username = fallbackUsername
+	} else if !isValidUsername(state.Container.Username) {
+		return newWithMessage(fmt.Sprintf("invalid user name %q", state.Container.Username))
 	}
 	return nil
 }
 
-func (s *spAccountOp) toContainer(state *outcomeStateParams) error {
-	state.params.Dir = s.Home
-	state.env["HOME"] = s.Home.String()
-	state.env["USER"] = s.Username
-	state.env["SHELL"] = s.Shell.String()
+func (s spAccountOp) toContainer(state *outcomeStateParams) error {
+	state.params.Dir = state.Container.Home
+	state.env["HOME"] = state.Container.Home.String()
+	state.env["USER"] = state.Container.Username
+	state.env["SHELL"] = state.Container.Shell.String()
 
 	state.params.
 		Place(container.AbsFHSEtc.Append("passwd"),
-			[]byte(s.Username+":x:"+
+			[]byte(state.Container.Username+":x:"+
 				state.mapuid.String()+":"+
 				state.mapgid.String()+
 				":Hakurei:"+
-				s.Home.String()+":"+
-				s.Shell.String()+"\n")).
+				state.Container.Home.String()+":"+
+				state.Container.Shell.String()+"\n")).
 		Place(container.AbsFHSEtc.Append("group"),
 			[]byte("hakurei:x:"+state.mapgid.String()+":\n"))
 

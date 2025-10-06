@@ -61,14 +61,14 @@ def check_state(name, enablements):
     config = instance['config']
 
     command = f"{name}-start"
-    if not (config['path'].startswith("/nix/store/")) or not (config['path'].endswith(command)):
+    if not (config['container']['path'].startswith("/nix/store/")) or not (config['container']['path'].endswith(command)):
         raise Exception(f"unexpected path {config['path']}")
 
-    if len(config['args']) != 1 or config['args'][0] != command:
+    if len(config['container']['args']) != 1 or config['container']['args'][0] != command:
         raise Exception(f"unexpected args {config['args']}")
 
     if config['enablements'] != enablements:
-        raise Exception(f"unexpected enablements {instance['config']['enablements']}")
+        raise Exception(f"unexpected enablements {config['enablements']['enablements']}")
 
 
 def hakurei(command):
@@ -104,7 +104,7 @@ if denyOutputVerbose != "hsu: uid 1001 is not in the hsurc file\nhakurei: *canno
     raise Exception(f"unexpected deny verbose output:\n{denyOutputVerbose}")
 
 # Verify timeout behaviour:
-machine.succeed('sudo -u alice -i hakurei-check-linger-timeout > /var/tmp/linger-stdout 2> /var/tmp/linger-stderr')
+machine.succeed('sudo -u alice -i hakurei-check-linger-timeout > /var/tmp/linger-stdout 2> /var/tmp/linger-stderr || (cat /var/tmp/linger-stderr; false)')
 linger_stdout = machine.succeed("cat /var/tmp/linger-stdout")
 linger_stderr = machine.succeed("cat /var/tmp/linger-stderr")
 if linger_stdout != "":

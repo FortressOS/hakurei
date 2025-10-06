@@ -18,22 +18,6 @@ func withNixDaemon(
 	mustRunAppDropShell(ctx, msg, updateConfig(&hst.Config{
 		ID: app.ID,
 
-		Path: pathShell,
-		Args: []string{bash, "-lc", "rm -f /nix/var/nix/daemon-socket/socket && " +
-			// start nix-daemon
-			"nix-daemon --store / & " +
-			// wait for socket to appear
-			"(while [ ! -S /nix/var/nix/daemon-socket/socket ]; do sleep 0.01; done) && " +
-			// create directory so nix stops complaining
-			"mkdir -p /nix/var/nix/profiles/per-user/root/channels && " +
-			strings.Join(command, " && ") +
-			// terminate nix-daemon
-			" && pkill nix-daemon",
-		},
-
-		Username: "hakurei",
-		Shell:    pathShell,
-		Home:     pathDataData.Append(app.ID),
 		ExtraPerms: []*hst.ExtraPermConfig{
 			{Path: dataHome, Execute: true},
 			{Ensure: true, Path: pathSet.baseDir, Read: true, Write: true, Execute: true},
@@ -55,6 +39,23 @@ func withNixDaemon(
 				{FilesystemConfig: &hst.FSLink{Target: container.AbsFHSUsrBin, Linkname: pathSwBin.String()}},
 				{FilesystemConfig: &hst.FSBind{Target: pathDataData.Append(app.ID), Source: pathSet.homeDir, Write: true, Ensure: true}},
 			},
+
+			Username: "hakurei",
+			Shell:    pathShell,
+			Home:     pathDataData.Append(app.ID),
+
+			Path: pathShell,
+			Args: []string{bash, "-lc", "rm -f /nix/var/nix/daemon-socket/socket && " +
+				// start nix-daemon
+				"nix-daemon --store / & " +
+				// wait for socket to appear
+				"(while [ ! -S /nix/var/nix/daemon-socket/socket ]; do sleep 0.01; done) && " +
+				// create directory so nix stops complaining
+				"mkdir -p /nix/var/nix/profiles/per-user/root/channels && " +
+				strings.Join(command, " && ") +
+				// terminate nix-daemon
+				" && pkill nix-daemon",
+			},
 		},
 	}), dropShell, beforeFail)
 }
@@ -67,12 +68,6 @@ func withCacheDir(
 	mustRunAppDropShell(ctx, msg, &hst.Config{
 		ID: app.ID,
 
-		Path: pathShell,
-		Args: []string{bash, "-lc", strings.Join(command, " && ")},
-
-		Username: "nixos",
-		Shell:    pathShell,
-		Home:     pathDataData.Append(app.ID, "cache"),
 		ExtraPerms: []*hst.ExtraPermConfig{
 			{Path: dataHome, Execute: true},
 			{Ensure: true, Path: pathSet.baseDir, Read: true, Write: true, Execute: true},
@@ -94,13 +89,22 @@ func withCacheDir(
 				{FilesystemConfig: &hst.FSBind{Source: workDir, Target: hst.AbsTmp.Append("bundle")}},
 				{FilesystemConfig: &hst.FSBind{Target: pathDataData.Append(app.ID, "cache"), Source: pathSet.cacheDir, Write: true, Ensure: true}},
 			},
+
+			Username: "nixos",
+			Shell:    pathShell,
+			Home:     pathDataData.Append(app.ID, "cache"),
+
+			Path: pathShell,
+			Args: []string{bash, "-lc", strings.Join(command, " && ")},
 		},
 	}, dropShell, beforeFail)
 }
 
 func mustRunAppDropShell(ctx context.Context, msg container.Msg, config *hst.Config, dropShell bool, beforeFail func()) {
 	if dropShell {
-		config.Args = []string{bash, "-l"}
+		if config.Container != nil {
+			config.Container.Args = []string{bash, "-l"}
+		}
 		mustRunApp(ctx, msg, config, beforeFail)
 		beforeFail()
 		msg.BeforeExit()

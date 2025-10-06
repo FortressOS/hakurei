@@ -18,11 +18,6 @@ const varRunNscd = container.FHSVar + "run/nscd"
 // spParamsOp initialises unordered fields of [container.Params] and the optional root filesystem.
 // This outcomeOp is hardcoded to always run first.
 type spParamsOp struct {
-	// Copied from the [hst.Config] field of the same name.
-	Path *container.Absolute `json:"path,omitempty"`
-	// Copied from the [hst.Config] field of the same name.
-	Args []string `json:"args"`
-
 	// Value of $TERM, stored during toSystem.
 	Term string
 	// Whether $TERM is set, stored during toSystem.
@@ -49,15 +44,15 @@ func (s *spParamsOp) toContainer(state *outcomeStateParams) error {
 	state.params.HostNet = state.Container.HostNet
 	state.params.HostAbstract = state.Container.HostAbstract
 
-	if s.Path == nil {
+	if state.Container.Path == nil {
 		return newWithMessage("invalid program path")
 	}
-	state.params.Path = s.Path
+	state.params.Path = state.Container.Path
 
-	if len(s.Args) == 0 {
-		state.params.Args = []string{s.Path.String()}
+	if len(state.Container.Args) == 0 {
+		state.params.Args = []string{state.Container.Path.String()}
 	} else {
-		state.params.Args = s.Args
+		state.params.Args = state.Container.Args
 	}
 
 	// the container is canceled when shim is requested to exit or receives an interrupt or termination signal;

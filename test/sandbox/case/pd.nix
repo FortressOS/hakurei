@@ -182,7 +182,6 @@
       (ent "/" "/dev/mqueue" "rw,nosuid,nodev,noexec,relatime" "mqueue" "mqueue" "rw")
       (ent "/" "/dev/shm" "rw,nosuid,nodev,relatime" "tmpfs" "ephemeral" "rw,uid=1000000,gid=1000000")
       (ent "/kvm" "/dev/kvm" "rw,nosuid" "devtmpfs" "devtmpfs" ignore)
-      (ent "/" "/run/nscd" "ro,nosuid,nodev,relatime" "tmpfs" "readonly" "ro,mode=755,uid=1000000,gid=1000000")
       (ent "/etc" ignore "ro,nosuid,nodev,relatime" "ext4" "/dev/disk/by-label/nixos" "rw")
       (ent "/" "/run/user/1000" "rw,nosuid,nodev,relatime" "tmpfs" "ephemeral" "rw,size=8k,mode=755,uid=1000000,gid=1000000")
       (ent "/" "/run/nscd" "rw,nosuid,nodev,relatime" "tmpfs" "ephemeral" "rw,size=8k,mode=755,uid=1000000,gid=1000000")

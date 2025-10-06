@@ -1,6 +1,7 @@
 package hst
 
 import (
+	"errors"
 	"time"
 
 	"hakurei.app/container"
@@ -35,11 +36,6 @@ type (
 		// Passed to wayland security-context-v1 and used as part of defaults in dbus session proxy.
 		ID string `json:"id"`
 
-		// Pathname to executable file in the container filesystem.
-		Path *container.Absolute `json:"path,omitempty"`
-		// Final args passed to the initial program.
-		Args []string `json:"args"`
-
 		// System services to make available in the container.
 		Enablements *Enablements `json:"enablements,omitempty"`
 
@@ -52,14 +48,6 @@ type (
 		// Direct access to wayland socket, no attempt is made to attach security-context-v1
 		// and the bare socket is made available to the container.
 		DirectWayland bool `json:"direct_wayland,omitempty"`
-
-		// String used as the username of the emulated user, validated against the default NAME_REGEX from adduser.
-		// Defaults to passwd name of target uid or chronos.
-		Username string `json:"username,omitempty"`
-		// Pathname of shell in the container filesystem to use for the emulated user.
-		Shell *container.Absolute `json:"shell"`
-		// Directory in the container filesystem to enter and use as the home directory of the emulated user.
-		Home *container.Absolute `json:"home"`
 
 		// Extra acl update ops to perform before setuid.
 		ExtraPerms []*ExtraPermConfig `json:"extra_perms,omitempty"`
@@ -114,8 +102,49 @@ type (
 
 		If the first element targets /, it is inserted early and excluded from path hiding. */
 		Filesystem []FilesystemConfigJSON `json:"filesystem"`
+
+		// String used as the username of the emulated user, validated against the default NAME_REGEX from adduser.
+		// Defaults to passwd name of target uid or chronos.
+		Username string `json:"username,omitempty"`
+		// Pathname of shell in the container filesystem to use for the emulated user.
+		Shell *container.Absolute `json:"shell"`
+		// Directory in the container filesystem to enter and use as the home directory of the emulated user.
+		Home *container.Absolute `json:"home"`
+
+		// Pathname to executable file in the container filesystem.
+		Path *container.Absolute `json:"path,omitempty"`
+		// Final args passed to the initial program.
+		Args []string `json:"args"`
 	}
 )
+
+// ErrConfigNull is returned by [Config.Validate] for an invalid configuration that contains a null value for any
+// field that must not be null.
+var ErrConfigNull = errors.New("unexpected null in config")
+
+func (config *Config) Validate() error {
+	if config == nil {
+		return &AppError{Step: "validate configuration", Err: ErrConfigNull,
+			Msg: "invalid configuration"}
+	}
+	if config.Container == nil {
+		return &AppError{Step: "validate configuration", Err: ErrConfigNull,
+			Msg: "configuration missing container state"}
+	}
+	if config.Container.Home == nil {
+		return &AppError{Step: "validate configuration", Err: ErrConfigNull,
+			Msg: "container configuration missing path to home directory"}
+	}
+	if config.Container.Shell == nil {
+		return &AppError{Step: "validate configuration", Err: ErrConfigNull,
+			Msg: "container configuration missing path to shell"}
+	}
+	if config.Container.Path == nil {
+		return &AppError{Step: "validate configuration", Err: ErrConfigNull,
+			Msg: "container configuration missing path to initial program"}
+	}
+	return nil
+}
 
 // ExtraPermConfig describes an acl update op.
 type ExtraPermConfig struct {

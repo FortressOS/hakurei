@@ -11,6 +11,7 @@ import (
 	"text/tabwriter"
 	"time"
 
+	"hakurei.app/container"
 	"hakurei.app/hst"
 	"hakurei.app/internal/app"
 	"hakurei.app/internal/app/state"
@@ -39,7 +40,9 @@ func printShowSystem(output io.Writer, short, flagJSON bool) {
 func printShowInstance(
 	output io.Writer, now time.Time,
 	instance *state.State, config *hst.Config,
-	short, flagJSON bool) {
+	short, flagJSON bool) (valid bool) {
+	valid = true
+
 	if flagJSON {
 		if instance != nil {
 			printJSON(output, short, instance)
@@ -52,8 +55,11 @@ func printShowInstance(
 	t := newPrinter(output)
 	defer t.MustFlush()
 
-	if config.Container == nil {
-		mustPrint(output, "Warning: this configuration uses permissive defaults!\n\n")
+	if err := config.Validate(); err != nil {
+		valid = false
+		if m, ok := container.GetErrorMessage(err); ok {
+			mustPrint(output, "Error: "+m+"!\n\n")
+		}
 	}
 
 	if instance != nil {
@@ -73,11 +79,11 @@ func printShowInstance(
 	if len(config.Groups) > 0 {
 		t.Printf(" Groups:\t%s\n", strings.Join(config.Groups, ", "))
 	}
-	if config.Home != nil {
-		t.Printf(" Home:\t%s\n", config.Home)
-	}
 	if config.Container != nil {
 		params := config.Container
+		if params.Home != nil {
+			t.Printf(" Home:\t%s\n", params.Home)
+		}
 		if params.Hostname != "" {
 			t.Printf(" Hostname:\t%s\n", params.Hostname)
 		}
@@ -100,12 +106,12 @@ func printShowInstance(
 		}
 		t.Printf(" Flags:\t%s\n", strings.Join(flags, " "))
 
-		if config.Path != nil {
-			t.Printf(" Path:\t%s\n", config.Path)
+		if params.Path != nil {
+			t.Printf(" Path:\t%s\n", params.Path)
 		}
-	}
-	if len(config.Args) > 0 {
-		t.Printf(" Arguments:\t%s\n", strings.Join(config.Args, " "))
+		if len(params.Args) > 0 {
+			t.Printf(" Arguments:\t%s\n", strings.Join(params.Args, " "))
+		}
 	}
 	t.Printf("\n")
 
@@ -114,6 +120,7 @@ func printShowInstance(
 			t.Printf("Filesystem\n")
 			for _, f := range config.Container.Filesystem {
 				if !f.Valid() {
+					valid = false
 					t.Println(" <invalid>")
 					continue
 				}
@@ -161,6 +168,8 @@ func printShowInstance(
 		printDBus(config.SystemBus)
 		t.Printf("\n")
 	}
+
+	return
 }
 
 func printPs(output io.Writer, now time.Time, s state.Store, short, flagJSON bool) {

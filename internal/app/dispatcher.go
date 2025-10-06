@@ -45,9 +45,6 @@ type syscallDispatcher interface {
 	// evalSymlinks provides [filepath.EvalSymlinks].
 	evalSymlinks(path string) (string, error)
 
-	// lookPath provides exec.LookPath.
-	lookPath(file string) (string, error)
-
 	// lookupGroupId calls [user.LookupGroup] and returns the Gid field of the resulting [user.Group] struct.
 	lookupGroupId(name string) (string, error)
 
@@ -80,8 +77,6 @@ func (direct) readdir(name string) ([]os.DirEntry, error) { return os.ReadDir(na
 func (direct) tempdir() string                            { return os.TempDir() }
 
 func (direct) evalSymlinks(path string) (string, error) { return filepath.EvalSymlinks(path) }
-
-func (direct) lookPath(file string) (string, error) { return exec.LookPath(file) }
 
 func (direct) lookupGroupId(name string) (gid string, err error) {
 	var group *user.Group

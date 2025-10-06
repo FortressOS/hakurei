@@ -92,14 +92,6 @@ func TestAppError(t *testing.T) {
 func TestTemplate(t *testing.T) {
 	const want = `{
 	"id": "org.chromium.Chromium",
-	"path": "/run/current-system/sw/bin/chromium",
-	"args": [
-		"chromium",
-		"--ignore-gpu-blocklist",
-		"--disable-smooth-scrolling",
-		"--enable-features=UseOzonePlatform",
-		"--ozone-platform=wayland"
-	],
 	"enablements": {
 		"wayland": true,
 		"dbus": true,
@@ -141,9 +133,6 @@ func TestTemplate(t *testing.T) {
 		"broadcast": null,
 		"filter": true
 	},
-	"username": "chronos",
-	"shell": "/run/current-system/sw/bin/zsh",
-	"home": "/data/data/org.chromium.Chromium",
 	"extra_perms": [
 		{
 			"ensure": true,
@@ -238,6 +227,17 @@ func TestTemplate(t *testing.T) {
 				"dev": true,
 				"optional": true
 			}
+		],
+		"username": "chronos",
+		"shell": "/run/current-system/sw/bin/zsh",
+		"home": "/data/data/org.chromium.Chromium",
+		"path": "/run/current-system/sw/bin/chromium",
+		"args": [
+			"chromium",
+			"--ignore-gpu-blocklist",
+			"--disable-smooth-scrolling",
+			"--enable-features=UseOzonePlatform",
+			"--ozone-platform=wayland"
 		]
 	}
 }`

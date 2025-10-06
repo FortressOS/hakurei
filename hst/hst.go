@@ -60,15 +60,6 @@ func Template() *Config {
 	return &Config{
 		ID: "org.chromium.Chromium",
 
-		Path: container.AbsFHSRun.Append("current-system/sw/bin/chromium"),
-		Args: []string{
-			"chromium",
-			"--ignore-gpu-blocklist",
-			"--disable-smooth-scrolling",
-			"--enable-features=UseOzonePlatform",
-			"--ozone-platform=wayland",
-		},
-
 		Enablements: NewEnablements(EWayland | EDBus | EPulse),
 
 		SessionBus: &dbus.Config{
@@ -93,9 +84,6 @@ func Template() *Config {
 		},
 		DirectWayland: false,
 
-		Username: "chronos",
-		Shell:    container.AbsFHSRun.Append("current-system/sw/bin/zsh"),
-		Home:     container.MustAbs("/data/data/org.chromium.Chromium"),
 		ExtraPerms: []*ExtraPermConfig{
 			{Path: container.AbsFHSVarLib.Append("hakurei/u0"), Ensure: true, Execute: true},
 			{Path: container.AbsFHSVarLib.Append("hakurei/u0/org.chromium.Chromium"), Read: true, Write: true, Execute: true},
@@ -139,6 +127,19 @@ func Template() *Config {
 				{&FSBind{Source: container.AbsFHSVarLib.Append("hakurei/u0/org.chromium.Chromium"),
 					Target: container.MustAbs("/data/data/org.chromium.Chromium"), Write: true, Ensure: true}},
 				{&FSBind{Source: container.AbsFHSDev.Append("dri"), Device: true, Optional: true}},
+			},
+
+			Username: "chronos",
+			Shell:    container.AbsFHSRun.Append("current-system/sw/bin/zsh"),
+			Home:     container.MustAbs("/data/data/org.chromium.Chromium"),
+
+			Path: container.AbsFHSRun.Append("current-system/sw/bin/chromium"),
+			Args: []string{
+				"chromium",
+				"--ignore-gpu-blocklist",
+				"--disable-smooth-scrolling",
+				"--enable-features=UseOzonePlatform",
+				"--ozone-platform=wayland",
 			},
 		},
 	}

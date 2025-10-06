@@ -2,10 +2,12 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log"
 	"os"
+	"os/exec"
 	"os/user"
 	"strconv"
 	"sync"
@@ -52,7 +54,9 @@ func buildCommand(ctx context.Context, msg container.Msg, early *earlyHardeningE
 
 		// config extraArgs...
 		config := tryPath(msg, args[0])
-		config.Args = append(config.Args, args[1:]...)
+		if config != nil && config.Container != nil {
+			config.Container.Args = append(config.Container.Args, args[1:]...)
+		}
 
 		app.Main(ctx, msg, config)
 		panic("unreachable")
@@ -75,12 +79,6 @@ func buildCommand(ctx context.Context, msg container.Msg, early *earlyHardeningE
 		)
 
 		c.NewCommand("run", "Configure and start a permissive container", func(args []string) error {
-			// initialise config from flags
-			config := &hst.Config{
-				ID:   flagID,
-				Args: args,
-			}
-
 			if flagIdentity < hst.IdentityMin || flagIdentity > hst.IdentityMax {
 				log.Fatalf("identity %d out of range", flagIdentity)
 			}
@@ -106,41 +104,109 @@ func buildCommand(ctx context.Context, msg container.Msg, early *earlyHardeningE
 				}
 			)
 
-			if flagHomeDir == "os" {
-				passwdOnce.Do(passwdFunc)
-				flagHomeDir = passwd.HomeDir
+			// paths are identical, resolve inner shell and program path
+			shell := container.AbsFHSRoot.Append("bin", "sh")
+			if a, err := container.NewAbs(os.Getenv("SHELL")); err == nil {
+				shell = a
+			}
+			progPath := shell
+			if len(args) > 0 {
+				if p, err := exec.LookPath(args[0]); err != nil {
+					log.Fatal(errors.Unwrap(err))
+					return err
+				} else if progPath, err = container.NewAbs(p); err != nil {
+					log.Fatal(err.Error())
+					return err
+				}
 			}
 
-			if flagUserName == "chronos" {
-				passwdOnce.Do(passwdFunc)
-				flagUserName = passwd.Username
-			}
-
-			config.Identity = flagIdentity
-			config.Groups = flagGroups
-			config.Username = flagUserName
-
-			if a, err := container.NewAbs(flagHomeDir); err != nil {
-				log.Fatal(err.Error())
-				return err
-			} else {
-				config.Home = a
-			}
-
-			var e hst.Enablement
+			var et hst.Enablement
 			if flagWayland {
-				e |= hst.EWayland
+				et |= hst.EWayland
 			}
 			if flagX11 {
-				e |= hst.EX11
+				et |= hst.EX11
 			}
 			if flagDBus {
-				e |= hst.EDBus
+				et |= hst.EDBus
 			}
 			if flagPulse {
-				e |= hst.EPulse
+				et |= hst.EPulse
 			}
-			config.Enablements = hst.NewEnablements(e)
+
+			config := &hst.Config{
+				ID:          flagID,
+				Identity:    flagIdentity,
+				Groups:      flagGroups,
+				Enablements: hst.NewEnablements(et),
+
+				Container: &hst.ContainerConfig{
+					Userns:       true,
+					HostNet:      true,
+					Tty:          true,
+					HostAbstract: true,
+
+					Filesystem: []hst.FilesystemConfigJSON{
+						// autoroot, includes the home directory
+						{FilesystemConfig: &hst.FSBind{
+							Target:  container.AbsFHSRoot,
+							Source:  container.AbsFHSRoot,
+							Write:   true,
+							Special: true,
+						}},
+					},
+
+					Username: flagUserName,
+					Shell:    shell,
+
+					Path: progPath,
+					Args: args,
+				},
+			}
+
+			// bind GPU stuff
+			if et&(hst.EX11|hst.EWayland) != 0 {
+				config.Container.Filesystem = append(config.Container.Filesystem, hst.FilesystemConfigJSON{FilesystemConfig: &hst.FSBind{
+					Source:   container.AbsFHSDev.Append("dri"),
+					Device:   true,
+					Optional: true,
+				}})
+			}
+
+			config.Container.Filesystem = append(config.Container.Filesystem,
+				// opportunistically bind kvm
+				hst.FilesystemConfigJSON{FilesystemConfig: &hst.FSBind{
+					Source:   container.AbsFHSDev.Append("kvm"),
+					Device:   true,
+					Optional: true,
+				}},
+
+				// do autoetc last
+				hst.FilesystemConfigJSON{FilesystemConfig: &hst.FSBind{
+					Target:  container.AbsFHSEtc,
+					Source:  container.AbsFHSEtc,
+					Special: true,
+				}},
+			)
+
+			if config.Container.Username == "chronos" {
+				passwdOnce.Do(passwdFunc)
+				config.Container.Username = passwd.Username
+			}
+
+			{
+				homeDir := flagHomeDir
+				if homeDir == "os" {
+					passwdOnce.Do(passwdFunc)
+					homeDir = passwd.HomeDir
+				}
+				if a, err := container.NewAbs(homeDir); err != nil {
+					log.Fatal(err.Error())
+					return err
+				} else {
+					config.Container.Home = a
+				}
+			}
 
 			// parse D-Bus config file from flags if applicable
 			if flagDBus {
@@ -218,7 +284,9 @@ func buildCommand(ctx context.Context, msg container.Msg, early *earlyHardeningE
 				if config == nil {
 					config = tryPath(msg, name)
 				}
-				printShowInstance(os.Stdout, time.Now().UTC(), entry, config, flagShort, flagJSON)
+				if !printShowInstance(os.Stdout, time.Now().UTC(), entry, config, flagShort, flagJSON) {
+					os.Exit(1)
+				}
 
 			default:
 				log.Fatal("show requires 1 argument")

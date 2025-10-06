@@ -27,13 +27,14 @@ var (
 	testAppTime = time.Unix(0, 9).UTC()
 )
 
-func Test_printShowInstance(t *testing.T) {
+func TestPrintShowInstance(t *testing.T) {
 	testCases := []struct {
 		name        string
 		instance    *state.State
 		config      *hst.Config
 		short, json bool
 		want        string
+		valid       bool
 	}{
 		{"config", nil, hst.Template(), false, false, `App
  Identity:       9 (org.chromium.Chromium)
@@ -71,21 +72,25 @@ System bus
  Filter:    true
  Talk:      ["org.bluez" "org.freedesktop.Avahi" "org.freedesktop.UPower"]
 
-`},
-		{"config pd", nil, new(hst.Config), false, false, `Warning: this configuration uses permissive defaults!
+`, true},
+		{"config pd", nil, new(hst.Config), false, false, `Error: configuration missing container state!
 
 App
  Identity:       0
  Enablements:    (no enablements)
 
-`},
-		{"config flag none", nil, &hst.Config{Container: new(hst.ContainerConfig)}, false, false, `App
+`, false},
+		{"config flag none", nil, &hst.Config{Container: new(hst.ContainerConfig)}, false, false, `Error: container configuration missing path to home directory!
+
+App
  Identity:       0
  Enablements:    (no enablements)
  Flags:          none
 
-`},
-		{"config nil entries", nil, &hst.Config{Container: &hst.ContainerConfig{Filesystem: make([]hst.FilesystemConfigJSON, 1)}, ExtraPerms: make([]*hst.ExtraPermConfig, 1)}, false, false, `App
+`, false},
+		{"config nil entries", nil, &hst.Config{Container: &hst.ContainerConfig{Filesystem: make([]hst.FilesystemConfigJSON, 1)}, ExtraPerms: make([]*hst.ExtraPermConfig, 1)}, false, false, `Error: container configuration missing path to home directory!
+
+App
  Identity:       0
  Enablements:    (no enablements)
  Flags:          none
@@ -95,8 +100,8 @@ Filesystem
 
 Extra ACL
 
-`},
-		{"config pd dbus see", nil, &hst.Config{SessionBus: &dbus.Config{See: []string{"org.example.test"}}}, false, false, `Warning: this configuration uses permissive defaults!
+`, false},
+		{"config pd dbus see", nil, &hst.Config{SessionBus: &dbus.Config{See: []string{"org.example.test"}}}, false, false, `Error: configuration missing container state!
 
 App
  Identity:       0
@@ -106,7 +111,7 @@ Session bus
  Filter:    false
  See:       ["org.example.test"]
 
-`},
+`, false},
 
 		{"instance", testState, hst.Template(), false, false, `State
  Instance:    8e2c76b066dabe574cf073bdb46eb5c1 (3735928559)
@@ -148,8 +153,8 @@ System bus
  Filter:    true
  Talk:      ["org.bluez" "org.freedesktop.Avahi" "org.freedesktop.UPower"]
 
-`},
-		{"instance pd", testState, new(hst.Config), false, false, `Warning: this configuration uses permissive defaults!
+`, true},
+		{"instance pd", testState, new(hst.Config), false, false, `Error: configuration missing container state!
 
 State
  Instance:    8e2c76b066dabe574cf073bdb46eb5c1 (3735928559)
@@ -159,10 +164,10 @@ App
  Identity:       0
  Enablements:    (no enablements)
 
-`},
+`, false},
 
 		{"json nil", nil, nil, false, true, `null
-`},
+`, true},
 		{"json instance", testState, nil, false, true, `{
   "instance": [
     142,
@@ -185,14 +190,6 @@ App
   "pid": 3735928559,
   "config": {
     "id": "org.chromium.Chromium",
-    "path": "/run/current-system/sw/bin/chromium",
-    "args": [
-      "chromium",
-      "--ignore-gpu-blocklist",
-      "--disable-smooth-scrolling",
-      "--enable-features=UseOzonePlatform",
-      "--ozone-platform=wayland"
-    ],
     "enablements": {
       "wayland": true,
       "dbus": true,
@@ -234,9 +231,6 @@ App
       "broadcast": null,
       "filter": true
     },
-    "username": "chronos",
-    "shell": "/run/current-system/sw/bin/zsh",
-    "home": "/data/data/org.chromium.Chromium",
     "extra_perms": [
       {
         "ensure": true,
@@ -331,22 +325,25 @@ App
           "dev": true,
           "optional": true
         }
+      ],
+      "username": "chronos",
+      "shell": "/run/current-system/sw/bin/zsh",
+      "home": "/data/data/org.chromium.Chromium",
+      "path": "/run/current-system/sw/bin/chromium",
+      "args": [
+        "chromium",
+        "--ignore-gpu-blocklist",
+        "--disable-smooth-scrolling",
+        "--enable-features=UseOzonePlatform",
+        "--ozone-platform=wayland"
       ]
     }
   },
   "time": "1970-01-01T00:00:00.000000009Z"
 }
-`},
+`, true},
 		{"json config", nil, hst.Template(), false, true, `{
   "id": "org.chromium.Chromium",
-  "path": "/run/current-system/sw/bin/chromium",
-  "args": [
-    "chromium",
-    "--ignore-gpu-blocklist",
-    "--disable-smooth-scrolling",
-    "--enable-features=UseOzonePlatform",
-    "--ozone-platform=wayland"
-  ],
   "enablements": {
     "wayland": true,
     "dbus": true,
@@ -388,9 +385,6 @@ App
     "broadcast": null,
     "filter": true
   },
-  "username": "chronos",
-  "shell": "/run/current-system/sw/bin/zsh",
-  "home": "/data/data/org.chromium.Chromium",
   "extra_perms": [
     {
       "ensure": true,
@@ -485,26 +479,39 @@ App
         "dev": true,
         "optional": true
       }
+    ],
+    "username": "chronos",
+    "shell": "/run/current-system/sw/bin/zsh",
+    "home": "/data/data/org.chromium.Chromium",
+    "path": "/run/current-system/sw/bin/chromium",
+    "args": [
+      "chromium",
+      "--ignore-gpu-blocklist",
+      "--disable-smooth-scrolling",
+      "--enable-features=UseOzonePlatform",
+      "--ozone-platform=wayland"
     ]
   }
 }
-`},
+`, true},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			output := new(strings.Builder)
-			printShowInstance(output, testTime, tc.instance, tc.config, tc.short, tc.json)
+			gotValid := printShowInstance(output, testTime, tc.instance, tc.config, tc.short, tc.json)
 			if got := output.String(); got != tc.want {
-				t.Errorf("printShowInstance: got\n%s\nwant\n%s",
-					got, tc.want)
+				t.Errorf("printShowInstance: \n%s\nwant\n%s", got, tc.want)
 				return
+			}
+			if gotValid != tc.valid {
+				t.Errorf("printShowInstance: valid = %v, want %v", gotValid, tc.valid)
 			}
 		})
 	}
 }
 
-func Test_printPs(t *testing.T) {
+func TestPrintPs(t *testing.T) {
 	testCases := []struct {
 		name        string
 		entries     state.Entries
@@ -547,14 +554,6 @@ func Test_printPs(t *testing.T) {
     "pid": 3735928559,
     "config": {
       "id": "org.chromium.Chromium",
-      "path": "/run/current-system/sw/bin/chromium",
-      "args": [
-        "chromium",
-        "--ignore-gpu-blocklist",
-        "--disable-smooth-scrolling",
-        "--enable-features=UseOzonePlatform",
-        "--ozone-platform=wayland"
-      ],
       "enablements": {
         "wayland": true,
         "dbus": true,
@@ -596,9 +595,6 @@ func Test_printPs(t *testing.T) {
         "broadcast": null,
         "filter": true
       },
-      "username": "chronos",
-      "shell": "/run/current-system/sw/bin/zsh",
-      "home": "/data/data/org.chromium.Chromium",
       "extra_perms": [
         {
           "ensure": true,
@@ -693,6 +689,17 @@ func Test_printPs(t *testing.T) {
             "dev": true,
             "optional": true
           }
+        ],
+        "username": "chronos",
+        "shell": "/run/current-system/sw/bin/zsh",
+        "home": "/data/data/org.chromium.Chromium",
+        "path": "/run/current-system/sw/bin/chromium",
+        "args": [
+          "chromium",
+          "--ignore-gpu-blocklist",
+          "--disable-smooth-scrolling",
+          "--enable-features=UseOzonePlatform",
+          "--ozone-platform=wayland"
         ]
       }
     },
