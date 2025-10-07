@@ -2,6 +2,7 @@ package hst
 
 import (
 	"errors"
+	"strconv"
 	"time"
 
 	"hakurei.app/container"
@@ -118,15 +119,28 @@ type (
 	}
 )
 
-// ErrConfigNull is returned by [Config.Validate] for an invalid configuration that contains a null value for any
-// field that must not be null.
-var ErrConfigNull = errors.New("unexpected null in config")
+var (
+	// ErrConfigNull is returned by [Config.Validate] for an invalid configuration that contains a null value for any
+	// field that must not be null.
+	ErrConfigNull = errors.New("unexpected null in config")
 
+	// ErrIdentityBounds is returned by [Config.Validate] for an out of bounds [Config.Identity] value.
+	ErrIdentityBounds = errors.New("identity out of bounds")
+)
+
+// Validate checks [Config] and returns [AppError] if an invalid value is encountered.
 func (config *Config) Validate() error {
 	if config == nil {
 		return &AppError{Step: "validate configuration", Err: ErrConfigNull,
 			Msg: "invalid configuration"}
 	}
+
+	// this is checked again in hsu
+	if config.Identity < IdentityMin || config.Identity > IdentityMax {
+		return &AppError{Step: "validate configuration", Err: ErrIdentityBounds,
+			Msg: "identity " + strconv.Itoa(config.Identity) + " out of range"}
+	}
+
 	if config.Container == nil {
 		return &AppError{Step: "validate configuration", Err: ErrConfigNull,
 			Msg: "configuration missing container state"}

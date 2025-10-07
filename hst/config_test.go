@@ -16,6 +16,10 @@ func TestConfigValidate(t *testing.T) {
 	}{
 		{"nil", nil, &hst.AppError{Step: "validate configuration", Err: hst.ErrConfigNull,
 			Msg: "invalid configuration"}},
+		{"identity lower", &hst.Config{Identity: -1}, &hst.AppError{Step: "validate configuration", Err: hst.ErrIdentityBounds,
+			Msg: "identity -1 out of range"}},
+		{"identity upper", &hst.Config{Identity: 10000}, &hst.AppError{Step: "validate configuration", Err: hst.ErrIdentityBounds,
+			Msg: "identity 10000 out of range"}},
 		{"container", &hst.Config{}, &hst.AppError{Step: "validate configuration", Err: hst.ErrConfigNull,
 			Msg: "configuration missing container state"}},
 		{"home", &hst.Config{Container: &hst.ContainerConfig{}}, &hst.AppError{Step: "validate configuration", Err: hst.ErrConfigNull,

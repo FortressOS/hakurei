@@ -79,11 +79,6 @@ func (k *outcome) finalise(ctx context.Context, msg container.Msg, id *state.ID,
 		k.ct = ct
 	}
 
-	// this is checked again in hsu
-	if config.Identity < hst.IdentityMin || config.Identity > hst.IdentityMax {
-		return newWithMessage(fmt.Sprintf("identity %d out of range", config.Identity))
-	}
-
 	kp.supp = make([]string, len(config.Groups))
 	for i, name := range config.Groups {
 		if gid, err := k.lookupGroupId(name); err != nil {
@@ -98,7 +93,7 @@ func (k *outcome) finalise(ctx context.Context, msg container.Msg, id *state.ID,
 		}
 	}
 
-	// validation complete at this point
+	// early validation complete at this point
 	s := outcomeState{
 		ID:        id,
 		Identity:  config.Identity,
