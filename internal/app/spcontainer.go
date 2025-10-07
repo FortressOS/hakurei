@@ -3,6 +3,7 @@ package app
 import (
 	"errors"
 	"io/fs"
+	"os"
 	"path"
 	"strconv"
 	"syscall"
@@ -88,7 +89,7 @@ func (s *spParamsOp) toContainer(state *outcomeStateParams) error {
 		state.as.AutoEtcPrefix = state.id.String()
 		ops := make(container.Ops, 0, preallocateOpsCount+len(state.Container.Filesystem))
 		state.params.Ops = &ops
-		state.as.Ops = &ops
+		state.as.Ops = opsAdapter{&ops}
 	}
 
 	rootfs, filesystem, _ := resolveRoot(state.Container)
@@ -303,4 +304,39 @@ func evalSymlinks(msg container.Msg, k syscallDispatcher, v *string) error {
 		*v = p
 	}
 	return nil
+}
+
+// opsAdapter implements [hst.Ops] on [container.Ops].
+type opsAdapter struct{ *container.Ops }
+
+func (p opsAdapter) Tmpfs(target *check.Absolute, size int, perm os.FileMode) hst.Ops {
+	return opsAdapter{p.Ops.Tmpfs(target, size, perm)}
+}
+
+func (p opsAdapter) Readonly(target *check.Absolute, perm os.FileMode) hst.Ops {
+	return opsAdapter{p.Ops.Readonly(target, perm)}
+}
+
+func (p opsAdapter) Bind(source, target *check.Absolute, flags int) hst.Ops {
+	return opsAdapter{p.Ops.Bind(source, target, flags)}
+}
+
+func (p opsAdapter) Overlay(target, state, work *check.Absolute, layers ...*check.Absolute) hst.Ops {
+	return opsAdapter{p.Ops.Overlay(target, state, work, layers...)}
+}
+
+func (p opsAdapter) OverlayReadonly(target *check.Absolute, layers ...*check.Absolute) hst.Ops {
+	return opsAdapter{p.Ops.OverlayReadonly(target, layers...)}
+}
+
+func (p opsAdapter) Link(target *check.Absolute, linkName string, dereference bool) hst.Ops {
+	return opsAdapter{p.Ops.Link(target, linkName, dereference)}
+}
+
+func (p opsAdapter) Root(host *check.Absolute, flags int) hst.Ops {
+	return opsAdapter{p.Ops.Root(host, flags)}
+}
+
+func (p opsAdapter) Etc(host *check.Absolute, prefix string) hst.Ops {
+	return opsAdapter{p.Ops.Etc(host, prefix)}
 }

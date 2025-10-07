@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
 	"reflect"
 
-	"hakurei.app/container"
 	"hakurei.app/container/check"
 )
 
@@ -24,12 +24,35 @@ type FilesystemConfig interface {
 	fmt.Stringer
 }
 
+// The Ops interface enables [FilesystemConfig] to queue container ops without depending on the container package.
+type Ops interface {
+	// Tmpfs appends an op that mounts tmpfs on a container path.
+	Tmpfs(target *check.Absolute, size int, perm os.FileMode) Ops
+	// Readonly appends an op that mounts read-only tmpfs on a container path.
+	Readonly(target *check.Absolute, perm os.FileMode) Ops
+
+	// Bind appends an op that bind mounts a host path on a container path.
+	Bind(source, target *check.Absolute, flags int) Ops
+	// Overlay appends an op that mounts the overlay pseudo filesystem.
+	Overlay(target, state, work *check.Absolute, layers ...*check.Absolute) Ops
+	// OverlayReadonly appends an op that mounts the overlay pseudo filesystem readonly.
+	OverlayReadonly(target *check.Absolute, layers ...*check.Absolute) Ops
+
+	// Link appends an op that creates a symlink in the container filesystem.
+	Link(target *check.Absolute, linkName string, dereference bool) Ops
+
+	// Root appends an op that expands a directory into a toplevel bind mount mirror on container root.
+	Root(host *check.Absolute, flags int) Ops
+	// Etc appends an op that expands host /etc into a toplevel symlink mirror with /etc semantics.
+	Etc(host *check.Absolute, prefix string) Ops
+}
+
 // ApplyState holds the address of [container.Ops] and any relevant application state.
 type ApplyState struct {
 	// AutoEtcPrefix is the prefix for [container.AutoEtcOp].
 	AutoEtcPrefix string
 
-	*container.Ops
+	Ops
 }
 
 var (

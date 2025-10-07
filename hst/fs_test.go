@@ -3,6 +3,7 @@ package hst_test
 import (
 	"encoding/json"
 	"errors"
+	"os"
 	"reflect"
 	"strings"
 	"syscall"
@@ -249,7 +250,7 @@ func checkFs(t *testing.T, testCases []fsTestCase) {
 
 			t.Run("ops", func(t *testing.T) {
 				ops := new(container.Ops)
-				tc.fs.Apply(&hst.ApplyState{AutoEtcPrefix: ":3", Ops: ops})
+				tc.fs.Apply(&hst.ApplyState{AutoEtcPrefix: ":3", Ops: opsAdapter{ops}})
 				if !reflect.DeepEqual(ops, &tc.ops) {
 					gotString := new(strings.Builder)
 					for _, op := range *ops {
@@ -286,6 +287,40 @@ func checkFs(t *testing.T, testCases []fsTestCase) {
 			})
 		})
 	}
+}
+
+type opsAdapter struct{ *container.Ops }
+
+func (p opsAdapter) Tmpfs(target *check.Absolute, size int, perm os.FileMode) hst.Ops {
+	return opsAdapter{p.Ops.Tmpfs(target, size, perm)}
+}
+
+func (p opsAdapter) Readonly(target *check.Absolute, perm os.FileMode) hst.Ops {
+	return opsAdapter{p.Ops.Readonly(target, perm)}
+}
+
+func (p opsAdapter) Bind(source, target *check.Absolute, flags int) hst.Ops {
+	return opsAdapter{p.Ops.Bind(source, target, flags)}
+}
+
+func (p opsAdapter) Overlay(target, state, work *check.Absolute, layers ...*check.Absolute) hst.Ops {
+	return opsAdapter{p.Ops.Overlay(target, state, work, layers...)}
+}
+
+func (p opsAdapter) OverlayReadonly(target *check.Absolute, layers ...*check.Absolute) hst.Ops {
+	return opsAdapter{p.Ops.OverlayReadonly(target, layers...)}
+}
+
+func (p opsAdapter) Link(target *check.Absolute, linkName string, dereference bool) hst.Ops {
+	return opsAdapter{p.Ops.Link(target, linkName, dereference)}
+}
+
+func (p opsAdapter) Root(host *check.Absolute, flags int) hst.Ops {
+	return opsAdapter{p.Ops.Root(host, flags)}
+}
+
+func (p opsAdapter) Etc(host *check.Absolute, prefix string) hst.Ops {
+	return opsAdapter{p.Ops.Etc(host, prefix)}
 }
 
 func m(pathname string) *check.Absolute { return check.MustAbs(pathname) }
