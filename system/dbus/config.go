@@ -1,64 +1,50 @@
 package dbus
 
 import (
-	"encoding/json"
-	"errors"
-	"io"
-	"os"
 	"strings"
+
+	"hakurei.app/hst"
 )
 
 // ProxyPair is an upstream dbus address and a downstream socket path.
 type ProxyPair [2]string
 
-type Config struct {
-	// See set 'see' policy for NAME (--see=NAME)
-	See []string `json:"see"`
-	// Talk set 'talk' policy for NAME (--talk=NAME)
-	Talk []string `json:"talk"`
-	// Own set 'own' policy for NAME (--own=NAME)
-	Own []string `json:"own"`
-
-	// Call set RULE for calls on NAME (--call=NAME=RULE)
-	Call map[string]string `json:"call"`
-	// Broadcast set RULE for broadcasts from NAME (--broadcast=NAME=RULE)
-	Broadcast map[string]string `json:"broadcast"`
-
-	Log    bool `json:"log,omitempty"`
-	Filter bool `json:"filter"`
-}
-
-func (c *Config) interfaces(yield func(string) bool) {
-	for _, iface := range c.See {
-		if !yield(iface) {
-			return
+// interfacesAll returns an iterator over all interfaces specified in c.
+func interfacesAll(c *hst.BusConfig) func(yield func(string) bool) {
+	return func(yield func(string) bool) {
+		for _, iface := range c.See {
+			if !yield(iface) {
+				return
+			}
 		}
-	}
-	for _, iface := range c.Talk {
-		if !yield(iface) {
-			return
+		for _, iface := range c.Talk {
+			if !yield(iface) {
+				return
+			}
 		}
-	}
-	for _, iface := range c.Own {
-		if !yield(iface) {
-			return
+		for _, iface := range c.Own {
+			if !yield(iface) {
+				return
+			}
 		}
-	}
 
-	for iface := range c.Call {
-		if !yield(iface) {
-			return
+		for iface := range c.Call {
+			if !yield(iface) {
+				return
+			}
 		}
-	}
-	for iface := range c.Broadcast {
-		if !yield(iface) {
-			return
+		for iface := range c.Broadcast {
+			if !yield(iface) {
+				return
+			}
 		}
 	}
 }
 
-func (c *Config) checkInterfaces(segment string) error {
-	for iface := range c.interfaces {
+// checkInterfaces checks [hst.BusConfig] for invalid interfaces based on an undocumented check in xdg-dbus-error,
+// returning [BadInterfaceError] if one is encountered.
+func checkInterfaces(c *hst.BusConfig, segment string) error {
+	for iface := range interfacesAll(c) {
 		/*
 			xdg-dbus-proxy fails without output when this condition is not met:
 				char *dot = strrchr (filter->interface, '.');
@@ -83,7 +69,8 @@ func (c *Config) checkInterfaces(segment string) error {
 	return nil
 }
 
-func (c *Config) Args(bus ProxyPair) (args []string) {
+// Args returns the xdg-dbus-proxy arguments equivalent of [hst.BusConfig].
+func Args(c *hst.BusConfig, bus ProxyPair) (args []string) {
 	argc := 2 + len(c.See) + len(c.Talk) + len(c.Own) + len(c.Call) + len(c.Broadcast)
 	if c.Log {
 		argc++
@@ -119,25 +106,9 @@ func (c *Config) Args(bus ProxyPair) (args []string) {
 	return
 }
 
-func (c *Config) Load(r io.Reader) error { return json.NewDecoder(r).Decode(&c) }
-
-// NewConfigFromFile opens the target config file at path and parses its contents into *Config.
-func NewConfigFromFile(path string) (*Config, error) {
-	if f, err := os.Open(path); err != nil {
-		return nil, err
-	} else {
-		c := new(Config)
-		err1 := c.Load(f)
-		err = f.Close()
-
-		return c, errors.Join(err1, err)
-	}
-}
-
-// NewConfig returns a reference to a Config struct with optional defaults.
-// If id is an empty string own defaults are omitted.
-func NewConfig(id string, defaults, mpris bool) (c *Config) {
-	c = &Config{
+// NewConfig returns the address of a new [hst.BusConfig] with optional defaults.
+func NewConfig(id string, defaults, mpris bool) *hst.BusConfig {
+	c := hst.BusConfig{
 		Call:      make(map[string]string),
 		Broadcast: make(map[string]string),
 
@@ -158,5 +129,5 @@ func NewConfig(id string, defaults, mpris bool) (c *Config) {
 		}
 	}
 
-	return
+	return &c
 }

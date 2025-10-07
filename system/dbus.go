@@ -21,7 +21,7 @@ var (
 )
 
 // MustProxyDBus calls ProxyDBus and panics if an error is returned.
-func (sys *I) MustProxyDBus(sessionPath *container.Absolute, session *dbus.Config, systemPath *container.Absolute, system *dbus.Config) *I {
+func (sys *I) MustProxyDBus(sessionPath *container.Absolute, session *hst.BusConfig, systemPath *container.Absolute, system *hst.BusConfig) *I {
 	if err := sys.ProxyDBus(session, system, sessionPath, systemPath); err != nil {
 		panic(err.Error())
 	} else {
@@ -31,7 +31,7 @@ func (sys *I) MustProxyDBus(sessionPath *container.Absolute, session *dbus.Confi
 
 // ProxyDBus finalises configuration ahead of time and starts xdg-dbus-proxy via [dbus] and terminates it on revert.
 // This [Op] is always [Process] scoped.
-func (sys *I) ProxyDBus(session, system *dbus.Config, sessionPath, systemPath *container.Absolute) error {
+func (sys *I) ProxyDBus(session, system *hst.BusConfig, sessionPath, systemPath *container.Absolute) error {
 	d := new(dbusProxyOp)
 
 	// session bus is required as otherwise this is effectively a very expensive noop
@@ -56,9 +56,9 @@ func (sys *I) ProxyDBus(session, system *dbus.Config, sessionPath, systemPath *c
 			fmt.Sprintf("cannot finalise message bus proxy: %v", err), false)
 	} else {
 		if sys.msg.IsVerbose() {
-			sys.msg.Verbose("session bus proxy:", session.Args(sessionBus))
+			sys.msg.Verbose("session bus proxy:", dbus.Args(session, sessionBus))
 			if system != nil {
-				sys.msg.Verbose("system bus proxy:", system.Args(systemBus))
+				sys.msg.Verbose("system bus proxy:", dbus.Args(system, systemBus))
 			}
 
 			// this calls the argsWt String method

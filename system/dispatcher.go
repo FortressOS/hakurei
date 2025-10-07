@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 
+	"hakurei.app/hst"
 	"hakurei.app/system/acl"
 	"hakurei.app/system/dbus"
 	"hakurei.app/system/internal/xcb"
@@ -50,7 +51,7 @@ type syscallDispatcher interface {
 	// dbusAddress provides [dbus.Address].
 	dbusAddress() (session, system string)
 	// dbusFinalise provides [dbus.Finalise].
-	dbusFinalise(sessionBus, systemBus dbus.ProxyPair, session, system *dbus.Config) (final *dbus.Final, err error)
+	dbusFinalise(sessionBus, systemBus dbus.ProxyPair, session, system *hst.BusConfig) (final *dbus.Final, err error)
 	// dbusProxyStart provides the Start method of [dbus.Proxy].
 	dbusProxyStart(proxy *dbus.Proxy) error
 	// dbusProxyClose provides the Close method of [dbus.Proxy].
@@ -85,7 +86,7 @@ func (k direct) dbusAddress() (session, system string) {
 	return dbus.Address()
 }
 
-func (k direct) dbusFinalise(sessionBus, systemBus dbus.ProxyPair, session, system *dbus.Config) (final *dbus.Final, err error) {
+func (k direct) dbusFinalise(sessionBus, systemBus dbus.ProxyPair, session, system *hst.BusConfig) (final *dbus.Final, err error) {
 	return dbus.Finalise(sessionBus, systemBus, session, system)
 }
 

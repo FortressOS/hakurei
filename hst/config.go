@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"hakurei.app/container"
-	"hakurei.app/system/dbus"
 )
 
 const Tmp = "/.hakurei"
@@ -42,10 +41,10 @@ type (
 
 		// Session D-Bus proxy configuration.
 		// If set to nil, session bus proxy assume built-in defaults.
-		SessionBus *dbus.Config `json:"session_bus,omitempty"`
+		SessionBus *BusConfig `json:"session_bus,omitempty"`
 		// System D-Bus proxy configuration.
 		// If set to nil, system bus proxy is disabled.
-		SystemBus *dbus.Config `json:"system_bus,omitempty"`
+		SystemBus *BusConfig `json:"system_bus,omitempty"`
 		// Direct access to wayland socket, no attempt is made to attach security-context-v1
 		// and the bare socket is made available to the container.
 		DirectWayland bool `json:"direct_wayland,omitempty"`

@@ -7,7 +7,6 @@ import (
 	"os"
 
 	"hakurei.app/container"
-	"hakurei.app/system/dbus"
 )
 
 // An AppError is returned while starting an app according to [hst.Config].
@@ -62,7 +61,7 @@ func Template() *Config {
 
 		Enablements: NewEnablements(EWayland | EDBus | EPulse),
 
-		SessionBus: &dbus.Config{
+		SessionBus: &BusConfig{
 			See: nil,
 			Talk: []string{"org.freedesktop.Notifications", "org.freedesktop.FileManager1", "org.freedesktop.ScreenSaver",
 				"org.freedesktop.secrets", "org.kde.kwalletd5", "org.kde.kwalletd6", "org.gnome.SessionManager"},
@@ -73,7 +72,7 @@ func Template() *Config {
 			Log:       false,
 			Filter:    true,
 		},
-		SystemBus: &dbus.Config{
+		SystemBus: &BusConfig{
 			See:       nil,
 			Talk:      []string{"org.bluez", "org.freedesktop.Avahi", "org.freedesktop.UPower"},
 			Own:       nil,

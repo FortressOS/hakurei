@@ -305,7 +305,7 @@ func (k *kstub) dbusAddress() (session, system string) {
 	return ret[0], ret[1]
 }
 
-func (k *kstub) dbusFinalise(sessionBus, systemBus dbus.ProxyPair, session, system *dbus.Config) (final *dbus.Final, err error) {
+func (k *kstub) dbusFinalise(sessionBus, systemBus dbus.ProxyPair, session, system *hst.BusConfig) (final *dbus.Final, err error) {
 	k.Helper()
 	expect := k.Expects("dbusFinalise")
 

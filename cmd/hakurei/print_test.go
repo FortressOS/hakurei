@@ -7,7 +7,6 @@ import (
 
 	"hakurei.app/hst"
 	"hakurei.app/internal/app/state"
-	"hakurei.app/system/dbus"
 )
 
 var (
@@ -101,7 +100,7 @@ Filesystem
 Extra ACL
 
 `, false},
-		{"config pd dbus see", nil, &hst.Config{SessionBus: &dbus.Config{See: []string{"org.example.test"}}}, false, false, `Error: configuration missing container state!
+		{"config pd dbus see", nil, &hst.Config{SessionBus: &hst.BusConfig{See: []string{"org.example.test"}}}, false, false, `Error: configuration missing container state!
 
 App
  Identity:       0

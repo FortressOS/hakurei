@@ -7,7 +7,6 @@ import (
 
 	"hakurei.app/container"
 	"hakurei.app/hst"
-	"hakurei.app/system/dbus"
 )
 
 type appInfo struct {
@@ -37,9 +36,9 @@ type appInfo struct {
 	// passed through to [hst.Config]
 	DirectWayland bool `json:"direct_wayland,omitempty"`
 	// passed through to [hst.Config]
-	SystemBus *dbus.Config `json:"system_bus,omitempty"`
+	SystemBus *hst.BusConfig `json:"system_bus,omitempty"`
 	// passed through to [hst.Config]
-	SessionBus *dbus.Config `json:"session_bus,omitempty"`
+	SessionBus *hst.BusConfig `json:"session_bus,omitempty"`
 	// passed through to [hst.Config]
 	Enablements *hst.Enablements `json:"enablements,omitempty"`
 

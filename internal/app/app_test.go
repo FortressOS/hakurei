@@ -20,7 +20,6 @@ import (
 	"hakurei.app/internal/app/state"
 	"hakurei.app/system"
 	"hakurei.app/system/acl"
-	"hakurei.app/system/dbus"
 )
 
 func TestApp(t *testing.T) {
@@ -122,7 +121,7 @@ func TestApp(t *testing.T) {
 				ID:       "org.chromium.Chromium",
 				Identity: 9,
 				Groups:   []string{"video"},
-				SessionBus: &dbus.Config{
+				SessionBus: &hst.BusConfig{
 					Talk: []string{
 						"org.freedesktop.Notifications",
 						"org.freedesktop.FileManager1",
@@ -145,7 +144,7 @@ func TestApp(t *testing.T) {
 					},
 					Filter: true,
 				},
-				SystemBus: &dbus.Config{
+				SystemBus: &hst.BusConfig{
 					Talk: []string{
 						"org.bluez",
 						"org.freedesktop.Avahi",
@@ -208,7 +207,7 @@ func TestApp(t *testing.T) {
 				Ensure(m("/run/user/1971"), 0700).UpdatePermType(system.User, m("/run/user/1971"), acl.Execute). // this is ordered as is because the previous Ensure only calls mkdir if XDG_RUNTIME_DIR is unset
 				Ephemeral(system.Process, m("/run/user/1971/hakurei/ebf083d1b175911782d413369b64ce7c"), 0700).UpdatePermType(system.Process, m("/run/user/1971/hakurei/ebf083d1b175911782d413369b64ce7c"), acl.Execute).
 				Link(m("/run/user/1971/pulse/native"), m("/run/user/1971/hakurei/ebf083d1b175911782d413369b64ce7c/pulse")).
-				MustProxyDBus(m("/tmp/hakurei.0/ebf083d1b175911782d413369b64ce7c/bus"), &dbus.Config{
+				MustProxyDBus(m("/tmp/hakurei.0/ebf083d1b175911782d413369b64ce7c/bus"), &hst.BusConfig{
 					Talk: []string{
 						"org.freedesktop.Notifications",
 						"org.freedesktop.FileManager1",
@@ -230,7 +229,7 @@ func TestApp(t *testing.T) {
 						"org.freedesktop.portal.*": "@/org/freedesktop/portal/*",
 					},
 					Filter: true,
-				}, m("/tmp/hakurei.0/ebf083d1b175911782d413369b64ce7c/system_bus_socket"), &dbus.Config{
+				}, m("/tmp/hakurei.0/ebf083d1b175911782d413369b64ce7c/system_bus_socket"), &hst.BusConfig{
 					Talk: []string{
 						"org.bluez",
 						"org.freedesktop.Avahi",
@@ -319,11 +318,11 @@ func TestApp(t *testing.T) {
 
 					Path: m("/nix/store/yqivzpzzn7z5x0lq9hmbzygh45d8rhqd-chromium-start"),
 				},
-				SystemBus: &dbus.Config{
+				SystemBus: &hst.BusConfig{
 					Talk:   []string{"org.bluez", "org.freedesktop.Avahi", "org.freedesktop.UPower"},
 					Filter: true,
 				},
-				SessionBus: &dbus.Config{
+				SessionBus: &hst.BusConfig{
 					Talk: []string{
 						"org.freedesktop.FileManager1", "org.freedesktop.Notifications",
 						"org.freedesktop.ScreenSaver", "org.freedesktop.secrets",
@@ -359,7 +358,7 @@ func TestApp(t *testing.T) {
 				Ephemeral(system.Process, m("/run/user/1971/hakurei/8e2c76b066dabe574cf073bdb46eb5c1"), 0700).UpdatePermType(system.Process, m("/run/user/1971/hakurei/8e2c76b066dabe574cf073bdb46eb5c1"), acl.Execute).
 				Link(m("/run/user/1971/pulse/native"), m("/run/user/1971/hakurei/8e2c76b066dabe574cf073bdb46eb5c1/pulse")).
 				Ephemeral(system.Process, m("/tmp/hakurei.0/8e2c76b066dabe574cf073bdb46eb5c1"), 0711).
-				MustProxyDBus(m("/tmp/hakurei.0/8e2c76b066dabe574cf073bdb46eb5c1/bus"), &dbus.Config{
+				MustProxyDBus(m("/tmp/hakurei.0/8e2c76b066dabe574cf073bdb46eb5c1/bus"), &hst.BusConfig{
 					Talk: []string{
 						"org.freedesktop.FileManager1", "org.freedesktop.Notifications",
 						"org.freedesktop.ScreenSaver", "org.freedesktop.secrets",
@@ -372,7 +371,7 @@ func TestApp(t *testing.T) {
 					},
 					Call: map[string]string{}, Broadcast: map[string]string{},
 					Filter: true,
-				}, m("/tmp/hakurei.0/8e2c76b066dabe574cf073bdb46eb5c1/system_bus_socket"), &dbus.Config{
+				}, m("/tmp/hakurei.0/8e2c76b066dabe574cf073bdb46eb5c1/system_bus_socket"), &hst.BusConfig{
 					Talk: []string{
 						"org.bluez",
 						"org.freedesktop.Avahi",

@@ -1,9 +1,7 @@
 package dbus_test
 
 import (
-	"sync"
-
-	"hakurei.app/system/dbus"
+	"hakurei.app/hst"
 )
 
 const (
@@ -14,7 +12,7 @@ const (
 
 var samples = []dbusTestCase{
 	{
-		"org.chromium.Chromium", &dbus.Config{
+		"org.chromium.Chromium", &hst.BusConfig{
 			See: nil,
 			Talk: []string{"org.freedesktop.Notifications", "org.freedesktop.FileManager1", "org.freedesktop.ScreenSaver",
 				"org.freedesktop.secrets", "org.kde.kwalletd5", "org.kde.kwalletd6", "org.gnome.SessionManager"},
@@ -45,7 +43,7 @@ var samples = []dbusTestCase{
 		},
 	},
 	{
-		"org.chromium.Chromium+", &dbus.Config{
+		"org.chromium.Chromium+", &hst.BusConfig{
 			See:       nil,
 			Talk:      []string{"org.bluez", "org.freedesktop.Avahi", "org.freedesktop.UPower"},
 			Own:       nil,
@@ -66,7 +64,7 @@ var samples = []dbusTestCase{
 	},
 
 	{
-		"dev.vencord.Vesktop", &dbus.Config{
+		"dev.vencord.Vesktop", &hst.BusConfig{
 			See:       nil,
 			Talk:      []string{"org.freedesktop.Notifications", "org.kde.StatusNotifierWatcher"},
 			Own:       []string{"dev.vencord.Vesktop.*", "org.mpris.MediaPlayer2.dev.vencord.Vesktop.*"},
@@ -89,7 +87,7 @@ var samples = []dbusTestCase{
 	},
 
 	{
-		"uk.gensokyo.CrashTestDummy", &dbus.Config{
+		"uk.gensokyo.CrashTestDummy", &hst.BusConfig{
 			See:       []string{"uk.gensokyo.CrashTestDummy1"},
 			Talk:      []string{"org.freedesktop.Notifications"},
 			Own:       []string{"uk.gensokyo.CrashTestDummy.*", "org.mpris.MediaPlayer2.uk.gensokyo.CrashTestDummy.*"},
@@ -112,7 +110,7 @@ var samples = []dbusTestCase{
 			"--log"},
 	},
 	{
-		"uk.gensokyo.CrashTestDummy1", &dbus.Config{
+		"uk.gensokyo.CrashTestDummy1", &hst.BusConfig{
 			See:       []string{"uk.gensokyo.CrashTestDummy"},
 			Talk:      []string{"org.freedesktop.Notifications"},
 			Own:       []string{"uk.gensokyo.CrashTestDummy1.*", "org.mpris.MediaPlayer2.uk.gensokyo.CrashTestDummy1.*"},
@@ -138,7 +136,7 @@ var samples = []dbusTestCase{
 
 type dbusTestCase struct {
 	id       string
-	c        *dbus.Config
+	c        *hst.BusConfig
 	wantErr  bool
 	wantErrF bool
 	bus      [2]string
@@ -146,83 +144,71 @@ type dbusTestCase struct {
 }
 
 var (
-	testCasesV     []dbusTestCase
-	testCasePairsV map[string][2]dbusTestCase
+	testCasesExt = func() []dbusTestCase {
+		testCases := make([]dbusTestCase, len(samples)*2)
+		for i := range samples {
+			testCases[i] = samples[i]
 
-	testCaseOnce sync.Once
-)
+			fi := &testCases[len(samples)+i]
+			*fi = samples[i]
 
-func makeTestCases() []dbusTestCase {
-	testCaseOnce.Do(testCaseGenerate)
-	return testCasesV
-}
+			// create null-injected test cases
+			fi.wantErr = true
+			injectNulls := func(t *[]string) {
+				f := make([]string, len(*t))
+				for i := range f {
+					f[i] = "\x00" + (*t)[i] + "\x00"
+				}
+				*t = f
+			}
 
-func testCasePairs() map[string][2]dbusTestCase {
-	testCaseOnce.Do(testCaseGenerate)
-	return testCasePairsV
-}
-
-func injectNulls(t *[]string) {
-	f := make([]string, len(*t))
-	for i := range f {
-		f[i] = "\x00" + (*t)[i] + "\x00"
-	}
-	*t = f
-}
-
-func testCaseGenerate() {
-	// create null-injected test cases
-	testCasesV = make([]dbusTestCase, len(samples)*2)
-	for i := range samples {
-		testCasesV[i] = samples[i]
-		testCasesV[len(samples)+i] = samples[i]
-		testCasesV[len(samples)+i].c = new(dbus.Config)
-		*testCasesV[len(samples)+i].c = *samples[i].c
-
-		// inject nulls
-		fi := &testCasesV[len(samples)+i]
-		fi.wantErr = true
-
-		injectNulls(&fi.c.See)
-		injectNulls(&fi.c.Talk)
-		injectNulls(&fi.c.Own)
-	}
-
-	// enumerate test case pairs
-	var pc int
-	for _, tc := range samples {
-		if tc.id != "" {
-			pc++
+			fi.c = new(hst.BusConfig)
+			*fi.c = *samples[i].c
+			injectNulls(&fi.c.See)
+			injectNulls(&fi.c.Talk)
+			injectNulls(&fi.c.Own)
 		}
-	}
-	testCasePairsV = make(map[string][2]dbusTestCase, pc)
-	for i, tc := range testCasesV {
-		if tc.id == "" {
-			continue
-		}
+		return testCases
+	}()
 
-		// skip already enumerated system bus test
-		if tc.id[len(tc.id)-1] == '+' {
-			continue
-		}
-
-		ftp := [2]dbusTestCase{tc}
-
-		// system proxy tests always place directly after its user counterpart with id ending in +
-		if i+1 < len(testCasesV) && testCasesV[i+1].id[len(testCasesV[i+1].id)-1] == '+' {
-			// attach system bus config
-			ftp[1] = testCasesV[i+1]
-
-			// check for misplaced/mismatching tests
-			if ftp[0].wantErr != ftp[1].wantErr || ftp[0].id+"+" != ftp[1].id {
-				panic("mismatching session/system pairing")
+	testCasePairs = func() map[string][2]dbusTestCase {
+		// enumerate test case pairs
+		var pc int
+		for _, tc := range samples {
+			if tc.id != "" {
+				pc++
 			}
 		}
+		pairs := make(map[string][2]dbusTestCase, pc)
+		for i, tc := range testCasesExt {
+			if tc.id == "" {
+				continue
+			}
 
-		k := tc.id
-		if tc.wantErr {
-			k = "malformed_" + k
+			// skip already enumerated system bus test
+			if tc.id[len(tc.id)-1] == '+' {
+				continue
+			}
+
+			ftp := [2]dbusTestCase{tc}
+
+			// system proxy tests always place directly after its user counterpart with id ending in +
+			if i+1 < len(testCasesExt) && testCasesExt[i+1].id[len(testCasesExt[i+1].id)-1] == '+' {
+				// attach system bus config
+				ftp[1] = testCasesExt[i+1]
+
+				// check for misplaced/mismatching tests
+				if ftp[0].wantErr != ftp[1].wantErr || ftp[0].id+"+" != ftp[1].id {
+					panic("mismatching session/system pairing")
+				}
+			}
+
+			k := tc.id
+			if tc.wantErr {
+				k = "malformed_" + k
+			}
+			pairs[k] = ftp
 		}
-		testCasePairsV[k] = ftp
-	}
-}
+		return pairs
+	}()
+)

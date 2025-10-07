@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -213,19 +214,19 @@ func buildCommand(ctx context.Context, msg container.Msg, early *earlyHardeningE
 				if flagDBusConfigSession == "builtin" {
 					config.SessionBus = dbus.NewConfig(flagID, true, flagDBusMpris)
 				} else {
-					if conf, err := dbus.NewConfigFromFile(flagDBusConfigSession); err != nil {
+					if f, err := os.Open(flagDBusConfigSession); err != nil {
+						log.Fatal(err.Error())
+					} else if err = json.NewDecoder(f).Decode(&config.SessionBus); err != nil {
 						log.Fatalf("cannot load session bus proxy config from %q: %s", flagDBusConfigSession, err)
-					} else {
-						config.SessionBus = conf
 					}
 				}
 
 				// system bus proxy is optional
 				if flagDBusConfigSystem != "nil" {
-					if conf, err := dbus.NewConfigFromFile(flagDBusConfigSystem); err != nil {
+					if f, err := os.Open(flagDBusConfigSystem); err != nil {
+						log.Fatal(err.Error())
+					} else if err = json.NewDecoder(f).Decode(&config.SystemBus); err != nil {
 						log.Fatalf("cannot load system bus proxy config from %q: %s", flagDBusConfigSystem, err)
-					} else {
-						config.SystemBus = conf
 					}
 				}
 

@@ -22,7 +22,7 @@ func TestFinalise(t *testing.T) {
 			err, syscall.EBADE)
 	}
 
-	for id, tc := range testCasePairs() {
+	for id, tc := range testCasePairs {
 		t.Run("create final for "+id, func(t *testing.T) {
 			var wt io.WriterTo
 			if v, err := dbus.Finalise(tc[0].bus, tc[1].bus, tc[0].c, tc[1].c); (errors.Is(err, syscall.EINVAL)) != tc[0].wantErr {
@@ -105,7 +105,7 @@ func testProxyFinaliseStartWaitCloseString(t *testing.T, useSandbox bool) {
 		}
 	})
 
-	for id, tc := range testCasePairs() {
+	for id, tc := range testCasePairs {
 		// this test does not test errors
 		if tc[0].wantErr {
 			continue

@@ -15,7 +15,6 @@ import (
 	"hakurei.app/hst"
 	"hakurei.app/internal/app"
 	"hakurei.app/internal/app/state"
-	"hakurei.app/system/dbus"
 )
 
 func printShowSystem(output io.Writer, short, flagJSON bool) {
@@ -140,7 +139,7 @@ func printShowInstance(
 		}
 	}
 
-	printDBus := func(c *dbus.Config) {
+	printDBus := func(c *hst.BusConfig) {
 		t.Printf(" Filter:\t%v\n", c.Filter)
 		if len(c.See) > 0 {
 			t.Printf(" See:\t%q\n", c.See)

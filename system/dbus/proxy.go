@@ -9,6 +9,7 @@ import (
 
 	"hakurei.app/container"
 	"hakurei.app/helper"
+	"hakurei.app/hst"
 )
 
 // ProxyName is the file name or path to the proxy program.
@@ -66,23 +67,23 @@ type Final struct {
 }
 
 // Finalise creates a checked argument writer for [Proxy].
-func Finalise(sessionBus, systemBus ProxyPair, session, system *Config) (final *Final, err error) {
+func Finalise(sessionBus, systemBus ProxyPair, session, system *hst.BusConfig) (final *Final, err error) {
 	if session == nil && system == nil {
 		return nil, syscall.EBADE
 	}
 
 	var args []string
 	if session != nil {
-		if err = session.checkInterfaces("session"); err != nil {
+		if err = checkInterfaces(session, "session"); err != nil {
 			return
 		}
-		args = append(args, session.Args(sessionBus)...)
+		args = append(args, Args(session, sessionBus)...)
 	}
 	if system != nil {
-		if err = system.checkInterfaces("system"); err != nil {
+		if err = checkInterfaces(system, "system"); err != nil {
 			return
 		}
-		args = append(args, system.Args(systemBus)...)
+		args = append(args, Args(system, systemBus)...)
 	}
 
 	final = &Final{Session: sessionBus, System: systemBus}
