@@ -5,6 +5,8 @@ import (
 	"os"
 	"strconv"
 	"sync"
+
+	"hakurei.app/container/fhs"
 )
 
 var (
@@ -16,9 +18,9 @@ var (
 )
 
 const (
-	kernelOverflowuidPath = FHSProcSys + "kernel/overflowuid"
-	kernelOverflowgidPath = FHSProcSys + "kernel/overflowgid"
-	kernelCapLastCapPath  = FHSProcSys + "kernel/cap_last_cap"
+	kernelOverflowuidPath = fhs.ProcSys + "kernel/overflowuid"
+	kernelOverflowgidPath = fhs.ProcSys + "kernel/overflowgid"
+	kernelCapLastCapPath  = fhs.ProcSys + "kernel/cap_last_cap"
 )
 
 func mustReadSysctl(msg Msg) {

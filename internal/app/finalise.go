@@ -16,6 +16,7 @@ import (
 	"syscall"
 
 	"hakurei.app/container"
+	"hakurei.app/container/fhs"
 	"hakurei.app/hst"
 	"hakurei.app/internal/app/state"
 	"hakurei.app/system"
@@ -184,7 +185,7 @@ func (k *outcome) finalise(ctx context.Context, msg container.Msg, id *state.ID,
 
 	// mount root read-only as the final setup Op
 	// TODO(ophestra): move this to spFilesystemOp after #8 and #9
-	k.container.Remount(container.AbsFHSRoot, syscall.MS_RDONLY)
+	k.container.Remount(fhs.AbsRoot, syscall.MS_RDONLY)
 
 	// append ExtraPerms last
 	for _, p := range config.ExtraPerms {

@@ -6,8 +6,8 @@ import (
 	"net"
 	"os"
 
-	"hakurei.app/container"
 	"hakurei.app/container/check"
+	"hakurei.app/container/fhs"
 )
 
 // An AppError is returned while starting an app according to [hst.Config].
@@ -85,8 +85,8 @@ func Template() *Config {
 		DirectWayland: false,
 
 		ExtraPerms: []*ExtraPermConfig{
-			{Path: container.AbsFHSVarLib.Append("hakurei/u0"), Ensure: true, Execute: true},
-			{Path: container.AbsFHSVarLib.Append("hakurei/u0/org.chromium.Chromium"), Read: true, Write: true, Execute: true},
+			{Path: fhs.AbsVarLib.Append("hakurei/u0"), Ensure: true, Execute: true},
+			{Path: fhs.AbsVarLib.Append("hakurei/u0/org.chromium.Chromium"), Read: true, Write: true, Execute: true},
 		},
 
 		Identity: 9,
@@ -112,9 +112,9 @@ func Template() *Config {
 				"GOOGLE_DEFAULT_CLIENT_SECRET": "OTJgUOQcT7lO7GsGZq2G4IlT",
 			},
 			Filesystem: []FilesystemConfigJSON{
-				{&FSBind{Target: container.AbsFHSRoot, Source: container.AbsFHSVarLib.Append("hakurei/base/org.debian"), Write: true, Special: true}},
-				{&FSBind{Target: container.AbsFHSEtc, Source: container.AbsFHSEtc, Special: true}},
-				{&FSEphemeral{Target: container.AbsFHSTmp, Write: true, Perm: 0755}},
+				{&FSBind{Target: fhs.AbsRoot, Source: fhs.AbsVarLib.Append("hakurei/base/org.debian"), Write: true, Special: true}},
+				{&FSBind{Target: fhs.AbsEtc, Source: fhs.AbsEtc, Special: true}},
+				{&FSEphemeral{Target: fhs.AbsTmp, Write: true, Perm: 0755}},
 				{&FSOverlay{
 					Target: check.MustAbs("/nix/store"),
 					Lower:  []*check.Absolute{check.MustAbs("/mnt-root/nix/.ro-store")},
@@ -122,18 +122,18 @@ func Template() *Config {
 					Work:   check.MustAbs("/mnt-root/nix/.rw-store/work"),
 				}},
 				{&FSBind{Source: check.MustAbs("/nix/store")}},
-				{&FSLink{Target: container.AbsFHSRun.Append("current-system"), Linkname: "/run/current-system", Dereference: true}},
-				{&FSLink{Target: container.AbsFHSRun.Append("opengl-driver"), Linkname: "/run/opengl-driver", Dereference: true}},
-				{&FSBind{Source: container.AbsFHSVarLib.Append("hakurei/u0/org.chromium.Chromium"),
+				{&FSLink{Target: fhs.AbsRun.Append("current-system"), Linkname: "/run/current-system", Dereference: true}},
+				{&FSLink{Target: fhs.AbsRun.Append("opengl-driver"), Linkname: "/run/opengl-driver", Dereference: true}},
+				{&FSBind{Source: fhs.AbsVarLib.Append("hakurei/u0/org.chromium.Chromium"),
 					Target: check.MustAbs("/data/data/org.chromium.Chromium"), Write: true, Ensure: true}},
-				{&FSBind{Source: container.AbsFHSDev.Append("dri"), Device: true, Optional: true}},
+				{&FSBind{Source: fhs.AbsDev.Append("dri"), Device: true, Optional: true}},
 			},
 
 			Username: "chronos",
-			Shell:    container.AbsFHSRun.Append("current-system/sw/bin/zsh"),
+			Shell:    fhs.AbsRun.Append("current-system/sw/bin/zsh"),
 			Home:     check.MustAbs("/data/data/org.chromium.Chromium"),
 
-			Path: container.AbsFHSRun.Append("current-system/sw/bin/chromium"),
+			Path: fhs.AbsRun.Append("current-system/sw/bin/chromium"),
 			Args: []string{
 				"chromium",
 				"--ignore-gpu-blocklist",

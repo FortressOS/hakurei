@@ -8,6 +8,7 @@ import (
 
 	"hakurei.app/container"
 	"hakurei.app/container/check"
+	"hakurei.app/container/fhs"
 	"hakurei.app/helper"
 )
 
@@ -35,9 +36,9 @@ func TestContainer(t *testing.T) {
 			return helper.New(ctx, nil, check.MustAbs(os.Args[0]), "helper", argsWt, stat, argF, func(z *container.Container) {
 				setOutput(&z.Stdout, &z.Stderr)
 				z.
-					Bind(container.AbsFHSRoot, container.AbsFHSRoot, 0).
-					Proc(container.AbsFHSProc).
-					Dev(container.AbsFHSDev, true)
+					Bind(fhs.AbsRoot, fhs.AbsRoot, 0).
+					Proc(fhs.AbsProc).
+					Dev(fhs.AbsDev, true)
 			}, nil)
 		})
 	})

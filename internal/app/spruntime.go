@@ -3,6 +3,7 @@ package app
 import (
 	"hakurei.app/container"
 	"hakurei.app/container/check"
+	"hakurei.app/container/fhs"
 	"hakurei.app/hst"
 	"hakurei.app/system"
 	"hakurei.app/system/acl"
@@ -27,13 +28,13 @@ func (s spRuntimeOp) toContainer(state *outcomeStateParams) error {
 		xdgSessionType  = "XDG_SESSION_TYPE"
 	)
 
-	state.runtimeDir = container.AbsFHSRunUser.Append(state.mapuid.String())
+	state.runtimeDir = fhs.AbsRunUser.Append(state.mapuid.String())
 	state.env[xdgRuntimeDir] = state.runtimeDir.String()
 	state.env[xdgSessionClass] = "user"
 	state.env[xdgSessionType] = "tty"
 
 	_, runtimeDirInst := s.commonPaths(state.outcomeState)
-	state.params.Tmpfs(container.AbsFHSRunUser, 1<<12, 0755)
+	state.params.Tmpfs(fhs.AbsRunUser, 1<<12, 0755)
 	state.params.Bind(runtimeDirInst, state.runtimeDir, container.BindWritable)
 	return nil
 }

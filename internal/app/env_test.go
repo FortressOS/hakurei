@@ -7,6 +7,7 @@ import (
 
 	"hakurei.app/container"
 	"hakurei.app/container/check"
+	"hakurei.app/container/fhs"
 	"hakurei.app/container/stub"
 	"hakurei.app/hst"
 )
@@ -23,26 +24,26 @@ func TestEnvPaths(t *testing.T) {
 		{"zero", new(EnvPaths), hst.Paths{}, "attempting to use an invalid EnvPaths"},
 
 		{"nil tempdir", &EnvPaths{
-			RuntimePath: container.AbsFHSTmp,
+			RuntimePath: fhs.AbsTmp,
 		}, hst.Paths{}, "attempting to use an invalid EnvPaths"},
 
 		{"nil runtime", &EnvPaths{
-			TempDir: container.AbsFHSTmp,
+			TempDir: fhs.AbsTmp,
 		}, hst.Paths{
-			TempDir:     container.AbsFHSTmp,
-			SharePath:   container.AbsFHSTmp.Append("hakurei.3735928559"),
-			RuntimePath: container.AbsFHSTmp.Append("hakurei.3735928559/run/compat"),
-			RunDirPath:  container.AbsFHSTmp.Append("hakurei.3735928559/run"),
+			TempDir:     fhs.AbsTmp,
+			SharePath:   fhs.AbsTmp.Append("hakurei.3735928559"),
+			RuntimePath: fhs.AbsTmp.Append("hakurei.3735928559/run/compat"),
+			RunDirPath:  fhs.AbsTmp.Append("hakurei.3735928559/run"),
 		}, ""},
 
 		{"full", &EnvPaths{
-			TempDir:     container.AbsFHSTmp,
-			RuntimePath: container.AbsFHSRunUser.Append("1000"),
+			TempDir:     fhs.AbsTmp,
+			RuntimePath: fhs.AbsRunUser.Append("1000"),
 		}, hst.Paths{
-			TempDir:     container.AbsFHSTmp,
-			SharePath:   container.AbsFHSTmp.Append("hakurei.3735928559"),
-			RuntimePath: container.AbsFHSRunUser.Append("1000"),
-			RunDirPath:  container.AbsFHSRunUser.Append("1000/hakurei"),
+			TempDir:     fhs.AbsTmp,
+			SharePath:   fhs.AbsTmp.Append("hakurei.3735928559"),
+			RuntimePath: fhs.AbsRunUser.Append("1000"),
+			RunDirPath:  fhs.AbsRunUser.Append("1000/hakurei"),
 		}, ""},
 	}
 	for _, tc := range testCases {

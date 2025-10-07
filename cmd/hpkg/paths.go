@@ -9,6 +9,7 @@ import (
 
 	"hakurei.app/container"
 	"hakurei.app/container/check"
+	"hakurei.app/container/fhs"
 	"hakurei.app/hst"
 )
 
@@ -23,16 +24,16 @@ func init() {
 	if a, err := check.NewAbs(os.Getenv("HAKUREI_DATA_HOME")); err == nil {
 		dataHome = a
 	} else {
-		dataHome = container.AbsFHSVarLib.Append("hakurei/" + strconv.Itoa(os.Getuid()))
+		dataHome = fhs.AbsVarLib.Append("hakurei/" + strconv.Itoa(os.Getuid()))
 	}
 }
 
 var (
-	pathBin = container.AbsFHSRoot.Append("bin")
+	pathBin = fhs.AbsRoot.Append("bin")
 
 	pathNix           = check.MustAbs("/nix/")
 	pathNixStore      = pathNix.Append("store/")
-	pathCurrentSystem = container.AbsFHSRun.Append("current-system")
+	pathCurrentSystem = fhs.AbsRun.Append("current-system")
 	pathSwBin         = pathCurrentSystem.Append("sw/bin/")
 	pathShell         = pathSwBin.Append(bash)
 
@@ -89,28 +90,28 @@ func pathSetByApp(id string) *appPathSet {
 func appendGPUFilesystem(config *hst.Config) {
 	config.Container.Filesystem = append(config.Container.Filesystem, []hst.FilesystemConfigJSON{
 		// flatpak commit 763a686d874dd668f0236f911de00b80766ffe79
-		{FilesystemConfig: &hst.FSBind{Source: container.AbsFHSDev.Append("dri"), Device: true, Optional: true}},
+		{FilesystemConfig: &hst.FSBind{Source: fhs.AbsDev.Append("dri"), Device: true, Optional: true}},
 		// mali
-		{FilesystemConfig: &hst.FSBind{Source: container.AbsFHSDev.Append("mali"), Device: true, Optional: true}},
-		{FilesystemConfig: &hst.FSBind{Source: container.AbsFHSDev.Append("mali0"), Device: true, Optional: true}},
-		{FilesystemConfig: &hst.FSBind{Source: container.AbsFHSDev.Append("umplock"), Device: true, Optional: true}},
+		{FilesystemConfig: &hst.FSBind{Source: fhs.AbsDev.Append("mali"), Device: true, Optional: true}},
+		{FilesystemConfig: &hst.FSBind{Source: fhs.AbsDev.Append("mali0"), Device: true, Optional: true}},
+		{FilesystemConfig: &hst.FSBind{Source: fhs.AbsDev.Append("umplock"), Device: true, Optional: true}},
 		// nvidia
-		{FilesystemConfig: &hst.FSBind{Source: container.AbsFHSDev.Append("nvidiactl"), Device: true, Optional: true}},
-		{FilesystemConfig: &hst.FSBind{Source: container.AbsFHSDev.Append("nvidia-modeset"), Device: true, Optional: true}},
+		{FilesystemConfig: &hst.FSBind{Source: fhs.AbsDev.Append("nvidiactl"), Device: true, Optional: true}},
+		{FilesystemConfig: &hst.FSBind{Source: fhs.AbsDev.Append("nvidia-modeset"), Device: true, Optional: true}},
 		// nvidia OpenCL/CUDA
-		{FilesystemConfig: &hst.FSBind{Source: container.AbsFHSDev.Append("nvidia-uvm"), Device: true, Optional: true}},
-		{FilesystemConfig: &hst.FSBind{Source: container.AbsFHSDev.Append("nvidia-uvm-tools"), Device: true, Optional: true}},
+		{FilesystemConfig: &hst.FSBind{Source: fhs.AbsDev.Append("nvidia-uvm"), Device: true, Optional: true}},
+		{FilesystemConfig: &hst.FSBind{Source: fhs.AbsDev.Append("nvidia-uvm-tools"), Device: true, Optional: true}},
 
 		// flatpak commit d2dff2875bb3b7e2cd92d8204088d743fd07f3ff
-		{FilesystemConfig: &hst.FSBind{Source: container.AbsFHSDev.Append("nvidia0"), Device: true, Optional: true}}, {FilesystemConfig: &hst.FSBind{Source: container.AbsFHSDev.Append("nvidia1"), Device: true, Optional: true}},
-		{FilesystemConfig: &hst.FSBind{Source: container.AbsFHSDev.Append("nvidia2"), Device: true, Optional: true}}, {FilesystemConfig: &hst.FSBind{Source: container.AbsFHSDev.Append("nvidia3"), Device: true, Optional: true}},
-		{FilesystemConfig: &hst.FSBind{Source: container.AbsFHSDev.Append("nvidia4"), Device: true, Optional: true}}, {FilesystemConfig: &hst.FSBind{Source: container.AbsFHSDev.Append("nvidia5"), Device: true, Optional: true}},
-		{FilesystemConfig: &hst.FSBind{Source: container.AbsFHSDev.Append("nvidia6"), Device: true, Optional: true}}, {FilesystemConfig: &hst.FSBind{Source: container.AbsFHSDev.Append("nvidia7"), Device: true, Optional: true}},
-		{FilesystemConfig: &hst.FSBind{Source: container.AbsFHSDev.Append("nvidia8"), Device: true, Optional: true}}, {FilesystemConfig: &hst.FSBind{Source: container.AbsFHSDev.Append("nvidia9"), Device: true, Optional: true}},
-		{FilesystemConfig: &hst.FSBind{Source: container.AbsFHSDev.Append("nvidia10"), Device: true, Optional: true}}, {FilesystemConfig: &hst.FSBind{Source: container.AbsFHSDev.Append("nvidia11"), Device: true, Optional: true}},
-		{FilesystemConfig: &hst.FSBind{Source: container.AbsFHSDev.Append("nvidia12"), Device: true, Optional: true}}, {FilesystemConfig: &hst.FSBind{Source: container.AbsFHSDev.Append("nvidia13"), Device: true, Optional: true}},
-		{FilesystemConfig: &hst.FSBind{Source: container.AbsFHSDev.Append("nvidia14"), Device: true, Optional: true}}, {FilesystemConfig: &hst.FSBind{Source: container.AbsFHSDev.Append("nvidia15"), Device: true, Optional: true}},
-		{FilesystemConfig: &hst.FSBind{Source: container.AbsFHSDev.Append("nvidia16"), Device: true, Optional: true}}, {FilesystemConfig: &hst.FSBind{Source: container.AbsFHSDev.Append("nvidia17"), Device: true, Optional: true}},
-		{FilesystemConfig: &hst.FSBind{Source: container.AbsFHSDev.Append("nvidia18"), Device: true, Optional: true}}, {FilesystemConfig: &hst.FSBind{Source: container.AbsFHSDev.Append("nvidia19"), Device: true, Optional: true}},
+		{FilesystemConfig: &hst.FSBind{Source: fhs.AbsDev.Append("nvidia0"), Device: true, Optional: true}}, {FilesystemConfig: &hst.FSBind{Source: fhs.AbsDev.Append("nvidia1"), Device: true, Optional: true}},
+		{FilesystemConfig: &hst.FSBind{Source: fhs.AbsDev.Append("nvidia2"), Device: true, Optional: true}}, {FilesystemConfig: &hst.FSBind{Source: fhs.AbsDev.Append("nvidia3"), Device: true, Optional: true}},
+		{FilesystemConfig: &hst.FSBind{Source: fhs.AbsDev.Append("nvidia4"), Device: true, Optional: true}}, {FilesystemConfig: &hst.FSBind{Source: fhs.AbsDev.Append("nvidia5"), Device: true, Optional: true}},
+		{FilesystemConfig: &hst.FSBind{Source: fhs.AbsDev.Append("nvidia6"), Device: true, Optional: true}}, {FilesystemConfig: &hst.FSBind{Source: fhs.AbsDev.Append("nvidia7"), Device: true, Optional: true}},
+		{FilesystemConfig: &hst.FSBind{Source: fhs.AbsDev.Append("nvidia8"), Device: true, Optional: true}}, {FilesystemConfig: &hst.FSBind{Source: fhs.AbsDev.Append("nvidia9"), Device: true, Optional: true}},
+		{FilesystemConfig: &hst.FSBind{Source: fhs.AbsDev.Append("nvidia10"), Device: true, Optional: true}}, {FilesystemConfig: &hst.FSBind{Source: fhs.AbsDev.Append("nvidia11"), Device: true, Optional: true}},
+		{FilesystemConfig: &hst.FSBind{Source: fhs.AbsDev.Append("nvidia12"), Device: true, Optional: true}}, {FilesystemConfig: &hst.FSBind{Source: fhs.AbsDev.Append("nvidia13"), Device: true, Optional: true}},
+		{FilesystemConfig: &hst.FSBind{Source: fhs.AbsDev.Append("nvidia14"), Device: true, Optional: true}}, {FilesystemConfig: &hst.FSBind{Source: fhs.AbsDev.Append("nvidia15"), Device: true, Optional: true}},
+		{FilesystemConfig: &hst.FSBind{Source: fhs.AbsDev.Append("nvidia16"), Device: true, Optional: true}}, {FilesystemConfig: &hst.FSBind{Source: fhs.AbsDev.Append("nvidia17"), Device: true, Optional: true}},
+		{FilesystemConfig: &hst.FSBind{Source: fhs.AbsDev.Append("nvidia18"), Device: true, Optional: true}}, {FilesystemConfig: &hst.FSBind{Source: fhs.AbsDev.Append("nvidia19"), Device: true, Optional: true}},
 	}...)
 }

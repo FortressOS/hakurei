@@ -17,6 +17,7 @@ import (
 	"hakurei.app/command"
 	"hakurei.app/container"
 	"hakurei.app/container/check"
+	"hakurei.app/container/fhs"
 	"hakurei.app/hst"
 	"hakurei.app/internal"
 	"hakurei.app/internal/app"
@@ -98,7 +99,7 @@ func buildCommand(ctx context.Context, msg container.Msg, early *earlyHardeningE
 							Gid:      us,
 							Username: "chronos",
 							Name:     "Hakurei Permissive Default",
-							HomeDir:  container.FHSVarEmpty,
+							HomeDir:  fhs.VarEmpty,
 						}
 					} else {
 						passwd = u
@@ -107,7 +108,7 @@ func buildCommand(ctx context.Context, msg container.Msg, early *earlyHardeningE
 			)
 
 			// paths are identical, resolve inner shell and program path
-			shell := container.AbsFHSRoot.Append("bin", "sh")
+			shell := fhs.AbsRoot.Append("bin", "sh")
 			if a, err := check.NewAbs(os.Getenv("SHELL")); err == nil {
 				shell = a
 			}
@@ -151,8 +152,8 @@ func buildCommand(ctx context.Context, msg container.Msg, early *earlyHardeningE
 					Filesystem: []hst.FilesystemConfigJSON{
 						// autoroot, includes the home directory
 						{FilesystemConfig: &hst.FSBind{
-							Target:  container.AbsFHSRoot,
-							Source:  container.AbsFHSRoot,
+							Target:  fhs.AbsRoot,
+							Source:  fhs.AbsRoot,
 							Write:   true,
 							Special: true,
 						}},
@@ -169,7 +170,7 @@ func buildCommand(ctx context.Context, msg container.Msg, early *earlyHardeningE
 			// bind GPU stuff
 			if et&(hst.EX11|hst.EWayland) != 0 {
 				config.Container.Filesystem = append(config.Container.Filesystem, hst.FilesystemConfigJSON{FilesystemConfig: &hst.FSBind{
-					Source:   container.AbsFHSDev.Append("dri"),
+					Source:   fhs.AbsDev.Append("dri"),
 					Device:   true,
 					Optional: true,
 				}})
@@ -178,15 +179,15 @@ func buildCommand(ctx context.Context, msg container.Msg, early *earlyHardeningE
 			config.Container.Filesystem = append(config.Container.Filesystem,
 				// opportunistically bind kvm
 				hst.FilesystemConfigJSON{FilesystemConfig: &hst.FSBind{
-					Source:   container.AbsFHSDev.Append("kvm"),
+					Source:   fhs.AbsDev.Append("kvm"),
 					Device:   true,
 					Optional: true,
 				}},
 
 				// do autoetc last
 				hst.FilesystemConfigJSON{FilesystemConfig: &hst.FSBind{
-					Target:  container.AbsFHSEtc,
-					Source:  container.AbsFHSEtc,
+					Target:  fhs.AbsEtc,
+					Source:  fhs.AbsEtc,
 					Special: true,
 				}},
 			)

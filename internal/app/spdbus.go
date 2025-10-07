@@ -1,7 +1,7 @@
 package app
 
 import (
-	"hakurei.app/container"
+	"hakurei.app/container/fhs"
 	"hakurei.app/hst"
 	"hakurei.app/system/acl"
 	"hakurei.app/system/dbus"
@@ -42,7 +42,7 @@ func (s *spDBusOp) toContainer(state *outcomeStateParams) error {
 	state.env["DBUS_SESSION_BUS_ADDRESS"] = "unix:path=" + sessionInner.String()
 	state.params.Bind(state.instancePath().Append("bus"), sessionInner, 0)
 	if s.ProxySystem {
-		systemInner := container.AbsFHSRun.Append("dbus/system_bus_socket")
+		systemInner := fhs.AbsRun.Append("dbus/system_bus_socket")
 		state.env["DBUS_SYSTEM_BUS_ADDRESS"] = "unix:path=" + systemInner.String()
 		state.params.Bind(state.instancePath().Append("system_bus_socket"), systemInner, 0)
 	}

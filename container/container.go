@@ -16,6 +16,7 @@ import (
 
 	"hakurei.app/container/bits"
 	"hakurei.app/container/check"
+	"hakurei.app/container/fhs"
 	"hakurei.app/container/seccomp"
 )
 
@@ -200,7 +201,7 @@ func (p *Container) Start() error {
 	} else {
 		p.cmd.Cancel = func() error { return p.cmd.Process.Signal(CancelSignal) }
 	}
-	p.cmd.Dir = FHSRoot
+	p.cmd.Dir = fhs.Root
 	p.cmd.SysProcAttr = &SysProcAttr{
 		Setsid:    !p.RetainSession,
 		Pdeathsig: SIGKILL,
@@ -316,7 +317,7 @@ func (p *Container) Serve() error {
 
 	// do not transmit nil
 	if p.Dir == nil {
-		p.Dir = AbsFHSRoot
+		p.Dir = fhs.AbsRoot
 	}
 	if p.SeccompRules == nil {
 		p.SeccompRules = make([]seccomp.NativeRule, 0)

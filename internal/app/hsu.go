@@ -10,6 +10,7 @@ import (
 	"sync"
 
 	"hakurei.app/container"
+	"hakurei.app/container/fhs"
 	"hakurei.app/hst"
 )
 
@@ -45,7 +46,7 @@ func (h *Hsu) ID() (int, error) {
 		cmd.Path = hsuPath
 		cmd.Stderr = os.Stderr // pass through fatal messages
 		cmd.Env = make([]string, 0)
-		cmd.Dir = container.FHSRoot
+		cmd.Dir = fhs.Root
 		var (
 			p         []byte
 			exitError *exec.ExitError

@@ -13,6 +13,7 @@ import (
 	"hakurei.app/command"
 	"hakurei.app/container"
 	"hakurei.app/container/check"
+	"hakurei.app/container/fhs"
 	"hakurei.app/hst"
 )
 
@@ -275,12 +276,12 @@ func main() {
 						"path:" + a.NixGL + "#nixVulkanNvidia",
 				}, true, func(config *hst.Config) *hst.Config {
 					config.Container.Filesystem = append(config.Container.Filesystem, []hst.FilesystemConfigJSON{
-						{FilesystemConfig: &hst.FSBind{Source: container.AbsFHSEtc.Append("resolv.conf"), Optional: true}},
-						{FilesystemConfig: &hst.FSBind{Source: container.AbsFHSSys.Append("block"), Optional: true}},
-						{FilesystemConfig: &hst.FSBind{Source: container.AbsFHSSys.Append("bus"), Optional: true}},
-						{FilesystemConfig: &hst.FSBind{Source: container.AbsFHSSys.Append("class"), Optional: true}},
-						{FilesystemConfig: &hst.FSBind{Source: container.AbsFHSSys.Append("dev"), Optional: true}},
-						{FilesystemConfig: &hst.FSBind{Source: container.AbsFHSSys.Append("devices"), Optional: true}},
+						{FilesystemConfig: &hst.FSBind{Source: fhs.AbsEtc.Append("resolv.conf"), Optional: true}},
+						{FilesystemConfig: &hst.FSBind{Source: fhs.AbsSys.Append("block"), Optional: true}},
+						{FilesystemConfig: &hst.FSBind{Source: fhs.AbsSys.Append("bus"), Optional: true}},
+						{FilesystemConfig: &hst.FSBind{Source: fhs.AbsSys.Append("class"), Optional: true}},
+						{FilesystemConfig: &hst.FSBind{Source: fhs.AbsSys.Append("dev"), Optional: true}},
+						{FilesystemConfig: &hst.FSBind{Source: fhs.AbsSys.Append("devices"), Optional: true}},
 					}...)
 					appendGPUFilesystem(config)
 					return config

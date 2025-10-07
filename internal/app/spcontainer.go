@@ -10,12 +10,13 @@ import (
 	"hakurei.app/container"
 	"hakurei.app/container/bits"
 	"hakurei.app/container/check"
+	"hakurei.app/container/fhs"
 	"hakurei.app/container/seccomp"
 	"hakurei.app/hst"
 	"hakurei.app/system/dbus"
 )
 
-const varRunNscd = container.FHSVar + "run/nscd"
+const varRunNscd = fhs.Var + "run/nscd"
 
 // spParamsOp initialises unordered fields of [container.Params] and the optional root filesystem.
 // This outcomeOp is hardcoded to always run first.
@@ -98,15 +99,15 @@ func (s *spParamsOp) toContainer(state *outcomeStateParams) error {
 
 	// early mount points
 	state.params.
-		Proc(container.AbsFHSProc).
+		Proc(fhs.AbsProc).
 		Tmpfs(hst.AbsTmp, 1<<12, 0755)
 	if !state.Container.Device {
-		state.params.DevWritable(container.AbsFHSDev, true)
+		state.params.DevWritable(fhs.AbsDev, true)
 	} else {
-		state.params.Bind(container.AbsFHSDev, container.AbsFHSDev, container.BindWritable|container.BindDevice)
+		state.params.Bind(fhs.AbsDev, fhs.AbsDev, container.BindWritable|container.BindDevice)
 	}
 	// /dev is mounted readonly later on, this prevents /dev/shm from going readonly with it
-	state.params.Tmpfs(container.AbsFHSDev.Append("shm"), 0, 01777)
+	state.params.Tmpfs(fhs.AbsDev.Append("shm"), 0, 01777)
 
 	return nil
 }
@@ -142,7 +143,7 @@ func (s spFilesystemOp) toSystem(state *outcomeStateSys, _ *hst.Config) error {
 					if path.IsAbs(pair[1]) {
 						// get parent dir of socket
 						dir := path.Dir(pair[1])
-						if dir == "." || dir == container.FHSRoot {
+						if dir == "." || dir == fhs.Root {
 							state.msg.Verbosef("dbus socket %q is in an unusual location", pair[1])
 						}
 						hidePaths = append(hidePaths, dir)
@@ -267,7 +268,7 @@ func (s spFilesystemOp) toContainer(state *outcomeStateParams) error {
 
 	// no more configured paths beyond this point
 	if !state.Container.Device {
-		state.params.Remount(container.AbsFHSDev, syscall.MS_RDONLY)
+		state.params.Remount(fhs.AbsDev, syscall.MS_RDONLY)
 	}
 	return nil
 }
@@ -278,7 +279,7 @@ func resolveRoot(c *hst.ContainerConfig) (rootfs hst.FilesystemConfig, filesyste
 	// root filesystem special case
 	filesystem = c.Filesystem
 	// valid happens late, so root gets it here
-	if len(filesystem) > 0 && filesystem[0].Valid() && filesystem[0].Path().String() == container.FHSRoot {
+	if len(filesystem) > 0 && filesystem[0].Valid() && filesystem[0].Path().String() == fhs.Root {
 		// if the first element targets /, it is inserted early and excluded from path hiding
 		rootfs = filesystem[0].FilesystemConfig
 		filesystem = filesystem[1:]

@@ -14,6 +14,7 @@ import (
 
 	"hakurei.app/container"
 	"hakurei.app/container/check"
+	"hakurei.app/container/fhs"
 	"hakurei.app/hst"
 	"hakurei.app/internal"
 	"hakurei.app/internal/app/state"
@@ -253,7 +254,7 @@ func (k *outcome) main(msg container.Msg) {
 
 	ms.cmd = exec.CommandContext(ctx, hsuPath.String())
 	ms.cmd.Stdin, ms.cmd.Stdout, ms.cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
-	ms.cmd.Dir = container.FHSRoot // container init enters final working directory
+	ms.cmd.Dir = fhs.Root // container init enters final working directory
 	// shim runs in the same session as monitor; see shim.go for behaviour
 	ms.cmd.Cancel = func() error { return ms.cmd.Process.Signal(syscall.SIGCONT) }
 

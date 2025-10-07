@@ -6,6 +6,7 @@ import (
 
 	"hakurei.app/container"
 	"hakurei.app/container/check"
+	"hakurei.app/container/fhs"
 )
 
 func init() { gob.Register(new(FSBind)) }
@@ -29,19 +30,19 @@ type FSBind struct {
 	Optional bool `json:"optional,omitempty"`
 
 	// enable special behaviour:
-	// for autoroot, Target must be set to [container.AbsFHSRoot];
-	// for autoetc, Target must be set to [container.AbsFHSEtc]
+	// for autoroot, Target must be set to [fhs.AbsRoot];
+	// for autoetc, Target must be set to [fhs.AbsEtc]
 	Special bool `json:"special,omitempty"`
 }
 
 // IsAutoRoot returns whether this FSBind has autoroot behaviour enabled.
 func (b *FSBind) IsAutoRoot() bool {
-	return b.Valid() && b.Special && b.Target.String() == container.FHSRoot
+	return b.Valid() && b.Special && b.Target.String() == fhs.Root
 }
 
 // IsAutoEtc returns whether this FSBind has autoetc behaviour enabled.
 func (b *FSBind) IsAutoEtc() bool {
-	return b.Valid() && b.Special && b.Target.String() == container.FHSEtc
+	return b.Valid() && b.Special && b.Target.String() == fhs.Etc
 }
 
 func (b *FSBind) Valid() bool {
@@ -56,7 +57,7 @@ func (b *FSBind) Valid() bool {
 			return false
 		} else {
 			switch b.Target.String() {
-			case container.FHSRoot, container.FHSEtc:
+			case fhs.Root, fhs.Etc:
 				break
 
 			default:
@@ -138,7 +139,7 @@ func (b *FSBind) String() string {
 			if flagSym != "" {
 				prefix += ":" + flagSym
 			}
-			if b.Source.String() != container.FHSRoot {
+			if b.Source.String() != fhs.Root {
 				return prefix + ":" + b.Source.String()
 			}
 			return prefix

@@ -5,8 +5,8 @@ import (
 	"log"
 	"os"
 
-	"hakurei.app/container"
 	"hakurei.app/container/check"
+	"hakurei.app/container/fhs"
 	"hakurei.app/hst"
 )
 
@@ -86,18 +86,18 @@ func (app *appInfo) toHst(pathSet *appPathSet, pathname *check.Absolute, argv []
 			MapRealUID:   app.MapRealUID,
 			Multiarch:    app.Multiarch,
 			Filesystem: []hst.FilesystemConfigJSON{
-				{FilesystemConfig: &hst.FSBind{Target: container.AbsFHSEtc, Source: pathSet.cacheDir.Append("etc"), Special: true}},
+				{FilesystemConfig: &hst.FSBind{Target: fhs.AbsEtc, Source: pathSet.cacheDir.Append("etc"), Special: true}},
 				{FilesystemConfig: &hst.FSBind{Source: pathSet.nixPath.Append("store"), Target: pathNixStore}},
 				{FilesystemConfig: &hst.FSLink{Target: pathCurrentSystem, Linkname: app.CurrentSystem.String()}},
 				{FilesystemConfig: &hst.FSLink{Target: pathBin, Linkname: pathSwBin.String()}},
-				{FilesystemConfig: &hst.FSLink{Target: container.AbsFHSUsrBin, Linkname: pathSwBin.String()}},
+				{FilesystemConfig: &hst.FSLink{Target: fhs.AbsUsrBin, Linkname: pathSwBin.String()}},
 				{FilesystemConfig: &hst.FSBind{Source: pathSet.metaPath, Target: hst.AbsTmp.Append("app")}},
-				{FilesystemConfig: &hst.FSBind{Source: container.AbsFHSEtc.Append("resolv.conf"), Optional: true}},
-				{FilesystemConfig: &hst.FSBind{Source: container.AbsFHSSys.Append("block"), Optional: true}},
-				{FilesystemConfig: &hst.FSBind{Source: container.AbsFHSSys.Append("bus"), Optional: true}},
-				{FilesystemConfig: &hst.FSBind{Source: container.AbsFHSSys.Append("class"), Optional: true}},
-				{FilesystemConfig: &hst.FSBind{Source: container.AbsFHSSys.Append("dev"), Optional: true}},
-				{FilesystemConfig: &hst.FSBind{Source: container.AbsFHSSys.Append("devices"), Optional: true}},
+				{FilesystemConfig: &hst.FSBind{Source: fhs.AbsEtc.Append("resolv.conf"), Optional: true}},
+				{FilesystemConfig: &hst.FSBind{Source: fhs.AbsSys.Append("block"), Optional: true}},
+				{FilesystemConfig: &hst.FSBind{Source: fhs.AbsSys.Append("bus"), Optional: true}},
+				{FilesystemConfig: &hst.FSBind{Source: fhs.AbsSys.Append("class"), Optional: true}},
+				{FilesystemConfig: &hst.FSBind{Source: fhs.AbsSys.Append("dev"), Optional: true}},
+				{FilesystemConfig: &hst.FSBind{Source: fhs.AbsSys.Append("devices"), Optional: true}},
 				{FilesystemConfig: &hst.FSBind{Target: pathDataData.Append(app.ID), Source: pathSet.homeDir, Write: true, Ensure: true}},
 			},
 

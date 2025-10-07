@@ -7,6 +7,7 @@ import (
 	. "syscall"
 
 	"hakurei.app/container/check"
+	"hakurei.app/container/fhs"
 )
 
 func init() { gob.Register(new(MountDevOp)) }
@@ -49,7 +50,7 @@ func (d *MountDevOp) apply(state *setupState, k syscallDispatcher) error {
 		}
 		if err := k.bindMount(
 			state,
-			toHost(FHSDev+name),
+			toHost(fhs.Dev+name),
 			targetPath,
 			0,
 		); err != nil {
@@ -58,15 +59,15 @@ func (d *MountDevOp) apply(state *setupState, k syscallDispatcher) error {
 	}
 	for i, name := range []string{"stdin", "stdout", "stderr"} {
 		if err := k.symlink(
-			FHSProc+"self/fd/"+string(rune(i+'0')),
+			fhs.Proc+"self/fd/"+string(rune(i+'0')),
 			path.Join(target, name),
 		); err != nil {
 			return err
 		}
 	}
 	for _, pair := range [][2]string{
-		{FHSProc + "self/fd", "fd"},
-		{FHSProc + "kcore", "core"},
+		{fhs.Proc + "self/fd", "fd"},
+		{fhs.Proc + "kcore", "core"},
 		{"pts/ptmx", "ptmx"},
 	} {
 		if err := k.symlink(pair[0], path.Join(target, pair[1])); err != nil {

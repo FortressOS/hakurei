@@ -11,6 +11,7 @@ import (
 	"hakurei.app/container"
 	"hakurei.app/container/bits"
 	"hakurei.app/container/check"
+	"hakurei.app/container/fhs"
 	"hakurei.app/container/seccomp"
 )
 
@@ -43,9 +44,9 @@ func Exec(ctx context.Context, msg container.Msg, p string) ([]*Entry, error) {
 	z.Stdout = stdout
 	z.Stderr = stderr
 	z.
-		Bind(container.AbsFHSRoot, container.AbsFHSRoot, 0).
-		Proc(container.AbsFHSProc).
-		Dev(container.AbsFHSDev, false)
+		Bind(fhs.AbsRoot, fhs.AbsRoot, 0).
+		Proc(fhs.AbsProc).
+		Dev(fhs.AbsDev, false)
 
 	if err := z.Start(); err != nil {
 		return nil, err

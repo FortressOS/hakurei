@@ -17,6 +17,7 @@ import (
 	"hakurei.app/container"
 	"hakurei.app/container/bits"
 	"hakurei.app/container/check"
+	"hakurei.app/container/fhs"
 	"hakurei.app/hst"
 	"hakurei.app/internal/app/state"
 	"hakurei.app/system"
@@ -42,19 +43,19 @@ func TestApp(t *testing.T) {
 
 				Filesystem: []hst.FilesystemConfigJSON{
 					{FilesystemConfig: &hst.FSBind{
-						Target:  container.AbsFHSRoot,
-						Source:  container.AbsFHSRoot,
+						Target:  fhs.AbsRoot,
+						Source:  fhs.AbsRoot,
 						Write:   true,
 						Special: true,
 					}},
 					{FilesystemConfig: &hst.FSBind{
-						Source:   container.AbsFHSDev.Append("kvm"),
+						Source:   fhs.AbsDev.Append("kvm"),
 						Device:   true,
 						Optional: true,
 					}},
 					{FilesystemConfig: &hst.FSBind{
-						Target:  container.AbsFHSEtc,
-						Source:  container.AbsFHSEtc,
+						Target:  fhs.AbsEtc,
+						Source:  fhs.AbsEtc,
 						Special: true,
 					}},
 				},
@@ -160,24 +161,24 @@ func TestApp(t *testing.T) {
 
 					Filesystem: []hst.FilesystemConfigJSON{
 						{FilesystemConfig: &hst.FSBind{
-							Target:  container.AbsFHSRoot,
-							Source:  container.AbsFHSRoot,
+							Target:  fhs.AbsRoot,
+							Source:  fhs.AbsRoot,
 							Write:   true,
 							Special: true,
 						}},
 						{FilesystemConfig: &hst.FSBind{
-							Source:   container.AbsFHSDev.Append("dri"),
+							Source:   fhs.AbsDev.Append("dri"),
 							Device:   true,
 							Optional: true,
 						}},
 						{FilesystemConfig: &hst.FSBind{
-							Source:   container.AbsFHSDev.Append("kvm"),
+							Source:   fhs.AbsDev.Append("kvm"),
 							Device:   true,
 							Optional: true,
 						}},
 						{FilesystemConfig: &hst.FSBind{
-							Target:  container.AbsFHSEtc,
-							Source:  container.AbsFHSEtc,
+							Target:  fhs.AbsEtc,
+							Source:  fhs.AbsEtc,
 							Special: true,
 						}},
 					},

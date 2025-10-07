@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"hakurei.app/container/check"
+	"hakurei.app/container/fhs"
 )
 
 func init() { gob.Register(new(AutoEtcOp)) }
@@ -13,7 +14,7 @@ func init() { gob.Register(new(AutoEtcOp)) }
 // This is not a generic setup op. It is implemented here to reduce ipc overhead.
 func (f *Ops) Etc(host *check.Absolute, prefix string) *Ops {
 	e := &AutoEtcOp{prefix}
-	f.Mkdir(AbsFHSEtc, 0755)
+	f.Mkdir(fhs.AbsEtc, 0755)
 	f.Bind(host, e.hostPath(), 0)
 	*f = append(*f, e)
 	return f
@@ -29,7 +30,7 @@ func (e *AutoEtcOp) apply(state *setupState, k syscallDispatcher) error {
 	}
 	state.nonrepeatable |= nrAutoEtc
 
-	const target = sysrootPath + FHSEtc
+	const target = sysrootPath + fhs.Etc
 	rel := e.hostRel() + "/"
 
 	if err := k.mkdirAll(target, 0755); err != nil {
@@ -44,7 +45,7 @@ func (e *AutoEtcOp) apply(state *setupState, k syscallDispatcher) error {
 			case ".host", "passwd", "group":
 
 			case "mtab":
-				if err = k.symlink(FHSProc+"mounts", target+n); err != nil {
+				if err = k.symlink(fhs.Proc+"mounts", target+n); err != nil {
 					return err
 				}
 
@@ -59,7 +60,7 @@ func (e *AutoEtcOp) apply(state *setupState, k syscallDispatcher) error {
 	return nil
 }
 
-func (e *AutoEtcOp) hostPath() *check.Absolute { return AbsFHSEtc.Append(e.hostRel()) }
+func (e *AutoEtcOp) hostPath() *check.Absolute { return fhs.AbsEtc.Append(e.hostRel()) }
 func (e *AutoEtcOp) hostRel() string           { return ".host/" + e.Prefix }
 
 func (e *AutoEtcOp) Is(op Op) bool {

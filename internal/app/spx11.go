@@ -7,13 +7,13 @@ import (
 	"strconv"
 	"strings"
 
-	"hakurei.app/container"
 	"hakurei.app/container/check"
+	"hakurei.app/container/fhs"
 	"hakurei.app/hst"
 	"hakurei.app/system/acl"
 )
 
-var absX11SocketDir = container.AbsFHSTmp.Append(".X11-unix")
+var absX11SocketDir = fhs.AbsTmp.Append(".X11-unix")
 
 // spX11Op exports the X11 display server to the container.
 type spX11Op struct {

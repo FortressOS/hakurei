@@ -7,6 +7,7 @@ import (
 
 	"hakurei.app/container"
 	"hakurei.app/container/check"
+	"hakurei.app/container/fhs"
 	"hakurei.app/hst"
 )
 
@@ -33,11 +34,11 @@ func withNixDaemon(
 			Multiarch: true,
 			Tty:       dropShell,
 			Filesystem: []hst.FilesystemConfigJSON{
-				{FilesystemConfig: &hst.FSBind{Target: container.AbsFHSEtc, Source: pathSet.cacheDir.Append("etc"), Special: true}},
+				{FilesystemConfig: &hst.FSBind{Target: fhs.AbsEtc, Source: pathSet.cacheDir.Append("etc"), Special: true}},
 				{FilesystemConfig: &hst.FSBind{Source: pathSet.nixPath, Target: pathNix, Write: true}},
 				{FilesystemConfig: &hst.FSLink{Target: pathCurrentSystem, Linkname: app.CurrentSystem.String()}},
 				{FilesystemConfig: &hst.FSLink{Target: pathBin, Linkname: pathSwBin.String()}},
-				{FilesystemConfig: &hst.FSLink{Target: container.AbsFHSUsrBin, Linkname: pathSwBin.String()}},
+				{FilesystemConfig: &hst.FSLink{Target: fhs.AbsUsrBin, Linkname: pathSwBin.String()}},
 				{FilesystemConfig: &hst.FSBind{Target: pathDataData.Append(app.ID), Source: pathSet.homeDir, Write: true, Ensure: true}},
 			},
 
@@ -82,11 +83,11 @@ func withCacheDir(
 			Multiarch: true,
 			Tty:       dropShell,
 			Filesystem: []hst.FilesystemConfigJSON{
-				{FilesystemConfig: &hst.FSBind{Target: container.AbsFHSEtc, Source: workDir.Append(container.FHSEtc), Special: true}},
+				{FilesystemConfig: &hst.FSBind{Target: fhs.AbsEtc, Source: workDir.Append(fhs.Etc), Special: true}},
 				{FilesystemConfig: &hst.FSBind{Source: workDir.Append("nix"), Target: pathNix}},
 				{FilesystemConfig: &hst.FSLink{Target: pathCurrentSystem, Linkname: app.CurrentSystem.String()}},
 				{FilesystemConfig: &hst.FSLink{Target: pathBin, Linkname: pathSwBin.String()}},
-				{FilesystemConfig: &hst.FSLink{Target: container.AbsFHSUsrBin, Linkname: pathSwBin.String()}},
+				{FilesystemConfig: &hst.FSLink{Target: fhs.AbsUsrBin, Linkname: pathSwBin.String()}},
 				{FilesystemConfig: &hst.FSBind{Source: workDir, Target: hst.AbsTmp.Append("bundle")}},
 				{FilesystemConfig: &hst.FSBind{Target: pathDataData.Append(app.ID, "cache"), Source: pathSet.cacheDir, Write: true, Ensure: true}},
 			},

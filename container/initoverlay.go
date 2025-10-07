@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"hakurei.app/container/check"
+	"hakurei.app/container/fhs"
 )
 
 const (
@@ -67,7 +68,7 @@ func (f *Ops) Overlay(target, state, work *check.Absolute, layers ...*check.Abso
 // OverlayEphemeral appends an [Op] that mounts the overlay pseudo filesystem on [MountOverlayOp.Target]
 // with an ephemeral upperdir and workdir.
 func (f *Ops) OverlayEphemeral(target *check.Absolute, layers ...*check.Absolute) *Ops {
-	return f.Overlay(target, AbsFHSRoot, nil, layers...)
+	return f.Overlay(target, fhs.AbsRoot, nil, layers...)
 }
 
 // OverlayReadonly appends an [Op] that mounts the overlay pseudo filesystem readonly on [MountOverlayOp.Target]
@@ -85,7 +86,7 @@ type MountOverlayOp struct {
 	lower []string
 	// The upperdir is normally on a writable filesystem.
 	//
-	// If Work is nil and Upper holds the special value [AbsFHSRoot],
+	// If Work is nil and Upper holds the special value [fhs.AbsRoot],
 	// an ephemeral upperdir and workdir will be set up.
 	//
 	// If both Work and Upper are nil, upperdir and workdir is omitted and the overlay is mounted readonly.
@@ -119,7 +120,7 @@ func (o *MountOverlayOp) Valid() bool {
 func (o *MountOverlayOp) early(_ *setupState, k syscallDispatcher) error {
 	if o.Work == nil && o.Upper != nil {
 		switch o.Upper.String() {
-		case FHSRoot: // ephemeral
+		case fhs.Root: // ephemeral
 			o.ephemeral = true // intermediate root not yet available
 
 		default:
@@ -174,10 +175,10 @@ func (o *MountOverlayOp) apply(state *setupState, k syscallDispatcher) error {
 	if o.ephemeral {
 		var err error
 		// these directories are created internally, therefore early (absolute, symlink, prefix, escape) is bypassed
-		if o.upper, err = k.mkdirTemp(FHSRoot, intermediatePatternOverlayUpper); err != nil {
+		if o.upper, err = k.mkdirTemp(fhs.Root, intermediatePatternOverlayUpper); err != nil {
 			return err
 		}
-		if o.work, err = k.mkdirTemp(FHSRoot, intermediatePatternOverlayWork); err != nil {
+		if o.work, err = k.mkdirTemp(fhs.Root, intermediatePatternOverlayWork); err != nil {
 			return err
 		}
 	}

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"syscall"
 
-	"hakurei.app/container"
+	"hakurei.app/container/fhs"
 	"hakurei.app/hst"
 )
 
@@ -34,14 +34,14 @@ func (s spAccountOp) toContainer(state *outcomeStateParams) error {
 	state.env["SHELL"] = state.Container.Shell.String()
 
 	state.params.
-		Place(container.AbsFHSEtc.Append("passwd"),
+		Place(fhs.AbsEtc.Append("passwd"),
 			[]byte(state.Container.Username+":x:"+
 				state.mapuid.String()+":"+
 				state.mapgid.String()+
 				":Hakurei:"+
 				state.Container.Home.String()+":"+
 				state.Container.Shell.String()+"\n")).
-		Place(container.AbsFHSEtc.Append("group"),
+		Place(fhs.AbsEtc.Append("group"),
 			[]byte("hakurei:x:"+state.mapgid.String()+":\n"))
 
 	return nil

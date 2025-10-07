@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"hakurei.app/container/check"
+	"hakurei.app/container/fhs"
 )
 
 func init() { gob.Register(new(AutoRootOp)) }
@@ -40,7 +41,7 @@ func (r *AutoRootOp) early(state *setupState, k syscallDispatcher) error {
 				// careful: the Valid method is skipped, make sure this is always valid
 				op := &BindMountOp{
 					Source: r.Host.Append(name),
-					Target: AbsFHSRoot.Append(name),
+					Target: fhs.AbsRoot.Append(name),
 					Flags:  r.Flags,
 				}
 				if err = op.early(state, k); err != nil {

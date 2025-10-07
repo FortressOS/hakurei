@@ -6,6 +6,7 @@ import (
 	"syscall"
 
 	"hakurei.app/container/check"
+	"hakurei.app/container/fhs"
 )
 
 const (
@@ -40,7 +41,7 @@ func (t *TmpfileOp) Valid() bool                                { return t != ni
 func (t *TmpfileOp) early(*setupState, syscallDispatcher) error { return nil }
 func (t *TmpfileOp) apply(state *setupState, k syscallDispatcher) error {
 	var tmpPath string
-	if f, err := k.createTemp(FHSRoot, intermediatePatternTmpfile); err != nil {
+	if f, err := k.createTemp(fhs.Root, intermediatePatternTmpfile); err != nil {
 		return err
 	} else if _, err = f.Write(t.Data); err != nil {
 		return err

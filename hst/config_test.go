@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	"hakurei.app/container"
+	"hakurei.app/container/fhs"
 	"hakurei.app/hst"
 )
 
@@ -25,18 +25,18 @@ func TestConfigValidate(t *testing.T) {
 		{"home", &hst.Config{Container: &hst.ContainerConfig{}}, &hst.AppError{Step: "validate configuration", Err: hst.ErrConfigNull,
 			Msg: "container configuration missing path to home directory"}},
 		{"shell", &hst.Config{Container: &hst.ContainerConfig{
-			Home: container.AbsFHSTmp,
+			Home: fhs.AbsTmp,
 		}}, &hst.AppError{Step: "validate configuration", Err: hst.ErrConfigNull,
 			Msg: "container configuration missing path to shell"}},
 		{"path", &hst.Config{Container: &hst.ContainerConfig{
-			Home:  container.AbsFHSTmp,
-			Shell: container.AbsFHSTmp,
+			Home:  fhs.AbsTmp,
+			Shell: fhs.AbsTmp,
 		}}, &hst.AppError{Step: "validate configuration", Err: hst.ErrConfigNull,
 			Msg: "container configuration missing path to initial program"}},
 		{"valid", &hst.Config{Container: &hst.ContainerConfig{
-			Home:  container.AbsFHSTmp,
-			Shell: container.AbsFHSTmp,
-			Path:  container.AbsFHSTmp,
+			Home:  fhs.AbsTmp,
+			Shell: fhs.AbsTmp,
+			Path:  fhs.AbsTmp,
 		}}, nil},
 	}
 	for _, tc := range testCases {
@@ -56,14 +56,14 @@ func TestExtraPermConfig(t *testing.T) {
 	}{
 		{"nil", nil, "<invalid>"},
 		{"nil path", &hst.ExtraPermConfig{Path: nil}, "<invalid>"},
-		{"r", &hst.ExtraPermConfig{Path: container.AbsFHSRoot, Read: true}, "r--:/"},
-		{"r+", &hst.ExtraPermConfig{Ensure: true, Path: container.AbsFHSRoot, Read: true}, "r--+:/"},
+		{"r", &hst.ExtraPermConfig{Path: fhs.AbsRoot, Read: true}, "r--:/"},
+		{"r+", &hst.ExtraPermConfig{Ensure: true, Path: fhs.AbsRoot, Read: true}, "r--+:/"},
 		{"w", &hst.ExtraPermConfig{Path: hst.AbsTmp, Write: true}, "-w-:/.hakurei"},
 		{"w+", &hst.ExtraPermConfig{Ensure: true, Path: hst.AbsTmp, Write: true}, "-w-+:/.hakurei"},
-		{"x", &hst.ExtraPermConfig{Path: container.AbsFHSRunUser, Execute: true}, "--x:/run/user/"},
-		{"x+", &hst.ExtraPermConfig{Ensure: true, Path: container.AbsFHSRunUser, Execute: true}, "--x+:/run/user/"},
-		{"rwx", &hst.ExtraPermConfig{Path: container.AbsFHSTmp, Read: true, Write: true, Execute: true}, "rwx:/tmp/"},
-		{"rwx+", &hst.ExtraPermConfig{Ensure: true, Path: container.AbsFHSTmp, Read: true, Write: true, Execute: true}, "rwx+:/tmp/"},
+		{"x", &hst.ExtraPermConfig{Path: fhs.AbsRunUser, Execute: true}, "--x:/run/user/"},
+		{"x+", &hst.ExtraPermConfig{Ensure: true, Path: fhs.AbsRunUser, Execute: true}, "--x+:/run/user/"},
+		{"rwx", &hst.ExtraPermConfig{Path: fhs.AbsTmp, Read: true, Write: true, Execute: true}, "rwx:/tmp/"},
+		{"rwx+", &hst.ExtraPermConfig{Ensure: true, Path: fhs.AbsTmp, Read: true, Write: true, Execute: true}, "rwx+:/tmp/"},
 	}
 
 	for _, tc := range testCases {

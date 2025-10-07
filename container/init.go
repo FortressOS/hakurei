@@ -12,6 +12,7 @@ import (
 	. "syscall"
 	"time"
 
+	"hakurei.app/container/fhs"
 	"hakurei.app/container/seccomp"
 )
 
@@ -30,7 +31,7 @@ const (
 
 	it should be noted that none of this should become relevant at any point since the resulting
 	intermediate root tmpfs should be effectively anonymous */
-	intermediateHostPath = FHSProc + "self/fd"
+	intermediateHostPath = fhs.Proc + "self/fd"
 
 	// setup params file descriptor
 	setupEnv = "HAKUREI_SETUP"
@@ -146,17 +147,17 @@ func initEntrypoint(k syscallDispatcher, msg Msg) {
 	if err := k.setDumpable(SUID_DUMP_USER); err != nil {
 		k.fatalf(msg, "cannot set SUID_DUMP_USER: %v", err)
 	}
-	if err := k.writeFile(FHSProc+"self/uid_map",
+	if err := k.writeFile(fhs.Proc+"self/uid_map",
 		append([]byte{}, strconv.Itoa(params.Uid)+" "+strconv.Itoa(params.HostUid)+" 1\n"...),
 		0); err != nil {
 		k.fatalf(msg, "%v", err)
 	}
-	if err := k.writeFile(FHSProc+"self/setgroups",
+	if err := k.writeFile(fhs.Proc+"self/setgroups",
 		[]byte("deny\n"),
 		0); err != nil && !os.IsNotExist(err) {
 		k.fatalf(msg, "%v", err)
 	}
-	if err := k.writeFile(FHSProc+"self/gid_map",
+	if err := k.writeFile(fhs.Proc+"self/gid_map",
 		append([]byte{}, strconv.Itoa(params.Gid)+" "+strconv.Itoa(params.HostGid)+" 1\n"...),
 		0); err != nil {
 		k.fatalf(msg, "%v", err)
@@ -175,7 +176,7 @@ func initEntrypoint(k syscallDispatcher, msg Msg) {
 	// cache sysctl before pivot_root
 	lastcap := k.lastcap(msg)
 
-	if err := k.mount(zeroString, FHSRoot, zeroString, MS_SILENT|MS_SLAVE|MS_REC, zeroString); err != nil {
+	if err := k.mount(zeroString, fhs.Root, zeroString, MS_SILENT|MS_SLAVE|MS_REC, zeroString); err != nil {
 		k.fatalf(msg, "cannot make / rslave: %v", err)
 	}
 
@@ -220,7 +221,7 @@ func initEntrypoint(k syscallDispatcher, msg Msg) {
 	if err := k.pivotRoot(intermediateHostPath, hostDir); err != nil {
 		k.fatalf(msg, "cannot pivot into intermediate root: %v", err)
 	}
-	if err := k.chdir(FHSRoot); err != nil {
+	if err := k.chdir(fhs.Root); err != nil {
 		k.fatalf(msg, "cannot enter intermediate root: %v", err)
 	}
 
@@ -253,7 +254,7 @@ func initEntrypoint(k syscallDispatcher, msg Msg) {
 	{
 		var fd int
 		if err := IgnoringEINTR(func() (err error) {
-			fd, err = k.open(FHSRoot, O_DIRECTORY|O_RDONLY, 0)
+			fd, err = k.open(fhs.Root, O_DIRECTORY|O_RDONLY, 0)
 			return
 		}); err != nil {
 			k.fatalf(msg, "cannot open intermediate root: %v", err)
@@ -271,7 +272,7 @@ func initEntrypoint(k syscallDispatcher, msg Msg) {
 		if err := k.unmount(".", MNT_DETACH); err != nil {
 			k.fatalf(msg, "cannot unmount intermediate root: %v", err)
 		}
-		if err := k.chdir(FHSRoot); err != nil {
+		if err := k.chdir(fhs.Root); err != nil {
 			k.fatalf(msg, "cannot enter root: %v", err)
 		}
 

@@ -8,90 +8,19 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
-	_ "unsafe"
 
-	"hakurei.app/container/check"
+	"hakurei.app/container/fhs"
 	"hakurei.app/container/vfs"
-)
-
-/* constants in this file bypass abs check, be extremely careful when changing them! */
-
-//go:linkname unsafeAbs hakurei.app/container/check.unsafeAbs
-func unsafeAbs(_ string) *check.Absolute
-
-const (
-	// FHSRoot points to the file system root.
-	FHSRoot = "/"
-	// FHSEtc points to the directory for system-specific configuration.
-	FHSEtc = "/etc/"
-	// FHSTmp points to the place for small temporary files.
-	FHSTmp = "/tmp/"
-
-	// FHSRun points to a "tmpfs" file system for system packages to place runtime data, socket files, and similar.
-	FHSRun = "/run/"
-	// FHSRunUser points to a directory containing per-user runtime directories,
-	// each usually individually mounted "tmpfs" instances.
-	FHSRunUser = FHSRun + "user/"
-
-	// FHSUsr points to vendor-supplied operating system resources.
-	FHSUsr = "/usr/"
-	// FHSUsrBin points to binaries and executables for user commands that shall appear in the $PATH search path.
-	FHSUsrBin = FHSUsr + "bin/"
-
-	// FHSVar points to persistent, variable system data. Writable during normal system operation.
-	FHSVar = "/var/"
-	// FHSVarLib points to persistent system data.
-	FHSVarLib = FHSVar + "lib/"
-	// FHSVarEmpty points to a nonstandard directory that is usually empty.
-	FHSVarEmpty = FHSVar + "empty/"
-
-	// FHSDev points to the root directory for device nodes.
-	FHSDev = "/dev/"
-	// FHSProc points to a virtual kernel file system exposing the process list and other functionality.
-	FHSProc = "/proc/"
-	// FHSProcSys points to a hierarchy below /proc/ that exposes a number of kernel tunables.
-	FHSProcSys = FHSProc + "sys/"
-	// FHSSys points to a virtual kernel file system exposing discovered devices and other functionality.
-	FHSSys = "/sys/"
-)
-
-var (
-	// AbsFHSRoot is [FHSRoot] as [Absolute].
-	AbsFHSRoot = unsafeAbs(FHSRoot)
-	// AbsFHSEtc is [FHSEtc] as [Absolute].
-	AbsFHSEtc = unsafeAbs(FHSEtc)
-	// AbsFHSTmp is [FHSTmp] as [Absolute].
-	AbsFHSTmp = unsafeAbs(FHSTmp)
-
-	// AbsFHSRun is [FHSRun] as [Absolute].
-	AbsFHSRun = unsafeAbs(FHSRun)
-	// AbsFHSRunUser is [FHSRunUser] as [Absolute].
-	AbsFHSRunUser = unsafeAbs(FHSRunUser)
-
-	// AbsFHSUsrBin is [FHSUsrBin] as [Absolute].
-	AbsFHSUsrBin = unsafeAbs(FHSUsrBin)
-
-	// AbsFHSVar is [FHSVar] as [Absolute].
-	AbsFHSVar = unsafeAbs(FHSVar)
-	// AbsFHSVarLib is [FHSVarLib] as [Absolute].
-	AbsFHSVarLib = unsafeAbs(FHSVarLib)
-
-	// AbsFHSDev is [FHSDev] as [Absolute].
-	AbsFHSDev = unsafeAbs(FHSDev)
-	// AbsFHSProc is [FHSProc] as [Absolute].
-	AbsFHSProc = unsafeAbs(FHSProc)
-	// AbsFHSSys is [FHSSys] as [Absolute].
-	AbsFHSSys = unsafeAbs(FHSSys)
 )
 
 const (
 	// Nonexistent is a path that cannot exist.
 	// /proc is chosen because a system with covered /proc is unsupported by this package.
-	Nonexistent = FHSProc + "nonexistent"
+	Nonexistent = fhs.Proc + "nonexistent"
 
-	hostPath    = FHSRoot + hostDir
+	hostPath    = fhs.Root + hostDir
 	hostDir     = "host"
-	sysrootPath = FHSRoot + sysrootDir
+	sysrootPath = fhs.Root + sysrootDir
 	sysrootDir  = "sysroot"
 )
 
