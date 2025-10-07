@@ -2,7 +2,6 @@ package dbus
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"sync"
 	"syscall"
@@ -15,15 +14,6 @@ import (
 // ProxyName is the file name or path to the proxy program.
 // Overriding ProxyName will only affect Proxy instance created after the change.
 var ProxyName = "xdg-dbus-proxy"
-
-type BadInterfaceError struct {
-	Interface string
-	Segment   string
-}
-
-func (e *BadInterfaceError) Error() string {
-	return fmt.Sprintf("bad interface string %q in %s bus configuration", e.Interface, e.Segment)
-}
 
 // Proxy holds the state of a xdg-dbus-proxy process, and should never be copied.
 type Proxy struct {
@@ -74,13 +64,13 @@ func Finalise(sessionBus, systemBus ProxyPair, session, system *hst.BusConfig) (
 
 	var args []string
 	if session != nil {
-		if err = checkInterfaces(session, "session"); err != nil {
+		if err = session.CheckInterfaces("session"); err != nil {
 			return
 		}
 		args = append(args, Args(session, sessionBus)...)
 	}
 	if system != nil {
-		if err = checkInterfaces(system, "system"); err != nil {
+		if err = system.CheckInterfaces("system"); err != nil {
 			return
 		}
 		args = append(args, Args(system, systemBus)...)

@@ -140,6 +140,13 @@ func (config *Config) Validate() error {
 			Msg: "identity " + strconv.Itoa(config.Identity) + " out of range"}
 	}
 
+	if err := config.SessionBus.CheckInterfaces("session"); err != nil {
+		return err
+	}
+	if err := config.SystemBus.CheckInterfaces("system"); err != nil {
+		return err
+	}
+
 	if config.Container == nil {
 		return &AppError{Step: "validate configuration", Err: ErrConfigNull,
 			Msg: "configuration missing container state"}

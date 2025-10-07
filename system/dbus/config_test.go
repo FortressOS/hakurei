@@ -10,7 +10,7 @@ import (
 	"hakurei.app/system/dbus"
 )
 
-func TestConfig_Args(t *testing.T) {
+func TestConfigArgs(t *testing.T) {
 	for _, tc := range testCasesExt {
 		if tc.wantErr {
 			// args does not check for nulls
@@ -19,9 +19,7 @@ func TestConfig_Args(t *testing.T) {
 
 		t.Run("build arguments for "+tc.id, func(t *testing.T) {
 			if got := dbus.Args(tc.c, tc.bus); !slices.Equal(got, tc.want) {
-				t.Errorf("Args(%q) = %v, want %v",
-					tc.bus,
-					got, tc.want)
+				t.Errorf("Args: %v, want %v", got, tc.want)
 			}
 		})
 	}
