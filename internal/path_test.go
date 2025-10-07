@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	"hakurei.app/container"
+	"hakurei.app/container/check"
 )
 
 func TestMustCheckPath(t *testing.T) {
@@ -35,7 +35,7 @@ func TestMustCheckPath(t *testing.T) {
 				}
 			}
 
-			if got := mustCheckPath(fatal, "test", tc.pathname); got != nil && !reflect.DeepEqual(got, container.MustAbs(tc.pathname)) {
+			if got := mustCheckPath(fatal, "test", tc.pathname); got != nil && !reflect.DeepEqual(got, check.MustAbs(tc.pathname)) {
 				t.Errorf("mustCheckPath: %q", got)
 			}
 		})

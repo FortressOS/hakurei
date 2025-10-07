@@ -3,19 +3,21 @@ package container
 import (
 	"encoding/gob"
 	"fmt"
+
+	"hakurei.app/container/check"
 )
 
 func init() { gob.Register(new(RemountOp)) }
 
 // Remount appends an [Op] that applies [RemountOp.Flags] on container path [RemountOp.Target].
-func (f *Ops) Remount(target *Absolute, flags uintptr) *Ops {
+func (f *Ops) Remount(target *check.Absolute, flags uintptr) *Ops {
 	*f = append(*f, &RemountOp{target, flags})
 	return f
 }
 
 // RemountOp remounts Target with Flags.
 type RemountOp struct {
-	Target *Absolute
+	Target *check.Absolute
 	Flags  uintptr
 }
 

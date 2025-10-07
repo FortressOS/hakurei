@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"hakurei.app/container"
+	"hakurei.app/container/check"
 	"hakurei.app/container/stub"
 	"hakurei.app/hst"
 	"hakurei.app/system/internal/xcb"
@@ -313,4 +314,4 @@ func TestNop(t *testing.T) {
 	new(noCopy).Lock()
 }
 
-func m(pathname string) *container.Absolute { return container.MustAbs(pathname) }
+func m(pathname string) *check.Absolute { return check.MustAbs(pathname) }

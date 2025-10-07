@@ -4,13 +4,14 @@ import (
 	"testing"
 
 	"hakurei.app/container"
+	"hakurei.app/container/check"
 	"hakurei.app/hst"
 )
 
 func TestFSOverlay(t *testing.T) {
 	checkFs(t, []fsTestCase{
 		{"nil", (*hst.FSOverlay)(nil), false, nil, nil, nil, "<invalid>"},
-		{"nil lower", &hst.FSOverlay{Target: m("/etc"), Lower: []*container.Absolute{nil}}, false, nil, nil, nil, "<invalid>"},
+		{"nil lower", &hst.FSOverlay{Target: m("/etc"), Lower: []*check.Absolute{nil}}, false, nil, nil, nil, "<invalid>"},
 		{"zero lower", &hst.FSOverlay{Target: m("/etc"), Upper: m("/"), Work: m("/")}, false, nil, nil, nil, "<invalid>"},
 		{"zero lower ro", &hst.FSOverlay{Target: m("/etc")}, false, nil, nil, nil, "<invalid>"},
 		{"short lower", &hst.FSOverlay{Target: m("/etc"), Lower: ms("/etc")}, false, nil, nil, nil, "<invalid>"},

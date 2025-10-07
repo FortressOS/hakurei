@@ -2,6 +2,7 @@ package app
 
 import (
 	"hakurei.app/container"
+	"hakurei.app/container/check"
 	"hakurei.app/hst"
 	"hakurei.app/system"
 	"hakurei.app/system/acl"
@@ -37,7 +38,7 @@ func (s spRuntimeOp) toContainer(state *outcomeStateParams) error {
 	return nil
 }
 
-func (s spRuntimeOp) commonPaths(state *outcomeState) (runtimeDir, runtimeDirInst *container.Absolute) {
+func (s spRuntimeOp) commonPaths(state *outcomeState) (runtimeDir, runtimeDirInst *check.Absolute) {
 	runtimeDir = state.sc.SharePath.Append("runtime")
 	runtimeDirInst = runtimeDir.Append(state.identity.String())
 	return

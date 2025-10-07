@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"hakurei.app/container"
+	"hakurei.app/container/check"
 	"hakurei.app/hst"
 	"hakurei.app/internal"
 	"hakurei.app/internal/app/state"
@@ -215,7 +216,7 @@ type finaliseProcess struct {
 	waitDelay time.Duration
 
 	// Copied from the RunDirPath field of [hst.Paths].
-	runDirPath *container.Absolute
+	runDirPath *check.Absolute
 
 	// Copied from outcomeState.
 	identity *stringPair[int]

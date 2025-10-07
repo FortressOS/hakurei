@@ -5,6 +5,7 @@ import (
 	"os"
 	"testing"
 
+	"hakurei.app/container/check"
 	"hakurei.app/container/stub"
 )
 
@@ -256,11 +257,11 @@ func TestAutoEtcOp(t *testing.T) {
 	})
 
 	checkOpsBuilder(t, []opsBuilderTestCase{
-		{"pd", new(Ops).Etc(MustAbs("/etc/"), "048090b6ed8f9ebb10e275ff5d8c0659"), Ops{
-			&MkdirOp{Path: MustAbs("/etc/"), Perm: 0755},
+		{"pd", new(Ops).Etc(check.MustAbs("/etc/"), "048090b6ed8f9ebb10e275ff5d8c0659"), Ops{
+			&MkdirOp{Path: check.MustAbs("/etc/"), Perm: 0755},
 			&BindMountOp{
-				Source: MustAbs("/etc/"),
-				Target: MustAbs("/etc/.host/048090b6ed8f9ebb10e275ff5d8c0659"),
+				Source: check.MustAbs("/etc/"),
+				Target: check.MustAbs("/etc/.host/048090b6ed8f9ebb10e275ff5d8c0659"),
 			},
 			&AutoEtcOp{Prefix: "048090b6ed8f9ebb10e275ff5d8c0659"},
 		}},

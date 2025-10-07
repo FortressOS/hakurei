@@ -5,6 +5,7 @@ import (
 	"os/exec"
 
 	"hakurei.app/container"
+	"hakurei.app/container/check"
 )
 
 type panicDispatcher struct{}
@@ -22,5 +23,5 @@ func (panicDispatcher) lookupGroupId(string) (string, error)  { panic("unreachab
 func (panicDispatcher) cmdOutput(*exec.Cmd) ([]byte, error)   { panic("unreachable") }
 func (panicDispatcher) overflowUid(container.Msg) int         { panic("unreachable") }
 func (panicDispatcher) overflowGid(container.Msg) int         { panic("unreachable") }
-func (panicDispatcher) mustHsuPath() *container.Absolute      { panic("unreachable") }
+func (panicDispatcher) mustHsuPath() *check.Absolute          { panic("unreachable") }
 func (panicDispatcher) fatalf(string, ...any)                 { panic("unreachable") }

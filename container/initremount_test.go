@@ -4,13 +4,14 @@ import (
 	"syscall"
 	"testing"
 
+	"hakurei.app/container/check"
 	"hakurei.app/container/stub"
 )
 
 func TestRemountOp(t *testing.T) {
 	checkOpBehaviour(t, []opBehaviourTestCase{
 		{"success", new(Params), &RemountOp{
-			Target: MustAbs("/"),
+			Target: check.MustAbs("/"),
 			Flags:  syscall.MS_RDONLY,
 		}, nil, nil, []stub.Call{
 			call("remount", stub.ExpectArgs{"/sysroot", uintptr(1)}, nil, nil),
@@ -20,13 +21,13 @@ func TestRemountOp(t *testing.T) {
 	checkOpsValid(t, []opValidTestCase{
 		{"nil", (*RemountOp)(nil), false},
 		{"zero", new(RemountOp), false},
-		{"valid", &RemountOp{Target: MustAbs("/"), Flags: syscall.MS_RDONLY}, true},
+		{"valid", &RemountOp{Target: check.MustAbs("/"), Flags: syscall.MS_RDONLY}, true},
 	})
 
 	checkOpsBuilder(t, []opsBuilderTestCase{
-		{"root", new(Ops).Remount(MustAbs("/"), syscall.MS_RDONLY), Ops{
+		{"root", new(Ops).Remount(check.MustAbs("/"), syscall.MS_RDONLY), Ops{
 			&RemountOp{
-				Target: MustAbs("/"),
+				Target: check.MustAbs("/"),
 				Flags:  syscall.MS_RDONLY,
 			},
 		}},
@@ -36,33 +37,33 @@ func TestRemountOp(t *testing.T) {
 		{"zero", new(RemountOp), new(RemountOp), false},
 
 		{"target differs", &RemountOp{
-			Target: MustAbs("/dev/"),
+			Target: check.MustAbs("/dev/"),
 			Flags:  syscall.MS_RDONLY,
 		}, &RemountOp{
-			Target: MustAbs("/"),
+			Target: check.MustAbs("/"),
 			Flags:  syscall.MS_RDONLY,
 		}, false},
 
 		{"flags differs", &RemountOp{
-			Target: MustAbs("/"),
+			Target: check.MustAbs("/"),
 			Flags:  syscall.MS_RDONLY | syscall.MS_NODEV,
 		}, &RemountOp{
-			Target: MustAbs("/"),
+			Target: check.MustAbs("/"),
 			Flags:  syscall.MS_RDONLY,
 		}, false},
 
 		{"equals", &RemountOp{
-			Target: MustAbs("/"),
+			Target: check.MustAbs("/"),
 			Flags:  syscall.MS_RDONLY,
 		}, &RemountOp{
-			Target: MustAbs("/"),
+			Target: check.MustAbs("/"),
 			Flags:  syscall.MS_RDONLY,
 		}, true},
 	})
 
 	checkOpMeta(t, []opMetaTestCase{
 		{"root", &RemountOp{
-			Target: MustAbs("/"),
+			Target: check.MustAbs("/"),
 			Flags:  syscall.MS_RDONLY,
 		}, "remounting", `"/" flags 0x1`},
 	})

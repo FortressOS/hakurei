@@ -8,11 +8,16 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+	_ "unsafe"
 
+	"hakurei.app/container/check"
 	"hakurei.app/container/vfs"
 )
 
 /* constants in this file bypass abs check, be extremely careful when changing them! */
+
+//go:linkname unsafeAbs hakurei.app/container/check.unsafeAbs
+func unsafeAbs(_ string) *check.Absolute
 
 const (
 	// FHSRoot points to the file system root.
@@ -52,31 +57,31 @@ const (
 
 var (
 	// AbsFHSRoot is [FHSRoot] as [Absolute].
-	AbsFHSRoot = &Absolute{FHSRoot}
+	AbsFHSRoot = unsafeAbs(FHSRoot)
 	// AbsFHSEtc is [FHSEtc] as [Absolute].
-	AbsFHSEtc = &Absolute{FHSEtc}
+	AbsFHSEtc = unsafeAbs(FHSEtc)
 	// AbsFHSTmp is [FHSTmp] as [Absolute].
-	AbsFHSTmp = &Absolute{FHSTmp}
+	AbsFHSTmp = unsafeAbs(FHSTmp)
 
 	// AbsFHSRun is [FHSRun] as [Absolute].
-	AbsFHSRun = &Absolute{FHSRun}
+	AbsFHSRun = unsafeAbs(FHSRun)
 	// AbsFHSRunUser is [FHSRunUser] as [Absolute].
-	AbsFHSRunUser = &Absolute{FHSRunUser}
+	AbsFHSRunUser = unsafeAbs(FHSRunUser)
 
 	// AbsFHSUsrBin is [FHSUsrBin] as [Absolute].
-	AbsFHSUsrBin = &Absolute{FHSUsrBin}
+	AbsFHSUsrBin = unsafeAbs(FHSUsrBin)
 
 	// AbsFHSVar is [FHSVar] as [Absolute].
-	AbsFHSVar = &Absolute{FHSVar}
+	AbsFHSVar = unsafeAbs(FHSVar)
 	// AbsFHSVarLib is [FHSVarLib] as [Absolute].
-	AbsFHSVarLib = &Absolute{FHSVarLib}
+	AbsFHSVarLib = unsafeAbs(FHSVarLib)
 
 	// AbsFHSDev is [FHSDev] as [Absolute].
-	AbsFHSDev = &Absolute{FHSDev}
+	AbsFHSDev = unsafeAbs(FHSDev)
 	// AbsFHSProc is [FHSProc] as [Absolute].
-	AbsFHSProc = &Absolute{FHSProc}
+	AbsFHSProc = unsafeAbs(FHSProc)
 	// AbsFHSSys is [FHSSys] as [Absolute].
-	AbsFHSSys = &Absolute{FHSSys}
+	AbsFHSSys = unsafeAbs(FHSSys)
 )
 
 const (

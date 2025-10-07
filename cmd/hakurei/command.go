@@ -16,6 +16,7 @@ import (
 
 	"hakurei.app/command"
 	"hakurei.app/container"
+	"hakurei.app/container/check"
 	"hakurei.app/hst"
 	"hakurei.app/internal"
 	"hakurei.app/internal/app"
@@ -107,7 +108,7 @@ func buildCommand(ctx context.Context, msg container.Msg, early *earlyHardeningE
 
 			// paths are identical, resolve inner shell and program path
 			shell := container.AbsFHSRoot.Append("bin", "sh")
-			if a, err := container.NewAbs(os.Getenv("SHELL")); err == nil {
+			if a, err := check.NewAbs(os.Getenv("SHELL")); err == nil {
 				shell = a
 			}
 			progPath := shell
@@ -115,7 +116,7 @@ func buildCommand(ctx context.Context, msg container.Msg, early *earlyHardeningE
 				if p, err := exec.LookPath(args[0]); err != nil {
 					log.Fatal(errors.Unwrap(err))
 					return err
-				} else if progPath, err = container.NewAbs(p); err != nil {
+				} else if progPath, err = check.NewAbs(p); err != nil {
 					log.Fatal(err.Error())
 					return err
 				}
@@ -201,7 +202,7 @@ func buildCommand(ctx context.Context, msg container.Msg, early *earlyHardeningE
 					passwdOnce.Do(passwdFunc)
 					homeDir = passwd.HomeDir
 				}
-				if a, err := container.NewAbs(homeDir); err != nil {
+				if a, err := check.NewAbs(homeDir); err != nil {
 					log.Fatal(err.Error())
 					return err
 				} else {

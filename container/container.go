@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"hakurei.app/container/bits"
+	"hakurei.app/container/check"
 	"hakurei.app/container/seccomp"
 )
 
@@ -57,11 +58,11 @@ type (
 	// Params holds container configuration and is safe to serialise.
 	Params struct {
 		// Working directory in the container.
-		Dir *Absolute
+		Dir *check.Absolute
 		// Initial process environment.
 		Env []string
 		// Pathname of initial process in the container.
-		Path *Absolute
+		Path *check.Absolute
 		// Initial process argv.
 		Args []string
 		// Deliver SIGINT to the initial process on context cancellation.
@@ -407,7 +408,7 @@ func New(ctx context.Context, msg Msg) *Container {
 }
 
 // NewCommand calls [New] and initialises the [Params.Path] and [Params.Args] fields.
-func NewCommand(ctx context.Context, msg Msg, pathname *Absolute, name string, args ...string) *Container {
+func NewCommand(ctx context.Context, msg Msg, pathname *check.Absolute, name string, args ...string) *Container {
 	z := New(ctx, msg)
 	z.Path = pathname
 	z.Args = append([]string{name}, args...)

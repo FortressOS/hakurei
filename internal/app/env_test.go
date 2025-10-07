@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"hakurei.app/container"
+	"hakurei.app/container/check"
 	"hakurei.app/container/stub"
 	"hakurei.app/hst"
 )
@@ -74,11 +75,11 @@ func TestCopyPaths(t *testing.T) {
 		{"invalid tempdir", nil, "\x00",
 			"invalid TMPDIR: path \"\\x00\" is not absolute", EnvPaths{}},
 		{"empty environment", make(map[string]string), container.Nonexistent,
-			"", EnvPaths{TempDir: container.MustAbs(container.Nonexistent)}},
+			"", EnvPaths{TempDir: check.MustAbs(container.Nonexistent)}},
 		{"invalid XDG_RUNTIME_DIR", map[string]string{"XDG_RUNTIME_DIR": "\x00"}, container.Nonexistent,
-			"", EnvPaths{TempDir: container.MustAbs(container.Nonexistent)}},
+			"", EnvPaths{TempDir: check.MustAbs(container.Nonexistent)}},
 		{"full", map[string]string{"XDG_RUNTIME_DIR": "/\x00"}, container.Nonexistent,
-			"", EnvPaths{TempDir: container.MustAbs(container.Nonexistent), RuntimePath: container.MustAbs("/\x00")}},
+			"", EnvPaths{TempDir: check.MustAbs(container.Nonexistent), RuntimePath: check.MustAbs("/\x00")}},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {

@@ -16,6 +16,7 @@ import (
 
 	"hakurei.app/container"
 	"hakurei.app/container/bits"
+	"hakurei.app/container/check"
 	"hakurei.app/hst"
 	"hakurei.app/internal/app/state"
 	"hakurei.app/system"
@@ -695,7 +696,7 @@ func (k *stubNixOS) cmdOutput(cmd *exec.Cmd) ([]byte, error) {
 func (k *stubNixOS) overflowUid(container.Msg) int { return 65534 }
 func (k *stubNixOS) overflowGid(container.Msg) int { return 65534 }
 
-func (k *stubNixOS) mustHsuPath() *container.Absolute { return m("/proc/nonexistent/hsu") }
+func (k *stubNixOS) mustHsuPath() *check.Absolute { return m("/proc/nonexistent/hsu") }
 
 func (k *stubNixOS) fatalf(format string, v ...any) { panic(fmt.Sprintf(format, v...)) }
 
@@ -703,8 +704,8 @@ func (k *stubNixOS) isVerbose() bool                  { return true }
 func (k *stubNixOS) verbose(v ...any)                 { log.Print(v...) }
 func (k *stubNixOS) verbosef(format string, v ...any) { log.Printf(format, v...) }
 
-func m(pathname string) *container.Absolute {
-	return container.MustAbs(pathname)
+func m(pathname string) *check.Absolute {
+	return check.MustAbs(pathname)
 }
 
 func f(c hst.FilesystemConfig) hst.FilesystemConfigJSON {

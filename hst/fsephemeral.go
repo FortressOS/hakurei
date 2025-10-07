@@ -5,7 +5,7 @@ import (
 	"os"
 	"strings"
 
-	"hakurei.app/container"
+	"hakurei.app/container/check"
 )
 
 func init() { gob.Register(new(FSEphemeral)) }
@@ -16,7 +16,7 @@ const FilesystemEphemeral = "ephemeral"
 // FSEphemeral represents an ephemeral container mount point.
 type FSEphemeral struct {
 	// mount point in container
-	Target *container.Absolute `json:"dst,omitempty"`
+	Target *check.Absolute `json:"dst,omitempty"`
 	// do not mount filesystem read-only
 	Write bool `json:"write,omitempty"`
 	// upper limit on the size of the filesystem
@@ -27,14 +27,14 @@ type FSEphemeral struct {
 
 func (e *FSEphemeral) Valid() bool { return e != nil && e.Target != nil }
 
-func (e *FSEphemeral) Path() *container.Absolute {
+func (e *FSEphemeral) Path() *check.Absolute {
 	if !e.Valid() {
 		return nil
 	}
 	return e.Target
 }
 
-func (e *FSEphemeral) Host() []*container.Absolute { return nil }
+func (e *FSEphemeral) Host() []*check.Absolute { return nil }
 
 const fsEphemeralDefaultPerm = os.FileMode(0755)
 

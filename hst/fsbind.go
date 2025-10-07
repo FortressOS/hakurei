@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"hakurei.app/container"
+	"hakurei.app/container/check"
 )
 
 func init() { gob.Register(new(FSBind)) }
@@ -15,9 +16,9 @@ const FilesystemBind = "bind"
 // FSBind represents a host to container bind mount.
 type FSBind struct {
 	// mount point in container, same as Source if empty
-	Target *container.Absolute `json:"dst,omitempty"`
+	Target *check.Absolute `json:"dst,omitempty"`
 	// host filesystem path to make available to the container
-	Source *container.Absolute `json:"src"`
+	Source *check.Absolute `json:"src"`
 	// do not mount Target read-only
 	Write bool `json:"write,omitempty"`
 	// do not disable device files on Target, implies Write
@@ -66,7 +67,7 @@ func (b *FSBind) Valid() bool {
 	return true
 }
 
-func (b *FSBind) Path() *container.Absolute {
+func (b *FSBind) Path() *check.Absolute {
 	if !b.Valid() {
 		return nil
 	}
@@ -76,11 +77,11 @@ func (b *FSBind) Path() *container.Absolute {
 	return b.Target
 }
 
-func (b *FSBind) Host() []*container.Absolute {
+func (b *FSBind) Host() []*check.Absolute {
 	if !b.Valid() {
 		return nil
 	}
-	return []*container.Absolute{b.Source}
+	return []*check.Absolute{b.Source}
 }
 
 func (b *FSBind) Apply(z *ApplyState) {

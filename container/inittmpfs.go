@@ -7,6 +7,8 @@ import (
 	"os"
 	"strconv"
 	. "syscall"
+
+	"hakurei.app/container/check"
 )
 
 func init() { gob.Register(new(MountTmpfsOp)) }
@@ -18,13 +20,13 @@ func (e TmpfsSizeError) Error() string {
 }
 
 // Tmpfs appends an [Op] that mounts tmpfs on container path [MountTmpfsOp.Path].
-func (f *Ops) Tmpfs(target *Absolute, size int, perm os.FileMode) *Ops {
+func (f *Ops) Tmpfs(target *check.Absolute, size int, perm os.FileMode) *Ops {
 	*f = append(*f, &MountTmpfsOp{SourceTmpfsEphemeral, target, MS_NOSUID | MS_NODEV, size, perm})
 	return f
 }
 
 // Readonly appends an [Op] that mounts read-only tmpfs on container path [MountTmpfsOp.Path].
-func (f *Ops) Readonly(target *Absolute, perm os.FileMode) *Ops {
+func (f *Ops) Readonly(target *check.Absolute, perm os.FileMode) *Ops {
 	*f = append(*f, &MountTmpfsOp{SourceTmpfsReadonly, target, MS_RDONLY | MS_NOSUID | MS_NODEV, 0, perm})
 	return f
 }
@@ -32,7 +34,7 @@ func (f *Ops) Readonly(target *Absolute, perm os.FileMode) *Ops {
 // MountTmpfsOp mounts [FstypeTmpfs] on container Path.
 type MountTmpfsOp struct {
 	FSName string
-	Path   *Absolute
+	Path   *check.Absolute
 	Flags  uintptr
 	Size   int
 	Perm   os.FileMode

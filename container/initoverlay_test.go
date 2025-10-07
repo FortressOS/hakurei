@@ -5,6 +5,7 @@ import (
 	"os"
 	"testing"
 
+	"hakurei.app/container/check"
 	"hakurei.app/container/stub"
 )
 
@@ -38,21 +39,21 @@ func TestMountOverlayOp(t *testing.T) {
 
 	checkOpBehaviour(t, []opBehaviourTestCase{
 		{"mkdirTemp invalid ephemeral", &Params{ParentPerm: 0705}, &MountOverlayOp{
-			Target: MustAbs("/"),
-			Lower: []*Absolute{
-				MustAbs("/var/lib/planterette/base/debian:f92c9052"),
-				MustAbs("/var/lib/planterette/app/org.chromium.Chromium@debian:f92c9052"),
+			Target: check.MustAbs("/"),
+			Lower: []*check.Absolute{
+				check.MustAbs("/var/lib/planterette/base/debian:f92c9052"),
+				check.MustAbs("/var/lib/planterette/app/org.chromium.Chromium@debian:f92c9052"),
 			},
-			Upper: MustAbs("/proc/"),
+			Upper: check.MustAbs("/proc/"),
 		}, nil, &OverlayArgumentError{OverlayEphemeralUnexpectedUpper, "/proc/"}, nil, nil},
 
 		{"mkdirTemp upper ephemeral", &Params{ParentPerm: 0705}, &MountOverlayOp{
-			Target: MustAbs("/"),
-			Lower: []*Absolute{
-				MustAbs("/var/lib/planterette/base/debian:f92c9052"),
-				MustAbs("/var/lib/planterette/app/org.chromium.Chromium@debian:f92c9052"),
+			Target: check.MustAbs("/"),
+			Lower: []*check.Absolute{
+				check.MustAbs("/var/lib/planterette/base/debian:f92c9052"),
+				check.MustAbs("/var/lib/planterette/app/org.chromium.Chromium@debian:f92c9052"),
 			},
-			Upper: MustAbs("/"),
+			Upper: check.MustAbs("/"),
 		}, []stub.Call{
 			call("evalSymlinks", stub.ExpectArgs{"/var/lib/planterette/base/debian:f92c9052"}, "/var/lib/planterette/base/debian:f92c9052", nil),
 			call("evalSymlinks", stub.ExpectArgs{"/var/lib/planterette/app/org.chromium.Chromium@debian:f92c9052"}, "/var/lib/planterette/app/org.chromium.Chromium@debian:f92c9052", nil),
@@ -62,12 +63,12 @@ func TestMountOverlayOp(t *testing.T) {
 		}, stub.UniqueError(6)},
 
 		{"mkdirTemp work ephemeral", &Params{ParentPerm: 0705}, &MountOverlayOp{
-			Target: MustAbs("/"),
-			Lower: []*Absolute{
-				MustAbs("/var/lib/planterette/base/debian:f92c9052"),
-				MustAbs("/var/lib/planterette/app/org.chromium.Chromium@debian:f92c9052"),
+			Target: check.MustAbs("/"),
+			Lower: []*check.Absolute{
+				check.MustAbs("/var/lib/planterette/base/debian:f92c9052"),
+				check.MustAbs("/var/lib/planterette/app/org.chromium.Chromium@debian:f92c9052"),
 			},
-			Upper: MustAbs("/"),
+			Upper: check.MustAbs("/"),
 		}, []stub.Call{
 			call("evalSymlinks", stub.ExpectArgs{"/var/lib/planterette/base/debian:f92c9052"}, "/var/lib/planterette/base/debian:f92c9052", nil),
 			call("evalSymlinks", stub.ExpectArgs{"/var/lib/planterette/app/org.chromium.Chromium@debian:f92c9052"}, "/var/lib/planterette/app/org.chromium.Chromium@debian:f92c9052", nil),
@@ -78,12 +79,12 @@ func TestMountOverlayOp(t *testing.T) {
 		}, stub.UniqueError(5)},
 
 		{"success ephemeral", &Params{ParentPerm: 0705}, &MountOverlayOp{
-			Target: MustAbs("/"),
-			Lower: []*Absolute{
-				MustAbs("/var/lib/planterette/base/debian:f92c9052"),
-				MustAbs("/var/lib/planterette/app/org.chromium.Chromium@debian:f92c9052"),
+			Target: check.MustAbs("/"),
+			Lower: []*check.Absolute{
+				check.MustAbs("/var/lib/planterette/base/debian:f92c9052"),
+				check.MustAbs("/var/lib/planterette/app/org.chromium.Chromium@debian:f92c9052"),
 			},
-			Upper: MustAbs("/"),
+			Upper: check.MustAbs("/"),
 		}, []stub.Call{
 			call("evalSymlinks", stub.ExpectArgs{"/var/lib/planterette/base/debian:f92c9052"}, "/var/lib/planterette/base/debian:f92c9052", nil),
 			call("evalSymlinks", stub.ExpectArgs{"/var/lib/planterette/app/org.chromium.Chromium@debian:f92c9052"}, "/var/lib/planterette/app/org.chromium.Chromium@debian:f92c9052", nil),
@@ -101,9 +102,9 @@ func TestMountOverlayOp(t *testing.T) {
 		}, nil},
 
 		{"short lower ro", &Params{ParentPerm: 0755}, &MountOverlayOp{
-			Target: MustAbs("/nix/store"),
-			Lower: []*Absolute{
-				MustAbs("/mnt-root/nix/.ro-store"),
+			Target: check.MustAbs("/nix/store"),
+			Lower: []*check.Absolute{
+				check.MustAbs("/mnt-root/nix/.ro-store"),
 			},
 		}, []stub.Call{
 			call("evalSymlinks", stub.ExpectArgs{"/mnt-root/nix/.ro-store"}, "/mnt-root/nix/.ro-store", nil),
@@ -112,10 +113,10 @@ func TestMountOverlayOp(t *testing.T) {
 		}, &OverlayArgumentError{OverlayReadonlyLower, zeroString}},
 
 		{"success ro noPrefix", &Params{ParentPerm: 0755}, &MountOverlayOp{
-			Target: MustAbs("/nix/store"),
-			Lower: []*Absolute{
-				MustAbs("/mnt-root/nix/.ro-store"),
-				MustAbs("/mnt-root/nix/.ro-store0"),
+			Target: check.MustAbs("/nix/store"),
+			Lower: []*check.Absolute{
+				check.MustAbs("/mnt-root/nix/.ro-store"),
+				check.MustAbs("/mnt-root/nix/.ro-store0"),
 			},
 			noPrefix: true,
 		}, []stub.Call{
@@ -131,10 +132,10 @@ func TestMountOverlayOp(t *testing.T) {
 		}, nil},
 
 		{"success ro", &Params{ParentPerm: 0755}, &MountOverlayOp{
-			Target: MustAbs("/nix/store"),
-			Lower: []*Absolute{
-				MustAbs("/mnt-root/nix/.ro-store"),
-				MustAbs("/mnt-root/nix/.ro-store0"),
+			Target: check.MustAbs("/nix/store"),
+			Lower: []*check.Absolute{
+				check.MustAbs("/mnt-root/nix/.ro-store"),
+				check.MustAbs("/mnt-root/nix/.ro-store0"),
 			},
 		}, []stub.Call{
 			call("evalSymlinks", stub.ExpectArgs{"/mnt-root/nix/.ro-store"}, "/mnt-root/nix/.ro-store", nil),
@@ -149,9 +150,9 @@ func TestMountOverlayOp(t *testing.T) {
 		}, nil},
 
 		{"nil lower", &Params{ParentPerm: 0700}, &MountOverlayOp{
-			Target: MustAbs("/nix/store"),
-			Upper:  MustAbs("/mnt-root/nix/.rw-store/upper"),
-			Work:   MustAbs("/mnt-root/nix/.rw-store/work"),
+			Target: check.MustAbs("/nix/store"),
+			Upper:  check.MustAbs("/mnt-root/nix/.rw-store/upper"),
+			Work:   check.MustAbs("/mnt-root/nix/.rw-store/work"),
 		}, []stub.Call{
 			call("evalSymlinks", stub.ExpectArgs{"/mnt-root/nix/.rw-store/upper"}, "/mnt-root/nix/.rw-store/.upper", nil),
 			call("evalSymlinks", stub.ExpectArgs{"/mnt-root/nix/.rw-store/work"}, "/mnt-root/nix/.rw-store/.work", nil),
@@ -160,29 +161,29 @@ func TestMountOverlayOp(t *testing.T) {
 		}, &OverlayArgumentError{OverlayEmptyLower, zeroString}},
 
 		{"evalSymlinks upper", &Params{ParentPerm: 0700}, &MountOverlayOp{
-			Target: MustAbs("/nix/store"),
-			Lower:  []*Absolute{MustAbs("/mnt-root/nix/.ro-store")},
-			Upper:  MustAbs("/mnt-root/nix/.rw-store/upper"),
-			Work:   MustAbs("/mnt-root/nix/.rw-store/work"),
+			Target: check.MustAbs("/nix/store"),
+			Lower:  []*check.Absolute{check.MustAbs("/mnt-root/nix/.ro-store")},
+			Upper:  check.MustAbs("/mnt-root/nix/.rw-store/upper"),
+			Work:   check.MustAbs("/mnt-root/nix/.rw-store/work"),
 		}, []stub.Call{
 			call("evalSymlinks", stub.ExpectArgs{"/mnt-root/nix/.rw-store/upper"}, "/mnt-root/nix/.rw-store/.upper", stub.UniqueError(4)),
 		}, stub.UniqueError(4), nil, nil},
 
 		{"evalSymlinks work", &Params{ParentPerm: 0700}, &MountOverlayOp{
-			Target: MustAbs("/nix/store"),
-			Lower:  []*Absolute{MustAbs("/mnt-root/nix/.ro-store")},
-			Upper:  MustAbs("/mnt-root/nix/.rw-store/upper"),
-			Work:   MustAbs("/mnt-root/nix/.rw-store/work"),
+			Target: check.MustAbs("/nix/store"),
+			Lower:  []*check.Absolute{check.MustAbs("/mnt-root/nix/.ro-store")},
+			Upper:  check.MustAbs("/mnt-root/nix/.rw-store/upper"),
+			Work:   check.MustAbs("/mnt-root/nix/.rw-store/work"),
 		}, []stub.Call{
 			call("evalSymlinks", stub.ExpectArgs{"/mnt-root/nix/.rw-store/upper"}, "/mnt-root/nix/.rw-store/.upper", nil),
 			call("evalSymlinks", stub.ExpectArgs{"/mnt-root/nix/.rw-store/work"}, "/mnt-root/nix/.rw-store/.work", stub.UniqueError(3)),
 		}, stub.UniqueError(3), nil, nil},
 
 		{"evalSymlinks lower", &Params{ParentPerm: 0700}, &MountOverlayOp{
-			Target: MustAbs("/nix/store"),
-			Lower:  []*Absolute{MustAbs("/mnt-root/nix/.ro-store")},
-			Upper:  MustAbs("/mnt-root/nix/.rw-store/upper"),
-			Work:   MustAbs("/mnt-root/nix/.rw-store/work"),
+			Target: check.MustAbs("/nix/store"),
+			Lower:  []*check.Absolute{check.MustAbs("/mnt-root/nix/.ro-store")},
+			Upper:  check.MustAbs("/mnt-root/nix/.rw-store/upper"),
+			Work:   check.MustAbs("/mnt-root/nix/.rw-store/work"),
 		}, []stub.Call{
 			call("evalSymlinks", stub.ExpectArgs{"/mnt-root/nix/.rw-store/upper"}, "/mnt-root/nix/.rw-store/.upper", nil),
 			call("evalSymlinks", stub.ExpectArgs{"/mnt-root/nix/.rw-store/work"}, "/mnt-root/nix/.rw-store/.work", nil),
@@ -190,10 +191,10 @@ func TestMountOverlayOp(t *testing.T) {
 		}, stub.UniqueError(2), nil, nil},
 
 		{"mkdirAll", &Params{ParentPerm: 0700}, &MountOverlayOp{
-			Target: MustAbs("/nix/store"),
-			Lower:  []*Absolute{MustAbs("/mnt-root/nix/.ro-store")},
-			Upper:  MustAbs("/mnt-root/nix/.rw-store/upper"),
-			Work:   MustAbs("/mnt-root/nix/.rw-store/work"),
+			Target: check.MustAbs("/nix/store"),
+			Lower:  []*check.Absolute{check.MustAbs("/mnt-root/nix/.ro-store")},
+			Upper:  check.MustAbs("/mnt-root/nix/.rw-store/upper"),
+			Work:   check.MustAbs("/mnt-root/nix/.rw-store/work"),
 		}, []stub.Call{
 			call("evalSymlinks", stub.ExpectArgs{"/mnt-root/nix/.rw-store/upper"}, "/mnt-root/nix/.rw-store/.upper", nil),
 			call("evalSymlinks", stub.ExpectArgs{"/mnt-root/nix/.rw-store/work"}, "/mnt-root/nix/.rw-store/.work", nil),
@@ -203,10 +204,10 @@ func TestMountOverlayOp(t *testing.T) {
 		}, stub.UniqueError(1)},
 
 		{"mount", &Params{ParentPerm: 0700}, &MountOverlayOp{
-			Target: MustAbs("/nix/store"),
-			Lower:  []*Absolute{MustAbs("/mnt-root/nix/.ro-store")},
-			Upper:  MustAbs("/mnt-root/nix/.rw-store/upper"),
-			Work:   MustAbs("/mnt-root/nix/.rw-store/work"),
+			Target: check.MustAbs("/nix/store"),
+			Lower:  []*check.Absolute{check.MustAbs("/mnt-root/nix/.ro-store")},
+			Upper:  check.MustAbs("/mnt-root/nix/.rw-store/upper"),
+			Work:   check.MustAbs("/mnt-root/nix/.rw-store/work"),
 		}, []stub.Call{
 			call("evalSymlinks", stub.ExpectArgs{"/mnt-root/nix/.rw-store/upper"}, "/mnt-root/nix/.rw-store/.upper", nil),
 			call("evalSymlinks", stub.ExpectArgs{"/mnt-root/nix/.rw-store/work"}, "/mnt-root/nix/.rw-store/.work", nil),
@@ -217,10 +218,10 @@ func TestMountOverlayOp(t *testing.T) {
 		}, stub.UniqueError(0)},
 
 		{"success single layer", &Params{ParentPerm: 0700}, &MountOverlayOp{
-			Target: MustAbs("/nix/store"),
-			Lower:  []*Absolute{MustAbs("/mnt-root/nix/.ro-store")},
-			Upper:  MustAbs("/mnt-root/nix/.rw-store/upper"),
-			Work:   MustAbs("/mnt-root/nix/.rw-store/work"),
+			Target: check.MustAbs("/nix/store"),
+			Lower:  []*check.Absolute{check.MustAbs("/mnt-root/nix/.ro-store")},
+			Upper:  check.MustAbs("/mnt-root/nix/.rw-store/upper"),
+			Work:   check.MustAbs("/mnt-root/nix/.rw-store/work"),
 		}, []stub.Call{
 			call("evalSymlinks", stub.ExpectArgs{"/mnt-root/nix/.rw-store/upper"}, "/mnt-root/nix/.rw-store/.upper", nil),
 			call("evalSymlinks", stub.ExpectArgs{"/mnt-root/nix/.rw-store/work"}, "/mnt-root/nix/.rw-store/.work", nil),
@@ -235,16 +236,16 @@ func TestMountOverlayOp(t *testing.T) {
 		}, nil},
 
 		{"success", &Params{ParentPerm: 0700}, &MountOverlayOp{
-			Target: MustAbs("/nix/store"),
-			Lower: []*Absolute{
-				MustAbs("/mnt-root/nix/.ro-store"),
-				MustAbs("/mnt-root/nix/.ro-store0"),
-				MustAbs("/mnt-root/nix/.ro-store1"),
-				MustAbs("/mnt-root/nix/.ro-store2"),
-				MustAbs("/mnt-root/nix/.ro-store3"),
+			Target: check.MustAbs("/nix/store"),
+			Lower: []*check.Absolute{
+				check.MustAbs("/mnt-root/nix/.ro-store"),
+				check.MustAbs("/mnt-root/nix/.ro-store0"),
+				check.MustAbs("/mnt-root/nix/.ro-store1"),
+				check.MustAbs("/mnt-root/nix/.ro-store2"),
+				check.MustAbs("/mnt-root/nix/.ro-store3"),
 			},
-			Upper: MustAbs("/mnt-root/nix/.rw-store/upper"),
-			Work:  MustAbs("/mnt-root/nix/.rw-store/work"),
+			Upper: check.MustAbs("/mnt-root/nix/.rw-store/upper"),
+			Work:  check.MustAbs("/mnt-root/nix/.rw-store/work"),
 		}, []stub.Call{
 			call("evalSymlinks", stub.ExpectArgs{"/mnt-root/nix/.rw-store/upper"}, "/mnt-root/nix/.rw-store/.upper", nil),
 			call("evalSymlinks", stub.ExpectArgs{"/mnt-root/nix/.rw-store/work"}, "/mnt-root/nix/.rw-store/.work", nil),
@@ -272,7 +273,7 @@ func TestMountOverlayOp(t *testing.T) {
 		t.Run("nil Upper non-nil Work not ephemeral", func(t *testing.T) {
 			wantErr := OpStateError("overlay")
 			if err := (&MountOverlayOp{
-				Work: MustAbs("/"),
+				Work: check.MustAbs("/"),
 			}).early(nil, nil); !errors.Is(err, wantErr) {
 				t.Errorf("apply: error = %v, want %v", err, wantErr)
 			}
@@ -282,39 +283,39 @@ func TestMountOverlayOp(t *testing.T) {
 	checkOpsValid(t, []opValidTestCase{
 		{"nil", (*MountOverlayOp)(nil), false},
 		{"zero", new(MountOverlayOp), false},
-		{"nil lower", &MountOverlayOp{Target: MustAbs("/"), Lower: []*Absolute{nil}}, false},
-		{"ro", &MountOverlayOp{Target: MustAbs("/"), Lower: []*Absolute{MustAbs("/")}}, true},
-		{"ro work", &MountOverlayOp{Target: MustAbs("/"), Work: MustAbs("/tmp/")}, false},
-		{"rw", &MountOverlayOp{Target: MustAbs("/"), Lower: []*Absolute{MustAbs("/")}, Upper: MustAbs("/"), Work: MustAbs("/")}, true},
+		{"nil lower", &MountOverlayOp{Target: check.MustAbs("/"), Lower: []*check.Absolute{nil}}, false},
+		{"ro", &MountOverlayOp{Target: check.MustAbs("/"), Lower: []*check.Absolute{check.MustAbs("/")}}, true},
+		{"ro work", &MountOverlayOp{Target: check.MustAbs("/"), Work: check.MustAbs("/tmp/")}, false},
+		{"rw", &MountOverlayOp{Target: check.MustAbs("/"), Lower: []*check.Absolute{check.MustAbs("/")}, Upper: check.MustAbs("/"), Work: check.MustAbs("/")}, true},
 	})
 
 	checkOpsBuilder(t, []opsBuilderTestCase{
 		{"full", new(Ops).Overlay(
-			MustAbs("/nix/store"),
-			MustAbs("/mnt-root/nix/.rw-store/upper"),
-			MustAbs("/mnt-root/nix/.rw-store/work"),
-			MustAbs("/mnt-root/nix/.ro-store"),
+			check.MustAbs("/nix/store"),
+			check.MustAbs("/mnt-root/nix/.rw-store/upper"),
+			check.MustAbs("/mnt-root/nix/.rw-store/work"),
+			check.MustAbs("/mnt-root/nix/.ro-store"),
 		), Ops{
 			&MountOverlayOp{
-				Target: MustAbs("/nix/store"),
-				Lower:  []*Absolute{MustAbs("/mnt-root/nix/.ro-store")},
-				Upper:  MustAbs("/mnt-root/nix/.rw-store/upper"),
-				Work:   MustAbs("/mnt-root/nix/.rw-store/work"),
+				Target: check.MustAbs("/nix/store"),
+				Lower:  []*check.Absolute{check.MustAbs("/mnt-root/nix/.ro-store")},
+				Upper:  check.MustAbs("/mnt-root/nix/.rw-store/upper"),
+				Work:   check.MustAbs("/mnt-root/nix/.rw-store/work"),
 			},
 		}},
 
-		{"ephemeral", new(Ops).OverlayEphemeral(MustAbs("/nix/store"), MustAbs("/mnt-root/nix/.ro-store")), Ops{
+		{"ephemeral", new(Ops).OverlayEphemeral(check.MustAbs("/nix/store"), check.MustAbs("/mnt-root/nix/.ro-store")), Ops{
 			&MountOverlayOp{
-				Target: MustAbs("/nix/store"),
-				Lower:  []*Absolute{MustAbs("/mnt-root/nix/.ro-store")},
-				Upper:  MustAbs("/"),
+				Target: check.MustAbs("/nix/store"),
+				Lower:  []*check.Absolute{check.MustAbs("/mnt-root/nix/.ro-store")},
+				Upper:  check.MustAbs("/"),
 			},
 		}},
 
-		{"readonly", new(Ops).OverlayReadonly(MustAbs("/nix/store"), MustAbs("/mnt-root/nix/.ro-store")), Ops{
+		{"readonly", new(Ops).OverlayReadonly(check.MustAbs("/nix/store"), check.MustAbs("/mnt-root/nix/.ro-store")), Ops{
 			&MountOverlayOp{
-				Target: MustAbs("/nix/store"),
-				Lower:  []*Absolute{MustAbs("/mnt-root/nix/.ro-store")},
+				Target: check.MustAbs("/nix/store"),
+				Lower:  []*check.Absolute{check.MustAbs("/mnt-root/nix/.ro-store")},
 			},
 		}},
 	})
@@ -323,74 +324,74 @@ func TestMountOverlayOp(t *testing.T) {
 		{"zero", new(MountOverlayOp), new(MountOverlayOp), false},
 
 		{"differs target", &MountOverlayOp{
-			Target: MustAbs("/nix/store/differs"),
-			Lower:  []*Absolute{MustAbs("/mnt-root/nix/.ro-store")},
-			Upper:  MustAbs("/mnt-root/nix/.rw-store/upper"),
-			Work:   MustAbs("/mnt-root/nix/.rw-store/work"),
+			Target: check.MustAbs("/nix/store/differs"),
+			Lower:  []*check.Absolute{check.MustAbs("/mnt-root/nix/.ro-store")},
+			Upper:  check.MustAbs("/mnt-root/nix/.rw-store/upper"),
+			Work:   check.MustAbs("/mnt-root/nix/.rw-store/work"),
 		}, &MountOverlayOp{
-			Target: MustAbs("/nix/store"),
-			Lower:  []*Absolute{MustAbs("/mnt-root/nix/.ro-store")},
-			Upper:  MustAbs("/mnt-root/nix/.rw-store/upper"),
-			Work:   MustAbs("/mnt-root/nix/.rw-store/work")}, false},
+			Target: check.MustAbs("/nix/store"),
+			Lower:  []*check.Absolute{check.MustAbs("/mnt-root/nix/.ro-store")},
+			Upper:  check.MustAbs("/mnt-root/nix/.rw-store/upper"),
+			Work:   check.MustAbs("/mnt-root/nix/.rw-store/work")}, false},
 
 		{"differs lower", &MountOverlayOp{
-			Target: MustAbs("/nix/store"),
-			Lower:  []*Absolute{MustAbs("/mnt-root/nix/.ro-store/differs")},
-			Upper:  MustAbs("/mnt-root/nix/.rw-store/upper"),
-			Work:   MustAbs("/mnt-root/nix/.rw-store/work"),
+			Target: check.MustAbs("/nix/store"),
+			Lower:  []*check.Absolute{check.MustAbs("/mnt-root/nix/.ro-store/differs")},
+			Upper:  check.MustAbs("/mnt-root/nix/.rw-store/upper"),
+			Work:   check.MustAbs("/mnt-root/nix/.rw-store/work"),
 		}, &MountOverlayOp{
-			Target: MustAbs("/nix/store"),
-			Lower:  []*Absolute{MustAbs("/mnt-root/nix/.ro-store")},
-			Upper:  MustAbs("/mnt-root/nix/.rw-store/upper"),
-			Work:   MustAbs("/mnt-root/nix/.rw-store/work")}, false},
+			Target: check.MustAbs("/nix/store"),
+			Lower:  []*check.Absolute{check.MustAbs("/mnt-root/nix/.ro-store")},
+			Upper:  check.MustAbs("/mnt-root/nix/.rw-store/upper"),
+			Work:   check.MustAbs("/mnt-root/nix/.rw-store/work")}, false},
 
 		{"differs upper", &MountOverlayOp{
-			Target: MustAbs("/nix/store"),
-			Lower:  []*Absolute{MustAbs("/mnt-root/nix/.ro-store")},
-			Upper:  MustAbs("/mnt-root/nix/.rw-store/upper/differs"),
-			Work:   MustAbs("/mnt-root/nix/.rw-store/work"),
+			Target: check.MustAbs("/nix/store"),
+			Lower:  []*check.Absolute{check.MustAbs("/mnt-root/nix/.ro-store")},
+			Upper:  check.MustAbs("/mnt-root/nix/.rw-store/upper/differs"),
+			Work:   check.MustAbs("/mnt-root/nix/.rw-store/work"),
 		}, &MountOverlayOp{
-			Target: MustAbs("/nix/store"),
-			Lower:  []*Absolute{MustAbs("/mnt-root/nix/.ro-store")},
-			Upper:  MustAbs("/mnt-root/nix/.rw-store/upper"),
-			Work:   MustAbs("/mnt-root/nix/.rw-store/work")}, false},
+			Target: check.MustAbs("/nix/store"),
+			Lower:  []*check.Absolute{check.MustAbs("/mnt-root/nix/.ro-store")},
+			Upper:  check.MustAbs("/mnt-root/nix/.rw-store/upper"),
+			Work:   check.MustAbs("/mnt-root/nix/.rw-store/work")}, false},
 
 		{"differs work", &MountOverlayOp{
-			Target: MustAbs("/nix/store"),
-			Lower:  []*Absolute{MustAbs("/mnt-root/nix/.ro-store")},
-			Upper:  MustAbs("/mnt-root/nix/.rw-store/upper"),
-			Work:   MustAbs("/mnt-root/nix/.rw-store/work/differs"),
+			Target: check.MustAbs("/nix/store"),
+			Lower:  []*check.Absolute{check.MustAbs("/mnt-root/nix/.ro-store")},
+			Upper:  check.MustAbs("/mnt-root/nix/.rw-store/upper"),
+			Work:   check.MustAbs("/mnt-root/nix/.rw-store/work/differs"),
 		}, &MountOverlayOp{
-			Target: MustAbs("/nix/store"),
-			Lower:  []*Absolute{MustAbs("/mnt-root/nix/.ro-store")},
-			Upper:  MustAbs("/mnt-root/nix/.rw-store/upper"),
-			Work:   MustAbs("/mnt-root/nix/.rw-store/work")}, false},
+			Target: check.MustAbs("/nix/store"),
+			Lower:  []*check.Absolute{check.MustAbs("/mnt-root/nix/.ro-store")},
+			Upper:  check.MustAbs("/mnt-root/nix/.rw-store/upper"),
+			Work:   check.MustAbs("/mnt-root/nix/.rw-store/work")}, false},
 
 		{"equals ro", &MountOverlayOp{
-			Target: MustAbs("/nix/store"),
-			Lower:  []*Absolute{MustAbs("/mnt-root/nix/.ro-store")},
+			Target: check.MustAbs("/nix/store"),
+			Lower:  []*check.Absolute{check.MustAbs("/mnt-root/nix/.ro-store")},
 		}, &MountOverlayOp{
-			Target: MustAbs("/nix/store"),
-			Lower:  []*Absolute{MustAbs("/mnt-root/nix/.ro-store")}}, true},
+			Target: check.MustAbs("/nix/store"),
+			Lower:  []*check.Absolute{check.MustAbs("/mnt-root/nix/.ro-store")}}, true},
 
 		{"equals", &MountOverlayOp{
-			Target: MustAbs("/nix/store"),
-			Lower:  []*Absolute{MustAbs("/mnt-root/nix/.ro-store")},
-			Upper:  MustAbs("/mnt-root/nix/.rw-store/upper"),
-			Work:   MustAbs("/mnt-root/nix/.rw-store/work"),
+			Target: check.MustAbs("/nix/store"),
+			Lower:  []*check.Absolute{check.MustAbs("/mnt-root/nix/.ro-store")},
+			Upper:  check.MustAbs("/mnt-root/nix/.rw-store/upper"),
+			Work:   check.MustAbs("/mnt-root/nix/.rw-store/work"),
 		}, &MountOverlayOp{
-			Target: MustAbs("/nix/store"),
-			Lower:  []*Absolute{MustAbs("/mnt-root/nix/.ro-store")},
-			Upper:  MustAbs("/mnt-root/nix/.rw-store/upper"),
-			Work:   MustAbs("/mnt-root/nix/.rw-store/work")}, true},
+			Target: check.MustAbs("/nix/store"),
+			Lower:  []*check.Absolute{check.MustAbs("/mnt-root/nix/.ro-store")},
+			Upper:  check.MustAbs("/mnt-root/nix/.rw-store/upper"),
+			Work:   check.MustAbs("/mnt-root/nix/.rw-store/work")}, true},
 	})
 
 	checkOpMeta(t, []opMetaTestCase{
 		{"nix", &MountOverlayOp{
-			Target: MustAbs("/nix/store"),
-			Lower:  []*Absolute{MustAbs("/mnt-root/nix/.ro-store")},
-			Upper:  MustAbs("/mnt-root/nix/.rw-store/upper"),
-			Work:   MustAbs("/mnt-root/nix/.rw-store/work"),
+			Target: check.MustAbs("/nix/store"),
+			Lower:  []*check.Absolute{check.MustAbs("/mnt-root/nix/.ro-store")},
+			Upper:  check.MustAbs("/mnt-root/nix/.rw-store/upper"),
+			Work:   check.MustAbs("/mnt-root/nix/.rw-store/work"),
 		}, "mounting", `overlay on "/nix/store" with 1 layers`},
 	})
 }

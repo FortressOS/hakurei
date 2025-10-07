@@ -4,20 +4,21 @@ import (
 	"os"
 	"testing"
 
+	"hakurei.app/container/check"
 	"hakurei.app/container/stub"
 )
 
 func TestMountDevOp(t *testing.T) {
 	checkOpBehaviour(t, []opBehaviourTestCase{
 		{"mountTmpfs", &Params{ParentPerm: 0750, RetainSession: true}, &MountDevOp{
-			Target: MustAbs("/dev/"),
+			Target: check.MustAbs("/dev/"),
 			Mqueue: true,
 		}, nil, nil, []stub.Call{
 			call("mountTmpfs", stub.ExpectArgs{"devtmpfs", "/sysroot/dev", uintptr(0x6), 0, os.FileMode(0750)}, nil, stub.UniqueError(27)),
 		}, stub.UniqueError(27)},
 
 		{"ensureFile null", &Params{ParentPerm: 0750, RetainSession: true}, &MountDevOp{
-			Target: MustAbs("/dev/"),
+			Target: check.MustAbs("/dev/"),
 			Mqueue: true,
 		}, nil, nil, []stub.Call{
 			call("mountTmpfs", stub.ExpectArgs{"devtmpfs", "/sysroot/dev", uintptr(0x6), 0, os.FileMode(0750)}, nil, nil),
@@ -25,7 +26,7 @@ func TestMountDevOp(t *testing.T) {
 		}, stub.UniqueError(26)},
 
 		{"bindMount null", &Params{ParentPerm: 0750, RetainSession: true}, &MountDevOp{
-			Target: MustAbs("/dev/"),
+			Target: check.MustAbs("/dev/"),
 			Mqueue: true,
 		}, nil, nil, []stub.Call{
 			call("mountTmpfs", stub.ExpectArgs{"devtmpfs", "/sysroot/dev", uintptr(0x6), 0, os.FileMode(0750)}, nil, nil),
@@ -34,7 +35,7 @@ func TestMountDevOp(t *testing.T) {
 		}, stub.UniqueError(25)},
 
 		{"ensureFile zero", &Params{ParentPerm: 0750, RetainSession: true}, &MountDevOp{
-			Target: MustAbs("/dev/"),
+			Target: check.MustAbs("/dev/"),
 			Mqueue: true,
 		}, nil, nil, []stub.Call{
 			call("mountTmpfs", stub.ExpectArgs{"devtmpfs", "/sysroot/dev", uintptr(0x6), 0, os.FileMode(0750)}, nil, nil),
@@ -44,7 +45,7 @@ func TestMountDevOp(t *testing.T) {
 		}, stub.UniqueError(24)},
 
 		{"bindMount zero", &Params{ParentPerm: 0750, RetainSession: true}, &MountDevOp{
-			Target: MustAbs("/dev/"),
+			Target: check.MustAbs("/dev/"),
 			Mqueue: true,
 		}, nil, nil, []stub.Call{
 			call("mountTmpfs", stub.ExpectArgs{"devtmpfs", "/sysroot/dev", uintptr(0x6), 0, os.FileMode(0750)}, nil, nil),
@@ -55,7 +56,7 @@ func TestMountDevOp(t *testing.T) {
 		}, stub.UniqueError(23)},
 
 		{"ensureFile full", &Params{ParentPerm: 0750, RetainSession: true}, &MountDevOp{
-			Target: MustAbs("/dev/"),
+			Target: check.MustAbs("/dev/"),
 			Mqueue: true,
 		}, nil, nil, []stub.Call{
 			call("mountTmpfs", stub.ExpectArgs{"devtmpfs", "/sysroot/dev", uintptr(0x6), 0, os.FileMode(0750)}, nil, nil),
@@ -67,7 +68,7 @@ func TestMountDevOp(t *testing.T) {
 		}, stub.UniqueError(22)},
 
 		{"bindMount full", &Params{ParentPerm: 0750, RetainSession: true}, &MountDevOp{
-			Target: MustAbs("/dev/"),
+			Target: check.MustAbs("/dev/"),
 			Mqueue: true,
 		}, nil, nil, []stub.Call{
 			call("mountTmpfs", stub.ExpectArgs{"devtmpfs", "/sysroot/dev", uintptr(0x6), 0, os.FileMode(0750)}, nil, nil),
@@ -80,7 +81,7 @@ func TestMountDevOp(t *testing.T) {
 		}, stub.UniqueError(21)},
 
 		{"ensureFile random", &Params{ParentPerm: 0750, RetainSession: true}, &MountDevOp{
-			Target: MustAbs("/dev/"),
+			Target: check.MustAbs("/dev/"),
 			Mqueue: true,
 		}, nil, nil, []stub.Call{
 			call("mountTmpfs", stub.ExpectArgs{"devtmpfs", "/sysroot/dev", uintptr(0x6), 0, os.FileMode(0750)}, nil, nil),
@@ -94,7 +95,7 @@ func TestMountDevOp(t *testing.T) {
 		}, stub.UniqueError(20)},
 
 		{"bindMount random", &Params{ParentPerm: 0750, RetainSession: true}, &MountDevOp{
-			Target: MustAbs("/dev/"),
+			Target: check.MustAbs("/dev/"),
 			Mqueue: true,
 		}, nil, nil, []stub.Call{
 			call("mountTmpfs", stub.ExpectArgs{"devtmpfs", "/sysroot/dev", uintptr(0x6), 0, os.FileMode(0750)}, nil, nil),
@@ -109,7 +110,7 @@ func TestMountDevOp(t *testing.T) {
 		}, stub.UniqueError(19)},
 
 		{"ensureFile urandom", &Params{ParentPerm: 0750, RetainSession: true}, &MountDevOp{
-			Target: MustAbs("/dev/"),
+			Target: check.MustAbs("/dev/"),
 			Mqueue: true,
 		}, nil, nil, []stub.Call{
 			call("mountTmpfs", stub.ExpectArgs{"devtmpfs", "/sysroot/dev", uintptr(0x6), 0, os.FileMode(0750)}, nil, nil),
@@ -125,7 +126,7 @@ func TestMountDevOp(t *testing.T) {
 		}, stub.UniqueError(18)},
 
 		{"bindMount urandom", &Params{ParentPerm: 0750, RetainSession: true}, &MountDevOp{
-			Target: MustAbs("/dev/"),
+			Target: check.MustAbs("/dev/"),
 			Mqueue: true,
 		}, nil, nil, []stub.Call{
 			call("mountTmpfs", stub.ExpectArgs{"devtmpfs", "/sysroot/dev", uintptr(0x6), 0, os.FileMode(0750)}, nil, nil),
@@ -142,7 +143,7 @@ func TestMountDevOp(t *testing.T) {
 		}, stub.UniqueError(17)},
 
 		{"ensureFile tty", &Params{ParentPerm: 0750, RetainSession: true}, &MountDevOp{
-			Target: MustAbs("/dev/"),
+			Target: check.MustAbs("/dev/"),
 			Mqueue: true,
 		}, nil, nil, []stub.Call{
 			call("mountTmpfs", stub.ExpectArgs{"devtmpfs", "/sysroot/dev", uintptr(0x6), 0, os.FileMode(0750)}, nil, nil),
@@ -160,7 +161,7 @@ func TestMountDevOp(t *testing.T) {
 		}, stub.UniqueError(16)},
 
 		{"bindMount tty", &Params{ParentPerm: 0750, RetainSession: true}, &MountDevOp{
-			Target: MustAbs("/dev/"),
+			Target: check.MustAbs("/dev/"),
 			Mqueue: true,
 		}, nil, nil, []stub.Call{
 			call("mountTmpfs", stub.ExpectArgs{"devtmpfs", "/sysroot/dev", uintptr(0x6), 0, os.FileMode(0750)}, nil, nil),
@@ -179,7 +180,7 @@ func TestMountDevOp(t *testing.T) {
 		}, stub.UniqueError(15)},
 
 		{"symlink stdin", &Params{ParentPerm: 0750, RetainSession: true}, &MountDevOp{
-			Target: MustAbs("/dev/"),
+			Target: check.MustAbs("/dev/"),
 			Mqueue: true,
 		}, nil, nil, []stub.Call{
 			call("mountTmpfs", stub.ExpectArgs{"devtmpfs", "/sysroot/dev", uintptr(0x6), 0, os.FileMode(0750)}, nil, nil),
@@ -199,7 +200,7 @@ func TestMountDevOp(t *testing.T) {
 		}, stub.UniqueError(14)},
 
 		{"symlink stdout", &Params{ParentPerm: 0750, RetainSession: true}, &MountDevOp{
-			Target: MustAbs("/dev/"),
+			Target: check.MustAbs("/dev/"),
 			Mqueue: true,
 		}, nil, nil, []stub.Call{
 			call("mountTmpfs", stub.ExpectArgs{"devtmpfs", "/sysroot/dev", uintptr(0x6), 0, os.FileMode(0750)}, nil, nil),
@@ -220,7 +221,7 @@ func TestMountDevOp(t *testing.T) {
 		}, stub.UniqueError(13)},
 
 		{"symlink stderr", &Params{ParentPerm: 0750, RetainSession: true}, &MountDevOp{
-			Target: MustAbs("/dev/"),
+			Target: check.MustAbs("/dev/"),
 			Mqueue: true,
 		}, nil, nil, []stub.Call{
 			call("mountTmpfs", stub.ExpectArgs{"devtmpfs", "/sysroot/dev", uintptr(0x6), 0, os.FileMode(0750)}, nil, nil),
@@ -242,7 +243,7 @@ func TestMountDevOp(t *testing.T) {
 		}, stub.UniqueError(12)},
 
 		{"symlink fd", &Params{ParentPerm: 0750, RetainSession: true}, &MountDevOp{
-			Target: MustAbs("/dev/"),
+			Target: check.MustAbs("/dev/"),
 			Mqueue: true,
 		}, nil, nil, []stub.Call{
 			call("mountTmpfs", stub.ExpectArgs{"devtmpfs", "/sysroot/dev", uintptr(0x6), 0, os.FileMode(0750)}, nil, nil),
@@ -265,7 +266,7 @@ func TestMountDevOp(t *testing.T) {
 		}, stub.UniqueError(11)},
 
 		{"symlink kcore", &Params{ParentPerm: 0750, RetainSession: true}, &MountDevOp{
-			Target: MustAbs("/dev/"),
+			Target: check.MustAbs("/dev/"),
 			Mqueue: true,
 		}, nil, nil, []stub.Call{
 			call("mountTmpfs", stub.ExpectArgs{"devtmpfs", "/sysroot/dev", uintptr(0x6), 0, os.FileMode(0750)}, nil, nil),
@@ -289,7 +290,7 @@ func TestMountDevOp(t *testing.T) {
 		}, stub.UniqueError(10)},
 
 		{"symlink ptmx", &Params{ParentPerm: 0750, RetainSession: true}, &MountDevOp{
-			Target: MustAbs("/dev/"),
+			Target: check.MustAbs("/dev/"),
 			Mqueue: true,
 		}, nil, nil, []stub.Call{
 			call("mountTmpfs", stub.ExpectArgs{"devtmpfs", "/sysroot/dev", uintptr(0x6), 0, os.FileMode(0750)}, nil, nil),
@@ -314,7 +315,7 @@ func TestMountDevOp(t *testing.T) {
 		}, stub.UniqueError(9)},
 
 		{"mkdir shm", &Params{ParentPerm: 0750, RetainSession: true}, &MountDevOp{
-			Target: MustAbs("/dev/"),
+			Target: check.MustAbs("/dev/"),
 			Mqueue: true,
 		}, nil, nil, []stub.Call{
 			call("mountTmpfs", stub.ExpectArgs{"devtmpfs", "/sysroot/dev", uintptr(0x6), 0, os.FileMode(0750)}, nil, nil),
@@ -340,7 +341,7 @@ func TestMountDevOp(t *testing.T) {
 		}, stub.UniqueError(8)},
 
 		{"mkdir devpts", &Params{ParentPerm: 0750, RetainSession: true}, &MountDevOp{
-			Target: MustAbs("/dev/"),
+			Target: check.MustAbs("/dev/"),
 			Mqueue: true,
 		}, nil, nil, []stub.Call{
 			call("mountTmpfs", stub.ExpectArgs{"devtmpfs", "/sysroot/dev", uintptr(0x6), 0, os.FileMode(0750)}, nil, nil),
@@ -367,7 +368,7 @@ func TestMountDevOp(t *testing.T) {
 		}, stub.UniqueError(7)},
 
 		{"mount devpts", &Params{ParentPerm: 0750, RetainSession: true}, &MountDevOp{
-			Target: MustAbs("/dev/"),
+			Target: check.MustAbs("/dev/"),
 			Mqueue: true,
 		}, nil, nil, []stub.Call{
 			call("mountTmpfs", stub.ExpectArgs{"devtmpfs", "/sysroot/dev", uintptr(0x6), 0, os.FileMode(0750)}, nil, nil),
@@ -395,7 +396,7 @@ func TestMountDevOp(t *testing.T) {
 		}, stub.UniqueError(6)},
 
 		{"ensureFile stdout", &Params{ParentPerm: 0750, RetainSession: true}, &MountDevOp{
-			Target: MustAbs("/dev/"),
+			Target: check.MustAbs("/dev/"),
 			Mqueue: true,
 		}, nil, nil, []stub.Call{
 			call("mountTmpfs", stub.ExpectArgs{"devtmpfs", "/sysroot/dev", uintptr(0x6), 0, os.FileMode(0750)}, nil, nil),
@@ -425,7 +426,7 @@ func TestMountDevOp(t *testing.T) {
 		}, stub.UniqueError(5)},
 
 		{"readlink stdout", &Params{ParentPerm: 0750, RetainSession: true}, &MountDevOp{
-			Target: MustAbs("/dev/"),
+			Target: check.MustAbs("/dev/"),
 			Mqueue: true,
 		}, nil, nil, []stub.Call{
 			call("mountTmpfs", stub.ExpectArgs{"devtmpfs", "/sysroot/dev", uintptr(0x6), 0, os.FileMode(0750)}, nil, nil),
@@ -456,7 +457,7 @@ func TestMountDevOp(t *testing.T) {
 		}, stub.UniqueError(4)},
 
 		{"bindMount stdout", &Params{ParentPerm: 0750, RetainSession: true}, &MountDevOp{
-			Target: MustAbs("/dev/"),
+			Target: check.MustAbs("/dev/"),
 			Mqueue: true,
 		}, nil, nil, []stub.Call{
 			call("mountTmpfs", stub.ExpectArgs{"devtmpfs", "/sysroot/dev", uintptr(0x6), 0, os.FileMode(0750)}, nil, nil),
@@ -488,7 +489,7 @@ func TestMountDevOp(t *testing.T) {
 		}, stub.UniqueError(3)},
 
 		{"mkdir mqueue", &Params{ParentPerm: 0750, RetainSession: true}, &MountDevOp{
-			Target: MustAbs("/dev/"),
+			Target: check.MustAbs("/dev/"),
 			Mqueue: true,
 		}, nil, nil, []stub.Call{
 			call("mountTmpfs", stub.ExpectArgs{"devtmpfs", "/sysroot/dev", uintptr(0x6), 0, os.FileMode(0750)}, nil, nil),
@@ -521,7 +522,7 @@ func TestMountDevOp(t *testing.T) {
 		}, stub.UniqueError(2)},
 
 		{"mount mqueue", &Params{ParentPerm: 0750, RetainSession: true}, &MountDevOp{
-			Target: MustAbs("/dev/"),
+			Target: check.MustAbs("/dev/"),
 			Mqueue: true,
 		}, nil, nil, []stub.Call{
 			call("mountTmpfs", stub.ExpectArgs{"devtmpfs", "/sysroot/dev", uintptr(0x6), 0, os.FileMode(0750)}, nil, nil),
@@ -555,7 +556,7 @@ func TestMountDevOp(t *testing.T) {
 		}, stub.UniqueError(1)},
 
 		{"success no session", &Params{ParentPerm: 0755}, &MountDevOp{
-			Target: MustAbs("/dev/"),
+			Target: check.MustAbs("/dev/"),
 			Mqueue: true,
 			Write:  true,
 		}, nil, nil, []stub.Call{
@@ -586,7 +587,7 @@ func TestMountDevOp(t *testing.T) {
 		}, nil},
 
 		{"success no tty", &Params{ParentPerm: 0750, RetainSession: true}, &MountDevOp{
-			Target: MustAbs("/dev/"),
+			Target: check.MustAbs("/dev/"),
 			Mqueue: true,
 			Write:  true,
 		}, nil, nil, []stub.Call{
@@ -618,7 +619,7 @@ func TestMountDevOp(t *testing.T) {
 		}, nil},
 
 		{"remount", &Params{ParentPerm: 0750, RetainSession: true}, &MountDevOp{
-			Target: MustAbs("/dev/"),
+			Target: check.MustAbs("/dev/"),
 		}, nil, nil, []stub.Call{
 			call("mountTmpfs", stub.ExpectArgs{"devtmpfs", "/sysroot/dev", uintptr(0x6), 0, os.FileMode(0750)}, nil, nil),
 			call("ensureFile", stub.ExpectArgs{"/sysroot/dev/null", os.FileMode(0444), os.FileMode(0750)}, nil, nil),
@@ -650,7 +651,7 @@ func TestMountDevOp(t *testing.T) {
 		}, stub.UniqueError(0)},
 
 		{"success no mqueue", &Params{ParentPerm: 0750, RetainSession: true}, &MountDevOp{
-			Target: MustAbs("/dev/"),
+			Target: check.MustAbs("/dev/"),
 		}, nil, nil, []stub.Call{
 			call("mountTmpfs", stub.ExpectArgs{"devtmpfs", "/sysroot/dev", uintptr(0x6), 0, os.FileMode(0750)}, nil, nil),
 			call("ensureFile", stub.ExpectArgs{"/sysroot/dev/null", os.FileMode(0444), os.FileMode(0750)}, nil, nil),
@@ -683,7 +684,7 @@ func TestMountDevOp(t *testing.T) {
 		}, nil},
 
 		{"success rw", &Params{ParentPerm: 0750, RetainSession: true}, &MountDevOp{
-			Target: MustAbs("/dev/"),
+			Target: check.MustAbs("/dev/"),
 			Mqueue: true,
 			Write:  true,
 		}, nil, nil, []stub.Call{
@@ -718,7 +719,7 @@ func TestMountDevOp(t *testing.T) {
 		}, nil},
 
 		{"success", &Params{ParentPerm: 0750, RetainSession: true}, &MountDevOp{
-			Target: MustAbs("/dev/"),
+			Target: check.MustAbs("/dev/"),
 			Mqueue: true,
 		}, nil, nil, []stub.Call{
 			call("mountTmpfs", stub.ExpectArgs{"devtmpfs", "/sysroot/dev", uintptr(0x6), 0, os.FileMode(0750)}, nil, nil),
@@ -757,20 +758,20 @@ func TestMountDevOp(t *testing.T) {
 	checkOpsValid(t, []opValidTestCase{
 		{"nil", (*MountDevOp)(nil), false},
 		{"zero", new(MountDevOp), false},
-		{"valid", &MountDevOp{Target: MustAbs("/dev/")}, true},
+		{"valid", &MountDevOp{Target: check.MustAbs("/dev/")}, true},
 	})
 
 	checkOpsBuilder(t, []opsBuilderTestCase{
-		{"dev", new(Ops).Dev(MustAbs("/dev/"), true), Ops{
+		{"dev", new(Ops).Dev(check.MustAbs("/dev/"), true), Ops{
 			&MountDevOp{
-				Target: MustAbs("/dev/"),
+				Target: check.MustAbs("/dev/"),
 				Mqueue: true,
 			},
 		}},
 
-		{"dev writable", new(Ops).DevWritable(MustAbs("/.hakurei/dev/"), false), Ops{
+		{"dev writable", new(Ops).DevWritable(check.MustAbs("/.hakurei/dev/"), false), Ops{
 			&MountDevOp{
-				Target: MustAbs("/.hakurei/dev/"),
+				Target: check.MustAbs("/.hakurei/dev/"),
 				Write:  true,
 			},
 		}},
@@ -780,46 +781,46 @@ func TestMountDevOp(t *testing.T) {
 		{"zero", new(MountDevOp), new(MountDevOp), false},
 
 		{"write differs", &MountDevOp{
-			Target: MustAbs("/dev/"),
+			Target: check.MustAbs("/dev/"),
 			Mqueue: true,
 		}, &MountDevOp{
-			Target: MustAbs("/dev/"),
+			Target: check.MustAbs("/dev/"),
 			Mqueue: true,
 			Write:  true,
 		}, false},
 
 		{"mqueue differs", &MountDevOp{
-			Target: MustAbs("/dev/"),
+			Target: check.MustAbs("/dev/"),
 		}, &MountDevOp{
-			Target: MustAbs("/dev/"),
+			Target: check.MustAbs("/dev/"),
 			Mqueue: true,
 		}, false},
 
 		{"target differs", &MountDevOp{
-			Target: MustAbs("/"),
+			Target: check.MustAbs("/"),
 			Mqueue: true,
 		}, &MountDevOp{
-			Target: MustAbs("/dev/"),
+			Target: check.MustAbs("/dev/"),
 			Mqueue: true,
 		}, false},
 
 		{"equals", &MountDevOp{
-			Target: MustAbs("/dev/"),
+			Target: check.MustAbs("/dev/"),
 			Mqueue: true,
 		}, &MountDevOp{
-			Target: MustAbs("/dev/"),
+			Target: check.MustAbs("/dev/"),
 			Mqueue: true,
 		}, true},
 	})
 
 	checkOpMeta(t, []opMetaTestCase{
 		{"mqueue", &MountDevOp{
-			Target: MustAbs("/dev/"),
+			Target: check.MustAbs("/dev/"),
 			Mqueue: true,
 		}, "mounting", `dev on "/dev/" with mqueue`},
 
 		{"dev", &MountDevOp{
-			Target: MustAbs("/dev/"),
+			Target: check.MustAbs("/dev/"),
 		}, "mounting", `dev on "/dev/"`},
 	})
 }

@@ -8,6 +8,7 @@ import (
 	"syscall"
 	"testing"
 
+	"hakurei.app/container/check"
 	"hakurei.app/container/stub"
 	"hakurei.app/container/vfs"
 )
@@ -34,7 +35,7 @@ func TestMessageFromError(t *testing.T) {
 			Err:  stub.UniqueError(0xdeadbeef),
 		}, "cannot mount /sysroot: unique error 3735928559 injected by the test suite", true},
 
-		{"absolute", &AbsoluteError{"etc/mtab"},
+		{"absolute", &check.AbsoluteError{Pathname: "etc/mtab"},
 			`path "etc/mtab" is not absolute`, true},
 
 		{"repeat", OpRepeatError("autoetc"),

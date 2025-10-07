@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"hakurei.app/container"
+	"hakurei.app/container/check"
 	"hakurei.app/hst"
 )
 
@@ -216,11 +217,11 @@ type stubFS struct {
 	typeName string
 }
 
-func (s stubFS) Valid() bool                 { return false }
-func (s stubFS) Path() *container.Absolute   { panic("unreachable") }
-func (s stubFS) Host() []*container.Absolute { panic("unreachable") }
-func (s stubFS) Apply(*hst.ApplyState)       { panic("unreachable") }
-func (s stubFS) String() string              { return "<invalid " + s.typeName + ">" }
+func (s stubFS) Valid() bool             { return false }
+func (s stubFS) Path() *check.Absolute   { panic("unreachable") }
+func (s stubFS) Host() []*check.Absolute { panic("unreachable") }
+func (s stubFS) Apply(*hst.ApplyState)   { panic("unreachable") }
+func (s stubFS) String() string          { return "<invalid " + s.typeName + ">" }
 
 type sCheck struct {
 	FS    hst.FilesystemConfigJSON `json:"fs"`
@@ -232,8 +233,8 @@ type fsTestCase struct {
 	fs    hst.FilesystemConfig
 	valid bool
 	ops   container.Ops
-	path  *container.Absolute
-	host  []*container.Absolute
+	path  *check.Absolute
+	host  []*check.Absolute
 	str   string
 }
 
@@ -287,11 +288,11 @@ func checkFs(t *testing.T, testCases []fsTestCase) {
 	}
 }
 
-func m(pathname string) *container.Absolute { return container.MustAbs(pathname) }
-func ms(pathnames ...string) []*container.Absolute {
-	as := make([]*container.Absolute, len(pathnames))
+func m(pathname string) *check.Absolute { return check.MustAbs(pathname) }
+func ms(pathnames ...string) []*check.Absolute {
+	as := make([]*check.Absolute, len(pathnames))
 	for i, pathname := range pathnames {
-		as[i] = container.MustAbs(pathname)
+		as[i] = check.MustAbs(pathname)
 	}
 	return as
 }

@@ -4,7 +4,7 @@ import (
 	"encoding/gob"
 	"path"
 
-	"hakurei.app/container"
+	"hakurei.app/container/check"
 )
 
 func init() { gob.Register(new(FSLink)) }
@@ -15,7 +15,7 @@ const FilesystemLink = "link"
 // FSLink represents a symlink in the container filesystem.
 type FSLink struct {
 	// link path in container
-	Target *container.Absolute `json:"dst"`
+	Target *check.Absolute `json:"dst"`
 	// linkname the symlink points to
 	Linkname string `json:"linkname"`
 	// whether to dereference linkname before creating the link
@@ -29,14 +29,14 @@ func (l *FSLink) Valid() bool {
 	return !l.Dereference || path.IsAbs(l.Linkname)
 }
 
-func (l *FSLink) Path() *container.Absolute {
+func (l *FSLink) Path() *check.Absolute {
 	if !l.Valid() {
 		return nil
 	}
 	return l.Target
 }
 
-func (l *FSLink) Host() []*container.Absolute { return nil }
+func (l *FSLink) Host() []*check.Absolute { return nil }
 
 func (l *FSLink) Apply(z *ApplyState) {
 	if !l.Valid() {

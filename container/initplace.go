@@ -4,6 +4,8 @@ import (
 	"encoding/gob"
 	"fmt"
 	"syscall"
+
+	"hakurei.app/container/check"
 )
 
 const (
@@ -14,13 +16,13 @@ const (
 func init() { gob.Register(new(TmpfileOp)) }
 
 // Place appends an [Op] that places a file in container path [TmpfileOp.Path] containing [TmpfileOp.Data].
-func (f *Ops) Place(name *Absolute, data []byte) *Ops {
+func (f *Ops) Place(name *check.Absolute, data []byte) *Ops {
 	*f = append(*f, &TmpfileOp{name, data})
 	return f
 }
 
 // PlaceP is like Place but writes the address of [TmpfileOp.Data] to the pointer dataP points to.
-func (f *Ops) PlaceP(name *Absolute, dataP **[]byte) *Ops {
+func (f *Ops) PlaceP(name *check.Absolute, dataP **[]byte) *Ops {
 	t := &TmpfileOp{Path: name}
 	*dataP = &t.Data
 
@@ -30,7 +32,7 @@ func (f *Ops) PlaceP(name *Absolute, dataP **[]byte) *Ops {
 
 // TmpfileOp places a file on container Path containing Data.
 type TmpfileOp struct {
-	Path *Absolute
+	Path *check.Absolute
 	Data []byte
 }
 

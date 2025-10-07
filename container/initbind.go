@@ -5,12 +5,14 @@ import (
 	"fmt"
 	"os"
 	"syscall"
+
+	"hakurei.app/container/check"
 )
 
 func init() { gob.Register(new(BindMountOp)) }
 
 // Bind appends an [Op] that bind mounts host path [BindMountOp.Source] on container path [BindMountOp.Target].
-func (f *Ops) Bind(source, target *Absolute, flags int) *Ops {
+func (f *Ops) Bind(source, target *check.Absolute, flags int) *Ops {
 	*f = append(*f, &BindMountOp{nil, source, target, flags})
 	return f
 }
@@ -18,7 +20,7 @@ func (f *Ops) Bind(source, target *Absolute, flags int) *Ops {
 // BindMountOp bind mounts host path Source on container path Target.
 // Note that Flags uses bits declared in this package and should not be set with constants in [syscall].
 type BindMountOp struct {
-	sourceFinal, Source, Target *Absolute
+	sourceFinal, Source, Target *check.Absolute
 
 	Flags int
 }
@@ -54,7 +56,7 @@ func (b *BindMountOp) early(_ *setupState, k syscallDispatcher) error {
 		}
 		return err
 	} else {
-		b.sourceFinal, err = NewAbs(pathname)
+		b.sourceFinal, err = check.NewAbs(pathname)
 		return err
 	}
 }

@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"hakurei.app/container"
+	"hakurei.app/container/check"
 )
 
 // An AppError is returned while starting an app according to [hst.Config].
@@ -38,13 +39,13 @@ func (e *AppError) Message() string {
 // Paths contains environment-dependent paths used by hakurei.
 type Paths struct {
 	// temporary directory returned by [os.TempDir] (usually `/tmp`)
-	TempDir *container.Absolute `json:"temp_dir"`
+	TempDir *check.Absolute `json:"temp_dir"`
 	// path to shared directory (usually `/tmp/hakurei.%d`, [Info.User])
-	SharePath *container.Absolute `json:"share_path"`
+	SharePath *check.Absolute `json:"share_path"`
 	// XDG_RUNTIME_DIR value (usually `/run/user/%d`, uid)
-	RuntimePath *container.Absolute `json:"runtime_path"`
+	RuntimePath *check.Absolute `json:"runtime_path"`
 	// application runtime directory (usually `/run/user/%d/hakurei`)
-	RunDirPath *container.Absolute `json:"run_dir_path"`
+	RunDirPath *check.Absolute `json:"run_dir_path"`
 }
 
 type Info struct {
@@ -115,22 +116,22 @@ func Template() *Config {
 				{&FSBind{Target: container.AbsFHSEtc, Source: container.AbsFHSEtc, Special: true}},
 				{&FSEphemeral{Target: container.AbsFHSTmp, Write: true, Perm: 0755}},
 				{&FSOverlay{
-					Target: container.MustAbs("/nix/store"),
-					Lower:  []*container.Absolute{container.MustAbs("/mnt-root/nix/.ro-store")},
-					Upper:  container.MustAbs("/mnt-root/nix/.rw-store/upper"),
-					Work:   container.MustAbs("/mnt-root/nix/.rw-store/work"),
+					Target: check.MustAbs("/nix/store"),
+					Lower:  []*check.Absolute{check.MustAbs("/mnt-root/nix/.ro-store")},
+					Upper:  check.MustAbs("/mnt-root/nix/.rw-store/upper"),
+					Work:   check.MustAbs("/mnt-root/nix/.rw-store/work"),
 				}},
-				{&FSBind{Source: container.MustAbs("/nix/store")}},
+				{&FSBind{Source: check.MustAbs("/nix/store")}},
 				{&FSLink{Target: container.AbsFHSRun.Append("current-system"), Linkname: "/run/current-system", Dereference: true}},
 				{&FSLink{Target: container.AbsFHSRun.Append("opengl-driver"), Linkname: "/run/opengl-driver", Dereference: true}},
 				{&FSBind{Source: container.AbsFHSVarLib.Append("hakurei/u0/org.chromium.Chromium"),
-					Target: container.MustAbs("/data/data/org.chromium.Chromium"), Write: true, Ensure: true}},
+					Target: check.MustAbs("/data/data/org.chromium.Chromium"), Write: true, Ensure: true}},
 				{&FSBind{Source: container.AbsFHSDev.Append("dri"), Device: true, Optional: true}},
 			},
 
 			Username: "chronos",
 			Shell:    container.AbsFHSRun.Append("current-system/sw/bin/zsh"),
-			Home:     container.MustAbs("/data/data/org.chromium.Chromium"),
+			Home:     check.MustAbs("/data/data/org.chromium.Chromium"),
 
 			Path: container.AbsFHSRun.Append("current-system/sw/bin/chromium"),
 			Args: []string{

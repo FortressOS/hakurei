@@ -5,6 +5,7 @@ import (
 	"syscall"
 	"testing"
 
+	"hakurei.app/container/check"
 	"hakurei.app/container/stub"
 )
 
@@ -24,7 +25,7 @@ func TestMountTmpfsOp(t *testing.T) {
 
 		{"success", new(Params), &MountTmpfsOp{
 			FSName: "ephemeral",
-			Path:   MustAbs("/run/user/1000/"),
+			Path:   check.MustAbs("/run/user/1000/"),
 			Size:   1 << 10,
 			Perm:   0700,
 		}, nil, nil, []stub.Call{
@@ -42,19 +43,19 @@ func TestMountTmpfsOp(t *testing.T) {
 		{"nil", (*MountTmpfsOp)(nil), false},
 		{"zero", new(MountTmpfsOp), false},
 		{"nil path", &MountTmpfsOp{FSName: "tmpfs"}, false},
-		{"zero fsname", &MountTmpfsOp{Path: MustAbs("/tmp/")}, false},
-		{"valid", &MountTmpfsOp{FSName: "tmpfs", Path: MustAbs("/tmp/")}, true},
+		{"zero fsname", &MountTmpfsOp{Path: check.MustAbs("/tmp/")}, false},
+		{"valid", &MountTmpfsOp{FSName: "tmpfs", Path: check.MustAbs("/tmp/")}, true},
 	})
 
 	checkOpsBuilder(t, []opsBuilderTestCase{
 		{"runtime", new(Ops).Tmpfs(
-			MustAbs("/run/user"),
+			check.MustAbs("/run/user"),
 			1<<10,
 			0755,
 		), Ops{
 			&MountTmpfsOp{
 				FSName: "ephemeral",
-				Path:   MustAbs("/run/user"),
+				Path:   check.MustAbs("/run/user"),
 				Flags:  syscall.MS_NOSUID | syscall.MS_NODEV,
 				Size:   1 << 10,
 				Perm:   0755,
@@ -62,12 +63,12 @@ func TestMountTmpfsOp(t *testing.T) {
 		}},
 
 		{"nscd", new(Ops).Readonly(
-			MustAbs("/var/run/nscd"),
+			check.MustAbs("/var/run/nscd"),
 			0755,
 		), Ops{
 			&MountTmpfsOp{
 				FSName: "readonly",
-				Path:   MustAbs("/var/run/nscd"),
+				Path:   check.MustAbs("/var/run/nscd"),
 				Flags:  syscall.MS_NOSUID | syscall.MS_NODEV | syscall.MS_RDONLY,
 				Perm:   0755,
 			},
@@ -79,13 +80,13 @@ func TestMountTmpfsOp(t *testing.T) {
 
 		{"fsname differs", &MountTmpfsOp{
 			FSName: "readonly",
-			Path:   MustAbs("/run/user"),
+			Path:   check.MustAbs("/run/user"),
 			Flags:  syscall.MS_NOSUID | syscall.MS_NODEV,
 			Size:   1 << 10,
 			Perm:   0755,
 		}, &MountTmpfsOp{
 			FSName: "ephemeral",
-			Path:   MustAbs("/run/user"),
+			Path:   check.MustAbs("/run/user"),
 			Flags:  syscall.MS_NOSUID | syscall.MS_NODEV,
 			Size:   1 << 10,
 			Perm:   0755,
@@ -93,13 +94,13 @@ func TestMountTmpfsOp(t *testing.T) {
 
 		{"path differs", &MountTmpfsOp{
 			FSName: "ephemeral",
-			Path:   MustAbs("/run/user/differs"),
+			Path:   check.MustAbs("/run/user/differs"),
 			Flags:  syscall.MS_NOSUID | syscall.MS_NODEV,
 			Size:   1 << 10,
 			Perm:   0755,
 		}, &MountTmpfsOp{
 			FSName: "ephemeral",
-			Path:   MustAbs("/run/user"),
+			Path:   check.MustAbs("/run/user"),
 			Flags:  syscall.MS_NOSUID | syscall.MS_NODEV,
 			Size:   1 << 10,
 			Perm:   0755,
@@ -107,13 +108,13 @@ func TestMountTmpfsOp(t *testing.T) {
 
 		{"flags differs", &MountTmpfsOp{
 			FSName: "ephemeral",
-			Path:   MustAbs("/run/user"),
+			Path:   check.MustAbs("/run/user"),
 			Flags:  syscall.MS_NOSUID | syscall.MS_NODEV | syscall.MS_RDONLY,
 			Size:   1 << 10,
 			Perm:   0755,
 		}, &MountTmpfsOp{
 			FSName: "ephemeral",
-			Path:   MustAbs("/run/user"),
+			Path:   check.MustAbs("/run/user"),
 			Flags:  syscall.MS_NOSUID | syscall.MS_NODEV,
 			Size:   1 << 10,
 			Perm:   0755,
@@ -121,13 +122,13 @@ func TestMountTmpfsOp(t *testing.T) {
 
 		{"size differs", &MountTmpfsOp{
 			FSName: "ephemeral",
-			Path:   MustAbs("/run/user"),
+			Path:   check.MustAbs("/run/user"),
 			Flags:  syscall.MS_NOSUID | syscall.MS_NODEV,
 			Size:   1,
 			Perm:   0755,
 		}, &MountTmpfsOp{
 			FSName: "ephemeral",
-			Path:   MustAbs("/run/user"),
+			Path:   check.MustAbs("/run/user"),
 			Flags:  syscall.MS_NOSUID | syscall.MS_NODEV,
 			Size:   1 << 10,
 			Perm:   0755,
@@ -135,13 +136,13 @@ func TestMountTmpfsOp(t *testing.T) {
 
 		{"perm differs", &MountTmpfsOp{
 			FSName: "ephemeral",
-			Path:   MustAbs("/run/user"),
+			Path:   check.MustAbs("/run/user"),
 			Flags:  syscall.MS_NOSUID | syscall.MS_NODEV,
 			Size:   1 << 10,
 			Perm:   0700,
 		}, &MountTmpfsOp{
 			FSName: "ephemeral",
-			Path:   MustAbs("/run/user"),
+			Path:   check.MustAbs("/run/user"),
 			Flags:  syscall.MS_NOSUID | syscall.MS_NODEV,
 			Size:   1 << 10,
 			Perm:   0755,
@@ -149,13 +150,13 @@ func TestMountTmpfsOp(t *testing.T) {
 
 		{"equals", &MountTmpfsOp{
 			FSName: "ephemeral",
-			Path:   MustAbs("/run/user"),
+			Path:   check.MustAbs("/run/user"),
 			Flags:  syscall.MS_NOSUID | syscall.MS_NODEV,
 			Size:   1 << 10,
 			Perm:   0755,
 		}, &MountTmpfsOp{
 			FSName: "ephemeral",
-			Path:   MustAbs("/run/user"),
+			Path:   check.MustAbs("/run/user"),
 			Flags:  syscall.MS_NOSUID | syscall.MS_NODEV,
 			Size:   1 << 10,
 			Perm:   0755,
@@ -165,7 +166,7 @@ func TestMountTmpfsOp(t *testing.T) {
 	checkOpMeta(t, []opMetaTestCase{
 		{"runtime", &MountTmpfsOp{
 			FSName: "ephemeral",
-			Path:   MustAbs("/run/user"),
+			Path:   check.MustAbs("/run/user"),
 			Flags:  syscall.MS_NOSUID | syscall.MS_NODEV,
 			Size:   1 << 10,
 			Perm:   0755,

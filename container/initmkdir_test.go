@@ -4,13 +4,14 @@ import (
 	"os"
 	"testing"
 
+	"hakurei.app/container/check"
 	"hakurei.app/container/stub"
 )
 
 func TestMkdirOp(t *testing.T) {
 	checkOpBehaviour(t, []opBehaviourTestCase{
 		{"success", new(Params), &MkdirOp{
-			Path: MustAbs("/.hakurei"),
+			Path: check.MustAbs("/.hakurei"),
 			Perm: 0500,
 		}, nil, nil, []stub.Call{
 			call("mkdirAll", stub.ExpectArgs{"/sysroot/.hakurei", os.FileMode(0500)}, nil, nil),
@@ -20,25 +21,25 @@ func TestMkdirOp(t *testing.T) {
 	checkOpsValid(t, []opValidTestCase{
 		{"nil", (*MkdirOp)(nil), false},
 		{"zero", new(MkdirOp), false},
-		{"valid", &MkdirOp{Path: MustAbs("/.hakurei")}, true},
+		{"valid", &MkdirOp{Path: check.MustAbs("/.hakurei")}, true},
 	})
 
 	checkOpsBuilder(t, []opsBuilderTestCase{
-		{"etc", new(Ops).Mkdir(MustAbs("/etc/"), 0), Ops{
-			&MkdirOp{Path: MustAbs("/etc/")},
+		{"etc", new(Ops).Mkdir(check.MustAbs("/etc/"), 0), Ops{
+			&MkdirOp{Path: check.MustAbs("/etc/")},
 		}},
 	})
 
 	checkOpIs(t, []opIsTestCase{
 		{"zero", new(MkdirOp), new(MkdirOp), false},
-		{"path differs", &MkdirOp{Path: MustAbs("/"), Perm: 0755}, &MkdirOp{Path: MustAbs("/etc/"), Perm: 0755}, false},
-		{"perm differs", &MkdirOp{Path: MustAbs("/")}, &MkdirOp{Path: MustAbs("/"), Perm: 0755}, false},
-		{"equals", &MkdirOp{Path: MustAbs("/")}, &MkdirOp{Path: MustAbs("/")}, true},
+		{"path differs", &MkdirOp{Path: check.MustAbs("/"), Perm: 0755}, &MkdirOp{Path: check.MustAbs("/etc/"), Perm: 0755}, false},
+		{"perm differs", &MkdirOp{Path: check.MustAbs("/")}, &MkdirOp{Path: check.MustAbs("/"), Perm: 0755}, false},
+		{"equals", &MkdirOp{Path: check.MustAbs("/")}, &MkdirOp{Path: check.MustAbs("/")}, true},
 	})
 
 	checkOpMeta(t, []opMetaTestCase{
 		{"etc", &MkdirOp{
-			Path: MustAbs("/etc/"),
+			Path: check.MustAbs("/etc/"),
 		}, "creating", `directory "/etc/" perm ----------`},
 	})
 }

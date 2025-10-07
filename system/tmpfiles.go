@@ -8,12 +8,12 @@ import (
 	"os"
 	"syscall"
 
-	"hakurei.app/container"
+	"hakurei.app/container/check"
 	"hakurei.app/hst"
 )
 
 // CopyFile reads up to n bytes from src and writes the resulting byte slice to payloadP.
-func (sys *I) CopyFile(payloadP *[]byte, src *container.Absolute, cap int, n int64) *I {
+func (sys *I) CopyFile(payloadP *[]byte, src *check.Absolute, cap int, n int64) *I {
 	buf := new(bytes.Buffer)
 	buf.Grow(cap)
 	sys.ops = append(sys.ops, &tmpfileOp{payloadP, src.String(), n, buf})

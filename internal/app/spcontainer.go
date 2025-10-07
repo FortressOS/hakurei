@@ -9,6 +9,7 @@ import (
 
 	"hakurei.app/container"
 	"hakurei.app/container/bits"
+	"hakurei.app/container/check"
 	"hakurei.app/container/seccomp"
 	"hakurei.app/hst"
 	"hakurei.app/system/dbus"
@@ -183,7 +184,7 @@ func (s spFilesystemOp) toSystem(state *outcomeStateSys, _ *hst.Config) error {
 		}
 	}
 
-	hidePathSource := make([]*container.Absolute, 0, hidePathSourceCount)
+	hidePathSource := make([]*check.Absolute, 0, hidePathSourceCount)
 
 	// fs append
 	for _, c := range filesystem {
@@ -234,8 +235,8 @@ func (s spFilesystemOp) toSystem(state *outcomeStateSys, _ *hst.Config) error {
 	// copy matched paths for shim
 	for i, ok := range hidePathMatch {
 		if ok {
-			if a, err := container.NewAbs(hidePaths[i]); err != nil {
-				var absoluteError *container.AbsoluteError
+			if a, err := check.NewAbs(hidePaths[i]); err != nil {
+				var absoluteError *check.AbsoluteError
 				if !errors.As(err, &absoluteError) {
 					return newWithMessageError(absoluteError.Error(), absoluteError)
 				}

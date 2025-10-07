@@ -12,6 +12,7 @@ import (
 
 	"hakurei.app/command"
 	"hakurei.app/container"
+	"hakurei.app/container/check"
 	"hakurei.app/hst"
 )
 
@@ -79,11 +80,11 @@ func main() {
 				Extract package and set up for cleanup.
 			*/
 
-			var workDir *container.Absolute
+			var workDir *check.Absolute
 			if p, err := os.MkdirTemp("", "hpkg.*"); err != nil {
 				log.Printf("cannot create temporary directory: %v", err)
 				return err
-			} else if workDir, err = container.NewAbs(p); err != nil {
+			} else if workDir, err = check.NewAbs(p); err != nil {
 				log.Printf("invalid temporary directory: %v", err)
 				return err
 			}

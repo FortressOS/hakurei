@@ -4,18 +4,20 @@ import (
 	"encoding/gob"
 	"fmt"
 	. "syscall"
+
+	"hakurei.app/container/check"
 )
 
 func init() { gob.Register(new(MountProcOp)) }
 
 // Proc appends an [Op] that mounts a private instance of proc.
-func (f *Ops) Proc(target *Absolute) *Ops {
+func (f *Ops) Proc(target *check.Absolute) *Ops {
 	*f = append(*f, &MountProcOp{target})
 	return f
 }
 
 // MountProcOp mounts a new instance of [FstypeProc] on container path Target.
-type MountProcOp struct{ Target *Absolute }
+type MountProcOp struct{ Target *check.Absolute }
 
 func (p *MountProcOp) Valid() bool                                { return p != nil && p.Target != nil }
 func (p *MountProcOp) early(*setupState, syscallDispatcher) error { return nil }

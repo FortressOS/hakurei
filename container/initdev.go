@@ -5,19 +5,21 @@ import (
 	"fmt"
 	"path"
 	. "syscall"
+
+	"hakurei.app/container/check"
 )
 
 func init() { gob.Register(new(MountDevOp)) }
 
 // Dev appends an [Op] that mounts a subset of host /dev.
-func (f *Ops) Dev(target *Absolute, mqueue bool) *Ops {
+func (f *Ops) Dev(target *check.Absolute, mqueue bool) *Ops {
 	*f = append(*f, &MountDevOp{target, mqueue, false})
 	return f
 }
 
 // DevWritable appends an [Op] that mounts a writable subset of host /dev.
 // There is usually no good reason to write to /dev, so this should always be followed by a [RemountOp].
-func (f *Ops) DevWritable(target *Absolute, mqueue bool) *Ops {
+func (f *Ops) DevWritable(target *check.Absolute, mqueue bool) *Ops {
 	*f = append(*f, &MountDevOp{target, mqueue, true})
 	return f
 }
@@ -26,7 +28,7 @@ func (f *Ops) DevWritable(target *Absolute, mqueue bool) *Ops {
 // If Mqueue is true, a private instance of [FstypeMqueue] is mounted.
 // If Write is true, the resulting mount point is left writable.
 type MountDevOp struct {
-	Target *Absolute
+	Target *check.Absolute
 	Mqueue bool
 	Write  bool
 }

@@ -4,19 +4,21 @@ import (
 	"encoding/gob"
 	"fmt"
 	"path"
+
+	"hakurei.app/container/check"
 )
 
 func init() { gob.Register(new(SymlinkOp)) }
 
 // Link appends an [Op] that creates a symlink in the container filesystem.
-func (f *Ops) Link(target *Absolute, linkName string, dereference bool) *Ops {
+func (f *Ops) Link(target *check.Absolute, linkName string, dereference bool) *Ops {
 	*f = append(*f, &SymlinkOp{target, linkName, dereference})
 	return f
 }
 
 // SymlinkOp optionally dereferences LinkName and creates a symlink at container path Target.
 type SymlinkOp struct {
-	Target *Absolute
+	Target *check.Absolute
 	// LinkName is an arbitrary uninterpreted pathname.
 	LinkName string
 
@@ -28,8 +30,8 @@ func (l *SymlinkOp) Valid() bool { return l != nil && l.Target != nil && l.LinkN
 
 func (l *SymlinkOp) early(_ *setupState, k syscallDispatcher) error {
 	if l.Dereference {
-		if !isAbs(l.LinkName) {
-			return &AbsoluteError{l.LinkName}
+		if !path.IsAbs(l.LinkName) {
+			return &check.AbsoluteError{Pathname: l.LinkName}
 		}
 		if name, err := k.readlink(l.LinkName); err != nil {
 			return err

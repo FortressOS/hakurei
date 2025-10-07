@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 
 	"hakurei.app/container"
+	"hakurei.app/container/check"
 	"hakurei.app/internal"
 )
 
@@ -57,7 +58,7 @@ type syscallDispatcher interface {
 	overflowGid(msg container.Msg) int
 
 	// mustHsuPath provides [internal.MustHsuPath].
-	mustHsuPath() *container.Absolute
+	mustHsuPath() *check.Absolute
 
 	// fatalf provides [log.Fatalf].
 	fatalf(format string, v ...any)
@@ -92,6 +93,6 @@ func (direct) cmdOutput(cmd *exec.Cmd) ([]byte, error) { return cmd.Output() }
 func (direct) overflowUid(msg container.Msg) int { return container.OverflowUid(msg) }
 func (direct) overflowGid(msg container.Msg) int { return container.OverflowGid(msg) }
 
-func (direct) mustHsuPath() *container.Absolute { return internal.MustHsuPath() }
+func (direct) mustHsuPath() *check.Absolute { return internal.MustHsuPath() }
 
 func (direct) fatalf(format string, v ...any) { log.Fatalf(format, v...) }

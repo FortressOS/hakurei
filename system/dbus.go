@@ -12,6 +12,7 @@ import (
 	"syscall"
 
 	"hakurei.app/container"
+	"hakurei.app/container/check"
 	"hakurei.app/hst"
 	"hakurei.app/system/dbus"
 )
@@ -21,7 +22,7 @@ var (
 )
 
 // MustProxyDBus calls ProxyDBus and panics if an error is returned.
-func (sys *I) MustProxyDBus(sessionPath *container.Absolute, session *hst.BusConfig, systemPath *container.Absolute, system *hst.BusConfig) *I {
+func (sys *I) MustProxyDBus(sessionPath *check.Absolute, session *hst.BusConfig, systemPath *check.Absolute, system *hst.BusConfig) *I {
 	if err := sys.ProxyDBus(session, system, sessionPath, systemPath); err != nil {
 		panic(err.Error())
 	} else {
@@ -31,7 +32,7 @@ func (sys *I) MustProxyDBus(sessionPath *container.Absolute, session *hst.BusCon
 
 // ProxyDBus finalises configuration ahead of time and starts xdg-dbus-proxy via [dbus] and terminates it on revert.
 // This [Op] is always [Process] scoped.
-func (sys *I) ProxyDBus(session, system *hst.BusConfig, sessionPath, systemPath *container.Absolute) error {
+func (sys *I) ProxyDBus(session, system *hst.BusConfig, sessionPath, systemPath *check.Absolute) error {
 	d := new(dbusProxyOp)
 
 	// session bus is required as otherwise this is effectively a very expensive noop

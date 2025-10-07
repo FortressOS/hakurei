@@ -8,18 +8,19 @@ import (
 	"sync/atomic"
 
 	"hakurei.app/container"
+	"hakurei.app/container/check"
 	"hakurei.app/hst"
 )
 
 const bash = "bash"
 
 var (
-	dataHome *container.Absolute
+	dataHome *check.Absolute
 )
 
 func init() {
 	// dataHome
-	if a, err := container.NewAbs(os.Getenv("HAKUREI_DATA_HOME")); err == nil {
+	if a, err := check.NewAbs(os.Getenv("HAKUREI_DATA_HOME")); err == nil {
 		dataHome = a
 	} else {
 		dataHome = container.AbsFHSVarLib.Append("hakurei/" + strconv.Itoa(os.Getuid()))
@@ -29,13 +30,13 @@ func init() {
 var (
 	pathBin = container.AbsFHSRoot.Append("bin")
 
-	pathNix           = container.MustAbs("/nix/")
+	pathNix           = check.MustAbs("/nix/")
 	pathNixStore      = pathNix.Append("store/")
 	pathCurrentSystem = container.AbsFHSRun.Append("current-system")
 	pathSwBin         = pathCurrentSystem.Append("sw/bin/")
 	pathShell         = pathSwBin.Append(bash)
 
-	pathData     = container.MustAbs("/data")
+	pathData     = check.MustAbs("/data")
 	pathDataData = pathData.Append("data")
 )
 
@@ -64,15 +65,15 @@ func mustRun(msg container.Msg, name string, arg ...string) {
 
 type appPathSet struct {
 	// ${dataHome}/${id}
-	baseDir *container.Absolute
+	baseDir *check.Absolute
 	// ${baseDir}/app
-	metaPath *container.Absolute
+	metaPath *check.Absolute
 	// ${baseDir}/files
-	homeDir *container.Absolute
+	homeDir *check.Absolute
 	// ${baseDir}/cache
-	cacheDir *container.Absolute
+	cacheDir *check.Absolute
 	// ${baseDir}/cache/nix
-	nixPath *container.Absolute
+	nixPath *check.Absolute
 }
 
 func pathSetByApp(id string) *appPathSet {

@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"hakurei.app/container"
+	"hakurei.app/container/check"
 )
 
 func init() { gob.Register(new(FSOverlay)) }
@@ -15,14 +16,14 @@ const FilesystemOverlay = "overlay"
 // FSOverlay represents an overlay mount point.
 type FSOverlay struct {
 	// mount point in container
-	Target *container.Absolute `json:"dst"`
+	Target *check.Absolute `json:"dst"`
 
 	// any filesystem, does not need to be on a writable filesystem, must not be nil
-	Lower []*container.Absolute `json:"lower"`
+	Lower []*check.Absolute `json:"lower"`
 	// the upperdir is normally on a writable filesystem, leave as nil to mount Lower readonly
-	Upper *container.Absolute `json:"upper,omitempty"`
+	Upper *check.Absolute `json:"upper,omitempty"`
 	// the workdir needs to be an empty directory on the same filesystem as Upper, must not be nil if Upper is populated
-	Work *container.Absolute `json:"work,omitempty"`
+	Work *check.Absolute `json:"work,omitempty"`
 }
 
 func (o *FSOverlay) Valid() bool {
@@ -43,18 +44,18 @@ func (o *FSOverlay) Valid() bool {
 	}
 }
 
-func (o *FSOverlay) Path() *container.Absolute {
+func (o *FSOverlay) Path() *check.Absolute {
 	if !o.Valid() {
 		return nil
 	}
 	return o.Target
 }
 
-func (o *FSOverlay) Host() []*container.Absolute {
+func (o *FSOverlay) Host() []*check.Absolute {
 	if !o.Valid() {
 		return nil
 	}
-	p := make([]*container.Absolute, 0, 2+len(o.Lower))
+	p := make([]*check.Absolute, 0, 2+len(o.Lower))
 	if o.Upper != nil && o.Work != nil {
 		p = append(p, o.Upper, o.Work)
 	}

@@ -4,26 +4,27 @@ import (
 	"os"
 	"testing"
 
+	"hakurei.app/container/check"
 	"hakurei.app/container/stub"
 )
 
 func TestSymlinkOp(t *testing.T) {
 	checkOpBehaviour(t, []opBehaviourTestCase{
 		{"mkdir", &Params{ParentPerm: 0700}, &SymlinkOp{
-			Target:   MustAbs("/etc/nixos"),
+			Target:   check.MustAbs("/etc/nixos"),
 			LinkName: "/etc/static/nixos",
 		}, nil, nil, []stub.Call{
 			call("mkdirAll", stub.ExpectArgs{"/sysroot/etc", os.FileMode(0700)}, nil, stub.UniqueError(1)),
 		}, stub.UniqueError(1)},
 
 		{"abs", &Params{ParentPerm: 0755}, &SymlinkOp{
-			Target:      MustAbs("/etc/mtab"),
+			Target:      check.MustAbs("/etc/mtab"),
 			LinkName:    "etc/mtab",
 			Dereference: true,
-		}, nil, &AbsoluteError{"etc/mtab"}, nil, nil},
+		}, nil, &check.AbsoluteError{Pathname: "etc/mtab"}, nil, nil},
 
 		{"readlink", &Params{ParentPerm: 0755}, &SymlinkOp{
-			Target:      MustAbs("/etc/mtab"),
+			Target:      check.MustAbs("/etc/mtab"),
 			LinkName:    "/etc/mtab",
 			Dereference: true,
 		}, []stub.Call{
@@ -31,7 +32,7 @@ func TestSymlinkOp(t *testing.T) {
 		}, stub.UniqueError(0), nil, nil},
 
 		{"success noderef", &Params{ParentPerm: 0700}, &SymlinkOp{
-			Target:   MustAbs("/etc/nixos"),
+			Target:   check.MustAbs("/etc/nixos"),
 			LinkName: "/etc/static/nixos",
 		}, nil, nil, []stub.Call{
 			call("mkdirAll", stub.ExpectArgs{"/sysroot/etc", os.FileMode(0700)}, nil, nil),
@@ -39,7 +40,7 @@ func TestSymlinkOp(t *testing.T) {
 		}, nil},
 
 		{"success", &Params{ParentPerm: 0755}, &SymlinkOp{
-			Target:      MustAbs("/etc/mtab"),
+			Target:      check.MustAbs("/etc/mtab"),
 			LinkName:    "/etc/mtab",
 			Dereference: true,
 		}, []stub.Call{
@@ -54,18 +55,18 @@ func TestSymlinkOp(t *testing.T) {
 		{"nil", (*SymlinkOp)(nil), false},
 		{"zero", new(SymlinkOp), false},
 		{"nil target", &SymlinkOp{LinkName: "/run/current-system"}, false},
-		{"zero linkname", &SymlinkOp{Target: MustAbs("/run/current-system")}, false},
-		{"valid", &SymlinkOp{Target: MustAbs("/run/current-system"), LinkName: "/run/current-system", Dereference: true}, true},
+		{"zero linkname", &SymlinkOp{Target: check.MustAbs("/run/current-system")}, false},
+		{"valid", &SymlinkOp{Target: check.MustAbs("/run/current-system"), LinkName: "/run/current-system", Dereference: true}, true},
 	})
 
 	checkOpsBuilder(t, []opsBuilderTestCase{
 		{"current-system", new(Ops).Link(
-			MustAbs("/run/current-system"),
+			check.MustAbs("/run/current-system"),
 			"/run/current-system",
 			true,
 		), Ops{
 			&SymlinkOp{
-				Target:      MustAbs("/run/current-system"),
+				Target:      check.MustAbs("/run/current-system"),
 				LinkName:    "/run/current-system",
 				Dereference: true,
 			},
@@ -76,40 +77,40 @@ func TestSymlinkOp(t *testing.T) {
 		{"zero", new(SymlinkOp), new(SymlinkOp), false},
 
 		{"target differs", &SymlinkOp{
-			Target:      MustAbs("/run/current-system/differs"),
+			Target:      check.MustAbs("/run/current-system/differs"),
 			LinkName:    "/run/current-system",
 			Dereference: true,
 		}, &SymlinkOp{
-			Target:      MustAbs("/run/current-system"),
+			Target:      check.MustAbs("/run/current-system"),
 			LinkName:    "/run/current-system",
 			Dereference: true,
 		}, false},
 
 		{"linkname differs", &SymlinkOp{
-			Target:      MustAbs("/run/current-system"),
+			Target:      check.MustAbs("/run/current-system"),
 			LinkName:    "/run/current-system/differs",
 			Dereference: true,
 		}, &SymlinkOp{
-			Target:      MustAbs("/run/current-system"),
+			Target:      check.MustAbs("/run/current-system"),
 			LinkName:    "/run/current-system",
 			Dereference: true,
 		}, false},
 
 		{"dereference differs", &SymlinkOp{
-			Target:   MustAbs("/run/current-system"),
+			Target:   check.MustAbs("/run/current-system"),
 			LinkName: "/run/current-system",
 		}, &SymlinkOp{
-			Target:      MustAbs("/run/current-system"),
+			Target:      check.MustAbs("/run/current-system"),
 			LinkName:    "/run/current-system",
 			Dereference: true,
 		}, false},
 
 		{"equals", &SymlinkOp{
-			Target:      MustAbs("/run/current-system"),
+			Target:      check.MustAbs("/run/current-system"),
 			LinkName:    "/run/current-system",
 			Dereference: true,
 		}, &SymlinkOp{
-			Target:      MustAbs("/run/current-system"),
+			Target:      check.MustAbs("/run/current-system"),
 			LinkName:    "/run/current-system",
 			Dereference: true,
 		}, true},
@@ -117,7 +118,7 @@ func TestSymlinkOp(t *testing.T) {
 
 	checkOpMeta(t, []opMetaTestCase{
 		{"current-system", &SymlinkOp{
-			Target:      MustAbs("/run/current-system"),
+			Target:      check.MustAbs("/run/current-system"),
 			LinkName:    "/run/current-system",
 			Dereference: true,
 		}, "creating", `symlink on "/run/current-system" linkname "/run/current-system"`},

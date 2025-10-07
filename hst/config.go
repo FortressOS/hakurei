@@ -5,12 +5,12 @@ import (
 	"strconv"
 	"time"
 
-	"hakurei.app/container"
+	"hakurei.app/container/check"
 )
 
 const Tmp = "/.hakurei"
 
-var AbsTmp = container.MustAbs(Tmp)
+var AbsTmp = check.MustAbs(Tmp)
 
 const (
 	// WaitDelayDefault is used when WaitDelay has its zero value.
@@ -107,12 +107,12 @@ type (
 		// Defaults to passwd name of target uid or chronos.
 		Username string `json:"username,omitempty"`
 		// Pathname of shell in the container filesystem to use for the emulated user.
-		Shell *container.Absolute `json:"shell"`
+		Shell *check.Absolute `json:"shell"`
 		// Directory in the container filesystem to enter and use as the home directory of the emulated user.
-		Home *container.Absolute `json:"home"`
+		Home *check.Absolute `json:"home"`
 
 		// Pathname to executable file in the container filesystem.
-		Path *container.Absolute `json:"path,omitempty"`
+		Path *check.Absolute `json:"path,omitempty"`
 		// Final args passed to the initial program.
 		Args []string `json:"args"`
 	}
@@ -161,11 +161,11 @@ func (config *Config) Validate() error {
 
 // ExtraPermConfig describes an acl update op.
 type ExtraPermConfig struct {
-	Ensure  bool                `json:"ensure,omitempty"`
-	Path    *container.Absolute `json:"path"`
-	Read    bool                `json:"r,omitempty"`
-	Write   bool                `json:"w,omitempty"`
-	Execute bool                `json:"x,omitempty"`
+	Ensure  bool            `json:"ensure,omitempty"`
+	Path    *check.Absolute `json:"path"`
+	Read    bool            `json:"r,omitempty"`
+	Write   bool            `json:"w,omitempty"`
+	Execute bool            `json:"x,omitempty"`
 }
 
 func (e *ExtraPermConfig) String() string {

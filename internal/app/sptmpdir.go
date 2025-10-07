@@ -2,6 +2,7 @@ package app
 
 import (
 	"hakurei.app/container"
+	"hakurei.app/container/check"
 	"hakurei.app/hst"
 	"hakurei.app/system"
 	"hakurei.app/system/acl"
@@ -26,7 +27,7 @@ func (s spTmpdirOp) toContainer(state *outcomeStateParams) error {
 	return nil
 }
 
-func (s spTmpdirOp) commonPaths(state *outcomeState) (tmpdir, tmpdirInst *container.Absolute) {
+func (s spTmpdirOp) commonPaths(state *outcomeState) (tmpdir, tmpdirInst *check.Absolute) {
 	tmpdir = state.sc.SharePath.Append("tmpdir")
 	tmpdirInst = tmpdir.Append(state.identity.String())
 	return

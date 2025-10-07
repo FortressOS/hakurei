@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"hakurei.app/container"
+	"hakurei.app/container/check"
 	"hakurei.app/hst"
 )
 
@@ -54,14 +55,14 @@ type appInfo struct {
 	// store path to nixGL source
 	NixGL string `json:"nix_gl,omitempty"`
 	// store path to activate-and-exec script
-	Launcher *container.Absolute `json:"launcher"`
+	Launcher *check.Absolute `json:"launcher"`
 	// store path to /run/current-system
-	CurrentSystem *container.Absolute `json:"current_system"`
+	CurrentSystem *check.Absolute `json:"current_system"`
 	// store path to home-manager activation package
 	ActivationPackage string `json:"activation_package"`
 }
 
-func (app *appInfo) toHst(pathSet *appPathSet, pathname *container.Absolute, argv []string, flagDropShell bool) *hst.Config {
+func (app *appInfo) toHst(pathSet *appPathSet, pathname *check.Absolute, argv []string, flagDropShell bool) *hst.Config {
 	config := &hst.Config{
 		ID: app.ID,
 

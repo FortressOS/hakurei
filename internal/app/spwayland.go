@@ -1,7 +1,7 @@
 package app
 
 import (
-	"hakurei.app/container"
+	"hakurei.app/container/check"
 	"hakurei.app/hst"
 	"hakurei.app/system/acl"
 	"hakurei.app/system/wayland"
@@ -10,16 +10,16 @@ import (
 // spWaylandOp exports the Wayland display server to the container.
 type spWaylandOp struct {
 	// Path to host wayland socket. Populated during toSystem if DirectWayland is true.
-	SocketPath *container.Absolute
+	SocketPath *check.Absolute
 }
 
 func (s *spWaylandOp) toSystem(state *outcomeStateSys, config *hst.Config) error {
 	// outer wayland socket (usually `/run/user/%d/wayland-%d`)
-	var socketPath *container.Absolute
+	var socketPath *check.Absolute
 	if name, ok := state.k.lookupEnv(wayland.WaylandDisplay); !ok {
 		state.msg.Verbose(wayland.WaylandDisplay + " is not set, assuming " + wayland.FallbackName)
 		socketPath = state.sc.RuntimePath.Append(wayland.FallbackName)
-	} else if a, err := container.NewAbs(name); err != nil {
+	} else if a, err := check.NewAbs(name); err != nil {
 		socketPath = state.sc.RuntimePath.Append(name)
 	} else {
 		socketPath = a

@@ -10,6 +10,7 @@ import (
 
 	"hakurei.app/container"
 	"hakurei.app/container/bits"
+	"hakurei.app/container/check"
 	"hakurei.app/container/seccomp"
 )
 
@@ -27,10 +28,10 @@ func Exec(ctx context.Context, msg container.Msg, p string) ([]*Entry, error) {
 	c, cancel := context.WithTimeout(ctx, lddTimeout)
 	defer cancel()
 
-	var toolPath *container.Absolute
+	var toolPath *check.Absolute
 	if s, err := exec.LookPath(lddName); err != nil {
 		return nil, err
-	} else if toolPath, err = container.NewAbs(s); err != nil {
+	} else if toolPath, err = check.NewAbs(s); err != nil {
 		return nil, err
 	}
 

@@ -4,6 +4,7 @@ import (
 	"strconv"
 
 	"hakurei.app/container"
+	"hakurei.app/container/check"
 	"hakurei.app/hst"
 	"hakurei.app/internal/app/state"
 	"hakurei.app/system"
@@ -51,7 +52,7 @@ type outcomeState struct {
 	*EnvPaths
 
 	// Matched paths to cover. Populated by spFilesystemOp.
-	HidePaths []*container.Absolute
+	HidePaths []*check.Absolute
 
 	// Copied via populateLocal.
 	k syscallDispatcher
@@ -95,14 +96,14 @@ func (s *outcomeState) populateLocal(k syscallDispatcher, msg container.Msg) err
 // instancePath returns a path formatted for outcomeStateSys.instance.
 // This method must only be called from outcomeOp.toContainer if
 // outcomeOp.toSystem has already called outcomeStateSys.instance.
-func (s *outcomeState) instancePath() *container.Absolute {
+func (s *outcomeState) instancePath() *check.Absolute {
 	return s.sc.SharePath.Append(s.id.String())
 }
 
 // runtimePath returns a path formatted for outcomeStateSys.runtime.
 // This method must only be called from outcomeOp.toContainer if
 // outcomeOp.toSystem has already called outcomeStateSys.runtime.
-func (s *outcomeState) runtimePath() *container.Absolute {
+func (s *outcomeState) runtimePath() *check.Absolute {
 	return s.sc.RunDirPath.Append(s.id.String())
 }
 
@@ -112,9 +113,9 @@ type outcomeStateSys struct {
 	// Whether XDG_RUNTIME_DIR is used post hsu.
 	useRuntimeDir bool
 	// Process-specific directory in TMPDIR, nil if unused.
-	sharePath *container.Absolute
+	sharePath *check.Absolute
 	// Process-specific directory in XDG_RUNTIME_DIR, nil if unused.
-	runtimeSharePath *container.Absolute
+	runtimeSharePath *check.Absolute
 
 	sys *system.I
 	*outcomeState
@@ -134,7 +135,7 @@ func (state *outcomeStateSys) ensureRuntimeDir() {
 
 // instance returns the pathname to a process-specific directory within TMPDIR.
 // This directory must only hold entries bound to [system.Process].
-func (state *outcomeStateSys) instance() *container.Absolute {
+func (state *outcomeStateSys) instance() *check.Absolute {
 	if state.sharePath != nil {
 		return state.sharePath
 	}
@@ -145,7 +146,7 @@ func (state *outcomeStateSys) instance() *container.Absolute {
 
 // runtime returns the pathname to a process-specific directory within XDG_RUNTIME_DIR.
 // This directory must only hold entries bound to [system.Process].
-func (state *outcomeStateSys) runtime() *container.Absolute {
+func (state *outcomeStateSys) runtime() *check.Absolute {
 	if state.runtimeSharePath != nil {
 		return state.runtimeSharePath
 	}
@@ -169,7 +170,7 @@ type outcomeStateParams struct {
 
 	// Inner XDG_RUNTIME_DIR default formatting of `/run/user/%d` via mapped uid.
 	// Populated by spRuntimeOp.
-	runtimeDir *container.Absolute
+	runtimeDir *check.Absolute
 
 	as hst.ApplyState
 	*outcomeState

@@ -10,6 +10,7 @@ import (
 
 	"hakurei.app/container"
 	"hakurei.app/container/bits"
+	"hakurei.app/container/check"
 	"hakurei.app/container/seccomp"
 	"hakurei.app/helper"
 	"hakurei.app/ldd"
@@ -41,18 +42,18 @@ func (p *Proxy) Start() error {
 			cmd.Env = make([]string, 0)
 		}, nil)
 	} else {
-		var toolPath *container.Absolute
-		if a, err := container.NewAbs(p.name); err != nil {
+		var toolPath *check.Absolute
+		if a, err := check.NewAbs(p.name); err != nil {
 			if p.name, err = exec.LookPath(p.name); err != nil {
 				return err
-			} else if toolPath, err = container.NewAbs(p.name); err != nil {
+			} else if toolPath, err = check.NewAbs(p.name); err != nil {
 				return err
 			}
 		} else {
 			toolPath = a
 		}
 
-		var libPaths []*container.Absolute
+		var libPaths []*check.Absolute
 		if entries, err := ldd.Exec(ctx, p.msg, toolPath.String()); err != nil {
 			return err
 		} else {
@@ -76,7 +77,7 @@ func (p *Proxy) Start() error {
 				}
 
 				// upstream bus directories
-				upstreamPaths := make([]*container.Absolute, 0, 2)
+				upstreamPaths := make([]*check.Absolute, 0, 2)
 				for _, addr := range [][]AddrEntry{p.final.SessionUpstream, p.final.SystemUpstream} {
 					for _, ent := range addr {
 						if ent.Method != "unix" {
@@ -86,7 +87,7 @@ func (p *Proxy) Start() error {
 							if pair[0] != "path" {
 								continue
 							}
-							if a, err := container.NewAbs(pair[1]); err != nil {
+							if a, err := check.NewAbs(pair[1]); err != nil {
 								continue
 							} else {
 								upstreamPaths = append(upstreamPaths, a.Dir())
@@ -94,8 +95,8 @@ func (p *Proxy) Start() error {
 						}
 					}
 				}
-				container.SortAbs(upstreamPaths)
-				upstreamPaths = container.CompactAbs(upstreamPaths)
+				check.SortAbs(upstreamPaths)
+				upstreamPaths = check.CompactAbs(upstreamPaths)
 				for _, name := range upstreamPaths {
 					z.Bind(name, name, 0)
 				}
@@ -103,15 +104,15 @@ func (p *Proxy) Start() error {
 				z.HostAbstract = z.HostNet
 
 				// parent directories of bind paths
-				sockDirPaths := make([]*container.Absolute, 0, 2)
-				if a, err := container.NewAbs(p.final.Session[1]); err == nil {
+				sockDirPaths := make([]*check.Absolute, 0, 2)
+				if a, err := check.NewAbs(p.final.Session[1]); err == nil {
 					sockDirPaths = append(sockDirPaths, a.Dir())
 				}
-				if a, err := container.NewAbs(p.final.System[1]); err == nil {
+				if a, err := check.NewAbs(p.final.System[1]); err == nil {
 					sockDirPaths = append(sockDirPaths, a.Dir())
 				}
-				container.SortAbs(sockDirPaths)
-				sockDirPaths = container.CompactAbs(sockDirPaths)
+				check.SortAbs(sockDirPaths)
+				sockDirPaths = check.CompactAbs(sockDirPaths)
 				for _, name := range sockDirPaths {
 					z.Bind(name, name, container.BindWritable)
 				}

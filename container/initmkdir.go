@@ -4,19 +4,21 @@ import (
 	"encoding/gob"
 	"fmt"
 	"os"
+
+	"hakurei.app/container/check"
 )
 
 func init() { gob.Register(new(MkdirOp)) }
 
 // Mkdir appends an [Op] that creates a directory in the container filesystem.
-func (f *Ops) Mkdir(name *Absolute, perm os.FileMode) *Ops {
+func (f *Ops) Mkdir(name *check.Absolute, perm os.FileMode) *Ops {
 	*f = append(*f, &MkdirOp{name, perm})
 	return f
 }
 
 // MkdirOp creates a directory at container Path with permission bits set to Perm.
 type MkdirOp struct {
-	Path *Absolute
+	Path *check.Absolute
 	Perm os.FileMode
 }
 

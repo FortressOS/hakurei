@@ -5,6 +5,7 @@ import (
 	"os"
 	"syscall"
 
+	"hakurei.app/container/check"
 	"hakurei.app/container/vfs"
 )
 
@@ -16,7 +17,7 @@ func messageFromError(err error) (string, bool) {
 	if m, ok := messagePrefixP[os.PathError]("cannot ", err); ok {
 		return m, ok
 	}
-	if m, ok := messagePrefixP[AbsoluteError]("", err); ok {
+	if m, ok := messagePrefixP[check.AbsoluteError]("", err); ok {
 		return m, ok
 	}
 	if m, ok := messagePrefix[OpRepeatError]("", err); ok {

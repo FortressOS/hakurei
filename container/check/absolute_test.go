@@ -1,4 +1,4 @@
-package container
+package check_test
 
 import (
 	"bytes"
@@ -9,7 +9,13 @@ import (
 	"strings"
 	"syscall"
 	"testing"
+	_ "unsafe"
+
+	. "hakurei.app/container/check"
 )
+
+//go:linkname unsafeAbs hakurei.app/container/check.unsafeAbs
+func unsafeAbs(_ string) *Absolute
 
 func TestAbsoluteError(t *testing.T) {
 	testCases := []struct {
@@ -80,7 +86,7 @@ func TestNewAbs(t *testing.T) {
 func TestAbsoluteString(t *testing.T) {
 	t.Run("passthrough", func(t *testing.T) {
 		pathname := "/etc"
-		if got := (&Absolute{pathname}).String(); got != pathname {
+		if got := unsafeAbs(pathname).String(); got != pathname {
 			t.Errorf("String: %q, want %q", got, pathname)
 		}
 	})

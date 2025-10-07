@@ -3,19 +3,21 @@ package container
 import (
 	"encoding/gob"
 	"fmt"
+
+	"hakurei.app/container/check"
 )
 
 func init() { gob.Register(new(AutoRootOp)) }
 
 // Root appends an [Op] that expands a directory into a toplevel bind mount mirror on container root.
 // This is not a generic setup op. It is implemented here to reduce ipc overhead.
-func (f *Ops) Root(host *Absolute, flags int) *Ops {
+func (f *Ops) Root(host *check.Absolute, flags int) *Ops {
 	*f = append(*f, &AutoRootOp{host, flags, nil})
 	return f
 }
 
 type AutoRootOp struct {
-	Host *Absolute
+	Host *check.Absolute
 	// passed through to bindMount
 	Flags int
 

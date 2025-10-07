@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+
+	"hakurei.app/container/check"
 )
 
 const (
@@ -52,7 +54,7 @@ func (e *OverlayArgumentError) Error() string {
 }
 
 // Overlay appends an [Op] that mounts the overlay pseudo filesystem on [MountOverlayOp.Target].
-func (f *Ops) Overlay(target, state, work *Absolute, layers ...*Absolute) *Ops {
+func (f *Ops) Overlay(target, state, work *check.Absolute, layers ...*check.Absolute) *Ops {
 	*f = append(*f, &MountOverlayOp{
 		Target: target,
 		Lower:  layers,
@@ -64,21 +66,21 @@ func (f *Ops) Overlay(target, state, work *Absolute, layers ...*Absolute) *Ops {
 
 // OverlayEphemeral appends an [Op] that mounts the overlay pseudo filesystem on [MountOverlayOp.Target]
 // with an ephemeral upperdir and workdir.
-func (f *Ops) OverlayEphemeral(target *Absolute, layers ...*Absolute) *Ops {
+func (f *Ops) OverlayEphemeral(target *check.Absolute, layers ...*check.Absolute) *Ops {
 	return f.Overlay(target, AbsFHSRoot, nil, layers...)
 }
 
 // OverlayReadonly appends an [Op] that mounts the overlay pseudo filesystem readonly on [MountOverlayOp.Target]
-func (f *Ops) OverlayReadonly(target *Absolute, layers ...*Absolute) *Ops {
+func (f *Ops) OverlayReadonly(target *check.Absolute, layers ...*check.Absolute) *Ops {
 	return f.Overlay(target, nil, nil, layers...)
 }
 
 // MountOverlayOp mounts [FstypeOverlay] on container path Target.
 type MountOverlayOp struct {
-	Target *Absolute
+	Target *check.Absolute
 
 	// Any filesystem, does not need to be on a writable filesystem.
-	Lower []*Absolute
+	Lower []*check.Absolute
 	// formatted for [OptionOverlayLowerdir], resolved, prefixed and escaped during early
 	lower []string
 	// The upperdir is normally on a writable filesystem.
@@ -87,11 +89,11 @@ type MountOverlayOp struct {
 	// an ephemeral upperdir and workdir will be set up.
 	//
 	// If both Work and Upper are nil, upperdir and workdir is omitted and the overlay is mounted readonly.
-	Upper *Absolute
+	Upper *check.Absolute
 	// formatted for [OptionOverlayUpperdir], resolved, prefixed and escaped during early
 	upper string
 	// The workdir needs to be an empty directory on the same filesystem as upperdir.
-	Work *Absolute
+	Work *check.Absolute
 	// formatted for [OptionOverlayWorkdir], resolved, prefixed and escaped during early
 	work string
 
@@ -206,7 +208,7 @@ func (o *MountOverlayOp) Is(op Op) bool {
 	vo, ok := op.(*MountOverlayOp)
 	return ok && o.Valid() && vo.Valid() &&
 		o.Target.Is(vo.Target) &&
-		slices.EqualFunc(o.Lower, vo.Lower, func(a *Absolute, v *Absolute) bool { return a.Is(v) }) &&
+		slices.EqualFunc(o.Lower, vo.Lower, func(a, v *check.Absolute) bool { return a.Is(v) }) &&
 		o.Upper.Is(vo.Upper) && o.Work.Is(vo.Work)
 }
 func (*MountOverlayOp) prefix() (string, bool) { return "mounting", true }

@@ -7,6 +7,7 @@ import (
 	"reflect"
 
 	"hakurei.app/container"
+	"hakurei.app/container/check"
 )
 
 // FilesystemConfig is an abstract representation of a mount point.
@@ -14,9 +15,9 @@ type FilesystemConfig interface {
 	// Valid returns whether the configuration is valid.
 	Valid() bool
 	// Path returns the target path in the container.
-	Path() *container.Absolute
+	Path() *check.Absolute
 	// Host returns a slice of all host paths used by this operation.
-	Host() []*container.Absolute
+	Host() []*check.Absolute
 	// Apply appends the [container.Op] implementing this operation.
 	Apply(z *ApplyState)
 

@@ -4,13 +4,14 @@ import (
 	"os"
 	"testing"
 
+	"hakurei.app/container/check"
 	"hakurei.app/container/stub"
 )
 
 func TestTmpfileOp(t *testing.T) {
 	const sampleDataString = `chronos:x:65534:65534:Hakurei:/var/empty:/bin/zsh`
 	var (
-		samplePath = MustAbs("/etc/passwd")
+		samplePath = check.MustAbs("/etc/passwd")
 		sampleData = []byte(sampleDataString)
 	)
 
@@ -100,7 +101,7 @@ func TestTmpfileOp(t *testing.T) {
 		{"zero", new(TmpfileOp), new(TmpfileOp), false},
 
 		{"differs path", &TmpfileOp{
-			Path: MustAbs("/etc/group"),
+			Path: check.MustAbs("/etc/group"),
 			Data: sampleData,
 		}, &TmpfileOp{
 			Path: samplePath,

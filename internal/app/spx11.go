@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"hakurei.app/container"
+	"hakurei.app/container/check"
 	"hakurei.app/hst"
 	"hakurei.app/system/acl"
 )
@@ -29,13 +30,13 @@ func (s *spX11Op) toSystem(state *outcomeStateSys, _ *hst.Config) error {
 
 	// the socket file at `/tmp/.X11-unix/X%d` is typically owned by the priv user
 	// and not accessible by the target user
-	var socketPath *container.Absolute
+	var socketPath *check.Absolute
 	if len(s.Display) > 1 && s.Display[0] == ':' { // `:%d`
 		if n, err := strconv.Atoi(s.Display[1:]); err == nil && n >= 0 {
 			socketPath = absX11SocketDir.Append("X" + strconv.Itoa(n))
 		}
 	} else if len(s.Display) > 5 && strings.HasPrefix(s.Display, "unix:") { // `unix:%s`
-		if a, err := container.NewAbs(s.Display[5:]); err == nil {
+		if a, err := check.NewAbs(s.Display[5:]); err == nil {
 			socketPath = a
 		}
 	}

@@ -8,7 +8,7 @@ import (
 	"os"
 	"syscall"
 
-	"hakurei.app/container"
+	"hakurei.app/container/check"
 	"hakurei.app/hst"
 )
 
@@ -45,13 +45,13 @@ func (s *spPulseOp) toSystem(state *outcomeStateSys, _ *hst.Config) error {
 	state.sys.Link(pulseSocket, state.runtime().Append("pulse"))
 
 	// publish current user's pulse cookie for target user
-	var paCookiePath *container.Absolute
+	var paCookiePath *check.Absolute
 	{
 		const paLocateStep = "locate PulseAudio cookie"
 
 		// from environment
 		if p, ok := state.k.lookupEnv("PULSE_COOKIE"); ok {
-			if a, err := container.NewAbs(p); err != nil {
+			if a, err := check.NewAbs(p); err != nil {
 				return &hst.AppError{Step: paLocateStep, Err: err}
 			} else {
 				// this takes precedence, do not verify whether the file is accessible
@@ -62,7 +62,7 @@ func (s *spPulseOp) toSystem(state *outcomeStateSys, _ *hst.Config) error {
 
 		// $HOME/.pulse-cookie
 		if p, ok := state.k.lookupEnv("HOME"); ok {
-			if a, err := container.NewAbs(p); err != nil {
+			if a, err := check.NewAbs(p); err != nil {
 				return &hst.AppError{Step: paLocateStep, Err: err}
 			} else {
 				paCookiePath = a.Append(".pulse-cookie")
@@ -83,7 +83,7 @@ func (s *spPulseOp) toSystem(state *outcomeStateSys, _ *hst.Config) error {
 
 		// $XDG_CONFIG_HOME/pulse/cookie
 		if p, ok := state.k.lookupEnv("XDG_CONFIG_HOME"); ok {
-			if a, err := container.NewAbs(p); err != nil {
+			if a, err := check.NewAbs(p); err != nil {
 				return &hst.AppError{Step: paLocateStep, Err: err}
 			} else {
 				paCookiePath = a.Append("pulse", "cookie")
@@ -161,7 +161,7 @@ func (s *spPulseOp) toContainer(state *outcomeStateParams) error {
 	return nil
 }
 
-func (s *spPulseOp) commonPaths(state *outcomeState) (pulseRuntimeDir, pulseSocket *container.Absolute) {
+func (s *spPulseOp) commonPaths(state *outcomeState) (pulseRuntimeDir, pulseSocket *check.Absolute) {
 	// PulseAudio runtime directory (usually `/run/user/%d/pulse`)
 	pulseRuntimeDir = state.sc.RuntimePath.Append("pulse")
 	// PulseAudio socket (usually `/run/user/%d/pulse/native`)

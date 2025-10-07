@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"hakurei.app/container"
+	"hakurei.app/container/check"
 	"hakurei.app/hst"
 )
 
@@ -63,7 +64,7 @@ func withNixDaemon(
 func withCacheDir(
 	ctx context.Context,
 	msg container.Msg,
-	action string, command []string, workDir *container.Absolute,
+	action string, command []string, workDir *check.Absolute,
 	app *appInfo, pathSet *appPathSet, dropShell bool, beforeFail func()) {
 	mustRunAppDropShell(ctx, msg, &hst.Config{
 		ID: app.ID,

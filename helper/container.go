@@ -10,6 +10,7 @@ import (
 	"sync"
 
 	"hakurei.app/container"
+	"hakurei.app/container/check"
 	"hakurei.app/helper/proc"
 )
 
@@ -17,7 +18,7 @@ import (
 func New(
 	ctx context.Context,
 	msg container.Msg,
-	pathname *container.Absolute, name string,
+	pathname *check.Absolute, name string,
 	wt io.WriterTo,
 	stat bool,
 	argF func(argsFd, statFd int) []string,

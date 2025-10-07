@@ -21,6 +21,7 @@ import (
 	"hakurei.app/command"
 	"hakurei.app/container"
 	"hakurei.app/container/bits"
+	"hakurei.app/container/check"
 	"hakurei.app/container/seccomp"
 	"hakurei.app/container/vfs"
 	"hakurei.app/hst"
@@ -226,7 +227,7 @@ var containerTestCases = []struct {
 
 	{"dev", true, true /* go test output is not a tty */, false, false,
 		earlyOps(new(container.Ops).
-			Dev(container.MustAbs("/dev"), true),
+			Dev(check.MustAbs("/dev"), true),
 		),
 		earlyMnt(
 			ent("/", "/dev", "ro,nosuid,nodev,relatime", "tmpfs", "devtmpfs", ignore),
@@ -244,7 +245,7 @@ var containerTestCases = []struct {
 
 	{"dev no mqueue", true, true /* go test output is not a tty */, false, false,
 		earlyOps(new(container.Ops).
-			Dev(container.MustAbs("/dev"), false),
+			Dev(check.MustAbs("/dev"), false),
 		),
 		earlyMnt(
 			ent("/", "/dev", "ro,nosuid,nodev,relatime", "tmpfs", "devtmpfs", ignore),
@@ -261,13 +262,13 @@ var containerTestCases = []struct {
 
 	{"overlay", true, false, false, true,
 		func(t *testing.T) (*container.Ops, context.Context) {
-			tempDir := container.MustAbs(t.TempDir())
+			tempDir := check.MustAbs(t.TempDir())
 			lower0, lower1, upper, work :=
 				tempDir.Append("lower0"),
 				tempDir.Append("lower1"),
 				tempDir.Append("upper"),
 				tempDir.Append("work")
-			for _, a := range []*container.Absolute{lower0, lower1, upper, work} {
+			for _, a := range []*check.Absolute{lower0, lower1, upper, work} {
 				if err := os.Mkdir(a.String(), 0755); err != nil {
 					t.Fatalf("Mkdir: error = %v", err)
 				}
@@ -285,12 +286,12 @@ var containerTestCases = []struct {
 			return []*vfs.MountInfoEntry{
 				ent("/", hst.Tmp, "rw", "overlay", "overlay",
 					"rw,lowerdir="+
-						container.InternalToHostOvlEscape(ctx.Value(testVal("lower0")).(*container.Absolute).String())+":"+
-						container.InternalToHostOvlEscape(ctx.Value(testVal("lower1")).(*container.Absolute).String())+
+						container.InternalToHostOvlEscape(ctx.Value(testVal("lower0")).(*check.Absolute).String())+":"+
+						container.InternalToHostOvlEscape(ctx.Value(testVal("lower1")).(*check.Absolute).String())+
 						",upperdir="+
-						container.InternalToHostOvlEscape(ctx.Value(testVal("upper")).(*container.Absolute).String())+
+						container.InternalToHostOvlEscape(ctx.Value(testVal("upper")).(*check.Absolute).String())+
 						",workdir="+
-						container.InternalToHostOvlEscape(ctx.Value(testVal("work")).(*container.Absolute).String())+
+						container.InternalToHostOvlEscape(ctx.Value(testVal("work")).(*check.Absolute).String())+
 						",redirect_dir=nofollow,uuid=on,userxattr"),
 			}
 		},
@@ -298,11 +299,11 @@ var containerTestCases = []struct {
 
 	{"overlay ephemeral", true, false, false, true,
 		func(t *testing.T) (*container.Ops, context.Context) {
-			tempDir := container.MustAbs(t.TempDir())
+			tempDir := check.MustAbs(t.TempDir())
 			lower0, lower1 :=
 				tempDir.Append("lower0"),
 				tempDir.Append("lower1")
-			for _, a := range []*container.Absolute{lower0, lower1} {
+			for _, a := range []*check.Absolute{lower0, lower1} {
 				if err := os.Mkdir(a.String(), 0755); err != nil {
 					t.Fatalf("Mkdir: error = %v", err)
 				}
@@ -322,11 +323,11 @@ var containerTestCases = []struct {
 
 	{"overlay readonly", true, false, false, true,
 		func(t *testing.T) (*container.Ops, context.Context) {
-			tempDir := container.MustAbs(t.TempDir())
+			tempDir := check.MustAbs(t.TempDir())
 			lower0, lower1 :=
 				tempDir.Append("lower0"),
 				tempDir.Append("lower1")
-			for _, a := range []*container.Absolute{lower0, lower1} {
+			for _, a := range []*check.Absolute{lower0, lower1} {
 				if err := os.Mkdir(a.String(), 0755); err != nil {
 					t.Fatalf("Mkdir: error = %v", err)
 				}
@@ -341,8 +342,8 @@ var containerTestCases = []struct {
 			return []*vfs.MountInfoEntry{
 				ent("/", hst.Tmp, "rw", "overlay", "overlay",
 					"ro,lowerdir="+
-						container.InternalToHostOvlEscape(ctx.Value(testVal("lower0")).(*container.Absolute).String())+":"+
-						container.InternalToHostOvlEscape(ctx.Value(testVal("lower1")).(*container.Absolute).String())+
+						container.InternalToHostOvlEscape(ctx.Value(testVal("lower0")).(*check.Absolute).String())+":"+
+						container.InternalToHostOvlEscape(ctx.Value(testVal("lower1")).(*check.Absolute).String())+
 						",redirect_dir=nofollow,userxattr"),
 			}
 		},
@@ -389,7 +390,7 @@ func TestContainer(t *testing.T) {
 			ctx, cancel := context.WithTimeout(t.Context(), helperDefaultTimeout)
 			defer cancel()
 
-			var libPaths []*container.Absolute
+			var libPaths []*check.Absolute
 			c := helperNewContainerLibPaths(ctx, &libPaths, "container", strconv.Itoa(i))
 			c.Uid = tc.uid
 			c.Gid = tc.gid
@@ -410,11 +411,11 @@ func TestContainer(t *testing.T) {
 			c.HostNet = tc.net
 
 			c.
-				Readonly(container.MustAbs(pathReadonly), 0755).
-				Tmpfs(container.MustAbs("/tmp"), 0, 0755).
-				Place(container.MustAbs("/etc/hostname"), []byte(c.Hostname))
+				Readonly(check.MustAbs(pathReadonly), 0755).
+				Tmpfs(check.MustAbs("/tmp"), 0, 0755).
+				Place(check.MustAbs("/etc/hostname"), []byte(c.Hostname))
 			// needs /proc to check mountinfo
-			c.Proc(container.MustAbs("/proc"))
+			c.Proc(check.MustAbs("/proc"))
 
 			// mountinfo cannot be resolved directly by helper due to libPaths nondeterminism
 			mnt := make([]*vfs.MountInfoEntry, 0, 3+len(libPaths))
@@ -445,10 +446,10 @@ func TestContainer(t *testing.T) {
 				_, _ = output.WriteTo(os.Stdout)
 				t.Fatalf("cannot serialise expected mount points: %v", err)
 			}
-			c.Place(container.MustAbs(pathWantMnt), want.Bytes())
+			c.Place(check.MustAbs(pathWantMnt), want.Bytes())
 
 			if tc.ro {
-				c.Remount(container.MustAbs("/"), syscall.MS_RDONLY)
+				c.Remount(check.MustAbs("/"), syscall.MS_RDONLY)
 			}
 
 			if err := c.Start(); err != nil {
@@ -545,7 +546,7 @@ func testContainerCancel(
 
 func TestContainerString(t *testing.T) {
 	msg := container.NewMsg(nil)
-	c := container.NewCommand(t.Context(), msg, container.MustAbs("/run/current-system/sw/bin/ldd"), "ldd", "/usr/bin/env")
+	c := container.NewCommand(t.Context(), msg, check.MustAbs("/run/current-system/sw/bin/ldd"), "ldd", "/usr/bin/env")
 	c.SeccompFlags |= seccomp.AllowMultiarch
 	c.SeccompRules = seccomp.Preset(
 		bits.PresetExt|bits.PresetDenyNS|bits.PresetDenyTTY,
@@ -681,7 +682,7 @@ const (
 )
 
 var (
-	absHelperInnerPath = container.MustAbs(helperInnerPath)
+	absHelperInnerPath = check.MustAbs(helperInnerPath)
 )
 
 var helperCommands []func(c command.Command)
@@ -709,11 +710,11 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-func helperNewContainerLibPaths(ctx context.Context, libPaths *[]*container.Absolute, args ...string) (c *container.Container) {
+func helperNewContainerLibPaths(ctx context.Context, libPaths *[]*check.Absolute, args ...string) (c *container.Container) {
 	msg := container.NewMsg(nil)
 	c = container.NewCommand(ctx, msg, absHelperInnerPath, "helper", args...)
 	c.Env = append(c.Env, envDoCheck+"=1")
-	c.Bind(container.MustAbs(os.Args[0]), absHelperInnerPath, 0)
+	c.Bind(check.MustAbs(os.Args[0]), absHelperInnerPath, 0)
 
 	// in case test has cgo enabled
 	if entries, err := ldd.Exec(ctx, msg, os.Args[0]); err != nil {
@@ -729,5 +730,5 @@ func helperNewContainerLibPaths(ctx context.Context, libPaths *[]*container.Abso
 }
 
 func helperNewContainer(ctx context.Context, args ...string) (c *container.Container) {
-	return helperNewContainerLibPaths(ctx, new([]*container.Absolute), args...)
+	return helperNewContainerLibPaths(ctx, new([]*check.Absolute), args...)
 }

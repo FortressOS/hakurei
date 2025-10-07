@@ -3,13 +3,15 @@ package container
 import (
 	"encoding/gob"
 	"fmt"
+
+	"hakurei.app/container/check"
 )
 
 func init() { gob.Register(new(AutoEtcOp)) }
 
 // Etc appends an [Op] that expands host /etc into a toplevel symlink mirror with /etc semantics.
 // This is not a generic setup op. It is implemented here to reduce ipc overhead.
-func (f *Ops) Etc(host *Absolute, prefix string) *Ops {
+func (f *Ops) Etc(host *check.Absolute, prefix string) *Ops {
 	e := &AutoEtcOp{prefix}
 	f.Mkdir(AbsFHSEtc, 0755)
 	f.Bind(host, e.hostPath(), 0)
@@ -57,8 +59,8 @@ func (e *AutoEtcOp) apply(state *setupState, k syscallDispatcher) error {
 	return nil
 }
 
-func (e *AutoEtcOp) hostPath() *Absolute { return AbsFHSEtc.Append(e.hostRel()) }
-func (e *AutoEtcOp) hostRel() string     { return ".host/" + e.Prefix }
+func (e *AutoEtcOp) hostPath() *check.Absolute { return AbsFHSEtc.Append(e.hostRel()) }
+func (e *AutoEtcOp) hostRel() string           { return ".host/" + e.Prefix }
 
 func (e *AutoEtcOp) Is(op Op) bool {
 	ve, ok := op.(*AutoEtcOp)

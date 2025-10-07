@@ -3,17 +3,17 @@ package system
 import (
 	"fmt"
 
-	"hakurei.app/container"
+	"hakurei.app/container/check"
 	"hakurei.app/hst"
 )
 
 // Link calls LinkFileType with the [Process] criteria.
-func (sys *I) Link(oldname, newname *container.Absolute) *I {
+func (sys *I) Link(oldname, newname *check.Absolute) *I {
 	return sys.LinkFileType(Process, oldname, newname)
 }
 
 // LinkFileType maintains a hardlink until its [Enablement] is no longer satisfied.
-func (sys *I) LinkFileType(et hst.Enablement, oldname, newname *container.Absolute) *I {
+func (sys *I) LinkFileType(et hst.Enablement, oldname, newname *check.Absolute) *I {
 	sys.ops = append(sys.ops, &hardlinkOp{et, newname.String(), oldname.String()})
 	return sys
 }

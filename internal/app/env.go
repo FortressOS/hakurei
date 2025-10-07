@@ -3,16 +3,16 @@ package app
 import (
 	"strconv"
 
-	"hakurei.app/container"
+	"hakurei.app/container/check"
 	"hakurei.app/hst"
 )
 
 // EnvPaths holds paths copied from the environment and is used to create [hst.Paths].
 type EnvPaths struct {
 	// TempDir is returned by [os.TempDir].
-	TempDir *container.Absolute
+	TempDir *check.Absolute
 	// RuntimePath is copied from $XDG_RUNTIME_DIR.
-	RuntimePath *container.Absolute
+	RuntimePath *check.Absolute
 }
 
 // Copy expands [EnvPaths] into [hst.Paths].
@@ -43,7 +43,7 @@ func copyPaths(k syscallDispatcher) *EnvPaths {
 
 	var env EnvPaths
 
-	if tempDir, err := container.NewAbs(k.tempdir()); err != nil {
+	if tempDir, err := check.NewAbs(k.tempdir()); err != nil {
 		k.fatalf("invalid TMPDIR: %v", err)
 		panic("unreachable")
 	} else {
@@ -51,7 +51,7 @@ func copyPaths(k syscallDispatcher) *EnvPaths {
 	}
 
 	r, _ := k.lookupEnv(xdgRuntimeDir)
-	if a, err := container.NewAbs(r); err == nil {
+	if a, err := check.NewAbs(r); err == nil {
 		env.RuntimePath = a
 	}
 
