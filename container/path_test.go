@@ -10,6 +10,7 @@ import (
 	"testing"
 	"unsafe"
 
+	"hakurei.app/container/check"
 	"hakurei.app/container/vfs"
 )
 
@@ -49,8 +50,8 @@ func TestToHost(t *testing.T) {
 	}
 }
 
-// InternalToHostOvlEscape exports toHost passed to EscapeOverlayDataSegment.
-func InternalToHostOvlEscape(s string) string { return EscapeOverlayDataSegment(toHost(s)) }
+// InternalToHostOvlEscape exports toHost passed to [check.EscapeOverlayDataSegment].
+func InternalToHostOvlEscape(s string) string { return check.EscapeOverlayDataSegment(toHost(s)) }
 
 func TestCreateFile(t *testing.T) {
 	t.Run("nonexistent", func(t *testing.T) {

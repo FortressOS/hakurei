@@ -281,23 +281,3 @@ func TestParentPerm(t *testing.T) {
 		})
 	}
 }
-
-func TestEscapeOverlayDataSegment(t *testing.T) {
-	testCases := []struct {
-		name string
-		s    string
-		want string
-	}{
-		{"zero", zeroString, zeroString},
-		{"multi", `\\\:,:,\\\`, `\\\\\\\:\,\:\,\\\\\\`},
-		{"bwrap", `/path :,\`, `/path \:\,\\`},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			if got := EscapeOverlayDataSegment(tc.s); got != tc.want {
-				t.Errorf("escapeOverlayDataSegment: %s, want %s", got, tc.want)
-			}
-		})
-	}
-}

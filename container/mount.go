@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"strings"
 	. "syscall"
 
 	"hakurei.app/container/vfs"
@@ -85,13 +84,6 @@ const (
 	// OptionOverlayUserxattr represents the userxattr option of the overlay pseudo-filesystem.
 	// Use the "user.overlay." xattr namespace instead of "trusted.overlay.".
 	OptionOverlayUserxattr = "userxattr"
-
-	// SpecialOverlayEscape is the escape string for overlay mount options.
-	SpecialOverlayEscape = `\`
-	// SpecialOverlayOption is the separator string between overlay mount options.
-	SpecialOverlayOption = ","
-	// SpecialOverlayPath is the separator string between overlay paths.
-	SpecialOverlayPath = ":"
 )
 
 // bindMount mounts source on target and recursively applies flags if MS_REC is set.
@@ -205,21 +197,4 @@ func parentPerm(perm os.FileMode) os.FileMode {
 		pperm &= ^0005
 	}
 	return os.FileMode(pperm)
-}
-
-// EscapeOverlayDataSegment escapes a string for formatting into the data argument of an overlay mount call.
-func EscapeOverlayDataSegment(s string) string {
-	if s == zeroString {
-		return zeroString
-	}
-
-	if f := strings.SplitN(s, "\x00", 2); len(f) > 0 {
-		s = f[0]
-	}
-
-	return strings.NewReplacer(
-		SpecialOverlayEscape, SpecialOverlayEscape+SpecialOverlayEscape,
-		SpecialOverlayOption, SpecialOverlayEscape+SpecialOverlayOption,
-		SpecialOverlayPath, SpecialOverlayEscape+SpecialOverlayPath,
-	).Replace(s)
 }

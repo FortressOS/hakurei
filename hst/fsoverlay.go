@@ -4,7 +4,6 @@ import (
 	"encoding/gob"
 	"strings"
 
-	"hakurei.app/container"
 	"hakurei.app/container/check"
 )
 
@@ -82,18 +81,18 @@ func (o *FSOverlay) String() string {
 
 	lower := make([]string, len(o.Lower))
 	for i, a := range o.Lower {
-		lower[i] = container.EscapeOverlayDataSegment(a.String())
+		lower[i] = check.EscapeOverlayDataSegment(a.String())
 	}
 
 	if o.Upper != nil && o.Work != nil {
 		return "w*" + strings.Join(append([]string{
-			container.EscapeOverlayDataSegment(o.Target.String()),
-			container.EscapeOverlayDataSegment(o.Upper.String()),
-			container.EscapeOverlayDataSegment(o.Work.String())},
-			lower...), container.SpecialOverlayPath)
+			check.EscapeOverlayDataSegment(o.Target.String()),
+			check.EscapeOverlayDataSegment(o.Upper.String()),
+			check.EscapeOverlayDataSegment(o.Work.String())},
+			lower...), check.SpecialOverlayPath)
 	} else {
 		return "*" + strings.Join(append([]string{
-			container.EscapeOverlayDataSegment(o.Target.String())},
-			lower...), container.SpecialOverlayPath)
+			check.EscapeOverlayDataSegment(o.Target.String())},
+			lower...), check.SpecialOverlayPath)
 	}
 }

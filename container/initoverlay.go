@@ -139,7 +139,7 @@ func (o *MountOverlayOp) early(_ *setupState, k syscallDispatcher) error {
 			if v, err := k.evalSymlinks(o.Upper.String()); err != nil {
 				return err
 			} else {
-				o.upper = EscapeOverlayDataSegment(toHost(v))
+				o.upper = check.EscapeOverlayDataSegment(toHost(v))
 			}
 		}
 
@@ -147,7 +147,7 @@ func (o *MountOverlayOp) early(_ *setupState, k syscallDispatcher) error {
 			if v, err := k.evalSymlinks(o.Work.String()); err != nil {
 				return err
 			} else {
-				o.work = EscapeOverlayDataSegment(toHost(v))
+				o.work = check.EscapeOverlayDataSegment(toHost(v))
 			}
 		}
 	}
@@ -157,7 +157,7 @@ func (o *MountOverlayOp) early(_ *setupState, k syscallDispatcher) error {
 		if v, err := k.evalSymlinks(a.String()); err != nil {
 			return err
 		} else {
-			o.lower[i] = EscapeOverlayDataSegment(toHost(v))
+			o.lower[i] = check.EscapeOverlayDataSegment(toHost(v))
 		}
 	}
 	return nil
@@ -199,10 +199,10 @@ func (o *MountOverlayOp) apply(state *setupState, k syscallDispatcher) error {
 			OptionOverlayWorkdir+"="+o.work)
 	}
 	options = append(options,
-		OptionOverlayLowerdir+"="+strings.Join(o.lower, SpecialOverlayPath),
+		OptionOverlayLowerdir+"="+strings.Join(o.lower, check.SpecialOverlayPath),
 		OptionOverlayUserxattr)
 
-	return k.mount(SourceOverlay, target, FstypeOverlay, 0, strings.Join(options, SpecialOverlayOption))
+	return k.mount(SourceOverlay, target, FstypeOverlay, 0, strings.Join(options, check.SpecialOverlayOption))
 }
 
 func (o *MountOverlayOp) Is(op Op) bool {
