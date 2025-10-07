@@ -15,7 +15,7 @@ import (
 	"time"
 
 	"hakurei.app/container"
-	"hakurei.app/container/seccomp"
+	"hakurei.app/container/bits"
 	"hakurei.app/hst"
 	"hakurei.app/internal/app/state"
 	"hakurei.app/system"
@@ -109,7 +109,7 @@ func TestApp(t *testing.T) {
 					Place(m("/etc/passwd"), []byte("chronos:x:65534:65534:Hakurei:/home/chronos:/run/current-system/sw/bin/zsh\n")).
 					Place(m("/etc/group"), []byte("hakurei:x:65534:\n")).
 					Remount(m("/"), syscall.MS_RDONLY),
-				SeccompPresets: seccomp.PresetExt | seccomp.PresetDenyDevel,
+				SeccompPresets: bits.PresetExt | bits.PresetDenyDevel,
 				HostNet:        true,
 				HostAbstract:   true,
 				RetainSession:  true,
@@ -282,7 +282,7 @@ func TestApp(t *testing.T) {
 					Bind(m("/tmp/hakurei.0/ebf083d1b175911782d413369b64ce7c/bus"), m("/run/user/65534/bus"), 0).
 					Bind(m("/tmp/hakurei.0/ebf083d1b175911782d413369b64ce7c/system_bus_socket"), m("/run/dbus/system_bus_socket"), 0).
 					Remount(m("/"), syscall.MS_RDONLY),
-				SeccompPresets: seccomp.PresetExt | seccomp.PresetDenyDevel,
+				SeccompPresets: bits.PresetExt | bits.PresetDenyDevel,
 				HostNet:        true,
 				HostAbstract:   true,
 				RetainSession:  true,
@@ -432,7 +432,7 @@ func TestApp(t *testing.T) {
 					Bind(m("/tmp/hakurei.0/8e2c76b066dabe574cf073bdb46eb5c1/bus"), m("/run/user/1971/bus"), 0).
 					Bind(m("/tmp/hakurei.0/8e2c76b066dabe574cf073bdb46eb5c1/system_bus_socket"), m("/run/dbus/system_bus_socket"), 0).
 					Remount(m("/"), syscall.MS_RDONLY),
-				SeccompPresets: seccomp.PresetExt | seccomp.PresetDenyTTY | seccomp.PresetDenyDevel,
+				SeccompPresets: bits.PresetExt | bits.PresetDenyTTY | bits.PresetDenyDevel,
 				HostNet:        true,
 				ForwardCancel:  true,
 			},

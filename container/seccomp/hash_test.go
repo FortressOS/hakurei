@@ -3,13 +3,14 @@ package seccomp_test
 import (
 	"encoding/hex"
 
+	"hakurei.app/container/bits"
 	"hakurei.app/container/seccomp"
 )
 
 type (
 	bpfPreset = struct {
 		seccomp.ExportFlag
-		seccomp.FilterPreset
+		bits.FilterPreset
 	}
 	bpfLookup map[bpfPreset][]byte
 )

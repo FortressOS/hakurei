@@ -14,6 +14,7 @@ import (
 	. "syscall"
 	"time"
 
+	"hakurei.app/container/bits"
 	"hakurei.app/container/seccomp"
 )
 
@@ -82,7 +83,7 @@ type (
 		// Extra seccomp flags.
 		SeccompFlags seccomp.ExportFlag
 		// Seccomp presets. Has no effect unless SeccompRules is zero-length.
-		SeccompPresets seccomp.FilterPreset
+		SeccompPresets bits.FilterPreset
 		// Do not load seccomp program.
 		SeccompDisable bool
 
@@ -170,7 +171,7 @@ func (p *Container) Start() error {
 	}
 
 	if !p.RetainSession {
-		p.SeccompPresets |= seccomp.PresetDenyTTY
+		p.SeccompPresets |= bits.PresetDenyTTY
 	}
 
 	if p.AdoptWaitDelay == 0 {

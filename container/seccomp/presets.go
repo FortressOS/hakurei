@@ -4,46 +4,33 @@ package seccomp
 
 import (
 	. "syscall"
+
+	"hakurei.app/container/bits"
 )
 
-type FilterPreset int
-
-const (
-	// PresetExt are project-specific extensions.
-	PresetExt FilterPreset = 1 << iota
-	// PresetDenyNS denies namespace setup syscalls.
-	PresetDenyNS
-	// PresetDenyTTY denies faking input.
-	PresetDenyTTY
-	// PresetDenyDevel denies development-related syscalls.
-	PresetDenyDevel
-	// PresetLinux32 sets PER_LINUX32.
-	PresetLinux32
-)
-
-func Preset(presets FilterPreset, flags ExportFlag) (rules []NativeRule) {
+func Preset(presets bits.FilterPreset, flags ExportFlag) (rules []NativeRule) {
 	allowedPersonality := PER_LINUX
-	if presets&PresetLinux32 != 0 {
+	if presets&bits.PresetLinux32 != 0 {
 		allowedPersonality = PER_LINUX32
 	}
 	presetDevelFinal := presetDevel(ScmpDatum(allowedPersonality))
 
 	l := len(presetCommon)
-	if presets&PresetDenyNS != 0 {
+	if presets&bits.PresetDenyNS != 0 {
 		l += len(presetNamespace)
 	}
-	if presets&PresetDenyTTY != 0 {
+	if presets&bits.PresetDenyTTY != 0 {
 		l += len(presetTTY)
 	}
-	if presets&PresetDenyDevel != 0 {
+	if presets&bits.PresetDenyDevel != 0 {
 		l += len(presetDevelFinal)
 	}
 	if flags&AllowMultiarch == 0 {
 		l += len(presetEmu)
 	}
-	if presets&PresetExt != 0 {
+	if presets&bits.PresetExt != 0 {
 		l += len(presetCommonExt)
-		if presets&PresetDenyNS != 0 {
+		if presets&bits.PresetDenyNS != 0 {
 			l += len(presetNamespaceExt)
 		}
 		if flags&AllowMultiarch == 0 {
@@ -53,21 +40,21 @@ func Preset(presets FilterPreset, flags ExportFlag) (rules []NativeRule) {
 
 	rules = make([]NativeRule, 0, l)
 	rules = append(rules, presetCommon...)
-	if presets&PresetDenyNS != 0 {
+	if presets&bits.PresetDenyNS != 0 {
 		rules = append(rules, presetNamespace...)
 	}
-	if presets&PresetDenyTTY != 0 {
+	if presets&bits.PresetDenyTTY != 0 {
 		rules = append(rules, presetTTY...)
 	}
-	if presets&PresetDenyDevel != 0 {
+	if presets&bits.PresetDenyDevel != 0 {
 		rules = append(rules, presetDevelFinal...)
 	}
 	if flags&AllowMultiarch == 0 {
 		rules = append(rules, presetEmu...)
 	}
-	if presets&PresetExt != 0 {
+	if presets&bits.PresetExt != 0 {
 		rules = append(rules, presetCommonExt...)
-		if presets&PresetDenyNS != 0 {
+		if presets&bits.PresetDenyNS != 0 {
 			rules = append(rules, presetNamespaceExt...)
 		}
 		if flags&AllowMultiarch == 0 {

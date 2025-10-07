@@ -8,6 +8,7 @@ import (
 	"syscall"
 
 	"hakurei.app/container"
+	"hakurei.app/container/bits"
 	"hakurei.app/container/seccomp"
 	"hakurei.app/hst"
 	"hakurei.app/system/dbus"
@@ -64,16 +65,16 @@ func (s *spParamsOp) toContainer(state *outcomeStateParams) error {
 	}
 
 	if !state.Container.SeccompCompat {
-		state.params.SeccompPresets |= seccomp.PresetExt
+		state.params.SeccompPresets |= bits.PresetExt
 	}
 	if !state.Container.Devel {
-		state.params.SeccompPresets |= seccomp.PresetDenyDevel
+		state.params.SeccompPresets |= bits.PresetDenyDevel
 	}
 	if !state.Container.Userns {
-		state.params.SeccompPresets |= seccomp.PresetDenyNS
+		state.params.SeccompPresets |= bits.PresetDenyNS
 	}
 	if !state.Container.Tty {
-		state.params.SeccompPresets |= seccomp.PresetDenyTTY
+		state.params.SeccompPresets |= bits.PresetDenyTTY
 	}
 
 	if state.Container.MapRealUID {

@@ -20,6 +20,7 @@ import (
 
 	"hakurei.app/command"
 	"hakurei.app/container"
+	"hakurei.app/container/bits"
 	"hakurei.app/container/seccomp"
 	"hakurei.app/container/vfs"
 	"hakurei.app/hst"
@@ -199,20 +200,20 @@ var containerTestCases = []struct {
 
 	rules   []seccomp.NativeRule
 	flags   seccomp.ExportFlag
-	presets seccomp.FilterPreset
+	presets bits.FilterPreset
 }{
 	{"minimal", true, false, false, true,
 		emptyOps, emptyMnt,
-		1000, 100, nil, 0, seccomp.PresetStrict},
+		1000, 100, nil, 0, bits.PresetStrict},
 	{"allow", true, true, true, false,
 		emptyOps, emptyMnt,
-		1000, 100, nil, 0, seccomp.PresetExt | seccomp.PresetDenyDevel},
+		1000, 100, nil, 0, bits.PresetExt | bits.PresetDenyDevel},
 	{"no filter", false, true, true, true,
 		emptyOps, emptyMnt,
-		1000, 100, nil, 0, seccomp.PresetExt},
+		1000, 100, nil, 0, bits.PresetExt},
 	{"custom rules", true, true, true, false,
 		emptyOps, emptyMnt,
-		1, 31, []seccomp.NativeRule{{Syscall: seccomp.ScmpSyscall(syscall.SYS_SETUID), Errno: seccomp.ScmpErrno(syscall.EPERM)}}, 0, seccomp.PresetExt},
+		1, 31, []seccomp.NativeRule{{Syscall: seccomp.ScmpSyscall(syscall.SYS_SETUID), Errno: seccomp.ScmpErrno(syscall.EPERM)}}, 0, bits.PresetExt},
 
 	{"tmpfs", true, false, false, true,
 		earlyOps(new(container.Ops).
@@ -221,7 +222,7 @@ var containerTestCases = []struct {
 		earlyMnt(
 			ent("/", hst.Tmp, "rw,nosuid,nodev,relatime", "tmpfs", "ephemeral", ignore),
 		),
-		9, 9, nil, 0, seccomp.PresetStrict},
+		9, 9, nil, 0, bits.PresetStrict},
 
 	{"dev", true, true /* go test output is not a tty */, false, false,
 		earlyOps(new(container.Ops).
@@ -239,7 +240,7 @@ var containerTestCases = []struct {
 			ent("/", "/dev/mqueue", "rw,nosuid,nodev,noexec,relatime", "mqueue", "mqueue", "rw"),
 			ent("/", "/dev/shm", "rw,nosuid,nodev,relatime", "tmpfs", "tmpfs", ignore),
 		),
-		1971, 100, nil, 0, seccomp.PresetStrict},
+		1971, 100, nil, 0, bits.PresetStrict},
 
 	{"dev no mqueue", true, true /* go test output is not a tty */, false, false,
 		earlyOps(new(container.Ops).
@@ -256,7 +257,7 @@ var containerTestCases = []struct {
 			ent("/", "/dev/pts", "rw,nosuid,noexec,relatime", "devpts", "devpts", "rw,mode=620,ptmxmode=666"),
 			ent("/", "/dev/shm", "rw,nosuid,nodev,relatime", "tmpfs", "tmpfs", ignore),
 		),
-		1971, 100, nil, 0, seccomp.PresetStrict},
+		1971, 100, nil, 0, bits.PresetStrict},
 
 	{"overlay", true, false, false, true,
 		func(t *testing.T) (*container.Ops, context.Context) {
@@ -293,7 +294,7 @@ var containerTestCases = []struct {
 						",redirect_dir=nofollow,uuid=on,userxattr"),
 			}
 		},
-		1 << 3, 1 << 14, nil, 0, seccomp.PresetStrict},
+		1 << 3, 1 << 14, nil, 0, bits.PresetStrict},
 
 	{"overlay ephemeral", true, false, false, true,
 		func(t *testing.T) (*container.Ops, context.Context) {
@@ -317,7 +318,7 @@ var containerTestCases = []struct {
 				ent("/", hst.Tmp, "rw", "overlay", "overlay", ignore),
 			}
 		},
-		1 << 3, 1 << 14, nil, 0, seccomp.PresetStrict},
+		1 << 3, 1 << 14, nil, 0, bits.PresetStrict},
 
 	{"overlay readonly", true, false, false, true,
 		func(t *testing.T) (*container.Ops, context.Context) {
@@ -345,7 +346,7 @@ var containerTestCases = []struct {
 						",redirect_dir=nofollow,userxattr"),
 			}
 		},
-		1 << 3, 1 << 14, nil, 0, seccomp.PresetStrict},
+		1 << 3, 1 << 14, nil, 0, bits.PresetStrict},
 }
 
 func TestContainer(t *testing.T) {
@@ -547,9 +548,9 @@ func TestContainerString(t *testing.T) {
 	c := container.NewCommand(t.Context(), msg, container.MustAbs("/run/current-system/sw/bin/ldd"), "ldd", "/usr/bin/env")
 	c.SeccompFlags |= seccomp.AllowMultiarch
 	c.SeccompRules = seccomp.Preset(
-		seccomp.PresetExt|seccomp.PresetDenyNS|seccomp.PresetDenyTTY,
+		bits.PresetExt|bits.PresetDenyNS|bits.PresetDenyTTY,
 		c.SeccompFlags)
-	c.SeccompPresets = seccomp.PresetStrict
+	c.SeccompPresets = bits.PresetStrict
 	want := `argv: ["ldd" "/usr/bin/env"], filter: true, rules: 65, flags: 0x1, presets: 0xf`
 	if got := c.String(); got != want {
 		t.Errorf("String: %s, want %s", got, want)

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"hakurei.app/container"
+	"hakurei.app/container/bits"
 	"hakurei.app/container/seccomp"
 )
 
@@ -36,7 +37,7 @@ func Exec(ctx context.Context, msg container.Msg, p string) ([]*Entry, error) {
 	z := container.NewCommand(c, msg, toolPath, lddName, p)
 	z.Hostname = "hakurei-" + lddName
 	z.SeccompFlags |= seccomp.AllowMultiarch
-	z.SeccompPresets |= seccomp.PresetStrict
+	z.SeccompPresets |= bits.PresetStrict
 	stdout, stderr := new(bytes.Buffer), new(bytes.Buffer)
 	z.Stdout = stdout
 	z.Stderr = stderr

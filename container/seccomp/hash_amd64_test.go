@@ -1,6 +1,9 @@
 package seccomp_test
 
-import . "hakurei.app/container/seccomp"
+import (
+	. "hakurei.app/container/bits"
+	. "hakurei.app/container/seccomp"
+)
 
 var bpfExpected = bpfLookup{
 	{AllowMultiarch | AllowCAN |

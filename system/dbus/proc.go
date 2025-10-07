@@ -9,6 +9,7 @@ import (
 	"syscall"
 
 	"hakurei.app/container"
+	"hakurei.app/container/bits"
 	"hakurei.app/container/seccomp"
 	"hakurei.app/helper"
 	"hakurei.app/ldd"
@@ -63,7 +64,7 @@ func (p *Proxy) Start() error {
 			p.final, true,
 			argF, func(z *container.Container) {
 				z.SeccompFlags |= seccomp.AllowMultiarch
-				z.SeccompPresets |= seccomp.PresetStrict
+				z.SeccompPresets |= bits.PresetStrict
 				z.Hostname = "hakurei-dbus"
 				if p.output != nil {
 					z.Stdout, z.Stderr = p.output, p.output

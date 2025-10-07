@@ -8,10 +8,6 @@ import (
 	"hakurei.app/helper/proc"
 )
 
-const (
-	PresetStrict = PresetExt | PresetDenyNS | PresetDenyTTY | PresetDenyDevel
-)
-
 // New returns an inactive Encoder instance.
 func New(rules []NativeRule, flags ExportFlag) *Encoder { return &Encoder{newExporter(rules, flags)} }
 
