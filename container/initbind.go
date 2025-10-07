@@ -6,6 +6,7 @@ import (
 	"os"
 	"syscall"
 
+	"hakurei.app/container/bits"
 	"hakurei.app/container/check"
 )
 
@@ -25,32 +26,21 @@ type BindMountOp struct {
 	Flags int
 }
 
-const (
-	// BindOptional skips nonexistent host paths.
-	BindOptional = 1 << iota
-	// BindWritable mounts filesystem read-write.
-	BindWritable
-	// BindDevice allows access to devices (special files) on this filesystem.
-	BindDevice
-	// BindEnsure attempts to create the host path if it does not exist.
-	BindEnsure
-)
-
 func (b *BindMountOp) Valid() bool {
 	return b != nil &&
 		b.Source != nil && b.Target != nil &&
-		b.Flags&(BindOptional|BindEnsure) != (BindOptional|BindEnsure)
+		b.Flags&(bits.BindOptional|bits.BindEnsure) != (bits.BindOptional|bits.BindEnsure)
 }
 
 func (b *BindMountOp) early(_ *setupState, k syscallDispatcher) error {
-	if b.Flags&BindEnsure != 0 {
+	if b.Flags&bits.BindEnsure != 0 {
 		if err := k.mkdirAll(b.Source.String(), 0700); err != nil {
 			return err
 		}
 	}
 
 	if pathname, err := k.evalSymlinks(b.Source.String()); err != nil {
-		if os.IsNotExist(err) && b.Flags&BindOptional != 0 {
+		if os.IsNotExist(err) && b.Flags&bits.BindOptional != 0 {
 			// leave sourceFinal as nil
 			return nil
 		}
@@ -63,7 +53,7 @@ func (b *BindMountOp) early(_ *setupState, k syscallDispatcher) error {
 
 func (b *BindMountOp) apply(state *setupState, k syscallDispatcher) error {
 	if b.sourceFinal == nil {
-		if b.Flags&BindOptional == 0 {
+		if b.Flags&bits.BindOptional == 0 {
 			// unreachable
 			return OpStateError("bind")
 		}
@@ -86,10 +76,10 @@ func (b *BindMountOp) apply(state *setupState, k syscallDispatcher) error {
 	}
 
 	var flags uintptr = syscall.MS_REC
-	if b.Flags&BindWritable == 0 {
+	if b.Flags&bits.BindWritable == 0 {
 		flags |= syscall.MS_RDONLY
 	}
-	if b.Flags&BindDevice == 0 {
+	if b.Flags&bits.BindDevice == 0 {
 		flags |= syscall.MS_NODEV
 	}
 

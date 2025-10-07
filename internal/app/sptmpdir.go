@@ -1,7 +1,7 @@
 package app
 
 import (
-	"hakurei.app/container"
+	"hakurei.app/container/bits"
 	"hakurei.app/container/check"
 	"hakurei.app/container/fhs"
 	"hakurei.app/hst"
@@ -24,7 +24,7 @@ func (s spTmpdirOp) toSystem(state *outcomeStateSys, _ *hst.Config) error {
 func (s spTmpdirOp) toContainer(state *outcomeStateParams) error {
 	// mount inner /tmp from share so it shares persistence and storage behaviour of host /tmp
 	_, tmpdirInst := s.commonPaths(state.outcomeState)
-	state.params.Bind(tmpdirInst, fhs.AbsTmp, container.BindWritable)
+	state.params.Bind(tmpdirInst, fhs.AbsTmp, bits.BindWritable)
 	return nil
 }
 

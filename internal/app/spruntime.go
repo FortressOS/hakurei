@@ -1,7 +1,7 @@
 package app
 
 import (
-	"hakurei.app/container"
+	"hakurei.app/container/bits"
 	"hakurei.app/container/check"
 	"hakurei.app/container/fhs"
 	"hakurei.app/hst"
@@ -35,7 +35,7 @@ func (s spRuntimeOp) toContainer(state *outcomeStateParams) error {
 
 	_, runtimeDirInst := s.commonPaths(state.outcomeState)
 	state.params.Tmpfs(fhs.AbsRunUser, 1<<12, 0755)
-	state.params.Bind(runtimeDirInst, state.runtimeDir, container.BindWritable)
+	state.params.Bind(runtimeDirInst, state.runtimeDir, bits.BindWritable)
 	return nil
 }
 

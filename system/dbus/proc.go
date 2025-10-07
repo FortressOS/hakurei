@@ -114,7 +114,7 @@ func (p *Proxy) Start() error {
 				check.SortAbs(sockDirPaths)
 				sockDirPaths = check.CompactAbs(sockDirPaths)
 				for _, name := range sockDirPaths {
-					z.Bind(name, name, container.BindWritable)
+					z.Bind(name, name, bits.BindWritable)
 				}
 
 				// xdg-dbus-proxy bin path
