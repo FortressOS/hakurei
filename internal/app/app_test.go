@@ -2,11 +2,14 @@ package app
 
 import (
 	"bytes"
+	"encoding/gob"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/fs"
 	"log"
+	"maps"
 	"os/exec"
 	"os/user"
 	"reflect"
@@ -447,21 +450,101 @@ func TestApp(t *testing.T) {
 				err := seal.finalise(t.Context(), msg, &tc.id, tc.config)
 				if err != nil {
 					if s, ok := container.GetErrorMessage(err); !ok {
-						t.Fatalf("Seal: error = %v", err)
+						t.Fatalf("outcome: error = %v", err)
 					} else {
-						t.Fatalf("Seal: %s", s)
+						t.Fatalf("outcome: %s", s)
 					}
 				}
 
 				t.Run("sys", func(t *testing.T) {
 					if !seal.sys.Equal(tc.wantSys) {
-						t.Errorf("Seal: sys = %#v, want %#v", seal.sys, tc.wantSys)
+						t.Errorf("outcome: sys = %#v, want %#v", seal.sys, tc.wantSys)
 					}
 				})
 
 				t.Run("params", func(t *testing.T) {
 					if !reflect.DeepEqual(&seal.container, tc.wantParams) {
-						t.Errorf("seal: container =\n%s\n, want\n%s", mustMarshal(&seal.container), mustMarshal(tc.wantParams))
+						t.Errorf("outcome: container =\n%s\n, want\n%s", mustMarshal(&seal.container), mustMarshal(tc.wantParams))
+					}
+				})
+			})
+
+			t.Run("ops", func(t *testing.T) {
+				// copied from shim
+				const envAllocSize = 1 << 6
+
+				gr, gw := io.Pipe()
+
+				var gotSys *system.I
+				{
+					sPriv := outcomeState{
+						ID:        &tc.id,
+						Identity:  tc.config.Identity,
+						UserID:    (&Hsu{k: tc.k}).MustIDMsg(msg),
+						EnvPaths:  copyPaths(tc.k),
+						Container: tc.config.Container,
+					}
+
+					sPriv.populateEarly(tc.k, msg)
+					if err := sPriv.populateLocal(tc.k, msg); err != nil {
+						t.Fatalf("populateLocal: error = %#v", err)
+					}
+
+					gotSys = system.New(t.Context(), msg, sPriv.uid.unwrap())
+					opsPriv := fromConfig(tc.config)
+					stateSys := outcomeStateSys{sys: gotSys, outcomeState: &sPriv}
+					for _, op := range opsPriv {
+						if err := op.toSystem(&stateSys, tc.config); err != nil {
+							t.Fatalf("toSystem: error = %#v", err)
+						}
+					}
+
+					go func() {
+						e := gob.NewEncoder(gw)
+						if err := errors.Join(e.Encode(&sPriv), e.Encode(&opsPriv)); err != nil {
+							t.Errorf("Encode: error = %v", err)
+							panic("unexpected encode fault")
+						}
+					}()
+				}
+
+				var gotParams container.Params
+				{
+					var (
+						sShim   outcomeState
+						opsShim []outcomeOp
+					)
+
+					d := gob.NewDecoder(gr)
+					if err := errors.Join(d.Decode(&sShim), d.Decode(&opsShim)); err != nil {
+						t.Fatalf("Decode: error = %v", err)
+					}
+					if err := sShim.populateLocal(tc.k, msg); err != nil {
+						t.Fatalf("populateLocal: error = %#v", err)
+					}
+
+					stateParams := outcomeStateParams{params: &gotParams, outcomeState: &sShim}
+					if sShim.Container.Env == nil {
+						stateParams.env = make(map[string]string, envAllocSize)
+					} else {
+						stateParams.env = maps.Clone(sShim.Container.Env)
+					}
+					for _, op := range opsShim {
+						if err := op.toContainer(&stateParams); err != nil {
+							t.Fatalf("toContainer: error = %#v", err)
+						}
+					}
+				}
+
+				t.Run("sys", func(t *testing.T) {
+					if !gotSys.Equal(tc.wantSys) {
+						t.Errorf("toSystem: sys = %#v, want %#v", gotSys, tc.wantSys)
+					}
+				})
+
+				t.Run("params", func(t *testing.T) {
+					if !reflect.DeepEqual(&gotParams, tc.wantParams) {
+						t.Errorf("toContainer: params =\n%s\n, want\n%s", mustMarshal(&gotParams), mustMarshal(tc.wantParams))
 					}
 				})
 			})

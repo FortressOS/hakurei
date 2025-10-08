@@ -1,6 +1,7 @@
 package app
 
 import (
+	"encoding/gob"
 	"errors"
 	"io/fs"
 	"os"
@@ -18,6 +19,8 @@ import (
 )
 
 const varRunNscd = fhs.Var + "run/nscd"
+
+func init() { gob.Register(new(spParamsOp)) }
 
 // spParamsOp initialises unordered fields of [container.Params] and the optional root filesystem.
 // This outcomeOp is hardcoded to always run first.
@@ -112,6 +115,8 @@ func (s *spParamsOp) toContainer(state *outcomeStateParams) error {
 
 	return nil
 }
+
+func init() { gob.Register(spFilesystemOp{}) }
 
 // spFilesystemOp applies configured filesystems to [container.Params], excluding the optional root filesystem.
 type spFilesystemOp struct{}

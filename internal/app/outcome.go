@@ -194,8 +194,6 @@ type outcomeStateParams struct {
 	*outcomeState
 }
 
-// TODO(ophestra): register outcomeOp implementations (params to shim)
-
 // An outcomeOp inflicts an outcome on [system.I] and contains enough information to
 // inflict it on [container.Params] in a separate process.
 // An implementation of outcomeOp must store cross-process states in exported fields only.

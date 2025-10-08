@@ -1,6 +1,7 @@
 package app
 
 import (
+	"encoding/gob"
 	"fmt"
 	"slices"
 	"strings"
@@ -11,6 +12,8 @@ import (
 	"hakurei.app/system"
 	"hakurei.app/system/acl"
 )
+
+func init() { gob.Register(spFinal{}) }
 
 // spFinal is a transitional op destined for removal after #3, #8, #9 has been resolved.
 // It exists to avoid reordering the expected entries in test cases.

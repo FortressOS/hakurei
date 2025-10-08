@@ -1,12 +1,15 @@
 package app
 
 import (
+	"encoding/gob"
 	"fmt"
 	"syscall"
 
 	"hakurei.app/container/fhs"
 	"hakurei.app/hst"
 )
+
+func init() { gob.Register(spAccountOp{}) }
 
 // spAccountOp sets up user account emulation inside the container.
 type spAccountOp struct{}

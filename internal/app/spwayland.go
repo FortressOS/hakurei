@@ -1,11 +1,15 @@
 package app
 
 import (
+	"encoding/gob"
+
 	"hakurei.app/container/check"
 	"hakurei.app/hst"
 	"hakurei.app/system/acl"
 	"hakurei.app/system/wayland"
 )
+
+func init() { gob.Register(new(spWaylandOp)) }
 
 // spWaylandOp exports the Wayland display server to the container.
 type spWaylandOp struct {

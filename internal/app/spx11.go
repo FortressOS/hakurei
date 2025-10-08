@@ -1,6 +1,7 @@
 package app
 
 import (
+	"encoding/gob"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -14,6 +15,8 @@ import (
 )
 
 var absX11SocketDir = fhs.AbsTmp.Append(".X11-unix")
+
+func init() { gob.Register(new(spX11Op)) }
 
 // spX11Op exports the X11 display server to the container.
 type spX11Op struct {

@@ -1,6 +1,7 @@
 package app
 
 import (
+	"encoding/gob"
 	"errors"
 	"fmt"
 	"io"
@@ -13,6 +14,8 @@ import (
 )
 
 const pulseCookieSizeMax = 1 << 8
+
+func init() { gob.Register(new(spPulseOp)) }
 
 // spPulseOp exports the PulseAudio server to the container.
 type spPulseOp struct {

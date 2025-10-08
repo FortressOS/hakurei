@@ -1,6 +1,8 @@
 package app
 
 import (
+	"encoding/gob"
+
 	"hakurei.app/container/bits"
 	"hakurei.app/container/check"
 	"hakurei.app/container/fhs"
@@ -8,6 +10,8 @@ import (
 	"hakurei.app/system"
 	"hakurei.app/system/acl"
 )
+
+func init() { gob.Register(spRuntimeOp{}) }
 
 // spRuntimeOp sets up XDG_RUNTIME_DIR inside the container.
 type spRuntimeOp struct{}

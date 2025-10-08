@@ -1,11 +1,15 @@
 package app
 
 import (
+	"encoding/gob"
+
 	"hakurei.app/container/fhs"
 	"hakurei.app/hst"
 	"hakurei.app/system/acl"
 	"hakurei.app/system/dbus"
 )
+
+func init() { gob.Register(new(spDBusOp)) }
 
 // spDBusOp maintains an xdg-dbus-proxy instance for the container.
 type spDBusOp struct {
