@@ -10,17 +10,12 @@ import (
 	"maps"
 	"os"
 	"os/user"
-	"slices"
-	"strings"
 	"sync/atomic"
-	"syscall"
 
 	"hakurei.app/container"
-	"hakurei.app/container/fhs"
 	"hakurei.app/hst"
 	"hakurei.app/internal/app/state"
 	"hakurei.app/system"
-	"hakurei.app/system/acl"
 )
 
 func newWithMessage(msg string) error { return newWithMessageError(msg, os.ErrInvalid) }
@@ -49,10 +44,8 @@ type outcome struct {
 }
 
 func (k *outcome) finalise(ctx context.Context, msg container.Msg, id *state.ID, config *hst.Config) error {
-	const (
-		// only used for a nil configured env map
-		envAllocSize = 1 << 6
-	)
+	// only used for a nil configured env map
+	const envAllocSize = 1 << 6
 
 	var kp finaliseProcess
 
@@ -60,7 +53,7 @@ func (k *outcome) finalise(ctx context.Context, msg container.Msg, id *state.ID,
 		// unreachable
 		panic("invalid call to finalise")
 	}
-	if k.ctx != nil || k.proc != nil {
+	if k.ctx != nil || k.sys != nil || k.proc != nil {
 		// unreachable
 		panic("attempting to finalise twice")
 	}
@@ -80,6 +73,7 @@ func (k *outcome) finalise(ctx context.Context, msg container.Msg, id *state.ID,
 		k.ct = ct
 	}
 
+	// hsu expects numerical group ids
 	kp.supp = make([]string, len(config.Groups))
 	for i, name := range config.Groups {
 		if gid, err := k.lookupGroupId(name); err != nil {
@@ -123,7 +117,7 @@ func (k *outcome) finalise(ctx context.Context, msg container.Msg, id *state.ID,
 		return err
 	}
 	kp.runDirPath, kp.identity, kp.id = s.sc.RunDirPath, s.identity, s.id
-	k.sys = system.New(k.ctx, msg, s.uid.unwrap())
+	sys := system.New(k.ctx, msg, s.uid.unwrap())
 
 	{
 		ops := []outcomeOp{
@@ -151,8 +145,9 @@ func (k *outcome) finalise(ctx context.Context, msg container.Msg, id *state.ID,
 		if et&hst.EDBus != 0 {
 			ops = append(ops, &spDBusOp{})
 		}
+		ops = append(ops, spFinal{})
 
-		stateSys := outcomeStateSys{sys: k.sys, outcomeState: &s}
+		stateSys := outcomeStateSys{sys: sys, outcomeState: &s}
 		for _, op := range ops {
 			if err := op.toSystem(&stateSys, config); err != nil {
 				return err
@@ -171,45 +166,9 @@ func (k *outcome) finalise(ctx context.Context, msg container.Msg, id *state.ID,
 				return err
 			}
 		}
-		// flatten and sort env for deterministic behaviour
-		k.container.Env = make([]string, 0, len(stateParams.env))
-		for key, value := range stateParams.env {
-			if strings.IndexByte(key, '=') != -1 {
-				return &hst.AppError{Step: "flatten environment", Err: syscall.EINVAL,
-					Msg: fmt.Sprintf("invalid environment variable %s", key)}
-			}
-			k.container.Env = append(k.container.Env, key+"="+value)
-		}
-		slices.Sort(k.container.Env)
 	}
 
-	// mount root read-only as the final setup Op
-	// TODO(ophestra): move this to spFilesystemOp after #8 and #9
-	k.container.Remount(fhs.AbsRoot, syscall.MS_RDONLY)
-
-	// append ExtraPerms last
-	for _, p := range config.ExtraPerms {
-		if p == nil || p.Path == nil {
-			continue
-		}
-
-		if p.Ensure {
-			k.sys.Ensure(p.Path, 0700)
-		}
-
-		perms := make(acl.Perms, 0, 3)
-		if p.Read {
-			perms = append(perms, acl.Read)
-		}
-		if p.Write {
-			perms = append(perms, acl.Write)
-		}
-		if p.Execute {
-			perms = append(perms, acl.Execute)
-		}
-		k.sys.UpdatePermType(system.User, p.Path, perms...)
-	}
-
+	k.sys = sys
 	k.proc = &kp
 	return nil
 }
