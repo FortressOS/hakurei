@@ -2,6 +2,7 @@ package app
 
 import (
 	"strconv"
+	"time"
 
 	"hakurei.app/container"
 	"hakurei.app/container/check"
@@ -66,6 +67,27 @@ func (s *outcomeState) valid() bool {
 		s.ID != nil &&
 		s.Container != nil &&
 		s.EnvPaths != nil
+}
+
+// populateEarly populates exported fields via syscallDispatcher.
+// This must only be called from the priv side.
+func (s *outcomeState) populateEarly(k syscallDispatcher, msg container.Msg) (waitDelay time.Duration) {
+	// enforce bounds and default early
+	if s.Container.WaitDelay <= 0 {
+		waitDelay = hst.WaitDelayDefault
+	} else if s.Container.WaitDelay > hst.WaitDelayMax {
+		waitDelay = hst.WaitDelayMax
+	} else {
+		waitDelay = s.Container.WaitDelay
+	}
+
+	if s.Container.MapRealUID {
+		s.Mapuid, s.Mapgid = k.getuid(), k.getgid()
+	} else {
+		s.Mapuid, s.Mapgid = k.overflowUid(msg), k.overflowGid(msg)
+	}
+
+	return
 }
 
 // populateLocal populates unexported fields from transmitted exported fields.
@@ -161,7 +183,7 @@ func (state *outcomeStateSys) runtime() *check.Absolute {
 type outcomeStateParams struct {
 	// Overrides the embedded [container.Params] in [container.Container]. The Env field must not be used.
 	params *container.Params
-	// Collapsed into the Env slice in [container.Params] after every call to outcomeOp.toContainer completes.
+	// Collapsed into the Env slice in [container.Params] by the final outcomeOp.
 	env map[string]string
 
 	// Filesystems with the optional root sliced off if present. Populated by spParamsOp.

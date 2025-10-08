@@ -96,21 +96,7 @@ func (k *outcome) finalise(ctx context.Context, msg container.Msg, id *state.ID,
 		EnvPaths:  copyPaths(k.syscallDispatcher),
 		Container: config.Container,
 	}
-
-	// enforce bounds and default early
-	if s.Container.WaitDelay <= 0 {
-		kp.waitDelay = hst.WaitDelayDefault
-	} else if s.Container.WaitDelay > hst.WaitDelayMax {
-		kp.waitDelay = hst.WaitDelayMax
-	} else {
-		kp.waitDelay = s.Container.WaitDelay
-	}
-
-	if s.Container.MapRealUID {
-		s.Mapuid, s.Mapgid = k.getuid(), k.getgid()
-	} else {
-		s.Mapuid, s.Mapgid = k.overflowUid(msg), k.overflowGid(msg)
-	}
+	kp.waitDelay = s.populateEarly(k.syscallDispatcher, msg)
 
 	// TODO(ophestra): duplicate in shim (params to shim)
 	if err := s.populateLocal(k.syscallDispatcher, msg); err != nil {
