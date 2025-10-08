@@ -16,10 +16,11 @@ func TestOutcomeStateValid(t *testing.T) {
 	}{
 		{"nil", nil, false},
 		{"zero", new(outcomeState), false},
-		{"id", &outcomeState{Container: new(hst.ContainerConfig), EnvPaths: new(EnvPaths)}, false},
-		{"container", &outcomeState{ID: new(state.ID), EnvPaths: new(EnvPaths)}, false},
-		{"envpaths", &outcomeState{ID: new(state.ID), Container: new(hst.ContainerConfig)}, false},
-		{"valid", &outcomeState{ID: new(state.ID), Container: new(hst.ContainerConfig), EnvPaths: new(EnvPaths)}, true},
+		{"shim", &outcomeState{Shim: &shimParams{PrivPID: -1, Ops: []outcomeOp{}}, Container: new(hst.ContainerConfig), EnvPaths: new(EnvPaths)}, false},
+		{"id", &outcomeState{Shim: &shimParams{PrivPID: 1, Ops: []outcomeOp{}}, Container: new(hst.ContainerConfig), EnvPaths: new(EnvPaths)}, false},
+		{"container", &outcomeState{Shim: &shimParams{PrivPID: 1, Ops: []outcomeOp{}}, ID: new(state.ID), EnvPaths: new(EnvPaths)}, false},
+		{"envpaths", &outcomeState{Shim: &shimParams{PrivPID: 1, Ops: []outcomeOp{}}, ID: new(state.ID), Container: new(hst.ContainerConfig)}, false},
+		{"valid", &outcomeState{Shim: &shimParams{PrivPID: 1, Ops: []outcomeOp{}}, ID: new(state.ID), Container: new(hst.ContainerConfig), EnvPaths: new(EnvPaths)}, true},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {

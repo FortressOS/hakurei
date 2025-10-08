@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"maps"
 	"os"
 	"os/user"
 	"sync/atomic"
@@ -29,29 +28,26 @@ type outcome struct {
 	// this is prepared ahead of time as config is clobbered during seal creation
 	ct io.WriterTo
 
+	// Supplementary group ids. Populated during finalise.
+	supp []string
+	// Resolved priv side operating system interactions. Populated during finalise.
 	sys *system.I
-	ctx context.Context
-
-	container container.Params
-
-	// Populated during outcome.finalise.
-	proc *finaliseProcess
+	// Transmitted to shim. Populated during finalise.
+	state *outcomeState
 
 	// Whether the current process is in outcome.main.
 	active atomic.Bool
 
+	ctx context.Context
 	syscallDispatcher
 }
 
 func (k *outcome) finalise(ctx context.Context, msg container.Msg, id *state.ID, config *hst.Config) error {
-	// only used for a nil configured env map
-	const envAllocSize = 1 << 6
-
 	if ctx == nil || id == nil {
 		// unreachable
 		panic("invalid call to finalise")
 	}
-	if k.ctx != nil || k.sys != nil || k.proc != nil {
+	if k.ctx != nil || k.sys != nil || k.state != nil {
 		// unreachable
 		panic("attempting to finalise twice")
 	}
@@ -71,10 +67,8 @@ func (k *outcome) finalise(ctx context.Context, msg container.Msg, id *state.ID,
 		k.ct = ct
 	}
 
-	var kp finaliseProcess
-
 	// hsu expects numerical group ids
-	kp.supp = make([]string, len(config.Groups))
+	supp := make([]string, len(config.Groups))
 	for i, name := range config.Groups {
 		if gid, err := k.lookupGroupId(name); err != nil {
 			var unknownGroupError user.UnknownGroupError
@@ -84,7 +78,7 @@ func (k *outcome) finalise(ctx context.Context, msg container.Msg, id *state.ID,
 				return &hst.AppError{Step: "look up group by name", Err: err}
 			}
 		} else {
-			kp.supp[i] = gid
+			supp[i] = gid
 		}
 	}
 
@@ -96,38 +90,21 @@ func (k *outcome) finalise(ctx context.Context, msg container.Msg, id *state.ID,
 		EnvPaths:  copyPaths(k.syscallDispatcher),
 		Container: config.Container,
 	}
-	kp.waitDelay = s.populateEarly(k.syscallDispatcher, msg)
-
-	// TODO(ophestra): duplicate in shim (params to shim)
+	s.populateEarly(k.syscallDispatcher, msg, config)
 	if err := s.populateLocal(k.syscallDispatcher, msg); err != nil {
 		return err
 	}
-	kp.runDirPath, kp.identity, kp.id = s.sc.RunDirPath, s.identity, s.id
+
 	sys := system.New(k.ctx, msg, s.uid.unwrap())
-
-	ops := fromConfig(config)
-
 	stateSys := outcomeStateSys{sys: sys, outcomeState: &s}
-	for _, op := range ops {
+	for _, op := range s.Shim.Ops {
 		if err := op.toSystem(&stateSys, config); err != nil {
 			return err
 		}
 	}
 
-	// TODO(ophestra): move to shim
-	stateParams := outcomeStateParams{params: &k.container, outcomeState: &s}
-	if s.Container.Env == nil {
-		stateParams.env = make(map[string]string, envAllocSize)
-	} else {
-		stateParams.env = maps.Clone(s.Container.Env)
-	}
-	for _, op := range ops {
-		if err := op.toContainer(&stateParams); err != nil {
-			return err
-		}
-	}
-
 	k.sys = sys
-	k.proc = &kp
+	k.supp = supp
+	k.state = &s
 	return nil
 }

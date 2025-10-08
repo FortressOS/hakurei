@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"hakurei.app/container"
-	"hakurei.app/container/check"
 	"hakurei.app/container/fhs"
 	"hakurei.app/hst"
 	"hakurei.app/internal"
@@ -43,7 +42,6 @@ type mainState struct {
 	k *outcome
 	container.Msg
 	uintptr
-	*finaliseProcess
 }
 
 const (
@@ -83,7 +81,7 @@ func (ms mainState) beforeExit(isFault bool) {
 		waitDone := make(chan struct{})
 
 		// this ties waitDone to ctx with the additional compensated timeout duration
-		go func() { <-ms.k.ctx.Done(); time.Sleep(ms.waitDelay + shimWaitTimeout); close(waitDone) }()
+		go func() { <-ms.k.ctx.Done(); time.Sleep(ms.k.state.Shim.WaitDelay + shimWaitTimeout); close(waitDone) }()
 
 		select {
 		case err := <-ms.cmdWait:
@@ -129,9 +127,9 @@ func (ms mainState) beforeExit(isFault bool) {
 	}
 
 	if ms.uintptr&mainNeedsRevert != 0 {
-		if ok, err := ms.store.Do(ms.identity.unwrap(), func(c state.Cursor) {
+		if ok, err := ms.store.Do(ms.k.state.identity.unwrap(), func(c state.Cursor) {
 			if ms.uintptr&mainNeedsDestroy != 0 {
-				if err := c.Destroy(ms.id.unwrap()); err != nil {
+				if err := c.Destroy(ms.k.state.id.unwrap()); err != nil {
 					perror(err, "destroy state entry")
 				}
 			}
@@ -208,31 +206,13 @@ func (ms mainState) fatal(fallback string, ferr error) {
 	os.Exit(1)
 }
 
-// finaliseProcess contains information collected during outcome.finalise used in outcome.main.
-type finaliseProcess struct {
-	// Supplementary group ids.
-	supp []string
-
-	// Copied from [hst.ContainerConfig], without exceeding [MaxShimWaitDelay].
-	waitDelay time.Duration
-
-	// Copied from the RunDirPath field of [hst.Paths].
-	runDirPath *check.Absolute
-
-	// Copied from outcomeState.
-	identity *stringPair[int]
-
-	// Copied from outcomeState.
-	id *stringPair[state.ID]
-}
-
 // main carries out outcome and terminates. main does not return.
 func (k *outcome) main(msg container.Msg) {
 	if !k.active.CompareAndSwap(false, true) {
 		panic("outcome: attempted to run twice")
 	}
 
-	if k.proc == nil {
+	if k.ctx == nil || k.sys == nil || k.state == nil {
 		panic("outcome: did not finalise")
 	}
 
@@ -240,13 +220,13 @@ func (k *outcome) main(msg container.Msg) {
 	hsuPath := internal.MustHsuPath()
 
 	// ms.beforeExit required beyond this point
-	ms := &mainState{Msg: msg, k: k, finaliseProcess: k.proc}
+	ms := &mainState{Msg: msg, k: k}
 
 	if err := k.sys.Commit(); err != nil {
 		ms.fatal("cannot commit system setup:", err)
 	}
 	ms.uintptr |= mainNeedsRevert
-	ms.store = state.NewMulti(msg, ms.runDirPath.String())
+	ms.store = state.NewMulti(msg, k.state.sc.RunDirPath.String())
 
 	ctx, cancel := context.WithCancel(k.ctx)
 	defer cancel()
@@ -267,14 +247,14 @@ func (k *outcome) main(msg container.Msg) {
 			// passed through to shim by hsu
 			shimEnv + "=" + strconv.Itoa(fd),
 			// interpreted by hsu
-			"HAKUREI_IDENTITY=" + ms.identity.String(),
+			"HAKUREI_IDENTITY=" + k.state.identity.String(),
 		}
 	}
 
-	if len(ms.supp) > 0 {
-		msg.Verbosef("attaching supplementary group ids %s", ms.supp)
+	if len(k.supp) > 0 {
+		msg.Verbosef("attaching supplementary group ids %s", k.supp)
 		// interpreted by hsu
-		ms.cmd.Env = append(ms.cmd.Env, "HAKUREI_GROUPS="+strings.Join(ms.supp, " "))
+		ms.cmd.Env = append(ms.cmd.Env, "HAKUREI_GROUPS="+strings.Join(k.supp, " "))
 	}
 
 	msg.Verbosef("setuid helper at %s", hsuPath)
@@ -293,14 +273,7 @@ func (k *outcome) main(msg container.Msg) {
 	select {
 	case err := <-func() (setupErr chan error) {
 		setupErr = make(chan error, 1)
-		go func() {
-			setupErr <- e.Encode(&shimParams{
-				os.Getpid(),
-				ms.waitDelay,
-				&k.container,
-				msg.IsVerbose(),
-			})
-		}()
+		go func() { setupErr <- e.Encode(k.state) }()
 		return
 	}():
 		if err != nil {
@@ -314,9 +287,9 @@ func (k *outcome) main(msg container.Msg) {
 	}
 
 	// shim accepted setup payload, create process state
-	if ok, err := ms.store.Do(ms.identity.unwrap(), func(c state.Cursor) {
+	if ok, err := ms.store.Do(k.state.identity.unwrap(), func(c state.Cursor) {
 		if err := c.Save(&state.State{
-			ID:   ms.id.unwrap(),
+			ID:   k.state.id.unwrap(),
 			PID:  ms.cmd.Process.Pid,
 			Time: *ms.Time,
 		}, k.ct); err != nil {

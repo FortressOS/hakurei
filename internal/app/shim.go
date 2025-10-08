@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"log"
+	"maps"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -22,22 +23,34 @@ import (
 //#include "shim-signal.h"
 import "C"
 
-const shimEnv = "HAKUREI_SHIM"
+const (
+	// setup pipe fd for [container.Receive]
+	shimEnv = "HAKUREI_SHIM"
+
+	// only used for a nil configured env map
+	envAllocSize = 1 << 6
+)
 
 type shimParams struct {
 	// Priv side pid, checked against ppid in signal handler for the syscall.SIGCONT hack.
-	Monitor int
+	PrivPID int
 
-	// Duration to wait for after interrupting a container's initial process before the container is killed.
+	// Duration to wait for after the initial process receives os.Interrupt before the container is killed.
 	// Limits are enforced on the priv side.
 	WaitDelay time.Duration
 
-	// Finalised container params.
-	// TODO(ophestra): transmit outcomeState instead (params to shim)
-	Container *container.Params
-
-	// Verbosity pass through.
+	// Verbosity pass through from [container.Msg].
 	Verbose bool
+
+	// Outcome setup ops, contains setup state. Populated by outcome.finalise.
+	Ops []outcomeOp
+}
+
+// valid checks shimParams to be safe for use.
+func (p *shimParams) valid() bool {
+	return p != nil &&
+		p.Ops != nil &&
+		p.PrivPID > 0
 }
 
 // ShimMain is the main function of the shim process and runs as the unconstrained target user.
@@ -51,28 +64,36 @@ func ShimMain() {
 	}
 
 	var (
-		params     shimParams
+		state      outcomeState
 		closeSetup func() error
 	)
-	if f, err := container.Receive(shimEnv, &params, nil); err != nil {
+	if f, err := container.Receive(shimEnv, &state, nil); err != nil {
 		if errors.Is(err, syscall.EBADF) {
 			log.Fatal("invalid config descriptor")
 		}
 		if errors.Is(err, container.ErrReceiveEnv) {
-			log.Fatal("HAKUREI_SHIM not set")
+			log.Fatal(shimEnv + " not set")
 		}
 
 		log.Fatalf("cannot receive shim setup params: %v", err)
 	} else {
-		msg.SwapVerbose(params.Verbose)
+		msg.SwapVerbose(state.Shim.Verbose)
 		closeSetup = f
+
+		if err = state.populateLocal(direct{}, msg); err != nil {
+			if m, ok := container.GetErrorMessage(err); ok {
+				log.Fatal(m)
+			} else {
+				log.Fatalf("cannot populate local state: %v", err)
+			}
+		}
 	}
 
-	var signalPipe io.ReadCloser
 	// the Go runtime does not expose siginfo_t so SIGCONT is handled in C to check si_pid
+	var signalPipe io.ReadCloser
 	if r, w, err := os.Pipe(); err != nil {
 		log.Fatalf("cannot pipe: %v", err)
-	} else if _, err = C.hakurei_shim_setup_cont_signal(C.pid_t(params.Monitor), C.int(w.Fd())); err != nil {
+	} else if _, err = C.hakurei_shim_setup_cont_signal(C.pid_t(state.Shim.PrivPID), C.int(w.Fd())); err != nil {
 		log.Fatalf("cannot install SIGCONT handler: %v", err)
 	} else {
 		defer runtime.KeepAlive(w)
@@ -84,7 +105,24 @@ func ShimMain() {
 		log.Fatalf("cannot set parent-death signal: %v", errno)
 	}
 
-	// signal handler outcome
+	var params container.Params
+	stateParams := outcomeStateParams{params: &params, outcomeState: &state}
+	if state.Container.Env == nil {
+		stateParams.env = make(map[string]string, envAllocSize)
+	} else {
+		stateParams.env = maps.Clone(state.Container.Env)
+	}
+	for _, op := range state.Shim.Ops {
+		if err := op.toContainer(&stateParams); err != nil {
+			if m, ok := container.GetErrorMessage(err); ok {
+				log.Fatal(m)
+			} else {
+				log.Fatalf("cannot create container state: %v", err)
+			}
+		}
+	}
+
+	// shim exit outcomes
 	var cancelContainer atomic.Pointer[context.CancelFunc]
 	go func() {
 		buf := make([]byte, 1)
@@ -95,7 +133,7 @@ func ShimMain() {
 
 			switch buf[0] {
 			case 0: // got SIGCONT from monitor: shim exit requested
-				if fp := cancelContainer.Load(); params.Container.ForwardCancel && fp != nil && *fp != nil {
+				if fp := cancelContainer.Load(); params.ForwardCancel && fp != nil && *fp != nil {
 					(*fp)()
 					// shim now bound by ShimWaitDelay, implemented below
 					continue
@@ -123,7 +161,7 @@ func ShimMain() {
 		}
 	}()
 
-	if params.Container == nil || params.Container.Ops == nil {
+	if params.Ops == nil {
 		log.Fatal("invalid container params")
 	}
 
@@ -136,11 +174,11 @@ func ShimMain() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	cancelContainer.Store(&stop)
 	z := container.New(ctx, msg)
-	z.Params = *params.Container
+	z.Params = params
 	z.Stdin, z.Stdout, z.Stderr = os.Stdin, os.Stdout, os.Stderr
 
 	// bounds and default enforced in finalise.go
-	z.WaitDelay = params.WaitDelay
+	z.WaitDelay = state.Shim.WaitDelay
 
 	if err := z.Start(); err != nil {
 		printMessageError("cannot start container:", err)

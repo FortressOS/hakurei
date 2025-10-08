@@ -1,8 +1,8 @@
 package app
 
 import (
+	"os"
 	"strconv"
-	"time"
 
 	"hakurei.app/container"
 	"hakurei.app/container/check"
@@ -26,6 +26,9 @@ func (s *stringPair[T]) String() string { return s.s }
 // outcomeState is copied to the shim process and available while applying outcomeOp.
 // This is transmitted from the priv side to the shim, so exported fields should be kept to a minimum.
 type outcomeState struct {
+	// Params only used by the shim process. Populated by populateEarly.
+	Shim *shimParams
+
 	// Generated and accounted for by the caller.
 	ID *state.ID
 	// Copied from ID.
@@ -64,6 +67,7 @@ type outcomeState struct {
 // valid checks outcomeState to be safe for use with outcomeOp.
 func (s *outcomeState) valid() bool {
 	return s != nil &&
+		s.Shim.valid() &&
 		s.ID != nil &&
 		s.Container != nil &&
 		s.EnvPaths != nil
@@ -71,14 +75,16 @@ func (s *outcomeState) valid() bool {
 
 // populateEarly populates exported fields via syscallDispatcher.
 // This must only be called from the priv side.
-func (s *outcomeState) populateEarly(k syscallDispatcher, msg container.Msg) (waitDelay time.Duration) {
+func (s *outcomeState) populateEarly(k syscallDispatcher, msg container.Msg, config *hst.Config) {
+	s.Shim = &shimParams{PrivPID: os.Getpid(), Verbose: msg.IsVerbose(), Ops: fromConfig(config)}
+
 	// enforce bounds and default early
 	if s.Container.WaitDelay <= 0 {
-		waitDelay = hst.WaitDelayDefault
+		s.Shim.WaitDelay = hst.WaitDelayDefault
 	} else if s.Container.WaitDelay > hst.WaitDelayMax {
-		waitDelay = hst.WaitDelayMax
+		s.Shim.WaitDelay = hst.WaitDelayMax
 	} else {
-		waitDelay = s.Container.WaitDelay
+		s.Shim.WaitDelay = s.Container.WaitDelay
 	}
 
 	if s.Container.MapRealUID {
