@@ -6,9 +6,9 @@ import (
 	"sync"
 	"syscall"
 
-	"hakurei.app/container"
 	"hakurei.app/helper"
 	"hakurei.app/hst"
+	"hakurei.app/message"
 )
 
 // ProxyName is the file name or path to the proxy program.
@@ -19,7 +19,7 @@ var ProxyName = "xdg-dbus-proxy"
 type Proxy struct {
 	helper helper.Helper
 	ctx    context.Context
-	msg    container.Msg
+	msg    message.Msg
 
 	cancel context.CancelCauseFunc
 	cause  func() error
@@ -100,6 +100,6 @@ func Finalise(sessionBus, systemBus ProxyPair, session, system *hst.BusConfig) (
 }
 
 // New returns a new instance of [Proxy].
-func New(ctx context.Context, msg container.Msg, final *Final, output io.Writer) *Proxy {
+func New(ctx context.Context, msg message.Msg, final *Final, output io.Writer) *Proxy {
 	return &Proxy{name: ProxyName, ctx: ctx, msg: msg, final: final, output: output, useSandbox: true}
 }

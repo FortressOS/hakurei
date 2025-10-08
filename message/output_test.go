@@ -1,4 +1,4 @@
-package container_test
+package message_test
 
 import (
 	"bytes"
@@ -8,8 +8,8 @@ import (
 	"syscall"
 	"testing"
 
-	"hakurei.app/container"
 	"hakurei.app/container/stub"
+	"hakurei.app/message"
 )
 
 func TestSuspendable(t *testing.T) {
@@ -74,7 +74,7 @@ func TestSuspendable(t *testing.T) {
 
 	var dw expectWriter
 
-	w := container.Suspendable{Downstream: &dw}
+	w := message.Suspendable{Downstream: &dw}
 	for _, step := range steps {
 		// these share the same writer, so cannot be subtests
 		t.Logf("writing step %q", step.name)

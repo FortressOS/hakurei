@@ -18,6 +18,7 @@ import (
 	"hakurei.app/container/bits"
 	"hakurei.app/container/seccomp"
 	"hakurei.app/hst"
+	"hakurei.app/message"
 )
 
 //#include "shim-signal.h"
@@ -57,7 +58,7 @@ func (p *shimParams) valid() bool {
 func ShimMain() {
 	log.SetPrefix("shim: ")
 	log.SetFlags(0)
-	msg := container.NewMsg(log.Default())
+	msg := message.NewMsg(log.Default())
 
 	if err := container.SetDumpable(container.SUID_DUMP_DISABLE); err != nil {
 		log.Fatalf("cannot set SUID_DUMP_DISABLE: %s", err)
@@ -81,7 +82,7 @@ func ShimMain() {
 		closeSetup = f
 
 		if err = state.populateLocal(direct{}, msg); err != nil {
-			if m, ok := container.GetErrorMessage(err); ok {
+			if m, ok := message.GetMessage(err); ok {
 				log.Fatal(m)
 			} else {
 				log.Fatalf("cannot populate local state: %v", err)
@@ -114,7 +115,7 @@ func ShimMain() {
 	}
 	for _, op := range state.Shim.Ops {
 		if err := op.toContainer(&stateParams); err != nil {
-			if m, ok := container.GetErrorMessage(err); ok {
+			if m, ok := message.GetMessage(err); ok {
 				log.Fatal(m)
 			} else {
 				log.Fatalf("cannot create container state: %v", err)

@@ -10,13 +10,13 @@ import (
 	"strings"
 	"syscall"
 
-	"hakurei.app/container"
 	"hakurei.app/hst"
 	"hakurei.app/internal/app"
 	"hakurei.app/internal/app/state"
+	"hakurei.app/message"
 )
 
-func tryPath(msg container.Msg, name string) (config *hst.Config) {
+func tryPath(msg message.Msg, name string) (config *hst.Config) {
 	var r io.Reader
 	config = new(hst.Config)
 
@@ -49,7 +49,7 @@ func tryPath(msg container.Msg, name string) (config *hst.Config) {
 	return
 }
 
-func tryFd(msg container.Msg, name string) io.ReadCloser {
+func tryFd(msg message.Msg, name string) io.ReadCloser {
 	if v, err := strconv.Atoi(name); err != nil {
 		if !errors.Is(err, strconv.ErrSyntax) {
 			msg.Verbosef("name cannot be interpreted as int64: %v", err)
@@ -68,7 +68,7 @@ func tryFd(msg container.Msg, name string) io.ReadCloser {
 	}
 }
 
-func tryShort(msg container.Msg, name string) (config *hst.Config, entry *state.State) {
+func tryShort(msg message.Msg, name string) (config *hst.Config, entry *state.State) {
 	likePrefix := false
 	if len(name) <= 32 {
 		likePrefix = true

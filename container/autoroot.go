@@ -6,6 +6,7 @@ import (
 
 	"hakurei.app/container/check"
 	"hakurei.app/container/fhs"
+	"hakurei.app/message"
 )
 
 func init() { gob.Register(new(AutoRootOp)) }
@@ -81,7 +82,7 @@ func (r *AutoRootOp) String() string {
 }
 
 // IsAutoRootBindable returns whether a dir entry name is selected for AutoRoot.
-func IsAutoRootBindable(msg Msg, name string) bool {
+func IsAutoRootBindable(msg message.Msg, name string) bool {
 	switch name {
 	case "proc", "dev", "tmp", "mnt", "etc":
 

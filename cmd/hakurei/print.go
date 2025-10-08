@@ -11,10 +11,10 @@ import (
 	"text/tabwriter"
 	"time"
 
-	"hakurei.app/container"
 	"hakurei.app/hst"
 	"hakurei.app/internal/app"
 	"hakurei.app/internal/app/state"
+	"hakurei.app/message"
 )
 
 func printShowSystem(output io.Writer, short, flagJSON bool) {
@@ -56,7 +56,7 @@ func printShowInstance(
 
 	if err := config.Validate(); err != nil {
 		valid = false
-		if m, ok := container.GetErrorMessage(err); ok {
+		if m, ok := message.GetMessage(err); ok {
 			mustPrint(output, "Error: "+m+"!\n\n")
 		}
 	}

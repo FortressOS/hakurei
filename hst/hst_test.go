@@ -8,9 +8,9 @@ import (
 	"syscall"
 	"testing"
 
-	"hakurei.app/container"
 	"hakurei.app/container/stub"
 	"hakurei.app/hst"
+	"hakurei.app/message"
 )
 
 func TestAppError(t *testing.T) {
@@ -65,14 +65,14 @@ func TestAppError(t *testing.T) {
 			})
 
 			t.Run("message", func(t *testing.T) {
-				gotMessage, gotMessageOk := container.GetErrorMessage(tc.err)
+				gotMessage, gotMessageOk := message.GetMessage(tc.err)
 				if want := tc.message != "\x00"; gotMessageOk != want {
-					t.Errorf("GetErrorMessage: ok = %v, want %v", gotMessage, want)
+					t.Errorf("GetMessage: ok = %v, want %v", gotMessage, want)
 				}
 
 				if gotMessageOk {
 					if gotMessage != tc.message {
-						t.Errorf("GetErrorMessage: %s, want %s", gotMessage, tc.message)
+						t.Errorf("GetMessage: %s, want %s", gotMessage, tc.message)
 					}
 				}
 			})

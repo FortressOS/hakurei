@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"hakurei.app/container/fhs"
+	"hakurei.app/message"
 )
 
 var (
@@ -23,7 +24,7 @@ const (
 	kernelCapLastCapPath  = fhs.ProcSys + "kernel/cap_last_cap"
 )
 
-func mustReadSysctl(msg Msg) {
+func mustReadSysctl(msg message.Msg) {
 	sysctlOnce.Do(func() {
 		if v, err := os.ReadFile(kernelOverflowuidPath); err != nil {
 			msg.GetLogger().Fatalf("cannot read %q: %v", kernelOverflowuidPath, err)
@@ -45,6 +46,6 @@ func mustReadSysctl(msg Msg) {
 	})
 }
 
-func OverflowUid(msg Msg) int { mustReadSysctl(msg); return kernelOverflowuid }
-func OverflowGid(msg Msg) int { mustReadSysctl(msg); return kernelOverflowgid }
-func LastCap(msg Msg) uintptr { mustReadSysctl(msg); return uintptr(kernelCapLastCap) }
+func OverflowUid(msg message.Msg) int { mustReadSysctl(msg); return kernelOverflowuid }
+func OverflowGid(msg message.Msg) int { mustReadSysctl(msg); return kernelOverflowgid }
+func LastCap(msg message.Msg) uintptr { mustReadSysctl(msg); return uintptr(kernelCapLastCap) }

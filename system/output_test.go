@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"hakurei.app/container"
+	"hakurei.app/message"
 )
 
 func TestOpError(t *testing.T) {
@@ -64,13 +65,13 @@ func TestOpError(t *testing.T) {
 			})
 
 			t.Run("msg", func(t *testing.T) {
-				if got, ok := container.GetErrorMessage(tc.err); !ok {
+				if got, ok := message.GetMessage(tc.err); !ok {
 					if tc.msg != "" {
-						t.Errorf("GetErrorMessage: err does not implement MessageError")
+						t.Errorf("GetMessage: err does not implement MessageError")
 					}
 					return
 				} else if got != tc.msg {
-					t.Errorf("GetErrorMessage: %q, want %q", got, tc.msg)
+					t.Errorf("GetMessage: %q, want %q", got, tc.msg)
 				}
 			})
 		})

@@ -15,6 +15,7 @@ import (
 	"hakurei.app/container/fhs"
 	"hakurei.app/container/seccomp"
 	"hakurei.app/hst"
+	"hakurei.app/message"
 	"hakurei.app/system/dbus"
 )
 
@@ -299,7 +300,7 @@ func resolveRoot(c *hst.ContainerConfig) (rootfs hst.FilesystemConfig, filesyste
 }
 
 // evalSymlinks calls syscallDispatcher.evalSymlinks but discards errors unwrapping to [fs.ErrNotExist].
-func evalSymlinks(msg container.Msg, k syscallDispatcher, v *string) error {
+func evalSymlinks(msg message.Msg, k syscallDispatcher, v *string) error {
 	if p, err := k.evalSymlinks(*v); err != nil {
 		if !errors.Is(err, fs.ErrNotExist) {
 			return err

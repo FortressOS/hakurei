@@ -26,6 +26,7 @@ import (
 	"hakurei.app/container/vfs"
 	"hakurei.app/hst"
 	"hakurei.app/ldd"
+	"hakurei.app/message"
 )
 
 func TestStartError(t *testing.T) {
@@ -152,13 +153,13 @@ func TestStartError(t *testing.T) {
 			})
 
 			t.Run("msg", func(t *testing.T) {
-				if got, ok := container.GetErrorMessage(tc.err); !ok {
+				if got, ok := message.GetMessage(tc.err); !ok {
 					if tc.msg != "" {
-						t.Errorf("GetErrorMessage: err does not implement MessageError")
+						t.Errorf("GetMessage: err does not implement MessageError")
 					}
 					return
 				} else if got != tc.msg {
-					t.Errorf("GetErrorMessage: %q, want %q", got, tc.msg)
+					t.Errorf("GetMessage: %q, want %q", got, tc.msg)
 				}
 			})
 		})
@@ -545,7 +546,7 @@ func testContainerCancel(
 }
 
 func TestContainerString(t *testing.T) {
-	msg := container.NewMsg(nil)
+	msg := message.NewMsg(nil)
 	c := container.NewCommand(t.Context(), msg, check.MustAbs("/run/current-system/sw/bin/ldd"), "ldd", "/usr/bin/env")
 	c.SeccompFlags |= seccomp.AllowMultiarch
 	c.SeccompRules = seccomp.Preset(
@@ -711,7 +712,7 @@ func TestMain(m *testing.M) {
 }
 
 func helperNewContainerLibPaths(ctx context.Context, libPaths *[]*check.Absolute, args ...string) (c *container.Container) {
-	msg := container.NewMsg(nil)
+	msg := message.NewMsg(nil)
 	c = container.NewCommand(ctx, msg, absHelperInnerPath, "helper", args...)
 	c.Env = append(c.Env, envDoCheck+"=1")
 	c.Bind(check.MustAbs(os.Args[0]), absHelperInnerPath, 0)

@@ -8,6 +8,7 @@ import (
 	"hakurei.app/container/bits"
 	"hakurei.app/container/check"
 	"hakurei.app/container/stub"
+	"hakurei.app/message"
 )
 
 func TestAutoRootOp(t *testing.T) {
@@ -195,7 +196,7 @@ func TestIsAutoRootBindable(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			var msg Msg
+			var msg message.Msg
 			if tc.log {
 				msg = &kstub{nil, stub.New(t, func(s *stub.Stub[syscallDispatcher]) syscallDispatcher { panic("unreachable") }, stub.Expect{Calls: []stub.Call{
 					call("verbose", stub.ExpectArgs{[]any{"got unexpected root entry"}}, nil, nil),

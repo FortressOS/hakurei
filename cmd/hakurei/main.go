@@ -13,6 +13,7 @@ import (
 	"syscall"
 
 	"hakurei.app/container"
+	"hakurei.app/message"
 )
 
 var (
@@ -31,7 +32,7 @@ func main() {
 
 	log.SetPrefix("hakurei: ")
 	log.SetFlags(0)
-	msg := container.NewMsg(log.Default())
+	msg := message.NewMsg(log.Default())
 
 	early := earlyHardeningErrs{
 		yamaLSM:  container.SetPtracer(0),

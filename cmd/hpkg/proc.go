@@ -9,14 +9,14 @@ import (
 	"os"
 	"os/exec"
 
-	"hakurei.app/container"
 	"hakurei.app/hst"
 	"hakurei.app/internal"
+	"hakurei.app/message"
 )
 
 var hakureiPath = internal.MustHakureiPath()
 
-func mustRunApp(ctx context.Context, msg container.Msg, config *hst.Config, beforeFail func()) {
+func mustRunApp(ctx context.Context, msg message.Msg, config *hst.Config, beforeFail func()) {
 	var (
 		cmd *exec.Cmd
 		st  io.WriteCloser

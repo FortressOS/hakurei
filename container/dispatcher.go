@@ -11,6 +11,7 @@ import (
 	"syscall"
 
 	"hakurei.app/container/seccomp"
+	"hakurei.app/message"
 )
 
 type osFile interface {
@@ -37,7 +38,7 @@ type syscallDispatcher interface {
 	setNoNewPrivs() error
 
 	// lastcap provides [LastCap].
-	lastcap(msg Msg) uintptr
+	lastcap(msg message.Msg) uintptr
 	// capset provides capset.
 	capset(hdrp *capHeader, datap *[2]capData) error
 	// capBoundingSetDrop provides capBoundingSetDrop.
@@ -52,9 +53,9 @@ type syscallDispatcher interface {
 	receive(key string, e any, fdp *uintptr) (closeFunc func() error, err error)
 
 	// bindMount provides procPaths.bindMount.
-	bindMount(msg Msg, source, target string, flags uintptr) error
+	bindMount(msg message.Msg, source, target string, flags uintptr) error
 	// remount provides procPaths.remount.
-	remount(msg Msg, target string, flags uintptr) error
+	remount(msg message.Msg, target string, flags uintptr) error
 	// mountTmpfs provides mountTmpfs.
 	mountTmpfs(fsname, target string, flags uintptr, size int, perm os.FileMode) error
 	// ensureFile provides ensureFile.
@@ -122,11 +123,11 @@ type syscallDispatcher interface {
 	wait4(pid int, wstatus *syscall.WaitStatus, options int, rusage *syscall.Rusage) (wpid int, err error)
 
 	// printf provides the Printf method of [log.Logger].
-	printf(msg Msg, format string, v ...any)
+	printf(msg message.Msg, format string, v ...any)
 	// fatal provides the Fatal method of [log.Logger]
-	fatal(msg Msg, v ...any)
+	fatal(msg message.Msg, v ...any)
 	// fatalf provides the Fatalf method of [log.Logger]
-	fatalf(msg Msg, format string, v ...any)
+	fatalf(msg message.Msg, format string, v ...any)
 }
 
 // direct implements syscallDispatcher on the current kernel.
@@ -140,7 +141,7 @@ func (direct) setPtracer(pid uintptr) error       { return SetPtracer(pid) }
 func (direct) setDumpable(dumpable uintptr) error { return SetDumpable(dumpable) }
 func (direct) setNoNewPrivs() error               { return SetNoNewPrivs() }
 
-func (direct) lastcap(msg Msg) uintptr                         { return LastCap(msg) }
+func (direct) lastcap(msg message.Msg) uintptr                 { return LastCap(msg) }
 func (direct) capset(hdrp *capHeader, datap *[2]capData) error { return capset(hdrp, datap) }
 func (direct) capBoundingSetDrop(cap uintptr) error            { return capBoundingSetDrop(cap) }
 func (direct) capAmbientClearAll() error                       { return capAmbientClearAll() }
@@ -150,10 +151,10 @@ func (direct) receive(key string, e any, fdp *uintptr) (func() error, error) {
 	return Receive(key, e, fdp)
 }
 
-func (direct) bindMount(msg Msg, source, target string, flags uintptr) error {
+func (direct) bindMount(msg message.Msg, source, target string, flags uintptr) error {
 	return hostProc.bindMount(msg, source, target, flags)
 }
-func (direct) remount(msg Msg, target string, flags uintptr) error {
+func (direct) remount(msg message.Msg, target string, flags uintptr) error {
 	return hostProc.remount(msg, target, flags)
 }
 func (k direct) mountTmpfs(fsname, target string, flags uintptr, size int, perm os.FileMode) error {
@@ -221,6 +222,6 @@ func (direct) wait4(pid int, wstatus *syscall.WaitStatus, options int, rusage *s
 	return syscall.Wait4(pid, wstatus, options, rusage)
 }
 
-func (direct) printf(msg Msg, format string, v ...any) { msg.GetLogger().Printf(format, v...) }
-func (direct) fatal(msg Msg, v ...any)                 { msg.GetLogger().Fatal(v...) }
-func (direct) fatalf(msg Msg, format string, v ...any) { msg.GetLogger().Fatalf(format, v...) }
+func (direct) printf(msg message.Msg, format string, v ...any) { msg.GetLogger().Printf(format, v...) }
+func (direct) fatal(msg message.Msg, v ...any)                 { msg.GetLogger().Fatal(v...) }
+func (direct) fatalf(msg message.Msg, format string, v ...any) { msg.GetLogger().Fatalf(format, v...) }

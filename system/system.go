@@ -6,8 +6,8 @@ import (
 	"errors"
 	"strings"
 
-	"hakurei.app/container"
 	"hakurei.app/hst"
+	"hakurei.app/message"
 )
 
 const (
@@ -68,7 +68,7 @@ func TypeString(e hst.Enablement) string {
 }
 
 // New returns the address of a new [I] targeting uid.
-func New(ctx context.Context, msg container.Msg, uid int) (sys *I) {
+func New(ctx context.Context, msg message.Msg, uid int) (sys *I) {
 	if ctx == nil || msg == nil || uid < 0 {
 		panic("invalid call to New")
 	}
@@ -89,7 +89,7 @@ type I struct {
 	// the behaviour of Revert is only defined for up to one call
 	reverted bool
 
-	msg container.Msg
+	msg message.Msg
 	syscallDispatcher
 }
 

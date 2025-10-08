@@ -1,4 +1,5 @@
-package container
+// Package message provides interfaces and a base implementation for extended reporting on top of [log.Logger]
+package message
 
 import (
 	"errors"
@@ -6,19 +7,19 @@ import (
 	"sync/atomic"
 )
 
-// MessageError is an error with a user-facing message.
-type MessageError interface {
+// Error is an error with a user-facing message.
+type Error interface {
 	// Message returns a user-facing error message.
 	Message() string
 
 	error
 }
 
-// GetErrorMessage returns whether an error implements [MessageError], and the message if it does.
-func GetErrorMessage(err error) (string, bool) {
-	var e MessageError
+// GetMessage returns whether an error implements [Error], and the message if it does.
+func GetMessage(err error) (string, bool) {
+	var e Error
 	if !errors.As(err, &e) || e == nil {
-		return zeroString, false
+		return "", false
 	}
 	return e.Message(), true
 }

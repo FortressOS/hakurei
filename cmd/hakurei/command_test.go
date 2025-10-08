@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"hakurei.app/command"
-	"hakurei.app/container"
+	"hakurei.app/message"
 )
 
 func TestHelp(t *testing.T) {
@@ -69,7 +69,7 @@ Flags:
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			out := new(bytes.Buffer)
-			c := buildCommand(t.Context(), container.NewMsg(nil), new(earlyHardeningErrs), out)
+			c := buildCommand(t.Context(), message.NewMsg(nil), new(earlyHardeningErrs), out)
 			if err := c.Parse(tc.args); !errors.Is(err, command.ErrHelp) && !errors.Is(err, flag.ErrHelp) {
 				t.Errorf("Parse: error = %v; want %v",
 					err, command.ErrHelp)

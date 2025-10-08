@@ -7,10 +7,10 @@ import (
 	"strconv"
 	"sync/atomic"
 
-	"hakurei.app/container"
 	"hakurei.app/container/check"
 	"hakurei.app/container/fhs"
 	"hakurei.app/hst"
+	"hakurei.app/message"
 )
 
 const bash = "bash"
@@ -52,7 +52,7 @@ func lookPath(file string) string {
 
 var beforeRunFail = new(atomic.Pointer[func()])
 
-func mustRun(msg container.Msg, name string, arg ...string) {
+func mustRun(msg message.Msg, name string, arg ...string) {
 	msg.Verbosef("spawning process: %q %q", name, arg)
 	cmd := exec.Command(name, arg...)
 	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr

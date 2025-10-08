@@ -11,8 +11,8 @@ import (
 	"sync"
 	"syscall"
 
-	"hakurei.app/container"
 	"hakurei.app/hst"
+	"hakurei.app/message"
 )
 
 // fine-grained locking and access
@@ -22,7 +22,7 @@ type multiStore struct {
 	// initialised backends
 	backends *sync.Map
 
-	msg container.Msg
+	msg message.Msg
 	mu  sync.RWMutex
 }
 
@@ -280,7 +280,7 @@ func (b *multiBackend) close() error {
 }
 
 // NewMulti returns an instance of the multi-file store.
-func NewMulti(msg container.Msg, runDir string) Store {
+func NewMulti(msg message.Msg, runDir string) Store {
 	return &multiStore{
 		msg:      msg,
 		base:     path.Join(runDir, "state"),

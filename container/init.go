@@ -14,6 +14,7 @@ import (
 
 	"hakurei.app/container/fhs"
 	"hakurei.app/container/seccomp"
+	"hakurei.app/message"
 )
 
 const (
@@ -61,7 +62,7 @@ type (
 	setupState struct {
 		nonrepeatable uintptr
 		*Params
-		Msg
+		message.Msg
 	}
 )
 
@@ -95,14 +96,14 @@ type initParams struct {
 }
 
 // Init is called by [TryArgv0] if the current process is the container init.
-func Init(msg Msg) {
+func Init(msg message.Msg) {
 	if msg == nil {
 		panic("attempting to call initEntrypoint with nil msg")
 	}
 	initEntrypoint(direct{}, msg)
 }
 
-func initEntrypoint(k syscallDispatcher, msg Msg) {
+func initEntrypoint(k syscallDispatcher, msg message.Msg) {
 	k.lockOSThread()
 
 	if k.getpid() != 1 {
@@ -125,7 +126,7 @@ func initEntrypoint(k syscallDispatcher, msg Msg) {
 			k.fatal(msg, "invalid setup descriptor")
 		}
 		if errors.Is(err, ErrReceiveEnv) {
-			k.fatal(msg, "HAKUREI_SETUP not set")
+			k.fatal(msg, setupEnv+" not set")
 		}
 
 		k.fatalf(msg, "cannot decode init setup payload: %v", err)
@@ -448,11 +449,11 @@ const initName = "init"
 
 // TryArgv0 calls [Init] if the last element of argv0 is "init".
 // If a nil msg is passed, the system logger is used instead.
-func TryArgv0(msg Msg) {
+func TryArgv0(msg message.Msg) {
 	if msg == nil {
 		log.SetPrefix(initName + ": ")
 		log.SetFlags(0)
-		msg = NewMsg(log.Default())
+		msg = message.NewMsg(log.Default())
 	}
 
 	if len(os.Args) > 0 && path.Base(os.Args[0]) == initName {

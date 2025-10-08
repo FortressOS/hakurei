@@ -18,6 +18,7 @@ import (
 
 	"hakurei.app/container/seccomp"
 	"hakurei.app/container/stub"
+	"hakurei.app/message"
 )
 
 type opValidTestCase struct {
@@ -329,7 +330,7 @@ func (k *kstub) setDumpable(dumpable uintptr) error {
 }
 
 func (k *kstub) setNoNewPrivs() error { k.Helper(); return k.Expects("setNoNewPrivs").Err }
-func (k *kstub) lastcap(msg Msg) uintptr {
+func (k *kstub) lastcap(msg message.Msg) uintptr {
 	k.Helper()
 	k.checkMsg(msg)
 	return k.Expects("lastcap").Ret.(uintptr)
@@ -409,7 +410,7 @@ func (k *kstub) receive(key string, e any, fdp *uintptr) (closeFunc func() error
 	return
 }
 
-func (k *kstub) bindMount(msg Msg, source, target string, flags uintptr) error {
+func (k *kstub) bindMount(msg message.Msg, source, target string, flags uintptr) error {
 	k.Helper()
 	k.checkMsg(msg)
 	return k.Expects("bindMount").Error(
@@ -418,7 +419,7 @@ func (k *kstub) bindMount(msg Msg, source, target string, flags uintptr) error {
 		stub.CheckArg(k.Stub, "flags", flags, 2))
 }
 
-func (k *kstub) remount(msg Msg, target string, flags uintptr) error {
+func (k *kstub) remount(msg message.Msg, target string, flags uintptr) error {
 	k.Helper()
 	k.checkMsg(msg)
 	return k.Expects("remount").Error(
@@ -702,7 +703,7 @@ func (k *kstub) wait4(pid int, wstatus *syscall.WaitStatus, options int, rusage 
 	return
 }
 
-func (k *kstub) printf(_ Msg, format string, v ...any) {
+func (k *kstub) printf(_ message.Msg, format string, v ...any) {
 	k.Helper()
 	if k.Expects("printf").Error(
 		stub.CheckArg(k.Stub, "format", format, 0),
@@ -711,7 +712,7 @@ func (k *kstub) printf(_ Msg, format string, v ...any) {
 	}
 }
 
-func (k *kstub) fatal(_ Msg, v ...any) {
+func (k *kstub) fatal(_ message.Msg, v ...any) {
 	k.Helper()
 	if k.Expects("fatal").Error(
 		stub.CheckArgReflect(k.Stub, "v", v, 0)) != nil {
@@ -720,7 +721,7 @@ func (k *kstub) fatal(_ Msg, v ...any) {
 	panic(stub.PanicExit)
 }
 
-func (k *kstub) fatalf(_ Msg, format string, v ...any) {
+func (k *kstub) fatalf(_ message.Msg, format string, v ...any) {
 	k.Helper()
 	if k.Expects("fatalf").Error(
 		stub.CheckArg(k.Stub, "format", format, 0),
@@ -730,7 +731,7 @@ func (k *kstub) fatalf(_ Msg, format string, v ...any) {
 	panic(stub.PanicExit)
 }
 
-func (k *kstub) checkMsg(msg Msg) {
+func (k *kstub) checkMsg(msg message.Msg) {
 	k.Helper()
 	var target *kstub
 

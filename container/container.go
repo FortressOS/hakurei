@@ -18,6 +18,7 @@ import (
 	"hakurei.app/container/check"
 	"hakurei.app/container/fhs"
 	"hakurei.app/container/seccomp"
+	"hakurei.app/message"
 )
 
 const (
@@ -52,7 +53,7 @@ type (
 
 		cmd *exec.Cmd
 		ctx context.Context
-		msg Msg
+		msg message.Msg
 		Params
 	}
 
@@ -396,9 +397,9 @@ func (p *Container) ProcessState() *os.ProcessState {
 }
 
 // New returns the address to a new instance of [Container] that requires further initialisation before use.
-func New(ctx context.Context, msg Msg) *Container {
+func New(ctx context.Context, msg message.Msg) *Container {
 	if msg == nil {
-		msg = NewMsg(nil)
+		msg = message.NewMsg(nil)
 	}
 
 	p := &Container{ctx: ctx, msg: msg, Params: Params{Ops: new(Ops)}}
@@ -409,7 +410,7 @@ func New(ctx context.Context, msg Msg) *Container {
 }
 
 // NewCommand calls [New] and initialises the [Params.Path] and [Params.Args] fields.
-func NewCommand(ctx context.Context, msg Msg, pathname *check.Absolute, name string, args ...string) *Container {
+func NewCommand(ctx context.Context, msg message.Msg, pathname *check.Absolute, name string, args ...string) *Container {
 	z := New(ctx, msg)
 	z.Path = pathname
 	z.Args = append([]string{name}, args...)

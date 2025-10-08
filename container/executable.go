@@ -3,6 +3,8 @@ package container
 import (
 	"os"
 	"sync"
+
+	"hakurei.app/message"
 )
 
 var (
@@ -10,7 +12,7 @@ var (
 	executableOnce sync.Once
 )
 
-func copyExecutable(msg Msg) {
+func copyExecutable(msg message.Msg) {
 	if name, err := os.Executable(); err != nil {
 		msg.BeforeExit()
 		msg.GetLogger().Fatalf("cannot read executable path: %v", err)
@@ -19,7 +21,7 @@ func copyExecutable(msg Msg) {
 	}
 }
 
-func MustExecutable(msg Msg) string {
+func MustExecutable(msg message.Msg) string {
 	executableOnce.Do(func() { copyExecutable(msg) })
 	return executable
 }

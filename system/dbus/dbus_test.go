@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"hakurei.app/container"
 	"hakurei.app/helper"
+	"hakurei.app/message"
 	"hakurei.app/system/dbus"
 )
 
@@ -93,9 +93,9 @@ func testProxyFinaliseStartWaitCloseString(t *testing.T, useSandbox bool) {
 
 	t.Run("invalid start", func(t *testing.T) {
 		if !useSandbox {
-			p = dbus.NewDirect(t.Context(), container.NewMsg(nil), nil, nil)
+			p = dbus.NewDirect(t.Context(), message.NewMsg(nil), nil, nil)
 		} else {
-			p = dbus.New(t.Context(), container.NewMsg(nil), nil, nil)
+			p = dbus.New(t.Context(), message.NewMsg(nil), nil, nil)
 		}
 
 		if err := p.Start(); !errors.Is(err, syscall.ENOTRECOVERABLE) {
@@ -128,9 +128,9 @@ func testProxyFinaliseStartWaitCloseString(t *testing.T, useSandbox bool) {
 				defer cancel()
 				output := new(strings.Builder)
 				if !useSandbox {
-					p = dbus.NewDirect(ctx, container.NewMsg(nil), final, output)
+					p = dbus.NewDirect(ctx, message.NewMsg(nil), final, output)
 				} else {
-					p = dbus.New(ctx, container.NewMsg(nil), final, output)
+					p = dbus.New(ctx, message.NewMsg(nil), final, output)
 				}
 
 				t.Run("invalid wait", func(t *testing.T) {

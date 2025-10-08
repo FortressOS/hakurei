@@ -5,8 +5,8 @@ import (
 	"slices"
 	"testing"
 
-	"hakurei.app/container"
 	"hakurei.app/hst"
+	"hakurei.app/message"
 )
 
 func TestBadInterfaceError(t *testing.T) {
@@ -26,10 +26,10 @@ func TestBadInterfaceError(t *testing.T) {
 			if gotError := tc.err.Error(); gotError != tc.want {
 				t.Errorf("Error: %s, want %s", gotError, tc.want)
 			}
-			if gotMessage, ok := container.GetErrorMessage(tc.err); !ok {
-				t.Error("GetErrorMessage: ok = false")
+			if gotMessage, ok := message.GetMessage(tc.err); !ok {
+				t.Error("GetMessage: ok = false")
 			} else if gotMessage != tc.want {
-				t.Errorf("GetErrorMessage: %s, want %s", gotMessage, tc.want)
+				t.Errorf("GetMessage: %s, want %s", gotMessage, tc.want)
 			}
 		})
 	}

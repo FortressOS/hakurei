@@ -23,12 +23,13 @@ import (
 	"hakurei.app/container/fhs"
 	"hakurei.app/hst"
 	"hakurei.app/internal/app/state"
+	"hakurei.app/message"
 	"hakurei.app/system"
 	"hakurei.app/system/acl"
 )
 
 func TestApp(t *testing.T) {
-	msg := container.NewMsg(nil)
+	msg := message.NewMsg(nil)
 	msg.SwapVerbose(testing.Verbose())
 
 	testCases := []struct {
@@ -744,8 +745,8 @@ func (k *stubNixOS) cmdOutput(cmd *exec.Cmd) ([]byte, error) {
 	}
 }
 
-func (k *stubNixOS) overflowUid(container.Msg) int { return 65534 }
-func (k *stubNixOS) overflowGid(container.Msg) int { return 65534 }
+func (k *stubNixOS) overflowUid(message.Msg) int { return 65534 }
+func (k *stubNixOS) overflowGid(message.Msg) int { return 65534 }
 
 func (k *stubNixOS) mustHsuPath() *check.Absolute { return m("/proc/nonexistent/hsu") }
 

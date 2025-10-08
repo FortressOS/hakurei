@@ -12,12 +12,13 @@ import (
 	"hakurei.app/container"
 	"hakurei.app/container/check"
 	"hakurei.app/helper/proc"
+	"hakurei.app/message"
 )
 
 // New initialises a Helper instance with wt as the null-terminated argument writer.
 func New(
 	ctx context.Context,
-	msg container.Msg,
+	msg message.Msg,
 	pathname *check.Absolute, name string,
 	wt io.WriterTo,
 	stat bool,

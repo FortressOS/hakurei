@@ -15,17 +15,17 @@ import (
 	"time"
 
 	"hakurei.app/command"
-	"hakurei.app/container"
 	"hakurei.app/container/check"
 	"hakurei.app/container/fhs"
 	"hakurei.app/hst"
 	"hakurei.app/internal"
 	"hakurei.app/internal/app"
 	"hakurei.app/internal/app/state"
+	"hakurei.app/message"
 	"hakurei.app/system/dbus"
 )
 
-func buildCommand(ctx context.Context, msg container.Msg, early *earlyHardeningErrs, out io.Writer) command.Command {
+func buildCommand(ctx context.Context, msg message.Msg, early *earlyHardeningErrs, out io.Writer) command.Command {
 	var (
 		flagVerbose bool
 		flagJSON    bool

@@ -5,15 +5,15 @@ import (
 	"os"
 	"strings"
 
-	"hakurei.app/container"
 	"hakurei.app/container/check"
 	"hakurei.app/container/fhs"
 	"hakurei.app/hst"
+	"hakurei.app/message"
 )
 
 func withNixDaemon(
 	ctx context.Context,
-	msg container.Msg,
+	msg message.Msg,
 	action string, command []string, net bool, updateConfig func(config *hst.Config) *hst.Config,
 	app *appInfo, pathSet *appPathSet, dropShell bool, beforeFail func(),
 ) {
@@ -64,7 +64,7 @@ func withNixDaemon(
 
 func withCacheDir(
 	ctx context.Context,
-	msg container.Msg,
+	msg message.Msg,
 	action string, command []string, workDir *check.Absolute,
 	app *appInfo, pathSet *appPathSet, dropShell bool, beforeFail func()) {
 	mustRunAppDropShell(ctx, msg, &hst.Config{
@@ -102,7 +102,7 @@ func withCacheDir(
 	}, dropShell, beforeFail)
 }
 
-func mustRunAppDropShell(ctx context.Context, msg container.Msg, config *hst.Config, dropShell bool, beforeFail func()) {
+func mustRunAppDropShell(ctx context.Context, msg message.Msg, config *hst.Config, dropShell bool, beforeFail func()) {
 	if dropShell {
 		if config.Container != nil {
 			config.Container.Args = []string{bash, "-l"}

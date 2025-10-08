@@ -8,6 +8,7 @@ import (
 	"hakurei.app/container/check"
 	"hakurei.app/hst"
 	"hakurei.app/internal/app/state"
+	"hakurei.app/message"
 	"hakurei.app/system"
 	"hakurei.app/system/acl"
 )
@@ -61,7 +62,7 @@ type outcomeState struct {
 	// Copied via populateLocal.
 	k syscallDispatcher
 	// Copied via populateLocal.
-	msg container.Msg
+	msg message.Msg
 }
 
 // valid checks outcomeState to be safe for use with outcomeOp.
@@ -75,7 +76,7 @@ func (s *outcomeState) valid() bool {
 
 // populateEarly populates exported fields via syscallDispatcher.
 // This must only be called from the priv side.
-func (s *outcomeState) populateEarly(k syscallDispatcher, msg container.Msg, config *hst.Config) {
+func (s *outcomeState) populateEarly(k syscallDispatcher, msg message.Msg, config *hst.Config) {
 	s.Shim = &shimParams{PrivPID: os.Getpid(), Verbose: msg.IsVerbose(), Ops: fromConfig(config)}
 
 	// enforce bounds and default early
@@ -98,7 +99,7 @@ func (s *outcomeState) populateEarly(k syscallDispatcher, msg container.Msg, con
 
 // populateLocal populates unexported fields from transmitted exported fields.
 // These fields are cheaper to recompute per-process.
-func (s *outcomeState) populateLocal(k syscallDispatcher, msg container.Msg) error {
+func (s *outcomeState) populateLocal(k syscallDispatcher, msg message.Msg) error {
 	if !s.valid() || k == nil || msg == nil {
 		return newWithMessage("impossible outcome state reached")
 	}

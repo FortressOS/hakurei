@@ -12,6 +12,7 @@ import (
 	"hakurei.app/container"
 	"hakurei.app/container/check"
 	"hakurei.app/internal"
+	"hakurei.app/message"
 )
 
 // osFile represents [os.File].
@@ -53,9 +54,9 @@ type syscallDispatcher interface {
 	cmdOutput(cmd *exec.Cmd) ([]byte, error)
 
 	// overflowUid provides [container.OverflowUid].
-	overflowUid(msg container.Msg) int
+	overflowUid(msg message.Msg) int
 	// overflowGid provides [container.OverflowGid].
-	overflowGid(msg container.Msg) int
+	overflowGid(msg message.Msg) int
 
 	// mustHsuPath provides [internal.MustHsuPath].
 	mustHsuPath() *check.Absolute
@@ -90,8 +91,8 @@ func (direct) lookupGroupId(name string) (gid string, err error) {
 
 func (direct) cmdOutput(cmd *exec.Cmd) ([]byte, error) { return cmd.Output() }
 
-func (direct) overflowUid(msg container.Msg) int { return container.OverflowUid(msg) }
-func (direct) overflowGid(msg container.Msg) int { return container.OverflowGid(msg) }
+func (direct) overflowUid(msg message.Msg) int { return container.OverflowUid(msg) }
+func (direct) overflowGid(msg message.Msg) int { return container.OverflowGid(msg) }
 
 func (direct) mustHsuPath() *check.Absolute { return internal.MustHsuPath() }
 

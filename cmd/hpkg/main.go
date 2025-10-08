@@ -11,10 +11,10 @@ import (
 	"syscall"
 
 	"hakurei.app/command"
-	"hakurei.app/container"
 	"hakurei.app/container/check"
 	"hakurei.app/container/fhs"
 	"hakurei.app/hst"
+	"hakurei.app/message"
 )
 
 var (
@@ -24,7 +24,7 @@ var (
 func main() {
 	log.SetPrefix("hpkg: ")
 	log.SetFlags(0)
-	msg := container.NewMsg(log.Default())
+	msg := message.NewMsg(log.Default())
 
 	if err := os.Setenv("SHELL", pathShell.String()); err != nil {
 		log.Fatalf("cannot set $SHELL: %v", err)

@@ -13,6 +13,7 @@ import (
 	"hakurei.app/container/check"
 	"hakurei.app/container/fhs"
 	"hakurei.app/container/seccomp"
+	"hakurei.app/message"
 )
 
 const (
@@ -25,7 +26,7 @@ var (
 	msgStaticGlibc = []byte("not a dynamic executable")
 )
 
-func Exec(ctx context.Context, msg container.Msg, p string) ([]*Entry, error) {
+func Exec(ctx context.Context, msg message.Msg, p string) ([]*Entry, error) {
 	c, cancel := context.WithTimeout(ctx, lddTimeout)
 	defer cancel()
 

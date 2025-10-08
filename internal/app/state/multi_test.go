@@ -4,10 +4,10 @@ import (
 	"log"
 	"testing"
 
-	"hakurei.app/container"
 	"hakurei.app/internal/app/state"
+	"hakurei.app/message"
 )
 
 func TestMulti(t *testing.T) {
-	testStore(t, state.NewMulti(container.NewMsg(log.New(log.Writer(), "multi: ", 0)), t.TempDir()))
+	testStore(t, state.NewMulti(message.NewMsg(log.New(log.Writer(), "multi: ", 0)), t.TempDir()))
 }

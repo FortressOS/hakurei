@@ -8,9 +8,9 @@ import (
 	"os/user"
 	"sync/atomic"
 
-	"hakurei.app/container"
 	"hakurei.app/hst"
 	"hakurei.app/internal/app/state"
+	"hakurei.app/message"
 	"hakurei.app/system"
 )
 
@@ -37,7 +37,7 @@ type outcome struct {
 	syscallDispatcher
 }
 
-func (k *outcome) finalise(ctx context.Context, msg container.Msg, id *state.ID, config *hst.Config) error {
+func (k *outcome) finalise(ctx context.Context, msg message.Msg, id *state.ID, config *hst.Config) error {
 	if ctx == nil || id == nil {
 		// unreachable
 		panic("invalid call to finalise")

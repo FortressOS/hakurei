@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"hakurei.app/container"
+	"hakurei.app/message"
 )
 
 // OpError is returned by [I.Commit] and [I.Revert].
@@ -70,14 +71,14 @@ func printJoinedError(println func(v ...any), fallback string, err error) {
 		error
 	}
 	if !errors.As(err, &joinErr) {
-		if m, ok := container.GetErrorMessage(err); ok {
+		if m, ok := message.GetMessage(err); ok {
 			println(m)
 		} else {
 			println(fallback, err)
 		}
 	} else {
 		for _, err = range joinErr.Unwrap() {
-			if m, ok := container.GetErrorMessage(err); ok {
+			if m, ok := message.GetMessage(err); ok {
 				println(m)
 			} else {
 				println(err.Error())

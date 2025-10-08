@@ -9,9 +9,9 @@ import (
 	"strconv"
 	"sync"
 
-	"hakurei.app/container"
 	"hakurei.app/container/fhs"
 	"hakurei.app/hst"
+	"hakurei.app/message"
 )
 
 // Hsu caches responses from cmd/hsu.
@@ -74,7 +74,7 @@ func (h *Hsu) ID() (int, error) {
 func (h *Hsu) MustID() int { return h.MustIDMsg(nil) }
 
 // MustIDMsg implements MustID with a custom [container.Msg].
-func (h *Hsu) MustIDMsg(msg container.Msg) int {
+func (h *Hsu) MustIDMsg(msg message.Msg) int {
 	id, err := h.ID()
 	if err == nil {
 		return id
@@ -87,7 +87,7 @@ func (h *Hsu) MustIDMsg(msg container.Msg) int {
 		}
 		os.Exit(1)
 		return -0xdeadbeef
-	} else if m, ok := container.GetErrorMessage(err); ok {
+	} else if m, ok := message.GetMessage(err); ok {
 		log.Fatal(m)
 		return -0xdeadbeef
 	} else {

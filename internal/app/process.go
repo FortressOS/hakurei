@@ -17,6 +17,7 @@ import (
 	"hakurei.app/hst"
 	"hakurei.app/internal"
 	"hakurei.app/internal/app/state"
+	"hakurei.app/message"
 	"hakurei.app/system"
 )
 
@@ -40,7 +41,7 @@ type mainState struct {
 	cmdWait chan error
 
 	k *outcome
-	container.Msg
+	message.Msg
 	uintptr
 }
 
@@ -207,7 +208,7 @@ func (ms mainState) fatal(fallback string, ferr error) {
 }
 
 // main carries out outcome and terminates. main does not return.
-func (k *outcome) main(msg container.Msg) {
+func (k *outcome) main(msg message.Msg) {
 	if !k.active.CompareAndSwap(false, true) {
 		panic("outcome: attempted to run twice")
 	}
@@ -312,10 +313,10 @@ func (k *outcome) main(msg container.Msg) {
 	os.Exit(0)
 }
 
-// printMessageError prints the error message according to [container.GetErrorMessage],
+// printMessageError prints the error message according to [message.GetMessage],
 // or fallback prepended to err if an error message is not available.
 func printMessageError(fallback string, err error) {
-	m, ok := container.GetErrorMessage(err)
+	m, ok := message.GetMessage(err)
 	if !ok {
 		log.Println(fallback, err)
 		return
