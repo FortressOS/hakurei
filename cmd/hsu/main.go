@@ -34,6 +34,9 @@ func main() {
 	if os.Geteuid() != 0 {
 		log.Fatal("this program must be owned by uid 0 and have the setuid bit set")
 	}
+	if os.Getegid() != os.Getgid() {
+		log.Fatal("this program must not have the setgid bit set")
+	}
 
 	puid := os.Getuid()
 	if puid == 0 {

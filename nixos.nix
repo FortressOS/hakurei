@@ -51,11 +51,9 @@ in
     ];
 
     security.wrappers.hsu = {
-
       source = "${cfg.hsuPackage}/bin/hsu";
       setuid = true;
       owner = "root";
-      setgid = true;
       group = "root";
     };
 
