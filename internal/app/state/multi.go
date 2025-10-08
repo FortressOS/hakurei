@@ -1,11 +1,9 @@
 package state
 
 import (
-	"encoding/binary"
 	"encoding/gob"
 	"errors"
 	"fmt"
-	"io"
 	"io/fs"
 	"os"
 	"path"
@@ -43,13 +41,13 @@ func (s *multiStore) Do(identity int, f func(c Cursor)) (bool, error) {
 		// ensure directory
 		if err := os.MkdirAll(b.path, 0700); err != nil && !errors.Is(err, fs.ErrExist) {
 			s.backends.CompareAndDelete(identity, b)
-			return false, err
+			return false, &hst.AppError{Step: "create store segment directory", Err: err}
 		}
 
 		// open locker file
 		if l, err := os.OpenFile(b.path+".lock", os.O_RDWR|os.O_CREATE, 0600); err != nil {
 			s.backends.CompareAndDelete(identity, b)
-			return false, err
+			return false, &hst.AppError{Step: "open store segment lock file", Err: err}
 		} else {
 			b.lockfile = l
 		}
@@ -58,7 +56,7 @@ func (s *multiStore) Do(identity int, f func(c Cursor)) (bool, error) {
 
 	// lock backend
 	if err := b.lockFile(); err != nil {
-		return false, err
+		return false, &hst.AppError{Step: "lock store segment", Err: err}
 	}
 
 	// expose backend methods without exporting the pointer
@@ -69,15 +67,18 @@ func (s *multiStore) Do(identity int, f func(c Cursor)) (bool, error) {
 	c.multiBackend = nil
 
 	// unlock backend
-	return true, b.unlockFile()
+	if err := b.unlockFile(); err != nil {
+		return true, &hst.AppError{Step: "unlock store segment", Err: err}
+	}
+	return true, nil
 }
 
 func (s *multiStore) List() ([]int, error) {
 	var entries []os.DirEntry
 
-	// read base directory to get all aids
+	// read base directory to get all identities
 	if v, err := os.ReadDir(s.base); err != nil && !errors.Is(err, os.ErrNotExist) {
-		return nil, err
+		return nil, &hst.AppError{Step: "read store directory", Err: err}
 	} else {
 		entries = v
 	}
@@ -95,7 +96,7 @@ func (s *multiStore) List() ([]int, error) {
 			s.msg.Verbosef("skipped non-aid entry %q", e.Name())
 			continue
 		} else {
-			if v < 0 || v > 9999 {
+			if v < hst.IdentityMin || v > hst.IdentityMax {
 				s.msg.Verbosef("skipped out of bounds entry %q", e.Name())
 				continue
 			}
@@ -130,9 +131,7 @@ type multiBackend struct {
 	mu sync.RWMutex
 }
 
-func (b *multiBackend) filename(id *ID) string {
-	return path.Join(b.path, id.String())
-}
+func (b *multiBackend) filename(id *ID) string { return path.Join(b.path, id.String()) }
 
 func (b *multiBackend) lockFileAct(lt int) (err error) {
 	op := "LockAct"
@@ -159,13 +158,8 @@ func (b *multiBackend) lockFileAct(lt int) (err error) {
 	return nil
 }
 
-func (b *multiBackend) lockFile() error {
-	return b.lockFileAct(syscall.LOCK_EX)
-}
-
-func (b *multiBackend) unlockFile() error {
-	return b.lockFileAct(syscall.LOCK_UN)
-}
+func (b *multiBackend) lockFile() error   { return b.lockFileAct(syscall.LOCK_EX) }
+func (b *multiBackend) unlockFile() error { return b.lockFileAct(syscall.LOCK_UN) }
 
 // reads all launchers in simpleBackend
 // file contents are ignored if decode is false
@@ -176,7 +170,7 @@ func (b *multiBackend) load(decode bool) (Entries, error) {
 	// read directory contents, should only contain files named after ids
 	var entries []os.DirEntry
 	if pl, err := os.ReadDir(b.path); err != nil {
-		return nil, err
+		return nil, &hst.AppError{Step: "read store segment directory", Err: err}
 	} else {
 		entries = pl
 	}
@@ -190,34 +184,34 @@ func (b *multiBackend) load(decode bool) (Entries, error) {
 			return nil, fmt.Errorf("unexpected directory %q in store", e.Name())
 		}
 
-		id := new(ID)
-		if err := ParseAppID(id, e.Name()); err != nil {
-			return nil, err
+		var id ID
+		if err := ParseAppID(&id, e.Name()); err != nil {
+			return nil, &hst.AppError{Step: "parse state key", Err: err}
 		}
 
 		// run in a function to better handle file closing
 		if err := func() error {
 			// open state file for reading
 			if f, err := os.Open(path.Join(b.path, e.Name())); err != nil {
-				return err
+				return &hst.AppError{Step: "open state file", Err: err}
 			} else {
-				defer func() {
-					if f.Close() != nil {
-						// unreachable
-						panic("foreign state file closed prematurely")
-					}
-				}()
-
-				s := new(State)
-				r[*id] = s
+				var s State
+				r[id] = &s
 
 				// append regardless, but only parse if required, implements Len
 				if decode {
-					if err = b.decodeState(f, s); err != nil {
-						return err
-					}
-					if s.ID != *id {
+					if err = gob.NewDecoder(f).Decode(&s); err != nil {
+						_ = f.Close()
+						return &hst.AppError{Step: "decode state data", Err: err}
+					} else if s.ID != id {
+						_ = f.Close()
 						return fmt.Errorf("state entry %s has unexpected id %s", id, &s.ID)
+					} else if err = f.Close(); err != nil {
+						return &hst.AppError{Step: "close state file", Err: err}
+					}
+
+					if s.Config == nil {
+						return ErrNoConfig
 					}
 				}
 
@@ -231,126 +225,47 @@ func (b *multiBackend) load(decode bool) (Entries, error) {
 	return r, nil
 }
 
-// state file consists of an eight byte header, followed by concatenated gobs
-// of [hst.Config] and [State], if [State.Config] is not nil or offset < 0,
-// the first gob is skipped
-func (b *multiBackend) decodeState(r io.ReadSeeker, state *State) error {
-	offset := make([]byte, 8)
-	if l, err := r.Read(offset); err != nil {
-		if errors.Is(err, io.EOF) {
-			return fmt.Errorf("state file too short: %d bytes", l)
-		}
-		return err
-	}
-
-	// decode volatile state first
-	var skipConfig bool
-	{
-		o := int64(binary.LittleEndian.Uint64(offset))
-		skipConfig = o < 0
-
-		if !skipConfig {
-			if l, err := r.Seek(o, io.SeekCurrent); err != nil {
-				return err
-			} else if l != 8+o {
-				return fmt.Errorf("invalid seek offset %d", l)
-			}
-		}
-	}
-	if err := gob.NewDecoder(r).Decode(state); err != nil {
-		return err
-	}
-
-	// decode sealed config
-	if state.Config == nil {
-		// config must be provided either as part of volatile state,
-		// or in the config segment
-		if skipConfig {
-			return ErrNoConfig
-		}
-
-		state.Config = new(hst.Config)
-		if _, err := r.Seek(8, io.SeekStart); err != nil {
-			return err
-		}
-		return gob.NewDecoder(r).Decode(state.Config)
-	} else {
-		return nil
-	}
-}
-
 // Save writes process state to filesystem
-func (b *multiBackend) Save(state *State, configWriter io.WriterTo) error {
+func (b *multiBackend) Save(state *State) error {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
-	if configWriter == nil && state.Config == nil {
+	if state.Config == nil {
 		return ErrNoConfig
 	}
 
 	statePath := b.filename(&state.ID)
 
 	if f, err := os.OpenFile(statePath, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0600); err != nil {
-		return err
-	} else {
-		defer func() {
-			if f.Close() != nil {
-				// unreachable
-				panic("state file closed prematurely")
-			}
-		}()
-		return b.encodeState(f, state, configWriter)
+		return &hst.AppError{Step: "create state file", Err: err}
+	} else if err = gob.NewEncoder(f).Encode(state); err != nil {
+		_ = f.Close()
+		return &hst.AppError{Step: "encode state data", Err: err}
+	} else if err = f.Close(); err != nil {
+		return &hst.AppError{Step: "close state file", Err: err}
 	}
-}
-
-func (b *multiBackend) encodeState(w io.WriteSeeker, state *State, configWriter io.WriterTo) error {
-	offset := make([]byte, 8)
-
-	// skip header bytes
-	if _, err := w.Seek(8, io.SeekStart); err != nil {
-		return err
-	}
-
-	if configWriter != nil {
-		// write config gob and encode header
-		if l, err := configWriter.WriteTo(w); err != nil {
-			return err
-		} else {
-			binary.LittleEndian.PutUint64(offset, uint64(l))
-		}
-	} else {
-		// offset == -1 indicates absence of config gob
-		binary.LittleEndian.PutUint64(offset, 0xffffffffffffffff)
-	}
-
-	// encode volatile state
-	if err := gob.NewEncoder(w).Encode(state); err != nil {
-		return err
-	}
-
-	// write header
-	if _, err := w.Seek(0, io.SeekStart); err != nil {
-		return err
-	}
-	_, err := w.Write(offset)
-	return err
+	return nil
 }
 
 func (b *multiBackend) Destroy(id ID) error {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
-	return os.Remove(b.filename(&id))
+	if err := os.Remove(b.filename(&id)); err != nil {
+		return &hst.AppError{Step: "destroy state entry", Err: err}
+	}
+	return nil
 }
 
-func (b *multiBackend) Load() (Entries, error) {
-	return b.load(true)
-}
+func (b *multiBackend) Load() (Entries, error) { return b.load(true) }
 
 func (b *multiBackend) Len() (int, error) {
 	// rn consists of only nil entries but has the correct length
 	rn, err := b.load(false)
-	return len(rn), err
+	if err != nil {
+		return -1, &hst.AppError{Step: "count state entries", Err: err}
+	}
+	return len(rn), nil
 }
 
 func (b *multiBackend) close() error {
@@ -361,7 +276,7 @@ func (b *multiBackend) close() error {
 	if err == nil || errors.Is(err, os.ErrInvalid) || errors.Is(err, os.ErrClosed) {
 		return nil
 	}
-	return err
+	return &hst.AppError{Step: "close lock file", Err: err}
 }
 
 // NewMulti returns an instance of the multi-file store.

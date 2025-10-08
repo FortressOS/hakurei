@@ -1,9 +1,6 @@
 package state_test
 
 import (
-	"bytes"
-	"encoding/gob"
-	"io"
 	"math/rand/v2"
 	"reflect"
 	"slices"
@@ -31,12 +28,9 @@ func testStore(t *testing.T, s state.Store) {
 		tl
 	)
 
-	var tc [tl]struct {
-		state state.State
-		ct    bytes.Buffer
-	}
+	var tc [tl]state.State
 	for i := 0; i < tl; i++ {
-		makeState(t, &tc[i].state, &tc[i].ct)
+		makeState(t, &tc[i])
 	}
 
 	do := func(identity int, f func(c state.Cursor)) {
@@ -47,8 +41,8 @@ func testStore(t *testing.T, s state.Store) {
 
 	insert := func(i, identity int) {
 		do(identity, func(c state.Cursor) {
-			if err := c.Save(&tc[i].state, &tc[i].ct); err != nil {
-				t.Fatalf("Save(&tc[%v]): error = %v", i, err)
+			if err := c.Save(&tc[i]); err != nil {
+				t.Fatalf("Save: error = %v", err)
 			}
 		})
 	}
@@ -57,17 +51,13 @@ func testStore(t *testing.T, s state.Store) {
 		do(identity, func(c state.Cursor) {
 			if entries, err := c.Load(); err != nil {
 				t.Fatalf("Load: error = %v", err)
-			} else if got, ok := entries[tc[i].state.ID]; !ok {
-				t.Fatalf("Load: entry %s missing",
-					&tc[i].state.ID)
+			} else if got, ok := entries[tc[i].ID]; !ok {
+				t.Fatalf("Load: entry %s missing", &tc[i].ID)
 			} else {
-				got.Time = tc[i].state.Time
-				tc[i].state.Config = hst.Template()
-				if !reflect.DeepEqual(got, &tc[i].state) {
-					t.Fatalf("Load: entry %s got %#v, want %#v",
-						&tc[i].state.ID, got, &tc[i].state)
+				got.Time = tc[i].Time
+				if !reflect.DeepEqual(got, &tc[i]) {
+					t.Fatalf("Load: entry %s got %#v, want %#v", &tc[i].ID, got, &tc[i])
 				}
-				tc[i].state.Config = nil
 			}
 		})
 	}
@@ -112,7 +102,7 @@ func testStore(t *testing.T, s state.Store) {
 
 	t.Run("clear identity 1", func(t *testing.T) {
 		do(1, func(c state.Cursor) {
-			if err := c.Destroy(tc[insertEntryOtherApp].state.ID); err != nil {
+			if err := c.Destroy(tc[insertEntryOtherApp].ID); err != nil {
 				t.Fatalf("Destroy: error = %v", err)
 			}
 		})
@@ -120,7 +110,7 @@ func testStore(t *testing.T, s state.Store) {
 			if l, err := c.Len(); err != nil {
 				t.Fatalf("Len: error = %v", err)
 			} else if l != 0 {
-				t.Fatalf("Len() = %d, want 0", l)
+				t.Fatalf("Len: %d, want 0", l)
 			}
 		})
 	})
@@ -132,13 +122,11 @@ func testStore(t *testing.T, s state.Store) {
 	})
 }
 
-func makeState(t *testing.T, s *state.State, ct io.Writer) {
+func makeState(t *testing.T, s *state.State) {
 	if err := state.NewAppID(&s.ID); err != nil {
 		t.Fatalf("cannot create dummy state: %v", err)
 	}
-	if err := gob.NewEncoder(ct).Encode(hst.Template()); err != nil {
-		t.Fatalf("cannot encode dummy config: %v", err)
-	}
 	s.PID = rand.Int()
+	s.Config = hst.Template()
 	s.Time = time.Now()
 }

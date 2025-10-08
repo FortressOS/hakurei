@@ -1,12 +1,9 @@
 package app
 
 import (
-	"bytes"
 	"context"
-	"encoding/gob"
 	"errors"
 	"fmt"
-	"io"
 	"os"
 	"os/user"
 	"sync/atomic"
@@ -24,16 +21,14 @@ func newWithMessageError(msg string, err error) error {
 
 // An outcome is the runnable state of a hakurei container via [hst.Config].
 type outcome struct {
-	// initial [hst.Config] gob stream for state data;
-	// this is prepared ahead of time as config is clobbered during seal creation
-	ct io.WriterTo
-
 	// Supplementary group ids. Populated during finalise.
 	supp []string
 	// Resolved priv side operating system interactions. Populated during finalise.
 	sys *system.I
 	// Transmitted to shim. Populated during finalise.
 	state *outcomeState
+	// Kept for saving to [state].
+	config *hst.Config
 
 	// Whether the current process is in outcome.main.
 	active atomic.Bool
@@ -55,16 +50,6 @@ func (k *outcome) finalise(ctx context.Context, msg container.Msg, id *state.ID,
 
 	if err := config.Validate(); err != nil {
 		return err
-	}
-
-	// TODO(ophestra): do not clobber during finalise
-	{
-		// encode initial configuration for state tracking
-		ct := new(bytes.Buffer)
-		if err := gob.NewEncoder(ct).Encode(config); err != nil {
-			return &hst.AppError{Step: "encode initial config", Err: err}
-		}
-		k.ct = ct
 	}
 
 	// hsu expects numerical group ids
@@ -106,5 +91,6 @@ func (k *outcome) finalise(ctx context.Context, msg container.Msg, id *state.ID,
 	k.sys = sys
 	k.supp = supp
 	k.state = &s
+	k.config = config
 	return nil
 }
