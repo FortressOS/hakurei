@@ -118,16 +118,12 @@ func (s *outcomeState) populateLocal(k syscallDispatcher, msg container.Msg) err
 // instancePath returns a path formatted for outcomeStateSys.instance.
 // This method must only be called from outcomeOp.toContainer if
 // outcomeOp.toSystem has already called outcomeStateSys.instance.
-func (s *outcomeState) instancePath() *check.Absolute {
-	return s.sc.SharePath.Append(s.id.String())
-}
+func (s *outcomeState) instancePath() *check.Absolute { return s.sc.SharePath.Append(s.id.String()) }
 
 // runtimePath returns a path formatted for outcomeStateSys.runtime.
 // This method must only be called from outcomeOp.toContainer if
 // outcomeOp.toSystem has already called outcomeStateSys.runtime.
-func (s *outcomeState) runtimePath() *check.Absolute {
-	return s.sc.RunDirPath.Append(s.id.String())
-}
+func (s *outcomeState) runtimePath() *check.Absolute { return s.sc.RunDirPath.Append(s.id.String()) }
 
 // outcomeStateSys wraps outcomeState and [system.I]. Used on the priv side only.
 // Implementations of outcomeOp must not access fields other than sys unless explicitly stated.
@@ -211,4 +207,38 @@ type outcomeOp interface {
 	// The implementation must not write to the Env field of [container.Params] as it will be overwritten
 	// by flattened env map.
 	toContainer(state *outcomeStateParams) error
+}
+
+// fromConfig returns a corresponding slice of outcomeOp for [hst.Config].
+// This function assumes the caller has already called the Validate method on [hst.Config]
+// and checked that it returns nil.
+func fromConfig(config *hst.Config) (ops []outcomeOp) {
+	ops = []outcomeOp{
+		// must run first
+		&spParamsOp{},
+
+		// TODO(ophestra): move this late for #8 and #9
+		spFilesystemOp{},
+
+		spRuntimeOp{},
+		spTmpdirOp{},
+		spAccountOp{},
+	}
+
+	et := config.Enablements.Unwrap()
+	if et&hst.EWayland != 0 {
+		ops = append(ops, &spWaylandOp{})
+	}
+	if et&hst.EX11 != 0 {
+		ops = append(ops, &spX11Op{})
+	}
+	if et&hst.EPulse != 0 {
+		ops = append(ops, &spPulseOp{})
+	}
+	if et&hst.EDBus != 0 {
+		ops = append(ops, &spDBusOp{})
+	}
+
+	ops = append(ops, spFinal{})
+	return
 }

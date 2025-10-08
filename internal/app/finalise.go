@@ -47,8 +47,6 @@ func (k *outcome) finalise(ctx context.Context, msg container.Msg, id *state.ID,
 	// only used for a nil configured env map
 	const envAllocSize = 1 << 6
 
-	var kp finaliseProcess
-
 	if ctx == nil || id == nil {
 		// unreachable
 		panic("invalid call to finalise")
@@ -72,6 +70,8 @@ func (k *outcome) finalise(ctx context.Context, msg container.Msg, id *state.ID,
 		}
 		k.ct = ct
 	}
+
+	var kp finaliseProcess
 
 	// hsu expects numerical group ids
 	kp.supp = make([]string, len(config.Groups))
@@ -105,52 +105,25 @@ func (k *outcome) finalise(ctx context.Context, msg container.Msg, id *state.ID,
 	kp.runDirPath, kp.identity, kp.id = s.sc.RunDirPath, s.identity, s.id
 	sys := system.New(k.ctx, msg, s.uid.unwrap())
 
-	{
-		ops := []outcomeOp{
-			// must run first
-			&spParamsOp{},
+	ops := fromConfig(config)
 
-			// TODO(ophestra): move this late for #8 and #9
-			spFilesystemOp{},
+	stateSys := outcomeStateSys{sys: sys, outcomeState: &s}
+	for _, op := range ops {
+		if err := op.toSystem(&stateSys, config); err != nil {
+			return err
+		}
+	}
 
-			spRuntimeOp{},
-			spTmpdirOp{},
-			spAccountOp{},
-		}
-
-		et := config.Enablements.Unwrap()
-		if et&hst.EWayland != 0 {
-			ops = append(ops, &spWaylandOp{})
-		}
-		if et&hst.EX11 != 0 {
-			ops = append(ops, &spX11Op{})
-		}
-		if et&hst.EPulse != 0 {
-			ops = append(ops, &spPulseOp{})
-		}
-		if et&hst.EDBus != 0 {
-			ops = append(ops, &spDBusOp{})
-		}
-		ops = append(ops, spFinal{})
-
-		stateSys := outcomeStateSys{sys: sys, outcomeState: &s}
-		for _, op := range ops {
-			if err := op.toSystem(&stateSys, config); err != nil {
-				return err
-			}
-		}
-
-		// TODO(ophestra): move to shim
-		stateParams := outcomeStateParams{params: &k.container, outcomeState: &s}
-		if s.Container.Env == nil {
-			stateParams.env = make(map[string]string, envAllocSize)
-		} else {
-			stateParams.env = maps.Clone(s.Container.Env)
-		}
-		for _, op := range ops {
-			if err := op.toContainer(&stateParams); err != nil {
-				return err
-			}
+	// TODO(ophestra): move to shim
+	stateParams := outcomeStateParams{params: &k.container, outcomeState: &s}
+	if s.Container.Env == nil {
+		stateParams.env = make(map[string]string, envAllocSize)
+	} else {
+		stateParams.env = maps.Clone(s.Container.Env)
+	}
+	for _, op := range ops {
+		if err := op.toContainer(&stateParams); err != nil {
+			return err
 		}
 	}
 
