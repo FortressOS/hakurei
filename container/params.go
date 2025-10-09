@@ -31,7 +31,7 @@ func Receive(key string, e any, fdp *uintptr) (func() error, error) {
 		return nil, ErrReceiveEnv
 	} else {
 		if fd, err := strconv.Atoi(s); err != nil {
-			return nil, errors.Unwrap(err)
+			return nil, optionalErrorUnwrap(err)
 		} else {
 			setup = os.NewFile(uintptr(fd), "setup")
 			if setup == nil {

@@ -59,6 +59,7 @@ func messagePrefixP[V any, T interface {
 	return zeroString, false
 }
 
+// MountError wraps errors returned by syscall.Mount.
 type MountError struct {
 	Source, Target, Fstype string
 
@@ -74,6 +75,7 @@ func (e *MountError) Unwrap() error {
 	return e.Errno
 }
 
+func (e *MountError) Message() string { return "cannot " + e.Error() }
 func (e *MountError) Error() string {
 	if e.Flags&syscall.MS_BIND != 0 {
 		if e.Flags&syscall.MS_REMOUNT != 0 {
@@ -88,6 +90,15 @@ func (e *MountError) Error() string {
 
 	// fallback case: if this is reached, the conditions for it to occur should be handled above
 	return "mount " + e.Target + ": " + e.Errno.Error()
+}
+
+// optionalErrorUnwrap calls [errors.Unwrap] and returns the resulting value
+// if it is not nil, or the original value if it is.
+func optionalErrorUnwrap(err error) error {
+	if underlyingErr := errors.Unwrap(err); underlyingErr != nil {
+		return underlyingErr
+	}
+	return err
 }
 
 // errnoFallback returns the concrete errno from an error, or a [os.PathError] fallback.

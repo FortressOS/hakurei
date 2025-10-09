@@ -178,7 +178,7 @@ func initEntrypoint(k syscallDispatcher, msg message.Msg) {
 	lastcap := k.lastcap(msg)
 
 	if err := k.mount(zeroString, fhs.Root, zeroString, MS_SILENT|MS_SLAVE|MS_REC, zeroString); err != nil {
-		k.fatalf(msg, "cannot make / rslave: %v", err)
+		k.fatalf(msg, "cannot make / rslave: %v", optionalErrorUnwrap(err))
 	}
 
 	state := &setupState{Params: &params.Params, Msg: msg}
@@ -202,7 +202,7 @@ func initEntrypoint(k syscallDispatcher, msg message.Msg) {
 	}
 
 	if err := k.mount(SourceTmpfsRootfs, intermediateHostPath, FstypeTmpfs, MS_NODEV|MS_NOSUID, zeroString); err != nil {
-		k.fatalf(msg, "cannot mount intermediate root: %v", err)
+		k.fatalf(msg, "cannot mount intermediate root: %v", optionalErrorUnwrap(err))
 	}
 	if err := k.chdir(intermediateHostPath); err != nil {
 		k.fatalf(msg, "cannot enter intermediate host path: %v", err)
@@ -212,7 +212,7 @@ func initEntrypoint(k syscallDispatcher, msg message.Msg) {
 		k.fatalf(msg, "%v", err)
 	}
 	if err := k.mount(sysrootDir, sysrootDir, zeroString, MS_SILENT|MS_BIND|MS_REC, zeroString); err != nil {
-		k.fatalf(msg, "cannot bind sysroot: %v", err)
+		k.fatalf(msg, "cannot bind sysroot: %v", optionalErrorUnwrap(err))
 	}
 
 	if err := k.mkdir(hostDir, 0755); err != nil {
@@ -246,7 +246,7 @@ func initEntrypoint(k syscallDispatcher, msg message.Msg) {
 
 	// setup requiring host root complete at this point
 	if err := k.mount(hostDir, hostDir, zeroString, MS_SILENT|MS_REC|MS_PRIVATE, zeroString); err != nil {
-		k.fatalf(msg, "cannot make host root rprivate: %v", err)
+		k.fatalf(msg, "cannot make host root rprivate: %v", optionalErrorUnwrap(err))
 	}
 	if err := k.unmount(hostDir, MNT_DETACH); err != nil {
 		k.fatalf(msg, "cannot unmount host root: %v", err)
