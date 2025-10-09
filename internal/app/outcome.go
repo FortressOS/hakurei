@@ -133,7 +133,7 @@ func (s *outcomeState) instancePath() *check.Absolute { return s.sc.SharePath.Ap
 func (s *outcomeState) runtimePath() *check.Absolute { return s.sc.RunDirPath.Append(s.id.String()) }
 
 // outcomeStateSys wraps outcomeState and [system.I]. Used on the priv side only.
-// Implementations of outcomeOp must not access fields other than sys unless explicitly stated.
+// Implementations of outcomeOp must not access fields other than sys and config unless explicitly stated.
 type outcomeStateSys struct {
 	// Whether XDG_RUNTIME_DIR is used post hsu.
 	useRuntimeDir bool
@@ -141,6 +141,8 @@ type outcomeStateSys struct {
 	sharePath *check.Absolute
 	// Process-specific directory in XDG_RUNTIME_DIR, nil if unused.
 	runtimeSharePath *check.Absolute
+	// Must not be modified by outcomeOp.
+	config *hst.Config
 
 	sys *system.I
 	*outcomeState
@@ -206,7 +208,7 @@ type outcomeStateParams struct {
 // An implementation of outcomeOp must store cross-process states in exported fields only.
 type outcomeOp interface {
 	// toSystem inflicts the current outcome on [system.I] in the priv side process.
-	toSystem(state *outcomeStateSys, config *hst.Config) error
+	toSystem(state *outcomeStateSys) error
 
 	// toContainer inflicts the current outcome on [container.Params] in the shim process.
 	// The implementation must not write to the Env field of [container.Params] as it will be overwritten

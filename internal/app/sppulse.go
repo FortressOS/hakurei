@@ -23,7 +23,7 @@ type spPulseOp struct {
 	Cookie *[pulseCookieSizeMax]byte
 }
 
-func (s *spPulseOp) toSystem(state *outcomeStateSys, _ *hst.Config) error {
+func (s *spPulseOp) toSystem(state *outcomeStateSys) error {
 	pulseRuntimeDir, pulseSocket := s.commonPaths(state.outcomeState)
 
 	if _, err := state.k.stat(pulseRuntimeDir.String()); err != nil {

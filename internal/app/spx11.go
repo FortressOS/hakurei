@@ -24,7 +24,7 @@ type spX11Op struct {
 	Display string
 }
 
-func (s *spX11Op) toSystem(state *outcomeStateSys, _ *hst.Config) error {
+func (s *spX11Op) toSystem(state *outcomeStateSys) error {
 	if d, ok := state.k.lookupEnv("DISPLAY"); !ok {
 		return newWithMessage("DISPLAY is not set")
 	} else {

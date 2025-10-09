@@ -464,9 +464,9 @@ func TestApp(t *testing.T) {
 				}
 
 				gotSys = system.New(t.Context(), msg, sPriv.uid.unwrap())
-				stateSys := outcomeStateSys{sys: gotSys, outcomeState: &sPriv}
+				stateSys := outcomeStateSys{config: tc.config, sys: gotSys, outcomeState: &sPriv}
 				for _, op := range sPriv.Shim.Ops {
-					if err := op.toSystem(&stateSys, tc.config); err != nil {
+					if err := op.toSystem(&stateSys); err != nil {
 						t.Fatalf("toSystem: error = %#v", err)
 					}
 				}

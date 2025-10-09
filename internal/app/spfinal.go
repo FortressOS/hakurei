@@ -19,9 +19,9 @@ func init() { gob.Register(spFinal{}) }
 // It exists to avoid reordering the expected entries in test cases.
 type spFinal struct{}
 
-func (s spFinal) toSystem(state *outcomeStateSys, config *hst.Config) error {
+func (s spFinal) toSystem(state *outcomeStateSys) error {
 	// append ExtraPerms last
-	for _, p := range config.ExtraPerms {
+	for _, p := range state.config.ExtraPerms {
 		if p == nil || p.Path == nil {
 			continue
 		}

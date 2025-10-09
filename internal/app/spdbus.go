@@ -4,7 +4,6 @@ import (
 	"encoding/gob"
 
 	"hakurei.app/container/fhs"
-	"hakurei.app/hst"
 	"hakurei.app/system/acl"
 	"hakurei.app/system/dbus"
 )
@@ -18,23 +17,23 @@ type spDBusOp struct {
 	ProxySystem bool
 }
 
-func (s *spDBusOp) toSystem(state *outcomeStateSys, config *hst.Config) error {
-	if config.SessionBus == nil {
-		config.SessionBus = dbus.NewConfig(config.ID, true, true)
+func (s *spDBusOp) toSystem(state *outcomeStateSys) error {
+	if state.config.SessionBus == nil {
+		state.config.SessionBus = dbus.NewConfig(state.config.ID, true, true)
 	}
 
 	// downstream socket paths
 	sessionPath, systemPath := state.instance().Append("bus"), state.instance().Append("system_bus_socket")
 
 	if err := state.sys.ProxyDBus(
-		config.SessionBus, config.SystemBus,
+		state.config.SessionBus, state.config.SystemBus,
 		sessionPath, systemPath,
 	); err != nil {
 		return err
 	}
 
 	state.sys.UpdatePerm(sessionPath, acl.Read, acl.Write)
-	if config.SystemBus != nil {
+	if state.config.SystemBus != nil {
 		s.ProxySystem = true
 		state.sys.UpdatePerm(systemPath, acl.Read, acl.Write)
 	}

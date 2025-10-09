@@ -32,7 +32,7 @@ type spParamsOp struct {
 	TermSet bool
 }
 
-func (s *spParamsOp) toSystem(state *outcomeStateSys, _ *hst.Config) error {
+func (s *spParamsOp) toSystem(state *outcomeStateSys) error {
 	s.Term, s.TermSet = state.k.lookupEnv("TERM")
 	state.sys.Ensure(state.sc.SharePath, 0711)
 	return nil
@@ -122,7 +122,7 @@ func init() { gob.Register(spFilesystemOp{}) }
 // spFilesystemOp applies configured filesystems to [container.Params], excluding the optional root filesystem.
 type spFilesystemOp struct{}
 
-func (s spFilesystemOp) toSystem(state *outcomeStateSys, _ *hst.Config) error {
+func (s spFilesystemOp) toSystem(state *outcomeStateSys) error {
 	/* retrieve paths and hide them if they're made available in the sandbox;
 
 	this feature tries to improve user experience of permissive defaults, and

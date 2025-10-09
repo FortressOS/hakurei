@@ -6,7 +6,6 @@ import (
 	"hakurei.app/container/bits"
 	"hakurei.app/container/check"
 	"hakurei.app/container/fhs"
-	"hakurei.app/hst"
 	"hakurei.app/system"
 	"hakurei.app/system/acl"
 )
@@ -16,7 +15,7 @@ func init() { gob.Register(spTmpdirOp{}) }
 // spTmpdirOp sets up TMPDIR inside the container.
 type spTmpdirOp struct{}
 
-func (s spTmpdirOp) toSystem(state *outcomeStateSys, _ *hst.Config) error {
+func (s spTmpdirOp) toSystem(state *outcomeStateSys) error {
 	tmpdir, tmpdirInst := s.commonPaths(state.outcomeState)
 	state.sys.Ensure(tmpdir, 0700)
 	state.sys.UpdatePermType(system.User, tmpdir, acl.Execute)

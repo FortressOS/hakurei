@@ -17,7 +17,7 @@ type spWaylandOp struct {
 	SocketPath *check.Absolute
 }
 
-func (s *spWaylandOp) toSystem(state *outcomeStateSys, config *hst.Config) error {
+func (s *spWaylandOp) toSystem(state *outcomeStateSys) error {
 	// outer wayland socket (usually `/run/user/%d/wayland-%d`)
 	var socketPath *check.Absolute
 	if name, ok := state.k.lookupEnv(wayland.WaylandDisplay); !ok {
@@ -29,8 +29,8 @@ func (s *spWaylandOp) toSystem(state *outcomeStateSys, config *hst.Config) error
 		socketPath = a
 	}
 
-	if !config.DirectWayland { // set up security-context-v1
-		appID := config.ID
+	if !state.config.DirectWayland { // set up security-context-v1
+		appID := state.config.ID
 		if appID == "" {
 			// use instance ID in case app id is not set
 			appID = "app.hakurei." + state.id.String()

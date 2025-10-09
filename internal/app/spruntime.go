@@ -6,7 +6,6 @@ import (
 	"hakurei.app/container/bits"
 	"hakurei.app/container/check"
 	"hakurei.app/container/fhs"
-	"hakurei.app/hst"
 	"hakurei.app/system"
 	"hakurei.app/system/acl"
 )
@@ -16,7 +15,7 @@ func init() { gob.Register(spRuntimeOp{}) }
 // spRuntimeOp sets up XDG_RUNTIME_DIR inside the container.
 type spRuntimeOp struct{}
 
-func (s spRuntimeOp) toSystem(state *outcomeStateSys, _ *hst.Config) error {
+func (s spRuntimeOp) toSystem(state *outcomeStateSys) error {
 	runtimeDir, runtimeDirInst := s.commonPaths(state.outcomeState)
 	state.sys.Ensure(runtimeDir, 0700)
 	state.sys.UpdatePermType(system.User, runtimeDir, acl.Execute)

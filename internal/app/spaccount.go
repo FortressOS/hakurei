@@ -6,7 +6,6 @@ import (
 	"syscall"
 
 	"hakurei.app/container/fhs"
-	"hakurei.app/hst"
 )
 
 func init() { gob.Register(spAccountOp{}) }
@@ -14,7 +13,7 @@ func init() { gob.Register(spAccountOp{}) }
 // spAccountOp sets up user account emulation inside the container.
 type spAccountOp struct{}
 
-func (s spAccountOp) toSystem(state *outcomeStateSys, _ *hst.Config) error {
+func (s spAccountOp) toSystem(state *outcomeStateSys) error {
 	const fallbackUsername = "chronos"
 
 	// do checks here to fail before fork/exec

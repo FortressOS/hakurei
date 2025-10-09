@@ -81,9 +81,9 @@ func (k *outcome) finalise(ctx context.Context, msg message.Msg, id *state.ID, c
 	}
 
 	sys := system.New(k.ctx, msg, s.uid.unwrap())
-	stateSys := outcomeStateSys{sys: sys, outcomeState: &s}
+	stateSys := outcomeStateSys{config: config, sys: sys, outcomeState: &s}
 	for _, op := range s.Shim.Ops {
-		if err := op.toSystem(&stateSys, config); err != nil {
+		if err := op.toSystem(&stateSys); err != nil {
 			return err
 		}
 	}
