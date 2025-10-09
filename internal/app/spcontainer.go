@@ -65,7 +65,7 @@ func (s *spParamsOp) toContainer(state *outcomeStateParams) error {
 
 	// the container is canceled when shim is requested to exit or receives an interrupt or termination signal;
 	// this behaviour is implemented in the shim
-	state.params.ForwardCancel = state.Container.WaitDelay >= 0
+	state.params.ForwardCancel = state.Shim.WaitDelay > 0
 
 	if state.Container.Multiarch {
 		state.params.SeccompFlags |= seccomp.AllowMultiarch

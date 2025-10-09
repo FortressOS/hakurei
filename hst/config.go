@@ -67,8 +67,8 @@ type (
 		Hostname string `json:"hostname,omitempty"`
 
 		// Duration in nanoseconds to wait for after interrupting the initial process.
-		// Defaults to [WaitDelayDefault] if less than or equals to zero,
-		// or [WaitDelayMax] if greater than [WaitDelayMax].
+		// Defaults to [WaitDelayDefault] if zero, or [WaitDelayMax] if greater than [WaitDelayMax].
+		// Values lesser than zero is equivalent to zero, bypassing [WaitDelayDefault].
 		WaitDelay time.Duration `json:"wait_delay,omitempty"`
 
 		// Emit Flatpak-compatible seccomp filter programs.

@@ -81,7 +81,9 @@ func (s *outcomeState) populateEarly(k syscallDispatcher, msg message.Msg) {
 	s.Shim = &shimParams{PrivPID: os.Getpid(), Verbose: msg.IsVerbose()}
 
 	// enforce bounds and default early
-	if s.Container.WaitDelay <= 0 {
+	if s.Container.WaitDelay < 0 {
+		s.Shim.WaitDelay = 0
+	} else if s.Container.WaitDelay == 0 {
 		s.Shim.WaitDelay = hst.WaitDelayDefault
 	} else if s.Container.WaitDelay > hst.WaitDelayMax {
 		s.Shim.WaitDelay = hst.WaitDelayMax
