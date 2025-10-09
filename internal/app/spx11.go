@@ -25,6 +25,10 @@ type spX11Op struct {
 }
 
 func (s *spX11Op) toSystem(state *outcomeStateSys) error {
+	if state.config.Enablements.Unwrap()&hst.EX11 == 0 {
+		return errNotEnabled
+	}
+
 	if d, ok := state.k.lookupEnv("DISPLAY"); !ok {
 		return newWithMessage("DISPLAY is not set")
 	} else {

@@ -48,11 +48,7 @@ type shimParams struct {
 }
 
 // valid checks shimParams to be safe for use.
-func (p *shimParams) valid() bool {
-	return p != nil &&
-		p.Ops != nil &&
-		p.PrivPID > 0
-}
+func (p *shimParams) valid() bool { return p != nil && p.PrivPID > 0 }
 
 // ShimMain is the main function of the shim process and runs as the unconstrained target user.
 func ShimMain() {

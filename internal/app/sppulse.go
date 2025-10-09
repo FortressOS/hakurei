@@ -24,6 +24,10 @@ type spPulseOp struct {
 }
 
 func (s *spPulseOp) toSystem(state *outcomeStateSys) error {
+	if state.config.Enablements.Unwrap()&hst.EPulse == 0 {
+		return errNotEnabled
+	}
+
 	pulseRuntimeDir, pulseSocket := s.commonPaths(state.outcomeState)
 
 	if _, err := state.k.stat(pulseRuntimeDir.String()); err != nil {

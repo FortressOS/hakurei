@@ -75,17 +75,14 @@ func (k *outcome) finalise(ctx context.Context, msg message.Msg, id *state.ID, c
 		EnvPaths:  copyPaths(k.syscallDispatcher),
 		Container: config.Container,
 	}
-	s.populateEarly(k.syscallDispatcher, msg, config)
+	s.populateEarly(k.syscallDispatcher, msg)
 	if err := s.populateLocal(k.syscallDispatcher, msg); err != nil {
 		return err
 	}
 
 	sys := system.New(k.ctx, msg, s.uid.unwrap())
-	stateSys := outcomeStateSys{config: config, sys: sys, outcomeState: &s}
-	for _, op := range s.Shim.Ops {
-		if err := op.toSystem(&stateSys); err != nil {
-			return err
-		}
+	if err := (&outcomeStateSys{config: config, sys: sys, outcomeState: &s}).toSystem(); err != nil {
+		return err
 	}
 
 	k.sys = sys

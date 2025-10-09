@@ -18,6 +18,10 @@ type spWaylandOp struct {
 }
 
 func (s *spWaylandOp) toSystem(state *outcomeStateSys) error {
+	if state.config.Enablements.Unwrap()&hst.EWayland == 0 {
+		return errNotEnabled
+	}
+
 	// outer wayland socket (usually `/run/user/%d/wayland-%d`)
 	var socketPath *check.Absolute
 	if name, ok := state.k.lookupEnv(wayland.WaylandDisplay); !ok {

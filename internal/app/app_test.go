@@ -458,17 +458,14 @@ func TestApp(t *testing.T) {
 					Container: tc.config.Container,
 				}
 
-				sPriv.populateEarly(tc.k, msg, tc.config)
+				sPriv.populateEarly(tc.k, msg)
 				if err := sPriv.populateLocal(tc.k, msg); err != nil {
 					t.Fatalf("populateLocal: error = %#v", err)
 				}
 
 				gotSys = system.New(t.Context(), msg, sPriv.uid.unwrap())
-				stateSys := outcomeStateSys{config: tc.config, sys: gotSys, outcomeState: &sPriv}
-				for _, op := range sPriv.Shim.Ops {
-					if err := op.toSystem(&stateSys); err != nil {
-						t.Fatalf("toSystem: error = %#v", err)
-					}
+				if err := (&outcomeStateSys{config: tc.config, sys: gotSys, outcomeState: &sPriv}).toSystem(); err != nil {
+					t.Fatalf("toSystem: error = %#v", err)
 				}
 
 				go func() {

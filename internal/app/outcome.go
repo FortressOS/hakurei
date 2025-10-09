@@ -1,6 +1,7 @@
 package app
 
 import (
+	"errors"
 	"os"
 	"strconv"
 
@@ -76,8 +77,8 @@ func (s *outcomeState) valid() bool {
 
 // populateEarly populates exported fields via syscallDispatcher.
 // This must only be called from the priv side.
-func (s *outcomeState) populateEarly(k syscallDispatcher, msg message.Msg, config *hst.Config) {
-	s.Shim = &shimParams{PrivPID: os.Getpid(), Verbose: msg.IsVerbose(), Ops: fromConfig(config)}
+func (s *outcomeState) populateEarly(k syscallDispatcher, msg message.Msg) {
+	s.Shim = &shimParams{PrivPID: os.Getpid(), Verbose: msg.IsVerbose()}
 
 	// enforce bounds and default early
 	if s.Container.WaitDelay <= 0 {
@@ -203,6 +204,9 @@ type outcomeStateParams struct {
 	*outcomeState
 }
 
+// errNotEnabled is returned by outcomeOp.toSystem and used internally to exclude an outcomeOp from transmission.
+var errNotEnabled = errors.New("op not enabled in the configuration")
+
 // An outcomeOp inflicts an outcome on [system.I] and contains enough information to
 // inflict it on [container.Params] in a separate process.
 // An implementation of outcomeOp must store cross-process states in exported fields only.
@@ -216,11 +220,15 @@ type outcomeOp interface {
 	toContainer(state *outcomeStateParams) error
 }
 
-// fromConfig returns a corresponding slice of outcomeOp for [hst.Config].
+// toSystem calls the outcomeOp.toSystem method on all outcomeOp implementations and populates shimParams.Ops.
 // This function assumes the caller has already called the Validate method on [hst.Config]
 // and checked that it returns nil.
-func fromConfig(config *hst.Config) (ops []outcomeOp) {
-	ops = []outcomeOp{
+func (state *outcomeStateSys) toSystem() error {
+	if state.Shim == nil || state.Shim.Ops != nil {
+		return newWithMessage("invalid ops state reached")
+	}
+
+	ops := [...]outcomeOp{
 		// must run first
 		&spParamsOp{},
 
@@ -230,22 +238,27 @@ func fromConfig(config *hst.Config) (ops []outcomeOp) {
 		spRuntimeOp{},
 		spTmpdirOp{},
 		spAccountOp{},
+
+		// optional via enablements
+		&spWaylandOp{},
+		&spX11Op{},
+		&spPulseOp{},
+		&spDBusOp{},
+
+		spFinal{},
 	}
 
-	et := config.Enablements.Unwrap()
-	if et&hst.EWayland != 0 {
-		ops = append(ops, &spWaylandOp{})
-	}
-	if et&hst.EX11 != 0 {
-		ops = append(ops, &spX11Op{})
-	}
-	if et&hst.EPulse != 0 {
-		ops = append(ops, &spPulseOp{})
-	}
-	if et&hst.EDBus != 0 {
-		ops = append(ops, &spDBusOp{})
-	}
+	state.Shim.Ops = make([]outcomeOp, 0, len(ops))
+	for _, op := range ops {
+		if err := op.toSystem(state); err != nil {
+			// this error is used internally to exclude this outcomeOp from transmission
+			if errors.Is(err, errNotEnabled) {
+				continue
+			}
 
-	ops = append(ops, spFinal{})
-	return
+			return err
+		}
+		state.Shim.Ops = append(state.Shim.Ops, op)
+	}
+	return nil
 }

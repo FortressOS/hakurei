@@ -4,6 +4,7 @@ import (
 	"encoding/gob"
 
 	"hakurei.app/container/fhs"
+	"hakurei.app/hst"
 	"hakurei.app/system/acl"
 	"hakurei.app/system/dbus"
 )
@@ -18,6 +19,10 @@ type spDBusOp struct {
 }
 
 func (s *spDBusOp) toSystem(state *outcomeStateSys) error {
+	if state.config.Enablements.Unwrap()&hst.EDBus == 0 {
+		return errNotEnabled
+	}
+
 	if state.config.SessionBus == nil {
 		state.config.SessionBus = dbus.NewConfig(state.config.ID, true, true)
 	}

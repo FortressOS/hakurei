@@ -1,7 +1,6 @@
 package app
 
 import (
-	"reflect"
 	"testing"
 
 	"hakurei.app/hst"
@@ -26,52 +25,6 @@ func TestOutcomeStateValid(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			if got := tc.s.valid(); got != tc.want {
 				t.Errorf("valid: %v, want %v", got, tc.want)
-			}
-		})
-	}
-}
-
-func TestFromConfig(t *testing.T) {
-	testCases := []struct {
-		name   string
-		config *hst.Config
-		want   []outcomeOp
-	}{
-		{"ne", new(hst.Config), []outcomeOp{
-			&spParamsOp{},
-			spFilesystemOp{},
-			spRuntimeOp{},
-			spTmpdirOp{},
-			spAccountOp{},
-			spFinal{},
-		}},
-		{"wayland pulse", &hst.Config{Enablements: hst.NewEnablements(hst.EWayland | hst.EPulse)}, []outcomeOp{
-			&spParamsOp{},
-			spFilesystemOp{},
-			spRuntimeOp{},
-			spTmpdirOp{},
-			spAccountOp{},
-			&spWaylandOp{},
-			&spPulseOp{},
-			spFinal{},
-		}},
-		{"all", &hst.Config{Enablements: hst.NewEnablements(0xff)}, []outcomeOp{
-			&spParamsOp{},
-			spFilesystemOp{},
-			spRuntimeOp{},
-			spTmpdirOp{},
-			spAccountOp{},
-			&spWaylandOp{},
-			&spX11Op{},
-			&spPulseOp{},
-			&spDBusOp{},
-			spFinal{},
-		}},
-	}
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			if got := fromConfig(tc.config); !reflect.DeepEqual(got, tc.want) {
-				t.Errorf("fromConfig: %#v, want %#v", got, tc.want)
 			}
 		})
 	}
