@@ -464,7 +464,7 @@ func TestApp(t *testing.T) {
 				}
 
 				gotSys = system.New(t.Context(), msg, sPriv.uid.unwrap())
-				if err := (&outcomeStateSys{config: tc.config, sys: gotSys, outcomeState: &sPriv}).toSystem(); err != nil {
+				if err := sPriv.newSys(tc.config, gotSys).toSystem(); err != nil {
 					t.Fatalf("toSystem: error = %#v", err)
 				}
 

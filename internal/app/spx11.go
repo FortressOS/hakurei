@@ -25,7 +25,7 @@ type spX11Op struct {
 }
 
 func (s *spX11Op) toSystem(state *outcomeStateSys) error {
-	if state.config.Enablements.Unwrap()&hst.EX11 == 0 {
+	if state.et&hst.EX11 == 0 {
 		return errNotEnabled
 	}
 

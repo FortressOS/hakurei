@@ -134,7 +134,7 @@ func (s *outcomeState) instancePath() *check.Absolute { return s.sc.SharePath.Ap
 func (s *outcomeState) runtimePath() *check.Absolute { return s.sc.RunDirPath.Append(s.id.String()) }
 
 // outcomeStateSys wraps outcomeState and [system.I]. Used on the priv side only.
-// Implementations of outcomeOp must not access fields other than sys and config unless explicitly stated.
+// Implementations of outcomeOp must not access fields other than sys unless explicitly stated.
 type outcomeStateSys struct {
 	// Whether XDG_RUNTIME_DIR is used post hsu.
 	useRuntimeDir bool
@@ -142,11 +142,31 @@ type outcomeStateSys struct {
 	sharePath *check.Absolute
 	// Process-specific directory in XDG_RUNTIME_DIR, nil if unused.
 	runtimeSharePath *check.Absolute
-	// Must not be modified by outcomeOp.
-	config *hst.Config
+
+	// Copied from [hst.Config]. Safe for read by outcomeOp.toSystem.
+	appId string
+	// Copied from [hst.Config]. Safe for read by outcomeOp.toSystem.
+	et hst.Enablement
+
+	// Copied from [hst.Config]. Safe for read by spWaylandOp.toSystem only.
+	directWayland bool
+	// Copied header from [hst.Config]. Safe for read by spFinalOp.toSystem only.
+	extraPerms []*hst.ExtraPermConfig
+	// Copied address from [hst.Config. Safe for read by spDBusOp.toSystem only.
+	sessionBus, systemBus *hst.BusConfig
 
 	sys *system.I
 	*outcomeState
+}
+
+// outcomeState returns the address of a new outcomeStateSys embedding the current outcomeState.
+func (s *outcomeState) newSys(config *hst.Config, sys *system.I) *outcomeStateSys {
+	return &outcomeStateSys{
+		appId: config.ID, et: config.Enablements.Unwrap(),
+		directWayland: config.DirectWayland, extraPerms: config.ExtraPerms,
+		sessionBus: config.SessionBus, systemBus: config.SystemBus,
+		sys: sys, outcomeState: s,
+	}
 }
 
 // ensureRuntimeDir must be called if access to paths within XDG_RUNTIME_DIR is required.
@@ -245,7 +265,7 @@ func (state *outcomeStateSys) toSystem() error {
 		&spPulseOp{},
 		&spDBusOp{},
 
-		spFinal{},
+		spFinalOp{},
 	}
 
 	state.Shim.Ops = make([]outcomeOp, 0, len(ops))

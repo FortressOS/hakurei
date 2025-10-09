@@ -13,15 +13,15 @@ import (
 	"hakurei.app/system/acl"
 )
 
-func init() { gob.Register(spFinal{}) }
+func init() { gob.Register(spFinalOp{}) }
 
-// spFinal is a transitional op destined for removal after #3, #8, #9 has been resolved.
+// spFinalOp is a transitional op destined for removal after #3, #8, #9 has been resolved.
 // It exists to avoid reordering the expected entries in test cases.
-type spFinal struct{}
+type spFinalOp struct{}
 
-func (s spFinal) toSystem(state *outcomeStateSys) error {
+func (s spFinalOp) toSystem(state *outcomeStateSys) error {
 	// append ExtraPerms last
-	for _, p := range state.config.ExtraPerms {
+	for _, p := range state.extraPerms {
 		if p == nil || p.Path == nil {
 			continue
 		}
@@ -45,7 +45,7 @@ func (s spFinal) toSystem(state *outcomeStateSys) error {
 	return nil
 }
 
-func (s spFinal) toContainer(state *outcomeStateParams) error {
+func (s spFinalOp) toContainer(state *outcomeStateParams) error {
 	// TODO(ophestra): move this to spFilesystemOp after #8 and #9
 
 	// mount root read-only as the final setup Op

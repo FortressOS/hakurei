@@ -19,26 +19,26 @@ type spDBusOp struct {
 }
 
 func (s *spDBusOp) toSystem(state *outcomeStateSys) error {
-	if state.config.Enablements.Unwrap()&hst.EDBus == 0 {
+	if state.et&hst.EDBus == 0 {
 		return errNotEnabled
 	}
 
-	if state.config.SessionBus == nil {
-		state.config.SessionBus = dbus.NewConfig(state.config.ID, true, true)
+	if state.sessionBus == nil {
+		state.sessionBus = dbus.NewConfig(state.appId, true, true)
 	}
 
 	// downstream socket paths
 	sessionPath, systemPath := state.instance().Append("bus"), state.instance().Append("system_bus_socket")
 
 	if err := state.sys.ProxyDBus(
-		state.config.SessionBus, state.config.SystemBus,
+		state.sessionBus, state.systemBus,
 		sessionPath, systemPath,
 	); err != nil {
 		return err
 	}
 
 	state.sys.UpdatePerm(sessionPath, acl.Read, acl.Write)
-	if state.config.SystemBus != nil {
+	if state.systemBus != nil {
 		s.ProxySystem = true
 		state.sys.UpdatePerm(systemPath, acl.Read, acl.Write)
 	}

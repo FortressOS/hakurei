@@ -81,7 +81,7 @@ func (k *outcome) finalise(ctx context.Context, msg message.Msg, id *state.ID, c
 	}
 
 	sys := system.New(k.ctx, msg, s.uid.unwrap())
-	if err := (&outcomeStateSys{config: config, sys: sys, outcomeState: &s}).toSystem(); err != nil {
+	if err := s.newSys(config, sys).toSystem(); err != nil {
 		return err
 	}
 

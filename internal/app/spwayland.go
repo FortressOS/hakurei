@@ -18,7 +18,7 @@ type spWaylandOp struct {
 }
 
 func (s *spWaylandOp) toSystem(state *outcomeStateSys) error {
-	if state.config.Enablements.Unwrap()&hst.EWayland == 0 {
+	if state.et&hst.EWayland == 0 {
 		return errNotEnabled
 	}
 
@@ -33,14 +33,14 @@ func (s *spWaylandOp) toSystem(state *outcomeStateSys) error {
 		socketPath = a
 	}
 
-	if !state.config.DirectWayland { // set up security-context-v1
-		appID := state.config.ID
-		if appID == "" {
+	if !state.directWayland { // set up security-context-v1
+		appId := state.appId
+		if appId == "" {
 			// use instance ID in case app id is not set
-			appID = "app.hakurei." + state.id.String()
+			appId = "app.hakurei." + state.id.String()
 		}
 		// downstream socket paths
-		state.sys.Wayland(state.instance().Append("wayland"), socketPath, appID, state.id.String())
+		state.sys.Wayland(state.instance().Append("wayland"), socketPath, appId, state.id.String())
 	} else { // bind mount wayland socket (insecure)
 		state.msg.Verbose("direct wayland access, PROCEED WITH CAUTION")
 		state.ensureRuntimeDir()
