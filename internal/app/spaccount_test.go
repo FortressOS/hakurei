@@ -9,45 +9,43 @@ import (
 	"hakurei.app/container"
 	"hakurei.app/container/stub"
 	"hakurei.app/hst"
-	"hakurei.app/message"
-	"hakurei.app/system"
 )
 
 func TestSpAccountOp(t *testing.T) {
 	config := hst.Template()
 
 	checkOpBehaviour(t, []opBehaviourTestCase{
-		{"invalid state", func() outcomeOp { return spAccountOp{} }, func() *hst.Config {
+		{"invalid state", func(bool, bool) outcomeOp { return spAccountOp{} }, func() *hst.Config {
 			c := hst.Template()
 			c.Container.Shell = nil
 			return c
 		}, nil, []stub.Call{
 			// this op performs basic validation and does not make calls during toSystem
-		}, spAccountOp{}, system.New(t.Context(), message.NewMsg(nil), checkExpectUid), nil, syscall.ENOTRECOVERABLE, nil, nil, nil, nil, nil, nil},
+		}, nil, nil, syscall.ENOTRECOVERABLE, nil, nil, nil, nil, nil},
 
-		{"invalid user name", func() outcomeOp { return spAccountOp{} }, func() *hst.Config {
+		{"invalid user name", func(bool, bool) outcomeOp { return spAccountOp{} }, func() *hst.Config {
 			c := hst.Template()
 			c.Container.Username = "9"
 			return c
 		}, nil, []stub.Call{
 			// this op performs basic validation and does not make calls during toSystem
-		}, spAccountOp{}, nil, nil, &hst.AppError{
+		}, nil, nil, &hst.AppError{
 			Step: "finalise",
 			Err:  os.ErrInvalid,
 			Msg:  `invalid user name "9"`,
-		}, nil, nil, nil, nil, nil, nil},
+		}, nil, nil, nil, nil, nil},
 
-		{"success fallback username", func() outcomeOp { return spAccountOp{} }, func() *hst.Config {
+		{"success fallback username", func(bool, bool) outcomeOp { return spAccountOp{} }, func() *hst.Config {
 			c := hst.Template()
 			c.Container.Username = ""
 			return c
 		}, nil, []stub.Call{
 			// this op performs basic validation and does not make calls during toSystem
-		}, spAccountOp{}, system.New(t.Context(), message.NewMsg(nil), checkExpectUid), nil, nil, func(state *outcomeStateParams) {
+		}, newI(), nil, nil, func(state *outcomeStateParams) {
 			state.params.Ops = new(container.Ops)
 		}, []stub.Call{
 			// this op configures the container state and does not make calls during toContainer
-		}, spAccountOp{}, &container.Params{
+		}, &container.Params{
 			Dir: config.Container.Home,
 			Ops: new(container.Ops).
 				Place(m("/etc/passwd"), []byte("chronos:x:1000:100:Hakurei:/data/data/org.chromium.Chromium:/run/current-system/sw/bin/zsh\n")).
@@ -64,13 +62,13 @@ func TestSpAccountOp(t *testing.T) {
 			}
 		}, nil},
 
-		{"success", func() outcomeOp { return spAccountOp{} }, hst.Template, nil, []stub.Call{
+		{"success", func(bool, bool) outcomeOp { return spAccountOp{} }, hst.Template, nil, []stub.Call{
 			// this op performs basic validation and does not make calls during toSystem
-		}, spAccountOp{}, system.New(t.Context(), message.NewMsg(nil), checkExpectUid), nil, nil, func(state *outcomeStateParams) {
+		}, newI(), nil, nil, func(state *outcomeStateParams) {
 			state.params.Ops = new(container.Ops)
 		}, []stub.Call{
 			// this op configures the container state and does not make calls during toContainer
-		}, spAccountOp{}, &container.Params{
+		}, &container.Params{
 			Dir: config.Container.Home,
 			Ops: new(container.Ops).
 				Place(m("/etc/passwd"), []byte("chronos:x:1000:100:Hakurei:/data/data/org.chromium.Chromium:/run/current-system/sw/bin/zsh\n")).

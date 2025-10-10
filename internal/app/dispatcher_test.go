@@ -33,19 +33,17 @@ var checkExpectInstanceId = *(*state.ID)(bytes.Repeat([]byte{0xaa}, len(state.ID
 
 type opBehaviourTestCase struct {
 	name      string
-	newOp     func() outcomeOp
+	newOp     func(isShim, clearUnexported bool) outcomeOp
 	newConfig func() *hst.Config
 
 	pStateSys     func(state *outcomeStateSys)
 	toSystem      []stub.Call
-	wantOpSys     outcomeOp
 	wantSys       *system.I
 	extraCheckSys func(t *testing.T, state *outcomeStateSys)
 	wantErrSystem error
 
 	pStateContainer  func(state *outcomeStateParams)
 	toContainer      []stub.Call
-	wantOpContainer  outcomeOp
 	wantParams       *container.Params
 	extraCheckParams func(t *testing.T, state *outcomeStateParams)
 	wantErrContainer error
@@ -94,11 +92,11 @@ func checkOpBehaviour(t *testing.T, testCases []opBehaviourTestCase) {
 				if err := s.populateLocal(k, k); err != nil {
 					t.Fatalf("populateLocal: error = %v", err)
 				}
-				stateSys := s.newSys(config, system.New(panicMsgContext{}, panicMsgContext{}, checkExpectUid))
+				stateSys := s.newSys(config, newI())
 				if tc.pStateSys != nil {
 					tc.pStateSys(stateSys)
 				}
-				op := tc.newOp()
+				op := tc.newOp(false, true)
 
 				if err := op.toSystem(stateSys); !reflect.DeepEqual(err, tc.wantErrSystem) {
 					t.Errorf("toSystem: error = %v, want %v", err, tc.wantErrSystem)
@@ -118,8 +116,8 @@ func checkOpBehaviour(t *testing.T, testCases []opBehaviourTestCase) {
 				if tc.extraCheckSys != nil {
 					tc.extraCheckSys(t, stateSys)
 				}
-				if !reflect.DeepEqual(op, tc.wantOpSys) {
-					t.Errorf("toSystem: op = %#v, want %#v", op, tc.wantOpSys)
+				if wantOpSys := tc.newOp(true, false); !reflect.DeepEqual(op, wantOpSys) {
+					t.Errorf("toSystem: op = %#v, want %#v", op, wantOpSys)
 				}
 			}
 
@@ -133,7 +131,7 @@ func checkOpBehaviour(t *testing.T, testCases []opBehaviourTestCase) {
 				if tc.pStateContainer != nil {
 					tc.pStateContainer(stateParams)
 				}
-				op := tc.newOp()
+				op := tc.newOp(true, true)
 
 				if err := op.toContainer(stateParams); !reflect.DeepEqual(err, tc.wantErrContainer) {
 					t.Errorf("toContainer: error = %v, want %v", err, tc.wantErrContainer)
@@ -144,13 +142,10 @@ func checkOpBehaviour(t *testing.T, testCases []opBehaviourTestCase) {
 				}
 
 				if !reflect.DeepEqual(stateParams.params, tc.wantParams) {
-					t.Errorf("toContainer: %#v, want %#v", stateParams.params, tc.wantParams)
+					t.Errorf("toContainer:\n%s\nwant\n%s", mustMarshal(stateParams.params), mustMarshal(tc.wantParams))
 				}
 				if tc.extraCheckParams != nil {
 					tc.extraCheckParams(t, stateParams)
-				}
-				if !reflect.DeepEqual(op, tc.wantOpContainer) {
-					t.Errorf("toContainer: op = %#v, want %#v", op, tc.wantOpContainer)
 				}
 			}
 
@@ -166,6 +161,8 @@ func checkOpBehaviour(t *testing.T, testCases []opBehaviourTestCase) {
 		})
 	}
 }
+
+func newI() *system.I { return system.New(panicMsgContext{}, panicMsgContext{}, checkExpectUid) }
 
 type kstub struct {
 	panicDispatcher
