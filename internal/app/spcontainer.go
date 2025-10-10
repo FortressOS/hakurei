@@ -117,12 +117,15 @@ func (s *spParamsOp) toContainer(state *outcomeStateParams) error {
 	return nil
 }
 
-func init() { gob.Register(spFilesystemOp{}) }
+func init() { gob.Register(new(spFilesystemOp)) }
 
 // spFilesystemOp applies configured filesystems to [container.Params], excluding the optional root filesystem.
-type spFilesystemOp struct{}
+type spFilesystemOp struct {
+	// Matched paths to cover. Stored during toSystem.
+	HidePaths []*check.Absolute
+}
 
-func (s spFilesystemOp) toSystem(state *outcomeStateSys) error {
+func (s *spFilesystemOp) toSystem(state *outcomeStateSys) error {
 	/* retrieve paths and hide them if they're made available in the sandbox;
 
 	this feature tries to improve user experience of permissive defaults, and
@@ -253,7 +256,7 @@ func (s spFilesystemOp) toSystem(state *outcomeStateSys) error {
 				}
 				return newWithMessage("invalid path hiding candidate " + strconv.Quote(absoluteError.Pathname))
 			} else {
-				state.HidePaths = append(state.HidePaths, a)
+				s.HidePaths = append(s.HidePaths, a)
 			}
 		}
 	}
@@ -261,7 +264,7 @@ func (s spFilesystemOp) toSystem(state *outcomeStateSys) error {
 	return nil
 }
 
-func (s spFilesystemOp) toContainer(state *outcomeStateParams) error {
+func (s *spFilesystemOp) toContainer(state *outcomeStateParams) error {
 	for i, c := range state.filesystem {
 		if !c.Valid() {
 			return newWithMessage("invalid filesystem at index " + strconv.Itoa(i))
@@ -269,7 +272,7 @@ func (s spFilesystemOp) toContainer(state *outcomeStateParams) error {
 		c.Apply(&state.as)
 	}
 
-	for _, a := range state.HidePaths {
+	for _, a := range s.HidePaths {
 		state.params.Tmpfs(a, 1<<13, 0755)
 	}
 

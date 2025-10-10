@@ -57,9 +57,6 @@ type outcomeState struct {
 	sc hst.Paths
 	*EnvPaths
 
-	// Matched paths to cover. Populated by spFilesystemOp.
-	HidePaths []*check.Absolute
-
 	// Copied via populateLocal.
 	k syscallDispatcher
 	// Copied via populateLocal.
@@ -154,7 +151,7 @@ type outcomeStateSys struct {
 	directWayland bool
 	// Copied header from [hst.Config]. Safe for read by spFinalOp.toSystem only.
 	extraPerms []*hst.ExtraPermConfig
-	// Copied address from [hst.Config. Safe for read by spDBusOp.toSystem only.
+	// Copied address from [hst.Config]. Safe for read by spDBusOp.toSystem only.
 	sessionBus, systemBus *hst.BusConfig
 
 	sys *system.I
@@ -255,7 +252,7 @@ func (state *outcomeStateSys) toSystem() error {
 		&spParamsOp{},
 
 		// TODO(ophestra): move this late for #8 and #9
-		spFilesystemOp{},
+		&spFilesystemOp{},
 
 		spRuntimeOp{},
 		spTmpdirOp{},
