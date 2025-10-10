@@ -11,6 +11,7 @@ import (
 type panicDispatcher struct{}
 
 func (panicDispatcher) new(func(k syscallDispatcher))         { panic("unreachable") }
+func (panicDispatcher) getpid() int                           { panic("unreachable") }
 func (panicDispatcher) getuid() int                           { panic("unreachable") }
 func (panicDispatcher) getgid() int                           { panic("unreachable") }
 func (panicDispatcher) lookupEnv(string) (string, bool)       { panic("unreachable") }

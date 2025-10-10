@@ -450,15 +450,7 @@ func TestApp(t *testing.T) {
 
 			var gotSys *system.I
 			{
-				sPriv := outcomeState{
-					ID:        &tc.id,
-					Identity:  tc.config.Identity,
-					UserID:    (&Hsu{k: tc.k}).MustIDMsg(msg),
-					EnvPaths:  copyPaths(tc.k),
-					Container: tc.config.Container,
-				}
-
-				sPriv.populateEarly(tc.k, msg)
+				sPriv := newOutcomeState(tc.k, msg, &tc.id, tc.config, &Hsu{k: tc.k})
 				if err := sPriv.populateLocal(tc.k, msg); err != nil {
 					t.Fatalf("populateLocal: error = %#v", err)
 				}
@@ -574,6 +566,7 @@ type stubNixOS struct {
 
 func (k *stubNixOS) new(func(k syscallDispatcher)) { panic("not implemented") }
 
+func (k *stubNixOS) getpid() int { return 0xdeadbeef }
 func (k *stubNixOS) getuid() int { return 1971 }
 func (k *stubNixOS) getgid() int { return 100 }
 

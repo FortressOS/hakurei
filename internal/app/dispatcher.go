@@ -29,6 +29,8 @@ type syscallDispatcher interface {
 	// just synchronising access is not enough, as this is for test instrumentation.
 	new(f func(k syscallDispatcher))
 
+	// getpid provides [os.Getpid].
+	getpid() int
 	// getuid provides [os.Getuid].
 	getuid() int
 	// getgid provides [os.Getgid].
@@ -70,6 +72,7 @@ type direct struct{}
 
 func (k direct) new(f func(k syscallDispatcher)) { go f(k) }
 
+func (direct) getpid() int                                { return os.Getpid() }
 func (direct) getuid() int                                { return os.Getuid() }
 func (direct) getgid() int                                { return os.Getgid() }
 func (direct) lookupEnv(key string) (string, bool)        { return os.LookupEnv(key) }

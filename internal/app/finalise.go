@@ -68,14 +68,7 @@ func (k *outcome) finalise(ctx context.Context, msg message.Msg, id *state.ID, c
 	}
 
 	// early validation complete at this point
-	s := outcomeState{
-		ID:        id,
-		Identity:  config.Identity,
-		UserID:    (&Hsu{k: k}).MustIDMsg(msg),
-		EnvPaths:  copyPaths(k.syscallDispatcher),
-		Container: config.Container,
-	}
-	s.populateEarly(k.syscallDispatcher, msg)
+	s := newOutcomeState(k.syscallDispatcher, msg, id, config, &Hsu{k: k})
 	if err := s.populateLocal(k.syscallDispatcher, msg); err != nil {
 		return err
 	}
@@ -87,7 +80,7 @@ func (k *outcome) finalise(ctx context.Context, msg message.Msg, id *state.ID, c
 
 	k.sys = sys
 	k.supp = supp
-	k.state = &s
+	k.state = s
 	k.config = config
 	return nil
 }

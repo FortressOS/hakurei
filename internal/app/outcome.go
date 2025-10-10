@@ -2,7 +2,6 @@ package app
 
 import (
 	"errors"
-	"os"
 	"strconv"
 
 	"hakurei.app/container"
@@ -72,10 +71,16 @@ func (s *outcomeState) valid() bool {
 		s.EnvPaths != nil
 }
 
-// populateEarly populates exported fields via syscallDispatcher.
-// This must only be called from the priv side.
-func (s *outcomeState) populateEarly(k syscallDispatcher, msg message.Msg) {
-	s.Shim = &shimParams{PrivPID: os.Getpid(), Verbose: msg.IsVerbose()}
+// newOutcomeState returns the address of a new outcomeState with its exported fields populated via syscallDispatcher.
+func newOutcomeState(k syscallDispatcher, msg message.Msg, id *state.ID, config *hst.Config, hsu *Hsu) *outcomeState {
+	s := outcomeState{
+		Shim:      &shimParams{PrivPID: k.getpid(), Verbose: msg.IsVerbose()},
+		ID:        id,
+		Identity:  config.Identity,
+		UserID:    hsu.MustIDMsg(msg),
+		EnvPaths:  copyPaths(k),
+		Container: config.Container,
+	}
 
 	// enforce bounds and default early
 	if s.Container.WaitDelay < 0 {
@@ -94,7 +99,7 @@ func (s *outcomeState) populateEarly(k syscallDispatcher, msg message.Msg) {
 		s.Mapuid, s.Mapgid = k.overflowUid(msg), k.overflowGid(msg)
 	}
 
-	return
+	return &s
 }
 
 // populateLocal populates unexported fields from transmitted exported fields.
