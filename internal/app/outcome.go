@@ -2,6 +2,7 @@ package app
 
 import (
 	"errors"
+	"maps"
 	"strconv"
 
 	"hakurei.app/container"
@@ -163,7 +164,7 @@ type outcomeStateSys struct {
 	*outcomeState
 }
 
-// outcomeState returns the address of a new outcomeStateSys embedding the current outcomeState.
+// newSys returns the address of a new outcomeStateSys embedding the current outcomeState.
 func (s *outcomeState) newSys(config *hst.Config, sys *system.I) *outcomeStateSys {
 	return &outcomeStateSys{
 		appId: config.ID, et: config.Enablements.Unwrap(),
@@ -171,6 +172,17 @@ func (s *outcomeState) newSys(config *hst.Config, sys *system.I) *outcomeStateSy
 		sessionBus: config.SessionBus, systemBus: config.SystemBus,
 		sys: sys, outcomeState: s,
 	}
+}
+
+// newParams returns the address of a new outcomeStateParams embedding the current outcomeState.
+func (s *outcomeState) newParams() *outcomeStateParams {
+	stateParams := outcomeStateParams{params: new(container.Params), outcomeState: s}
+	if s.Container.Env == nil {
+		stateParams.env = make(map[string]string, envAllocSize)
+	} else {
+		stateParams.env = maps.Clone(s.Container.Env)
+	}
+	return &stateParams
 }
 
 // ensureRuntimeDir must be called if access to paths within XDG_RUNTIME_DIR is required.

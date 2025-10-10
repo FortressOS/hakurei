@@ -5,7 +5,6 @@ import (
 	"errors"
 	"io"
 	"log"
-	"maps"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -102,15 +101,9 @@ func ShimMain() {
 		log.Fatalf("cannot set parent-death signal: %v", errno)
 	}
 
-	var params container.Params
-	stateParams := outcomeStateParams{params: &params, outcomeState: &state}
-	if state.Container.Env == nil {
-		stateParams.env = make(map[string]string, envAllocSize)
-	} else {
-		stateParams.env = maps.Clone(state.Container.Env)
-	}
+	stateParams := state.newParams()
 	for _, op := range state.Shim.Ops {
-		if err := op.toContainer(&stateParams); err != nil {
+		if err := op.toContainer(stateParams); err != nil {
 			if m, ok := message.GetMessage(err); ok {
 				log.Fatal(m)
 			} else {
@@ -130,7 +123,7 @@ func ShimMain() {
 
 			switch buf[0] {
 			case 0: // got SIGCONT from monitor: shim exit requested
-				if fp := cancelContainer.Load(); params.ForwardCancel && fp != nil && *fp != nil {
+				if fp := cancelContainer.Load(); stateParams.params.ForwardCancel && fp != nil && *fp != nil {
 					(*fp)()
 					// shim now bound by ShimWaitDelay, implemented below
 					continue
@@ -158,7 +151,7 @@ func ShimMain() {
 		}
 	}()
 
-	if params.Ops == nil {
+	if stateParams.params.Ops == nil {
 		log.Fatal("invalid container params")
 	}
 
@@ -171,7 +164,7 @@ func ShimMain() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	cancelContainer.Store(&stop)
 	z := container.New(ctx, msg)
-	z.Params = params
+	z.Params = *stateParams.params
 	z.Stdin, z.Stdout, z.Stderr = os.Stdin, os.Stdout, os.Stderr
 
 	// bounds and default enforced in finalise.go

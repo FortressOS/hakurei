@@ -9,7 +9,6 @@ import (
 	"io"
 	"io/fs"
 	"log"
-	"maps"
 	"os/exec"
 	"os/user"
 	"reflect"
@@ -469,7 +468,7 @@ func TestApp(t *testing.T) {
 				}()
 			}
 
-			var gotParams container.Params
+			var gotParams *container.Params
 			{
 				var sShim outcomeState
 
@@ -481,17 +480,13 @@ func TestApp(t *testing.T) {
 					t.Fatalf("populateLocal: error = %#v", err)
 				}
 
-				stateParams := outcomeStateParams{params: &gotParams, outcomeState: &sShim}
-				if sShim.Container.Env == nil {
-					stateParams.env = make(map[string]string, envAllocSize)
-				} else {
-					stateParams.env = maps.Clone(sShim.Container.Env)
-				}
+				stateParams := sShim.newParams()
 				for _, op := range sShim.Shim.Ops {
-					if err := op.toContainer(&stateParams); err != nil {
+					if err := op.toContainer(stateParams); err != nil {
 						t.Fatalf("toContainer: error = %#v", err)
 					}
 				}
+				gotParams = stateParams.params
 			}
 
 			t.Run("sys", func(t *testing.T) {
@@ -501,8 +496,8 @@ func TestApp(t *testing.T) {
 			})
 
 			t.Run("params", func(t *testing.T) {
-				if !reflect.DeepEqual(&gotParams, tc.wantParams) {
-					t.Errorf("toContainer: params =\n%s\n, want\n%s", mustMarshal(&gotParams), mustMarshal(tc.wantParams))
+				if !reflect.DeepEqual(gotParams, tc.wantParams) {
+					t.Errorf("toContainer: params =\n%s\n, want\n%s", mustMarshal(gotParams), mustMarshal(tc.wantParams))
 				}
 			})
 		})
