@@ -45,12 +45,17 @@ func New[K any](tb testing.TB, makeK func(s *Stub[K]) K, want Expect) *Stub[K] {
 	return &Stub[K]{TB: tb, makeK: makeK, want: want, wg: new(sync.WaitGroup)}
 }
 
-func (s *Stub[K]) FailNow()                          { panic(panicFailNow) }
-func (s *Stub[K]) Fatal(args ...any)                 { s.Error(args...); panic(panicFatal) }
-func (s *Stub[K]) Fatalf(format string, args ...any) { s.Errorf(format, args...); panic(panicFatalf) }
-func (s *Stub[K]) SkipNow()                          { panic("invalid call to SkipNow") }
-func (s *Stub[K]) Skip(...any)                       { panic("invalid call to Skip") }
-func (s *Stub[K]) Skipf(string, ...any)              { panic("invalid call to Skipf") }
+func (s *Stub[K]) FailNow()          { s.Helper(); panic(panicFailNow) }
+func (s *Stub[K]) Fatal(args ...any) { s.Helper(); s.Error(args...); panic(panicFatal) }
+func (s *Stub[K]) Fatalf(format string, args ...any) {
+	s.Helper()
+	s.Errorf(format, args...)
+	panic(panicFatalf)
+}
+
+func (s *Stub[K]) SkipNow()             { s.Helper(); panic("invalid call to SkipNow") }
+func (s *Stub[K]) Skip(...any)          { s.Helper(); panic("invalid call to Skip") }
+func (s *Stub[K]) Skipf(string, ...any) { s.Helper(); panic("invalid call to Skipf") }
 
 // New calls f in a new goroutine
 func (s *Stub[K]) New(f func(k K)) {

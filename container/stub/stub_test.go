@@ -43,7 +43,7 @@ func TestStub(t *testing.T) {
 					t.Errorf("recover: %v", r)
 				}
 			}()
-			new(stubHolder).FailNow()
+			stubHolder{&Stub[stubHolder]{TB: t}}.FailNow()
 		})
 
 		t.Run("SkipNow", func(t *testing.T) {
@@ -53,7 +53,7 @@ func TestStub(t *testing.T) {
 					t.Errorf("recover: %v, want %v", r, want)
 				}
 			}()
-			new(stubHolder).SkipNow()
+			stubHolder{&Stub[stubHolder]{TB: t}}.SkipNow()
 		})
 
 		t.Run("Skip", func(t *testing.T) {
@@ -63,7 +63,7 @@ func TestStub(t *testing.T) {
 					t.Errorf("recover: %v, want %v", r, want)
 				}
 			}()
-			new(stubHolder).Skip()
+			stubHolder{&Stub[stubHolder]{TB: t}}.Skip()
 		})
 
 		t.Run("Skipf", func(t *testing.T) {
@@ -73,7 +73,7 @@ func TestStub(t *testing.T) {
 					t.Errorf("recover: %v, want %v", r, want)
 				}
 			}()
-			new(stubHolder).Skipf("")
+			stubHolder{&Stub[stubHolder]{TB: t}}.Skipf("")
 		})
 	})
 
