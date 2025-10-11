@@ -12,9 +12,12 @@ import (
 
 // An AppError is returned while starting an app according to [hst.Config].
 type AppError struct {
-	Step string
-	Err  error
-	Msg  string
+	// A user-facing description of where the error occurred.
+	Step string `json:"step"`
+	// The underlying error value.
+	Err error
+	// An arbitrary error message, overriding the return value of Message if not empty.
+	Msg string `json:"message,omitempty"`
 }
 
 func (e *AppError) Error() string { return e.Err.Error() }
@@ -38,13 +41,13 @@ func (e *AppError) Message() string {
 
 // Paths contains environment-dependent paths used by hakurei.
 type Paths struct {
-	// temporary directory returned by [os.TempDir] (usually `/tmp`)
+	// Temporary directory returned by [os.TempDir], usually equivalent to [fhs.AbsTmp].
 	TempDir *check.Absolute `json:"temp_dir"`
-	// path to shared directory (usually `/tmp/hakurei.%d`, [Info.User])
+	// Shared directory specific to the hsu userid, usually (`/tmp/hakurei.%d`, [Info.User]).
 	SharePath *check.Absolute `json:"share_path"`
-	// XDG_RUNTIME_DIR value (usually `/run/user/%d`, uid)
+	// Checked XDG_RUNTIME_DIR value, usually (`/run/user/%d`, uid).
 	RuntimePath *check.Absolute `json:"runtime_path"`
-	// application runtime directory (usually `/run/user/%d/hakurei`)
+	// Shared directory specific to the hsu userid located in RuntimePath, usually (`/run/user/%d/hakurei`, uid).
 	RunDirPath *check.Absolute `json:"run_dir_path"`
 }
 

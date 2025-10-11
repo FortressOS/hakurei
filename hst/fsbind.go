@@ -16,22 +16,23 @@ const FilesystemBind = "bind"
 
 // FSBind represents a host to container bind mount.
 type FSBind struct {
-	// mount point in container, same as Source if empty
+	// Pathname in the container mount namespace. Same as Source if nil.
 	Target *check.Absolute `json:"dst,omitempty"`
-	// host filesystem path to make available to the container
+	// Pathname in the init mount namespace. Must not be nil.
 	Source *check.Absolute `json:"src"`
-	// do not mount Target read-only
+	// Do not remount Target read-only.
+	// This has no effect if Source is mounted read-only in the init mount namespace.
 	Write bool `json:"write,omitempty"`
-	// do not disable device files on Target, implies Write
+	// Allow access to devices (special files) on Target, implies Write.
 	Device bool `json:"dev,omitempty"`
-	// create Source as a directory if it does not exist
+	// Create Source as a directory in the init mount namespace if it does not exist.
 	Ensure bool `json:"ensure,omitempty"`
-	// skip this mount point if Source does not exist
+	// Silently skip this mount point if Source does not exist in the init mount namespace.
 	Optional bool `json:"optional,omitempty"`
 
-	// enable special behaviour:
-	// for autoroot, Target must be set to [fhs.AbsRoot];
-	// for autoetc, Target must be set to [fhs.AbsEtc]
+	/* Enable special behaviour:
+	For autoroot: Target must be [fhs.Root].
+	For autoetc:  Target must be [fhs.Etc]. */
 	Special bool `json:"special,omitempty"`
 }
 

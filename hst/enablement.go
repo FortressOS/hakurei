@@ -11,14 +11,20 @@ import (
 type Enablement byte
 
 const (
+	// EWayland exposes a wayland pathname socket via security-context-v1.
 	EWayland Enablement = 1 << iota
+	// EX11 adds the target user via X11 ChangeHosts and exposes the X11 pathname socket.
 	EX11
+	// EDBus enables the per-container xdg-dbus-proxy daemon.
 	EDBus
+	// EPulse copies the PulseAudio cookie to [hst.PrivateTmp] and exposes the PulseAudio socket.
 	EPulse
 
+	// EM is a noop.
 	EM
 )
 
+// String returns a string representation of the flags set on [Enablement].
 func (e Enablement) String() string {
 	switch e {
 	case 0:
@@ -51,16 +57,16 @@ func (e Enablement) String() string {
 // NewEnablements returns the address of [Enablement] as [Enablements].
 func NewEnablements(e Enablement) *Enablements { return (*Enablements)(&e) }
 
-// enablementsJSON is the [json] representation of the [Enablement] bit field.
-type enablementsJSON struct {
+// Enablements is the [json] adapter for [Enablement].
+type Enablements Enablement
+
+// enablementsJSON is the [json] representation of [Enablements].
+type enablementsJSON = struct {
 	Wayland bool `json:"wayland,omitempty"`
 	X11     bool `json:"x11,omitempty"`
 	DBus    bool `json:"dbus,omitempty"`
 	Pulse   bool `json:"pulse,omitempty"`
 }
-
-// Enablements is the [json] adapter for [Enablement].
-type Enablements Enablement
 
 // Unwrap returns the underlying [Enablement].
 func (e *Enablements) Unwrap() Enablement {

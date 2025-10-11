@@ -14,11 +14,11 @@ const FilesystemLink = "link"
 
 // FSLink represents a symlink in the container filesystem.
 type FSLink struct {
-	// link path in container
+	// Pathname in the container mount namespace.
 	Target *check.Absolute `json:"dst"`
-	// linkname the symlink points to
+	// Arbitrary linkname value store in the symlink.
 	Linkname string `json:"linkname"`
-	// whether to dereference linkname before creating the link
+	// Whether to treat Linkname as an absolute pathname and dereference before creating the link.
 	Dereference bool `json:"dereference,omitempty"`
 }
 

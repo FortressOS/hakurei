@@ -15,13 +15,13 @@ const FilesystemEphemeral = "ephemeral"
 
 // FSEphemeral represents an ephemeral container mount point.
 type FSEphemeral struct {
-	// mount point in container
-	Target *check.Absolute `json:"dst,omitempty"`
-	// do not mount filesystem read-only
+	// Pathname in the container mount namespace.
+	Target *check.Absolute `json:"dst"`
+	// Do not mount filesystem read-only.
 	Write bool `json:"write,omitempty"`
-	// upper limit on the size of the filesystem
+	// Upper limit on the size of the filesystem.
 	Size int `json:"size,omitempty"`
-	// initial permission bits of the new filesystem
+	// Initial permission bits of the new filesystem.
 	Perm os.FileMode `json:"perm,omitempty"`
 }
 

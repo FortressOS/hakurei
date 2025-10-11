@@ -47,17 +47,16 @@ type Ops interface {
 	Etc(host *check.Absolute, prefix string) Ops
 }
 
-// ApplyState holds the address of [container.Ops] and any relevant application state.
+// ApplyState holds the address of [Ops] and any relevant application state.
 type ApplyState struct {
-	// AutoEtcPrefix is the prefix for [container.AutoEtcOp].
+	// AutoEtcPrefix is the prefix for [FSBind] in autoetc [FSBind.Special] condition.
 	AutoEtcPrefix string
 
 	Ops
 }
 
-var (
-	ErrFSNull = errors.New("unexpected null in mount point")
-)
+// ErrFSNull is returned by [json] on encountering a null [FilesystemConfig] value.
+var ErrFSNull = errors.New("unexpected null in mount point")
 
 // FSTypeError is returned when [ContainerConfig.Filesystem] contains an entry with invalid type.
 type FSTypeError string
@@ -90,7 +89,7 @@ func (f *FilesystemConfigJSON) Valid() bool {
 	return f != nil && f.FilesystemConfig != nil && f.FilesystemConfig.Valid()
 }
 
-// fsType holds the string representation of a [FilesystemConfig]'s concrete type.
+// fsType holds the string representation of the concrete type of [FilesystemConfig].
 type fsType struct {
 	Type string `json:"type"`
 }

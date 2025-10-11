@@ -14,14 +14,14 @@ const FilesystemOverlay = "overlay"
 
 // FSOverlay represents an overlay mount point.
 type FSOverlay struct {
-	// mount point in container
+	// Pathname in the container mount namespace.
 	Target *check.Absolute `json:"dst"`
 
-	// any filesystem, does not need to be on a writable filesystem, must not be nil
+	// Any filesystem, does not need to be on a writable filesystem, must not be nil.
 	Lower []*check.Absolute `json:"lower"`
-	// the upperdir is normally on a writable filesystem, leave as nil to mount Lower readonly
+	// The upperdir is normally on a writable filesystem, leave as nil to mount Lower readonly.
 	Upper *check.Absolute `json:"upper,omitempty"`
-	// the workdir needs to be an empty directory on the same filesystem as Upper, must not be nil if Upper is populated
+	// The workdir needs to be an empty directory on the same filesystem as Upper, must not be nil if Upper is populated.
 	Work *check.Absolute `json:"work,omitempty"`
 }
 
