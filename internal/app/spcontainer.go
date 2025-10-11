@@ -139,7 +139,12 @@ func (s *spFilesystemOp) toSystem(state *outcomeStateSys) error {
 		varRunNscd,
 	}
 
-	_, systemBusAddr := dbus.Address()
+	// dbus.Address does not go through syscallDispatcher
+	systemBusAddr := dbus.FallbackSystemBusAddress
+	if addr, ok := state.k.lookupEnv(dbus.SystemBusAddress); ok {
+		systemBusAddr = addr
+	}
+
 	if entries, err := dbus.Parse([]byte(systemBusAddr)); err != nil {
 		return &hst.AppError{Step: "parse dbus address", Err: err}
 	} else {

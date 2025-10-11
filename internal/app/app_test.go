@@ -581,6 +581,8 @@ func (k *stubNixOS) lookupEnv(key string) (string, bool) {
 		return "/run/user/1971", true
 	case "XDG_CONFIG_HOME":
 		return "/home/ophestra/xdg/config", true
+	case "DBUS_SYSTEM_BUS_ADDRESS":
+		return "", false
 	default:
 		panic(fmt.Sprintf("attempted to access unexpected environment variable %q", key))
 	}
