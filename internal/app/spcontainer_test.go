@@ -1,17 +1,21 @@
 package app
 
 import (
+	"errors"
 	"maps"
 	"os"
 	"reflect"
+	"syscall"
 	"testing"
 
 	"hakurei.app/container"
 	"hakurei.app/container/bits"
+	"hakurei.app/container/check"
 	"hakurei.app/container/fhs"
 	"hakurei.app/container/seccomp"
 	"hakurei.app/container/stub"
 	"hakurei.app/hst"
+	"hakurei.app/system/dbus"
 )
 
 func TestSpParamsOp(t *testing.T) {
@@ -126,7 +130,6 @@ func TestSpParamsOp(t *testing.T) {
 				t.Errorf("toContainer: env = %#v, want %#v", state.env, wantEnv)
 			}
 
-			const wantAutoEtcPrefix = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 			if state.as.AutoEtcPrefix != wantAutoEtcPrefix {
 				t.Errorf("toContainer: as.AutoEtcPrefix = %q, want %q", state.as.AutoEtcPrefix, wantAutoEtcPrefix)
 			}
@@ -138,3 +141,286 @@ func TestSpParamsOp(t *testing.T) {
 		}, nil},
 	})
 }
+
+func TestSpFilesystemOp(t *testing.T) {
+	const nePrefix = container.Nonexistent + "/eval"
+	var stubDebianRoot = stubDir("bin", "dev", "etc", "home", "lib64", "lost+found",
+		"mnt", "nix", "proc", "root", "run", "srv", "sys", "tmp", "usr", "var")
+	config := hst.Template()
+
+	newConfigSmall := func() *hst.Config {
+		c := hst.Template()
+		c.Container.Filesystem = []hst.FilesystemConfigJSON{
+			{FilesystemConfig: &hst.FSBind{Target: fhs.AbsEtc, Source: fhs.AbsEtc, Special: true}},
+			{FilesystemConfig: &hst.FSOverlay{Target: m("/nix/store"), Lower: []*check.Absolute{
+				fhs.AbsVarLib.Append("hakurei/base/org.nixos/.ro-store"),
+				fhs.AbsVarLib.Append("hakurei/base/org.nixos/org.chromium.Chromium"),
+			}}},
+			{FilesystemConfig: &hst.FSEphemeral{Target: hst.AbsPrivateTmp}},
+		}
+		c.Container.Device = false
+		return c
+	}
+	configSmall := newConfigSmall()
+
+	checkOpBehaviour(t, []opBehaviourTestCase{
+		{"readdir", func(bool, bool) outcomeOp {
+			return new(spFilesystemOp)
+		}, hst.Template, nil, []stub.Call{
+			call("lookupEnv", stub.ExpectArgs{dbus.SystemBusAddress}, nil, nil),
+			call("evalSymlinks", stub.ExpectArgs{container.Nonexistent + "/xdg_runtime_dir"}, nePrefix+"/xdg_runtime_dir", nil),
+			call("evalSymlinks", stub.ExpectArgs{container.Nonexistent + "/tmp/hakurei.0"}, nePrefix+"/tmp/hakurei.0", nil),
+			call("evalSymlinks", stub.ExpectArgs{"/var/run/nscd"}, "", &os.PathError{Op: "lstat", Path: "/var/run/nscd", Err: os.ErrNotExist}),
+			call("verbosef", stub.ExpectArgs{"path %q does not yet exist", []any{"/var/run/nscd"}}, nil, nil),
+			call("evalSymlinks", stub.ExpectArgs{"/var/run/dbus"}, nePrefix+"/run/dbus", nil),
+			call("readdir", stub.ExpectArgs{"/var/lib/hakurei/base/org.debian"}, []os.DirEntry{}, stub.UniqueError(2)),
+		}, nil, nil, &hst.AppError{
+			Step: "access autoroot source",
+			Err:  stub.UniqueError(2),
+		}, nil, nil, nil, nil, nil},
+
+		{"invalid dbus address", func(bool, bool) outcomeOp { return new(spFilesystemOp) }, func() *hst.Config {
+			c := newConfigSmall()
+			c.Container.Filesystem = append(c.Container.Filesystem, hst.FilesystemConfigJSON{FilesystemConfig: invalidFSHost(false)})
+			return c
+		}, nil, []stub.Call{
+			call("lookupEnv", stub.ExpectArgs{dbus.SystemBusAddress}, "invalid", nil),
+		}, nil, nil, &hst.AppError{
+			Step: "parse dbus address",
+			Err: &dbus.BadAddressError{
+				Type:     dbus.ErrNoColon,
+				EntryVal: []byte("invalid"),
+				PairPos:  -1,
+			},
+		}, nil, nil, nil, nil, nil},
+
+		{"invalid fs early", func(bool, bool) outcomeOp { return new(spFilesystemOp) }, func() *hst.Config {
+			c := newConfigSmall()
+			c.Container.Filesystem = append(c.Container.Filesystem, hst.FilesystemConfigJSON{FilesystemConfig: invalidFSHost(false)})
+			return c
+		}, nil, []stub.Call{
+			call("lookupEnv", stub.ExpectArgs{dbus.SystemBusAddress}, "invalid:meow=0;unix:path=/system_bus_socket;unix:path=system_bus_socket", nil),
+			call("verbosef", stub.ExpectArgs{"dbus socket %q is in an unusual location", []any{"/system_bus_socket"}}, nil, nil),
+			call("verbosef", stub.ExpectArgs{"dbus socket %q is not absolute", []any{"system_bus_socket"}}, nil, nil),
+			call("evalSymlinks", stub.ExpectArgs{container.Nonexistent + "/xdg_runtime_dir"}, nePrefix+"/xdg_runtime_dir", nil),
+			call("evalSymlinks", stub.ExpectArgs{container.Nonexistent + "/tmp/hakurei.0"}, nePrefix+"/tmp/hakurei.0", nil),
+			call("evalSymlinks", stub.ExpectArgs{"/var/run/nscd"}, "", &os.PathError{Op: "lstat", Path: "/var/run/nscd", Err: os.ErrNotExist}),
+			call("verbosef", stub.ExpectArgs{"path %q does not yet exist", []any{"/var/run/nscd"}}, nil, nil),
+			call("evalSymlinks", stub.ExpectArgs{"/"}, nePrefix+"/etc/dbus", nil), // to match hidePaths
+		}, nil, nil, &hst.AppError{
+			Step: "finalise",
+			Err:  os.ErrInvalid,
+			Msg:  "invalid filesystem at index 3",
+		}, nil, nil, nil, nil, nil},
+
+		{"evalSymlinks early", func(bool, bool) outcomeOp { return new(spFilesystemOp) }, newConfigSmall, nil, []stub.Call{
+			call("lookupEnv", stub.ExpectArgs{dbus.SystemBusAddress}, "invalid:meow=0;unix:path=/system_bus_socket;unix:path=system_bus_socket", nil),
+			call("verbosef", stub.ExpectArgs{"dbus socket %q is in an unusual location", []any{"/system_bus_socket"}}, nil, nil),
+			call("verbosef", stub.ExpectArgs{"dbus socket %q is not absolute", []any{"system_bus_socket"}}, nil, nil),
+			call("evalSymlinks", stub.ExpectArgs{container.Nonexistent + "/xdg_runtime_dir"}, "", stub.UniqueError(0)),
+		}, nil, nil, &hst.AppError{
+			Step: "evaluate path hiding target",
+			Err:  stub.UniqueError(0),
+		}, nil, nil, nil, nil, nil},
+
+		{"host nil abs", func(bool, bool) outcomeOp { return new(spFilesystemOp) }, func() *hst.Config {
+			c := newConfigSmall()
+			c.Container.Filesystem = append(c.Container.Filesystem, hst.FilesystemConfigJSON{FilesystemConfig: invalidFSHost(true)})
+			return c
+		}, nil, []stub.Call{
+			call("lookupEnv", stub.ExpectArgs{dbus.SystemBusAddress}, "invalid:meow=0;unix:path=/system_bus_socket;unix:path=system_bus_socket", nil),
+			call("verbosef", stub.ExpectArgs{"dbus socket %q is in an unusual location", []any{"/system_bus_socket"}}, nil, nil),
+			call("verbosef", stub.ExpectArgs{"dbus socket %q is not absolute", []any{"system_bus_socket"}}, nil, nil),
+			call("evalSymlinks", stub.ExpectArgs{container.Nonexistent + "/xdg_runtime_dir"}, nePrefix+"/xdg_runtime_dir", nil),
+			call("evalSymlinks", stub.ExpectArgs{container.Nonexistent + "/tmp/hakurei.0"}, nePrefix+"/tmp/hakurei.0", nil),
+			call("evalSymlinks", stub.ExpectArgs{"/var/run/nscd"}, "", &os.PathError{Op: "lstat", Path: "/var/run/nscd", Err: os.ErrNotExist}),
+			call("verbosef", stub.ExpectArgs{"path %q does not yet exist", []any{"/var/run/nscd"}}, nil, nil),
+			call("evalSymlinks", stub.ExpectArgs{"/"}, nePrefix+"/etc/dbus", nil), // to match hidePaths
+			call("evalSymlinks", stub.ExpectArgs{"/etc/"}, nePrefix+"/etc", nil),
+			call("evalSymlinks", stub.ExpectArgs{"/var/lib/hakurei/base/org.nixos/.ro-store"}, nePrefix+"/var/lib/hakurei/base/org.nixos/.ro-store", nil),
+			call("evalSymlinks", stub.ExpectArgs{"/var/lib/hakurei/base/org.nixos/org.chromium.Chromium"}, "var/lib/hakurei/base/org.nixos/org.chromium.Chromium", nil),
+		}, nil, nil, &hst.AppError{
+			Step: "finalise",
+			Err:  os.ErrInvalid,
+			Msg:  "impossible path hiding state reached",
+		}, nil, nil, nil, nil, nil},
+
+		{"evalSymlinks late", func(bool, bool) outcomeOp { return new(spFilesystemOp) }, newConfigSmall, nil, []stub.Call{
+			call("lookupEnv", stub.ExpectArgs{dbus.SystemBusAddress}, "invalid:meow=0;unix:path=/system_bus_socket;unix:path=system_bus_socket", nil),
+			call("verbosef", stub.ExpectArgs{"dbus socket %q is in an unusual location", []any{"/system_bus_socket"}}, nil, nil),
+			call("verbosef", stub.ExpectArgs{"dbus socket %q is not absolute", []any{"system_bus_socket"}}, nil, nil),
+			call("evalSymlinks", stub.ExpectArgs{container.Nonexistent + "/xdg_runtime_dir"}, nePrefix+"/xdg_runtime_dir", nil),
+			call("evalSymlinks", stub.ExpectArgs{container.Nonexistent + "/tmp/hakurei.0"}, nePrefix+"/tmp/hakurei.0", nil),
+			call("evalSymlinks", stub.ExpectArgs{"/var/run/nscd"}, "", &os.PathError{Op: "lstat", Path: "/var/run/nscd", Err: os.ErrNotExist}),
+			call("verbosef", stub.ExpectArgs{"path %q does not yet exist", []any{"/var/run/nscd"}}, nil, nil),
+			call("evalSymlinks", stub.ExpectArgs{"/"}, nePrefix+"/etc/dbus", nil), // to match hidePaths
+			call("evalSymlinks", stub.ExpectArgs{"/etc/"}, nePrefix+"/etc", stub.UniqueError(1)),
+		}, nil, nil, &hst.AppError{
+			Step: "evaluate path hiding source",
+			Err:  stub.UniqueError(1),
+		}, nil, nil, nil, nil, nil},
+
+		{"invalid contains", func(bool, bool) outcomeOp { return new(spFilesystemOp) }, newConfigSmall, nil, []stub.Call{
+			call("lookupEnv", stub.ExpectArgs{dbus.SystemBusAddress}, "invalid:meow=0;unix:path=/system_bus_socket;unix:path=system_bus_socket", nil),
+			call("verbosef", stub.ExpectArgs{"dbus socket %q is in an unusual location", []any{"/system_bus_socket"}}, nil, nil),
+			call("verbosef", stub.ExpectArgs{"dbus socket %q is not absolute", []any{"system_bus_socket"}}, nil, nil),
+			call("evalSymlinks", stub.ExpectArgs{container.Nonexistent + "/xdg_runtime_dir"}, nePrefix+"/xdg_runtime_dir", nil),
+			call("evalSymlinks", stub.ExpectArgs{container.Nonexistent + "/tmp/hakurei.0"}, nePrefix+"/tmp/hakurei.0", nil),
+			call("evalSymlinks", stub.ExpectArgs{"/var/run/nscd"}, "", &os.PathError{Op: "lstat", Path: "/var/run/nscd", Err: os.ErrNotExist}),
+			call("verbosef", stub.ExpectArgs{"path %q does not yet exist", []any{"/var/run/nscd"}}, nil, nil),
+			call("evalSymlinks", stub.ExpectArgs{"/"}, nePrefix+"/etc/dbus", nil), // to match hidePaths
+			call("evalSymlinks", stub.ExpectArgs{"/etc/"}, nePrefix+"/etc", nil),
+			call("evalSymlinks", stub.ExpectArgs{"/var/lib/hakurei/base/org.nixos/.ro-store"}, nePrefix+"/var/lib/hakurei/base/org.nixos/.ro-store", nil),
+			call("evalSymlinks", stub.ExpectArgs{"/var/lib/hakurei/base/org.nixos/org.chromium.Chromium"}, "var/lib/hakurei/base/org.nixos/org.chromium.Chromium", nil),
+			call("verbosef", stub.ExpectArgs{"hiding path %q from %q", []any{"/proc/nonexistent/eval/etc/dbus", "/etc/"}}, nil, nil),
+		}, nil, nil, &hst.AppError{
+			Step: "determine path hiding outcome",
+			Err:  errors.New("Rel: can't make /proc/nonexistent/eval/xdg_runtime_dir relative to var/lib/hakurei/base/org.nixos/org.chromium.Chromium"),
+		}, nil, nil, nil, nil, nil},
+
+		{"invalid hide", func(bool, bool) outcomeOp { return new(spFilesystemOp) }, newConfigSmall, nil, []stub.Call{
+			call("lookupEnv", stub.ExpectArgs{dbus.SystemBusAddress}, "invalid:meow=0;unix:path=/system_bus_socket;unix:path=system_bus_socket", nil),
+			call("verbosef", stub.ExpectArgs{"dbus socket %q is in an unusual location", []any{"/system_bus_socket"}}, nil, nil),
+			call("verbosef", stub.ExpectArgs{"dbus socket %q is not absolute", []any{"system_bus_socket"}}, nil, nil),
+			call("evalSymlinks", stub.ExpectArgs{container.Nonexistent + "/xdg_runtime_dir"}, "xdg_runtime_dir", nil),
+			call("evalSymlinks", stub.ExpectArgs{container.Nonexistent + "/tmp/hakurei.0"}, "tmp/hakurei.0", nil),
+			call("evalSymlinks", stub.ExpectArgs{"/var/run/nscd"}, "nscd", nil),
+			call("evalSymlinks", stub.ExpectArgs{"/"}, "nonexistent/dbus", nil),
+			call("evalSymlinks", stub.ExpectArgs{"/etc/"}, "nonexistent", nil),
+			call("evalSymlinks", stub.ExpectArgs{"/var/lib/hakurei/base/org.nixos/.ro-store"}, ".ro-store", nil),
+			call("evalSymlinks", stub.ExpectArgs{"/var/lib/hakurei/base/org.nixos/org.chromium.Chromium"}, "org.chromium.Chromium", nil),
+			call("verbosef", stub.ExpectArgs{"hiding path %q from %q", []any{"nonexistent/dbus", "/etc/"}}, nil, nil),
+		}, nil, nil, &hst.AppError{
+			Step: "finalise",
+			Err:  os.ErrInvalid,
+			Msg:  `invalid path hiding candidate "nonexistent/dbus"`,
+		}, nil, nil, nil, nil, nil},
+
+		{"invalid fs", func(isShim, clearUnexported bool) outcomeOp {
+			if !isShim {
+				return new(spFilesystemOp)
+			}
+			return &spFilesystemOp{HidePaths: []*check.Absolute{m("/proc/nonexistent/eval/etc/dbus")}}
+		}, newConfigSmall, nil, []stub.Call{
+			call("lookupEnv", stub.ExpectArgs{dbus.SystemBusAddress}, "invalid:meow=0;unix:path=/system_bus_socket;unix:path=system_bus_socket", nil),
+			call("verbosef", stub.ExpectArgs{"dbus socket %q is in an unusual location", []any{"/system_bus_socket"}}, nil, nil),
+			call("verbosef", stub.ExpectArgs{"dbus socket %q is not absolute", []any{"system_bus_socket"}}, nil, nil),
+			call("evalSymlinks", stub.ExpectArgs{container.Nonexistent + "/xdg_runtime_dir"}, nePrefix+"/xdg_runtime_dir", nil),
+			call("evalSymlinks", stub.ExpectArgs{container.Nonexistent + "/tmp/hakurei.0"}, nePrefix+"/tmp/hakurei.0", nil),
+			call("evalSymlinks", stub.ExpectArgs{"/var/run/nscd"}, "", &os.PathError{Op: "lstat", Path: "/var/run/nscd", Err: os.ErrNotExist}),
+			call("verbosef", stub.ExpectArgs{"path %q does not yet exist", []any{"/var/run/nscd"}}, nil, nil),
+			call("evalSymlinks", stub.ExpectArgs{"/"}, nePrefix+"/etc/dbus", nil), // to match hidePaths
+			call("evalSymlinks", stub.ExpectArgs{"/etc/"}, nePrefix+"/etc", nil),
+			call("evalSymlinks", stub.ExpectArgs{"/var/lib/hakurei/base/org.nixos/.ro-store"}, nePrefix+"/var/lib/hakurei/base/org.nixos/.ro-store", nil),
+			call("evalSymlinks", stub.ExpectArgs{"/var/lib/hakurei/base/org.nixos/org.chromium.Chromium"}, nePrefix+"/var/lib/hakurei/base/org.nixos/org.chromium.Chromium", nil),
+			call("verbosef", stub.ExpectArgs{"hiding path %q from %q", []any{"/proc/nonexistent/eval/etc/dbus", "/etc/"}}, nil, nil),
+		}, newI(), nil, nil, func(state *outcomeStateParams) {
+			state.filesystem = configSmall.Container.Filesystem
+			state.params.Ops = new(container.Ops)
+			state.as = hst.ApplyState{AutoEtcPrefix: wantAutoEtcPrefix, Ops: opsAdapter{state.params.Ops}}
+			state.filesystem = append(state.filesystem, hst.FilesystemConfigJSON{})
+		}, []stub.Call{
+			// this op configures the container state and does not make calls during toContainer
+		}, nil, nil, &hst.AppError{
+			Step: "finalise",
+			Err:  os.ErrInvalid,
+			Msg:  "invalid filesystem at index 3",
+		}},
+
+		{"success noroot nodev envdbus strangedbus dbusnotabs hide", func(isShim, clearUnexported bool) outcomeOp {
+			if !isShim {
+				return new(spFilesystemOp)
+			}
+			return &spFilesystemOp{HidePaths: []*check.Absolute{m("/proc/nonexistent/eval/etc/dbus")}}
+		}, newConfigSmall, nil, []stub.Call{
+			call("lookupEnv", stub.ExpectArgs{dbus.SystemBusAddress}, "invalid:meow=0;unix:path=/system_bus_socket;unix:path=system_bus_socket", nil),
+			call("verbosef", stub.ExpectArgs{"dbus socket %q is in an unusual location", []any{"/system_bus_socket"}}, nil, nil),
+			call("verbosef", stub.ExpectArgs{"dbus socket %q is not absolute", []any{"system_bus_socket"}}, nil, nil),
+			call("evalSymlinks", stub.ExpectArgs{container.Nonexistent + "/xdg_runtime_dir"}, nePrefix+"/xdg_runtime_dir", nil),
+			call("evalSymlinks", stub.ExpectArgs{container.Nonexistent + "/tmp/hakurei.0"}, nePrefix+"/tmp/hakurei.0", nil),
+			call("evalSymlinks", stub.ExpectArgs{"/var/run/nscd"}, "", &os.PathError{Op: "lstat", Path: "/var/run/nscd", Err: os.ErrNotExist}),
+			call("verbosef", stub.ExpectArgs{"path %q does not yet exist", []any{"/var/run/nscd"}}, nil, nil),
+			call("evalSymlinks", stub.ExpectArgs{"/"}, nePrefix+"/etc/dbus", nil), // to match hidePaths
+			call("evalSymlinks", stub.ExpectArgs{"/etc/"}, nePrefix+"/etc", nil),
+			call("evalSymlinks", stub.ExpectArgs{"/var/lib/hakurei/base/org.nixos/.ro-store"}, nePrefix+"/var/lib/hakurei/base/org.nixos/.ro-store", nil),
+			call("evalSymlinks", stub.ExpectArgs{"/var/lib/hakurei/base/org.nixos/org.chromium.Chromium"}, nePrefix+"/var/lib/hakurei/base/org.nixos/org.chromium.Chromium", nil),
+			call("verbosef", stub.ExpectArgs{"hiding path %q from %q", []any{"/proc/nonexistent/eval/etc/dbus", "/etc/"}}, nil, nil),
+		}, newI(), nil, nil, func(state *outcomeStateParams) {
+			state.filesystem = configSmall.Container.Filesystem
+			state.params.Ops = new(container.Ops)
+			state.as = hst.ApplyState{AutoEtcPrefix: wantAutoEtcPrefix, Ops: opsAdapter{state.params.Ops}}
+		}, []stub.Call{
+			// this op configures the container state and does not make calls during toContainer
+		}, &container.Params{
+			Ops: new(container.Ops).
+				Etc(fhs.AbsEtc, wantAutoEtcPrefix).
+				OverlayReadonly(
+					check.MustAbs("/nix/store"),
+					fhs.AbsVarLib.Append("hakurei/base/org.nixos/.ro-store"),
+					fhs.AbsVarLib.Append("hakurei/base/org.nixos/org.chromium.Chromium")).
+				Readonly(hst.AbsPrivateTmp, 0755).
+				Tmpfs(m("/proc/nonexistent/eval/etc/dbus"), 1<<13, 0755).
+				Remount(fhs.AbsDev, syscall.MS_RDONLY),
+		}, nil, nil},
+
+		{"success", func(bool, bool) outcomeOp {
+			return new(spFilesystemOp)
+		}, hst.Template, nil, []stub.Call{
+			call("lookupEnv", stub.ExpectArgs{dbus.SystemBusAddress}, nil, nil),
+			call("evalSymlinks", stub.ExpectArgs{container.Nonexistent + "/xdg_runtime_dir"}, nePrefix+"/xdg_runtime_dir", nil),
+			call("evalSymlinks", stub.ExpectArgs{container.Nonexistent + "/tmp/hakurei.0"}, nePrefix+"/tmp/hakurei.0", nil),
+			call("evalSymlinks", stub.ExpectArgs{"/var/run/nscd"}, "", &os.PathError{Op: "lstat", Path: "/var/run/nscd", Err: os.ErrNotExist}),
+			call("verbosef", stub.ExpectArgs{"path %q does not yet exist", []any{"/var/run/nscd"}}, nil, nil),
+			call("evalSymlinks", stub.ExpectArgs{"/var/run/dbus"}, nePrefix+"/run/dbus", nil),
+			call("readdir", stub.ExpectArgs{"/var/lib/hakurei/base/org.debian"}, stubDebianRoot, nil),
+			call("evalSymlinks", stub.ExpectArgs{"/etc/"}, nePrefix+"/etc", nil),
+			call("evalSymlinks", stub.ExpectArgs{"/var/lib/hakurei/nix/u0/org.chromium.Chromium/rw-store/upper"}, nePrefix+"/var/lib/hakurei/nix/u0/org.chromium.Chromium/rw-store/upper", nil),
+			call("evalSymlinks", stub.ExpectArgs{"/var/lib/hakurei/nix/u0/org.chromium.Chromium/rw-store/work"}, nePrefix+"/var/lib/hakurei/nix/u0/org.chromium.Chromium/rw-store/work", nil),
+			call("evalSymlinks", stub.ExpectArgs{"/var/lib/hakurei/base/org.nixos/ro-store"}, nePrefix+"/var/lib/hakurei/base/org.nixos/ro-store", nil),
+			call("evalSymlinks", stub.ExpectArgs{"/var/lib/hakurei/u0/org.chromium.Chromium"}, nePrefix+"/var/lib/hakurei/u0/org.chromium.Chromium", nil),
+			call("evalSymlinks", stub.ExpectArgs{"/dev/dri"}, nePrefix+"/dev/dri", nil),
+			call("evalSymlinks", stub.ExpectArgs{"/var/lib/hakurei/base/org.debian/bin"}, nePrefix+"/var/lib/hakurei/base/org.debian/bin", nil),
+			call("evalSymlinks", stub.ExpectArgs{"/var/lib/hakurei/base/org.debian/home"}, nePrefix+"/var/lib/hakurei/base/org.debian/home", nil),
+			call("evalSymlinks", stub.ExpectArgs{"/var/lib/hakurei/base/org.debian/lib64"}, nePrefix+"/var/lib/hakurei/base/org.debian/lib64", nil),
+			call("evalSymlinks", stub.ExpectArgs{"/var/lib/hakurei/base/org.debian/lost+found"}, nePrefix+"/var/lib/hakurei/base/org.debian/lost+found", nil),
+			call("evalSymlinks", stub.ExpectArgs{"/var/lib/hakurei/base/org.debian/nix"}, nePrefix+"/var/lib/hakurei/base/org.debian/nix", nil),
+			call("evalSymlinks", stub.ExpectArgs{"/var/lib/hakurei/base/org.debian/root"}, nePrefix+"/var/lib/hakurei/base/org.debian/root", nil),
+			call("evalSymlinks", stub.ExpectArgs{"/var/lib/hakurei/base/org.debian/run"}, nePrefix+"/var/lib/hakurei/base/org.debian/run", nil),
+			call("evalSymlinks", stub.ExpectArgs{"/var/lib/hakurei/base/org.debian/srv"}, nePrefix+"/var/lib/hakurei/base/org.debian/srv", nil),
+			call("evalSymlinks", stub.ExpectArgs{"/var/lib/hakurei/base/org.debian/sys"}, nePrefix+"/var/lib/hakurei/base/org.debian/sys", nil),
+			call("evalSymlinks", stub.ExpectArgs{"/var/lib/hakurei/base/org.debian/usr"}, nePrefix+"/var/lib/hakurei/base/org.debian/usr", nil),
+			call("evalSymlinks", stub.ExpectArgs{"/var/lib/hakurei/base/org.debian/var"}, nePrefix+"/var/lib/hakurei/base/org.debian/var", nil),
+		}, newI(), nil, nil, func(state *outcomeStateParams) {
+			state.filesystem = config.Container.Filesystem[1:]
+			state.params.Ops = new(container.Ops)
+			state.as = hst.ApplyState{AutoEtcPrefix: wantAutoEtcPrefix, Ops: opsAdapter{state.params.Ops}}
+		}, []stub.Call{
+			// this op configures the container state and does not make calls during toContainer
+		}, &container.Params{
+			Ops: new(container.Ops).
+				Etc(fhs.AbsEtc, wantAutoEtcPrefix).
+				Tmpfs(fhs.AbsTmp, 0, 0755).
+				Overlay(
+					check.MustAbs("/nix/store"),
+					fhs.AbsVarLib.Append("hakurei/nix/u0/org.chromium.Chromium/rw-store/upper"),
+					fhs.AbsVarLib.Append("hakurei/nix/u0/org.chromium.Chromium/rw-store/work"),
+					fhs.AbsVarLib.Append("hakurei/base/org.nixos/ro-store")).
+				Link(fhs.AbsRun.Append("current-system"), "/run/current-system", true).
+				Link(fhs.AbsRun.Append("opengl-driver"), "/run/opengl-driver", true).
+				Bind(
+					fhs.AbsVarLib.Append("hakurei/u0/org.chromium.Chromium"),
+					check.MustAbs("/data/data/org.chromium.Chromium"),
+					bits.BindWritable|bits.BindEnsure).
+				Bind(fhs.AbsDev.Append("dri"), fhs.AbsDev.Append("dri"), bits.BindDevice|bits.BindWritable|bits.BindOptional),
+		}, nil, nil},
+	})
+}
+
+// invalidFSHost implements the Host method of [hst.FilesystemConfig] with an invalid response.
+type invalidFSHost bool
+
+func (f invalidFSHost) Valid() bool           { return bool(f) }
+func (invalidFSHost) Path() *check.Absolute   { panic("unreachable") }
+func (invalidFSHost) Host() []*check.Absolute { return []*check.Absolute{nil} }
+func (invalidFSHost) Apply(z *hst.ApplyState) { panic("unreachable") }
+func (invalidFSHost) String() string          { panic("unreachable") }

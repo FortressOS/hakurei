@@ -2,6 +2,7 @@ package app
 
 import (
 	"bytes"
+	"io/fs"
 	"log"
 	"os"
 	"os/exec"
@@ -27,6 +28,9 @@ func call(name string, args stub.ExpectArgs, ret any, err error) stub.Call {
 
 // checkExpectUid is the uid value used by checkOpBehaviour to initialise [system.I].
 const checkExpectUid = 0xcafebabe
+
+// wantAutoEtcPrefix is the autoetc prefix corresponding to checkExpectInstanceId.
+const wantAutoEtcPrefix = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 
 // checkExpectInstanceId is the [state.ID] value used by checkOpBehaviour to initialise outcomeState.
 var checkExpectInstanceId = *(*state.ID)(bytes.Repeat([]byte{0xaa}, len(state.ID{})))
@@ -99,7 +103,7 @@ func checkOpBehaviour(t *testing.T, testCases []opBehaviourTestCase) {
 				op := tc.newOp(false, true)
 
 				if err := op.toSystem(stateSys); !reflect.DeepEqual(err, tc.wantErrSystem) {
-					t.Errorf("toSystem: error = %v, want %v", err, tc.wantErrSystem)
+					t.Fatalf("toSystem: error = %#v, want %#v", err, tc.wantErrSystem)
 				}
 				k.Expects(stub.CallSeparator)
 				if !reflect.DeepEqual(config, wantConfig) {
@@ -134,7 +138,7 @@ func checkOpBehaviour(t *testing.T, testCases []opBehaviourTestCase) {
 				op := tc.newOp(true, true)
 
 				if err := op.toContainer(stateParams); !reflect.DeepEqual(err, tc.wantErrContainer) {
-					t.Errorf("toContainer: error = %v, want %v", err, tc.wantErrContainer)
+					t.Fatalf("toContainer: error = %#v, want %#v", err, tc.wantErrContainer)
 				}
 
 				if tc.wantErrContainer != nil {
@@ -184,7 +188,19 @@ func (k *kstub) lookupEnv(key string) (string, bool) {
 	}
 	return expect.Ret.(string), true
 }
+func (k *kstub) readdir(name string) ([]os.DirEntry, error) {
+	k.Helper()
+	expect := k.Expects("readdir")
+	return expect.Ret.([]os.DirEntry), expect.Error(
+		stub.CheckArg(k.Stub, "name", name, 0))
+}
 func (k *kstub) tempdir() string { k.Helper(); return k.Expects("tempdir").Ret.(string) }
+func (k *kstub) evalSymlinks(path string) (string, error) {
+	k.Helper()
+	expect := k.Expects("evalSymlinks")
+	return expect.Ret.(string), expect.Error(
+		stub.CheckArg(k.Stub, "path", path, 0))
+}
 
 func (k *kstub) cmdOutput(cmd *exec.Cmd) ([]byte, error) {
 	k.Helper()
@@ -248,6 +264,23 @@ func (k *kstub) Verbosef(format string, v ...any) {
 func (k *kstub) Suspend() bool { k.Helper(); return k.Expects("suspend").Ret.(bool) }
 func (k *kstub) Resume() bool  { k.Helper(); return k.Expects("resume").Ret.(bool) }
 func (k *kstub) BeforeExit()   { k.Helper(); k.Expects("beforeExit") }
+
+// stubDir returns a slice of [os.DirEntry] with only their Name method implemented.
+func stubDir(names ...string) []os.DirEntry {
+	d := make([]os.DirEntry, len(names))
+	for i, name := range names {
+		d[i] = nameDentry(name)
+	}
+	return d
+}
+
+// nameDentry implements the Name method on [os.DirEntry].
+type nameDentry string
+
+func (e nameDentry) Name() string             { return string(e) }
+func (nameDentry) IsDir() bool                { panic("unreachable") }
+func (nameDentry) Type() fs.FileMode          { panic("unreachable") }
+func (nameDentry) Info() (fs.FileInfo, error) { panic("unreachable") }
 
 // panicMsgContext implements [message.Msg] and [context.Context] with methods wrapping panic.
 // This should be assigned to test cases to be checked against.

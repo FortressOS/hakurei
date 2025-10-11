@@ -252,14 +252,7 @@ func (s *spFilesystemOp) toSystem(state *outcomeStateSys) error {
 	for i, ok := range hidePathMatch {
 		if ok {
 			if a, err := check.NewAbs(hidePaths[i]); err != nil {
-				var absoluteError *check.AbsoluteError
-				if !errors.As(err, &absoluteError) {
-					return newWithMessageError(absoluteError.Error(), absoluteError)
-				}
-				if absoluteError == nil {
-					return newWithMessage("impossible path checking state reached")
-				}
-				return newWithMessage("invalid path hiding candidate " + strconv.Quote(absoluteError.Pathname))
+				return newWithMessage("invalid path hiding candidate " + strconv.Quote(hidePaths[i]))
 			} else {
 				s.HidePaths = append(s.HidePaths, a)
 			}
