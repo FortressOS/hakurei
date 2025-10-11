@@ -50,7 +50,6 @@ Filesystem
  autoetc:/etc/
  w+ephemeral(-rwxr-xr-x):/tmp/
  w*/nix/store:/var/lib/hakurei/nix/u0/org.chromium.Chromium/rw-store/upper:/var/lib/hakurei/nix/u0/org.chromium.Chromium/rw-store/work:/var/lib/hakurei/base/org.nixos/ro-store
- */nix/store
  /run/current-system@
  /run/opengl-driver@
  w-/var/lib/hakurei/u0/org.chromium.Chromium:/data/data/org.chromium.Chromium
@@ -131,7 +130,6 @@ Filesystem
  autoetc:/etc/
  w+ephemeral(-rwxr-xr-x):/tmp/
  w*/nix/store:/var/lib/hakurei/nix/u0/org.chromium.Chromium/rw-store/upper:/var/lib/hakurei/nix/u0/org.chromium.Chromium/rw-store/work:/var/lib/hakurei/base/org.nixos/ro-store
- */nix/store
  /run/current-system@
  /run/opengl-driver@
  w-/var/lib/hakurei/u0/org.chromium.Chromium:/data/data/org.chromium.Chromium
@@ -296,10 +294,6 @@ App
           "work": "/var/lib/hakurei/nix/u0/org.chromium.Chromium/rw-store/work"
         },
         {
-          "type": "bind",
-          "src": "/nix/store"
-        },
-        {
           "type": "link",
           "dst": "/run/current-system",
           "linkname": "/run/current-system",
@@ -448,10 +442,6 @@ App
         ],
         "upper": "/var/lib/hakurei/nix/u0/org.chromium.Chromium/rw-store/upper",
         "work": "/var/lib/hakurei/nix/u0/org.chromium.Chromium/rw-store/work"
-      },
-      {
-        "type": "bind",
-        "src": "/nix/store"
       },
       {
         "type": "link",
@@ -658,10 +648,6 @@ func TestPrintPs(t *testing.T) {
             ],
             "upper": "/var/lib/hakurei/nix/u0/org.chromium.Chromium/rw-store/upper",
             "work": "/var/lib/hakurei/nix/u0/org.chromium.Chromium/rw-store/work"
-          },
-          {
-            "type": "bind",
-            "src": "/nix/store"
           },
           {
             "type": "link",

@@ -121,7 +121,6 @@ func Template() *Config {
 					Upper:  fhs.AbsVarLib.Append("hakurei/nix/u0/org.chromium.Chromium/rw-store/upper"),
 					Work:   fhs.AbsVarLib.Append("hakurei/nix/u0/org.chromium.Chromium/rw-store/work"),
 				}},
-				{&FSBind{Source: check.MustAbs("/nix/store")}},
 				{&FSLink{Target: fhs.AbsRun.Append("current-system"), Linkname: "/run/current-system", Dereference: true}},
 				{&FSLink{Target: fhs.AbsRun.Append("opengl-driver"), Linkname: "/run/opengl-driver", Dereference: true}},
 				{&FSBind{Source: fhs.AbsVarLib.Append("hakurei/u0/org.chromium.Chromium"),

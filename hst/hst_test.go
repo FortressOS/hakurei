@@ -199,10 +199,6 @@ func TestTemplate(t *testing.T) {
 				"work": "/var/lib/hakurei/nix/u0/org.chromium.Chromium/rw-store/work"
 			},
 			{
-				"type": "bind",
-				"src": "/nix/store"
-			},
-			{
 				"type": "link",
 				"dst": "/run/current-system",
 				"linkname": "/run/current-system",
