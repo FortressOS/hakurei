@@ -250,7 +250,7 @@ func TestApp(t *testing.T) {
 				Args: []string{"zsh", "-c", "exec chromium "},
 				Env: []string{
 					"DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/65534/bus",
-					"DBUS_SYSTEM_BUS_ADDRESS=unix:path=/run/dbus/system_bus_socket",
+					"DBUS_SYSTEM_BUS_ADDRESS=unix:path=/var/run/dbus/system_bus_socket",
 					"HOME=/home/chronos",
 					"PULSE_COOKIE=" + hst.PrivateTmp + "/pulse-cookie",
 					"PULSE_SERVER=unix:/run/user/65534/pulse/native",
@@ -284,7 +284,7 @@ func TestApp(t *testing.T) {
 					Bind(m("/run/user/1971/hakurei/ebf083d1b175911782d413369b64ce7c/pulse"), m("/run/user/65534/pulse/native"), 0).
 					Place(m(hst.PrivateTmp+"/pulse-cookie"), bytes.Repeat([]byte{0}, pulseCookieSizeMax)).
 					Bind(m("/tmp/hakurei.0/ebf083d1b175911782d413369b64ce7c/bus"), m("/run/user/65534/bus"), 0).
-					Bind(m("/tmp/hakurei.0/ebf083d1b175911782d413369b64ce7c/system_bus_socket"), m("/run/dbus/system_bus_socket"), 0).
+					Bind(m("/tmp/hakurei.0/ebf083d1b175911782d413369b64ce7c/system_bus_socket"), m("/var/run/dbus/system_bus_socket"), 0).
 					Remount(m("/"), syscall.MS_RDONLY),
 				SeccompPresets: bits.PresetExt | bits.PresetDenyDevel,
 				HostNet:        true,
@@ -394,7 +394,7 @@ func TestApp(t *testing.T) {
 				Args: []string{"/nix/store/yqivzpzzn7z5x0lq9hmbzygh45d8rhqd-chromium-start"},
 				Env: []string{
 					"DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1971/bus",
-					"DBUS_SYSTEM_BUS_ADDRESS=unix:path=/run/dbus/system_bus_socket",
+					"DBUS_SYSTEM_BUS_ADDRESS=unix:path=/var/run/dbus/system_bus_socket",
 					"HOME=/var/lib/persist/module/hakurei/0/1",
 					"PULSE_COOKIE=" + hst.PrivateTmp + "/pulse-cookie",
 					"PULSE_SERVER=unix:/run/user/1971/pulse/native",
@@ -434,7 +434,7 @@ func TestApp(t *testing.T) {
 					Bind(m("/run/user/1971/hakurei/8e2c76b066dabe574cf073bdb46eb5c1/pulse"), m("/run/user/1971/pulse/native"), 0).
 					Place(m(hst.PrivateTmp+"/pulse-cookie"), bytes.Repeat([]byte{0}, pulseCookieSizeMax)).
 					Bind(m("/tmp/hakurei.0/8e2c76b066dabe574cf073bdb46eb5c1/bus"), m("/run/user/1971/bus"), 0).
-					Bind(m("/tmp/hakurei.0/8e2c76b066dabe574cf073bdb46eb5c1/system_bus_socket"), m("/run/dbus/system_bus_socket"), 0).
+					Bind(m("/tmp/hakurei.0/8e2c76b066dabe574cf073bdb46eb5c1/system_bus_socket"), m("/var/run/dbus/system_bus_socket"), 0).
 					Remount(m("/"), syscall.MS_RDONLY),
 				SeccompPresets: bits.PresetExt | bits.PresetDenyTTY | bits.PresetDenyDevel,
 				HostNet:        true,
@@ -655,7 +655,7 @@ func (k *stubNixOS) evalSymlinks(path string) (string, error) {
 		return "/run/user/1971", nil
 	case "/tmp/hakurei.0":
 		return "/tmp/hakurei.0", nil
-	case "/run/dbus":
+	case "/var/run/dbus":
 		return "/run/dbus", nil
 	case "/dev/kvm":
 		return "/dev/kvm", nil
