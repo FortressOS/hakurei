@@ -49,7 +49,7 @@ Filesystem
  autoroot:w:/var/lib/hakurei/base/org.debian
  autoetc:/etc/
  w+ephemeral(-rwxr-xr-x):/tmp/
- w*/nix/store:/mnt-root/nix/.rw-store/upper:/mnt-root/nix/.rw-store/work:/mnt-root/nix/.ro-store
+ w*/nix/store:/var/lib/hakurei/nix/u0/org.chromium.Chromium/rw-store/upper:/var/lib/hakurei/nix/u0/org.chromium.Chromium/rw-store/work:/var/lib/hakurei/base/org.nixos/ro-store
  */nix/store
  /run/current-system@
  /run/opengl-driver@
@@ -130,7 +130,7 @@ Filesystem
  autoroot:w:/var/lib/hakurei/base/org.debian
  autoetc:/etc/
  w+ephemeral(-rwxr-xr-x):/tmp/
- w*/nix/store:/mnt-root/nix/.rw-store/upper:/mnt-root/nix/.rw-store/work:/mnt-root/nix/.ro-store
+ w*/nix/store:/var/lib/hakurei/nix/u0/org.chromium.Chromium/rw-store/upper:/var/lib/hakurei/nix/u0/org.chromium.Chromium/rw-store/work:/var/lib/hakurei/base/org.nixos/ro-store
  */nix/store
  /run/current-system@
  /run/opengl-driver@
@@ -290,10 +290,10 @@ App
           "type": "overlay",
           "dst": "/nix/store",
           "lower": [
-            "/mnt-root/nix/.ro-store"
+            "/var/lib/hakurei/base/org.nixos/ro-store"
           ],
-          "upper": "/mnt-root/nix/.rw-store/upper",
-          "work": "/mnt-root/nix/.rw-store/work"
+          "upper": "/var/lib/hakurei/nix/u0/org.chromium.Chromium/rw-store/upper",
+          "work": "/var/lib/hakurei/nix/u0/org.chromium.Chromium/rw-store/work"
         },
         {
           "type": "bind",
@@ -444,10 +444,10 @@ App
         "type": "overlay",
         "dst": "/nix/store",
         "lower": [
-          "/mnt-root/nix/.ro-store"
+          "/var/lib/hakurei/base/org.nixos/ro-store"
         ],
-        "upper": "/mnt-root/nix/.rw-store/upper",
-        "work": "/mnt-root/nix/.rw-store/work"
+        "upper": "/var/lib/hakurei/nix/u0/org.chromium.Chromium/rw-store/upper",
+        "work": "/var/lib/hakurei/nix/u0/org.chromium.Chromium/rw-store/work"
       },
       {
         "type": "bind",
@@ -654,10 +654,10 @@ func TestPrintPs(t *testing.T) {
             "type": "overlay",
             "dst": "/nix/store",
             "lower": [
-              "/mnt-root/nix/.ro-store"
+              "/var/lib/hakurei/base/org.nixos/ro-store"
             ],
-            "upper": "/mnt-root/nix/.rw-store/upper",
-            "work": "/mnt-root/nix/.rw-store/work"
+            "upper": "/var/lib/hakurei/nix/u0/org.chromium.Chromium/rw-store/upper",
+            "work": "/var/lib/hakurei/nix/u0/org.chromium.Chromium/rw-store/work"
           },
           {
             "type": "bind",

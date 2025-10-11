@@ -193,10 +193,10 @@ func TestTemplate(t *testing.T) {
 				"type": "overlay",
 				"dst": "/nix/store",
 				"lower": [
-					"/mnt-root/nix/.ro-store"
+					"/var/lib/hakurei/base/org.nixos/ro-store"
 				],
-				"upper": "/mnt-root/nix/.rw-store/upper",
-				"work": "/mnt-root/nix/.rw-store/work"
+				"upper": "/var/lib/hakurei/nix/u0/org.chromium.Chromium/rw-store/upper",
+				"work": "/var/lib/hakurei/nix/u0/org.chromium.Chromium/rw-store/work"
 			},
 			{
 				"type": "bind",

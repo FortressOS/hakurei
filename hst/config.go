@@ -57,11 +57,11 @@ type (
 		// Init user namespace supplementary groups inherited by all container processes.
 		Groups []string `json:"groups"`
 
-		// High level configuration applied to the underlying [container.Params].
+		// High level configuration applied to the underlying [container].
 		Container *ContainerConfig `json:"container"`
 	}
 
-	// ContainerConfig describes the container configuration to be applied to an underlying [container.Params].
+	// ContainerConfig describes the container configuration to be applied to an underlying [container].
 	ContainerConfig struct {
 		// Container UTS namespace hostname.
 		Hostname string `json:"hostname,omitempty"`

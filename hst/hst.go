@@ -117,9 +117,9 @@ func Template() *Config {
 				{&FSEphemeral{Target: fhs.AbsTmp, Write: true, Perm: 0755}},
 				{&FSOverlay{
 					Target: check.MustAbs("/nix/store"),
-					Lower:  []*check.Absolute{check.MustAbs("/mnt-root/nix/.ro-store")},
-					Upper:  check.MustAbs("/mnt-root/nix/.rw-store/upper"),
-					Work:   check.MustAbs("/mnt-root/nix/.rw-store/work"),
+					Lower:  []*check.Absolute{fhs.AbsVarLib.Append("hakurei/base/org.nixos/ro-store")},
+					Upper:  fhs.AbsVarLib.Append("hakurei/nix/u0/org.chromium.Chromium/rw-store/upper"),
+					Work:   fhs.AbsVarLib.Append("hakurei/nix/u0/org.chromium.Chromium/rw-store/work"),
 				}},
 				{&FSBind{Source: check.MustAbs("/nix/store")}},
 				{&FSLink{Target: fhs.AbsRun.Append("current-system"), Linkname: "/run/current-system", Dereference: true}},
