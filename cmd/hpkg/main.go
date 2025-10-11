@@ -162,7 +162,7 @@ func main() {
 
 			withCacheDir(ctx, msg, "install", []string{
 				// export inner bundle path in the environment
-				"export BUNDLE=" + hst.Tmp + "/bundle",
+				"export BUNDLE=" + hst.PrivateTmp + "/bundle",
 				// replace inner /etc
 				"mkdir -p etc",
 				"chmod -R +w etc",
@@ -309,7 +309,7 @@ func main() {
 
 			if a.GPU {
 				config.Container.Filesystem = append(config.Container.Filesystem,
-					hst.FilesystemConfigJSON{FilesystemConfig: &hst.FSBind{Source: pathSet.nixPath.Append(".nixGL"), Target: hst.AbsTmp.Append("nixGL")}})
+					hst.FilesystemConfigJSON{FilesystemConfig: &hst.FSBind{Source: pathSet.nixPath.Append(".nixGL"), Target: hst.AbsPrivateTmp.Append("nixGL")}})
 				appendGPUFilesystem(config)
 			}
 

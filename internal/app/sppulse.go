@@ -160,7 +160,7 @@ func (s *spPulseOp) toContainer(state *outcomeStateParams) error {
 	state.env["PULSE_SERVER"] = "unix:" + innerPulseSocket.String()
 
 	if s.Cookie != nil {
-		innerDst := hst.AbsTmp.Append("/pulse-cookie")
+		innerDst := hst.AbsPrivateTmp.Append("/pulse-cookie")
 		state.env["PULSE_COOKIE"] = innerDst.String()
 		state.params.Place(innerDst, s.Cookie[:])
 	}

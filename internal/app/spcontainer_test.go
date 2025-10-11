@@ -69,7 +69,7 @@ func TestSpParamsOp(t *testing.T) {
 			Gid:            100,
 			Ops: new(container.Ops).
 				Root(m("/var/lib/hakurei/base/org.debian"), bits.BindWritable).
-				Proc(fhs.AbsProc).Tmpfs(hst.AbsTmp, 1<<12, 0755).
+				Proc(fhs.AbsProc).Tmpfs(hst.AbsPrivateTmp, 1<<12, 0755).
 				DevWritable(fhs.AbsDev, true).
 				Tmpfs(fhs.AbsDev.Append("shm"), 0, 01777),
 		}, func(t *testing.T, state *outcomeStateParams) {
@@ -114,7 +114,7 @@ func TestSpParamsOp(t *testing.T) {
 			Gid:           100,
 			Ops: new(container.Ops).
 				Root(m("/var/lib/hakurei/base/org.debian"), bits.BindWritable).
-				Proc(fhs.AbsProc).Tmpfs(hst.AbsTmp, 1<<12, 0755).
+				Proc(fhs.AbsProc).Tmpfs(hst.AbsPrivateTmp, 1<<12, 0755).
 				Bind(fhs.AbsDev, fhs.AbsDev, bits.BindWritable|bits.BindDevice).
 				Tmpfs(fhs.AbsDev.Append("shm"), 0, 01777),
 		}, func(t *testing.T, state *outcomeStateParams) {

@@ -98,7 +98,7 @@ func TestApp(t *testing.T) {
 				Ops: new(container.Ops).
 					Root(m("/"), bits.BindWritable).
 					Proc(m("/proc/")).
-					Tmpfs(hst.AbsTmp, 4096, 0755).
+					Tmpfs(hst.AbsPrivateTmp, 4096, 0755).
 					DevWritable(m("/dev/"), true).
 					Tmpfs(m("/dev/shm"), 0, 01777).
 					Bind(m("/dev/kvm"), m("/dev/kvm"), bits.BindWritable|bits.BindDevice|bits.BindOptional).
@@ -252,7 +252,7 @@ func TestApp(t *testing.T) {
 					"DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/65534/bus",
 					"DBUS_SYSTEM_BUS_ADDRESS=unix:path=/run/dbus/system_bus_socket",
 					"HOME=/home/chronos",
-					"PULSE_COOKIE=" + hst.Tmp + "/pulse-cookie",
+					"PULSE_COOKIE=" + hst.PrivateTmp + "/pulse-cookie",
 					"PULSE_SERVER=unix:/run/user/65534/pulse/native",
 					"SHELL=/run/current-system/sw/bin/zsh",
 					"TERM=xterm-256color",
@@ -265,7 +265,7 @@ func TestApp(t *testing.T) {
 				Ops: new(container.Ops).
 					Root(m("/"), bits.BindWritable).
 					Proc(m("/proc/")).
-					Tmpfs(hst.AbsTmp, 4096, 0755).
+					Tmpfs(hst.AbsPrivateTmp, 4096, 0755).
 					DevWritable(m("/dev/"), true).
 					Tmpfs(m("/dev/shm"), 0, 01777).
 					Bind(m("/dev/dri"), m("/dev/dri"), bits.BindWritable|bits.BindDevice|bits.BindOptional).
@@ -282,7 +282,7 @@ func TestApp(t *testing.T) {
 					Place(m("/etc/group"), []byte("hakurei:x:65534:\n")).
 					Bind(m("/tmp/hakurei.0/ebf083d1b175911782d413369b64ce7c/wayland"), m("/run/user/65534/wayland-0"), 0).
 					Bind(m("/run/user/1971/hakurei/ebf083d1b175911782d413369b64ce7c/pulse"), m("/run/user/65534/pulse/native"), 0).
-					Place(m(hst.Tmp+"/pulse-cookie"), bytes.Repeat([]byte{0}, pulseCookieSizeMax)).
+					Place(m(hst.PrivateTmp+"/pulse-cookie"), bytes.Repeat([]byte{0}, pulseCookieSizeMax)).
 					Bind(m("/tmp/hakurei.0/ebf083d1b175911782d413369b64ce7c/bus"), m("/run/user/65534/bus"), 0).
 					Bind(m("/tmp/hakurei.0/ebf083d1b175911782d413369b64ce7c/system_bus_socket"), m("/run/dbus/system_bus_socket"), 0).
 					Remount(m("/"), syscall.MS_RDONLY),
@@ -396,7 +396,7 @@ func TestApp(t *testing.T) {
 					"DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1971/bus",
 					"DBUS_SYSTEM_BUS_ADDRESS=unix:path=/run/dbus/system_bus_socket",
 					"HOME=/var/lib/persist/module/hakurei/0/1",
-					"PULSE_COOKIE=" + hst.Tmp + "/pulse-cookie",
+					"PULSE_COOKIE=" + hst.PrivateTmp + "/pulse-cookie",
 					"PULSE_SERVER=unix:/run/user/1971/pulse/native",
 					"SHELL=/run/current-system/sw/bin/zsh",
 					"TERM=xterm-256color",
@@ -408,7 +408,7 @@ func TestApp(t *testing.T) {
 				},
 				Ops: new(container.Ops).
 					Proc(m("/proc/")).
-					Tmpfs(hst.AbsTmp, 4096, 0755).
+					Tmpfs(hst.AbsPrivateTmp, 4096, 0755).
 					DevWritable(m("/dev/"), true).
 					Tmpfs(m("/dev/shm"), 0, 01777).
 					Bind(m("/bin"), m("/bin"), 0).
@@ -432,7 +432,7 @@ func TestApp(t *testing.T) {
 					Place(m("/etc/group"), []byte("hakurei:x:100:\n")).
 					Bind(m("/run/user/1971/wayland-0"), m("/run/user/1971/wayland-0"), 0).
 					Bind(m("/run/user/1971/hakurei/8e2c76b066dabe574cf073bdb46eb5c1/pulse"), m("/run/user/1971/pulse/native"), 0).
-					Place(m(hst.Tmp+"/pulse-cookie"), bytes.Repeat([]byte{0}, pulseCookieSizeMax)).
+					Place(m(hst.PrivateTmp+"/pulse-cookie"), bytes.Repeat([]byte{0}, pulseCookieSizeMax)).
 					Bind(m("/tmp/hakurei.0/8e2c76b066dabe574cf073bdb46eb5c1/bus"), m("/run/user/1971/bus"), 0).
 					Bind(m("/tmp/hakurei.0/8e2c76b066dabe574cf073bdb46eb5c1/system_bus_socket"), m("/run/dbus/system_bus_socket"), 0).
 					Remount(m("/"), syscall.MS_RDONLY),

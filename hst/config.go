@@ -8,9 +8,11 @@ import (
 	"hakurei.app/container/check"
 )
 
-const Tmp = "/.hakurei"
+// PrivateTmp is a private writable path in a hakurei container.
+const PrivateTmp = "/.hakurei"
 
-var AbsTmp = check.MustAbs(Tmp)
+// AbsPrivateTmp is a [check.Absolute] representation of [PrivateTmp].
+var AbsPrivateTmp = check.MustAbs(PrivateTmp)
 
 const (
 	// WaitDelayDefault is used when WaitDelay has its zero value.

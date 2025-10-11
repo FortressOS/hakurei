@@ -36,15 +36,15 @@ func TestFSEphemeral(t *testing.T) {
 			"+ephemeral(-rwxr-xr-x):/run/nscd"},
 
 		{"negative size", &hst.FSEphemeral{
-			Target: hst.AbsTmp,
+			Target: hst.AbsPrivateTmp,
 			Write:  true,
 			Size:   -1,
 		}, true, container.Ops{&container.MountTmpfsOp{
 			FSName: "ephemeral",
-			Path:   hst.AbsTmp,
+			Path:   hst.AbsPrivateTmp,
 			Flags:  syscall.MS_NOSUID | syscall.MS_NODEV,
 			Perm:   0755,
-		}}, hst.AbsTmp, nil,
+		}}, hst.AbsPrivateTmp, nil,
 			"w+ephemeral(-rwxr-xr-x):/.hakurei"},
 	})
 }

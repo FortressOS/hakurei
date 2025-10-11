@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -13,6 +12,7 @@ import (
 	"strconv"
 	"sync"
 	"time"
+	_ "unsafe"
 
 	"hakurei.app/command"
 	"hakurei.app/container/check"
@@ -24,6 +24,9 @@ import (
 	"hakurei.app/message"
 	"hakurei.app/system/dbus"
 )
+
+//go:linkname optionalErrorUnwrap hakurei.app/container.optionalErrorUnwrap
+func optionalErrorUnwrap(_ error) error
 
 func buildCommand(ctx context.Context, msg message.Msg, early *earlyHardeningErrs, out io.Writer) command.Command {
 	var (
@@ -115,7 +118,7 @@ func buildCommand(ctx context.Context, msg message.Msg, early *earlyHardeningErr
 			progPath := shell
 			if len(args) > 0 {
 				if p, err := exec.LookPath(args[0]); err != nil {
-					log.Fatal(errors.Unwrap(err))
+					log.Fatal(optionalErrorUnwrap(err))
 					return err
 				} else if progPath, err = check.NewAbs(p); err != nil {
 					log.Fatal(err.Error())

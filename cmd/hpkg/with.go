@@ -88,7 +88,7 @@ func withCacheDir(
 				{FilesystemConfig: &hst.FSLink{Target: pathCurrentSystem, Linkname: app.CurrentSystem.String()}},
 				{FilesystemConfig: &hst.FSLink{Target: pathBin, Linkname: pathSwBin.String()}},
 				{FilesystemConfig: &hst.FSLink{Target: fhs.AbsUsrBin, Linkname: pathSwBin.String()}},
-				{FilesystemConfig: &hst.FSBind{Source: workDir, Target: hst.AbsTmp.Append("bundle")}},
+				{FilesystemConfig: &hst.FSBind{Source: workDir, Target: hst.AbsPrivateTmp.Append("bundle")}},
 				{FilesystemConfig: &hst.FSBind{Target: pathDataData.Append(app.ID, "cache"), Source: pathSet.cacheDir, Write: true, Ensure: true}},
 			},
 

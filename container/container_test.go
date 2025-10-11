@@ -219,10 +219,10 @@ var containerTestCases = []struct {
 
 	{"tmpfs", true, false, false, true,
 		earlyOps(new(container.Ops).
-			Tmpfs(hst.AbsTmp, 0, 0755),
+			Tmpfs(hst.AbsPrivateTmp, 0, 0755),
 		),
 		earlyMnt(
-			ent("/", hst.Tmp, "rw,nosuid,nodev,relatime", "tmpfs", "ephemeral", ignore),
+			ent("/", hst.PrivateTmp, "rw,nosuid,nodev,relatime", "tmpfs", "ephemeral", ignore),
 		),
 		9, 9, nil, 0, bits.PresetStrict},
 
@@ -276,7 +276,7 @@ var containerTestCases = []struct {
 			}
 
 			return new(container.Ops).
-					Overlay(hst.AbsTmp, upper, work, lower0, lower1),
+					Overlay(hst.AbsPrivateTmp, upper, work, lower0, lower1),
 				context.WithValue(context.WithValue(context.WithValue(context.WithValue(t.Context(),
 					testVal("lower1"), lower1),
 					testVal("lower0"), lower0),
@@ -285,7 +285,7 @@ var containerTestCases = []struct {
 		},
 		func(t *testing.T, ctx context.Context) []*vfs.MountInfoEntry {
 			return []*vfs.MountInfoEntry{
-				ent("/", hst.Tmp, "rw", "overlay", "overlay",
+				ent("/", hst.PrivateTmp, "rw", "overlay", "overlay",
 					"rw,lowerdir="+
 						container.InternalToHostOvlEscape(ctx.Value(testVal("lower0")).(*check.Absolute).String())+":"+
 						container.InternalToHostOvlEscape(ctx.Value(testVal("lower1")).(*check.Absolute).String())+
@@ -311,13 +311,13 @@ var containerTestCases = []struct {
 			}
 
 			return new(container.Ops).
-					OverlayEphemeral(hst.AbsTmp, lower0, lower1),
+					OverlayEphemeral(hst.AbsPrivateTmp, lower0, lower1),
 				t.Context()
 		},
 		func(t *testing.T, ctx context.Context) []*vfs.MountInfoEntry {
 			return []*vfs.MountInfoEntry{
 				// contains random suffix
-				ent("/", hst.Tmp, "rw", "overlay", "overlay", ignore),
+				ent("/", hst.PrivateTmp, "rw", "overlay", "overlay", ignore),
 			}
 		},
 		1 << 3, 1 << 14, nil, 0, bits.PresetStrict},
@@ -334,14 +334,14 @@ var containerTestCases = []struct {
 				}
 			}
 			return new(container.Ops).
-					OverlayReadonly(hst.AbsTmp, lower0, lower1),
+					OverlayReadonly(hst.AbsPrivateTmp, lower0, lower1),
 				context.WithValue(context.WithValue(t.Context(),
 					testVal("lower1"), lower1),
 					testVal("lower0"), lower0)
 		},
 		func(t *testing.T, ctx context.Context) []*vfs.MountInfoEntry {
 			return []*vfs.MountInfoEntry{
-				ent("/", hst.Tmp, "rw", "overlay", "overlay",
+				ent("/", hst.PrivateTmp, "rw", "overlay", "overlay",
 					"ro,lowerdir="+
 						container.InternalToHostOvlEscape(ctx.Value(testVal("lower0")).(*check.Absolute).String())+":"+
 						container.InternalToHostOvlEscape(ctx.Value(testVal("lower1")).(*check.Absolute).String())+

@@ -91,7 +91,7 @@ func (app *appInfo) toHst(pathSet *appPathSet, pathname *check.Absolute, argv []
 				{FilesystemConfig: &hst.FSLink{Target: pathCurrentSystem, Linkname: app.CurrentSystem.String()}},
 				{FilesystemConfig: &hst.FSLink{Target: pathBin, Linkname: pathSwBin.String()}},
 				{FilesystemConfig: &hst.FSLink{Target: fhs.AbsUsrBin, Linkname: pathSwBin.String()}},
-				{FilesystemConfig: &hst.FSBind{Source: pathSet.metaPath, Target: hst.AbsTmp.Append("app")}},
+				{FilesystemConfig: &hst.FSBind{Source: pathSet.metaPath, Target: hst.AbsPrivateTmp.Append("app")}},
 				{FilesystemConfig: &hst.FSBind{Source: fhs.AbsEtc.Append("resolv.conf"), Optional: true}},
 				{FilesystemConfig: &hst.FSBind{Source: fhs.AbsSys.Append("block"), Optional: true}},
 				{FilesystemConfig: &hst.FSBind{Source: fhs.AbsSys.Append("bus"), Optional: true}},

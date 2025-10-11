@@ -105,7 +105,7 @@ func (s *spParamsOp) toContainer(state *outcomeStateParams) error {
 	// early mount points
 	state.params.
 		Proc(fhs.AbsProc).
-		Tmpfs(hst.AbsTmp, 1<<12, 0755)
+		Tmpfs(hst.AbsPrivateTmp, 1<<12, 0755)
 	if !state.Container.Device {
 		state.params.DevWritable(fhs.AbsDev, true)
 	} else {
