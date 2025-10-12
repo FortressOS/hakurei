@@ -11,6 +11,8 @@ import (
 )
 
 func TestHelp(t *testing.T) {
+	t.Parallel()
+
 	testCases := []struct {
 		name string
 		args []string
@@ -68,6 +70,8 @@ Flags:
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
 			out := new(bytes.Buffer)
 			c := buildCommand(t.Context(), message.NewMsg(nil), new(earlyHardeningErrs), out)
 			if err := c.Parse(tc.args); !errors.Is(err, command.ErrHelp) && !errors.Is(err, flag.ErrHelp) {

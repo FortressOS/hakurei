@@ -9,6 +9,8 @@ import (
 )
 
 func TestConfigValidate(t *testing.T) {
+	t.Parallel()
+
 	testCases := []struct {
 		name    string
 		config  *hst.Config
@@ -45,6 +47,7 @@ func TestConfigValidate(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			if err := tc.config.Validate(); !reflect.DeepEqual(err, tc.wantErr) {
 				t.Errorf("Validate: error = %#v, want %#v", err, tc.wantErr)
 			}
@@ -53,6 +56,8 @@ func TestConfigValidate(t *testing.T) {
 }
 
 func TestExtraPermConfig(t *testing.T) {
+	t.Parallel()
+
 	testCases := []struct {
 		name   string
 		config *hst.ExtraPermConfig
@@ -72,6 +77,7 @@ func TestExtraPermConfig(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			if got := tc.config.String(); got != tc.want {
 				t.Errorf("String: %q, want %q", got, tc.want)
 			}

@@ -8,8 +8,4 @@ import (
 	"hakurei.app/helper"
 )
 
-func TestMain(m *testing.M) {
-	container.TryArgv0(nil)
-	helper.InternalHelperStub()
-	os.Exit(m.Run())
-}
+func TestMain(m *testing.M) { container.TryArgv0(nil); helper.InternalHelperStub(); os.Exit(m.Run()) }

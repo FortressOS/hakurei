@@ -5,6 +5,8 @@ import (
 )
 
 func TestDeepContainsH(t *testing.T) {
+	t.Parallel()
+
 	testCases := []struct {
 		name     string
 		basepath string
@@ -75,6 +77,7 @@ func TestDeepContainsH(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			if got, err := deepContainsH(tc.basepath, tc.targpath); (err != nil) != tc.wantErr {
 				t.Errorf("deepContainsH() error = %v, wantErr %v", err, tc.wantErr)
 			} else if got != tc.want {

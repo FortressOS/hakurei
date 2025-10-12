@@ -10,6 +10,8 @@ import (
 )
 
 func TestEnablementString(t *testing.T) {
+	t.Parallel()
+
 	testCases := []struct {
 		flags hst.Enablement
 		want  string
@@ -38,6 +40,7 @@ func TestEnablementString(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.want, func(t *testing.T) {
+			t.Parallel()
 			if got := tc.flags.String(); got != tc.want {
 				t.Errorf("String: %q, want %q", got, tc.want)
 			}
@@ -46,6 +49,8 @@ func TestEnablementString(t *testing.T) {
 }
 
 func TestEnablements(t *testing.T) {
+	t.Parallel()
+
 	testCases := []struct {
 		name  string
 		e     *hst.Enablements
@@ -63,7 +68,10 @@ func TestEnablements(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
 			t.Run("marshal", func(t *testing.T) {
+				t.Parallel()
 				if got, err := json.Marshal(tc.e); err != nil {
 					t.Fatalf("Marshal: error = %v", err)
 				} else if string(got) != tc.data {
@@ -81,6 +89,8 @@ func TestEnablements(t *testing.T) {
 			})
 
 			t.Run("unmarshal", func(t *testing.T) {
+				t.Parallel()
+
 				{
 					got := new(hst.Enablements)
 					if err := json.Unmarshal([]byte(tc.data), &got); err != nil {
@@ -116,6 +126,8 @@ func TestEnablements(t *testing.T) {
 	}
 
 	t.Run("unwrap", func(t *testing.T) {
+		t.Parallel()
+
 		t.Run("nil", func(t *testing.T) {
 			if got := (*hst.Enablements)(nil).Unwrap(); got != 0 {
 				t.Errorf("Unwrap: %v", got)
@@ -130,6 +142,8 @@ func TestEnablements(t *testing.T) {
 	})
 
 	t.Run("passthrough", func(t *testing.T) {
+		t.Parallel()
+
 		if _, err := (*hst.Enablements)(nil).MarshalJSON(); !errors.Is(err, syscall.EINVAL) {
 			t.Errorf("MarshalJSON: error = %v", err)
 		}

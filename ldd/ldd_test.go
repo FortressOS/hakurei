@@ -9,6 +9,8 @@ import (
 )
 
 func TestParseError(t *testing.T) {
+	t.Parallel()
+
 	testCases := []struct {
 		name, out string
 		wantErr   error
@@ -33,6 +35,7 @@ libzstd.so.1 => /usr/lib/libzstd.so.1 7ff71bfd2000
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			if _, err := ldd.Parse([]byte(tc.out)); !errors.Is(err, tc.wantErr) {
 				t.Errorf("Parse() error = %v, wantErr %v", err, tc.wantErr)
 			}
@@ -41,6 +44,8 @@ libzstd.so.1 => /usr/lib/libzstd.so.1 7ff71bfd2000
 }
 
 func TestParse(t *testing.T) {
+	t.Parallel()
+
 	testCases := []struct {
 		file, out string
 		want      []*ldd.Entry
@@ -107,6 +112,7 @@ libc.musl-x86_64.so.1 => /lib/ld-musl-x86_64.so.1 (0x7ff71c0a4000)`,
 	}
 	for _, tc := range testCases {
 		t.Run(tc.file, func(t *testing.T) {
+			t.Parallel()
 			if got, err := ldd.Parse([]byte(tc.out)); err != nil {
 				t.Errorf("Parse() error = %v", err)
 			} else if !reflect.DeepEqual(got, tc.want) {

@@ -8,6 +8,8 @@ import (
 )
 
 func TestFSLink(t *testing.T) {
+	t.Parallel()
+
 	checkFs(t, []fsTestCase{
 		{"nil", (*hst.FSLink)(nil), false, nil, nil, nil, "<invalid>"},
 		{"zero", new(hst.FSLink), false, nil, nil, nil, "<invalid>"},

@@ -32,10 +32,12 @@ func checkOpsValid(t *testing.T, testCases []opValidTestCase) {
 
 	t.Run("valid", func(t *testing.T) {
 		t.Helper()
+		t.Parallel()
 
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
 				t.Helper()
+				t.Parallel()
 
 				if got := tc.op.Valid(); got != tc.want {
 					t.Errorf("Valid: %v, want %v", got, tc.want)
@@ -56,10 +58,12 @@ func checkOpsBuilder(t *testing.T, testCases []opsBuilderTestCase) {
 
 	t.Run("build", func(t *testing.T) {
 		t.Helper()
+		t.Parallel()
 
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
 				t.Helper()
+				t.Parallel()
 
 				if !slices.EqualFunc(*tc.ops, tc.want, func(op Op, v Op) bool { return op.Is(v) }) {
 					t.Errorf("Ops: %#v, want %#v", tc.ops, tc.want)
@@ -80,10 +84,12 @@ func checkOpIs(t *testing.T, testCases []opIsTestCase) {
 
 	t.Run("is", func(t *testing.T) {
 		t.Helper()
+		t.Parallel()
 
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
 				t.Helper()
+				t.Parallel()
 
 				if got := tc.op.Is(tc.v); got != tc.want {
 					t.Errorf("Is: %v, want %v", got, tc.want)
@@ -106,10 +112,12 @@ func checkOpMeta(t *testing.T, testCases []opMetaTestCase) {
 
 	t.Run("meta", func(t *testing.T) {
 		t.Helper()
+		t.Parallel()
 
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
 				t.Helper()
+				t.Parallel()
 
 				t.Run("prefix", func(t *testing.T) {
 					t.Helper()
@@ -150,6 +158,7 @@ func checkSimple(t *testing.T, fname string, testCases []simpleTestCase) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Helper()
+			t.Parallel()
 
 			wait4signal := make(chan struct{})
 			k := &kstub{wait4signal, stub.New(t, func(s *stub.Stub[syscallDispatcher]) syscallDispatcher { return &kstub{wait4signal, s} }, tc.want)}
@@ -183,10 +192,12 @@ func checkOpBehaviour(t *testing.T, testCases []opBehaviourTestCase) {
 
 	t.Run("behaviour", func(t *testing.T) {
 		t.Helper()
+		t.Parallel()
 
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
 				t.Helper()
+				t.Parallel()
 
 				k := &kstub{nil, stub.New(t,
 					func(s *stub.Stub[syscallDispatcher]) syscallDispatcher { return &kstub{nil, s} },

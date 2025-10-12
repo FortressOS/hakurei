@@ -3,6 +3,8 @@ package container
 import "testing"
 
 func TestCapToIndex(t *testing.T) {
+	t.Parallel()
+
 	testCases := []struct {
 		name string
 		cap  uintptr
@@ -14,6 +16,7 @@ func TestCapToIndex(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			if got := capToIndex(tc.cap); got != tc.want {
 				t.Errorf("capToIndex: %#x, want %#x", got, tc.want)
 			}
@@ -22,6 +25,8 @@ func TestCapToIndex(t *testing.T) {
 }
 
 func TestCapToMask(t *testing.T) {
+	t.Parallel()
+
 	testCases := []struct {
 		name string
 		cap  uintptr
@@ -33,6 +38,7 @@ func TestCapToMask(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			if got := capToMask(tc.cap); got != tc.want {
 				t.Errorf("capToMask: %#x, want %#x", got, tc.want)
 			}

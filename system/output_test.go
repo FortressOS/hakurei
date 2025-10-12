@@ -13,6 +13,8 @@ import (
 )
 
 func TestOpError(t *testing.T) {
+	t.Parallel()
+
 	testCases := []struct {
 		name string
 		err  error
@@ -49,6 +51,8 @@ func TestOpError(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
 			t.Run("error", func(t *testing.T) {
 				if got := tc.err.Error(); got != tc.s {
 					t.Errorf("Error: %q, want %q", got, tc.s)
@@ -88,6 +92,8 @@ func TestOpError(t *testing.T) {
 }
 
 func TestPrintJoinedError(t *testing.T) {
+	t.Parallel()
+
 	testCases := []struct {
 		name string
 		err  error
@@ -123,6 +129,7 @@ func TestPrintJoinedError(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			var got [][]any
 			printJoinedError(func(v ...any) { got = append(got, v) }, "not a joined error:", tc.err)
 			if !reflect.DeepEqual(got, tc.want) {

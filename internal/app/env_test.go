@@ -13,6 +13,8 @@ import (
 )
 
 func TestEnvPaths(t *testing.T) {
+	t.Parallel()
+
 	testCases := []struct {
 		name string
 		env  *EnvPaths
@@ -48,6 +50,7 @@ func TestEnvPaths(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			if tc.wantPanic != "" {
 				defer func() {
 					if r := recover(); r != tc.wantPanic {
@@ -66,6 +69,8 @@ func TestEnvPaths(t *testing.T) {
 }
 
 func TestCopyPaths(t *testing.T) {
+	t.Parallel()
+
 	testCases := []struct {
 		name  string
 		env   map[string]string
@@ -84,6 +89,7 @@ func TestCopyPaths(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			if tc.fatal != "" {
 				defer stub.HandleExit(t)
 			}

@@ -86,6 +86,8 @@ func (conn *stubWaylandConn) Close() error {
 }
 
 func TestWaylandOp(t *testing.T) {
+	t.Parallel()
+
 	checkOpBehaviour(t, []opBehaviourTestCase{
 		{"attach", 0xdeadbeef, 0xff, &waylandOp{nil,
 			"/tmp/hakurei.1971/ebf083d1b175911782d413369b64ce7c/wayland",

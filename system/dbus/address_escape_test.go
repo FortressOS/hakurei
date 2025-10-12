@@ -5,6 +5,8 @@ import (
 )
 
 func TestUnescapeValue(t *testing.T) {
+	t.Parallel()
+
 	testCases := []struct {
 		value   string
 		want    string
@@ -45,6 +47,8 @@ func TestUnescapeValue(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run("unescape "+tc.value, func(t *testing.T) {
+			t.Parallel()
+
 			if got, errno := unescapeValue([]byte(tc.value)); errno != tc.wantErr {
 				t.Errorf("unescapeValue() errno = %v, wantErr %v", errno, tc.wantErr)
 			} else if tc.wantErr == errSuccess && string(got) != tc.want {

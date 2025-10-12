@@ -16,6 +16,8 @@ import (
 )
 
 func TestCriteria(t *testing.T) {
+	t.Parallel()
+
 	testCases := []struct {
 		name  string
 		ec, t hst.Enablement
@@ -28,6 +30,7 @@ func TestCriteria(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			var criteria *Criteria
 			if tc.ec != 0xff {
 				criteria = (*Criteria)(&tc.ec)
@@ -41,6 +44,8 @@ func TestCriteria(t *testing.T) {
 }
 
 func TestTypeString(t *testing.T) {
+	t.Parallel()
+
 	testCases := []struct {
 		e    hst.Enablement
 		want string
@@ -58,6 +63,7 @@ func TestTypeString(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run("label type string "+strconv.Itoa(int(tc.e)), func(t *testing.T) {
+			t.Parallel()
 			if got := TypeString(tc.e); got != tc.want {
 				t.Errorf("TypeString: %q, want %q", got, tc.want)
 			}
@@ -66,6 +72,8 @@ func TestTypeString(t *testing.T) {
 }
 
 func TestNew(t *testing.T) {
+	t.Parallel()
+
 	t.Run("panic", func(t *testing.T) {
 		t.Run("ctx", func(t *testing.T) {
 			defer func() {
@@ -108,6 +116,8 @@ func TestNew(t *testing.T) {
 }
 
 func TestEqual(t *testing.T) {
+	t.Parallel()
+
 	testCases := []struct {
 		name string
 		sys  *I
@@ -175,6 +185,8 @@ func TestEqual(t *testing.T) {
 }
 
 func TestCommitRevert(t *testing.T) {
+	t.Parallel()
+
 	testCases := []struct {
 		name string
 		f    func(sys *I)
@@ -252,6 +264,8 @@ func TestCommitRevert(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
 			var ec *Criteria
 			if tc.ec != 0xff {
 				ec = (*Criteria)(&tc.ec)

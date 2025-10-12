@@ -7,6 +7,7 @@ import (
 )
 
 func TestBuild(t *testing.T) {
+	t.Parallel()
 	c := command.New(nil, nil, "test", nil)
 	stubHandler := func([]string) error { panic("unreachable") }
 

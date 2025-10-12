@@ -8,6 +8,8 @@ import (
 )
 
 func TestHardlinkOp(t *testing.T) {
+	t.Parallel()
+
 	checkOpBehaviour(t, []opBehaviourTestCase{
 		{"link", 0xdeadbeef, 0xff, &hardlinkOp{hst.EPulse, "/run/user/1000/hakurei/9663730666a44cfc2a81610379e02ed6/pulse", "/run/user/1000/pulse/native"}, []stub.Call{
 			call("verbose", stub.ExpectArgs{[]any{"linking", &hardlinkOp{hst.EPulse, "/run/user/1000/hakurei/9663730666a44cfc2a81610379e02ed6/pulse", "/run/user/1000/pulse/native"}}}, nil, nil),

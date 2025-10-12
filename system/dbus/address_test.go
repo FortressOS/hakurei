@@ -9,6 +9,8 @@ import (
 )
 
 func TestParse(t *testing.T) {
+	t.Parallel()
+
 	testCases := []struct {
 		name    string
 		addr    string
@@ -109,6 +111,8 @@ func TestParse(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
 			if got, err := dbus.Parse([]byte(tc.addr)); !errors.Is(err, tc.wantErr) {
 				t.Errorf("Parse() error = %v, wantErr %v", err, tc.wantErr)
 			} else if tc.wantErr == nil && !reflect.DeepEqual(got, tc.want) {

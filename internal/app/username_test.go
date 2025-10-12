@@ -6,6 +6,8 @@ import (
 )
 
 func TestIsValidUsername(t *testing.T) {
+	t.Parallel()
+
 	t.Run("long", func(t *testing.T) {
 		if isValidUsername(strings.Repeat("a", sysconf(_SC_LOGIN_NAME_MAX))) {
 			t.Errorf("isValidUsername unexpected true")

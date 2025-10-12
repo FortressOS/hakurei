@@ -10,6 +10,8 @@ import (
 )
 
 func TestBindMount(t *testing.T) {
+	t.Parallel()
+
 	checkSimple(t, "bindMount", []simpleTestCase{
 		{"mount", func(k *kstub) error {
 			return newProcPaths(k, hostPath).bindMount(nil, "/host/nix", "/sysroot/nix", syscall.MS_RDONLY)
@@ -34,6 +36,8 @@ func TestBindMount(t *testing.T) {
 }
 
 func TestRemount(t *testing.T) {
+	t.Parallel()
+
 	const sampleMountinfoNix = `254 407 253:0 / /host rw,relatime master:1 - ext4 /dev/disk/by-label/nixos rw
 255 254 0:28 / /host/mnt/.ro-cwd ro,noatime master:2 - 9p cwd ro,access=client,msize=16384,trans=virtio
 256 254 0:29 / /host/nix/.ro-store rw,relatime master:3 - 9p nix-store rw,cache=f,access=client,msize=16384,trans=virtio
@@ -216,6 +220,8 @@ func TestRemount(t *testing.T) {
 }
 
 func TestRemountWithFlags(t *testing.T) {
+	t.Parallel()
+
 	checkSimple(t, "remountWithFlags", []simpleTestCase{
 		{"noop unmatched", func(k *kstub) error {
 			return remountWithFlags(k, k, &vfs.MountInfoNode{MountInfoEntry: &vfs.MountInfoEntry{VfsOptstr: "rw,relatime,cat"}}, 0)
@@ -236,6 +242,8 @@ func TestRemountWithFlags(t *testing.T) {
 }
 
 func TestMountTmpfs(t *testing.T) {
+	t.Parallel()
+
 	checkSimple(t, "mountTmpfs", []simpleTestCase{
 		{"mkdirAll", func(k *kstub) error {
 			return mountTmpfs(k, "ephemeral", "/sysroot/run/user/1000", 0, 1<<10, 0700)
@@ -260,6 +268,8 @@ func TestMountTmpfs(t *testing.T) {
 }
 
 func TestParentPerm(t *testing.T) {
+	t.Parallel()
+
 	testCases := []struct {
 		perm os.FileMode
 		want os.FileMode
@@ -275,6 +285,7 @@ func TestParentPerm(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.perm.String(), func(t *testing.T) {
+			t.Parallel()
 			if got := parentPerm(tc.perm); got != tc.want {
 				t.Errorf("parentPerm: %#o, want %#o", got, tc.want)
 			}

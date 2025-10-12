@@ -17,6 +17,8 @@ import (
 )
 
 func TestDecoderError(t *testing.T) {
+	t.Parallel()
+
 	testCases := []struct {
 		name    string
 		err     *vfs.DecoderError
@@ -35,13 +37,17 @@ func TestDecoderError(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
 			t.Run("error", func(t *testing.T) {
+				t.Parallel()
 				if got := tc.err.Error(); got != tc.want {
 					t.Errorf("Error: %s, want %s", got, tc.want)
 				}
 			})
 
 			t.Run("is", func(t *testing.T) {
+				t.Parallel()
 				if !errors.Is(tc.err, tc.target) {
 					t.Errorf("Is: unexpected false")
 				}
@@ -54,6 +60,8 @@ func TestDecoderError(t *testing.T) {
 }
 
 func TestMountInfo(t *testing.T) {
+	t.Parallel()
+
 	testCases := []mountInfoTest{
 		{"count", sampleMountinfoBase + `
 21 20 0:53/ /mnt/test rw,relatime - tmpfs  rw
@@ -187,7 +195,10 @@ id 20 0:53 / /mnt/test rw,relatime shared:212 - tmpfs  rw
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
 			t.Run("decode", func(t *testing.T) {
+				t.Parallel()
 				var got *vfs.MountInfo
 				d := vfs.NewMountInfoDecoder(strings.NewReader(tc.sample))
 				err := d.Decode(&got)
@@ -206,6 +217,7 @@ id 20 0:53 / /mnt/test rw,relatime shared:212 - tmpfs  rw
 			})
 
 			t.Run("iter", func(t *testing.T) {
+				t.Parallel()
 				d := vfs.NewMountInfoDecoder(strings.NewReader(tc.sample))
 				tc.check(t, d, "Entries",
 					d.Entries(), d.Err)
@@ -217,6 +229,7 @@ id 20 0:53 / /mnt/test rw,relatime shared:212 - tmpfs  rw
 			})
 
 			t.Run("yield", func(t *testing.T) {
+				t.Parallel()
 				d := vfs.NewMountInfoDecoder(strings.NewReader(tc.sample))
 				v := false
 				d.Entries()(func(entry *vfs.MountInfoEntry) bool { v = !v; return v })

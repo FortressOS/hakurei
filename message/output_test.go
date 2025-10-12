@@ -15,6 +15,7 @@ import (
 func TestSuspendable(t *testing.T) {
 	// copied from output.go
 	const suspendBufMax = 1 << 24
+	t.Parallel()
 
 	const (
 		// equivalent to len(want.pt)

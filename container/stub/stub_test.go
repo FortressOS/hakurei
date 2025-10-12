@@ -36,8 +36,14 @@ func (t *overrideT) Errorf(format string, args ...any) {
 }
 
 func TestStub(t *testing.T) {
+	t.Parallel()
+
 	t.Run("goexit", func(t *testing.T) {
+		t.Parallel()
+
 		t.Run("FailNow", func(t *testing.T) {
+			t.Parallel()
+
 			defer func() {
 				if r := recover(); r != panicFailNow {
 					t.Errorf("recover: %v", r)
@@ -47,6 +53,8 @@ func TestStub(t *testing.T) {
 		})
 
 		t.Run("SkipNow", func(t *testing.T) {
+			t.Parallel()
+
 			defer func() {
 				want := "invalid call to SkipNow"
 				if r := recover(); r != want {
@@ -57,6 +65,8 @@ func TestStub(t *testing.T) {
 		})
 
 		t.Run("Skip", func(t *testing.T) {
+			t.Parallel()
+
 			defer func() {
 				want := "invalid call to Skip"
 				if r := recover(); r != want {
@@ -67,6 +77,8 @@ func TestStub(t *testing.T) {
 		})
 
 		t.Run("Skipf", func(t *testing.T) {
+			t.Parallel()
+
 			defer func() {
 				want := "invalid call to Skipf"
 				if r := recover(); r != want {
@@ -78,7 +90,11 @@ func TestStub(t *testing.T) {
 	})
 
 	t.Run("new", func(t *testing.T) {
+		t.Parallel()
+
 		t.Run("success", func(t *testing.T) {
+			t.Parallel()
+
 			s := New(t, func(s *Stub[stubHolder]) stubHolder { return stubHolder{s} }, Expect{Calls: []Call{
 				{"New", ExpectArgs{}, nil, nil},
 			}, Tracks: []Expect{{Calls: []Call{
@@ -112,6 +128,8 @@ func TestStub(t *testing.T) {
 		})
 
 		t.Run("overrun", func(t *testing.T) {
+			t.Parallel()
+
 			ot := &overrideT{T: t}
 			ot.error.Store(checkError(t, "New: track overrun"))
 			s := New(ot, func(s *Stub[stubHolder]) stubHolder { return stubHolder{s} }, Expect{Calls: []Call{
@@ -135,7 +153,11 @@ func TestStub(t *testing.T) {
 		})
 
 		t.Run("expects", func(t *testing.T) {
+			t.Parallel()
+
 			t.Run("overrun", func(t *testing.T) {
+				t.Parallel()
+
 				ot := &overrideT{T: t}
 				ot.error.Store(checkError(t, "Expects: advancing beyond expected calls"))
 				s := New(ot, func(s *Stub[stubHolder]) stubHolder { return stubHolder{s} }, Expect{})
@@ -143,7 +165,11 @@ func TestStub(t *testing.T) {
 			})
 
 			t.Run("separator", func(t *testing.T) {
+				t.Parallel()
+
 				t.Run("overrun", func(t *testing.T) {
+					t.Parallel()
+
 					ot := &overrideT{T: t}
 					ot.errorf.Store(checkErrorf(t, "Expects: func = %s, separator overrun", "meow"))
 					s := New(ot, func(s *Stub[stubHolder]) stubHolder { return stubHolder{s} }, Expect{Calls: []Call{
@@ -153,6 +179,8 @@ func TestStub(t *testing.T) {
 				})
 
 				t.Run("mismatch", func(t *testing.T) {
+					t.Parallel()
+
 					ot := &overrideT{T: t}
 					ot.errorf.Store(checkErrorf(t, "Expects: separator, want %s", "panic"))
 					s := New(ot, func(s *Stub[stubHolder]) stubHolder { return stubHolder{s} }, Expect{Calls: []Call{
@@ -163,6 +191,8 @@ func TestStub(t *testing.T) {
 			})
 
 			t.Run("mismatch", func(t *testing.T) {
+				t.Parallel()
+
 				ot := &overrideT{T: t}
 				ot.errorf.Store(checkErrorf(t, "Expects: func = %s, want %s", "meow", "nya"))
 				s := New(ot, func(s *Stub[stubHolder]) stubHolder { return stubHolder{s} }, Expect{Calls: []Call{
@@ -176,6 +206,8 @@ func TestStub(t *testing.T) {
 
 func TestCheckArg(t *testing.T) {
 	t.Run("oob negative", func(t *testing.T) {
+		t.Parallel()
+
 		defer func() {
 			want := "invalid call to CheckArg"
 			if r := recover(); r != want {
@@ -191,12 +223,14 @@ func TestCheckArg(t *testing.T) {
 		{"panic", ExpectArgs{PanicExit}, nil, nil},
 		{"meow", ExpectArgs{-1}, nil, nil},
 	}})
+
 	t.Run("match", func(t *testing.T) {
 		s.Expects("panic")
 		if !CheckArg(s, "v", PanicExit, 0) {
 			t.Errorf("CheckArg: unexpected false")
 		}
 	})
+
 	t.Run("mismatch", func(t *testing.T) {
 		defer HandleExit(t)
 		s.Expects("meow")
@@ -205,6 +239,7 @@ func TestCheckArg(t *testing.T) {
 			t.Errorf("CheckArg: unexpected true")
 		}
 	})
+
 	t.Run("oob", func(t *testing.T) {
 		s.pos++
 		defer func() {
@@ -218,7 +253,11 @@ func TestCheckArg(t *testing.T) {
 }
 
 func TestCheckArgReflect(t *testing.T) {
+	t.Parallel()
+
 	t.Run("oob lower", func(t *testing.T) {
+		t.Parallel()
+
 		defer func() {
 			want := "invalid call to CheckArgReflect"
 			if r := recover(); r != want {

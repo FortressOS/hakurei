@@ -8,6 +8,8 @@ import (
 )
 
 func TestLandlockString(t *testing.T) {
+	t.Parallel()
+
 	testCases := []struct {
 		name        string
 		rulesetAttr *container.RulesetAttr
@@ -46,6 +48,7 @@ func TestLandlockString(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			if got := tc.rulesetAttr.String(); got != tc.want {
 				t.Errorf("String: %s, want %s", got, tc.want)
 			}
@@ -54,6 +57,7 @@ func TestLandlockString(t *testing.T) {
 }
 
 func TestLandlockAttrSize(t *testing.T) {
+	t.Parallel()
 	want := 24
 	if got := unsafe.Sizeof(container.RulesetAttr{}); got != uintptr(want) {
 		t.Errorf("Sizeof: %d, want %d", got, want)

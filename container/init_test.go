@@ -13,6 +13,7 @@ import (
 )
 
 func TestInitEntrypoint(t *testing.T) {
+	t.Parallel()
 
 	checkSimple(t, "initEntrypoint", []simpleTestCase{
 		{"getpid", func(k *kstub) error { initEntrypoint(k, k); return nil }, stub.Expect{
@@ -2649,6 +2650,7 @@ func TestInitEntrypoint(t *testing.T) {
 }
 
 func TestOpsGrow(t *testing.T) {
+	t.Parallel()
 	ops := new(Ops)
 	ops.Grow(1 << 4)
 	if got := cap(*ops); got == 0 {

@@ -13,6 +13,8 @@ import (
 )
 
 func TestExport(t *testing.T) {
+	t.Parallel()
+
 	testCases := []struct {
 		name    string
 		flags   ExportFlag
@@ -32,14 +34,15 @@ func TestExport(t *testing.T) {
 		{"hakurei tty", 0, PresetExt | PresetDenyNS | PresetDenyDevel, false},
 	}
 
-	buf := make([]byte, 8)
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
 			e := New(Preset(tc.presets, tc.flags), tc.flags)
 			want := bpfExpected[bpfPreset{tc.flags, tc.presets}]
 			digest := sha512.New()
 
-			if _, err := io.CopyBuffer(digest, e, buf); (err != nil) != tc.wantErr {
+			if _, err := io.Copy(digest, e); (err != nil) != tc.wantErr {
 				t.Errorf("Exporter: error = %v, wantErr %v", err, tc.wantErr)
 				return
 			}
@@ -47,7 +50,7 @@ func TestExport(t *testing.T) {
 				t.Errorf("Close: error = %v", err)
 			}
 			if got := digest.Sum(nil); !slices.Equal(got, want) {
-				t.Fatalf("Export() hash = %x, want %x",
+				t.Fatalf("Export: hash = %x, want %x",
 					got, want)
 				return
 			}

@@ -10,6 +10,8 @@ import (
 )
 
 func TestBadInterfaceError(t *testing.T) {
+	t.Parallel()
+
 	testCases := []struct {
 		name string
 		err  error
@@ -23,6 +25,7 @@ func TestBadInterfaceError(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			if gotError := tc.err.Error(); gotError != tc.want {
 				t.Errorf("Error: %s, want %s", gotError, tc.want)
 			}
@@ -36,6 +39,8 @@ func TestBadInterfaceError(t *testing.T) {
 }
 
 func TestBusConfigInterfaces(t *testing.T) {
+	t.Parallel()
+
 	testCases := []struct {
 		name   string
 		c      *hst.BusConfig
@@ -63,6 +68,7 @@ func TestBusConfigInterfaces(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			var got []string
 			if tc.cutoff > 0 {
 				var i int
@@ -86,6 +92,8 @@ func TestBusConfigInterfaces(t *testing.T) {
 }
 
 func TestBusConfigCheckInterfaces(t *testing.T) {
+	t.Parallel()
+
 	testCases := []struct {
 		name string
 		c    *hst.BusConfig
@@ -101,6 +109,7 @@ func TestBusConfigCheckInterfaces(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			if err := tc.c.CheckInterfaces(tc.name); !reflect.DeepEqual(err, tc.err) {
 				t.Errorf("CheckInterfaces: error = %#v, want %#v", err, tc.err)
 			}

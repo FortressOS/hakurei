@@ -14,6 +14,8 @@ import (
 )
 
 func TestParse(t *testing.T) {
+	t.Parallel()
+
 	testCases := []struct {
 		name      string
 		buildTree func(wout, wlog io.Writer) command.Command
@@ -251,6 +253,7 @@ Commands:
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			wout, wlog := new(bytes.Buffer), new(bytes.Buffer)
 			c := tc.buildTree(wout, wlog)
 

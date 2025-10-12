@@ -30,6 +30,8 @@ import (
 )
 
 func TestStartError(t *testing.T) {
+	t.Parallel()
+
 	testCases := []struct {
 		name string
 		err  error
@@ -137,6 +139,8 @@ func TestStartError(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
 			t.Run("error", func(t *testing.T) {
 				if got := tc.err.Error(); got != tc.s {
 					t.Errorf("Error: %q, want %q", got, tc.s)
@@ -352,6 +356,8 @@ var containerTestCases = []struct {
 }
 
 func TestContainer(t *testing.T) {
+	t.Parallel()
+
 	t.Run("cancel", testContainerCancel(nil, func(t *testing.T, c *container.Container) {
 		wantErr := context.Canceled
 		wantExitCode := 0
@@ -385,6 +391,8 @@ func TestContainer(t *testing.T) {
 
 	for i, tc := range containerTestCases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
 			wantOps, wantOpsCtx := tc.ops(t)
 			wantMnt := tc.mnt(t, wantOpsCtx)
 
@@ -504,6 +512,7 @@ func testContainerCancel(
 	waitCheck func(t *testing.T, c *container.Container),
 ) func(t *testing.T) {
 	return func(t *testing.T) {
+		t.Parallel()
 		ctx, cancel := context.WithTimeout(t.Context(), helperDefaultTimeout)
 
 		c := helperNewContainer(ctx, "block")
@@ -546,6 +555,7 @@ func testContainerCancel(
 }
 
 func TestContainerString(t *testing.T) {
+	t.Parallel()
 	msg := message.NewMsg(nil)
 	c := container.NewCommand(t.Context(), msg, check.MustAbs("/run/current-system/sw/bin/ldd"), "ldd", "/usr/bin/env")
 	c.SeccompFlags |= seccomp.AllowMultiarch

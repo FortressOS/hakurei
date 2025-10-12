@@ -1,14 +1,11 @@
 package system
 
 import (
-	"io"
-	"io/fs"
 	"log"
 	"os"
 	"reflect"
 	"slices"
 	"testing"
-	"time"
 	"unsafe"
 
 	"hakurei.app/container/stub"
@@ -42,10 +39,12 @@ func checkOpBehaviour(t *testing.T, testCases []opBehaviourTestCase) {
 
 	t.Run("behaviour", func(t *testing.T) {
 		t.Helper()
+		t.Parallel()
 
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
 				t.Helper()
+				t.Parallel()
 
 				var ec *Criteria
 				if tc.ec != 0xff {
@@ -94,10 +93,12 @@ func checkOpsBuilder(t *testing.T, fname string, testCases []opsBuilderTestCase)
 
 	t.Run("build", func(t *testing.T) {
 		t.Helper()
+		t.Parallel()
 
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
 				t.Helper()
+				t.Parallel()
 
 				sys, s := InternalNew(t, tc.exp, tc.uid)
 				defer stub.HandleExit(t)
@@ -126,10 +127,12 @@ func checkOpIs(t *testing.T, testCases []opIsTestCase) {
 
 	t.Run("is", func(t *testing.T) {
 		t.Helper()
+		t.Parallel()
 
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
 				t.Helper()
+				t.Parallel()
 
 				if got := tc.op.Is(tc.v); got != tc.want {
 					t.Errorf("Is: %v, want %v", got, tc.want)
@@ -153,10 +156,12 @@ func checkOpMeta(t *testing.T, testCases []opMetaTestCase) {
 
 	t.Run("meta", func(t *testing.T) {
 		t.Helper()
+		t.Parallel()
 
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
 				t.Helper()
+				t.Parallel()
 
 				t.Run("type", func(t *testing.T) {
 					t.Helper()
@@ -184,34 +189,6 @@ func checkOpMeta(t *testing.T, testCases []opMetaTestCase) {
 			})
 		}
 	})
-}
-
-type stubFi struct {
-	size  int64
-	isDir bool
-}
-
-func (stubFi) Name() string       { panic("unreachable") }
-func (fi stubFi) Size() int64     { return fi.size }
-func (stubFi) Mode() fs.FileMode  { panic("unreachable") }
-func (stubFi) ModTime() time.Time { panic("unreachable") }
-func (fi stubFi) IsDir() bool     { return fi.isDir }
-func (stubFi) Sys() any           { panic("unreachable") }
-
-type readerOsFile struct {
-	closed bool
-	io.Reader
-}
-
-func (*readerOsFile) Name() string               { panic("unreachable") }
-func (*readerOsFile) Write([]byte) (int, error)  { panic("unreachable") }
-func (*readerOsFile) Stat() (fs.FileInfo, error) { panic("unreachable") }
-func (r *readerOsFile) Close() error {
-	if r.closed {
-		return os.ErrClosed
-	}
-	r.closed = true
-	return nil
 }
 
 // InternalNew initialises [I] with a stub syscallDispatcher.

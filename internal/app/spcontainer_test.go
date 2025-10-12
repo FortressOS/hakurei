@@ -19,6 +19,7 @@ import (
 )
 
 func TestSpParamsOp(t *testing.T) {
+	t.Parallel()
 	config := hst.Template()
 
 	checkOpBehaviour(t, []opBehaviourTestCase{
@@ -422,5 +423,5 @@ type invalidFSHost bool
 func (f invalidFSHost) Valid() bool           { return bool(f) }
 func (invalidFSHost) Path() *check.Absolute   { panic("unreachable") }
 func (invalidFSHost) Host() []*check.Absolute { return []*check.Absolute{nil} }
-func (invalidFSHost) Apply(z *hst.ApplyState) { panic("unreachable") }
+func (invalidFSHost) Apply(*hst.ApplyState)   { panic("unreachable") }
 func (invalidFSHost) String() string          { panic("unreachable") }

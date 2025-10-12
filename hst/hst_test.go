@@ -14,6 +14,8 @@ import (
 )
 
 func TestAppError(t *testing.T) {
+	t.Parallel()
+
 	testCases := []struct {
 		name    string
 		err     error
@@ -58,13 +60,17 @@ func TestAppError(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
 			t.Run("error", func(t *testing.T) {
+				t.Parallel()
 				if got := tc.err.Error(); got != tc.s {
 					t.Errorf("Error: %s, want %s", got, tc.s)
 				}
 			})
 
 			t.Run("message", func(t *testing.T) {
+				t.Parallel()
 				gotMessage, gotMessageOk := message.GetMessage(tc.err)
 				if want := tc.message != "\x00"; gotMessageOk != want {
 					t.Errorf("GetMessage: ok = %v, want %v", gotMessage, want)
@@ -78,6 +84,7 @@ func TestAppError(t *testing.T) {
 			})
 
 			t.Run("is", func(t *testing.T) {
+				t.Parallel()
 				if !errors.Is(tc.err, tc.is) {
 					t.Errorf("Is: unexpected false for %v", tc.is)
 				}
@@ -90,6 +97,8 @@ func TestAppError(t *testing.T) {
 }
 
 func TestTemplate(t *testing.T) {
+	t.Parallel()
+
 	const want = `{
 	"id": "org.chromium.Chromium",
 	"enablements": {

@@ -65,7 +65,7 @@ func TestProxyStartWaitCloseString(t *testing.T) {
 }
 
 const (
-	stubProxyTimeout = 30 * time.Second
+	stubProxyTimeout = 5 * time.Second
 )
 
 func testProxyFinaliseStartWaitCloseString(t *testing.T, useSandbox bool) {
@@ -99,8 +99,7 @@ func testProxyFinaliseStartWaitCloseString(t *testing.T, useSandbox bool) {
 		}
 
 		if err := p.Start(); !errors.Is(err, syscall.ENOTRECOVERABLE) {
-			t.Errorf("Start: error = %q, wantErr %q",
-				err, syscall.ENOTRECOVERABLE)
+			t.Errorf("Start: error = %q, wantErr %q", err, syscall.ENOTRECOVERABLE)
 			return
 		}
 	})
@@ -115,71 +114,57 @@ func testProxyFinaliseStartWaitCloseString(t *testing.T, useSandbox bool) {
 			var final *dbus.Final
 			t.Run("finalise", func(t *testing.T) {
 				if v, err := dbus.Finalise(tc[0].bus, tc[1].bus, tc[0].c, tc[1].c); err != nil {
-					t.Errorf("Finalise: error = %v, wantErr %v",
-						err, tc[0].wantErr)
+					t.Errorf("Finalise: error = %v, wantErr %v", err, tc[0].wantErr)
 					return
 				} else {
 					final = v
 				}
 			})
 
-			t.Run("run", func(t *testing.T) {
-				ctx, cancel := context.WithTimeout(t.Context(), stubProxyTimeout)
-				defer cancel()
-				output := new(strings.Builder)
-				if !useSandbox {
-					p = dbus.NewDirect(ctx, message.NewMsg(nil), final, output)
-				} else {
-					p = dbus.New(ctx, message.NewMsg(nil), final, output)
+			ctx, cancel := context.WithTimeout(t.Context(), stubProxyTimeout)
+			defer cancel()
+			output := new(strings.Builder)
+			if !useSandbox {
+				p = dbus.NewDirect(ctx, message.NewMsg(nil), final, output)
+			} else {
+				p = dbus.New(ctx, message.NewMsg(nil), final, output)
+			}
+
+			{ // check invalid wait behaviour
+				wantErr := "dbus: not started"
+				if err := p.Wait(); err == nil || err.Error() != wantErr {
+					t.Errorf("Wait: error = %v, wantErr %v", err, wantErr)
 				}
+			}
 
-				t.Run("invalid wait", func(t *testing.T) {
-					wantErr := "dbus: not started"
-					if err := p.Wait(); err == nil || err.Error() != wantErr {
-						t.Errorf("Wait: error = %v, wantErr %v",
-							err, wantErr)
-					}
-				})
-
-				t.Run("string", func(t *testing.T) {
-					want := "(unused dbus proxy)"
-					if got := p.String(); got != want {
-						t.Errorf("String: %q, want %q",
-							got, want)
-						return
-					}
-				})
-
-				if err := p.Start(); err != nil {
-					t.Fatalf("Start: error = %v",
-						err)
+			{ // check string behaviour
+				want := "(unused dbus proxy)"
+				if got := p.String(); got != want {
+					t.Errorf("String: %q, want %q", got, want)
+					return
 				}
+			}
 
-				t.Run("string", func(t *testing.T) {
-					wantSubstr := fmt.Sprintf("%s --args=3 --fd=4", os.Args[0])
-					if useSandbox {
-						wantSubstr = `argv: ["xdg-dbus-proxy" "--args=3" "--fd=4"], filter: true, rules: 0, flags: 0x1, presets: 0xf`
-					}
-					if got := p.String(); !strings.Contains(got, wantSubstr) {
-						t.Errorf("String: %q, want %q",
-							got, wantSubstr)
-						return
-					}
-				})
+			if err := p.Start(); err != nil {
+				t.Fatalf("Start: error = %v", err)
+			}
 
-				t.Run("wait", func(t *testing.T) {
-					done := make(chan struct{})
-					go func() {
-						if err := p.Wait(); err != nil {
-							t.Errorf("Wait: error = %v\noutput: %s",
-								err, output.String())
-						}
-						close(done)
-					}()
-					p.Close()
-					<-done
-				})
-			})
+			{ // check running string behaviour
+				wantSubstr := fmt.Sprintf("%s --args=3 --fd=4", os.Args[0])
+				if useSandbox {
+					wantSubstr = `argv: ["xdg-dbus-proxy" "--args=3" "--fd=4"], filter: true, rules: 0, flags: 0x1, presets: 0xf`
+				}
+				if got := p.String(); !strings.Contains(got, wantSubstr) {
+					t.Errorf("String: %q, want %q",
+						got, wantSubstr)
+					return
+				}
+			}
+
+			p.Close()
+			if err := p.Wait(); err != nil {
+				t.Errorf("Wait: error = %v\noutput: %s", err, output.String())
+			}
 		})
 	}
 }

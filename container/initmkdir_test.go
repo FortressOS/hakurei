@@ -9,6 +9,8 @@ import (
 )
 
 func TestMkdirOp(t *testing.T) {
+	t.Parallel()
+
 	checkOpBehaviour(t, []opBehaviourTestCase{
 		{"success", new(Params), &MkdirOp{
 			Path: check.MustAbs("/.hakurei"),

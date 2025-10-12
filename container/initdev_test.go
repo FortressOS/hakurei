@@ -9,6 +9,8 @@ import (
 )
 
 func TestMountDevOp(t *testing.T) {
+	t.Parallel()
+
 	checkOpBehaviour(t, []opBehaviourTestCase{
 		{"mountTmpfs", &Params{ParentPerm: 0750, RetainSession: true}, &MountDevOp{
 			Target: check.MustAbs("/dev/"),

@@ -77,6 +77,7 @@ func checkOpBehaviour(t *testing.T, testCases []opBehaviourTestCase) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Helper()
+			t.Parallel()
 
 			wantCallsFull := slices.Concat(wantNewState, tc.toSystem, []stub.Call{{Name: stub.CallSeparator}})
 			if tc.wantErrSystem == nil {

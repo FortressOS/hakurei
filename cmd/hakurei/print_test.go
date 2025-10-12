@@ -27,6 +27,8 @@ var (
 )
 
 func TestPrintShowInstance(t *testing.T) {
+	t.Parallel()
+
 	testCases := []struct {
 		name        string
 		instance    *state.State
@@ -487,6 +489,8 @@ App
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
 			output := new(strings.Builder)
 			gotValid := printShowInstance(output, testTime, tc.instance, tc.config, tc.short, tc.json)
 			if got := output.String(); got != tc.want {
@@ -501,6 +505,8 @@ App
 }
 
 func TestPrintPs(t *testing.T) {
+	t.Parallel()
+
 	testCases := []struct {
 		name        string
 		entries     state.Entries
@@ -698,6 +704,8 @@ func TestPrintPs(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
 			output := new(strings.Builder)
 			printPs(output, testTime, stubStore(tc.entries), tc.short, tc.json)
 			if got := output.String(); got != tc.want {

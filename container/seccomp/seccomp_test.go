@@ -10,6 +10,8 @@ import (
 )
 
 func TestLibraryError(t *testing.T) {
+	t.Parallel()
+
 	testCases := []struct {
 		name    string
 		sample  *seccomp.LibraryError
@@ -41,6 +43,8 @@ func TestLibraryError(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
 			if errors.Is(tc.sample, tc.compare) != tc.wantIs {
 				t.Errorf("errors.Is(%#v, %#v) did not return %v",
 					tc.sample, tc.compare, tc.wantIs)
@@ -54,6 +58,8 @@ func TestLibraryError(t *testing.T) {
 	}
 
 	t.Run("invalid", func(t *testing.T) {
+		t.Parallel()
+
 		wantPanic := "invalid libseccomp error"
 		defer func() {
 			if r := recover(); r != wantPanic {

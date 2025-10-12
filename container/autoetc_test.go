@@ -10,7 +10,10 @@ import (
 )
 
 func TestAutoEtcOp(t *testing.T) {
+	t.Parallel()
+
 	t.Run("nonrepeatable", func(t *testing.T) {
+		t.Parallel()
 		wantErr := OpRepeatError("autoetc")
 		if err := (&AutoEtcOp{Prefix: "81ceabb30d37bbdb3868004629cb84e9"}).apply(&setupState{nonrepeatable: nrAutoEtc}, nil); !errors.Is(err, wantErr) {
 			t.Errorf("apply: error = %v, want %v", err, wantErr)
@@ -280,6 +283,7 @@ func TestAutoEtcOp(t *testing.T) {
 	})
 
 	t.Run("host path rel", func(t *testing.T) {
+		t.Parallel()
 		op := &AutoEtcOp{Prefix: "048090b6ed8f9ebb10e275ff5d8c0659"}
 		wantHostPath := "/etc/.host/048090b6ed8f9ebb10e275ff5d8c0659"
 		wantHostRel := ".host/048090b6ed8f9ebb10e275ff5d8c0659"

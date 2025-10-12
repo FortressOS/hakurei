@@ -6,32 +6,46 @@ import (
 	"testing"
 )
 
-func Test_parseUint32Fast(t *testing.T) {
+func TestParseUint32Fast(t *testing.T) {
+	t.Parallel()
+
 	t.Run("zero-length", func(t *testing.T) {
+		t.Parallel()
+
 		if _, err := parseUint32Fast(""); err == nil || err.Error() != "zero length string" {
 			t.Errorf(`parseUint32Fast(""): error = %v`, err)
 			return
 		}
 	})
+
 	t.Run("overflow", func(t *testing.T) {
+		t.Parallel()
+
 		if _, err := parseUint32Fast("10000000000"); err == nil || err.Error() != "string too long" {
 			t.Errorf("parseUint32Fast: error = %v", err)
 			return
 		}
 	})
+
 	t.Run("invalid byte", func(t *testing.T) {
+		t.Parallel()
+
 		if _, err := parseUint32Fast("meow"); err == nil || err.Error() != "invalid character 'm' at index 0" {
 			t.Errorf(`parseUint32Fast("meow"): error = %v`, err)
 			return
 		}
 	})
+
 	t.Run("full range", func(t *testing.T) {
+		t.Parallel()
+
 		testRange := func(i, end int) {
 			for ; i < end; i++ {
 				s := strconv.Itoa(i)
 				w := i
 				t.Run("parse "+s, func(t *testing.T) {
 					t.Parallel()
+
 					v, err := parseUint32Fast(s)
 					if err != nil {
 						t.Errorf("parseUint32Fast(%q): error = %v",
@@ -55,7 +69,9 @@ func Test_parseUint32Fast(t *testing.T) {
 	})
 }
 
-func Test_parseConfig(t *testing.T) {
+func TestParseConfig(t *testing.T) {
+	t.Parallel()
+
 	testCases := []struct {
 		name       string
 		puid, want int
@@ -71,6 +87,8 @@ func Test_parseConfig(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
 			fid, ok, err := parseConfig(bytes.NewBufferString(tc.rc), tc.puid)
 			if err == nil && tc.wantErr != "" {
 				t.Errorf("parseConfig: error = %v; wantErr %q",

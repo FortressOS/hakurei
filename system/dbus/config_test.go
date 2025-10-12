@@ -11,6 +11,8 @@ import (
 )
 
 func TestConfigArgs(t *testing.T) {
+	t.Parallel()
+
 	for _, tc := range testCasesExt {
 		if tc.wantErr {
 			// args does not check for nulls
@@ -18,6 +20,8 @@ func TestConfigArgs(t *testing.T) {
 		}
 
 		t.Run("build arguments for "+tc.id, func(t *testing.T) {
+			t.Parallel()
+
 			if got := dbus.Args(tc.c, tc.bus); !slices.Equal(got, tc.want) {
 				t.Errorf("Args: %v, want %v", got, tc.want)
 			}
@@ -26,6 +30,7 @@ func TestConfigArgs(t *testing.T) {
 }
 
 func TestNewConfig(t *testing.T) {
+	t.Parallel()
 	ids := [...]string{"org.chromium.Chromium", "dev.vencord.Vesktop"}
 
 	type newTestCase struct {
@@ -107,6 +112,8 @@ func TestNewConfig(t *testing.T) {
 		}
 
 		t.Run(name.String(), func(t *testing.T) {
+			t.Parallel()
+
 			if gotC := dbus.NewConfig(tc.id, tc.args[0], tc.args[1]); !reflect.DeepEqual(gotC, tc.want) {
 				t.Errorf("NewConfig(%q, %t, %t) = %v, want %v",
 					tc.id, tc.args[0], tc.args[1],

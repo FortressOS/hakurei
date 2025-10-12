@@ -8,6 +8,8 @@ import (
 )
 
 func TestMkdirOp(t *testing.T) {
+	t.Parallel()
+
 	checkOpBehaviour(t, []opBehaviourTestCase{
 		{"mkdir", 0xdeadbeef, 0xff, &mkdirOp{User, "/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9", 0711, false}, []stub.Call{
 			call("verbose", stub.ExpectArgs{[]any{"ensuring directory", &mkdirOp{User, "/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9", 0711, false}}}, nil, nil),

@@ -10,7 +10,10 @@ import (
 )
 
 func TestMountTmpfsOp(t *testing.T) {
+	t.Parallel()
+
 	t.Run("size error", func(t *testing.T) {
+		t.Parallel()
 		tmpfsSizeError := TmpfsSizeError(-1)
 		want := "tmpfs size -1 out of bounds"
 		if got := tmpfsSizeError.Error(); got != want {

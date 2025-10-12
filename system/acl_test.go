@@ -11,6 +11,8 @@ import (
 )
 
 func TestACLUpdateOp(t *testing.T) {
+	t.Parallel()
+
 	checkOpBehaviour(t, []opBehaviourTestCase{
 		{"apply aclUpdate", 0xdeadbeef, 0xff,
 			&aclUpdateOp{Process, "/proc/nonexistent", []acl.Perm{acl.Read, acl.Write, acl.Execute}}, []stub.Call{

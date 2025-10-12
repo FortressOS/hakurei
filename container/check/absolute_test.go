@@ -18,6 +18,8 @@ import (
 func unsafeAbs(_ string) *Absolute
 
 func TestAbsoluteError(t *testing.T) {
+	t.Parallel()
+
 	testCases := []struct {
 		name string
 
@@ -27,8 +29,8 @@ func TestAbsoluteError(t *testing.T) {
 	}{
 		{"EINVAL", new(AbsoluteError), syscall.EINVAL, true},
 		{"not EINVAL", new(AbsoluteError), syscall.EBADE, false},
-		{"ne val", new(AbsoluteError), &AbsoluteError{"etc"}, false},
-		{"equals", &AbsoluteError{"etc"}, &AbsoluteError{"etc"}, true},
+		{"ne val", new(AbsoluteError), &AbsoluteError{Pathname: "etc"}, false},
+		{"equals", &AbsoluteError{Pathname: "etc"}, &AbsoluteError{Pathname: "etc"}, true},
 	}
 
 	for _, tc := range testCases {
@@ -38,14 +40,18 @@ func TestAbsoluteError(t *testing.T) {
 	}
 
 	t.Run("string", func(t *testing.T) {
+		t.Parallel()
+
 		want := `path "etc" is not absolute`
-		if got := (&AbsoluteError{"etc"}).Error(); got != want {
+		if got := (&AbsoluteError{Pathname: "etc"}).Error(); got != want {
 			t.Errorf("Error: %q, want %q", got, want)
 		}
 	})
 }
 
 func TestNewAbs(t *testing.T) {
+	t.Parallel()
+
 	testCases := []struct {
 		name string
 
@@ -54,12 +60,14 @@ func TestNewAbs(t *testing.T) {
 		wantErr  error
 	}{
 		{"good", "/etc", MustAbs("/etc"), nil},
-		{"not absolute", "etc", nil, &AbsoluteError{"etc"}},
-		{"zero", "", nil, &AbsoluteError{""}},
+		{"not absolute", "etc", nil, &AbsoluteError{Pathname: "etc"}},
+		{"zero", "", nil, &AbsoluteError{Pathname: ""}},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
 			got, err := NewAbs(tc.pathname)
 			if !reflect.DeepEqual(got, tc.want) {
 				t.Errorf("NewAbs: %#v, want %#v", got, tc.want)
@@ -71,6 +79,8 @@ func TestNewAbs(t *testing.T) {
 	}
 
 	t.Run("must", func(t *testing.T) {
+		t.Parallel()
+
 		defer func() {
 			wantPanic := `path "etc" is not absolute`
 
@@ -85,6 +95,8 @@ func TestNewAbs(t *testing.T) {
 
 func TestAbsoluteString(t *testing.T) {
 	t.Run("passthrough", func(t *testing.T) {
+		t.Parallel()
+
 		pathname := "/etc"
 		if got := unsafeAbs(pathname).String(); got != pathname {
 			t.Errorf("String: %q, want %q", got, pathname)
@@ -92,6 +104,8 @@ func TestAbsoluteString(t *testing.T) {
 	})
 
 	t.Run("zero", func(t *testing.T) {
+		t.Parallel()
+
 		defer func() {
 			wantPanic := "attempted use of zero Absolute"
 
@@ -105,6 +119,8 @@ func TestAbsoluteString(t *testing.T) {
 }
 
 func TestAbsoluteIs(t *testing.T) {
+	t.Parallel()
+
 	testCases := []struct {
 		name string
 		a, v *Absolute
@@ -120,6 +136,8 @@ func TestAbsoluteIs(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
 			if got := tc.a.Is(tc.v); got != tc.want {
 				t.Errorf("Is: %v, want %v", got, tc.want)
 			}
@@ -133,6 +151,8 @@ type sCheck struct {
 }
 
 func TestCodecAbsolute(t *testing.T) {
+	t.Parallel()
+
 	testCases := []struct {
 		name string
 		a    *Absolute
@@ -153,7 +173,7 @@ func TestCodecAbsolute(t *testing.T) {
 
 			`"/etc"`, `{"val":"/etc","magic":3236757504}`},
 		{"not absolute", nil,
-			&AbsoluteError{"etc"},
+			&AbsoluteError{Pathname: "etc"},
 			"\t\x7f\x05\x01\x02\xff\x82\x00\x00\x00\a\xff\x80\x00\x03etc",
 			",\xff\x83\x03\x01\x01\x06sCheck\x01\xff\x84\x00\x01\x02\x01\bPathname\x01\xff\x80\x00\x01\x05Magic\x01\x04\x00\x00\x00\t\x7f\x05\x01\x02\xff\x82\x00\x00\x00\x0f\xff\x84\x01\x03etc\x01\xfb\x01\x81\xda\x00\x00\x00",
 
@@ -167,13 +187,18 @@ func TestCodecAbsolute(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
 			t.Run("gob", func(t *testing.T) {
 				if tc.gob == "\x00" && tc.sGob == "\x00" {
 					// these values mark the current test to skip gob
 					return
 				}
+				t.Parallel()
 
 				t.Run("encode", func(t *testing.T) {
+					t.Parallel()
+
 					// encode is unchecked
 					if errors.Is(tc.wantErr, syscall.EINVAL) {
 						return
@@ -210,6 +235,8 @@ func TestCodecAbsolute(t *testing.T) {
 				})
 
 				t.Run("decode", func(t *testing.T) {
+					t.Parallel()
+
 					{
 						var gotA *Absolute
 						err := gob.NewDecoder(strings.NewReader(tc.gob)).Decode(&gotA)
@@ -244,7 +271,11 @@ func TestCodecAbsolute(t *testing.T) {
 			})
 
 			t.Run("json", func(t *testing.T) {
+				t.Parallel()
+
 				t.Run("marshal", func(t *testing.T) {
+					t.Parallel()
+
 					// marshal is unchecked
 					if errors.Is(tc.wantErr, syscall.EINVAL) {
 						return
@@ -279,6 +310,8 @@ func TestCodecAbsolute(t *testing.T) {
 				})
 
 				t.Run("unmarshal", func(t *testing.T) {
+					t.Parallel()
+
 					{
 						var gotA *Absolute
 						err := json.Unmarshal([]byte(tc.json), &gotA)
@@ -314,6 +347,8 @@ func TestCodecAbsolute(t *testing.T) {
 	}
 
 	t.Run("json passthrough", func(t *testing.T) {
+		t.Parallel()
+
 		wantErr := "invalid character ':' looking for beginning of value"
 		if err := new(Absolute).UnmarshalJSON([]byte(":3")); err == nil || err.Error() != wantErr {
 			t.Errorf("UnmarshalJSON: error = %v, want %s", err, wantErr)
@@ -322,7 +357,11 @@ func TestCodecAbsolute(t *testing.T) {
 }
 
 func TestAbsoluteWrap(t *testing.T) {
+	t.Parallel()
+
 	t.Run("join", func(t *testing.T) {
+		t.Parallel()
+
 		want := "/etc/nix/nix.conf"
 		if got := MustAbs("/etc").Append("nix", "nix.conf"); got.String() != want {
 			t.Errorf("Append: %q, want %q", got, want)
@@ -330,6 +369,8 @@ func TestAbsoluteWrap(t *testing.T) {
 	})
 
 	t.Run("dir", func(t *testing.T) {
+		t.Parallel()
+
 		want := "/"
 		if got := MustAbs("/etc").Dir(); got.String() != want {
 			t.Errorf("Dir: %q, want %q", got, want)
@@ -337,6 +378,8 @@ func TestAbsoluteWrap(t *testing.T) {
 	})
 
 	t.Run("sort", func(t *testing.T) {
+		t.Parallel()
+
 		want := []*Absolute{MustAbs("/etc"), MustAbs("/proc"), MustAbs("/sys")}
 		got := []*Absolute{MustAbs("/proc"), MustAbs("/sys"), MustAbs("/etc")}
 		SortAbs(got)
@@ -346,6 +389,8 @@ func TestAbsoluteWrap(t *testing.T) {
 	})
 
 	t.Run("compact", func(t *testing.T) {
+		t.Parallel()
+
 		want := []*Absolute{MustAbs("/etc"), MustAbs("/proc"), MustAbs("/sys")}
 		if got := CompactAbs([]*Absolute{MustAbs("/etc"), MustAbs("/proc"), MustAbs("/proc"), MustAbs("/sys")}); !reflect.DeepEqual(got, want) {
 			t.Errorf("CompactAbs: %#v, want %#v", got, want)

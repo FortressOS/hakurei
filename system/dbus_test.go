@@ -16,6 +16,8 @@ import (
 )
 
 func TestDBusProxyOp(t *testing.T) {
+	t.Parallel()
+
 	checkOpBehaviour(t, []opBehaviourTestCase{
 		{"dbusProxyStart", 0xdeadbeef, 0xff, &dbusProxyOp{
 			final:  dbusNewFinalSample(4),
@@ -377,6 +379,8 @@ func dbusNewFinalSample(v int) *dbus.Final {
 }
 
 func TestLinePrefixWriter(t *testing.T) {
+	t.Parallel()
+
 	testCases := []struct {
 		name    string
 		prefix  string
@@ -588,6 +592,7 @@ func TestLinePrefixWriter(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			gotPt := make([]string, 0, len(tc.wantPt))
 			out := &linePrefixWriter{
 				prefix: tc.prefix,
@@ -631,11 +636,11 @@ func TestLinePrefixWriter(t *testing.T) {
 			}
 
 			wantDump := make([]string, len(tc.want)+len(tc.wantExt))
-			for i, m := range tc.want {
-				wantDump[i] = tc.prefix + m
+			for i, want := range tc.want {
+				wantDump[i] = tc.prefix + want
 			}
-			for i, m := range tc.wantExt {
-				wantDump[len(tc.want)+i] = m
+			for i, want := range tc.wantExt {
+				wantDump[len(tc.want)+i] = want
 			}
 			t.Run("dump", func(t *testing.T) {
 				got := make([]string, 0, len(wantDump))

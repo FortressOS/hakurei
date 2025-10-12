@@ -9,6 +9,8 @@ import (
 )
 
 func TestMountProcOp(t *testing.T) {
+	t.Parallel()
+
 	checkOpBehaviour(t, []opBehaviourTestCase{
 		{"mkdir", &Params{ParentPerm: 0755},
 			&MountProcOp{

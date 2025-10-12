@@ -10,6 +10,8 @@ import (
 )
 
 func TestUnfold(t *testing.T) {
+	t.Parallel()
+
 	testCases := []struct {
 		name    string
 		sample  string
@@ -50,6 +52,8 @@ func TestUnfold(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
 			d := vfs.NewMountInfoDecoder(strings.NewReader(tc.sample))
 			got, err := d.Unfold(tc.target)
 

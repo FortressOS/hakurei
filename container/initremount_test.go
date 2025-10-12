@@ -9,6 +9,8 @@ import (
 )
 
 func TestRemountOp(t *testing.T) {
+	t.Parallel()
+
 	checkOpBehaviour(t, []opBehaviourTestCase{
 		{"success", new(Params), &RemountOp{
 			Target: check.MustAbs("/"),

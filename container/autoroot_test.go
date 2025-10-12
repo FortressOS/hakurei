@@ -13,6 +13,7 @@ import (
 
 func TestAutoRootOp(t *testing.T) {
 	t.Run("nonrepeatable", func(t *testing.T) {
+		t.Parallel()
 		wantErr := OpRepeatError("autoroot")
 		if err := new(AutoRootOp).apply(&setupState{nonrepeatable: nrAutoRoot}, nil); !errors.Is(err, wantErr) {
 			t.Errorf("apply: error = %v, want %v", err, wantErr)
@@ -180,6 +181,8 @@ func TestAutoRootOp(t *testing.T) {
 }
 
 func TestIsAutoRootBindable(t *testing.T) {
+	t.Parallel()
+
 	testCases := []struct {
 		name string
 		want bool
@@ -196,6 +199,7 @@ func TestIsAutoRootBindable(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			var msg message.Msg
 			if tc.log {
 				msg = &kstub{nil, stub.New(t, func(s *stub.Stub[syscallDispatcher]) syscallDispatcher { panic("unreachable") }, stub.Expect{Calls: []stub.Call{

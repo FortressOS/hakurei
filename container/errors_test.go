@@ -14,6 +14,8 @@ import (
 )
 
 func TestMessageFromError(t *testing.T) {
+	t.Parallel()
+
 	testCases := []struct {
 		name   string
 		err    error
@@ -54,6 +56,7 @@ func TestMessageFromError(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			got, ok := messageFromError(tc.err)
 			if got != tc.want {
 				t.Errorf("messageFromError: %q, want %q", got, tc.want)
@@ -66,6 +69,8 @@ func TestMessageFromError(t *testing.T) {
 }
 
 func TestMountError(t *testing.T) {
+	t.Parallel()
+
 	testCases := []struct {
 		name  string
 		err   error
@@ -111,6 +116,7 @@ func TestMountError(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			t.Run("is", func(t *testing.T) {
 				if !errors.Is(tc.err, tc.errno) {
 					t.Errorf("Is: %#v is not %v", tc.err, tc.errno)
@@ -125,6 +131,7 @@ func TestMountError(t *testing.T) {
 	}
 
 	t.Run("zero", func(t *testing.T) {
+		t.Parallel()
 		if errors.Is(new(MountError), syscall.Errno(0)) {
 			t.Errorf("Is: zero MountError unexpected true")
 		}
@@ -132,6 +139,8 @@ func TestMountError(t *testing.T) {
 }
 
 func TestErrnoFallback(t *testing.T) {
+	t.Parallel()
+
 	testCases := []struct {
 		name      string
 		err       error
@@ -154,6 +163,7 @@ func TestErrnoFallback(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			errno, err := errnoFallback(tc.name, Nonexistent, tc.err)
 			if errno != tc.wantErrno {
 				t.Errorf("errnoFallback: errno = %v, want %v", errno, tc.wantErrno)

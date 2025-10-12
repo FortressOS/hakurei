@@ -9,6 +9,8 @@ import (
 )
 
 func TestFSOverlay(t *testing.T) {
+	t.Parallel()
+
 	checkFs(t, []fsTestCase{
 		{"nil", (*hst.FSOverlay)(nil), false, nil, nil, nil, "<invalid>"},
 		{"nil lower", &hst.FSOverlay{Target: m("/etc"), Lower: []*check.Absolute{nil}}, false, nil, nil, nil, "<invalid>"},

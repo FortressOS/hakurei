@@ -10,7 +10,11 @@ import (
 )
 
 func TestMountOverlayOp(t *testing.T) {
+	t.Parallel()
+
 	t.Run("argument error", func(t *testing.T) {
+		t.Parallel()
+
 		testCases := []struct {
 			name string
 			err  *OverlayArgumentError
@@ -30,6 +34,7 @@ func TestMountOverlayOp(t *testing.T) {
 		}
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
+				t.Parallel()
 				if got := tc.err.Error(); got != tc.want {
 					t.Errorf("Error: %q, want %q", got, tc.want)
 				}
@@ -270,7 +275,10 @@ func TestMountOverlayOp(t *testing.T) {
 	})
 
 	t.Run("unreachable", func(t *testing.T) {
+		t.Parallel()
+
 		t.Run("nil Upper non-nil Work not ephemeral", func(t *testing.T) {
+			t.Parallel()
 			wantErr := OpStateError("overlay")
 			if err := (&MountOverlayOp{
 				Work: check.MustAbs("/"),

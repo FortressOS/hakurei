@@ -14,6 +14,7 @@ func TestTmpfileOp(t *testing.T) {
 		samplePath = check.MustAbs("/etc/passwd")
 		sampleData = []byte(sampleDataString)
 	)
+	t.Parallel()
 
 	checkOpBehaviour(t, []opBehaviourTestCase{
 		{"createTemp", &Params{ParentPerm: 0700}, &TmpfileOp{

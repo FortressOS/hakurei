@@ -9,6 +9,8 @@ import (
 )
 
 func TestFSEphemeral(t *testing.T) {
+	t.Parallel()
+
 	checkFs(t, []fsTestCase{
 		{"nil", (*hst.FSEphemeral)(nil), false, nil, nil, nil, "<invalid>"},
 

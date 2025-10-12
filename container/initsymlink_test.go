@@ -9,6 +9,8 @@ import (
 )
 
 func TestSymlinkOp(t *testing.T) {
+	t.Parallel()
+
 	checkOpBehaviour(t, []opBehaviourTestCase{
 		{"mkdir", &Params{ParentPerm: 0700}, &SymlinkOp{
 			Target:   check.MustAbs("/etc/nixos"),

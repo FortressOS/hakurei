@@ -21,9 +21,7 @@ Methods of Encoder are not safe for concurrent use.
 
 An Encoder must not be copied after first use.
 */
-type Encoder struct {
-	*exporter
-}
+type Encoder struct{ *exporter }
 
 func (e *Encoder) Read(p []byte) (n int, err error) {
 	if err = e.prepare(); err != nil {

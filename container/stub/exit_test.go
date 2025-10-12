@@ -32,13 +32,20 @@ func (o *overrideTFailNow) Fail() {
 }
 
 func TestHandleExit(t *testing.T) {
+	t.Parallel()
+
 	t.Run("exit", func(t *testing.T) {
+		t.Parallel()
 		defer stub.HandleExit(t)
 		panic(stub.PanicExit)
 	})
 
 	t.Run("goexit", func(t *testing.T) {
+		t.Parallel()
+
 		t.Run("FailNow", func(t *testing.T) {
+			t.Parallel()
+
 			ot := &overrideTFailNow{T: t}
 			defer func() {
 				if !ot.failNow {
@@ -50,6 +57,8 @@ func TestHandleExit(t *testing.T) {
 		})
 
 		t.Run("Fail", func(t *testing.T) {
+			t.Parallel()
+
 			ot := &overrideTFailNow{T: t}
 			defer func() {
 				if !ot.fail {
@@ -62,11 +71,16 @@ func TestHandleExit(t *testing.T) {
 	})
 
 	t.Run("nil", func(t *testing.T) {
+		t.Parallel()
 		defer stub.HandleExit(t)
 	})
 
 	t.Run("passthrough", func(t *testing.T) {
+		t.Parallel()
+
 		t.Run("toplevel", func(t *testing.T) {
+			t.Parallel()
+
 			defer func() {
 				want := 0xcafebabe
 				if r := recover(); r != want {
@@ -79,6 +93,8 @@ func TestHandleExit(t *testing.T) {
 		})
 
 		t.Run("new", func(t *testing.T) {
+			t.Parallel()
+
 			defer func() {
 				want := 0xcafe
 				if r := recover(); r != want {

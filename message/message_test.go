@@ -15,6 +15,8 @@ import (
 )
 
 func TestMessageError(t *testing.T) {
+	t.Parallel()
+
 	testCases := []struct {
 		name   string
 		err    error
@@ -30,6 +32,7 @@ func TestMessageError(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			got, ok := message.GetMessage(tc.err)
 			if got != tc.want {
 				t.Errorf("GetMessage: %q, want %q", got, tc.want)
@@ -44,6 +47,7 @@ func TestMessageError(t *testing.T) {
 func TestDefaultMsg(t *testing.T) {
 	// copied from output.go
 	const suspendBufMax = 1 << 24
+	t.Parallel()
 
 	t.Run("logger", func(t *testing.T) {
 		t.Run("nil", func(t *testing.T) {

@@ -117,7 +117,7 @@ func Export(fd int, rules []NativeRule, flags ExportFlag) error {
 
 	var ret C.int
 
-	rulesPinner := new(runtime.Pinner)
+	var rulesPinner runtime.Pinner
 	for i := range rules {
 		rule := &rules[i]
 		rulesPinner.Pin(rule)
@@ -189,6 +189,5 @@ func syscallResolveName(s string) (trap int) {
 	v := C.CString(s)
 	trap = int(C.seccomp_syscall_resolve_name(v))
 	C.free(unsafe.Pointer(v))
-
 	return
 }

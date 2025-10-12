@@ -15,6 +15,8 @@ import (
 )
 
 func TestFilesystemConfigJSON(t *testing.T) {
+	t.Parallel()
+
 	testCases := []struct {
 		name string
 		want hst.FilesystemConfigJSON
@@ -86,7 +88,10 @@ func TestFilesystemConfigJSON(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
 			t.Run("marshal", func(t *testing.T) {
+				t.Parallel()
 				wantErr := tc.wantErr
 				if errors.As(wantErr, new(hst.FSTypeError)) {
 					// for unsupported implementation tc
@@ -122,6 +127,7 @@ func TestFilesystemConfigJSON(t *testing.T) {
 			})
 
 			t.Run("unmarshal", func(t *testing.T) {
+				t.Parallel()
 				if tc.data == "\x00" && tc.sData == "\x00" {
 					if errors.As(tc.wantErr, new(hst.FSImplError)) {
 						// this error is only returned on marshal
@@ -163,6 +169,8 @@ func TestFilesystemConfigJSON(t *testing.T) {
 	}
 
 	t.Run("valid", func(t *testing.T) {
+		t.Parallel()
+
 		if got := (*hst.FilesystemConfigJSON).Valid(nil); got {
 			t.Errorf("Valid: %v, want false", got)
 		}
@@ -177,6 +185,7 @@ func TestFilesystemConfigJSON(t *testing.T) {
 	})
 
 	t.Run("passthrough", func(t *testing.T) {
+		t.Parallel()
 		if err := new(hst.FilesystemConfigJSON).UnmarshalJSON(make([]byte, 0)); err == nil {
 			t.Errorf("UnmarshalJSON: error = %v", err)
 		}
@@ -184,7 +193,10 @@ func TestFilesystemConfigJSON(t *testing.T) {
 }
 
 func TestFSErrors(t *testing.T) {
+	t.Parallel()
+
 	t.Run("type", func(t *testing.T) {
+		t.Parallel()
 		want := `invalid filesystem type "cat"`
 		if got := hst.FSTypeError("cat").Error(); got != want {
 			t.Errorf("Error: %q, want %q", got, want)
@@ -192,6 +204,8 @@ func TestFSErrors(t *testing.T) {
 	})
 
 	t.Run("impl", func(t *testing.T) {
+		t.Parallel()
+
 		testCases := []struct {
 			name string
 			val  hst.FilesystemConfig
@@ -205,6 +219,7 @@ func TestFSErrors(t *testing.T) {
 
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
+				t.Parallel()
 				err := hst.FSImplError{Value: tc.val}
 				if got := err.Error(); got != tc.want {
 					t.Errorf("Error: %q, want %q", got, tc.want)
@@ -242,13 +257,17 @@ type fsTestCase struct {
 func checkFs(t *testing.T, testCases []fsTestCase) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
 			t.Run("valid", func(t *testing.T) {
+				t.Parallel()
 				if got := tc.fs.Valid(); got != tc.valid {
 					t.Errorf("Valid: %v, want %v", got, tc.valid)
 				}
 			})
 
 			t.Run("ops", func(t *testing.T) {
+				t.Parallel()
 				ops := new(container.Ops)
 				tc.fs.Apply(&hst.ApplyState{AutoEtcPrefix: ":3", Ops: opsAdapter{ops}})
 				if !reflect.DeepEqual(ops, &tc.ops) {
@@ -265,18 +284,21 @@ func checkFs(t *testing.T, testCases []fsTestCase) {
 			})
 
 			t.Run("path", func(t *testing.T) {
+				t.Parallel()
 				if got := tc.fs.Path(); !reflect.DeepEqual(got, tc.path) {
 					t.Errorf("Target: %q, want %q", got, tc.path)
 				}
 			})
 
 			t.Run("host", func(t *testing.T) {
+				t.Parallel()
 				if got := tc.fs.Host(); !reflect.DeepEqual(got, tc.host) {
 					t.Errorf("Host: %q, want %q", got, tc.host)
 				}
 			})
 
 			t.Run("string", func(t *testing.T) {
+				t.Parallel()
 				if tc.str == "\x00" {
 					return
 				}

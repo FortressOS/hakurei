@@ -7,6 +7,8 @@ import (
 )
 
 func TestUnmangle(t *testing.T) {
+	t.Parallel()
+
 	testCases := []struct {
 		want   string
 		sample string
@@ -17,6 +19,7 @@ func TestUnmangle(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.want, func(t *testing.T) {
+			t.Parallel()
 			got := vfs.Unmangle(tc.sample)
 			if got != tc.want {
 				t.Errorf("Unmangle: %q, want %q",

@@ -9,6 +9,8 @@ import (
 )
 
 func TestFSBind(t *testing.T) {
+	t.Parallel()
+
 	checkFs(t, []fsTestCase{
 		{"nil", (*hst.FSBind)(nil), false, nil, nil, nil, "<invalid>"},
 		{"ensure optional", &hst.FSBind{Source: m("/"), Ensure: true, Optional: true},

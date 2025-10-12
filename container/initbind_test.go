@@ -12,6 +12,8 @@ import (
 )
 
 func TestBindMountOp(t *testing.T) {
+	t.Parallel()
+
 	checkOpBehaviour(t, []opBehaviourTestCase{
 		{"ENOENT not optional", new(Params), &BindMountOp{
 			Source: check.MustAbs("/bin/"),
@@ -164,7 +166,10 @@ func TestBindMountOp(t *testing.T) {
 	})
 
 	t.Run("unreachable", func(t *testing.T) {
+		t.Parallel()
+
 		t.Run("nil sourceFinal not optional", func(t *testing.T) {
+			t.Parallel()
 			wantErr := OpStateError("bind")
 			if err := new(BindMountOp).apply(nil, nil); !errors.Is(err, wantErr) {
 				t.Errorf("apply: error = %v, want %v", err, wantErr)

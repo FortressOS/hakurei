@@ -8,6 +8,8 @@ import (
 )
 
 func TestOutcomeStateValid(t *testing.T) {
+	t.Parallel()
+
 	testCases := []struct {
 		name string
 		s    *outcomeState
@@ -23,6 +25,7 @@ func TestOutcomeStateValid(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			if got := tc.s.valid(); got != tc.want {
 				t.Errorf("valid: %v, want %v", got, tc.want)
 			}

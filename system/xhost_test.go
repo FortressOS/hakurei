@@ -9,6 +9,8 @@ import (
 )
 
 func TestXHostOp(t *testing.T) {
+	t.Parallel()
+
 	checkOpBehaviour(t, []opBehaviourTestCase{
 		{"xcbChangeHosts revert", 0xbeef, hst.EX11, xhostOp("chronos"), []stub.Call{
 			call("verbosef", stub.ExpectArgs{"inserting entry %s to X11", []any{xhostOp("chronos")}}, nil, nil),

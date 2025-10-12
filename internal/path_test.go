@@ -8,6 +8,8 @@ import (
 )
 
 func TestMustCheckPath(t *testing.T) {
+	t.Parallel()
+
 	testCases := []struct {
 		name      string
 		pathname  string
@@ -20,6 +22,7 @@ func TestMustCheckPath(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			fatal := func(v ...any) { t.Fatal(append([]any{"invalid call to fatal:"}, v...)...) }
 			if tc.wantFatal != "" {
 				fatal = func(v ...any) {

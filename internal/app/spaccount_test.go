@@ -12,6 +12,7 @@ import (
 )
 
 func TestSpAccountOp(t *testing.T) {
+	t.Parallel()
 	config := hst.Template()
 
 	checkOpBehaviour(t, []opBehaviourTestCase{

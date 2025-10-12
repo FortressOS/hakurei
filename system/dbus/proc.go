@@ -146,7 +146,7 @@ func (p *Proxy) Wait() error {
 		return errors.New("dbus: not started")
 	}
 
-	errs := make([]error, 3)
+	var errs [3]error
 
 	errs[0] = p.helper.Wait()
 	if errors.Is(errs[0], context.Canceled) &&
@@ -165,7 +165,7 @@ func (p *Proxy) Wait() error {
 		}
 	}
 
-	return errors.Join(errs...)
+	return errors.Join(errs[:]...)
 }
 
 // Close cancels the context passed to the helper instance attached to xdg-dbus-proxy.
