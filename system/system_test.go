@@ -149,7 +149,7 @@ func TestEqual(t *testing.T) {
 		{"op type mismatch",
 			New(t.Context(), message.NewMsg(nil), 150).
 				ChangeHosts("chronos").
-				CopyFile(new([]byte), m("/home/ophestra/xdg/config/pulse/cookie"), 0, 256),
+				Wayland(m("/proc/nonexistent/dst"), m("/proc/nonexistent/src"), "\x00", "\x00"),
 			New(t.Context(), message.NewMsg(nil), 150).
 				ChangeHosts("chronos").
 				Ensure(m("/run"), 0755),
