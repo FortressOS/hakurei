@@ -82,18 +82,8 @@ func TestTmpfileOp(t *testing.T) {
 	})
 
 	checkOpsBuilder(t, []opsBuilderTestCase{
-		{"noref", new(Ops).Place(samplePath, sampleData), Ops{
-			&TmpfileOp{
-				Path: samplePath,
-				Data: sampleData,
-			},
-		}},
-
-		{"ref", new(Ops).PlaceP(samplePath, new(*[]byte)), Ops{
-			&TmpfileOp{
-				Path: samplePath,
-				Data: []byte{},
-			},
+		{"full", new(Ops).Place(samplePath, sampleData), Ops{
+			&TmpfileOp{Path: samplePath, Data: sampleData},
 		}},
 	})
 

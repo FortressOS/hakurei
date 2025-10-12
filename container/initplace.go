@@ -22,15 +22,6 @@ func (f *Ops) Place(name *check.Absolute, data []byte) *Ops {
 	return f
 }
 
-// PlaceP is like Place but writes the address of [TmpfileOp.Data] to the pointer dataP points to.
-func (f *Ops) PlaceP(name *check.Absolute, dataP **[]byte) *Ops {
-	t := &TmpfileOp{Path: name}
-	*dataP = &t.Data
-
-	*f = append(*f, t)
-	return f
-}
-
 // TmpfileOp places a file on container Path containing Data.
 type TmpfileOp struct {
 	Path *check.Absolute
