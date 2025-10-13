@@ -576,13 +576,12 @@ const (
 func init() {
 	helperCommands = append(helperCommands, func(c command.Command) {
 		c.Command("block", command.UsageInternal, func(args []string) error {
+			sig := make(chan os.Signal, 1)
+			signal.Notify(sig, os.Interrupt)
+			go func() { <-sig; os.Exit(blockExitCodeInterrupt) }()
+
 			if _, err := os.NewFile(3, "sync").Write([]byte{0}); err != nil {
 				return fmt.Errorf("write to sync pipe: %v", err)
-			}
-			{
-				sig := make(chan os.Signal, 1)
-				signal.Notify(sig, os.Interrupt)
-				go func() { <-sig; os.Exit(blockExitCodeInterrupt) }()
 			}
 			select {}
 		})
