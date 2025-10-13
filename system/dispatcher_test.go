@@ -276,12 +276,6 @@ func (k *kstub) xcbChangeHosts(mode xcb.HostMode, family xcb.Family, address str
 		stub.CheckArg(k.Stub, "address", address, 2))
 }
 
-func (k *kstub) dbusAddress() (session, system string) {
-	k.Helper()
-	ret := k.Expects("dbusAddress").Ret.([2]string)
-	return ret[0], ret[1]
-}
-
 func (k *kstub) dbusFinalise(sessionBus, systemBus dbus.ProxyPair, session, system *hst.BusConfig) (final *dbus.Final, err error) {
 	k.Helper()
 	expect := k.Expects("dbusFinalise")

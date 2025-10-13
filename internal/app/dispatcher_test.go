@@ -97,7 +97,7 @@ func checkOpBehaviour(t *testing.T, testCases []opBehaviourTestCase) {
 				if err := s.populateLocal(k, k); err != nil {
 					t.Fatalf("populateLocal: error = %v", err)
 				}
-				stateSys := s.newSys(config, newI())
+				stateSys := s.newSys(config, system.New(panicMsgContext{}, k, checkExpectUid))
 				if tc.pStateSys != nil {
 					tc.pStateSys(stateSys)
 				}
@@ -218,6 +218,12 @@ func (k *kstub) mustHsuPath() *check.Absolute {
 	return k.Expects("mustHsuPath").Ret.(*check.Absolute)
 }
 
+func (k *kstub) dbusAddress() (session, system string) {
+	k.Helper()
+	ret := k.Expects("dbusAddress").Ret.([2]string)
+	return ret[0], ret[1]
+}
+
 func (k *kstub) GetLogger() *log.Logger { panic("unreachable") }
 
 func (k *kstub) IsVerbose() bool { k.Helper(); return k.Expects("isVerbose").Ret.(bool) }
@@ -320,4 +326,5 @@ func (panicDispatcher) cmdOutput(*exec.Cmd) ([]byte, error)   { panic("unreachab
 func (panicDispatcher) overflowUid(message.Msg) int           { panic("unreachable") }
 func (panicDispatcher) overflowGid(message.Msg) int           { panic("unreachable") }
 func (panicDispatcher) mustHsuPath() *check.Absolute          { panic("unreachable") }
+func (panicDispatcher) dbusAddress() (string, string)         { panic("unreachable") }
 func (panicDispatcher) fatalf(string, ...any)                 { panic("unreachable") }

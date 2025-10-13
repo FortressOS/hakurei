@@ -13,8 +13,7 @@ func init() { gob.Register(new(spDBusOp)) }
 
 // spDBusOp maintains an xdg-dbus-proxy instance for the container.
 type spDBusOp struct {
-	// Whether to bind the system bus socket.
-	// Populated during toSystem.
+	// Whether to bind the system bus socket. Populated during toSystem.
 	ProxySystem bool
 }
 
@@ -30,10 +29,10 @@ func (s *spDBusOp) toSystem(state *outcomeStateSys) error {
 	// downstream socket paths
 	sessionPath, systemPath := state.instance().Append("bus"), state.instance().Append("system_bus_socket")
 
-	if err := state.sys.ProxyDBus(
-		state.sessionBus, state.systemBus,
-		sessionPath, systemPath,
-	); err != nil {
+	var sessionBus, systemBus dbus.ProxyPair
+	sessionBus[0], systemBus[0] = state.k.dbusAddress()
+	sessionBus[1], systemBus[1] = sessionPath.String(), systemPath.String()
+	if err := state.sys.ProxyDBus(state.sessionBus, state.systemBus, sessionBus, systemBus); err != nil {
 		return err
 	}
 

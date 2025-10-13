@@ -85,7 +85,7 @@ func TestDBusProxyOp(t *testing.T) {
 				Op: "dbus", Err: ErrDBusConfig,
 				Msg: "attempted to create message bus proxy args without session bus config",
 			}
-			if err := sys.ProxyDBus(nil, new(hst.BusConfig), nil, nil); !reflect.DeepEqual(err, wantErr) {
+			if err := sys.ProxyDBus(nil, new(hst.BusConfig), dbus.ProxyPair{}, dbus.ProxyPair{}); !reflect.DeepEqual(err, wantErr) {
 				t.Errorf("ProxyDBus: error = %v, want %v", err, wantErr)
 			}
 		}, nil, stub.Expect{}},
@@ -99,15 +99,20 @@ func TestDBusProxyOp(t *testing.T) {
 			}()
 
 			sys.MustProxyDBus(
-				m("/tmp/hakurei.0/99dd71ee2146369514e0d10783368f8f/bus"), &hst.BusConfig{
+				&hst.BusConfig{
 					// use impossible value here as an implicit assert that it goes through the stub
 					Talk: []string{"session\x00"}, Filter: true,
-				}, m("/tmp/hakurei.0/99dd71ee2146369514e0d10783368f8f/system_bus_socket"), &hst.BusConfig{
+				}, &hst.BusConfig{
 					// use impossible value here as an implicit assert that it goes through the stub
 					Talk: []string{"system\x00"}, Filter: true,
+				}, dbus.ProxyPair{
+					"unix:path=/run/user/1000/bus",
+					"/tmp/hakurei.0/99dd71ee2146369514e0d10783368f8f/bus",
+				}, dbus.ProxyPair{
+					"unix:path=/run/dbus/system_bus_socket",
+					"/tmp/hakurei.0/99dd71ee2146369514e0d10783368f8f/system_bus_socket",
 				})
 		}, nil, stub.Expect{Calls: []stub.Call{
-			call("dbusAddress", stub.ExpectArgs{}, [2]string{"unix:path=/run/user/1000/bus", "unix:path=/run/dbus/system_bus_socket"}, nil),
 			call("dbusFinalise", stub.ExpectArgs{
 				dbus.ProxyPair{"unix:path=/run/user/1000/bus", "/tmp/hakurei.0/99dd71ee2146369514e0d10783368f8f/bus"},
 				dbus.ProxyPair{"unix:path=/run/dbus/system_bus_socket", "/tmp/hakurei.0/99dd71ee2146369514e0d10783368f8f/system_bus_socket"},
@@ -128,13 +133,16 @@ func TestDBusProxyOp(t *testing.T) {
 				}, &hst.BusConfig{
 					// use impossible value here as an implicit assert that it goes through the stub
 					Talk: []string{"system\x00"}, Filter: true,
-				},
-				m("/tmp/hakurei.0/99dd71ee2146369514e0d10783368f8f/bus"),
-				m("/tmp/hakurei.0/99dd71ee2146369514e0d10783368f8f/system_bus_socket")); !reflect.DeepEqual(err, wantErr) {
+				}, dbus.ProxyPair{
+					"unix:path=/run/user/1000/bus",
+					"/tmp/hakurei.0/99dd71ee2146369514e0d10783368f8f/bus",
+				}, dbus.ProxyPair{
+					"unix:path=/run/dbus/system_bus_socket",
+					"/tmp/hakurei.0/99dd71ee2146369514e0d10783368f8f/system_bus_socket",
+				}); !reflect.DeepEqual(err, wantErr) {
 				t.Errorf("ProxyDBus: error = %v", err)
 			}
 		}, nil, stub.Expect{Calls: []stub.Call{
-			call("dbusAddress", stub.ExpectArgs{}, [2]string{"unix:path=/run/user/1000/bus", "unix:path=/run/dbus/system_bus_socket"}, nil),
 			call("dbusFinalise", stub.ExpectArgs{
 				dbus.ProxyPair{"unix:path=/run/user/1000/bus", "/tmp/hakurei.0/99dd71ee2146369514e0d10783368f8f/bus"},
 				dbus.ProxyPair{"unix:path=/run/dbus/system_bus_socket", "/tmp/hakurei.0/99dd71ee2146369514e0d10783368f8f/system_bus_socket"},
@@ -145,12 +153,18 @@ func TestDBusProxyOp(t *testing.T) {
 
 		{"full", 0xcafebabe, func(_ *testing.T, sys *I) {
 			sys.MustProxyDBus(
-				m("/tmp/hakurei.0/99dd71ee2146369514e0d10783368f8f/bus"), &hst.BusConfig{
+				&hst.BusConfig{
 					// use impossible value here as an implicit assert that it goes through the stub
 					Talk: []string{"session\x00"}, Filter: true,
-				}, m("/tmp/hakurei.0/99dd71ee2146369514e0d10783368f8f/system_bus_socket"), &hst.BusConfig{
+				}, &hst.BusConfig{
 					// use impossible value here as an implicit assert that it goes through the stub
 					Talk: []string{"system\x00"}, Filter: true,
+				}, dbus.ProxyPair{
+					"unix:path=/run/user/1000/bus",
+					"/tmp/hakurei.0/99dd71ee2146369514e0d10783368f8f/bus",
+				}, dbus.ProxyPair{
+					"unix:path=/run/dbus/system_bus_socket",
+					"/tmp/hakurei.0/99dd71ee2146369514e0d10783368f8f/system_bus_socket",
 				})
 		}, []Op{
 			&dbusProxyOp{
@@ -158,7 +172,6 @@ func TestDBusProxyOp(t *testing.T) {
 				system: true,
 			},
 		}, stub.Expect{Calls: []stub.Call{
-			call("dbusAddress", stub.ExpectArgs{}, [2]string{"unix:path=/run/user/1000/bus", "unix:path=/run/dbus/system_bus_socket"}, nil),
 			call("dbusFinalise", stub.ExpectArgs{
 				dbus.ProxyPair{"unix:path=/run/user/1000/bus", "/tmp/hakurei.0/99dd71ee2146369514e0d10783368f8f/bus"},
 				dbus.ProxyPair{"unix:path=/run/dbus/system_bus_socket", "/tmp/hakurei.0/99dd71ee2146369514e0d10783368f8f/system_bus_socket"},

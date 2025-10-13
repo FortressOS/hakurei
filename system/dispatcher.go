@@ -48,8 +48,6 @@ type syscallDispatcher interface {
 	// xcbChangeHosts provides [xcb.ChangeHosts].
 	xcbChangeHosts(mode xcb.HostMode, family xcb.Family, address string) error
 
-	// dbusAddress provides [dbus.Address].
-	dbusAddress() (session, system string)
 	// dbusFinalise provides [dbus.Finalise].
 	dbusFinalise(sessionBus, systemBus dbus.ProxyPair, session, system *hst.BusConfig) (final *dbus.Final, err error)
 	// dbusProxyStart provides the Start method of [dbus.Proxy].
@@ -80,10 +78,6 @@ func (k direct) aclUpdate(name string, uid int, perms ...acl.Perm) error {
 
 func (k direct) xcbChangeHosts(mode xcb.HostMode, family xcb.Family, address string) error {
 	return xcb.ChangeHosts(mode, family, address)
-}
-
-func (k direct) dbusAddress() (session, system string) {
-	return dbus.Address()
 }
 
 func (k direct) dbusFinalise(sessionBus, systemBus dbus.ProxyPair, session, system *hst.BusConfig) (final *dbus.Final, err error) {

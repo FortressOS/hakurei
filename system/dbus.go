@@ -12,18 +12,19 @@ import (
 	"syscall"
 
 	"hakurei.app/container"
-	"hakurei.app/container/check"
 	"hakurei.app/hst"
 	"hakurei.app/system/dbus"
 )
 
-var (
-	ErrDBusConfig = errors.New("dbus config not supplied")
-)
+// ErrDBusConfig is returned when a required [hst.BusConfig] argument is nil.
+var ErrDBusConfig = errors.New("dbus config not supplied")
 
 // MustProxyDBus calls ProxyDBus and panics if an error is returned.
-func (sys *I) MustProxyDBus(sessionPath *check.Absolute, session *hst.BusConfig, systemPath *check.Absolute, system *hst.BusConfig) *I {
-	if err := sys.ProxyDBus(session, system, sessionPath, systemPath); err != nil {
+func (sys *I) MustProxyDBus(
+	session, system *hst.BusConfig,
+	sessionBus, systemBus dbus.ProxyPair,
+) *I {
+	if err := sys.ProxyDBus(session, system, sessionBus, systemBus); err != nil {
 		panic(err.Error())
 	} else {
 		return sys
@@ -32,7 +33,10 @@ func (sys *I) MustProxyDBus(sessionPath *check.Absolute, session *hst.BusConfig,
 
 // ProxyDBus finalises configuration ahead of time and starts xdg-dbus-proxy via [dbus] and terminates it on revert.
 // This [Op] is always [Process] scoped.
-func (sys *I) ProxyDBus(session, system *hst.BusConfig, sessionPath, systemPath *check.Absolute) error {
+func (sys *I) ProxyDBus(
+	session, system *hst.BusConfig,
+	sessionBus, systemBus dbus.ProxyPair,
+) error {
 	d := new(dbusProxyOp)
 
 	// session bus is required as otherwise this is effectively a very expensive noop
@@ -44,9 +48,6 @@ func (sys *I) ProxyDBus(session, system *hst.BusConfig, sessionPath, systemPath 
 	// system bus is optional
 	d.system = system != nil
 
-	var sessionBus, systemBus dbus.ProxyPair
-	sessionBus[0], systemBus[0] = sys.dbusAddress()
-	sessionBus[1], systemBus[1] = sessionPath.String(), systemPath.String()
 	d.out = &linePrefixWriter{println: log.Println, prefix: "(dbus) ", buf: new(strings.Builder)}
 	if final, err := sys.dbusFinalise(sessionBus, systemBus, session, system); err != nil {
 		if errors.Is(err, syscall.EINVAL) {

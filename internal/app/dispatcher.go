@@ -13,6 +13,7 @@ import (
 	"hakurei.app/container/check"
 	"hakurei.app/internal"
 	"hakurei.app/message"
+	"hakurei.app/system/dbus"
 )
 
 // osFile represents [os.File].
@@ -63,6 +64,9 @@ type syscallDispatcher interface {
 	// mustHsuPath provides [internal.MustHsuPath].
 	mustHsuPath() *check.Absolute
 
+	// dbusAddress provides [dbus.Address].
+	dbusAddress() (session, system string)
+
 	// fatalf provides [log.Fatalf].
 	fatalf(format string, v ...any)
 }
@@ -98,5 +102,7 @@ func (direct) overflowUid(msg message.Msg) int { return container.OverflowUid(ms
 func (direct) overflowGid(msg message.Msg) int { return container.OverflowGid(msg) }
 
 func (direct) mustHsuPath() *check.Absolute { return internal.MustHsuPath() }
+
+func (k direct) dbusAddress() (session, system string) { return dbus.Address() }
 
 func (direct) fatalf(format string, v ...any) { log.Fatalf(format, v...) }
