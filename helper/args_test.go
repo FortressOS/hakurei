@@ -22,7 +22,7 @@ func TestNewCheckedArgs(t *testing.T) {
 	t.Parallel()
 
 	args := []string{"\x00"}
-	if _, err := helper.NewCheckedArgs(args); !errors.Is(err, syscall.EINVAL) {
+	if _, err := helper.NewCheckedArgs(args...); !errors.Is(err, syscall.EINVAL) {
 		t.Errorf("NewCheckedArgs: error = %v, wantErr %v", err, syscall.EINVAL)
 	}
 
@@ -36,6 +36,6 @@ func TestNewCheckedArgs(t *testing.T) {
 				t.Errorf("MustNewCheckedArgs: panic = %v, wantPanic %v", r, wantPanic)
 			}
 		}()
-		helper.MustNewCheckedArgs(badPayload)
+		helper.MustNewCheckedArgs(badPayload...)
 	})
 }

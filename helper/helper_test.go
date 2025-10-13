@@ -27,7 +27,7 @@ var (
 	}
 
 	wantPayload = strings.Join(wantArgs, "\x00") + "\x00"
-	argsWt      = helper.MustNewCheckedArgs(wantArgs)
+	argsWt      = helper.MustNewCheckedArgs(wantArgs...)
 )
 
 func argF(argsFd, statFd int) []string {

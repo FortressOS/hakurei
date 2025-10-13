@@ -35,7 +35,7 @@ func (a argsWt) String() string {
 }
 
 // NewCheckedArgs returns a checked null-terminated argument writer for a copy of args.
-func NewCheckedArgs(args []string) (wt io.WriterTo, err error) {
+func NewCheckedArgs(args ...string) (wt io.WriterTo, err error) {
 	a := make(argsWt, len(args))
 	for i, arg := range args {
 		a[i], err = syscall.ByteSliceFromString(arg)
@@ -49,8 +49,8 @@ func NewCheckedArgs(args []string) (wt io.WriterTo, err error) {
 
 // MustNewCheckedArgs returns a checked null-terminated argument writer for a copy of args.
 // If s contains a NUL byte this function panics instead of returning an error.
-func MustNewCheckedArgs(args []string) io.WriterTo {
-	a, err := NewCheckedArgs(args)
+func MustNewCheckedArgs(args ...string) io.WriterTo {
+	a, err := NewCheckedArgs(args...)
 	if err != nil {
 		panic(err.Error())
 	}

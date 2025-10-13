@@ -78,7 +78,7 @@ func Finalise(sessionBus, systemBus ProxyPair, session, system *hst.BusConfig) (
 
 	final = &Final{Session: sessionBus, System: systemBus}
 
-	final.WriterTo, err = helper.NewCheckedArgs(args)
+	final.WriterTo, err = helper.NewCheckedArgs(args...)
 	if err != nil {
 		return
 	}
