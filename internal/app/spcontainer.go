@@ -48,9 +48,9 @@ func (s *spParamsOp) toContainer(state *outcomeStateParams) error {
 	const preallocateOpsCount = 1 << 5
 
 	state.params.Hostname = state.Container.Hostname
-	state.params.RetainSession = state.Container.Tty
-	state.params.HostNet = state.Container.HostNet
-	state.params.HostAbstract = state.Container.HostAbstract
+	state.params.RetainSession = state.Container.Flags&hst.FTty != 0
+	state.params.HostNet = state.Container.Flags&hst.FHostNet != 0
+	state.params.HostAbstract = state.Container.Flags&hst.FHostAbstract != 0
 
 	if state.Container.Path == nil {
 		return newWithMessage("invalid program path")
@@ -67,24 +67,24 @@ func (s *spParamsOp) toContainer(state *outcomeStateParams) error {
 	// this behaviour is implemented in the shim
 	state.params.ForwardCancel = state.Shim.WaitDelay > 0
 
-	if state.Container.Multiarch {
+	if state.Container.Flags&hst.FMultiarch != 0 {
 		state.params.SeccompFlags |= seccomp.AllowMultiarch
 	}
 
-	if !state.Container.SeccompCompat {
+	if state.Container.Flags&hst.FSeccompCompat == 0 {
 		state.params.SeccompPresets |= bits.PresetExt
 	}
-	if !state.Container.Devel {
+	if state.Container.Flags&hst.FDevel == 0 {
 		state.params.SeccompPresets |= bits.PresetDenyDevel
 	}
-	if !state.Container.Userns {
+	if state.Container.Flags&hst.FUserns == 0 {
 		state.params.SeccompPresets |= bits.PresetDenyNS
 	}
-	if !state.Container.Tty {
+	if state.Container.Flags&hst.FTty == 0 {
 		state.params.SeccompPresets |= bits.PresetDenyTTY
 	}
 
-	if state.Container.MapRealUID {
+	if state.Container.Flags&hst.FMapRealUID != 0 {
 		state.params.Uid = state.Mapuid
 		state.params.Gid = state.Mapgid
 	}
@@ -106,7 +106,7 @@ func (s *spParamsOp) toContainer(state *outcomeStateParams) error {
 	state.params.
 		Proc(fhs.AbsProc).
 		Tmpfs(hst.AbsPrivateTmp, 1<<12, 0755)
-	if !state.Container.Device {
+	if state.Container.Flags&hst.FDevice == 0 {
 		state.params.DevWritable(fhs.AbsDev, true)
 	} else {
 		state.params.Bind(fhs.AbsDev, fhs.AbsDev, bits.BindWritable|bits.BindDevice)
@@ -275,7 +275,7 @@ func (s *spFilesystemOp) toContainer(state *outcomeStateParams) error {
 	}
 
 	// no more configured paths beyond this point
-	if !state.Container.Device {
+	if state.Container.Flags&hst.FDevice == 0 {
 		state.params.Remount(fhs.AbsDev, syscall.MS_RDONLY)
 	}
 	return nil

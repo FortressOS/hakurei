@@ -1,6 +1,8 @@
 package hst
 
 import (
+	"encoding/json"
+	"syscall"
 	"time"
 
 	"hakurei.app/container/check"
@@ -29,6 +31,37 @@ const (
 	ShimExitOrphan = 3
 )
 
+const (
+	// FMultiarch unblocks syscalls required for multiarch to work on applicable targets.
+	FMultiarch uintptr = 1 << iota
+
+	// FSeccompCompat causes emitted seccomp filter programs to be identical to Flatpak.
+	FSeccompCompat
+	// FDevel unblocks ptrace and friends.
+	FDevel
+	// FUserns unblocks userns creation and container setup syscalls.
+	FUserns
+	// FHostNet skips net namespace creation.
+	FHostNet
+	// FHostAbstract skips setting up abstract unix socket scope.
+	FHostAbstract
+	// FTty unblocks dangerous terminal I/O (faking input).
+	FTty
+
+	// FMapRealUID maps the target user uid to the privileged user uid in the container user namespace.
+	//	Some programs fail to connect to dbus session running as a different uid,
+	//	this option works around it by mapping priv-side caller uid in container.
+	FMapRealUID
+
+	// FDevice mount /dev/ from the init mount namespace as-is in the container mount namespace.
+	FDevice
+
+	fMax
+
+	// FAll is [ContainerConfig.Flags] with all currently defined bits set.
+	FAll = fMax - 1
+)
+
 // ContainerConfig describes the container configuration to be applied to an underlying [container].
 type ContainerConfig struct {
 	// Container UTS namespace hostname.
@@ -39,32 +72,8 @@ type ContainerConfig struct {
 	// Values lesser than zero is equivalent to zero, bypassing [WaitDelayDefault].
 	WaitDelay time.Duration `json:"wait_delay,omitempty"`
 
-	// Emit Flatpak-compatible seccomp filter programs.
-	SeccompCompat bool `json:"seccomp_compat,omitempty"`
-	// Allow ptrace and friends.
-	Devel bool `json:"devel,omitempty"`
-	// Allow userns creation and container setup syscalls.
-	Userns bool `json:"userns,omitempty"`
-	// Share host net namespace.
-	HostNet bool `json:"host_net,omitempty"`
-	// Share abstract unix socket scope.
-	HostAbstract bool `json:"host_abstract,omitempty"`
-	// Allow dangerous terminal I/O (faking input).
-	Tty bool `json:"tty,omitempty"`
-	// Allow multiarch.
-	Multiarch bool `json:"multiarch,omitempty"`
-
 	// Initial process environment variables.
 	Env map[string]string `json:"env"`
-
-	/* Map target user uid to privileged user uid in the container user namespace.
-
-	Some programs fail to connect to dbus session running as a different uid,
-	this option works around it by mapping priv-side caller uid in container. */
-	MapRealUID bool `json:"map_real_uid"`
-
-	// Mount /dev/ from the init mount namespace as-is in the container mount namespace.
-	Device bool `json:"device,omitempty"`
 
 	/* Container mount points.
 
@@ -83,4 +92,98 @@ type ContainerConfig struct {
 	Path *check.Absolute `json:"path,omitempty"`
 	// Final args passed to the initial program.
 	Args []string `json:"args"`
+
+	// Flags holds boolean options of [ContainerConfig].
+	Flags uintptr `json:"-"`
+}
+
+// ContainerConfigF is [ContainerConfig] stripped of its methods.
+// The [ContainerConfig.Flags] field does not survive a [json] round trip.
+type ContainerConfigF ContainerConfig
+
+// containerConfigJSON is the [json] representation of [ContainerConfig].
+type containerConfigJSON = struct {
+	*ContainerConfigF
+
+	// Corresponds to [FSeccompCompat].
+	SeccompCompat bool `json:"seccomp_compat,omitempty"`
+	// Corresponds to [FDevel].
+	Devel bool `json:"devel,omitempty"`
+	// Corresponds to [FUserns].
+	Userns bool `json:"userns,omitempty"`
+	// Corresponds to [FHostNet].
+	HostNet bool `json:"host_net,omitempty"`
+	// Corresponds to [FHostAbstract].
+	HostAbstract bool `json:"host_abstract,omitempty"`
+	// Corresponds to [FTty].
+	Tty bool `json:"tty,omitempty"`
+
+	// Corresponds to [FMultiarch].
+	Multiarch bool `json:"multiarch,omitempty"`
+
+	// Corresponds to [FMapRealUID].
+	MapRealUID bool `json:"map_real_uid"`
+
+	// Corresponds to [FDevice].
+	Device bool `json:"device,omitempty"`
+}
+
+func (c *ContainerConfig) MarshalJSON() ([]byte, error) {
+	if c == nil {
+		return nil, syscall.EINVAL
+	}
+	return json.Marshal(&containerConfigJSON{
+		ContainerConfigF: (*ContainerConfigF)(c),
+
+		SeccompCompat: c.Flags&FSeccompCompat != 0,
+		Devel:         c.Flags&FDevel != 0,
+		Userns:        c.Flags&FUserns != 0,
+		HostNet:       c.Flags&FHostNet != 0,
+		HostAbstract:  c.Flags&FHostAbstract != 0,
+		Tty:           c.Flags&FTty != 0,
+		Multiarch:     c.Flags&FMultiarch != 0,
+		MapRealUID:    c.Flags&FMapRealUID != 0,
+		Device:        c.Flags&FDevice != 0,
+	})
+}
+
+func (c *ContainerConfig) UnmarshalJSON(data []byte) error {
+	if c == nil {
+		return syscall.EINVAL
+	}
+
+	v := new(containerConfigJSON)
+	if err := json.Unmarshal(data, &v); err != nil {
+		return err
+	}
+
+	*c = *(*ContainerConfig)(v.ContainerConfigF)
+	if v.SeccompCompat {
+		c.Flags |= FSeccompCompat
+	}
+	if v.Devel {
+		c.Flags |= FDevel
+	}
+	if v.Userns {
+		c.Flags |= FUserns
+	}
+	if v.HostNet {
+		c.Flags |= FHostNet
+	}
+	if v.HostAbstract {
+		c.Flags |= FHostAbstract
+	}
+	if v.Tty {
+		c.Flags |= FTty
+	}
+	if v.Multiarch {
+		c.Flags |= FMultiarch
+	}
+	if v.MapRealUID {
+		c.Flags |= FMapRealUID
+	}
+	if v.Device {
+		c.Flags |= FDevice
+	}
+	return nil
 }

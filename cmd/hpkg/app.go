@@ -76,15 +76,7 @@ func (app *appInfo) toHst(pathSet *appPathSet, pathname *check.Absolute, argv []
 		Groups:   app.Groups,
 
 		Container: &hst.ContainerConfig{
-			Hostname:     formatHostname(app.Name),
-			Devel:        app.Devel,
-			Userns:       app.Userns,
-			HostNet:      app.HostNet,
-			HostAbstract: app.HostAbstract,
-			Device:       app.Device,
-			Tty:          app.Tty || flagDropShell,
-			MapRealUID:   app.MapRealUID,
-			Multiarch:    app.Multiarch,
+			Hostname: formatHostname(app.Name),
 			Filesystem: []hst.FilesystemConfigJSON{
 				{FilesystemConfig: &hst.FSBind{Target: fhs.AbsEtc, Source: pathSet.cacheDir.Append("etc"), Special: true}},
 				{FilesystemConfig: &hst.FSBind{Source: pathSet.nixPath.Append("store"), Target: pathNixStore}},
@@ -112,6 +104,31 @@ func (app *appInfo) toHst(pathSet *appPathSet, pathname *check.Absolute, argv []
 			{Path: dataHome, Execute: true},
 			{Ensure: true, Path: pathSet.baseDir, Read: true, Write: true, Execute: true},
 		},
+	}
+
+	if app.Devel {
+		config.Container.Flags |= hst.FDevel
+	}
+	if app.Userns {
+		config.Container.Flags |= hst.FUserns
+	}
+	if app.HostNet {
+		config.Container.Flags |= hst.FHostNet
+	}
+	if app.HostAbstract {
+		config.Container.Flags |= hst.FHostAbstract
+	}
+	if app.Device {
+		config.Container.Flags |= hst.FDevice
+	}
+	if app.Tty || flagDropShell {
+		config.Container.Flags |= hst.FTty
+	}
+	if app.MapRealUID {
+		config.Container.Flags |= hst.FMapRealUID
+	}
+	if app.Multiarch {
+		config.Container.Flags |= hst.FMultiarch
 	}
 	return config
 }

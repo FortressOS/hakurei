@@ -17,6 +17,14 @@ func withNixDaemon(
 	action string, command []string, net bool, updateConfig func(config *hst.Config) *hst.Config,
 	app *appInfo, pathSet *appPathSet, dropShell bool, beforeFail func(),
 ) {
+	flags := hst.FMultiarch | hst.FUserns // nix sandbox requires userns
+	if net {
+		flags |= hst.FHostNet
+	}
+	if dropShell {
+		flags |= hst.FTty
+	}
+
 	mustRunAppDropShell(ctx, msg, updateConfig(&hst.Config{
 		ID: app.ID,
 
@@ -28,11 +36,8 @@ func withNixDaemon(
 		Identity: app.Identity,
 
 		Container: &hst.ContainerConfig{
-			Hostname:  formatHostname(app.Name) + "-" + action,
-			Userns:    true, // nix sandbox requires userns
-			HostNet:   net,
-			Multiarch: true,
-			Tty:       dropShell,
+			Hostname: formatHostname(app.Name) + "-" + action,
+
 			Filesystem: []hst.FilesystemConfigJSON{
 				{FilesystemConfig: &hst.FSBind{Target: fhs.AbsEtc, Source: pathSet.cacheDir.Append("etc"), Special: true}},
 				{FilesystemConfig: &hst.FSBind{Source: pathSet.nixPath, Target: pathNix, Write: true}},
@@ -58,6 +63,8 @@ func withNixDaemon(
 				// terminate nix-daemon
 				" && pkill nix-daemon",
 			},
+
+			Flags: flags,
 		},
 	}), dropShell, beforeFail)
 }
@@ -66,7 +73,13 @@ func withCacheDir(
 	ctx context.Context,
 	msg message.Msg,
 	action string, command []string, workDir *check.Absolute,
-	app *appInfo, pathSet *appPathSet, dropShell bool, beforeFail func()) {
+	app *appInfo, pathSet *appPathSet, dropShell bool, beforeFail func(),
+) {
+	flags := hst.FMultiarch
+	if dropShell {
+		flags |= hst.FTty
+	}
+
 	mustRunAppDropShell(ctx, msg, &hst.Config{
 		ID: app.ID,
 
@@ -79,9 +92,8 @@ func withCacheDir(
 		Identity: app.Identity,
 
 		Container: &hst.ContainerConfig{
-			Hostname:  formatHostname(app.Name) + "-" + action,
-			Multiarch: true,
-			Tty:       dropShell,
+			Hostname: formatHostname(app.Name) + "-" + action,
+
 			Filesystem: []hst.FilesystemConfigJSON{
 				{FilesystemConfig: &hst.FSBind{Target: fhs.AbsEtc, Source: workDir.Append(fhs.Etc), Special: true}},
 				{FilesystemConfig: &hst.FSBind{Source: workDir.Append("nix"), Target: pathNix}},
@@ -98,6 +110,8 @@ func withCacheDir(
 
 			Path: pathShell,
 			Args: []string{bash, "-lc", strings.Join(command, " && ")},
+
+			Flags: flags,
 		},
 	}, dropShell, beforeFail)
 }

@@ -87,19 +87,19 @@ func printShowInstance(
 			t.Printf(" Hostname:\t%s\n", params.Hostname)
 		}
 		flags := make([]string, 0, 7)
-		writeFlag := func(name string, value bool) {
-			if value {
+		writeFlag := func(name string, flag uintptr, force bool) {
+			if params.Flags&flag != 0 || force {
 				flags = append(flags, name)
 			}
 		}
-		writeFlag("userns", params.Userns)
-		writeFlag("devel", params.Devel)
-		writeFlag("net", params.HostNet)
-		writeFlag("abstract", params.HostAbstract)
-		writeFlag("device", params.Device)
-		writeFlag("tty", params.Tty)
-		writeFlag("mapuid", params.MapRealUID)
-		writeFlag("directwl", config.DirectWayland)
+		writeFlag("userns", hst.FUserns, false)
+		writeFlag("devel", hst.FDevel, false)
+		writeFlag("net", hst.FHostNet, false)
+		writeFlag("abstract", hst.FHostAbstract, false)
+		writeFlag("device", hst.FDevice, false)
+		writeFlag("tty", hst.FTty, false)
+		writeFlag("mapuid", hst.FMapRealUID, false)
+		writeFlag("directwl", 0, config.DirectWayland)
 		if len(flags) == 0 {
 			flags = append(flags, "none")
 		}

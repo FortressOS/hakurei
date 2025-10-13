@@ -94,7 +94,7 @@ func newOutcomeState(k syscallDispatcher, msg message.Msg, id *state.ID, config 
 		s.Shim.WaitDelay = s.Container.WaitDelay
 	}
 
-	if s.Container.MapRealUID {
+	if s.Container.Flags&hst.FMapRealUID != 0 {
 		s.Mapuid, s.Mapgid = k.getuid(), k.getgid()
 	} else {
 		s.Mapuid, s.Mapgid = k.overflowUid(msg), k.overflowGid(msg)

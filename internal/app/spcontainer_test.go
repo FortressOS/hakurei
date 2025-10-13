@@ -51,12 +51,7 @@ func TestSpParamsOp(t *testing.T) {
 		}, func() *hst.Config {
 			c := hst.Template()
 			c.Container.Args = nil
-			c.Container.Multiarch = false
-			c.Container.SeccompCompat = false
-			c.Container.Devel = false
-			c.Container.Userns = false
-			c.Container.Tty = false
-			c.Container.Device = false
+			c.Container.Flags = hst.FHostNet | hst.FHostAbstract | hst.FMapRealUID
 			return c
 		}, nil, []stub.Call{
 			call("lookupEnv", stub.ExpectArgs{"TERM"}, "xterm", nil),
@@ -65,8 +60,8 @@ func TestSpParamsOp(t *testing.T) {
 			// this op configures the container state and does not make calls during toContainer
 		}, &container.Params{
 			Hostname:       config.Container.Hostname,
-			HostNet:        config.Container.HostNet,
-			HostAbstract:   config.Container.HostAbstract,
+			HostNet:        true,
+			HostAbstract:   true,
 			Path:           config.Container.Path,
 			Args:           []string{config.Container.Path.String()},
 			SeccompPresets: bits.PresetExt | bits.PresetDenyDevel | bits.PresetDenyNS | bits.PresetDenyTTY,
@@ -109,9 +104,9 @@ func TestSpParamsOp(t *testing.T) {
 			// this op configures the container state and does not make calls during toContainer
 		}, &container.Params{
 			Hostname:      config.Container.Hostname,
-			RetainSession: config.Container.Tty,
-			HostNet:       config.Container.HostNet,
-			HostAbstract:  config.Container.HostAbstract,
+			RetainSession: true,
+			HostNet:       true,
+			HostAbstract:  true,
 			Path:          config.Container.Path,
 			Args:          config.Container.Args,
 			SeccompFlags:  seccomp.AllowMultiarch,
@@ -159,7 +154,7 @@ func TestSpFilesystemOp(t *testing.T) {
 			}}},
 			{FilesystemConfig: &hst.FSEphemeral{Target: hst.AbsPrivateTmp}},
 		}
-		c.Container.Device = false
+		c.Container.Flags &= ^hst.FDevice
 		return c
 	}
 	configSmall := newConfigSmall()

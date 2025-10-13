@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net"
 	"os"
+	"reflect"
 	"syscall"
 	"testing"
 
@@ -164,20 +165,11 @@ func TestTemplate(t *testing.T) {
 	"container": {
 		"hostname": "localhost",
 		"wait_delay": -1,
-		"seccomp_compat": true,
-		"devel": true,
-		"userns": true,
-		"host_net": true,
-		"host_abstract": true,
-		"tty": true,
-		"multiarch": true,
 		"env": {
 			"GOOGLE_API_KEY": "AIzaSyBHDrl33hwRp4rMQY0ziRbj8K9LPA6vUCY",
 			"GOOGLE_DEFAULT_CLIENT_ID": "77185425430.apps.googleusercontent.com",
 			"GOOGLE_DEFAULT_CLIENT_SECRET": "OTJgUOQcT7lO7GsGZq2G4IlT"
 		},
-		"map_real_uid": true,
-		"device": true,
 		"filesystem": [
 			{
 				"type": "bind",
@@ -243,14 +235,41 @@ func TestTemplate(t *testing.T) {
 			"--disable-smooth-scrolling",
 			"--enable-features=UseOzonePlatform",
 			"--ozone-platform=wayland"
-		]
+		],
+		"seccomp_compat": true,
+		"devel": true,
+		"userns": true,
+		"host_net": true,
+		"host_abstract": true,
+		"tty": true,
+		"multiarch": true,
+		"map_real_uid": true,
+		"device": true
 	}
 }`
 
-	if p, err := json.MarshalIndent(hst.Template(), "", "\t"); err != nil {
-		t.Fatalf("cannot marshal: %v", err)
-	} else if s := string(p); s != want {
-		t.Fatalf("Template:\n%s\nwant:\n%s",
-			s, want)
-	}
+	t.Run("marshal", func(t *testing.T) {
+		t.Parallel()
+		if p, err := json.MarshalIndent(hst.Template(), "", "\t"); err != nil {
+			t.Fatalf("cannot marshal: %v", err)
+		} else if s := string(p); s != want {
+			t.Fatalf("Template:\n%s\nwant:\n%s",
+				s, want)
+		}
+	})
+
+	t.Run("unmarshal", func(t *testing.T) {
+		t.Parallel()
+
+		var got *hst.Config
+		if err := json.Unmarshal([]byte(want), &got); err != nil {
+			t.Fatalf("Unmarshal: error = %v", err)
+		}
+
+		wantVal := hst.Template()
+		wantVal.Container.Flags = hst.FAll
+		if !reflect.DeepEqual(got, wantVal) {
+			t.Fatalf("Unmarshal: %#v, want %#v", got, wantVal)
+		}
+	})
 }

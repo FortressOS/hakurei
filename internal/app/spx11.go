@@ -54,7 +54,7 @@ func (s *spX11Op) toSystem(state *outcomeStateSys) error {
 			}
 		} else {
 			state.sys.UpdatePermType(hst.EX11, socketPath, acl.Read, acl.Write, acl.Execute)
-			if !state.Container.HostAbstract {
+			if state.Container.Flags&hst.FHostAbstract == 0 {
 				s.Display = "unix:" + socketPath.String()
 			}
 		}

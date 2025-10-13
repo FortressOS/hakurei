@@ -252,20 +252,11 @@ App
     "container": {
       "hostname": "localhost",
       "wait_delay": -1,
-      "seccomp_compat": true,
-      "devel": true,
-      "userns": true,
-      "host_net": true,
-      "host_abstract": true,
-      "tty": true,
-      "multiarch": true,
       "env": {
         "GOOGLE_API_KEY": "AIzaSyBHDrl33hwRp4rMQY0ziRbj8K9LPA6vUCY",
         "GOOGLE_DEFAULT_CLIENT_ID": "77185425430.apps.googleusercontent.com",
         "GOOGLE_DEFAULT_CLIENT_SECRET": "OTJgUOQcT7lO7GsGZq2G4IlT"
       },
-      "map_real_uid": true,
-      "device": true,
       "filesystem": [
         {
           "type": "bind",
@@ -331,7 +322,16 @@ App
         "--disable-smooth-scrolling",
         "--enable-features=UseOzonePlatform",
         "--ozone-platform=wayland"
-      ]
+      ],
+      "seccomp_compat": true,
+      "devel": true,
+      "userns": true,
+      "host_net": true,
+      "host_abstract": true,
+      "tty": true,
+      "multiarch": true,
+      "map_real_uid": true,
+      "device": true
     }
   },
   "time": "1970-01-01T00:00:00.000000009Z"
@@ -402,20 +402,11 @@ App
   "container": {
     "hostname": "localhost",
     "wait_delay": -1,
-    "seccomp_compat": true,
-    "devel": true,
-    "userns": true,
-    "host_net": true,
-    "host_abstract": true,
-    "tty": true,
-    "multiarch": true,
     "env": {
       "GOOGLE_API_KEY": "AIzaSyBHDrl33hwRp4rMQY0ziRbj8K9LPA6vUCY",
       "GOOGLE_DEFAULT_CLIENT_ID": "77185425430.apps.googleusercontent.com",
       "GOOGLE_DEFAULT_CLIENT_SECRET": "OTJgUOQcT7lO7GsGZq2G4IlT"
     },
-    "map_real_uid": true,
-    "device": true,
     "filesystem": [
       {
         "type": "bind",
@@ -481,7 +472,16 @@ App
       "--disable-smooth-scrolling",
       "--enable-features=UseOzonePlatform",
       "--ozone-platform=wayland"
-    ]
+    ],
+    "seccomp_compat": true,
+    "devel": true,
+    "userns": true,
+    "host_net": true,
+    "host_abstract": true,
+    "tty": true,
+    "multiarch": true,
+    "map_real_uid": true,
+    "device": true
   }
 }
 `, true},
@@ -612,20 +612,11 @@ func TestPrintPs(t *testing.T) {
       "container": {
         "hostname": "localhost",
         "wait_delay": -1,
-        "seccomp_compat": true,
-        "devel": true,
-        "userns": true,
-        "host_net": true,
-        "host_abstract": true,
-        "tty": true,
-        "multiarch": true,
         "env": {
           "GOOGLE_API_KEY": "AIzaSyBHDrl33hwRp4rMQY0ziRbj8K9LPA6vUCY",
           "GOOGLE_DEFAULT_CLIENT_ID": "77185425430.apps.googleusercontent.com",
           "GOOGLE_DEFAULT_CLIENT_SECRET": "OTJgUOQcT7lO7GsGZq2G4IlT"
         },
-        "map_real_uid": true,
-        "device": true,
         "filesystem": [
           {
             "type": "bind",
@@ -691,7 +682,16 @@ func TestPrintPs(t *testing.T) {
           "--disable-smooth-scrolling",
           "--enable-features=UseOzonePlatform",
           "--ozone-platform=wayland"
-        ]
+        ],
+        "seccomp_compat": true,
+        "devel": true,
+        "userns": true,
+        "host_net": true,
+        "host_abstract": true,
+        "tty": true,
+        "multiarch": true,
+        "map_real_uid": true,
+        "device": true
       }
     },
     "time": "1970-01-01T00:00:00.000000009Z"

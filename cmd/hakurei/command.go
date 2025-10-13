@@ -147,11 +147,6 @@ func buildCommand(ctx context.Context, msg message.Msg, early *earlyHardeningErr
 				Enablements: hst.NewEnablements(et),
 
 				Container: &hst.ContainerConfig{
-					Userns:       true,
-					HostNet:      true,
-					Tty:          true,
-					HostAbstract: true,
-
 					Filesystem: []hst.FilesystemConfigJSON{
 						// autoroot, includes the home directory
 						{FilesystemConfig: &hst.FSBind{
@@ -167,6 +162,8 @@ func buildCommand(ctx context.Context, msg message.Msg, early *earlyHardeningErr
 
 					Path: progPath,
 					Args: args,
+
+					Flags: hst.FUserns | hst.FHostNet | hst.FHostAbstract | hst.FTty,
 				},
 			}
 

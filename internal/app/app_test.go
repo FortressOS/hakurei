@@ -44,8 +44,6 @@ func TestApp(t *testing.T) {
 		{
 			"nixos permissive defaults no enablements", new(stubNixOS),
 			&hst.Config{Container: &hst.ContainerConfig{
-				Userns: true, HostNet: true, HostAbstract: true, Tty: true,
-
 				Filesystem: []hst.FilesystemConfigJSON{
 					{FilesystemConfig: &hst.FSBind{
 						Target:  fhs.AbsRoot,
@@ -71,6 +69,8 @@ func TestApp(t *testing.T) {
 
 				Path: m("/run/current-system/sw/bin/zsh"),
 				Args: []string{"/run/current-system/sw/bin/zsh"},
+
+				Flags: hst.FUserns | hst.FHostNet | hst.FHostAbstract | hst.FTty,
 			}},
 			state.ID{
 				0x4a, 0x45, 0x0b, 0x65,
@@ -162,8 +162,6 @@ func TestApp(t *testing.T) {
 				Enablements: hst.NewEnablements(hst.EWayland | hst.EDBus | hst.EPulse),
 
 				Container: &hst.ContainerConfig{
-					Userns: true, HostNet: true, HostAbstract: true, Tty: true,
-
 					Filesystem: []hst.FilesystemConfigJSON{
 						{FilesystemConfig: &hst.FSBind{
 							Target:  fhs.AbsRoot,
@@ -194,6 +192,8 @@ func TestApp(t *testing.T) {
 
 					Path: m("/run/current-system/sw/bin/zsh"),
 					Args: []string{"zsh", "-c", "exec chromium "},
+
+					Flags: hst.FUserns | hst.FHostNet | hst.FHostAbstract | hst.FTty,
 				},
 			},
 			state.ID{
@@ -308,7 +308,7 @@ func TestApp(t *testing.T) {
 				ID:          "org.chromium.Chromium",
 				Enablements: hst.NewEnablements(hst.EWayland | hst.EDBus | hst.EPulse),
 				Container: &hst.ContainerConfig{
-					Userns: true, HostNet: true, MapRealUID: true, Env: nil,
+					Env: nil,
 					Filesystem: []hst.FilesystemConfigJSON{
 						f(&hst.FSBind{Source: m("/bin")}),
 						f(&hst.FSBind{Source: m("/usr/bin/")}),
@@ -330,6 +330,8 @@ func TestApp(t *testing.T) {
 					Home:     m("/var/lib/persist/module/hakurei/0/1"),
 
 					Path: m("/nix/store/yqivzpzzn7z5x0lq9hmbzygh45d8rhqd-chromium-start"),
+
+					Flags: hst.FUserns | hst.FHostNet | hst.FMapRealUID,
 				},
 				SystemBus: &hst.BusConfig{
 					Talk:   []string{"org.bluez", "org.freedesktop.Avahi", "org.freedesktop.UPower"},

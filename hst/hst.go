@@ -3,6 +3,7 @@ package hst
 
 import (
 	"errors"
+	"math"
 	"net"
 	"os"
 
@@ -96,17 +97,8 @@ func Template() *Config {
 		Groups:   []string{"video", "dialout", "plugdev"},
 
 		Container: &ContainerConfig{
-			Hostname:      "localhost",
-			Devel:         true,
-			Userns:        true,
-			HostNet:       true,
-			HostAbstract:  true,
-			Device:        true,
-			WaitDelay:     -1,
-			SeccompCompat: true,
-			Tty:           true,
-			Multiarch:     true,
-			MapRealUID:    true,
+			Hostname:  "localhost",
+			WaitDelay: -1,
 			// example API credentials pulled from Google Chrome
 			// DO NOT USE THESE IN A REAL BROWSER
 			Env: map[string]string{
@@ -143,6 +135,9 @@ func Template() *Config {
 				"--enable-features=UseOzonePlatform",
 				"--ozone-platform=wayland",
 			},
+
+			// Set all bits here so new flags trip the template test.
+			Flags: math.MaxUint,
 		},
 	}
 }
