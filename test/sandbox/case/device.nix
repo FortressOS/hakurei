@@ -214,8 +214,8 @@ in
       (ent "/" "/.hakurei" "rw,nosuid,nodev,relatime" "tmpfs" "ephemeral" "rw,size=4k,mode=755,uid=1000004,gid=1000004")
       (ent "/" "/dev" "rw,nosuid" "devtmpfs" "devtmpfs" ignore)
       (ent "/" "/dev/pts" "rw,nosuid,noexec,relatime" "devpts" "devpts" "rw,gid=3,mode=620,ptmxmode=666")
-      (ent "/" "/dev/shm" "rw,nosuid,nodev" "tmpfs" "tmpfs" "rw")
-      (ent "/" ignore ignore ignore ignore ignore) # order not deterministic
+      (ent "/" ignore ignore ignore ignore ignore) # not deterministic
+      (ent "/" ignore ignore ignore ignore ignore)
       (ent "/" ignore ignore ignore ignore ignore)
       (ent "/" "/dev/shm" "rw,nosuid,nodev,relatime" "tmpfs" "ephemeral" "rw,uid=1000004,gid=1000004")
       (ent "/bin" "/bin" "ro,nosuid,nodev,relatime" "ext4" "/dev/disk/by-label/nixos" "rw")
