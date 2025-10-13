@@ -18,7 +18,8 @@ struct hakurei_syscall_rule {
   struct scmp_arg_cmp *arg;
 };
 
-int32_t hakurei_export_filter(int *ret_p, int fd, uint32_t arch,
-                              uint32_t multiarch,
-                              struct hakurei_syscall_rule *rules,
-                              size_t rules_sz, hakurei_export_flag flags);
+extern void *hakurei_scmp_allocate(uintptr_t f, size_t len);
+int32_t hakurei_scmp_make_filter(int *ret_p, uintptr_t allocate_p,
+                                 uint32_t arch, uint32_t multiarch,
+                                 struct hakurei_syscall_rule *rules,
+                                 size_t rules_sz, hakurei_export_flag flags);

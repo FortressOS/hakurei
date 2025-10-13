@@ -3,7 +3,7 @@ package seccomp
 /*
 #cgo linux pkg-config: --static libseccomp
 
-#include <libseccomp-helper.h>
+#include "libseccomp-helper.h"
 #include <sys/personality.h>
 */
 import "C"
@@ -11,24 +11,22 @@ import (
 	"errors"
 	"fmt"
 	"runtime"
+	"runtime/cgo"
 	"syscall"
 	"unsafe"
 )
 
-const (
-	PER_LINUX   = C.PER_LINUX
-	PER_LINUX32 = C.PER_LINUX32
-)
-
-var (
-	ErrInvalidRules = errors.New("invalid native rules slice")
-)
+// ErrInvalidRules is returned for a zero-length rules slice.
+var ErrInvalidRules = errors.New("invalid native rules slice")
 
 // LibraryError represents a libseccomp error.
 type LibraryError struct {
-	Prefix  string
+	// User facing description of the libseccomp function returning the error.
+	Prefix string
+	// Negated errno value returned by libseccomp.
 	Seccomp syscall.Errno
-	Errno   error
+	// Global errno value on return.
+	Errno error
 }
 
 func (e *LibraryError) Error() string {
@@ -56,8 +54,10 @@ func (e *LibraryError) Is(err error) bool {
 }
 
 type (
+	// ScmpSyscall represents a syscall number passed to libseccomp via [NativeRule.Syscall].
 	ScmpSyscall = C.int
-	ScmpErrno   = C.int
+	// ScmpErrno represents an errno value passed to libseccomp via [NativeRule.Errno].
+	ScmpErrno = C.int
 )
 
 // A NativeRule specifies an arch-specific action taken by seccomp under certain conditions.
@@ -88,12 +88,23 @@ var resPrefix = [...]string{
 	3: "seccomp_arch_add failed (multiarch)",
 	4: "internal libseccomp failure",
 	5: "seccomp_rule_add failed",
-	6: "seccomp_export_bpf failed",
+	6: "seccomp_export_bpf_mem failed",
 	7: "seccomp_load failed",
 }
 
-// Export streams filter contents to fd, or installs it to the current process if fd < 0.
-func Export(fd int, rules []NativeRule, flags ExportFlag) error {
+// cbAllocateBuffer is the function signature for the function handle passed to hakurei_export_filter
+// which allocates the buffer that the resulting bpf program is copied into, and writes its slice header
+// to a value held by the caller.
+type cbAllocateBuffer = func(len C.size_t) (buf unsafe.Pointer)
+
+//export hakurei_scmp_allocate
+func hakurei_scmp_allocate(f C.uintptr_t, len C.size_t) (buf unsafe.Pointer) {
+	return cgo.Handle(f).Value().(cbAllocateBuffer)(len)
+}
+
+// makeFilter generates a bpf program from a slice of [NativeRule] and writes the resulting byte slice to p.
+// The filter is installed to the current process if p is nil.
+func makeFilter(rules []NativeRule, flags ExportFlag, p *[]byte) error {
 	if len(rules) == 0 {
 		return ErrInvalidRules
 	}
@@ -117,32 +128,55 @@ func Export(fd int, rules []NativeRule, flags ExportFlag) error {
 
 	var ret C.int
 
-	var rulesPinner runtime.Pinner
+	var scmpPinner runtime.Pinner
 	for i := range rules {
 		rule := &rules[i]
-		rulesPinner.Pin(rule)
+		scmpPinner.Pin(rule)
 		if rule.Arg != nil {
-			rulesPinner.Pin(rule.Arg)
+			scmpPinner.Pin(rule.Arg)
 		}
 	}
-	res, err := C.hakurei_export_filter(
-		&ret, C.int(fd),
+
+	var allocateP cgo.Handle
+	if p != nil {
+		allocateP = cgo.NewHandle(func(len C.size_t) (buf unsafe.Pointer) {
+			// this is so the slice header gets a Go pointer
+			*p = make([]byte, len)
+
+			buf = unsafe.Pointer(unsafe.SliceData(*p))
+			scmpPinner.Pin(buf)
+			return
+		})
+	}
+
+	res, err := C.hakurei_scmp_make_filter(
+		&ret, C.uintptr_t(allocateP),
 		arch, multiarch,
 		(*C.struct_hakurei_syscall_rule)(unsafe.Pointer(&rules[0])),
 		C.size_t(len(rules)),
 		flags,
 	)
-	rulesPinner.Unpin()
+	scmpPinner.Unpin()
+	if p != nil {
+		allocateP.Delete()
+	}
 
 	if prefix := resPrefix[res]; prefix != "" {
-		return &LibraryError{
-			prefix,
-			-syscall.Errno(ret),
-			err,
-		}
+		return &LibraryError{prefix, syscall.Errno(-ret), err}
 	}
 	return err
 }
+
+// Export generates a bpf program from a slice of [NativeRule].
+// Errors returned by libseccomp is wrapped in [LibraryError].
+func Export(rules []NativeRule, flags ExportFlag) (data []byte, err error) {
+	err = makeFilter(rules, flags, &data)
+	return
+}
+
+// Load generates a bpf program from a slice of [NativeRule] and enforces it on the current process.
+// Errors returned by libseccomp is wrapped in [LibraryError].
+func Load(rules []NativeRule, flags ExportFlag) error { return makeFilter(rules, flags, nil) }
 
 // ScmpCompare is the equivalent of scmp_compare;
 // Comparison operators
@@ -184,7 +218,15 @@ type ScmpArgCmp struct {
 	DatumA, DatumB ScmpDatum
 }
 
-// only used for testing
+const (
+	// PersonaLinux is passed in a [ScmpDatum] for filtering calls to syscall.SYS_PERSONALITY.
+	PersonaLinux = C.PER_LINUX
+	// PersonaLinux32 is passed in a [ScmpDatum] for filtering calls to syscall.SYS_PERSONALITY.
+	PersonaLinux32 = C.PER_LINUX32
+)
+
+// syscallResolveName resolves a syscall number by name via seccomp_syscall_resolve_name.
+// This function is only for testing the lookup tables and included here for convenience.
 func syscallResolveName(s string) (trap int) {
 	v := C.CString(s)
 	trap = int(C.seccomp_syscall_resolve_name(v))

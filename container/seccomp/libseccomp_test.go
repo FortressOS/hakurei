@@ -3,14 +3,73 @@ package seccomp_test
 import (
 	"crypto/sha512"
 	"errors"
-	"io"
-	"slices"
 	"syscall"
 	"testing"
 
 	. "hakurei.app/container/bits"
 	. "hakurei.app/container/seccomp"
 )
+
+func TestLibraryError(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name    string
+		sample  *LibraryError
+		want    string
+		wantIs  bool
+		compare error
+	}{
+		{
+			"full",
+			&LibraryError{Prefix: "seccomp_export_bpf failed", Seccomp: syscall.ECANCELED, Errno: syscall.EBADF},
+			"seccomp_export_bpf failed: operation canceled (bad file descriptor)",
+			true,
+			&LibraryError{Prefix: "seccomp_export_bpf failed", Seccomp: syscall.ECANCELED, Errno: syscall.EBADF},
+		},
+		{
+			"errno only",
+			&LibraryError{Prefix: "seccomp_init failed", Errno: syscall.ENOMEM},
+			"seccomp_init failed: cannot allocate memory",
+			false,
+			nil,
+		},
+		{
+			"seccomp only",
+			&LibraryError{Prefix: "internal libseccomp failure", Seccomp: syscall.EFAULT},
+			"internal libseccomp failure: bad address",
+			true,
+			syscall.EFAULT,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			if errors.Is(tc.sample, tc.compare) != tc.wantIs {
+				t.Errorf("errors.Is(%#v, %#v) did not return %v",
+					tc.sample, tc.compare, tc.wantIs)
+			}
+
+			if got := tc.sample.Error(); got != tc.want {
+				t.Errorf("Error: %q, want %q",
+					got, tc.want)
+			}
+		})
+	}
+
+	t.Run("invalid", func(t *testing.T) {
+		t.Parallel()
+
+		wantPanic := "invalid libseccomp error"
+		defer func() {
+			if r := recover(); r != wantPanic {
+				t.Errorf("panic: %q, want %q", r, wantPanic)
+			}
+		}()
+		_ = new(LibraryError).Error()
+	})
+}
 
 func TestExport(t *testing.T) {
 	t.Parallel()
@@ -38,61 +97,34 @@ func TestExport(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			e := New(Preset(tc.presets, tc.flags), tc.flags)
 			want := bpfExpected[bpfPreset{tc.flags, tc.presets}]
-			digest := sha512.New()
-
-			if _, err := io.Copy(digest, e); (err != nil) != tc.wantErr {
-				t.Errorf("Exporter: error = %v, wantErr %v", err, tc.wantErr)
+			if data, err := Export(Preset(tc.presets, tc.flags), tc.flags); (err != nil) != tc.wantErr {
+				t.Errorf("Export: error = %v, wantErr %v", err, tc.wantErr)
 				return
-			}
-			if err := e.Close(); err != nil {
-				t.Errorf("Close: error = %v", err)
-			}
-			if got := digest.Sum(nil); !slices.Equal(got, want) {
-				t.Fatalf("Export: hash = %x, want %x",
-					got, want)
+			} else if got := sha512.Sum512(data); got != want {
+				t.Fatalf("Export: hash = %x, want %x", got, want)
 				return
 			}
 		})
 	}
-
-	t.Run("close without use", func(t *testing.T) {
-		e := New(Preset(0, 0), 0)
-		if err := e.Close(); !errors.Is(err, syscall.EINVAL) {
-			t.Errorf("Close: error = %v", err)
-			return
-		}
-	})
-
-	t.Run("close partial read", func(t *testing.T) {
-		e := New(Preset(0, 0), 0)
-		if _, err := e.Read(nil); err != nil {
-			t.Errorf("Read: error = %v", err)
-			return
-		}
-		// the underlying implementation uses buffered io, so the outcome of this is nondeterministic;
-		// that is not harmful however, so both outcomes are checked for here
-		if err := e.Close(); err != nil &&
-			(!errors.Is(err, syscall.ECANCELED) || !errors.Is(err, syscall.EBADF)) {
-			t.Errorf("Close: error = %v", err)
-			return
-		}
-	})
 }
 
 func BenchmarkExport(b *testing.B) {
-	buf := make([]byte, 8)
+	const exportFlags = AllowMultiarch | AllowCAN | AllowBluetooth
+	const presetFlags = PresetExt | PresetDenyNS | PresetDenyTTY | PresetDenyDevel | PresetLinux32
+	var want = bpfExpected[bpfPreset{exportFlags, presetFlags}]
+
 	for b.Loop() {
-		e := New(
-			Preset(PresetExt|PresetDenyNS|PresetDenyTTY|PresetDenyDevel|PresetLinux32,
-				AllowMultiarch|AllowCAN|AllowBluetooth),
-			AllowMultiarch|AllowCAN|AllowBluetooth)
-		if _, err := io.CopyBuffer(io.Discard, e, buf); err != nil {
-			b.Fatalf("cannot export: %v", err)
+		data, err := Export(Preset(presetFlags, exportFlags), exportFlags)
+
+		b.StopTimer()
+		if err != nil {
+			b.Fatalf("Export: error = %v", err)
 		}
-		if err := e.Close(); err != nil {
-			b.Fatalf("cannot close exporter: %v", err)
+		if got := sha512.Sum512(data); got != want {
+			b.Fatalf("Export: hash = %x, want %x", got, want)
+			return
 		}
+		b.StartTimer()
 	}
 }

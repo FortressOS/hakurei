@@ -9,9 +9,9 @@ import (
 )
 
 func Preset(presets bits.FilterPreset, flags ExportFlag) (rules []NativeRule) {
-	allowedPersonality := PER_LINUX
+	allowedPersonality := PersonaLinux
 	if presets&bits.PresetLinux32 != 0 {
-		allowedPersonality = PER_LINUX32
+		allowedPersonality = PersonaLinux32
 	}
 	presetDevelFinal := presetDevel(ScmpDatum(allowedPersonality))
 

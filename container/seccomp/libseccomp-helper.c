@@ -9,14 +9,16 @@
 
 #define LEN(arr) (sizeof(arr) / sizeof((arr)[0]))
 
-int32_t hakurei_export_filter(int *ret_p, int fd, uint32_t arch,
-                              uint32_t multiarch,
-                              struct hakurei_syscall_rule *rules,
-                              size_t rules_sz, hakurei_export_flag flags) {
+int32_t hakurei_scmp_make_filter(int *ret_p, uintptr_t allocate_p,
+                                 uint32_t arch, uint32_t multiarch,
+                                 struct hakurei_syscall_rule *rules,
+                                 size_t rules_sz, hakurei_export_flag flags) {
   int i;
   int last_allowed_family;
   int disallowed;
   struct hakurei_syscall_rule *rule;
+  void *buf;
+  size_t len = 0;
 
   int32_t res = 0; /* refer to resPrefix for message */
 
@@ -108,14 +110,26 @@ int32_t hakurei_export_filter(int *ret_p, int fd, uint32_t arch,
   seccomp_rule_add_exact(ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1,
                          SCMP_A0(SCMP_CMP_GE, last_allowed_family + 1));
 
-  if (fd < 0) {
+  if (allocate_p == 0) {
     *ret_p = seccomp_load(ctx);
     if (*ret_p != 0) {
       res = 7;
       goto out;
     }
   } else {
-    *ret_p = seccomp_export_bpf(ctx, fd);
+    *ret_p = seccomp_export_bpf_mem(ctx, NULL, &len);
+    if (*ret_p != 0) {
+      res = 6;
+      goto out;
+    }
+
+    buf = hakurei_scmp_allocate(allocate_p, len);
+    if (buf == NULL) {
+      res = 4;
+      goto out;
+    }
+
+    *ret_p = seccomp_export_bpf_mem(ctx, buf, &len);
     if (*ret_p != 0) {
       res = 6;
       goto out;
