@@ -129,11 +129,8 @@ func printShowInstance(
 		}
 		if len(config.ExtraPerms) > 0 {
 			t.Printf("Extra ACL\n")
-			for _, p := range config.ExtraPerms {
-				if p == nil {
-					continue
-				}
-				t.Printf(" %s\n", p.String())
+			for i := range config.ExtraPerms {
+				t.Printf(" %s\n", config.ExtraPerms[i].String())
 			}
 			t.Printf("\n")
 		}

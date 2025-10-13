@@ -156,7 +156,7 @@ type outcomeStateSys struct {
 	// Copied from [hst.Config]. Safe for read by spWaylandOp.toSystem only.
 	directWayland bool
 	// Copied header from [hst.Config]. Safe for read by spFinalOp.toSystem only.
-	extraPerms []*hst.ExtraPermConfig
+	extraPerms []hst.ExtraPermConfig
 	// Copied address from [hst.Config]. Safe for read by spDBusOp.toSystem only.
 	sessionBus, systemBus *hst.BusConfig
 

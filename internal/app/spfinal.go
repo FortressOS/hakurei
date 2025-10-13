@@ -21,8 +21,9 @@ type spFinalOp struct{}
 
 func (s spFinalOp) toSystem(state *outcomeStateSys) error {
 	// append ExtraPerms last
-	for _, p := range state.extraPerms {
-		if p == nil || p.Path == nil {
+	for i := range state.extraPerms {
+		p := &state.extraPerms[i]
+		if p.Path == nil {
 			continue
 		}
 

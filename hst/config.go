@@ -26,8 +26,8 @@ type Config struct {
 	// and the bare socket is made available to the container.
 	DirectWayland bool `json:"direct_wayland,omitempty"`
 
-	// Extra acl update ops to perform before setuid.
-	ExtraPerms []*ExtraPermConfig `json:"extra_perms,omitempty"`
+	// Extra acl updates to perform before setuid.
+	ExtraPerms []ExtraPermConfig `json:"extra_perms,omitempty"`
 
 	// Numerical application id, passed to hsu, used to derive init user namespace credentials.
 	Identity int `json:"identity"`
@@ -86,15 +86,21 @@ func (config *Config) Validate() error {
 	return nil
 }
 
-// ExtraPermConfig describes an acl update op.
+// ExtraPermConfig describes an acl update to perform before setuid.
 type ExtraPermConfig struct {
-	Ensure  bool            `json:"ensure,omitempty"`
-	Path    *check.Absolute `json:"path"`
-	Read    bool            `json:"r,omitempty"`
-	Write   bool            `json:"w,omitempty"`
-	Execute bool            `json:"x,omitempty"`
+	// Whether to create Path as a directory if it does not exist.
+	Ensure bool `json:"ensure,omitempty"`
+	// Pathname to act on.
+	Path *check.Absolute `json:"path"`
+	// Whether to set ACL_READ for the target user.
+	Read bool `json:"r,omitempty"`
+	// Whether to set ACL_WRITE for the target user.
+	Write bool `json:"w,omitempty"`
+	// Whether to set ACL_EXECUTE for the target user.
+	Execute bool `json:"x,omitempty"`
 }
 
+// String returns a checked string representation of [ExtraPermConfig].
 func (e *ExtraPermConfig) String() string {
 	if e == nil || e.Path == nil {
 		return "<invalid>"

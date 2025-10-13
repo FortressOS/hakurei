@@ -88,7 +88,7 @@ func Template() *Config {
 		},
 		DirectWayland: false,
 
-		ExtraPerms: []*ExtraPermConfig{
+		ExtraPerms: []ExtraPermConfig{
 			{Path: fhs.AbsVarLib.Append("hakurei/u0"), Ensure: true, Execute: true},
 			{Path: fhs.AbsVarLib.Append("hakurei/u0/org.chromium.Chromium"), Read: true, Write: true, Execute: true},
 		},

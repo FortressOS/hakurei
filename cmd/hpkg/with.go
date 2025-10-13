@@ -28,7 +28,7 @@ func withNixDaemon(
 	mustRunAppDropShell(ctx, msg, updateConfig(&hst.Config{
 		ID: app.ID,
 
-		ExtraPerms: []*hst.ExtraPermConfig{
+		ExtraPerms: []hst.ExtraPermConfig{
 			{Path: dataHome, Execute: true},
 			{Ensure: true, Path: pathSet.baseDir, Read: true, Write: true, Execute: true},
 		},
@@ -83,7 +83,7 @@ func withCacheDir(
 	mustRunAppDropShell(ctx, msg, &hst.Config{
 		ID: app.ID,
 
-		ExtraPerms: []*hst.ExtraPermConfig{
+		ExtraPerms: []hst.ExtraPermConfig{
 			{Path: dataHome, Execute: true},
 			{Ensure: true, Path: pathSet.baseDir, Read: true, Write: true, Execute: true},
 			{Path: workDir, Execute: true},

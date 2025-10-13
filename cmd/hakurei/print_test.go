@@ -88,7 +88,7 @@ App
  Flags:          none
 
 `, false},
-		{"config nil entries", nil, &hst.Config{Container: &hst.ContainerConfig{Filesystem: make([]hst.FilesystemConfigJSON, 1)}, ExtraPerms: make([]*hst.ExtraPermConfig, 1)}, false, false, `Error: container configuration missing path to home directory!
+		{"config nil entries", nil, &hst.Config{Container: &hst.ContainerConfig{Filesystem: make([]hst.FilesystemConfigJSON, 1)}, ExtraPerms: make([]hst.ExtraPermConfig, 1)}, false, false, `Error: container configuration missing path to home directory!
 
 App
  Identity:       0
@@ -99,6 +99,7 @@ Filesystem
  <invalid>
 
 Extra ACL
+ <invalid>
 
 `, false},
 		{"config pd dbus see", nil, &hst.Config{SessionBus: &hst.BusConfig{See: []string{"org.example.test"}}}, false, false, `Error: configuration missing container state!

@@ -100,7 +100,7 @@ func (app *appInfo) toHst(pathSet *appPathSet, pathname *check.Absolute, argv []
 			Path: pathname,
 			Args: argv,
 		},
-		ExtraPerms: []*hst.ExtraPermConfig{
+		ExtraPerms: []hst.ExtraPermConfig{
 			{Path: dataHome, Execute: true},
 			{Ensure: true, Path: pathSet.baseDir, Read: true, Write: true, Execute: true},
 		},
