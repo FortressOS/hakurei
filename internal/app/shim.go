@@ -128,12 +128,12 @@ func ShimMain() {
 
 				// setup has not completed, terminate immediately
 				msg.Resume()
-				os.Exit(hst.ShimExitRequest)
+				os.Exit(hst.ExitRequest)
 				return
 
 			case 1: // got SIGCONT after adoption: monitor died before delivering signal
 				msg.BeforeExit()
-				os.Exit(hst.ShimExitOrphan)
+				os.Exit(hst.ExitOrphan)
 				return
 
 			case 2: // unreachable
@@ -169,7 +169,7 @@ func ShimMain() {
 
 	if err := z.Start(); err != nil {
 		printMessageError("cannot start container:", err)
-		os.Exit(hst.ShimExitFailure)
+		os.Exit(hst.ExitFailure)
 	}
 	if err := z.Serve(); err != nil {
 		printMessageError("cannot configure container:", err)
@@ -186,7 +186,7 @@ func ShimMain() {
 		var exitError *exec.ExitError
 		if !errors.As(err, &exitError) {
 			if errors.Is(err, context.Canceled) {
-				os.Exit(hst.ShimExitCancel)
+				os.Exit(hst.ExitCancel)
 			}
 			log.Printf("wait: %v", err)
 			os.Exit(127)

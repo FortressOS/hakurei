@@ -27,22 +27,22 @@ const (
 )
 
 const (
-	// ShimExitFailure is returned if the container fails to start.
-	ShimExitFailure = iota + 1
-	// ShimExitCancel is returned if the container is terminated by a shim-directed signal which cancels its context.
-	ShimExitCancel
-	// ShimExitOrphan is returned when the shim is orphaned before priv side delivers a signal.
-	ShimExitOrphan
+	// ExitFailure is returned if the container fails to start.
+	ExitFailure = iota + 1
+	// ExitCancel is returned if the container is terminated by a shim-directed signal which cancels its context.
+	ExitCancel
+	// ExitOrphan is returned when the shim is orphaned before priv side delivers a signal.
+	ExitOrphan
 
-	// ShimExitRequest is returned when the priv side process requests shim exit.
-	ShimExitRequest = 254
+	// ExitRequest is returned when the priv side process requests shim exit.
+	ExitRequest = 254
 )
 
 const (
 	// FMultiarch unblocks syscalls required for multiarch to work on applicable targets.
 	FMultiarch uintptr = 1 << iota
 
-	// FSeccompCompat causes emitted seccomp filter programs to be identical to Flatpak.
+	// FSeccompCompat changes emitted seccomp filter programs to be identical to that of Flatpak.
 	FSeccompCompat
 	// FDevel unblocks ptrace and friends.
 	FDevel
