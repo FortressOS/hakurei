@@ -23,14 +23,11 @@ import (
 //#include "shim-signal.h"
 import "C"
 
-const (
-	// setup pipe fd for [container.Receive]
-	shimEnv = "HAKUREI_SHIM"
+// shimEnv is the name of the environment variable storing decimal representation of
+// setup pipe fd for [container.Receive].
+const shimEnv = "HAKUREI_SHIM"
 
-	// only used for a nil configured env map
-	envAllocSize = 1 << 6
-)
-
+// shimParams is embedded in outcomeState and transmitted from priv side to shim.
 type shimParams struct {
 	// Priv side pid, checked against ppid in signal handler for the syscall.SIGCONT hack.
 	PrivPID int
@@ -172,7 +169,7 @@ func ShimMain() {
 
 	if err := z.Start(); err != nil {
 		printMessageError("cannot start container:", err)
-		os.Exit(1)
+		os.Exit(hst.ShimExitFailure)
 	}
 	if err := z.Serve(); err != nil {
 		printMessageError("cannot configure container:", err)
@@ -189,7 +186,7 @@ func ShimMain() {
 		var exitError *exec.ExitError
 		if !errors.As(err, &exitError) {
 			if errors.Is(err, context.Canceled) {
-				os.Exit(2)
+				os.Exit(hst.ShimExitCancel)
 			}
 			log.Printf("wait: %v", err)
 			os.Exit(127)

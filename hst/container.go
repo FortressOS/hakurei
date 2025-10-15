@@ -24,11 +24,18 @@ const (
 	IdentityMin = 0
 	// IdentityMax is the maximum value of [Config.Identity]. This is enforced by cmd/hsu.
 	IdentityMax = 9999
+)
+
+const (
+	// ShimExitFailure is returned if the container fails to start.
+	ShimExitFailure = iota + 1
+	// ShimExitCancel is returned if the container is terminated by a shim-directed signal which cancels its context.
+	ShimExitCancel
+	// ShimExitOrphan is returned when the shim is orphaned before priv side delivers a signal.
+	ShimExitOrphan
 
 	// ShimExitRequest is returned when the priv side process requests shim exit.
 	ShimExitRequest = 254
-	// ShimExitOrphan is returned when the shim is orphaned before priv side delivers a signal.
-	ShimExitOrphan = 3
 )
 
 const (

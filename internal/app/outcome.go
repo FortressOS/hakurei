@@ -14,6 +14,10 @@ import (
 	"hakurei.app/system/acl"
 )
 
+// envAllocSize is the initial size of the env map pre-allocated when the configured env map is nil.
+// It should be large enough to fit all insertions by outcomeOp.toContainer.
+const envAllocSize = 1 << 6
+
 func newInt(v int) *stringPair[int] { return &stringPair[int]{v, strconv.Itoa(v)} }
 
 // stringPair stores a value and its string representation.
