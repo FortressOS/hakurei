@@ -7,10 +7,12 @@ import (
 	"io"
 	"io/fs"
 	"os"
+	"strconv"
 	"syscall"
 
 	"hakurei.app/container/check"
 	"hakurei.app/hst"
+	"hakurei.app/message"
 )
 
 const pulseCookieSizeMax = 1 << 8
@@ -48,101 +50,17 @@ func (s *spPulseOp) toSystem(state *outcomeStateSys) error {
 		}
 	}
 
-	// hard link pulse socket into target-executable share
+	// pulse socket is world writable and its parent directory DAC permissions prevents access;
+	// hard link to target-executable share directory to grant access
 	state.sys.Link(pulseSocket, state.runtime().Append("pulse"))
 
-	// publish current user's pulse cookie for target user
-	var paCookiePath *check.Absolute
-	{
-		const paLocateStep = "locate PulseAudio cookie"
-
-		// from environment
-		if p, ok := state.k.lookupEnv("PULSE_COOKIE"); ok {
-			if a, err := check.NewAbs(p); err != nil {
-				return &hst.AppError{Step: paLocateStep, Err: err}
-			} else {
-				// this takes precedence, do not verify whether the file is accessible
-				paCookiePath = a
-				goto out
-			}
-		}
-
-		// $HOME/.pulse-cookie
-		if p, ok := state.k.lookupEnv("HOME"); ok {
-			if a, err := check.NewAbs(p); err != nil {
-				return &hst.AppError{Step: paLocateStep, Err: err}
-			} else {
-				paCookiePath = a.Append(".pulse-cookie")
-			}
-
-			if fi, err := state.k.stat(paCookiePath.String()); err != nil {
-				paCookiePath = nil
-				if !errors.Is(err, fs.ErrNotExist) {
-					return &hst.AppError{Step: "access PulseAudio cookie", Err: err}
-				}
-				// fallthrough
-			} else if fi.IsDir() {
-				paCookiePath = nil
-			} else {
-				goto out
-			}
-		}
-
-		// $XDG_CONFIG_HOME/pulse/cookie
-		if p, ok := state.k.lookupEnv("XDG_CONFIG_HOME"); ok {
-			if a, err := check.NewAbs(p); err != nil {
-				return &hst.AppError{Step: paLocateStep, Err: err}
-			} else {
-				paCookiePath = a.Append("pulse", "cookie")
-			}
-			if fi, err := state.k.stat(paCookiePath.String()); err != nil {
-				paCookiePath = nil
-				if !errors.Is(err, fs.ErrNotExist) {
-					return &hst.AppError{Step: "access PulseAudio cookie", Err: err}
-				}
-				// fallthrough
-			} else if fi.IsDir() {
-				paCookiePath = nil
-			} else {
-				goto out
-			}
-		}
-	out:
-	}
-
-	if paCookiePath != nil {
-		if b, err := state.k.stat(paCookiePath.String()); err != nil {
-			return &hst.AppError{Step: "access PulseAudio cookie", Err: err}
-		} else {
-			if b.IsDir() {
-				return &hst.AppError{Step: "read PulseAudio cookie", Err: &os.PathError{Op: "stat", Path: paCookiePath.String(), Err: syscall.EISDIR}}
-			}
-			if b.Size() > pulseCookieSizeMax {
-				return newWithMessageError(
-					fmt.Sprintf("PulseAudio cookie at %q exceeds maximum expected size", paCookiePath),
-					&os.PathError{Op: "stat", Path: paCookiePath.String(), Err: syscall.ENOMEM},
-				)
-			}
-		}
-
-		var r io.ReadCloser
-		if f, err := state.k.open(paCookiePath.String()); err != nil {
-			return &hst.AppError{Step: "open PulseAudio cookie", Err: err}
-		} else {
-			r = f
-		}
-
+	// load up to pulseCookieSizeMax bytes of pulse cookie for transmission to shim
+	if a, err := discoverPulseCookie(state.k); err != nil {
+		return err
+	} else if a != nil {
 		s.Cookie = new([pulseCookieSizeMax]byte)
-		if n, err := r.Read(s.Cookie[:]); err != nil {
-			if !errors.Is(err, io.EOF) {
-				_ = r.Close()
-				return &hst.AppError{Step: "read PulseAudio cookie", Err: err}
-			}
-			state.msg.Verbosef("copied %d bytes from %q", n, paCookiePath)
-		}
-
-		if err := r.Close(); err != nil {
-			return &hst.AppError{Step: "close PulseAudio cookie", Err: err}
+		if err = loadFile(state.msg, state.k, "PulseAudio cookie", a.String(), s.Cookie[:]); err != nil {
+			return err
 		}
 	} else {
 		state.msg.Verbose("cannot locate PulseAudio cookie (tried " +
@@ -174,4 +92,112 @@ func (s *spPulseOp) commonPaths(state *outcomeState) (pulseRuntimeDir, pulseSock
 	// PulseAudio socket (usually `/run/user/%d/pulse/native`)
 	pulseSocket = pulseRuntimeDir.Append("native")
 	return
+}
+
+// discoverPulseCookie attempts to discover the pathname of the PulseAudio cookie of the current user.
+// If both returned pathname and error are nil, the cookie is likely unavailable and can be silently skipped.
+func discoverPulseCookie(k syscallDispatcher) (*check.Absolute, error) {
+	const paLocateStep = "locate PulseAudio cookie"
+
+	// from environment
+	if p, ok := k.lookupEnv("PULSE_COOKIE"); ok {
+		if a, err := check.NewAbs(p); err != nil {
+			return nil, &hst.AppError{Step: paLocateStep, Err: err}
+		} else {
+			// this takes precedence, do not verify whether the file is accessible
+			return a, nil
+		}
+	}
+
+	// $HOME/.pulse-cookie
+	if p, ok := k.lookupEnv("HOME"); ok {
+		var pulseCookiePath *check.Absolute
+		if a, err := check.NewAbs(p); err != nil {
+			return nil, &hst.AppError{Step: paLocateStep, Err: err}
+		} else {
+			pulseCookiePath = a.Append(".pulse-cookie")
+		}
+
+		if fi, err := k.stat(pulseCookiePath.String()); err != nil {
+			if !errors.Is(err, fs.ErrNotExist) {
+				return nil, &hst.AppError{Step: "access PulseAudio cookie", Err: err}
+			}
+			// fallthrough
+		} else if fi.IsDir() {
+			// fallthrough
+		} else {
+			return pulseCookiePath, nil
+		}
+	}
+
+	// $XDG_CONFIG_HOME/pulse/cookie
+	if p, ok := k.lookupEnv("XDG_CONFIG_HOME"); ok {
+		var pulseCookiePath *check.Absolute
+		if a, err := check.NewAbs(p); err != nil {
+			return nil, &hst.AppError{Step: paLocateStep, Err: err}
+		} else {
+			pulseCookiePath = a.Append("pulse", "cookie")
+		}
+
+		if fi, err := k.stat(pulseCookiePath.String()); err != nil {
+			if !errors.Is(err, fs.ErrNotExist) {
+				return nil, &hst.AppError{Step: "access PulseAudio cookie", Err: err}
+			}
+			// fallthrough
+		} else if fi.IsDir() {
+			// fallthrough
+		} else {
+			return pulseCookiePath, nil
+		}
+	}
+
+	// cookie not present
+	// not fatal: authentication is disabled
+	return nil, nil
+}
+
+// loadFile reads up to len(buf) bytes from the file at pathname.
+func loadFile(
+	msg message.Msg, k syscallDispatcher,
+	description, pathname string, buf []byte,
+) error {
+	n := len(buf)
+	if n == 0 {
+		return errors.New("invalid buffer")
+	}
+	msg.Verbosef("loading up to %d bytes from %q", n, pathname)
+
+	if fi, err := k.stat(pathname); err != nil {
+		return &hst.AppError{Step: "access " + description, Err: err}
+	} else {
+		if fi.IsDir() {
+			return &hst.AppError{Step: "read " + description,
+				Err: &os.PathError{Op: "stat", Path: pathname, Err: syscall.EISDIR}}
+		}
+		if s := fi.Size(); s > int64(n) {
+			return newWithMessageError(
+				description+" at "+strconv.Quote(pathname)+" exceeds maximum expected size",
+				&os.PathError{Op: "stat", Path: pathname, Err: syscall.ENOMEM},
+			)
+		} else if s < int64(n) {
+			msg.Verbosef("%s at %q is %d bytes longer than expected", description, pathname, int64(n)-s)
+		}
+	}
+
+	if f, err := k.open(pathname); err != nil {
+		return &hst.AppError{Step: "open " + description, Err: err}
+	} else {
+		if n, err = f.Read(buf); err != nil {
+			if !errors.Is(err, io.EOF) {
+				_ = f.Close()
+				return &hst.AppError{Step: "read " + description, Err: err}
+			}
+			msg.Verbosef("copied %d bytes from %q", n, pathname)
+		} // nil error indicates a partial read, which is handled after stat
+
+		if err = f.Close(); err != nil {
+			return &hst.AppError{Step: "close " + description, Err: err}
+		}
+		return nil
+	}
 }
