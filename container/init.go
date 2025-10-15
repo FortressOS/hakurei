@@ -353,10 +353,14 @@ func initEntrypoint(k syscallDispatcher, msg message.Msg) {
 		wpid    int
 		wstatus WaitStatus
 	}
+
+	// info is closed as the wait4 thread terminates
+	// when there are no longer any processes left to reap
 	info := make(chan winfo, 1)
-	done := make(chan struct{})
 
 	k.new(func(k syscallDispatcher) {
+		k.lockOSThread()
+
 		var (
 			err     error
 			wpid    = -2
@@ -382,7 +386,7 @@ func initEntrypoint(k syscallDispatcher, msg message.Msg) {
 			k.printf(msg, "unexpected wait4 response: %v", err)
 		}
 
-		close(done)
+		close(info)
 	})
 
 	// handle signals to dump withheld messages
@@ -411,7 +415,13 @@ func initEntrypoint(k syscallDispatcher, msg message.Msg) {
 			msg.BeforeExit()
 			k.exit(0)
 
-		case w := <-info:
+		case w, ok := <-info:
+			if !ok {
+				msg.BeforeExit()
+				k.exit(r)
+				continue // unreachable
+			}
+
 			if w.wpid == cmd.Process.Pid {
 				// initial process exited, output is most likely available again
 				msg.Resume()
@@ -432,10 +442,6 @@ func initEntrypoint(k syscallDispatcher, msg message.Msg) {
 
 				go func() { time.Sleep(params.AdoptWaitDelay); close(timeout) }()
 			}
-
-		case <-done:
-			msg.BeforeExit()
-			k.exit(r)
 
 		case <-timeout:
 			k.printf(msg, "timeout exceeded waiting for lingering processes")

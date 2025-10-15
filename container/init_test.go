@@ -2081,6 +2081,8 @@ func TestInitEntrypoint(t *testing.T) {
 
 			/* wait4 */
 			Tracks: []stub.Expect{{Calls: []stub.Call{
+				call("lockOSThread", stub.ExpectArgs{}, nil, nil),
+
 				// magicWait4Signal as args[4] causes this to block until simulated signal is delivered
 				call("wait4", stub.ExpectArgs{-1, syscall.WaitStatus(0xfade01ce), 0, nil, magicWait4Signal}, 0xbad, nil),
 				// this terminates the goroutine at the call, preventing it from leaking while preserving behaviour
@@ -2174,6 +2176,8 @@ func TestInitEntrypoint(t *testing.T) {
 
 			/* wait4 */
 			Tracks: []stub.Expect{{Calls: []stub.Call{
+				call("lockOSThread", stub.ExpectArgs{}, nil, nil),
+
 				// this terminates the goroutine at the call, preventing it from leaking while preserving behaviour
 				call("wait4", stub.ExpectArgs{-1, nil, 0, nil, stub.PanicExit}, 0, syscall.ECHILD),
 			}}},
@@ -2266,6 +2270,8 @@ func TestInitEntrypoint(t *testing.T) {
 
 			/* wait4 */
 			Tracks: []stub.Expect{{Calls: []stub.Call{
+				call("lockOSThread", stub.ExpectArgs{}, nil, nil),
+
 				call("wait4", stub.ExpectArgs{-1, syscall.WaitStatus(0xfade01ce), 0, nil}, 0xbad, nil),
 				// this terminates the goroutine at the call, preventing it from leaking while preserving behaviour
 				call("wait4", stub.ExpectArgs{-1, nil, 0, nil, 0xdeadbeef}, 0, syscall.ECHILD),
@@ -2358,6 +2364,8 @@ func TestInitEntrypoint(t *testing.T) {
 
 			/* wait4 */
 			Tracks: []stub.Expect{{Calls: []stub.Call{
+				call("lockOSThread", stub.ExpectArgs{}, nil, nil),
+
 				call("wait4", stub.ExpectArgs{-1, nil, 0, nil}, 0, syscall.EINTR),
 				call("wait4", stub.ExpectArgs{-1, nil, 0, nil}, 0, syscall.EINTR),
 				call("wait4", stub.ExpectArgs{-1, syscall.WaitStatus(0xdeaf), 0, nil}, 0xbabe, nil),
@@ -2494,6 +2502,8 @@ func TestInitEntrypoint(t *testing.T) {
 
 			/* wait4 */
 			Tracks: []stub.Expect{{Calls: []stub.Call{
+				call("lockOSThread", stub.ExpectArgs{}, nil, nil),
+
 				call("wait4", stub.ExpectArgs{-1, nil, 0, nil}, 0, syscall.EINTR),
 				call("wait4", stub.ExpectArgs{-1, nil, 0, nil}, 0, syscall.EINTR),
 				call("wait4", stub.ExpectArgs{-1, syscall.WaitStatus(0xdeaf), 0, nil}, 0xbabe, nil),
@@ -2634,6 +2644,8 @@ func TestInitEntrypoint(t *testing.T) {
 
 			/* wait4 */
 			Tracks: []stub.Expect{{Calls: []stub.Call{
+				call("lockOSThread", stub.ExpectArgs{}, nil, nil),
+
 				call("wait4", stub.ExpectArgs{-1, nil, 0, nil}, 0, syscall.EINTR),
 				call("wait4", stub.ExpectArgs{-1, nil, 0, nil}, 0, syscall.EINTR),
 				call("wait4", stub.ExpectArgs{-1, syscall.WaitStatus(0xdeaf), 0, nil}, 0xbabe, nil),
