@@ -1,8 +1,6 @@
 package app
 
 import (
-	"maps"
-	"reflect"
 	"syscall"
 	"testing"
 
@@ -18,7 +16,6 @@ import (
 
 func TestSpDBusOp(t *testing.T) {
 	config := hst.Template()
-	const instancePrefix = container.Nonexistent + "/tmp/hakurei.0/" + wantAutoEtcPrefix
 
 	checkOpBehaviour(t, []opBehaviourTestCase{
 		{"not enabled", func(bool, bool) outcomeOp {
@@ -41,11 +38,7 @@ func TestSpDBusOp(t *testing.T) {
 				"unix:path=/run/user/1000/bus",
 				"unix:path=/var/run/dbus/system_bus_socket",
 			}, nil),
-		}, nil, func(t *testing.T, state *outcomeStateSys) {
-			if want := m(instancePrefix); !reflect.DeepEqual(state.sharePath, want) {
-				t.Errorf("outcomeStateSys: sharePath = %v, want %v", state.sharePath, want)
-			}
-		}, &system.OpError{
+		}, nil, sysUsesInstance(nil), &system.OpError{
 			Op:     "dbus",
 			Err:    syscall.EINVAL,
 			Msg:    "message bus proxy configuration contains NUL byte",
@@ -66,7 +59,7 @@ func TestSpDBusOp(t *testing.T) {
 			call("isVerbose", stub.ExpectArgs{}, true, nil),
 			call("verbose", stub.ExpectArgs{[]any{"session bus proxy:", []string{
 				"unix:path=/run/user/1000/bus",
-				instancePrefix + "/bus",
+				wantInstancePrefix + "/bus",
 				"--filter",
 				"--talk=org.freedesktop.DBus",
 				"--talk=org.freedesktop.Notifications",
@@ -77,7 +70,7 @@ func TestSpDBusOp(t *testing.T) {
 			}}}, nil, nil),
 			call("verbose", stub.ExpectArgs{[]any{"message bus proxy final args:", helper.MustNewCheckedArgs(
 				"unix:path=/run/user/1000/bus",
-				instancePrefix+"/bus",
+				wantInstancePrefix+"/bus",
 				"--filter",
 				"--talk=org.freedesktop.DBus",
 				"--talk=org.freedesktop.Notifications",
@@ -88,40 +81,25 @@ func TestSpDBusOp(t *testing.T) {
 			)}}, nil, nil),
 		}, func() *system.I {
 			sys := system.New(panicMsgContext{}, message.NewMsg(nil), checkExpectUid)
-			sys.Ephemeral(system.Process, m(instancePrefix), 0711)
+			sys.Ephemeral(system.Process, m(wantInstancePrefix), 0711)
 			if err := sys.ProxyDBus(
 				dbus.NewConfig(config.ID, true, true), nil,
-				dbus.ProxyPair{"unix:path=/run/user/1000/bus", instancePrefix + "/bus"},
-				dbus.ProxyPair{"unix:path=/var/run/dbus/system_bus_socket", instancePrefix + "/system_bus_socket"},
+				dbus.ProxyPair{"unix:path=/run/user/1000/bus", wantInstancePrefix + "/bus"},
+				dbus.ProxyPair{"unix:path=/var/run/dbus/system_bus_socket", wantInstancePrefix + "/system_bus_socket"},
 			); err != nil {
 				t.Fatalf("cannot prepare sys: %v", err)
 			}
-			sys.UpdatePerm(m(instancePrefix+"/bus"), acl.Read, acl.Write)
+			sys.UpdatePerm(m(wantInstancePrefix+"/bus"), acl.Read, acl.Write)
 			return sys
-		}(), func(t *testing.T, state *outcomeStateSys) {
-			if want := m(instancePrefix); !reflect.DeepEqual(state.sharePath, want) {
-				t.Errorf("outcomeStateSys: sharePath = %v, want %v", state.sharePath, want)
-			}
-		}, nil, func(state *outcomeStateParams) {
-			state.params.Ops = new(container.Ops)
-
-			// emulates spRuntimeOp
-			state.runtimeDir = m("/run/user/1000")
-		}, []stub.Call{
+		}(), sysUsesInstance(nil), nil, insertsOps(afterSpRuntimeOp(nil)), []stub.Call{
 			// this op configures the container state and does not make calls during toContainer
 		}, &container.Params{
 			Ops: new(container.Ops).
-				Bind(m(instancePrefix+"/bus"),
+				Bind(m(wantInstancePrefix+"/bus"),
 					m("/run/user/1000/bus"), 0),
-		}, func(t *testing.T, state *outcomeStateParams) {
-			wantEnv := map[string]string{
-				"DBUS_SESSION_BUS_ADDRESS": "unix:path=/run/user/1000/bus",
-			}
-			maps.Copy(wantEnv, config.Container.Env)
-			if !maps.Equal(state.env, wantEnv) {
-				t.Errorf("toContainer: env = %#v, want %#v", state.env, wantEnv)
-			}
-		}, nil},
+		}, paramsWantEnv(config, map[string]string{
+			"DBUS_SESSION_BUS_ADDRESS": "unix:path=/run/user/1000/bus",
+		}, nil), nil},
 
 		{"success", func(isShim, _ bool) outcomeOp {
 			if !isShim {
@@ -136,7 +114,7 @@ func TestSpDBusOp(t *testing.T) {
 			call("isVerbose", stub.ExpectArgs{}, true, nil),
 			call("verbose", stub.ExpectArgs{[]any{"session bus proxy:", []string{
 				"unix:path=/run/user/1000/bus",
-				instancePrefix + "/bus",
+				wantInstancePrefix + "/bus",
 				"--filter",
 				"--talk=org.freedesktop.Notifications",
 				"--talk=org.freedesktop.FileManager1",
@@ -153,7 +131,7 @@ func TestSpDBusOp(t *testing.T) {
 			}}}, nil, nil),
 			call("verbose", stub.ExpectArgs{[]any{"system bus proxy:", []string{
 				"unix:path=/var/run/dbus/system_bus_socket",
-				instancePrefix + "/system_bus_socket",
+				wantInstancePrefix + "/system_bus_socket",
 				"--filter",
 				"--talk=org.bluez",
 				"--talk=org.freedesktop.Avahi",
@@ -161,7 +139,7 @@ func TestSpDBusOp(t *testing.T) {
 			}}}, nil, nil),
 			call("verbose", stub.ExpectArgs{[]any{"message bus proxy final args:", helper.MustNewCheckedArgs(
 				"unix:path=/run/user/1000/bus",
-				instancePrefix+"/bus",
+				wantInstancePrefix+"/bus",
 				"--filter",
 				"--talk=org.freedesktop.Notifications",
 				"--talk=org.freedesktop.FileManager1",
@@ -177,7 +155,7 @@ func TestSpDBusOp(t *testing.T) {
 				"--broadcast=org.freedesktop.portal.*=@/org/freedesktop/portal/*",
 
 				"unix:path=/var/run/dbus/system_bus_socket",
-				instancePrefix+"/system_bus_socket",
+				wantInstancePrefix+"/system_bus_socket",
 				"--filter",
 				"--talk=org.bluez",
 				"--talk=org.freedesktop.Avahi",
@@ -185,43 +163,28 @@ func TestSpDBusOp(t *testing.T) {
 			)}}, nil, nil),
 		}, func() *system.I {
 			sys := system.New(panicMsgContext{}, message.NewMsg(nil), checkExpectUid)
-			sys.Ephemeral(system.Process, m(instancePrefix), 0711)
+			sys.Ephemeral(system.Process, m(wantInstancePrefix), 0711)
 			if err := sys.ProxyDBus(
 				config.SessionBus, config.SystemBus,
-				dbus.ProxyPair{"unix:path=/run/user/1000/bus", instancePrefix + "/bus"},
-				dbus.ProxyPair{"unix:path=/var/run/dbus/system_bus_socket", instancePrefix + "/system_bus_socket"},
+				dbus.ProxyPair{"unix:path=/run/user/1000/bus", wantInstancePrefix + "/bus"},
+				dbus.ProxyPair{"unix:path=/var/run/dbus/system_bus_socket", wantInstancePrefix + "/system_bus_socket"},
 			); err != nil {
 				t.Fatalf("cannot prepare sys: %v", err)
 			}
-			sys.UpdatePerm(m(instancePrefix+"/bus"), acl.Read, acl.Write).
-				UpdatePerm(m(instancePrefix+"/system_bus_socket"), acl.Read, acl.Write)
+			sys.UpdatePerm(m(wantInstancePrefix+"/bus"), acl.Read, acl.Write).
+				UpdatePerm(m(wantInstancePrefix+"/system_bus_socket"), acl.Read, acl.Write)
 			return sys
-		}(), func(t *testing.T, state *outcomeStateSys) {
-			if want := m(instancePrefix); !reflect.DeepEqual(state.sharePath, want) {
-				t.Errorf("outcomeStateSys: sharePath = %v, want %v", state.sharePath, want)
-			}
-		}, nil, func(state *outcomeStateParams) {
-			state.params.Ops = new(container.Ops)
-
-			// emulates spRuntimeOp
-			state.runtimeDir = m("/run/user/1000")
-		}, []stub.Call{
+		}(), sysUsesInstance(nil), nil, insertsOps(afterSpRuntimeOp(nil)), []stub.Call{
 			// this op configures the container state and does not make calls during toContainer
 		}, &container.Params{
 			Ops: new(container.Ops).
-				Bind(m(instancePrefix+"/bus"),
+				Bind(m(wantInstancePrefix+"/bus"),
 					m("/run/user/1000/bus"), 0).
-				Bind(m(instancePrefix+"/system_bus_socket"),
+				Bind(m(wantInstancePrefix+"/system_bus_socket"),
 					m("/var/run/dbus/system_bus_socket"), 0),
-		}, func(t *testing.T, state *outcomeStateParams) {
-			wantEnv := map[string]string{
-				"DBUS_SESSION_BUS_ADDRESS": "unix:path=/run/user/1000/bus",
-				"DBUS_SYSTEM_BUS_ADDRESS":  "unix:path=/var/run/dbus/system_bus_socket",
-			}
-			maps.Copy(wantEnv, config.Container.Env)
-			if !maps.Equal(state.env, wantEnv) {
-				t.Errorf("toContainer: env = %#v, want %#v", state.env, wantEnv)
-			}
-		}, nil},
+		}, paramsWantEnv(config, map[string]string{
+			"DBUS_SESSION_BUS_ADDRESS": "unix:path=/run/user/1000/bus",
+			"DBUS_SYSTEM_BUS_ADDRESS":  "unix:path=/var/run/dbus/system_bus_socket",
+		}, nil), nil},
 	})
 }

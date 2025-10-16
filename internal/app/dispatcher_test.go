@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"io/fs"
 	"log"
+	"maps"
 	"os"
 	"os/exec"
 	"reflect"
@@ -26,30 +27,97 @@ func call(name string, args stub.ExpectArgs, ret any, err error) stub.Call {
 	return stub.Call{Name: name, Args: args, Ret: ret, Err: err}
 }
 
-// checkExpectUid is the uid value used by checkOpBehaviour to initialise [system.I].
-const checkExpectUid = 0xcafebabe
-
-// wantAutoEtcPrefix is the autoetc prefix corresponding to checkExpectInstanceId.
-const wantAutoEtcPrefix = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+const (
+	// checkExpectUid is the uid value used by checkOpBehaviour to initialise [system.I].
+	checkExpectUid = 0xcafebabe
+	// wantAutoEtcPrefix is the autoetc prefix corresponding to checkExpectInstanceId.
+	wantAutoEtcPrefix = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+	// wantInstancePrefix is the SharePath corresponding to checkExpectInstanceId.
+	wantInstancePrefix = container.Nonexistent + "/tmp/hakurei.0/" + wantAutoEtcPrefix
+)
 
 // checkExpectInstanceId is the [state.ID] value used by checkOpBehaviour to initialise outcomeState.
 var checkExpectInstanceId = *(*state.ID)(bytes.Repeat([]byte{0xaa}, len(state.ID{})))
+
+type (
+	// pStateSysFunc is called before each test case is run to prepare outcomeStateSys.
+	pStateSysFunc = func(state *outcomeStateSys)
+	// pStateContainerFunc is called before each test case is run to prepare outcomeStateParams.
+	pStateContainerFunc = func(state *outcomeStateParams)
+
+	// extraCheckSysFunc is called to check outcomeStateSys and must not have side effects.
+	extraCheckSysFunc = func(t *testing.T, state *outcomeStateSys)
+	// extraCheckParamsFunc is called to check outcomeStateParams and must not have side effects.
+	extraCheckParamsFunc = func(t *testing.T, state *outcomeStateParams)
+)
+
+// insertsOps prepares outcomeStateParams to allow [container.Op] to be inserted.
+func insertsOps(next pStateContainerFunc) pStateContainerFunc {
+	return func(state *outcomeStateParams) {
+		state.params.Ops = new(container.Ops)
+
+		if next != nil {
+			next(state)
+		}
+	}
+}
+
+// afterSpRuntimeOp prepares outcomeStateParams for an outcomeOp meant to run after spRuntimeOp.
+func afterSpRuntimeOp(next pStateContainerFunc) pStateContainerFunc {
+	return func(state *outcomeStateParams) {
+		// emulates spRuntimeOp
+		state.runtimeDir = m("/run/user/1000")
+
+		if next != nil {
+			next(state)
+		}
+	}
+}
+
+// sysUsesInstance checks for use of the outcomeStateSys.instance method.
+func sysUsesInstance(next extraCheckSysFunc) extraCheckSysFunc {
+	return func(t *testing.T, state *outcomeStateSys) {
+		if want := m(wantInstancePrefix); !reflect.DeepEqual(state.sharePath, want) {
+			t.Errorf("outcomeStateSys: sharePath = %v, want %v", state.sharePath, want)
+		}
+
+		if next != nil {
+			next(t, state)
+		}
+	}
+}
+
+// paramsWantEnv checks outcomeStateParams.env for inserted entries on top of [hst.Config].
+func paramsWantEnv(config *hst.Config, wantEnv map[string]string, next extraCheckParamsFunc) extraCheckParamsFunc {
+	want := make(map[string]string, len(wantEnv)+len(config.Container.Env))
+	maps.Copy(want, wantEnv)
+	maps.Copy(want, config.Container.Env)
+	return func(t *testing.T, state *outcomeStateParams) {
+		if !maps.Equal(state.env, want) {
+			t.Errorf("toContainer: env = %#v, want %#v", state.env, want)
+		}
+
+		if next != nil {
+			next(t, state)
+		}
+	}
+}
 
 type opBehaviourTestCase struct {
 	name      string
 	newOp     func(isShim, clearUnexported bool) outcomeOp
 	newConfig func() *hst.Config
 
-	pStateSys     func(state *outcomeStateSys)
+	pStateSys     pStateSysFunc
 	toSystem      []stub.Call
 	wantSys       *system.I
-	extraCheckSys func(t *testing.T, state *outcomeStateSys)
+	extraCheckSys extraCheckSysFunc
 	wantErrSystem error
 
-	pStateContainer  func(state *outcomeStateParams)
+	pStateContainer  pStateContainerFunc
 	toContainer      []stub.Call
 	wantParams       *container.Params
-	extraCheckParams func(t *testing.T, state *outcomeStateParams)
+	extraCheckParams extraCheckParamsFunc
 	wantErrContainer error
 }
 

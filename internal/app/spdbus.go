@@ -12,6 +12,7 @@ import (
 func init() { gob.Register(new(spDBusOp)) }
 
 // spDBusOp maintains an xdg-dbus-proxy instance for the container.
+// Runs after spRuntimeOp.
 type spDBusOp struct {
 	// Whether to bind the system bus socket. Populated during toSystem.
 	ProxySystem bool

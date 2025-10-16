@@ -2,7 +2,6 @@ package app
 
 import (
 	"errors"
-	"maps"
 	"os"
 	"reflect"
 	"syscall"
@@ -72,16 +71,9 @@ func TestSpParamsOp(t *testing.T) {
 				Proc(fhs.AbsProc).Tmpfs(hst.AbsPrivateTmp, 1<<12, 0755).
 				DevWritable(fhs.AbsDev, true).
 				Tmpfs(fhs.AbsDev.Append("shm"), 0, 01777),
+		}, paramsWantEnv(config, map[string]string{
+			"TERM": "xterm",
 		}, func(t *testing.T, state *outcomeStateParams) {
-			wantEnv := map[string]string{
-				"TERM": "xterm",
-			}
-			maps.Copy(wantEnv, config.Container.Env)
-			if !maps.Equal(state.env, wantEnv) {
-				t.Errorf("toContainer: env = %#v, want %#v", state.env, wantEnv)
-			}
-
-			const wantAutoEtcPrefix = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 			if state.as.AutoEtcPrefix != wantAutoEtcPrefix {
 				t.Errorf("toContainer: as.AutoEtcPrefix = %q, want %q", state.as.AutoEtcPrefix, wantAutoEtcPrefix)
 			}
@@ -90,7 +82,7 @@ func TestSpParamsOp(t *testing.T) {
 			if !reflect.DeepEqual(state.filesystem, wantFilesystems) {
 				t.Errorf("toContainer: filesystem = %#v, want %#v", state.filesystem, wantFilesystems)
 			}
-		}, nil},
+		}), nil},
 
 		{"success", func(isShim, _ bool) outcomeOp {
 			if !isShim {
@@ -117,15 +109,9 @@ func TestSpParamsOp(t *testing.T) {
 				Proc(fhs.AbsProc).Tmpfs(hst.AbsPrivateTmp, 1<<12, 0755).
 				Bind(fhs.AbsDev, fhs.AbsDev, bits.BindWritable|bits.BindDevice).
 				Tmpfs(fhs.AbsDev.Append("shm"), 0, 01777),
+		}, paramsWantEnv(config, map[string]string{
+			"TERM": "xterm",
 		}, func(t *testing.T, state *outcomeStateParams) {
-			wantEnv := map[string]string{
-				"TERM": "xterm",
-			}
-			maps.Copy(wantEnv, config.Container.Env)
-			if !maps.Equal(state.env, wantEnv) {
-				t.Errorf("toContainer: env = %#v, want %#v", state.env, wantEnv)
-			}
-
 			if state.as.AutoEtcPrefix != wantAutoEtcPrefix {
 				t.Errorf("toContainer: as.AutoEtcPrefix = %q, want %q", state.as.AutoEtcPrefix, wantAutoEtcPrefix)
 			}
@@ -134,7 +120,7 @@ func TestSpParamsOp(t *testing.T) {
 			if !reflect.DeepEqual(state.filesystem, wantFilesystems) {
 				t.Errorf("toContainer: filesystem = %#v, want %#v", state.filesystem, wantFilesystems)
 			}
-		}, nil},
+		}), nil},
 	})
 }
 
@@ -158,6 +144,16 @@ func TestSpFilesystemOp(t *testing.T) {
 		return c
 	}
 	configSmall := newConfigSmall()
+
+	needsApplyState := func(next pStateContainerFunc) pStateContainerFunc {
+		return func(state *outcomeStateParams) {
+			state.as = hst.ApplyState{AutoEtcPrefix: wantAutoEtcPrefix, Ops: opsAdapter{state.params.Ops}}
+
+			if next != nil {
+				next(state)
+			}
+		}
+	}
 
 	checkOpBehaviour(t, []opBehaviourTestCase{
 		{"readdir", func(bool, bool) outcomeOp {
@@ -310,12 +306,9 @@ func TestSpFilesystemOp(t *testing.T) {
 			call("evalSymlinks", stub.ExpectArgs{"/var/lib/hakurei/base/org.nixos/.ro-store"}, nePrefix+"/var/lib/hakurei/base/org.nixos/.ro-store", nil),
 			call("evalSymlinks", stub.ExpectArgs{"/var/lib/hakurei/base/org.nixos/org.chromium.Chromium"}, nePrefix+"/var/lib/hakurei/base/org.nixos/org.chromium.Chromium", nil),
 			call("verbosef", stub.ExpectArgs{"hiding path %q from %q", []any{"/proc/nonexistent/eval/etc/dbus", "/etc/"}}, nil, nil),
-		}, newI(), nil, nil, func(state *outcomeStateParams) {
-			state.filesystem = configSmall.Container.Filesystem
-			state.params.Ops = new(container.Ops)
-			state.as = hst.ApplyState{AutoEtcPrefix: wantAutoEtcPrefix, Ops: opsAdapter{state.params.Ops}}
-			state.filesystem = append(state.filesystem, hst.FilesystemConfigJSON{})
-		}, []stub.Call{
+		}, newI(), nil, nil, insertsOps(needsApplyState(func(state *outcomeStateParams) {
+			state.filesystem = append(configSmall.Container.Filesystem, hst.FilesystemConfigJSON{})
+		})), []stub.Call{
 			// this op configures the container state and does not make calls during toContainer
 		}, nil, nil, &hst.AppError{
 			Step: "finalise",
@@ -341,11 +334,9 @@ func TestSpFilesystemOp(t *testing.T) {
 			call("evalSymlinks", stub.ExpectArgs{"/var/lib/hakurei/base/org.nixos/.ro-store"}, nePrefix+"/var/lib/hakurei/base/org.nixos/.ro-store", nil),
 			call("evalSymlinks", stub.ExpectArgs{"/var/lib/hakurei/base/org.nixos/org.chromium.Chromium"}, nePrefix+"/var/lib/hakurei/base/org.nixos/org.chromium.Chromium", nil),
 			call("verbosef", stub.ExpectArgs{"hiding path %q from %q", []any{"/proc/nonexistent/eval/etc/dbus", "/etc/"}}, nil, nil),
-		}, newI(), nil, nil, func(state *outcomeStateParams) {
+		}, newI(), nil, nil, insertsOps(needsApplyState(func(state *outcomeStateParams) {
 			state.filesystem = configSmall.Container.Filesystem
-			state.params.Ops = new(container.Ops)
-			state.as = hst.ApplyState{AutoEtcPrefix: wantAutoEtcPrefix, Ops: opsAdapter{state.params.Ops}}
-		}, []stub.Call{
+		})), []stub.Call{
 			// this op configures the container state and does not make calls during toContainer
 		}, &container.Params{
 			Ops: new(container.Ops).
@@ -386,11 +377,9 @@ func TestSpFilesystemOp(t *testing.T) {
 			call("evalSymlinks", stub.ExpectArgs{"/var/lib/hakurei/base/org.debian/sys"}, nePrefix+"/var/lib/hakurei/base/org.debian/sys", nil),
 			call("evalSymlinks", stub.ExpectArgs{"/var/lib/hakurei/base/org.debian/usr"}, nePrefix+"/var/lib/hakurei/base/org.debian/usr", nil),
 			call("evalSymlinks", stub.ExpectArgs{"/var/lib/hakurei/base/org.debian/var"}, nePrefix+"/var/lib/hakurei/base/org.debian/var", nil),
-		}, newI(), nil, nil, func(state *outcomeStateParams) {
+		}, newI(), nil, nil, insertsOps(needsApplyState(func(state *outcomeStateParams) {
 			state.filesystem = config.Container.Filesystem[1:]
-			state.params.Ops = new(container.Ops)
-			state.as = hst.ApplyState{AutoEtcPrefix: wantAutoEtcPrefix, Ops: opsAdapter{state.params.Ops}}
-		}, []stub.Call{
+		})), []stub.Call{
 			// this op configures the container state and does not make calls during toContainer
 		}, &container.Params{
 			Ops: new(container.Ops).
