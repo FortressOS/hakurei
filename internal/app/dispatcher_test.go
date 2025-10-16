@@ -2,6 +2,7 @@ package app
 
 import (
 	"bytes"
+	"io"
 	"io/fs"
 	"log"
 	"maps"
@@ -34,6 +35,13 @@ const (
 	wantAutoEtcPrefix = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 	// wantInstancePrefix is the SharePath corresponding to checkExpectInstanceId.
 	wantInstancePrefix = container.Nonexistent + "/tmp/hakurei.0/" + wantAutoEtcPrefix
+
+	// wantRuntimePath is the XDG_RUNTIME_DIR value returned during testing.
+	wantRuntimePath = "/proc/nonexistent/xdg_runtime_dir"
+	// wantRunDirPath is the RunDirPath value resolved during testing.
+	wantRunDirPath = wantRuntimePath + "/hakurei"
+	// wantRuntimeSharePath is the runtimeSharePath value resolved during testing.
+	wantRuntimeSharePath = wantRunDirPath + "/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 )
 
 // checkExpectInstanceId is the [state.ID] value used by checkOpBehaviour to initialise outcomeState.
@@ -87,6 +95,19 @@ func sysUsesInstance(next extraCheckSysFunc) extraCheckSysFunc {
 	}
 }
 
+// sysUsesRuntime checks for use of the outcomeStateSys.runtime method.
+func sysUsesRuntime(next extraCheckSysFunc) extraCheckSysFunc {
+	return func(t *testing.T, state *outcomeStateSys) {
+		if want := m(wantRuntimeSharePath); !reflect.DeepEqual(state.runtimeSharePath, want) {
+			t.Errorf("outcomeStateSys: runtimeSharePath = %v, want %v", state.sharePath, want)
+		}
+
+		if next != nil {
+			next(t, state)
+		}
+	}
+}
+
 // paramsWantEnv checks outcomeStateParams.env for inserted entries on top of [hst.Config].
 func paramsWantEnv(config *hst.Config, wantEnv map[string]string, next extraCheckParamsFunc) extraCheckParamsFunc {
 	want := make(map[string]string, len(wantEnv)+len(config.Container.Env))
@@ -131,7 +152,7 @@ func checkOpBehaviour(t *testing.T, testCases []opBehaviourTestCase) {
 		call("mustHsuPath", stub.ExpectArgs{}, m(container.Nonexistent), nil),
 		call("cmdOutput", stub.ExpectArgs{container.Nonexistent, os.Stderr, []string{}, "/"}, []byte("0"), nil),
 		call("tempdir", stub.ExpectArgs{}, container.Nonexistent+"/tmp", nil),
-		call("lookupEnv", stub.ExpectArgs{"XDG_RUNTIME_DIR"}, container.Nonexistent+"/xdg_runtime_dir", nil),
+		call("lookupEnv", stub.ExpectArgs{"XDG_RUNTIME_DIR"}, wantRuntimePath, nil),
 		call("getuid", stub.ExpectArgs{}, 1000, nil),
 		call("getgid", stub.ExpectArgs{}, 100, nil),
 
@@ -257,6 +278,18 @@ func (k *kstub) lookupEnv(key string) (string, bool) {
 	}
 	return expect.Ret.(string), true
 }
+func (k *kstub) stat(name string) (os.FileInfo, error) {
+	k.Helper()
+	expect := k.Expects("stat")
+	return expect.Ret.(os.FileInfo), expect.Error(
+		stub.CheckArg(k.Stub, "name", name, 0))
+}
+func (k *kstub) open(name string) (osFile, error) {
+	k.Helper()
+	expect := k.Expects("open")
+	return expect.Ret.(osFile), expect.Error(
+		stub.CheckArg(k.Stub, "name", name, 0))
+}
 func (k *kstub) readdir(name string) ([]os.DirEntry, error) {
 	k.Helper()
 	expect := k.Expects("readdir")
@@ -339,6 +372,32 @@ func (k *kstub) Verbosef(format string, v ...any) {
 func (k *kstub) Suspend() bool { k.Helper(); return k.Expects("suspend").Ret.(bool) }
 func (k *kstub) Resume() bool  { k.Helper(); return k.Expects("resume").Ret.(bool) }
 func (k *kstub) BeforeExit()   { k.Helper(); k.Expects("beforeExit") }
+
+// stubOsFile partially implements osFile.
+type stubOsFile struct {
+	closeErr error
+
+	io.Reader
+	io.Writer
+}
+
+func (f *stubOsFile) Close() error               { return f.closeErr }
+func (f *stubOsFile) Name() string               { panic("unreachable") }
+func (f *stubOsFile) Stat() (fs.FileInfo, error) { panic("unreachable") }
+
+// stubFi partially implements [os.FileInfo]. Can be passed as nil to assert all methods unreachable.
+type stubFi struct {
+	size  int64
+	mode  os.FileMode
+	isDir bool
+}
+
+func (fi *stubFi) Name() string       { panic("unreachable") }
+func (fi *stubFi) ModTime() time.Time { panic("unreachable") }
+func (fi *stubFi) Sys() any           { panic("unreachable") }
+func (fi *stubFi) Size() int64        { return fi.size }
+func (fi *stubFi) Mode() os.FileMode  { return fi.mode }
+func (fi *stubFi) IsDir() bool        { return fi.isDir }
 
 // stubDir returns a slice of [os.DirEntry] with only their Name method implemented.
 func stubDir(names ...string) []os.DirEntry {

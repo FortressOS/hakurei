@@ -20,6 +20,7 @@ const pulseCookieSizeMax = 1 << 8
 func init() { gob.Register(new(spPulseOp)) }
 
 // spPulseOp exports the PulseAudio server to the container.
+// Runs after spRuntimeOp.
 type spPulseOp struct {
 	// PulseAudio cookie data, populated during toSystem if a cookie is present.
 	Cookie *[pulseCookieSizeMax]byte
@@ -36,14 +37,14 @@ func (s *spPulseOp) toSystem(state *outcomeStateSys) error {
 		if !errors.Is(err, fs.ErrNotExist) {
 			return &hst.AppError{Step: fmt.Sprintf("access PulseAudio directory %q", pulseRuntimeDir), Err: err}
 		}
-		return newWithMessage(fmt.Sprintf("PulseAudio directory %q not found", pulseRuntimeDir))
+		return newWithMessageError(fmt.Sprintf("PulseAudio directory %q not found", pulseRuntimeDir), err)
 	}
 
 	if fi, err := state.k.stat(pulseSocket.String()); err != nil {
 		if !errors.Is(err, fs.ErrNotExist) {
 			return &hst.AppError{Step: fmt.Sprintf("access PulseAudio socket %q", pulseSocket), Err: err}
 		}
-		return newWithMessage(fmt.Sprintf("PulseAudio directory %q found but socket does not exist", pulseRuntimeDir))
+		return newWithMessageError(fmt.Sprintf("PulseAudio directory %q found but socket does not exist", pulseRuntimeDir), err)
 	} else {
 		if m := fi.Mode(); m&0o006 != 0o006 {
 			return newWithMessage(fmt.Sprintf("unexpected permissions on %q: %s", pulseSocket, m))
