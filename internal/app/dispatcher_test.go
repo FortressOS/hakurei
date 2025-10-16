@@ -124,24 +124,39 @@ func paramsWantEnv(config *hst.Config, wantEnv map[string]string, next extraChec
 	}
 }
 
+// opBehaviourTestCase checks outcomeOp behaviour against outcomeStateSys and outcomeStateParams.
 type opBehaviourTestCase struct {
-	name      string
-	newOp     func(isShim, clearUnexported bool) outcomeOp
+	name string
+	// newOp returns a new instance of outcomeOp under testing that is safe to clobber.
+	newOp func(isShim, clearUnexported bool) outcomeOp
+	// newConfig returns a new instance of [hst.Config] that is checked not to be clobbered by outcomeOp.
 	newConfig func() *hst.Config
 
-	pStateSys     pStateSysFunc
-	toSystem      []stub.Call
-	wantSys       *system.I
+	// pStateSys is called before outcomeOp.toSystem to prepare outcomeStateSys.
+	pStateSys pStateSysFunc
+	// toSystem are expected syscallDispatcher calls during outcomeOp.toSystem.
+	toSystem []stub.Call
+	// wantSys is the expected [system.I] state after outcomeOp.toSystem.
+	wantSys *system.I
+	// extraCheckSys is called after outcomeOp.toSystem to check the state of outcomeStateSys.
 	extraCheckSys extraCheckSysFunc
+	// wantErrSystem is the expected error value returned by outcomeOp.toSystem.
+	// Further testing is skipped if not nil.
 	wantErrSystem error
 
-	pStateContainer  pStateContainerFunc
-	toContainer      []stub.Call
-	wantParams       *container.Params
+	// pStateContainer is called before outcomeOp.toContainer to prepare outcomeStateParams.
+	pStateContainer pStateContainerFunc
+	// toContainer are expected syscallDispatcher calls during outcomeOp.toContainer.
+	toContainer []stub.Call
+	// wantParams is the expected [container.Params] after outcomeOp.toContainer.
+	wantParams *container.Params
+	// extraCheckParams is called after outcomeOp.toContainer to check the state of outcomeStateParams.
 	extraCheckParams extraCheckParamsFunc
+	// wantErrContainer is the expected error value returned by outcomeOp.toContainer.
 	wantErrContainer error
 }
 
+// checkOpBehaviour runs a slice of opBehaviourTestCase.
 func checkOpBehaviour(t *testing.T, testCases []opBehaviourTestCase) {
 	t.Helper()
 
@@ -258,6 +273,40 @@ func checkOpBehaviour(t *testing.T, testCases []opBehaviourTestCase) {
 
 func newI() *system.I { return system.New(panicMsgContext{}, panicMsgContext{}, checkExpectUid) }
 
+// simpleTestCase is a simple freeform test case utilising kstub.
+type simpleTestCase struct {
+	name string
+	f    func(k *kstub) error
+	// want are expected syscallDispatcher calls during f.
+	want stub.Expect
+	// wantErr is the expected error value returned by f.
+	wantErr error
+}
+
+// checkSimple runs a slice of simpleTestCase.
+func checkSimple(t *testing.T, fname string, testCases []simpleTestCase) {
+	t.Helper()
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Helper()
+			t.Parallel()
+
+			defer stub.HandleExit(t)
+			k := &kstub{panicDispatcher{}, stub.New(t, func(s *stub.Stub[syscallDispatcher]) syscallDispatcher { return &kstub{panicDispatcher{}, s} }, tc.want)}
+			if err := tc.f(k); !reflect.DeepEqual(err, tc.wantErr) {
+				t.Errorf("%s: error = %#v, want %#v", fname, err, tc.wantErr)
+			}
+			k.VisitIncomplete(func(s *stub.Stub[syscallDispatcher]) {
+				t.Helper()
+
+				t.Errorf("%s: %d calls, want %d", fname, s.Pos(), s.Len())
+			})
+		})
+	}
+}
+
+// kstub partially implements syscallDispatcher via [stub.Stub].
 type kstub struct {
 	panicDispatcher
 	*stub.Stub[syscallDispatcher]
@@ -415,6 +464,11 @@ func (e nameDentry) Name() string             { return string(e) }
 func (nameDentry) IsDir() bool                { panic("unreachable") }
 func (nameDentry) Type() fs.FileMode          { panic("unreachable") }
 func (nameDentry) Info() (fs.FileInfo, error) { panic("unreachable") }
+
+// errorReader implements [io.Reader] that unconditionally returns -1, val.
+type errorReader struct{ val error }
+
+func (r errorReader) Read([]byte) (int, error) { return -1, r.val }
 
 // panicMsgContext implements [message.Msg] and [context.Context] with methods wrapping panic.
 // This should be assigned to test cases to be checked against.

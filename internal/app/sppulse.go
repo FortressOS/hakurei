@@ -24,6 +24,8 @@ func init() { gob.Register(new(spPulseOp)) }
 type spPulseOp struct {
 	// PulseAudio cookie data, populated during toSystem if a cookie is present.
 	Cookie *[pulseCookieSizeMax]byte
+	// PulseAudio cookie size, populated during toSystem if a cookie is present.
+	CookieSize int
 }
 
 func (s *spPulseOp) toSystem(state *outcomeStateSys) error {
@@ -60,7 +62,7 @@ func (s *spPulseOp) toSystem(state *outcomeStateSys) error {
 		return err
 	} else if a != nil {
 		s.Cookie = new([pulseCookieSizeMax]byte)
-		if err = loadFile(state.msg, state.k, "PulseAudio cookie", a.String(), s.Cookie[:]); err != nil {
+		if s.CookieSize, err = loadFile(state.msg, state.k, "PulseAudio cookie", a.String(), s.Cookie[:]); err != nil {
 			return err
 		}
 	} else {
@@ -80,8 +82,12 @@ func (s *spPulseOp) toContainer(state *outcomeStateParams) error {
 
 	if s.Cookie != nil {
 		innerDst := hst.AbsPrivateTmp.Append("/pulse-cookie")
+
+		if s.CookieSize < 0 || s.CookieSize > pulseCookieSizeMax {
+			return newWithMessage("unexpected PulseAudio cookie size")
+		}
 		state.env["PULSE_COOKIE"] = innerDst.String()
-		state.params.Place(innerDst, s.Cookie[:])
+		state.params.Place(innerDst, s.Cookie[:s.CookieSize])
 	}
 
 	return nil
@@ -161,44 +167,44 @@ func discoverPulseCookie(k syscallDispatcher) (*check.Absolute, error) {
 func loadFile(
 	msg message.Msg, k syscallDispatcher,
 	description, pathname string, buf []byte,
-) error {
+) (int, error) {
 	n := len(buf)
 	if n == 0 {
-		return errors.New("invalid buffer")
+		return -1, errors.New("invalid buffer")
 	}
-	msg.Verbosef("loading up to %d bytes from %q", n, pathname)
 
 	if fi, err := k.stat(pathname); err != nil {
-		return &hst.AppError{Step: "access " + description, Err: err}
+		return -1, &hst.AppError{Step: "access " + description, Err: err}
 	} else {
 		if fi.IsDir() {
-			return &hst.AppError{Step: "read " + description,
+			return -1, &hst.AppError{Step: "read " + description,
 				Err: &os.PathError{Op: "stat", Path: pathname, Err: syscall.EISDIR}}
 		}
 		if s := fi.Size(); s > int64(n) {
-			return newWithMessageError(
-				description+" at "+strconv.Quote(pathname)+" exceeds maximum expected size",
+			return -1, newWithMessageError(
+				description+" at "+strconv.Quote(pathname)+" exceeds expected size",
 				&os.PathError{Op: "stat", Path: pathname, Err: syscall.ENOMEM},
 			)
 		} else if s < int64(n) {
-			msg.Verbosef("%s at %q is %d bytes longer than expected", description, pathname, int64(n)-s)
+			msg.Verbosef("%s at %q is %d bytes shorter than expected", description, pathname, int64(n)-s)
+		} else {
+			msg.Verbosef("loading %d bytes from %q", n, pathname)
 		}
 	}
 
 	if f, err := k.open(pathname); err != nil {
-		return &hst.AppError{Step: "open " + description, Err: err}
+		return -1, &hst.AppError{Step: "open " + description, Err: err}
 	} else {
 		if n, err = f.Read(buf); err != nil {
 			if !errors.Is(err, io.EOF) {
 				_ = f.Close()
-				return &hst.AppError{Step: "read " + description, Err: err}
+				return n, &hst.AppError{Step: "read " + description, Err: err}
 			}
-			msg.Verbosef("copied %d bytes from %q", n, pathname)
-		} // nil error indicates a partial read, which is handled after stat
+		}
 
 		if err = f.Close(); err != nil {
-			return &hst.AppError{Step: "close " + description, Err: err}
+			return n, &hst.AppError{Step: "close " + description, Err: err}
 		}
-		return nil
+		return n, nil
 	}
 }
