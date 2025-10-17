@@ -244,6 +244,40 @@ func TestSpPulseOp(t *testing.T) {
 func TestLoadFile(t *testing.T) {
 	t.Parallel()
 
+	fAfterWriteExact := func(k *kstub) error {
+		buf := make([]byte, 1<<8)
+		n, err := loadFile(k, k,
+			"simulated PulseAudio cookie",
+			"/home/ophestra/xdg/config/pulse/cookie",
+			buf)
+		k.Verbose(buf[:n])
+		return err
+	}
+
+	fAfterWrite := func(k *kstub) error {
+		buf := make([]byte, 1<<8+0xfd)
+		n, err := loadFile(k, k,
+			"simulated PulseAudio cookie",
+			"/home/ophestra/xdg/config/pulse/cookie",
+			buf)
+		k.Verbose(buf[:n])
+		return err
+	}
+
+	fBeforeWrite := func(k *kstub) error {
+		buf := make([]byte, 1<<8+0xfd)
+		n, err := loadFile(k, k,
+			"simulated PulseAudio cookie",
+			"/home/ophestra/xdg/config/pulse/cookie",
+			buf)
+		k.Verbose(n)
+
+		if !bytes.Equal(buf, make([]byte, len(buf))) {
+			t.Errorf("loadFile: buf = %#v", buf)
+		}
+		return err
+	}
+
 	sampleCookie := bytes.Repeat([]byte{0xfc}, pulseCookieSizeMax)
 	checkSimple(t, "loadFile", []simpleTestCase{
 		{"buf", func(k *kstub) error {
@@ -257,14 +291,7 @@ func TestLoadFile(t *testing.T) {
 			call("verbose", stub.ExpectArgs{[]any{-1}}, nil, nil),
 		}}, errors.New("invalid buffer")},
 
-		{"stat", func(k *kstub) error {
-			n, err := loadFile(k, k,
-				"simulated PulseAudio cookie",
-				"/home/ophestra/xdg/config/pulse/cookie",
-				make([]byte, 1<<8+0xfd))
-			k.Verbose(n)
-			return err
-		}, stub.Expect{Calls: []stub.Call{
+		{"stat", fBeforeWrite, stub.Expect{Calls: []stub.Call{
 			call("stat", stub.ExpectArgs{"/home/ophestra/xdg/config/pulse/cookie"}, (*stubFi)(nil), stub.UniqueError(3)),
 			call("verbose", stub.ExpectArgs{[]any{-1}}, nil, nil),
 		}}, &hst.AppError{
@@ -272,14 +299,7 @@ func TestLoadFile(t *testing.T) {
 			Err:  stub.UniqueError(3),
 		}},
 
-		{"dir", func(k *kstub) error {
-			n, err := loadFile(k, k,
-				"simulated PulseAudio cookie",
-				"/home/ophestra/xdg/config/pulse/cookie",
-				make([]byte, 1<<8+0xfd))
-			k.Verbose(n)
-			return err
-		}, stub.Expect{Calls: []stub.Call{
+		{"dir", fBeforeWrite, stub.Expect{Calls: []stub.Call{
 			call("stat", stub.ExpectArgs{"/home/ophestra/xdg/config/pulse/cookie"}, &stubFi{isDir: true}, nil),
 			call("verbose", stub.ExpectArgs{[]any{-1}}, nil, nil),
 		}}, &hst.AppError{
@@ -287,14 +307,7 @@ func TestLoadFile(t *testing.T) {
 			Err:  &os.PathError{Op: "stat", Path: "/home/ophestra/xdg/config/pulse/cookie", Err: syscall.EISDIR},
 		}},
 
-		{"oob", func(k *kstub) error {
-			n, err := loadFile(k, k,
-				"simulated PulseAudio cookie",
-				"/home/ophestra/xdg/config/pulse/cookie",
-				make([]byte, 1<<8+0xfd))
-			k.Verbose(n)
-			return err
-		}, stub.Expect{Calls: []stub.Call{
+		{"oob", fBeforeWrite, stub.Expect{Calls: []stub.Call{
 			call("stat", stub.ExpectArgs{"/home/ophestra/xdg/config/pulse/cookie"}, &stubFi{size: 1<<8 + 0xff}, nil),
 			call("verbose", stub.ExpectArgs{[]any{-1}}, nil, nil),
 		}}, &hst.AppError{
@@ -303,58 +316,28 @@ func TestLoadFile(t *testing.T) {
 			Msg:  `simulated PulseAudio cookie at "/home/ophestra/xdg/config/pulse/cookie" exceeds expected size`,
 		}},
 
-		{"open", func(k *kstub) error {
-			n, err := loadFile(k, k,
-				"simulated PulseAudio cookie",
-				"/home/ophestra/xdg/config/pulse/cookie",
-				make([]byte, 1<<8+0xfd))
-			k.Verbose(n)
-			return err
-		}, stub.Expect{Calls: []stub.Call{
+		{"open", fBeforeWrite, stub.Expect{Calls: []stub.Call{
 			call("stat", stub.ExpectArgs{"/home/ophestra/xdg/config/pulse/cookie"}, &stubFi{size: 1 << 8}, nil),
 			call("verbosef", stub.ExpectArgs{"%s at %q is %d bytes shorter than expected", []any{"simulated PulseAudio cookie", "/home/ophestra/xdg/config/pulse/cookie", int64(0xfd)}}, nil, nil),
 			call("open", stub.ExpectArgs{"/home/ophestra/xdg/config/pulse/cookie"}, (*stubOsFile)(nil), stub.UniqueError(2)),
 			call("verbose", stub.ExpectArgs{[]any{-1}}, nil, nil),
 		}}, &hst.AppError{Step: "open simulated PulseAudio cookie", Err: stub.UniqueError(2)}},
 
-		{"read", func(k *kstub) error {
-			n, err := loadFile(k, k,
-				"simulated PulseAudio cookie",
-				"/home/ophestra/xdg/config/pulse/cookie",
-				make([]byte, 1<<8+0xfd))
-			k.Verbose(n)
-			return err
-		}, stub.Expect{Calls: []stub.Call{
+		{"read", fBeforeWrite, stub.Expect{Calls: []stub.Call{
 			call("stat", stub.ExpectArgs{"/home/ophestra/xdg/config/pulse/cookie"}, &stubFi{size: 1 << 8}, nil),
 			call("verbosef", stub.ExpectArgs{"%s at %q is %d bytes shorter than expected", []any{"simulated PulseAudio cookie", "/home/ophestra/xdg/config/pulse/cookie", int64(0xfd)}}, nil, nil),
 			call("open", stub.ExpectArgs{"/home/ophestra/xdg/config/pulse/cookie"}, &stubOsFile{Reader: errorReader{stub.UniqueError(1)}}, nil),
 			call("verbose", stub.ExpectArgs{[]any{-1}}, nil, nil),
 		}}, &hst.AppError{Step: "read simulated PulseAudio cookie", Err: stub.UniqueError(1)}},
 
-		{"short close", func(k *kstub) error {
-			buf := make([]byte, 1<<8+0xfd)
-			n, err := loadFile(k, k,
-				"simulated PulseAudio cookie",
-				"/home/ophestra/xdg/config/pulse/cookie",
-				buf)
-			k.Verbose(buf[:n])
-			return err
-		}, stub.Expect{Calls: []stub.Call{
+		{"short close", fAfterWrite, stub.Expect{Calls: []stub.Call{
 			call("stat", stub.ExpectArgs{"/home/ophestra/xdg/config/pulse/cookie"}, &stubFi{size: 1 << 8}, nil),
 			call("verbosef", stub.ExpectArgs{"%s at %q is %d bytes shorter than expected", []any{"simulated PulseAudio cookie", "/home/ophestra/xdg/config/pulse/cookie", int64(0xfd)}}, nil, nil),
 			call("open", stub.ExpectArgs{"/home/ophestra/xdg/config/pulse/cookie"}, &stubOsFile{closeErr: stub.UniqueError(0), Reader: bytes.NewReader(sampleCookie)}, nil),
 			call("verbose", stub.ExpectArgs{[]any{sampleCookie}}, nil, nil),
 		}}, &hst.AppError{Step: "close simulated PulseAudio cookie", Err: stub.UniqueError(0)}},
 
-		{"success", func(k *kstub) error {
-			buf := make([]byte, 1<<8)
-			n, err := loadFile(k, k,
-				"simulated PulseAudio cookie",
-				"/home/ophestra/xdg/config/pulse/cookie",
-				buf)
-			k.Verbose(buf[:n])
-			return err
-		}, stub.Expect{Calls: []stub.Call{
+		{"success", fAfterWriteExact, stub.Expect{Calls: []stub.Call{
 			call("stat", stub.ExpectArgs{"/home/ophestra/xdg/config/pulse/cookie"}, &stubFi{size: 1 << 8}, nil),
 			call("verbosef", stub.ExpectArgs{"loading %d bytes from %q", []any{1 << 8, "/home/ophestra/xdg/config/pulse/cookie"}}, nil, nil),
 			call("open", stub.ExpectArgs{"/home/ophestra/xdg/config/pulse/cookie"}, &stubOsFile{Reader: bytes.NewReader(sampleCookie)}, nil),
