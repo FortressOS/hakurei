@@ -241,6 +241,119 @@ func TestSpPulseOp(t *testing.T) {
 	})
 }
 
+func TestDiscoverPulseCookie(t *testing.T) {
+	t.Parallel()
+
+	fCheckPathname := func(k *kstub) error {
+		a, err := discoverPulseCookie(k)
+		k.Verbose(a)
+		return err
+	}
+
+	checkSimple(t, "discoverPulseCookie", []simpleTestCase{
+		{"override notAbs", fCheckPathname, stub.Expect{Calls: []stub.Call{
+			call("lookupEnv", stub.ExpectArgs{"PULSE_COOKIE"}, "proc/nonexistent/pulse-cookie", nil),
+			call("verbose", stub.ExpectArgs{[]any{(*check.Absolute)(nil)}}, nil, nil),
+		}}, &hst.AppError{
+			Step: "locate PulseAudio cookie",
+			Err:  &check.AbsoluteError{Pathname: "proc/nonexistent/pulse-cookie"},
+		}},
+
+		{"success override", fCheckPathname, stub.Expect{Calls: []stub.Call{
+			call("lookupEnv", stub.ExpectArgs{"PULSE_COOKIE"}, "/proc/nonexistent/pulse-cookie", nil),
+			call("verbose", stub.ExpectArgs{[]any{m("/proc/nonexistent/pulse-cookie")}}, nil, nil),
+		}}, nil},
+
+		{"home notAbs", fCheckPathname, stub.Expect{Calls: []stub.Call{
+			call("lookupEnv", stub.ExpectArgs{"PULSE_COOKIE"}, nil, nil),
+			call("lookupEnv", stub.ExpectArgs{"HOME"}, "proc/nonexistent/home", nil),
+			call("verbose", stub.ExpectArgs{[]any{(*check.Absolute)(nil)}}, nil, nil),
+		}}, &hst.AppError{
+			Step: "locate PulseAudio cookie",
+			Err:  &check.AbsoluteError{Pathname: "proc/nonexistent/home"},
+		}},
+
+		{"home stat", fCheckPathname, stub.Expect{Calls: []stub.Call{
+			call("lookupEnv", stub.ExpectArgs{"PULSE_COOKIE"}, nil, nil),
+			call("lookupEnv", stub.ExpectArgs{"HOME"}, "/proc/nonexistent/home", nil),
+			call("stat", stub.ExpectArgs{"/proc/nonexistent/home/.pulse-cookie"}, (*stubFi)(nil), stub.UniqueError(1)),
+			call("verbose", stub.ExpectArgs{[]any{(*check.Absolute)(nil)}}, nil, nil),
+		}}, &hst.AppError{
+			Step: "access PulseAudio cookie",
+			Err:  stub.UniqueError(1),
+		}},
+
+		{"home nonexistent", fCheckPathname, stub.Expect{Calls: []stub.Call{
+			call("lookupEnv", stub.ExpectArgs{"PULSE_COOKIE"}, nil, nil),
+			call("lookupEnv", stub.ExpectArgs{"HOME"}, "/proc/nonexistent/home", nil),
+			call("stat", stub.ExpectArgs{"/proc/nonexistent/home/.pulse-cookie"}, (*stubFi)(nil), os.ErrNotExist),
+			call("lookupEnv", stub.ExpectArgs{"XDG_CONFIG_HOME"}, nil, nil),
+			call("verbose", stub.ExpectArgs{[]any{(*check.Absolute)(nil)}}, nil, nil),
+		}}, nil},
+
+		{"success home", fCheckPathname, stub.Expect{Calls: []stub.Call{
+			call("lookupEnv", stub.ExpectArgs{"PULSE_COOKIE"}, nil, nil),
+			call("lookupEnv", stub.ExpectArgs{"HOME"}, "/proc/nonexistent/home", nil),
+			call("stat", stub.ExpectArgs{"/proc/nonexistent/home/.pulse-cookie"}, &stubFi{}, nil),
+			call("verbose", stub.ExpectArgs{[]any{m("/proc/nonexistent/home/.pulse-cookie")}}, nil, nil),
+		}}, nil},
+
+		{"xdg notAbs", fCheckPathname, stub.Expect{Calls: []stub.Call{
+			call("lookupEnv", stub.ExpectArgs{"PULSE_COOKIE"}, nil, nil),
+			call("lookupEnv", stub.ExpectArgs{"HOME"}, nil, nil),
+			call("lookupEnv", stub.ExpectArgs{"XDG_CONFIG_HOME"}, "proc/nonexistent/xdg", nil),
+			call("verbose", stub.ExpectArgs{[]any{(*check.Absolute)(nil)}}, nil, nil),
+		}}, &hst.AppError{
+			Step: "locate PulseAudio cookie",
+			Err:  &check.AbsoluteError{Pathname: "proc/nonexistent/xdg"},
+		}},
+
+		{"xdg stat", fCheckPathname, stub.Expect{Calls: []stub.Call{
+			call("lookupEnv", stub.ExpectArgs{"PULSE_COOKIE"}, nil, nil),
+			call("lookupEnv", stub.ExpectArgs{"HOME"}, nil, nil),
+			call("lookupEnv", stub.ExpectArgs{"XDG_CONFIG_HOME"}, "/proc/nonexistent/xdg", nil),
+			call("stat", stub.ExpectArgs{"/proc/nonexistent/xdg/pulse/cookie"}, (*stubFi)(nil), stub.UniqueError(0)),
+			call("verbose", stub.ExpectArgs{[]any{(*check.Absolute)(nil)}}, nil, nil),
+		}}, &hst.AppError{
+			Step: "access PulseAudio cookie",
+			Err:  stub.UniqueError(0),
+		}},
+
+		{"xdg dir", fCheckPathname, stub.Expect{Calls: []stub.Call{
+			call("lookupEnv", stub.ExpectArgs{"PULSE_COOKIE"}, nil, nil),
+			call("lookupEnv", stub.ExpectArgs{"HOME"}, nil, nil),
+			call("lookupEnv", stub.ExpectArgs{"XDG_CONFIG_HOME"}, "/proc/nonexistent/xdg", nil),
+			call("stat", stub.ExpectArgs{"/proc/nonexistent/xdg/pulse/cookie"}, &stubFi{isDir: true}, nil),
+			call("verbose", stub.ExpectArgs{[]any{(*check.Absolute)(nil)}}, nil, nil),
+		}}, nil},
+
+		{"success home dir xdg nonexistent", fCheckPathname, stub.Expect{Calls: []stub.Call{
+			call("lookupEnv", stub.ExpectArgs{"PULSE_COOKIE"}, nil, nil),
+			call("lookupEnv", stub.ExpectArgs{"HOME"}, "/proc/nonexistent/home", nil),
+			call("stat", stub.ExpectArgs{"/proc/nonexistent/home/.pulse-cookie"}, &stubFi{isDir: true}, nil),
+			call("lookupEnv", stub.ExpectArgs{"XDG_CONFIG_HOME"}, "/proc/nonexistent/xdg", nil),
+			call("stat", stub.ExpectArgs{"/proc/nonexistent/xdg/pulse/cookie"}, (*stubFi)(nil), os.ErrNotExist),
+			call("verbose", stub.ExpectArgs{[]any{(*check.Absolute)(nil)}}, nil, nil),
+		}}, nil},
+
+		{"success home nonexistent xdg", fCheckPathname, stub.Expect{Calls: []stub.Call{
+			call("lookupEnv", stub.ExpectArgs{"PULSE_COOKIE"}, nil, nil),
+			call("lookupEnv", stub.ExpectArgs{"HOME"}, "/proc/nonexistent/home", nil),
+			call("stat", stub.ExpectArgs{"/proc/nonexistent/home/.pulse-cookie"}, (*stubFi)(nil), os.ErrNotExist),
+			call("lookupEnv", stub.ExpectArgs{"XDG_CONFIG_HOME"}, "/proc/nonexistent/xdg", nil),
+			call("stat", stub.ExpectArgs{"/proc/nonexistent/xdg/pulse/cookie"}, &stubFi{}, nil),
+			call("verbose", stub.ExpectArgs{[]any{m("/proc/nonexistent/xdg/pulse/cookie")}}, nil, nil),
+		}}, nil},
+
+		{"success empty environ", fCheckPathname, stub.Expect{Calls: []stub.Call{
+			call("lookupEnv", stub.ExpectArgs{"PULSE_COOKIE"}, nil, nil),
+			call("lookupEnv", stub.ExpectArgs{"HOME"}, nil, nil),
+			call("lookupEnv", stub.ExpectArgs{"XDG_CONFIG_HOME"}, nil, nil),
+			call("verbose", stub.ExpectArgs{[]any{(*check.Absolute)(nil)}}, nil, nil),
+		}}, nil},
+	})
+}
+
 func TestLoadFile(t *testing.T) {
 	t.Parallel()
 
