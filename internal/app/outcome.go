@@ -275,7 +275,7 @@ func (state *outcomeStateSys) toSystem() error {
 		// TODO(ophestra): move this late for #8 and #9
 		&spFilesystemOp{},
 
-		spRuntimeOp{},
+		&spRuntimeOp{},
 		spTmpdirOp{},
 		spAccountOp{},
 

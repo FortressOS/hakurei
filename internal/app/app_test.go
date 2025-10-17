@@ -268,7 +268,7 @@ func TestApp(t *testing.T) {
 					"WAYLAND_DISPLAY=wayland-0",
 					"XDG_RUNTIME_DIR=/run/user/65534",
 					"XDG_SESSION_CLASS=user",
-					"XDG_SESSION_TYPE=tty",
+					"XDG_SESSION_TYPE=wayland",
 				},
 				Ops: new(container.Ops).
 					Root(m("/"), bits.BindWritable).
@@ -420,7 +420,7 @@ func TestApp(t *testing.T) {
 					"WAYLAND_DISPLAY=wayland-0",
 					"XDG_RUNTIME_DIR=/run/user/1971",
 					"XDG_SESSION_CLASS=user",
-					"XDG_SESSION_TYPE=tty",
+					"XDG_SESSION_TYPE=wayland",
 				},
 				Ops: new(container.Ops).
 					Proc(m("/proc/")).
