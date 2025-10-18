@@ -21,7 +21,7 @@ func printShowSystem(output io.Writer, short, flagJSON bool) {
 	t := newPrinter(output)
 	defer t.MustFlush()
 
-	info := &hst.Info{User: new(app.Hsu).MustID()}
+	info := &hst.Info{User: new(app.Hsu).MustID(nil)}
 	app.CopyPaths().Copy(&info.Paths, info.User)
 
 	if flagJSON {

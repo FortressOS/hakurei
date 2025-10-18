@@ -36,7 +36,7 @@ type shimParams struct {
 	// Limits are enforced on the priv side.
 	WaitDelay time.Duration
 
-	// Verbosity pass through from [container.Msg].
+	// Verbosity pass through from [message.Msg].
 	Verbose bool
 
 	// Outcome setup ops, contains setup state. Populated by outcome.finalise.

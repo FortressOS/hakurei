@@ -35,7 +35,8 @@ func (h *Hsu) ensureDispatcher() {
 	})
 }
 
-// ID returns the current user hsurc identifier. ErrHsuAccess is returned if the current user is not in hsurc.
+// ID returns the current user hsurc identifier.
+// [ErrHsuAccess] is returned if the current user is not in hsurc.
 func (h *Hsu) ID() (int, error) {
 	h.ensureDispatcher()
 	h.idOnce.Do(func() {
@@ -71,10 +72,7 @@ func (h *Hsu) ID() (int, error) {
 }
 
 // MustID calls [Hsu.ID] and terminates on error.
-func (h *Hsu) MustID() int { return h.MustIDMsg(nil) }
-
-// MustIDMsg implements MustID with a custom [container.Msg].
-func (h *Hsu) MustIDMsg(msg message.Msg) int {
+func (h *Hsu) MustID(msg message.Msg) int {
 	id, err := h.ID()
 	if err == nil {
 		return id

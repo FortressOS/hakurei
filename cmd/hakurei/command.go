@@ -94,7 +94,7 @@ func buildCommand(ctx context.Context, msg message.Msg, early *earlyHardeningErr
 				passwd     *user.User
 				passwdOnce sync.Once
 				passwdFunc = func() {
-					us := strconv.Itoa(app.HsuUid(new(app.Hsu).MustIDMsg(msg), flagIdentity))
+					us := strconv.Itoa(app.HsuUid(new(app.Hsu).MustID(msg), flagIdentity))
 					if u, err := user.LookupId(us); err != nil {
 						msg.Verbosef("cannot look up uid %s", us)
 						passwd = &user.User{
@@ -302,7 +302,7 @@ func buildCommand(ctx context.Context, msg message.Msg, early *earlyHardeningErr
 		var flagShort bool
 		c.NewCommand("ps", "List active instances", func(args []string) error {
 			var sc hst.Paths
-			app.CopyPaths().Copy(&sc, new(app.Hsu).MustID())
+			app.CopyPaths().Copy(&sc, new(app.Hsu).MustID(nil))
 			printPs(os.Stdout, time.Now().UTC(), state.NewMulti(msg, sc.RunDirPath.String()), flagShort, flagJSON)
 			return errSuccess
 		}).Flag(&flagShort, "short", command.BoolFlag(false), "Print instance id")

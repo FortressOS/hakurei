@@ -82,7 +82,7 @@ func newOutcomeState(k syscallDispatcher, msg message.Msg, id *state.ID, config 
 		Shim:      &shimParams{PrivPID: k.getpid(), Verbose: msg.IsVerbose()},
 		ID:        id,
 		Identity:  config.Identity,
-		UserID:    hsu.MustIDMsg(msg),
+		UserID:    hsu.MustID(msg),
 		EnvPaths:  copyPaths(k),
 		Container: config.Container,
 	}
