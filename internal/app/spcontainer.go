@@ -6,6 +6,7 @@ import (
 	"io/fs"
 	"os"
 	"path"
+	"slices"
 	"strconv"
 	"syscall"
 
@@ -16,6 +17,8 @@ import (
 	"hakurei.app/container/seccomp"
 	"hakurei.app/hst"
 	"hakurei.app/message"
+	"hakurei.app/system"
+	"hakurei.app/system/acl"
 	"hakurei.app/system/dbus"
 )
 
@@ -120,6 +123,7 @@ func (s *spParamsOp) toContainer(state *outcomeStateParams) error {
 func init() { gob.Register(new(spFilesystemOp)) }
 
 // spFilesystemOp applies configured filesystems to [container.Params], excluding the optional root filesystem.
+// This outcomeOp is hardcoded to always run last.
 type spFilesystemOp struct {
 	// Matched paths to cover. Stored during toSystem.
 	HidePaths []*check.Absolute
@@ -259,6 +263,8 @@ func (s *spFilesystemOp) toSystem(state *outcomeStateSys) error {
 		}
 	}
 
+	// append ExtraPerms last
+	flattenExtraPerms(state.sys, state.extraPerms)
 	return nil
 }
 
@@ -278,6 +284,15 @@ func (s *spFilesystemOp) toContainer(state *outcomeStateParams) error {
 	if state.Container.Flags&hst.FDevice == 0 {
 		state.params.Remount(fhs.AbsDev, syscall.MS_RDONLY)
 	}
+	state.params.Remount(fhs.AbsRoot, syscall.MS_RDONLY)
+
+	state.params.Env = make([]string, 0, len(state.env))
+	for key, value := range state.env {
+		// key validated early via hst
+		state.params.Env = append(state.params.Env, key+"="+value)
+	}
+	slices.Sort(state.params.Env)
+
 	return nil
 }
 
@@ -311,6 +326,32 @@ func evalSymlinks(msg message.Msg, k syscallDispatcher, v *string) error {
 		*v = p
 	}
 	return nil
+}
+
+// flattenExtraPerms expands a slice of [hst.ExtraPermConfig] into [system.I].
+func flattenExtraPerms(sys *system.I, extraPerms []hst.ExtraPermConfig) {
+	for i := range extraPerms {
+		p := &extraPerms[i]
+		if p.Path == nil {
+			continue
+		}
+
+		if p.Ensure {
+			sys.Ensure(p.Path, 0700)
+		}
+
+		perms := make(acl.Perms, 0, 3)
+		if p.Read {
+			perms = append(perms, acl.Read)
+		}
+		if p.Write {
+			perms = append(perms, acl.Write)
+		}
+		if p.Execute {
+			perms = append(perms, acl.Execute)
+		}
+		sys.UpdatePermType(system.User, p.Path, perms...)
+	}
 }
 
 // opsAdapter implements [hst.Ops] on [container.Ops].

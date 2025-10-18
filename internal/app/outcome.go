@@ -159,7 +159,7 @@ type outcomeStateSys struct {
 
 	// Copied from [hst.Config]. Safe for read by spWaylandOp.toSystem only.
 	directWayland bool
-	// Copied header from [hst.Config]. Safe for read by spFinalOp.toSystem only.
+	// Copied header from [hst.Config]. Safe for read by spFilesystemOp.toSystem only.
 	extraPerms []hst.ExtraPermConfig
 	// Copied address from [hst.Config]. Safe for read by spDBusOp.toSystem only.
 	sessionBus, systemBus *hst.BusConfig
@@ -282,8 +282,8 @@ func (state *outcomeStateSys) toSystem() error {
 		&spPulseOp{},
 		&spDBusOp{},
 
+		// must run last
 		&spFilesystemOp{},
-		spFinalOp{},
 	}
 
 	state.Shim.Ops = make([]outcomeOp, 0, len(ops))

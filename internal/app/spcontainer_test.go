@@ -14,6 +14,8 @@ import (
 	"hakurei.app/container/seccomp"
 	"hakurei.app/container/stub"
 	"hakurei.app/hst"
+	"hakurei.app/system"
+	"hakurei.app/system/acl"
 	"hakurei.app/system/dbus"
 )
 
@@ -306,7 +308,12 @@ func TestSpFilesystemOp(t *testing.T) {
 			call("evalSymlinks", stub.ExpectArgs{"/var/lib/hakurei/base/org.nixos/.ro-store"}, nePrefix+"/var/lib/hakurei/base/org.nixos/.ro-store", nil),
 			call("evalSymlinks", stub.ExpectArgs{"/var/lib/hakurei/base/org.nixos/org.chromium.Chromium"}, nePrefix+"/var/lib/hakurei/base/org.nixos/org.chromium.Chromium", nil),
 			call("verbosef", stub.ExpectArgs{"hiding path %q from %q", []any{"/proc/nonexistent/eval/etc/dbus", "/etc/"}}, nil, nil),
-		}, newI(), nil, nil, insertsOps(needsApplyState(func(state *outcomeStateParams) {
+		}, newI().
+			Ensure(m("/var/lib/hakurei/u0"), 0700).
+			UpdatePermType(system.User, m("/var/lib/hakurei/u0"),
+				acl.Execute).
+			UpdatePermType(system.User, m("/var/lib/hakurei/u0/org.chromium.Chromium"),
+				acl.Read, acl.Write, acl.Execute), nil, nil, insertsOps(needsApplyState(func(state *outcomeStateParams) {
 			state.filesystem = append(configSmall.Container.Filesystem, hst.FilesystemConfigJSON{})
 		})), []stub.Call{
 			// this op configures the container state and does not make calls during toContainer
@@ -334,11 +341,22 @@ func TestSpFilesystemOp(t *testing.T) {
 			call("evalSymlinks", stub.ExpectArgs{"/var/lib/hakurei/base/org.nixos/.ro-store"}, nePrefix+"/var/lib/hakurei/base/org.nixos/.ro-store", nil),
 			call("evalSymlinks", stub.ExpectArgs{"/var/lib/hakurei/base/org.nixos/org.chromium.Chromium"}, nePrefix+"/var/lib/hakurei/base/org.nixos/org.chromium.Chromium", nil),
 			call("verbosef", stub.ExpectArgs{"hiding path %q from %q", []any{"/proc/nonexistent/eval/etc/dbus", "/etc/"}}, nil, nil),
-		}, newI(), nil, nil, insertsOps(needsApplyState(func(state *outcomeStateParams) {
+		}, newI().
+			Ensure(m("/var/lib/hakurei/u0"), 0700).
+			UpdatePermType(system.User, m("/var/lib/hakurei/u0"),
+				acl.Execute).
+			UpdatePermType(system.User, m("/var/lib/hakurei/u0/org.chromium.Chromium"),
+				acl.Read, acl.Write, acl.Execute), nil, nil, insertsOps(needsApplyState(func(state *outcomeStateParams) {
 			state.filesystem = configSmall.Container.Filesystem
 		})), []stub.Call{
 			// this op configures the container state and does not make calls during toContainer
 		}, &container.Params{
+			Env: []string{
+				"GOOGLE_API_KEY=AIzaSyBHDrl33hwRp4rMQY0ziRbj8K9LPA6vUCY",
+				"GOOGLE_DEFAULT_CLIENT_ID=77185425430.apps.googleusercontent.com",
+				"GOOGLE_DEFAULT_CLIENT_SECRET=OTJgUOQcT7lO7GsGZq2G4IlT",
+			},
+
 			Ops: new(container.Ops).
 				Etc(fhs.AbsEtc, wantAutoEtcPrefix).
 				OverlayReadonly(
@@ -347,7 +365,8 @@ func TestSpFilesystemOp(t *testing.T) {
 					fhs.AbsVarLib.Append("hakurei/base/org.nixos/org.chromium.Chromium")).
 				Readonly(hst.AbsPrivateTmp, 0755).
 				Tmpfs(m("/proc/nonexistent/eval/etc/dbus"), 1<<13, 0755).
-				Remount(fhs.AbsDev, syscall.MS_RDONLY),
+				Remount(fhs.AbsDev, syscall.MS_RDONLY).
+				Remount(fhs.AbsRoot, syscall.MS_RDONLY),
 		}, nil, nil},
 
 		{"success", func(bool, bool) outcomeOp {
@@ -377,11 +396,22 @@ func TestSpFilesystemOp(t *testing.T) {
 			call("evalSymlinks", stub.ExpectArgs{"/var/lib/hakurei/base/org.debian/sys"}, nePrefix+"/var/lib/hakurei/base/org.debian/sys", nil),
 			call("evalSymlinks", stub.ExpectArgs{"/var/lib/hakurei/base/org.debian/usr"}, nePrefix+"/var/lib/hakurei/base/org.debian/usr", nil),
 			call("evalSymlinks", stub.ExpectArgs{"/var/lib/hakurei/base/org.debian/var"}, nePrefix+"/var/lib/hakurei/base/org.debian/var", nil),
-		}, newI(), nil, nil, insertsOps(needsApplyState(func(state *outcomeStateParams) {
+		}, newI().
+			Ensure(m("/var/lib/hakurei/u0"), 0700).
+			UpdatePermType(system.User, m("/var/lib/hakurei/u0"),
+				acl.Execute).
+			UpdatePermType(system.User, m("/var/lib/hakurei/u0/org.chromium.Chromium"),
+				acl.Read, acl.Write, acl.Execute), nil, nil, insertsOps(needsApplyState(func(state *outcomeStateParams) {
 			state.filesystem = config.Container.Filesystem[1:]
 		})), []stub.Call{
 			// this op configures the container state and does not make calls during toContainer
 		}, &container.Params{
+			Env: []string{
+				"GOOGLE_API_KEY=AIzaSyBHDrl33hwRp4rMQY0ziRbj8K9LPA6vUCY",
+				"GOOGLE_DEFAULT_CLIENT_ID=77185425430.apps.googleusercontent.com",
+				"GOOGLE_DEFAULT_CLIENT_SECRET=OTJgUOQcT7lO7GsGZq2G4IlT",
+			},
+
 			Ops: new(container.Ops).
 				Etc(fhs.AbsEtc, wantAutoEtcPrefix).
 				Tmpfs(fhs.AbsTmp, 0, 0755).
@@ -396,9 +426,45 @@ func TestSpFilesystemOp(t *testing.T) {
 					fhs.AbsVarLib.Append("hakurei/u0/org.chromium.Chromium"),
 					check.MustAbs("/data/data/org.chromium.Chromium"),
 					bits.BindWritable|bits.BindEnsure).
-				Bind(fhs.AbsDev.Append("dri"), fhs.AbsDev.Append("dri"), bits.BindDevice|bits.BindWritable|bits.BindOptional),
+				Bind(fhs.AbsDev.Append("dri"), fhs.AbsDev.Append("dri"), bits.BindDevice|bits.BindWritable|bits.BindOptional).
+				Remount(fhs.AbsRoot, syscall.MS_RDONLY),
 		}, nil, nil},
 	})
+}
+
+func TestFlattenExtraPerms(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name  string
+		perms []hst.ExtraPermConfig
+		want  *system.I
+	}{
+		{"path nil check", append(hst.Template().ExtraPerms, hst.ExtraPermConfig{}), newI().
+			Ensure(m("/var/lib/hakurei/u0"), 0700).
+			UpdatePermType(system.User, m("/var/lib/hakurei/u0"),
+				acl.Execute).
+			UpdatePermType(system.User, m("/var/lib/hakurei/u0/org.chromium.Chromium"),
+				acl.Read, acl.Write, acl.Execute)},
+
+		{"template", hst.Template().ExtraPerms, newI().
+			Ensure(m("/var/lib/hakurei/u0"), 0700).
+			UpdatePermType(system.User, m("/var/lib/hakurei/u0"),
+				acl.Execute).
+			UpdatePermType(system.User, m("/var/lib/hakurei/u0/org.chromium.Chromium"),
+				acl.Read, acl.Write, acl.Execute)},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			got := newI()
+			flattenExtraPerms(got, tc.perms)
+			if !reflect.DeepEqual(got, tc.want) {
+				t.Errorf("flattenExtraPerms: sys = %#v, want %#v", got, tc.want)
+			}
+		})
+	}
 }
 
 // invalidFSHost implements the Host method of [hst.FilesystemConfig] with an invalid response.
