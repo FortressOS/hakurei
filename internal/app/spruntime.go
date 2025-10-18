@@ -72,11 +72,13 @@ type spRuntimeOp struct {
 }
 
 func (s *spRuntimeOp) toSystem(state *outcomeStateSys) error {
-	runtimeDir, runtimeDirInst := s.commonPaths(state.outcomeState)
-	state.sys.Ensure(runtimeDir, 0700)
-	state.sys.UpdatePermType(system.User, runtimeDir, acl.Execute)
-	state.sys.Ensure(runtimeDirInst, 0700)
-	state.sys.UpdatePermType(system.User, runtimeDirInst, acl.Read, acl.Write, acl.Execute)
+	if state.Container.Flags&hst.FShareRuntime != 0 {
+		runtimeDir, runtimeDirInst := s.commonPaths(state.outcomeState)
+		state.sys.Ensure(runtimeDir, 0700)
+		state.sys.UpdatePermType(system.User, runtimeDir, acl.Execute)
+		state.sys.Ensure(runtimeDirInst, 0700)
+		state.sys.UpdatePermType(system.User, runtimeDirInst, acl.Read, acl.Write, acl.Execute)
+	}
 
 	if state.et&hst.EWayland != 0 {
 		s.SessionType = sessionTypeWayland
@@ -106,10 +108,13 @@ func (s *spRuntimeOp) toContainer(state *outcomeStateParams) error {
 
 	}
 
-	_, runtimeDirInst := s.commonPaths(state.outcomeState)
-	state.params.
-		Tmpfs(fhs.AbsRunUser, 1<<12, 0755).
-		Bind(runtimeDirInst, state.runtimeDir, bits.BindWritable)
+	state.params.Tmpfs(fhs.AbsRunUser, 1<<12, 0755)
+	if state.Container.Flags&hst.FShareRuntime != 0 {
+		_, runtimeDirInst := s.commonPaths(state.outcomeState)
+		state.params.Bind(runtimeDirInst, state.runtimeDir, bits.BindWritable)
+	} else {
+		state.params.Mkdir(state.runtimeDir, 0700)
+	}
 	return nil
 }
 

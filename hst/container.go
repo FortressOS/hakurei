@@ -63,6 +63,11 @@ const (
 	// FDevice mount /dev/ from the init mount namespace as-is in the container mount namespace.
 	FDevice
 
+	// FShareRuntime shares XDG_RUNTIME_DIR between containers under the same identity.
+	FShareRuntime
+	// FShareTmpdir shares TMPDIR between containers under the same identity.
+	FShareTmpdir
+
 	fMax
 
 	// FAll is [ContainerConfig.Flags] with all currently defined bits set.
@@ -133,6 +138,11 @@ type containerConfigJSON = struct {
 
 	// Corresponds to [FDevice].
 	Device bool `json:"device,omitempty"`
+
+	// Corresponds to [FShareRuntime].
+	ShareRuntime bool `json:"share_runtime,omitempty"`
+	// Corresponds to [FShareTmpdir]
+	ShareTmpdir bool `json:"share_tmpdir,omitempty"`
 }
 
 func (c *ContainerConfig) MarshalJSON() ([]byte, error) {
@@ -151,6 +161,8 @@ func (c *ContainerConfig) MarshalJSON() ([]byte, error) {
 		Multiarch:     c.Flags&FMultiarch != 0,
 		MapRealUID:    c.Flags&FMapRealUID != 0,
 		Device:        c.Flags&FDevice != 0,
+		ShareRuntime:  c.Flags&FShareRuntime != 0,
+		ShareTmpdir:   c.Flags&FShareTmpdir != 0,
 	})
 }
 
@@ -191,6 +203,12 @@ func (c *ContainerConfig) UnmarshalJSON(data []byte) error {
 	}
 	if v.Device {
 		c.Flags |= FDevice
+	}
+	if v.ShareRuntime {
+		c.Flags |= FShareRuntime
+	}
+	if v.ShareTmpdir {
+		c.Flags |= FShareTmpdir
 	}
 	return nil
 }

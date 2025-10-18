@@ -332,7 +332,9 @@ App
       "tty": true,
       "multiarch": true,
       "map_real_uid": true,
-      "device": true
+      "device": true,
+      "share_runtime": true,
+      "share_tmpdir": true
     }
   },
   "time": "1970-01-01T00:00:00.000000009Z"
@@ -482,7 +484,9 @@ App
     "tty": true,
     "multiarch": true,
     "map_real_uid": true,
-    "device": true
+    "device": true,
+    "share_runtime": true,
+    "share_tmpdir": true
   }
 }
 `, true},
@@ -692,7 +696,9 @@ func TestPrintPs(t *testing.T) {
         "tty": true,
         "multiarch": true,
         "map_real_uid": true,
-        "device": true
+        "device": true,
+        "share_runtime": true,
+        "share_tmpdir": true
       }
     },
     "time": "1970-01-01T00:00:00.000000009Z"

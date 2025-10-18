@@ -36,6 +36,8 @@ in
   userns = false;
   x11 = false;
   hostAbstract = false;
+  shareRuntime = false;
+  shareTmpdir = false;
 
   # 0, PresetStrict
   expectedFilter = {
@@ -155,7 +157,7 @@ in
         current-system = fs "80001ff" null null;
         opengl-driver = fs "80001ff" null null;
         user = fs "800001ed" {
-          "65534" = fs "800001f8" {
+          "65534" = fs "800001c0" {
             bus = fs "10001fd" null null;
             pulse = fs "800001c0" { native = fs "10001b6" null null; } null;
             wayland-0 = fs "1000038" null null;
@@ -186,7 +188,7 @@ in
         } null;
         devices = fs "800001ed" null null;
       } null;
-      tmp = fs "800001f8" { } null;
+      tmp = fs "801001ff" { } null;
       usr = fs "800001c0" { bin = fs "800001ed" { env = fs "80001ff" null null; } null; } null;
       var = fs "800001c0" {
         tmp = fs "801001ff" null null;
@@ -242,8 +244,7 @@ in
       (ent "/" "/dev/mqueue" "rw,nosuid,nodev,noexec,relatime" "mqueue" "mqueue" "rw")
       (ent "/" "/dev/shm" "rw,nosuid,nodev,relatime" "tmpfs" "ephemeral" "rw,uid=1000001,gid=1000001")
       (ent "/" "/run/user" "rw,nosuid,nodev,relatime" "tmpfs" "ephemeral" "rw,size=4k,mode=755,uid=1000001,gid=1000001")
-      (ent "/tmp/hakurei.0/runtime/1" "/run/user/65534" "rw,nosuid,nodev,relatime" "ext4" "/dev/disk/by-label/nixos" "rw")
-      (ent "/tmp/hakurei.0/tmpdir/1" "/tmp" "rw,nosuid,nodev,relatime" "ext4" "/dev/disk/by-label/nixos" "rw")
+      (ent "/" "/tmp" "rw,nosuid,nodev,relatime" "tmpfs" "ephemeral" "rw,uid=1000001,gid=1000001")
       (ent ignore "/etc/passwd" "ro,nosuid,nodev,relatime" "tmpfs" "rootfs" "rw,uid=1000001,gid=1000001")
       (ent ignore "/etc/group" "ro,nosuid,nodev,relatime" "tmpfs" "rootfs" "rw,uid=1000001,gid=1000001")
       (ent ignore "/run/user/65534/wayland-0" "ro,nosuid,nodev,relatime" "ext4" "/dev/disk/by-label/nixos" "rw")

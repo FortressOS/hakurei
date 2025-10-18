@@ -136,6 +136,9 @@ in
                 '';
               };
 
+              shareRuntime = mkEnableOption "sharing of XDG_RUNTIME_DIR between containers under the same identity";
+              shareTmpdir = mkEnableOption "sharing of TMPDIR between containers under the same identity";
+
               dbus = {
                 session = mkOption {
                   type = nullOr (functionTo anything);

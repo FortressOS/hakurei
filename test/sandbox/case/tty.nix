@@ -36,6 +36,8 @@ in
   userns = false;
   x11 = true;
   hostAbstract = true;
+  shareRuntime = true;
+  shareTmpdir = false;
 
   # 0, PresetExt | PresetDenyNS | PresetDenyDevel
   expectedFilter = {
@@ -191,7 +193,7 @@ in
         } null;
         devices = fs "800001ed" null null;
       } null;
-      tmp = fs "800001f8" {
+      tmp = fs "801001ff" {
         ".X11-unix" = fs "801001ff" { X0 = fs "10001fd" null null; } null;
       } null;
       usr = fs "800001c0" { bin = fs "800001ed" { env = fs "80001ff" null null; } null; } null;
@@ -252,7 +254,7 @@ in
       (ent "/" "/dev/shm" "rw,nosuid,nodev,relatime" "tmpfs" "ephemeral" "rw,uid=1000002,gid=1000002")
       (ent "/" "/run/user" "rw,nosuid,nodev,relatime" "tmpfs" "ephemeral" "rw,size=4k,mode=755,uid=1000002,gid=1000002")
       (ent "/tmp/hakurei.0/runtime/2" "/run/user/65534" "rw,nosuid,nodev,relatime" "ext4" "/dev/disk/by-label/nixos" "rw")
-      (ent "/tmp/hakurei.0/tmpdir/2" "/tmp" "rw,nosuid,nodev,relatime" "ext4" "/dev/disk/by-label/nixos" "rw")
+      (ent "/" "/tmp" "rw,nosuid,nodev,relatime" "tmpfs" "ephemeral" "rw,uid=1000002,gid=1000002")
       (ent ignore "/etc/passwd" "ro,nosuid,nodev,relatime" "tmpfs" "rootfs" "rw,uid=1000002,gid=1000002")
       (ent ignore "/etc/group" "ro,nosuid,nodev,relatime" "tmpfs" "rootfs" "rw,uid=1000002,gid=1000002")
       (ent ignore "/run/user/65534/wayland-0" "ro,nosuid,nodev,relatime" "ext4" "/dev/disk/by-label/nixos" "rw")

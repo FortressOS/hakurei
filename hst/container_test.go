@@ -28,7 +28,7 @@ func TestContainerConfig(t *testing.T) {
 		{"hostnet hostabstract mapuid", &hst.ContainerConfig{Flags: hst.FHostNet | hst.FHostAbstract | hst.FMapRealUID},
 			`{"env":null,"filesystem":null,"shell":null,"home":null,"args":null,"host_net":true,"host_abstract":true,"map_real_uid":true}`},
 		{"all", &hst.ContainerConfig{Flags: hst.FAll},
-			`{"env":null,"filesystem":null,"shell":null,"home":null,"args":null,"seccomp_compat":true,"devel":true,"userns":true,"host_net":true,"host_abstract":true,"tty":true,"multiarch":true,"map_real_uid":true,"device":true}`},
+			`{"env":null,"filesystem":null,"shell":null,"home":null,"args":null,"seccomp_compat":true,"devel":true,"userns":true,"host_net":true,"host_abstract":true,"tty":true,"multiarch":true,"map_real_uid":true,"device":true,"share_runtime":true,"share_tmpdir":true}`},
 	}
 
 	for _, tc := range testCases {

@@ -81,6 +81,8 @@ func buildCommand(ctx context.Context, msg message.Msg, early *earlyHardeningErr
 			flagHomeDir  string
 			flagUserName string
 
+			flagPrivateRuntime, flagPrivateTmpdir bool
+
 			flagWayland, flagX11, flagDBus, flagPulse bool
 		)
 
@@ -211,6 +213,13 @@ func buildCommand(ctx context.Context, msg message.Msg, early *earlyHardeningErr
 				}
 			}
 
+			if !flagPrivateRuntime {
+				config.Container.Flags |= hst.FShareRuntime
+			}
+			if !flagPrivateTmpdir {
+				config.Container.Flags |= hst.FShareTmpdir
+			}
+
 			// parse D-Bus config file from flags if applicable
 			if flagDBus {
 				if flagDBusConfigSession == "builtin" {
@@ -264,6 +273,10 @@ func buildCommand(ctx context.Context, msg message.Msg, early *earlyHardeningErr
 				"Container home directory").
 			Flag(&flagUserName, "u", command.StringFlag("chronos"),
 				"Passwd user name within sandbox").
+			Flag(&flagPrivateRuntime, "private-runtime", command.BoolFlag(false),
+				"Do not share XDG_RUNTIME_DIR between containers under the same identity").
+			Flag(&flagPrivateTmpdir, "private-tmpdir", command.BoolFlag(false),
+				"Do not share TMPDIR between containers under the same identity").
 			Flag(&flagWayland, "wayland", command.BoolFlag(false),
 				"Enable connection to Wayland via security-context-v1").
 			Flag(&flagX11, "X", command.BoolFlag(false),

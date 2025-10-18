@@ -244,7 +244,9 @@ func TestTemplate(t *testing.T) {
 		"tty": true,
 		"multiarch": true,
 		"map_real_uid": true,
-		"device": true
+		"device": true,
+		"share_runtime": true,
+		"share_tmpdir": true
 	}
 }`
 

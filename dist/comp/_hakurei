@@ -12,6 +12,8 @@ _hakurei_run() {
     '-g[Groups inherited by all container processes]: :_groups' \
     '-d[Container home directory]: :_files -/' \
     '-u[Passwd user name within sandbox]: :_users' \
+    '--private-runtime[Do not share XDG_RUNTIME_DIR between containers under the same identity]' \
+    '--private-tmpdir[Do not share TMPDIR between containers under the same identity]' \
     '--wayland[Enable connection to Wayland via security-context-v1]' \
     '-X[Enable direct connection to X11]' \
     '--dbus[Enable proxied connection to D-Bus]' \

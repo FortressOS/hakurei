@@ -121,6 +121,8 @@ in
                       map_real_uid = app.mapRealUid;
                       host_net = app.hostNet;
                       host_abstract = app.hostAbstract;
+                      share_runtime = app.shareRuntime;
+                      share_tmpdir = app.shareTmpdir;
 
                       filesystem =
                         let

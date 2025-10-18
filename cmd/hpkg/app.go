@@ -130,6 +130,7 @@ func (app *appInfo) toHst(pathSet *appPathSet, pathname *check.Absolute, argv []
 	if app.Multiarch {
 		config.Container.Flags |= hst.FMultiarch
 	}
+	config.Container.Flags |= hst.FShareRuntime | hst.FShareTmpdir
 	return config
 }
 

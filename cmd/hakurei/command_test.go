@@ -36,7 +36,7 @@ Commands:
 		},
 		{
 			"run", []string{"run", "-h"}, `
-Usage:	hakurei run [-h | --help] [--dbus-config <value>] [--dbus-system <value>] [--mpris] [--dbus-log] [--id <value>] [-a <int>] [-g <value>] [-d <value>] [-u <value>] [--wayland] [-X] [--dbus] [--pulse] COMMAND [OPTIONS]
+Usage:	hakurei run [-h | --help] [--dbus-config <value>] [--dbus-system <value>] [--mpris] [--dbus-log] [--id <value>] [-a <int>] [-g <value>] [-d <value>] [-u <value>] [--private-runtime] [--private-tmpdir] [--wayland] [-X] [--dbus] [--pulse] COMMAND [OPTIONS]
 
 Flags:
   -X	Enable direct connection to X11
@@ -58,6 +58,10 @@ Flags:
     	Reverse-DNS style Application identifier, leave empty to inherit instance identifier
   -mpris
     	Allow owning MPRIS D-Bus path, has no effect if custom config is available
+  -private-runtime
+    	Do not share XDG_RUNTIME_DIR between containers under the same identity
+  -private-tmpdir
+    	Do not share TMPDIR between containers under the same identity
   -pulse
     	Enable direct connection to PulseAudio
   -u string

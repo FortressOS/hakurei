@@ -70,7 +70,7 @@ func TestApp(t *testing.T) {
 				Path: m("/run/current-system/sw/bin/zsh"),
 				Args: []string{"/run/current-system/sw/bin/zsh"},
 
-				Flags: hst.FUserns | hst.FHostNet | hst.FHostAbstract | hst.FTty,
+				Flags: hst.FUserns | hst.FHostNet | hst.FHostAbstract | hst.FTty | hst.FShareRuntime | hst.FShareTmpdir,
 			}},
 			state.ID{
 				0x4a, 0x45, 0x0b, 0x65,
@@ -193,7 +193,7 @@ func TestApp(t *testing.T) {
 					Path: m("/run/current-system/sw/bin/zsh"),
 					Args: []string{"zsh", "-c", "exec chromium "},
 
-					Flags: hst.FUserns | hst.FHostNet | hst.FHostAbstract | hst.FTty,
+					Flags: hst.FUserns | hst.FHostNet | hst.FHostAbstract | hst.FTty | hst.FShareRuntime | hst.FShareTmpdir,
 				},
 			},
 			state.ID{
@@ -331,7 +331,7 @@ func TestApp(t *testing.T) {
 
 					Path: m("/nix/store/yqivzpzzn7z5x0lq9hmbzygh45d8rhqd-chromium-start"),
 
-					Flags: hst.FUserns | hst.FHostNet | hst.FMapRealUID,
+					Flags: hst.FUserns | hst.FHostNet | hst.FMapRealUID | hst.FShareRuntime | hst.FShareTmpdir,
 				},
 				SystemBus: &hst.BusConfig{
 					Talk:   []string{"org.bluez", "org.freedesktop.Avahi", "org.freedesktop.UPower"},

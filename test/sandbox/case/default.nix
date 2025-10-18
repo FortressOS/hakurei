@@ -50,6 +50,8 @@ let
         useCommonPaths
         userns
         hostAbstract
+        shareRuntime
+        shareTmpdir
         ;
       enablements = {
         inherit (tc) x11;

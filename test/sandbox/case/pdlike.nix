@@ -36,6 +36,8 @@ in
   userns = true;
   x11 = false;
   hostAbstract = false;
+  shareRuntime = true;
+  shareTmpdir = true;
 
   # 0, PresetExt | PresetDenyDevel
   expectedFilter = {

@@ -36,6 +36,8 @@ in
   userns = false;
   x11 = false;
   hostAbstract = false;
+  shareRuntime = true;
+  shareTmpdir = true;
 
   # 0, PresetStrict
   expectedFilter = {
