@@ -62,8 +62,8 @@ func (h *Hsu) ID() (int, error) {
 		} else if errors.As(h.idErr, &exitError) && exitError != nil && exitError.ExitCode() == 1 {
 			// hsu prints an error message in this case
 			h.idErr = &hst.AppError{Step: step, Err: ErrHsuAccess}
-		} else if os.IsNotExist(h.idErr) {
-			h.idErr = &hst.AppError{Step: step, Err: os.ErrNotExist,
+		} else if errors.Is(h.idErr, os.ErrNotExist) {
+			h.idErr = &hst.AppError{Step: step, Err: h.idErr,
 				Msg: fmt.Sprintf("the setuid helper is missing: %s", hsuPath)}
 		}
 	})
@@ -84,16 +84,16 @@ func (h *Hsu) MustID(msg message.Msg) int {
 			msg.Verbose("*"+fallback, err)
 		}
 		os.Exit(1)
-		return -0xdeadbeef
+		return -0xdeadbeef // not reached
 	} else if m, ok := message.GetMessage(err); ok {
 		log.Fatal(m)
-		return -0xdeadbeef
+		return -0xdeadbeef // not reached
 	} else {
 		log.Fatalln(fallback, err)
-		return -0xdeadbeef
+		return -0xdeadbeef // not reached
 	}
 }
 
 // HsuUid returns target uid for the stable hsu uid format.
-// No bounds check is performed, a value retrieved from hsu is expected.
+// No bounds check is performed, a value retrieved by [Hsu] is expected.
 func HsuUid(id, identity int) int { return 1000000 + id*10000 + identity }
