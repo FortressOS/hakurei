@@ -16,17 +16,17 @@ import (
 	"hakurei.app/message"
 )
 
-const (
-	lddName    = "ldd"
-	lddTimeout = 2 * time.Second
-)
-
 var (
 	msgStatic      = []byte("Not a valid dynamic program")
 	msgStaticGlibc = []byte("not a dynamic executable")
 )
 
 func Exec(ctx context.Context, msg message.Msg, p string) ([]*Entry, error) {
+	const (
+		lddName    = "ldd"
+		lddTimeout = 4 * time.Second
+	)
+
 	c, cancel := context.WithTimeout(ctx, lddTimeout)
 	defer cancel()
 
