@@ -161,7 +161,7 @@
       (ent "/../../.." "/sys/fs/cgroup" "rw,nosuid,nodev,noexec,relatime" "cgroup2" "cgroup2" "rw,nsdelegate,memory_recursiveprot")
       (ent "/" "/sys/fs/pstore" "rw,nosuid,nodev,noexec,relatime" "pstore" "pstore" "rw")
       (ent "/" "/sys/fs/bpf" "rw,nosuid,nodev,noexec,relatime" "bpf" "bpf" "rw,mode=700")
-      # systemd race: tracefs debugfs configfs fusectl
+      # systemd nondeterminism: tracefs debugfs configfs fusectl
       (ent "/" ignore "rw,nosuid,nodev,noexec,relatime" ignore ignore "rw")
       (ent "/" ignore "rw,nosuid,nodev,noexec,relatime" ignore ignore "rw")
       (ent "/" ignore "rw,nosuid,nodev,noexec,relatime" ignore ignore "rw")
@@ -181,16 +181,16 @@
       (ent ignore "/dev/console" "rw,nosuid,noexec,relatime" "devpts" "devpts" "rw,gid=3,mode=620,ptmxmode=666")
       (ent "/" "/dev/mqueue" "rw,nosuid,nodev,noexec,relatime" "mqueue" "mqueue" "rw")
       (ent "/" "/dev/shm" "rw,nosuid,nodev,relatime" "tmpfs" "ephemeral" "rw,uid=1000000,gid=1000000")
-      (ent "/kvm" "/dev/kvm" "rw,nosuid" "devtmpfs" "devtmpfs" ignore)
-      (ent "/etc" ignore "ro,nosuid,nodev,relatime" "ext4" "/dev/disk/by-label/nixos" "rw")
-      (ent "/" "/run/user/1000" "rw,nosuid,nodev,relatime" "tmpfs" "ephemeral" "rw,size=8k,mode=755,uid=1000000,gid=1000000")
-      (ent "/" "/run/nscd" "rw,nosuid,nodev,relatime" "tmpfs" "ephemeral" "rw,size=8k,mode=755,uid=1000000,gid=1000000")
-      (ent "/" "/run/dbus" "rw,nosuid,nodev,relatime" "tmpfs" "ephemeral" "rw,size=8k,mode=755,uid=1000000,gid=1000000")
       (ent "/" "/run/user" "rw,nosuid,nodev,relatime" "tmpfs" "ephemeral" "rw,size=4k,mode=755,uid=1000000,gid=1000000")
       (ent "/tmp/hakurei.0/runtime/0" "/run/user/65534" "rw,nosuid,nodev,relatime" "ext4" "/dev/disk/by-label/nixos" "rw")
       (ent "/tmp/hakurei.0/tmpdir/0" "/tmp" "rw,nosuid,nodev,relatime" "ext4" "/dev/disk/by-label/nixos" "rw")
       (ent ignore "/etc/passwd" "ro,nosuid,nodev,relatime" "tmpfs" "rootfs" "rw,uid=1000000,gid=1000000")
       (ent ignore "/etc/group" "ro,nosuid,nodev,relatime" "tmpfs" "rootfs" "rw,uid=1000000,gid=1000000")
+      (ent "/kvm" "/dev/kvm" "rw,nosuid" "devtmpfs" "devtmpfs" ignore)
+      (ent "/etc" ignore "ro,nosuid,nodev,relatime" "ext4" "/dev/disk/by-label/nixos" "rw")
+      (ent "/" "/run/user/1000" "rw,nosuid,nodev,relatime" "tmpfs" "ephemeral" "rw,size=8k,mode=755,uid=1000000,gid=1000000")
+      (ent "/" "/run/nscd" "rw,nosuid,nodev,relatime" "tmpfs" "ephemeral" "rw,size=8k,mode=755,uid=1000000,gid=1000000")
+      (ent "/" "/run/dbus" "rw,nosuid,nodev,relatime" "tmpfs" "ephemeral" "rw,size=8k,mode=755,uid=1000000,gid=1000000")
     ];
 
     seccomp = true;

@@ -272,9 +272,6 @@ func (state *outcomeStateSys) toSystem() error {
 		// must run first
 		&spParamsOp{},
 
-		// TODO(ophestra): move this late for #8 and #9
-		&spFilesystemOp{},
-
 		&spRuntimeOp{},
 		spTmpdirOp{},
 		spAccountOp{},
@@ -285,6 +282,7 @@ func (state *outcomeStateSys) toSystem() error {
 		&spPulseOp{},
 		&spDBusOp{},
 
+		&spFilesystemOp{},
 		spFinalOp{},
 	}
 

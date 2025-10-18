@@ -103,17 +103,17 @@ func TestApp(t *testing.T) {
 					Tmpfs(hst.AbsPrivateTmp, 4096, 0755).
 					DevWritable(m("/dev/"), true).
 					Tmpfs(m("/dev/shm"), 0, 01777).
+					Tmpfs(m("/run/user/"), 4096, 0755).
+					Bind(m("/tmp/hakurei.0/runtime/0"), m("/run/user/65534"), bits.BindWritable).
+					Bind(m("/tmp/hakurei.0/tmpdir/0"), m("/tmp/"), bits.BindWritable).
+					Place(m("/etc/passwd"), []byte("chronos:x:65534:65534:Hakurei:/home/chronos:/run/current-system/sw/bin/zsh\n")).
+					Place(m("/etc/group"), []byte("hakurei:x:65534:\n")).
 					Bind(m("/dev/kvm"), m("/dev/kvm"), bits.BindWritable|bits.BindDevice|bits.BindOptional).
 					Etc(m("/etc/"), "4a450b6596d7bc15bd01780eb9a607ac").
 					Tmpfs(m("/run/user/1971"), 8192, 0755).
 					Tmpfs(m("/run/nscd"), 8192, 0755).
 					Tmpfs(m("/run/dbus"), 8192, 0755).
 					Remount(m("/dev/"), syscall.MS_RDONLY).
-					Tmpfs(m("/run/user/"), 4096, 0755).
-					Bind(m("/tmp/hakurei.0/runtime/0"), m("/run/user/65534"), bits.BindWritable).
-					Bind(m("/tmp/hakurei.0/tmpdir/0"), m("/tmp/"), bits.BindWritable).
-					Place(m("/etc/passwd"), []byte("chronos:x:65534:65534:Hakurei:/home/chronos:/run/current-system/sw/bin/zsh\n")).
-					Place(m("/etc/group"), []byte("hakurei:x:65534:\n")).
 					Remount(m("/"), syscall.MS_RDONLY),
 				SeccompPresets: bits.PresetExt | bits.PresetDenyDevel,
 				HostNet:        true,
@@ -276,13 +276,6 @@ func TestApp(t *testing.T) {
 					Tmpfs(hst.AbsPrivateTmp, 4096, 0755).
 					DevWritable(m("/dev/"), true).
 					Tmpfs(m("/dev/shm"), 0, 01777).
-					Bind(m("/dev/dri"), m("/dev/dri"), bits.BindWritable|bits.BindDevice|bits.BindOptional).
-					Bind(m("/dev/kvm"), m("/dev/kvm"), bits.BindWritable|bits.BindDevice|bits.BindOptional).
-					Etc(m("/etc/"), "ebf083d1b175911782d413369b64ce7c").
-					Tmpfs(m("/run/user/1971"), 8192, 0755).
-					Tmpfs(m("/run/nscd"), 8192, 0755).
-					Tmpfs(m("/run/dbus"), 8192, 0755).
-					Remount(m("/dev/"), syscall.MS_RDONLY).
 					Tmpfs(m("/run/user/"), 4096, 0755).
 					Bind(m("/tmp/hakurei.0/runtime/9"), m("/run/user/65534"), bits.BindWritable).
 					Bind(m("/tmp/hakurei.0/tmpdir/9"), m("/tmp/"), bits.BindWritable).
@@ -293,6 +286,13 @@ func TestApp(t *testing.T) {
 					Place(m(hst.PrivateTmp+"/pulse-cookie"), bytes.Repeat([]byte{0}, pulseCookieSizeMax)).
 					Bind(m("/tmp/hakurei.0/ebf083d1b175911782d413369b64ce7c/bus"), m("/run/user/65534/bus"), 0).
 					Bind(m("/tmp/hakurei.0/ebf083d1b175911782d413369b64ce7c/system_bus_socket"), m("/var/run/dbus/system_bus_socket"), 0).
+					Bind(m("/dev/dri"), m("/dev/dri"), bits.BindWritable|bits.BindDevice|bits.BindOptional).
+					Bind(m("/dev/kvm"), m("/dev/kvm"), bits.BindWritable|bits.BindDevice|bits.BindOptional).
+					Etc(m("/etc/"), "ebf083d1b175911782d413369b64ce7c").
+					Tmpfs(m("/run/user/1971"), 8192, 0755).
+					Tmpfs(m("/run/nscd"), 8192, 0755).
+					Tmpfs(m("/run/dbus"), 8192, 0755).
+					Remount(m("/dev/"), syscall.MS_RDONLY).
 					Remount(m("/"), syscall.MS_RDONLY),
 				SeccompPresets: bits.PresetExt | bits.PresetDenyDevel,
 				HostNet:        true,
@@ -427,6 +427,16 @@ func TestApp(t *testing.T) {
 					Tmpfs(hst.AbsPrivateTmp, 4096, 0755).
 					DevWritable(m("/dev/"), true).
 					Tmpfs(m("/dev/shm"), 0, 01777).
+					Tmpfs(m("/run/user/"), 4096, 0755).
+					Bind(m("/tmp/hakurei.0/runtime/1"), m("/run/user/1971"), bits.BindWritable).
+					Bind(m("/tmp/hakurei.0/tmpdir/1"), m("/tmp/"), bits.BindWritable).
+					Place(m("/etc/passwd"), []byte("u0_a1:x:1971:100:Hakurei:/var/lib/persist/module/hakurei/0/1:/run/current-system/sw/bin/zsh\n")).
+					Place(m("/etc/group"), []byte("hakurei:x:100:\n")).
+					Bind(m("/run/user/1971/wayland-0"), m("/run/user/1971/wayland-0"), 0).
+					Bind(m("/run/user/1971/hakurei/8e2c76b066dabe574cf073bdb46eb5c1/pulse"), m("/run/user/1971/pulse/native"), 0).
+					Place(m(hst.PrivateTmp+"/pulse-cookie"), bytes.Repeat([]byte{0}, pulseCookieSizeMax)).
+					Bind(m("/tmp/hakurei.0/8e2c76b066dabe574cf073bdb46eb5c1/bus"), m("/run/user/1971/bus"), 0).
+					Bind(m("/tmp/hakurei.0/8e2c76b066dabe574cf073bdb46eb5c1/system_bus_socket"), m("/var/run/dbus/system_bus_socket"), 0).
 					Bind(m("/bin"), m("/bin"), 0).
 					Bind(m("/usr/bin/"), m("/usr/bin/"), 0).
 					Bind(m("/nix/store"), m("/nix/store"), 0).
@@ -441,16 +451,6 @@ func TestApp(t *testing.T) {
 					Etc(m("/etc/"), "8e2c76b066dabe574cf073bdb46eb5c1").
 					Bind(m("/var/lib/persist/module/hakurei/0/1"), m("/var/lib/persist/module/hakurei/0/1"), bits.BindWritable|bits.BindEnsure).
 					Remount(m("/dev/"), syscall.MS_RDONLY).
-					Tmpfs(m("/run/user/"), 4096, 0755).
-					Bind(m("/tmp/hakurei.0/runtime/1"), m("/run/user/1971"), bits.BindWritable).
-					Bind(m("/tmp/hakurei.0/tmpdir/1"), m("/tmp/"), bits.BindWritable).
-					Place(m("/etc/passwd"), []byte("u0_a1:x:1971:100:Hakurei:/var/lib/persist/module/hakurei/0/1:/run/current-system/sw/bin/zsh\n")).
-					Place(m("/etc/group"), []byte("hakurei:x:100:\n")).
-					Bind(m("/run/user/1971/wayland-0"), m("/run/user/1971/wayland-0"), 0).
-					Bind(m("/run/user/1971/hakurei/8e2c76b066dabe574cf073bdb46eb5c1/pulse"), m("/run/user/1971/pulse/native"), 0).
-					Place(m(hst.PrivateTmp+"/pulse-cookie"), bytes.Repeat([]byte{0}, pulseCookieSizeMax)).
-					Bind(m("/tmp/hakurei.0/8e2c76b066dabe574cf073bdb46eb5c1/bus"), m("/run/user/1971/bus"), 0).
-					Bind(m("/tmp/hakurei.0/8e2c76b066dabe574cf073bdb46eb5c1/system_bus_socket"), m("/var/run/dbus/system_bus_socket"), 0).
 					Remount(m("/"), syscall.MS_RDONLY),
 				SeccompPresets: bits.PresetExt | bits.PresetDenyTTY | bits.PresetDenyDevel,
 				HostNet:        true,
