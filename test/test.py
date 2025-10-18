@@ -115,12 +115,8 @@ if linger_stderr != "init: timeout exceeded waiting for lingering processes\n":
 check_offset = 0
 
 
-def aid(offset):
+def hakurei_identity(offset):
     return 1+check_offset+offset
-
-
-def tmpdir_path(offset, name):
-    return f"/tmp/hakurei.0/tmpdir/{aid(offset)}/{name}"
 
 
 # Start hakurei permissive defaults outside Wayland session:
@@ -136,7 +132,7 @@ if output != "":
 def silent_output_interrupt(flags):
     swaymsg("exec foot")
     wait_for_window("alice@machine")
-    # aid 0 does not have home-manager
+    # identity 0 does not have home-manager
     machine.send_chars(f"exec hakurei run {flags}-a 0 sh -c 'export PATH=/run/current-system/sw/bin:$PATH && touch /tmp/pd-silent-ready && sleep infinity' &>/tmp/pd-silent\n")
     machine.wait_for_file("/tmp/hakurei.0/tmpdir/0/pd-silent-ready", timeout=15)
     machine.succeed("rm /tmp/hakurei.0/tmpdir/0/pd-silent-ready")
@@ -180,7 +176,7 @@ machine.fail("getfacl --absolute-names --omit-header --numeric /run/user/1000 | 
 
 # Check interrupt shim behaviour:
 swaymsg("exec sh -c 'ne-foot; echo -n $? > /tmp/monitor-exit-code'")
-wait_for_window(f"u0_a{aid(0)}@machine")
+wait_for_window(f"u0_a{hakurei_identity(0)}@machine")
 machine.succeed("pkill -INT -f 'hakurei -v app '")
 machine.wait_until_fails("pgrep foot", timeout=5)
 machine.wait_for_file("/tmp/monitor-exit-code")
@@ -190,7 +186,7 @@ if interrupt_exit_code != 230:
 
 # Check interrupt shim behaviour immediate termination:
 swaymsg("exec sh -c 'ne-foot-immediate; echo -n $? > /tmp/monitor-exit-code'")
-wait_for_window(f"u0_a{aid(0)}@machine")
+wait_for_window(f"u0_a{hakurei_identity(0)}@machine")
 machine.succeed("pkill -INT -f 'hakurei -v app '")
 machine.wait_until_fails("pgrep foot", timeout=5)
 machine.wait_for_file("/tmp/monitor-exit-code")
@@ -200,7 +196,7 @@ if interrupt_exit_code != 254:
 
 # Check shim SIGCONT from unexpected process behaviour:
 swaymsg("exec sh -c 'ne-foot &> /tmp/shim-cont-unexpected-pid'")
-wait_for_window(f"u0_a{aid(0)}@machine")
+wait_for_window(f"u0_a{hakurei_identity(0)}@machine")
 machine.succeed("pkill -CONT -f 'hakurei shim'")
 machine.succeed("pkill -INT -f 'hakurei -v app '")
 machine.wait_until_fails("pgrep foot", timeout=5)
@@ -209,22 +205,22 @@ print(machine.succeed('grep "shim: got SIGCONT from unexpected process$" /tmp/sh
 
 # Start app (foot) with Wayland enablement:
 swaymsg("exec ne-foot")
-wait_for_window(f"u0_a{aid(0)}@machine")
-machine.send_chars("clear; wayland-info && touch /tmp/client-ok\n")
-machine.wait_for_file(tmpdir_path(0, "client-ok"), timeout=15)
+wait_for_window(f"u0_a{hakurei_identity(0)}@machine")
+machine.send_chars("clear; wayland-info && touch /var/tmp/client-ok\n")
+machine.wait_for_file("/var/tmp/client-ok", timeout=15)
 collect_state_ui("foot_wayland")
 check_state("ne-foot", {"wayland": True})
 # Verify lack of acl on XDG_RUNTIME_DIR:
-machine.fail(f"getfacl --absolute-names --omit-header --numeric /run/user/1000 | grep {aid(0) + 1000000}")
+machine.fail(f"getfacl --absolute-names --omit-header --numeric /run/user/1000 | grep {hakurei_identity(0) + 1000000}")
 machine.send_chars("exit\n")
 machine.wait_until_fails("pgrep foot", timeout=5)
-machine.fail(f"getfacl --absolute-names --omit-header --numeric /run/user/1000 | grep {aid(0) + 1000000}", timeout=5)
+machine.fail(f"getfacl --absolute-names --omit-header --numeric /run/user/1000 | grep {hakurei_identity(0) + 1000000}", timeout=5)
 
 # Test PulseAudio (hakurei does not support PipeWire yet):
 swaymsg("exec pa-foot")
-wait_for_window(f"u0_a{aid(1)}@machine")
-machine.send_chars("clear; pactl info && touch /tmp/pulse-ok\n")
-machine.wait_for_file(tmpdir_path(1, "pulse-ok"), timeout=15)
+wait_for_window(f"u0_a{hakurei_identity(1)}@machine")
+machine.send_chars("clear; pactl info && touch /var/tmp/pulse-ok\n")
+machine.wait_for_file("/var/tmp/pulse-ok", timeout=15)
 collect_state_ui("pulse_wayland")
 check_state("pa-foot", {"wayland": True, "pulse": True})
 machine.send_chars("exit\n")
@@ -232,9 +228,9 @@ machine.wait_until_fails("pgrep foot", timeout=5)
 
 # Test XWayland (foot does not support X):
 swaymsg("exec x11-alacritty")
-wait_for_window(f"u0_a{aid(0)}@machine")
-machine.send_chars("clear; glinfo && touch /tmp/x11-ok\n")
-machine.wait_for_file(tmpdir_path(0, "x11-ok"), timeout=15)
+wait_for_window(f"u0_a{hakurei_identity(0)}@machine")
+machine.send_chars("clear; glinfo && touch /var/tmp/x11-ok\n")
+machine.wait_for_file("/var/tmp/x11-ok", timeout=15)
 collect_state_ui("alacritty_x11")
 check_state("x11-alacritty", {"x11": True})
 machine.send_chars("exit\n")
@@ -242,26 +238,26 @@ machine.wait_until_fails("pgrep alacritty", timeout=5)
 
 # Start app (foot) with direct Wayland access:
 swaymsg("exec da-foot")
-wait_for_window(f"u0_a{aid(3)}@machine")
-machine.send_chars("clear; wayland-info && touch /tmp/direct-ok\n")
+wait_for_window(f"u0_a{hakurei_identity(3)}@machine")
+machine.send_chars("clear; wayland-info && touch /var/tmp/direct-ok\n")
 collect_state_ui("foot_direct")
-machine.wait_for_file(tmpdir_path(3, "direct-ok"), timeout=15)
+machine.wait_for_file("/var/tmp/direct-ok", timeout=15)
 check_state("da-foot", {"wayland": True})
 # Verify acl on XDG_RUNTIME_DIR:
-print(machine.succeed(f"getfacl --absolute-names --omit-header --numeric /run/user/1000 | grep {aid(3) + 1000000}"))
+print(machine.succeed(f"getfacl --absolute-names --omit-header --numeric /run/user/1000 | grep {hakurei_identity(3) + 1000000}"))
 machine.send_chars("exit\n")
 machine.wait_until_fails("pgrep foot", timeout=5)
 # Verify acl cleanup on XDG_RUNTIME_DIR:
-machine.wait_until_fails(f"getfacl --absolute-names --omit-header --numeric /run/user/1000 | grep {aid(3) + 1000000}", timeout=5)
+machine.wait_until_fails(f"getfacl --absolute-names --omit-header --numeric /run/user/1000 | grep {hakurei_identity(3) + 1000000}", timeout=5)
 
 # Test syscall filter:
 print(machine.fail("sudo -u alice -i XDG_RUNTIME_DIR=/run/user/1000 strace-failure"))
 
 # Start app (foot) with Wayland enablement from a terminal:
 swaymsg("exec foot $SHELL -c '(ne-foot) & disown && exec $SHELL'")
-wait_for_window(f"u0_a{aid(0)}@machine")
-machine.send_chars("clear; wayland-info && touch /tmp/term-ok\n")
-machine.wait_for_file(tmpdir_path(0, "term-ok"), timeout=15)
+wait_for_window(f"u0_a{hakurei_identity(0)}@machine")
+machine.send_chars("clear; wayland-info && touch /var/tmp/term-ok\n")
+machine.wait_for_file("/var/tmp/term-ok", timeout=15)
 machine.send_key("alt-h")
 machine.send_chars("clear; hakurei show $(hakurei ps --short) && touch /tmp/ps-show-ok && exec cat\n")
 machine.wait_for_file("/tmp/ps-show-ok", timeout=5)
