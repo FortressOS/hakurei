@@ -39,6 +39,20 @@ func TestConfigValidate(t *testing.T) {
 			Shell: fhs.AbsTmp,
 		}}, &hst.AppError{Step: "validate configuration", Err: hst.ErrConfigNull,
 			Msg: "container configuration missing path to initial program"}},
+		{"env equals", &hst.Config{Container: &hst.ContainerConfig{
+			Home:  fhs.AbsTmp,
+			Shell: fhs.AbsTmp,
+			Path:  fhs.AbsTmp,
+			Env:   map[string]string{"TERM=": ""},
+		}}, &hst.AppError{Step: "validate configuration", Err: hst.ErrEnviron,
+			Msg: `invalid environment variable "TERM="`}},
+		{"env NUL", &hst.Config{Container: &hst.ContainerConfig{
+			Home:  fhs.AbsTmp,
+			Shell: fhs.AbsTmp,
+			Path:  fhs.AbsTmp,
+			Env:   map[string]string{"TERM\x00": ""},
+		}}, &hst.AppError{Step: "validate configuration", Err: hst.ErrEnviron,
+			Msg: `invalid environment variable "TERM\x00"`}},
 		{"valid", &hst.Config{Container: &hst.ContainerConfig{
 			Home:  fhs.AbsTmp,
 			Shell: fhs.AbsTmp,

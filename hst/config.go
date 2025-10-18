@@ -3,6 +3,7 @@ package hst
 import (
 	"errors"
 	"strconv"
+	"strings"
 
 	"hakurei.app/container/check"
 )
@@ -45,6 +46,9 @@ var (
 
 	// ErrIdentityBounds is returned by [Config.Validate] for an out of bounds [Config.Identity] value.
 	ErrIdentityBounds = errors.New("identity out of bounds")
+
+	// ErrEnviron is returned by [Config.Validate] if an environment variable name contains '=' or NUL.
+	ErrEnviron = errors.New("invalid environment variable name")
 )
 
 // Validate checks [Config] and returns [AppError] if an invalid value is encountered.
@@ -83,6 +87,14 @@ func (config *Config) Validate() error {
 		return &AppError{Step: "validate configuration", Err: ErrConfigNull,
 			Msg: "container configuration missing path to initial program"}
 	}
+
+	for key := range config.Container.Env {
+		if strings.IndexByte(key, '=') != -1 || strings.IndexByte(key, 0) != -1 {
+			return &AppError{Step: "validate configuration", Err: ErrEnviron,
+				Msg: "invalid environment variable " + strconv.Quote(key)}
+		}
+	}
+
 	return nil
 }
 
