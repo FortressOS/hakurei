@@ -99,7 +99,7 @@ func sysUsesInstance(next extraCheckSysFunc) extraCheckSysFunc {
 func sysUsesRuntime(next extraCheckSysFunc) extraCheckSysFunc {
 	return func(t *testing.T, state *outcomeStateSys) {
 		if want := m(wantRuntimeSharePath); !reflect.DeepEqual(state.runtimeSharePath, want) {
-			t.Errorf("outcomeStateSys: runtimeSharePath = %v, want %v", state.sharePath, want)
+			t.Errorf("outcomeStateSys: runtimeSharePath = %v, want %v", state.runtimeSharePath, want)
 		}
 
 		if next != nil {
