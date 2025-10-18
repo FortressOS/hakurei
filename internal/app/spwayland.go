@@ -12,6 +12,7 @@ import (
 func init() { gob.Register(new(spWaylandOp)) }
 
 // spWaylandOp exports the Wayland display server to the container.
+// Runs after spRuntimeOp.
 type spWaylandOp struct {
 	// Path to host wayland socket. Populated during toSystem if DirectWayland is true.
 	SocketPath *check.Absolute
