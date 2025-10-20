@@ -6,20 +6,20 @@ import (
 	"hakurei.app/container/check"
 )
 
-var (
-	hmain = compPoison
-	hsu   = compPoison
-)
+// Absolute paths to the Hakurei installation.
+//
+// These are set by the linker.
+var hakureiPath, hsuPath string
 
-// MustHakureiPath returns the absolute path to hakurei, configured at compile time.
-func MustHakureiPath() *check.Absolute { return mustCheckPath(log.Fatal, "hakurei", hmain) }
+// MustHakureiPath returns the [check.Absolute] path to hakurei.
+func MustHakureiPath() *check.Absolute { return mustCheckPath(log.Fatal, "hakurei", hakureiPath) }
 
-// MustHsuPath returns the absolute path to hakurei, configured at compile time.
-func MustHsuPath() *check.Absolute { return mustCheckPath(log.Fatal, "hsu", hsu) }
+// MustHsuPath returns the [check.Absolute] to hsu.
+func MustHsuPath() *check.Absolute { return mustCheckPath(log.Fatal, "hsu", hsuPath) }
 
-// mustCheckPath checks a pathname against compPoison, then [container.NewAbs], calling fatal if either step fails.
+// mustCheckPath checks a pathname to not be zero, then [check.NewAbs], calling fatal if either step fails.
 func mustCheckPath(fatal func(v ...any), name, pathname string) *check.Absolute {
-	if pathname != compPoison && pathname != "" {
+	if pathname != "" {
 		if a, err := check.NewAbs(pathname); err != nil {
 			fatal(err.Error())
 			return nil // unreachable

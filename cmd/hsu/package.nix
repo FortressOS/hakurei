@@ -19,5 +19,5 @@ buildGoModule {
   ldflags = lib.attrsets.foldlAttrs (
     ldflags: name: value:
     ldflags ++ [ "-X main.${name}=${value}" ]
-  ) [ "-s -w" ] { hmain = "${hakurei}/libexec/hakurei"; };
+  ) [ "-s -w" ] { hakureiPath = "${hakurei}/libexec/hakurei"; };
 }

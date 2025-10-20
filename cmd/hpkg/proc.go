@@ -14,7 +14,7 @@ import (
 	"hakurei.app/message"
 )
 
-var hakureiPath = internal.MustHakureiPath()
+var hakureiPathVal = internal.MustHakureiPath().String()
 
 func mustRunApp(ctx context.Context, msg message.Msg, config *hst.Config, beforeFail func()) {
 	var (
@@ -27,9 +27,9 @@ func mustRunApp(ctx context.Context, msg message.Msg, config *hst.Config, before
 		log.Fatalf("cannot pipe: %v", err)
 	} else {
 		if msg.IsVerbose() {
-			cmd = exec.CommandContext(ctx, hakureiPath.String(), "-v", "app", "3")
+			cmd = exec.CommandContext(ctx, hakureiPathVal, "-v", "app", "3")
 		} else {
-			cmd = exec.CommandContext(ctx, hakureiPath.String(), "app", "3")
+			cmd = exec.CommandContext(ctx, hakureiPathVal, "app", "3")
 		}
 		cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
 		cmd.ExtraFiles = []*os.File{r}

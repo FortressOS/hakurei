@@ -26,6 +26,11 @@ const (
 	identityMax = 9999
 )
 
+// hakureiPath is the absolute path to Hakurei.
+//
+// This is set by the linker.
+var hakureiPath string
+
 func main() {
 	log.SetFlags(0)
 	log.SetPrefix("hsu: ")
@@ -43,13 +48,18 @@ func main() {
 		log.Fatal("this program must not be started by root")
 	}
 
+	if !path.IsAbs(hakureiPath) {
+		log.Fatal("this program is compiled incorrectly")
+		return
+	}
+
 	var toolPath string
 	pexe := path.Join("/proc", strconv.Itoa(os.Getppid()), "exe")
 	if p, err := os.Readlink(pexe); err != nil {
 		log.Fatalf("cannot read parent executable path: %v", err)
 	} else if strings.HasSuffix(p, " (deleted)") {
 		log.Fatal("hakurei executable has been deleted")
-	} else if p != mustCheckPath(hmain) {
+	} else if p != hakureiPath {
 		log.Fatal("this program must be started by hakurei")
 	} else {
 		toolPath = p

@@ -15,7 +15,6 @@ func TestMustCheckPath(t *testing.T) {
 		pathname  string
 		wantFatal string
 	}{
-		{"poison", compPoison, "invalid test path, this program is compiled incorrectly"},
 		{"zero", "", "invalid test path, this program is compiled incorrectly"},
 		{"not absolute", "\x00", `path "\x00" is not absolute`},
 		{"success", "/proc/nonexistent", ""},

@@ -75,9 +75,9 @@ buildGoModule rec {
         ]
       )
       {
-        version = "v${version}";
-        hmain = "${placeholder "out"}/libexec/hakurei";
-        hsu = "/run/wrappers/bin/hsu";
+        buildVersion = "v${version}";
+        hakureiPath = "${placeholder "out"}/libexec/hakurei";
+        hsuPath = "/run/wrappers/bin/hsu";
       };
 
   # nix build environment does not allow acls
