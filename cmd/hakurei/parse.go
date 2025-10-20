@@ -16,7 +16,7 @@ import (
 )
 
 func tryPath(msg message.Msg, name string) (config *hst.Config) {
-	var r io.Reader
+	var r io.ReadCloser
 	config = new(hst.Config)
 
 	if name != "-" {
@@ -25,23 +25,20 @@ func tryPath(msg message.Msg, name string) (config *hst.Config) {
 			msg.Verbose("load configuration from file")
 
 			if f, err := os.Open(name); err != nil {
-				log.Fatalf("cannot access configuration file %q: %s", name, err)
+				log.Fatal(err.Error())
+				return
 			} else {
-				// finalizer closes f
 				r = f
 			}
-		} else {
-			defer func() {
-				if err := r.(io.ReadCloser).Close(); err != nil {
-					log.Printf("cannot close config fd: %v", err)
-				}
-			}()
 		}
 	} else {
 		r = os.Stdin
 	}
 
 	decodeJSON(log.Fatal, "load configuration", r, &config)
+	if err := r.Close(); err != nil {
+		log.Fatal(err.Error())
+	}
 	return
 }
 
