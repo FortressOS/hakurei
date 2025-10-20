@@ -22,7 +22,7 @@ in
     {
       name = "funcgraph-retval";
       patch = null;
-      extraStructuredConfig.FUNCTION_GRAPH_RETVAL = lib.kernel.yes;
+      structuredExtraConfig.FUNCTION_GRAPH_RETVAL = lib.kernel.yes;
     }
   ];
 }
