@@ -52,7 +52,10 @@ type Paths struct {
 	RunDirPath *check.Absolute `json:"run_dir_path"`
 }
 
+// Info holds basic system information collected from the implementation.
 type Info struct {
+	// Version is a hardcoded version string.
+	Version string `json:"version"`
 	// User is the userid according to hsu.
 	User int `json:"user"`
 
