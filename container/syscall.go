@@ -1,13 +1,13 @@
 package container
 
 import (
-	"syscall"
+	. "syscall"
 	"unsafe"
 )
 
 // SetPtracer allows processes to ptrace(2) the calling process.
 func SetPtracer(pid uintptr) error {
-	_, _, errno := syscall.Syscall(syscall.SYS_PRCTL, syscall.PR_SET_PTRACER, pid, 0)
+	_, _, errno := Syscall(SYS_PRCTL, PR_SET_PTRACER, pid, 0)
 	if errno == 0 {
 		return nil
 	}
@@ -22,7 +22,7 @@ const (
 // SetDumpable sets the "dumpable" attribute of the calling process.
 func SetDumpable(dumpable uintptr) error {
 	// linux/sched/coredump.h
-	if _, _, errno := syscall.Syscall(syscall.SYS_PRCTL, syscall.PR_SET_DUMPABLE, dumpable, 0); errno != 0 {
+	if _, _, errno := Syscall(SYS_PRCTL, PR_SET_DUMPABLE, dumpable, 0); errno != 0 {
 		return errno
 	}
 
@@ -31,7 +31,7 @@ func SetDumpable(dumpable uintptr) error {
 
 // SetNoNewPrivs sets the calling thread's no_new_privs attribute.
 func SetNoNewPrivs() error {
-	_, _, errno := syscall.Syscall(syscall.SYS_PRCTL, PR_SET_NO_NEW_PRIVS, 1, 0)
+	_, _, errno := Syscall(SYS_PRCTL, PR_SET_NO_NEW_PRIVS, 1, 0)
 	if errno == 0 {
 		return nil
 	}
@@ -41,10 +41,10 @@ func SetNoNewPrivs() error {
 // Isatty tests whether a file descriptor refers to a terminal.
 func Isatty(fd int) bool {
 	var buf [8]byte
-	r, _, _ := syscall.Syscall(
-		syscall.SYS_IOCTL,
+	r, _, _ := Syscall(
+		SYS_IOCTL,
 		uintptr(fd),
-		syscall.TIOCGWINSZ,
+		TIOCGWINSZ,
 		uintptr(unsafe.Pointer(&buf[0])),
 	)
 	return r == 0
@@ -60,7 +60,7 @@ func Isatty(fd int) bool {
 func IgnoringEINTR(fn func() error) error {
 	for {
 		err := fn()
-		if err != syscall.EINTR {
+		if err != EINTR {
 			return err
 		}
 	}
