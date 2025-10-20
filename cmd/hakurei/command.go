@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -227,8 +226,11 @@ func buildCommand(ctx context.Context, msg message.Msg, early *earlyHardeningErr
 				} else {
 					if f, err := os.Open(flagDBusConfigSession); err != nil {
 						log.Fatal(err.Error())
-					} else if err = json.NewDecoder(f).Decode(&config.SessionBus); err != nil {
-						log.Fatalf("cannot load session bus proxy config from %q: %s", flagDBusConfigSession, err)
+					} else {
+						decodeJSON(log.Fatal, "load session bus proxy config", f, &config.SessionBus)
+						if err = f.Close(); err != nil {
+							log.Fatal(err.Error())
+						}
 					}
 				}
 
@@ -236,8 +238,11 @@ func buildCommand(ctx context.Context, msg message.Msg, early *earlyHardeningErr
 				if flagDBusConfigSystem != "nil" {
 					if f, err := os.Open(flagDBusConfigSystem); err != nil {
 						log.Fatal(err.Error())
-					} else if err = json.NewDecoder(f).Decode(&config.SystemBus); err != nil {
-						log.Fatalf("cannot load system bus proxy config from %q: %s", flagDBusConfigSystem, err)
+					} else {
+						decodeJSON(log.Fatal, "load system bus proxy config", f, &config.SystemBus)
+						if err = f.Close(); err != nil {
+							log.Fatal(err.Error())
+						}
 					}
 				}
 
@@ -323,7 +328,7 @@ func buildCommand(ctx context.Context, msg message.Msg, early *earlyHardeningErr
 
 	c.Command("version", "Display version information", func(args []string) error { fmt.Println(internal.Version()); return errSuccess })
 	c.Command("license", "Show full license text", func(args []string) error { fmt.Println(license); return errSuccess })
-	c.Command("template", "Produce a config template", func(args []string) error { printJSON(os.Stdout, false, hst.Template()); return errSuccess })
+	c.Command("template", "Produce a config template", func(args []string) error { encodeJSON(log.Fatal, os.Stdout, false, hst.Template()); return errSuccess })
 	c.Command("help", "Show this help message", func([]string) error { c.PrintHelp(); return errSuccess })
 
 	return c

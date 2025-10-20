@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -18,6 +17,7 @@ import (
 	"hakurei.app/message"
 )
 
+// printShowSystem populates and writes a representation of [hst.Info] to output.
 func printShowSystem(output io.Writer, short, flagJSON bool) {
 	t := newPrinter(output)
 	defer t.MustFlush()
@@ -26,7 +26,7 @@ func printShowSystem(output io.Writer, short, flagJSON bool) {
 	app.CopyPaths().Copy(&info.Paths, info.User)
 
 	if flagJSON {
-		printJSON(output, short, info)
+		encodeJSON(log.Fatal, output, short, info)
 		return
 	}
 
@@ -38,6 +38,7 @@ func printShowSystem(output io.Writer, short, flagJSON bool) {
 	t.Printf("RunDirPath:\t%s\n", info.RunDirPath)
 }
 
+// printShowInstance writes a representation of [state.State] or [hst.Config] to output.
 func printShowInstance(
 	output io.Writer, now time.Time,
 	instance *state.State, config *hst.Config,
@@ -46,9 +47,9 @@ func printShowInstance(
 
 	if flagJSON {
 		if instance != nil {
-			printJSON(output, short, instance)
+			encodeJSON(log.Fatal, output, short, instance)
 		} else {
-			printJSON(output, short, config)
+			encodeJSON(log.Fatal, output, short, config)
 		}
 		return
 	}
@@ -170,6 +171,7 @@ func printShowInstance(
 	return
 }
 
+// printPs writes a representation of active instances to output.
 func printPs(output io.Writer, now time.Time, s state.Store, short, flagJSON bool) {
 	var entries state.Entries
 	if e, err := state.Join(s); err != nil {
@@ -186,7 +188,7 @@ func printPs(output io.Writer, now time.Time, s state.Store, short, flagJSON boo
 		for id, instance := range entries {
 			es[id.String()] = instance
 		}
-		printJSON(output, short, es)
+		encodeJSON(log.Fatal, output, short, es)
 		return
 	}
 
@@ -215,7 +217,7 @@ func printPs(output io.Writer, now time.Time, s state.Store, short, flagJSON boo
 			for i, e := range exp {
 				v[i] = e.s
 			}
-			printJSON(output, short, v)
+			encodeJSON(log.Fatal, output, short, v)
 		} else {
 			for _, e := range exp {
 				mustPrintln(output, e.s[:8])
@@ -249,40 +251,39 @@ func printPs(output io.Writer, now time.Time, s state.Store, short, flagJSON boo
 	}
 }
 
+// expandedStateEntry stores [state.State] alongside a string representation of its [state.ID].
 type expandedStateEntry struct {
 	s string
 	*state.State
 }
 
-func printJSON(output io.Writer, short bool, v any) {
-	encoder := json.NewEncoder(output)
-	if !short {
-		encoder.SetIndent("", "  ")
-	}
-	if err := encoder.Encode(v); err != nil {
-		log.Fatalf("cannot serialise: %v", err)
-	}
-}
-
+// newPrinter returns a configured, wrapped [tabwriter.Writer].
 func newPrinter(output io.Writer) *tp { return &tp{tabwriter.NewWriter(output, 0, 1, 4, ' ', 0)} }
 
+// tp wraps [tabwriter.Writer] to provide additional formatting methods.
 type tp struct{ *tabwriter.Writer }
 
+// Printf calls [fmt.Fprintf] on the underlying [tabwriter.Writer].
 func (p *tp) Printf(format string, a ...any) {
 	if _, err := fmt.Fprintf(p, format, a...); err != nil {
 		log.Fatalf("cannot write to tabwriter: %v", err)
 	}
 }
+
+// Println calls [fmt.Fprintln] on the underlying [tabwriter.Writer].
 func (p *tp) Println(a ...any) {
 	if _, err := fmt.Fprintln(p, a...); err != nil {
 		log.Fatalf("cannot write to tabwriter: %v", err)
 	}
 }
+
+// MustFlush calls the Flush method of [tabwriter.Writer] and calls [log.Fatalf] on a non-nil error.
 func (p *tp) MustFlush() {
 	if err := p.Writer.Flush(); err != nil {
 		log.Fatalf("cannot flush tabwriter: %v", err)
 	}
 }
+
 func mustPrint(output io.Writer, a ...any) {
 	if _, err := fmt.Fprint(output, a...); err != nil {
 		log.Fatalf("cannot print: %v", err)

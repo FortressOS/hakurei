@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"errors"
 	"io"
 	"log"
@@ -42,10 +41,7 @@ func tryPath(msg message.Msg, name string) (config *hst.Config) {
 		r = os.Stdin
 	}
 
-	if err := json.NewDecoder(r).Decode(&config); err != nil {
-		log.Fatalf("cannot load configuration: %v", err)
-	}
-
+	decodeJSON(log.Fatal, "load configuration", r, &config)
 	return
 }
 
