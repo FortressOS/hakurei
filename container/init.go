@@ -96,15 +96,14 @@ type initParams struct {
 }
 
 // Init is called by [TryArgv0] if the current process is the container init.
-func Init(msg message.Msg) {
-	if msg == nil {
-		panic("attempting to call initEntrypoint with nil msg")
-	}
-	initEntrypoint(direct{}, msg)
-}
+func Init(msg message.Msg) { initEntrypoint(direct{}, msg) }
 
 func initEntrypoint(k syscallDispatcher, msg message.Msg) {
 	k.lockOSThread()
+
+	if msg == nil {
+		panic("attempting to call initEntrypoint with nil msg")
+	}
 
 	if k.getpid() != 1 {
 		k.fatal(msg, "this process must run as pid 1")
@@ -451,6 +450,7 @@ func initEntrypoint(k syscallDispatcher, msg message.Msg) {
 	}
 }
 
+// initName is the prefix used by log.std in the init process.
 const initName = "init"
 
 // TryArgv0 calls [Init] if the last element of argv0 is "init".
