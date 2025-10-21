@@ -5,32 +5,32 @@ package seccomp
 import (
 	. "syscall"
 
-	"hakurei.app/container/bits"
+	"hakurei.app/container/comp"
 )
 
-func Preset(presets bits.FilterPreset, flags ExportFlag) (rules []NativeRule) {
+func Preset(presets comp.FilterPreset, flags ExportFlag) (rules []NativeRule) {
 	allowedPersonality := PersonaLinux
-	if presets&bits.PresetLinux32 != 0 {
+	if presets&comp.PresetLinux32 != 0 {
 		allowedPersonality = PersonaLinux32
 	}
 	presetDevelFinal := presetDevel(ScmpDatum(allowedPersonality))
 
 	l := len(presetCommon)
-	if presets&bits.PresetDenyNS != 0 {
+	if presets&comp.PresetDenyNS != 0 {
 		l += len(presetNamespace)
 	}
-	if presets&bits.PresetDenyTTY != 0 {
+	if presets&comp.PresetDenyTTY != 0 {
 		l += len(presetTTY)
 	}
-	if presets&bits.PresetDenyDevel != 0 {
+	if presets&comp.PresetDenyDevel != 0 {
 		l += len(presetDevelFinal)
 	}
 	if flags&AllowMultiarch == 0 {
 		l += len(presetEmu)
 	}
-	if presets&bits.PresetExt != 0 {
+	if presets&comp.PresetExt != 0 {
 		l += len(presetCommonExt)
-		if presets&bits.PresetDenyNS != 0 {
+		if presets&comp.PresetDenyNS != 0 {
 			l += len(presetNamespaceExt)
 		}
 		if flags&AllowMultiarch == 0 {
@@ -40,21 +40,21 @@ func Preset(presets bits.FilterPreset, flags ExportFlag) (rules []NativeRule) {
 
 	rules = make([]NativeRule, 0, l)
 	rules = append(rules, presetCommon...)
-	if presets&bits.PresetDenyNS != 0 {
+	if presets&comp.PresetDenyNS != 0 {
 		rules = append(rules, presetNamespace...)
 	}
-	if presets&bits.PresetDenyTTY != 0 {
+	if presets&comp.PresetDenyTTY != 0 {
 		rules = append(rules, presetTTY...)
 	}
-	if presets&bits.PresetDenyDevel != 0 {
+	if presets&comp.PresetDenyDevel != 0 {
 		rules = append(rules, presetDevelFinal...)
 	}
 	if flags&AllowMultiarch == 0 {
 		rules = append(rules, presetEmu...)
 	}
-	if presets&bits.PresetExt != 0 {
+	if presets&comp.PresetExt != 0 {
 		rules = append(rules, presetCommonExt...)
-		if presets&bits.PresetDenyNS != 0 {
+		if presets&comp.PresetDenyNS != 0 {
 			rules = append(rules, presetNamespaceExt...)
 		}
 		if flags&AllowMultiarch == 0 {

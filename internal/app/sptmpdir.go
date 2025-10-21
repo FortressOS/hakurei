@@ -3,8 +3,8 @@ package app
 import (
 	"encoding/gob"
 
-	"hakurei.app/container/bits"
 	"hakurei.app/container/check"
+	"hakurei.app/container/comp"
 	"hakurei.app/container/fhs"
 	"hakurei.app/hst"
 	"hakurei.app/system"
@@ -30,7 +30,7 @@ func (s spTmpdirOp) toSystem(state *outcomeStateSys) error {
 func (s spTmpdirOp) toContainer(state *outcomeStateParams) error {
 	if state.Container.Flags&hst.FShareTmpdir != 0 {
 		_, tmpdirInst := s.commonPaths(state.outcomeState)
-		state.params.Bind(tmpdirInst, fhs.AbsTmp, bits.BindWritable)
+		state.params.Bind(tmpdirInst, fhs.AbsTmp, comp.BindWritable)
 	} else {
 		state.params.Tmpfs(fhs.AbsTmp, 0, 01777)
 	}

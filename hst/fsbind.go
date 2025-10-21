@@ -4,8 +4,8 @@ import (
 	"encoding/gob"
 	"strings"
 
-	"hakurei.app/container/bits"
 	"hakurei.app/container/check"
+	"hakurei.app/container/comp"
 	"hakurei.app/container/fhs"
 )
 
@@ -97,16 +97,16 @@ func (b *FSBind) Apply(z *ApplyState) {
 	}
 	var flags int
 	if b.Write {
-		flags |= bits.BindWritable
+		flags |= comp.BindWritable
 	}
 	if b.Device {
-		flags |= bits.BindDevice | bits.BindWritable
+		flags |= comp.BindDevice | comp.BindWritable
 	}
 	if b.Ensure {
-		flags |= bits.BindEnsure
+		flags |= comp.BindEnsure
 	}
 	if b.Optional {
-		flags |= bits.BindOptional
+		flags |= comp.BindOptional
 	}
 
 	switch {

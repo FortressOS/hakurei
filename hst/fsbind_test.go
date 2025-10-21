@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"hakurei.app/container"
-	"hakurei.app/container/bits"
+	"hakurei.app/container/comp"
 	"hakurei.app/hst"
 )
 
@@ -24,7 +24,7 @@ func TestFSBind(t *testing.T) {
 		}, true, container.Ops{&container.BindMountOp{
 			Source: m("/mnt/dev"),
 			Target: m("/dev"),
-			Flags:  bits.BindWritable | bits.BindDevice | bits.BindOptional,
+			Flags:  comp.BindWritable | comp.BindDevice | comp.BindOptional,
 		}}, m("/dev"), ms("/mnt/dev"),
 			"d+/mnt/dev:/dev"},
 
@@ -36,7 +36,7 @@ func TestFSBind(t *testing.T) {
 		}, true, container.Ops{&container.BindMountOp{
 			Source: m("/mnt/dev"),
 			Target: m("/dev"),
-			Flags:  bits.BindWritable | bits.BindDevice | bits.BindEnsure,
+			Flags:  comp.BindWritable | comp.BindDevice | comp.BindEnsure,
 		}}, m("/dev"), ms("/mnt/dev"),
 			"d-/mnt/dev:/dev"},
 
@@ -48,7 +48,7 @@ func TestFSBind(t *testing.T) {
 		}, true, container.Ops{&container.BindMountOp{
 			Source: m("/mnt/dev"),
 			Target: m("/dev"),
-			Flags:  bits.BindWritable | bits.BindDevice,
+			Flags:  comp.BindWritable | comp.BindDevice,
 		}}, m("/dev"), ms("/mnt/dev"),
 			"d*/mnt/dev:/dev"},
 
@@ -59,7 +59,7 @@ func TestFSBind(t *testing.T) {
 		}, true, container.Ops{&container.BindMountOp{
 			Source: m("/mnt/tmp"),
 			Target: m("/tmp"),
-			Flags:  bits.BindWritable,
+			Flags:  comp.BindWritable,
 		}}, m("/tmp"), ms("/mnt/tmp"),
 			"w*/mnt/tmp:/tmp"},
 
@@ -98,7 +98,7 @@ func TestFSBind(t *testing.T) {
 			Special: true,
 		}, true, container.Ops{&container.AutoRootOp{
 			Host:  m("/"),
-			Flags: bits.BindWritable,
+			Flags: comp.BindWritable,
 		}}, m("/"), ms("/"), "autoroot:w"},
 
 		{"autoroot silly", &hst.FSBind{
@@ -108,7 +108,7 @@ func TestFSBind(t *testing.T) {
 			Special: true,
 		}, true, container.Ops{&container.AutoRootOp{
 			Host:  m("/etc"),
-			Flags: bits.BindWritable,
+			Flags: comp.BindWritable,
 		}}, m("/"), ms("/etc"), "autoroot:w:/etc"},
 
 		{"autoetc", &hst.FSBind{

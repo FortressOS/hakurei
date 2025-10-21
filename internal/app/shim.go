@@ -14,7 +14,7 @@ import (
 	"time"
 
 	"hakurei.app/container"
-	"hakurei.app/container/bits"
+	"hakurei.app/container/comp"
 	"hakurei.app/container/seccomp"
 	"hakurei.app/hst"
 	"hakurei.app/message"
@@ -176,7 +176,7 @@ func ShimMain() {
 	}
 
 	if err := seccomp.Load(
-		seccomp.Preset(bits.PresetStrict, seccomp.AllowMultiarch),
+		seccomp.Preset(comp.PresetStrict, seccomp.AllowMultiarch),
 		seccomp.AllowMultiarch,
 	); err != nil {
 		log.Fatalf("cannot load syscall filter: %v", err)

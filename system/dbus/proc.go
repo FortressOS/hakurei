@@ -9,8 +9,8 @@ import (
 	"syscall"
 
 	"hakurei.app/container"
-	"hakurei.app/container/bits"
 	"hakurei.app/container/check"
+	"hakurei.app/container/comp"
 	"hakurei.app/container/seccomp"
 	"hakurei.app/helper"
 	"hakurei.app/ldd"
@@ -65,7 +65,7 @@ func (p *Proxy) Start() error {
 			p.final, true,
 			argF, func(z *container.Container) {
 				z.SeccompFlags |= seccomp.AllowMultiarch
-				z.SeccompPresets |= bits.PresetStrict
+				z.SeccompPresets |= comp.PresetStrict
 				z.Hostname = "hakurei-dbus"
 				if p.output != nil {
 					z.Stdout, z.Stderr = p.output, p.output
@@ -114,7 +114,7 @@ func (p *Proxy) Start() error {
 				check.SortAbs(sockDirPaths)
 				sockDirPaths = check.CompactAbs(sockDirPaths)
 				for _, name := range sockDirPaths {
-					z.Bind(name, name, bits.BindWritable)
+					z.Bind(name, name, comp.BindWritable)
 				}
 
 				// xdg-dbus-proxy bin path

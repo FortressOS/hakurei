@@ -8,8 +8,8 @@ import (
 	"testing"
 
 	"hakurei.app/container"
-	"hakurei.app/container/bits"
 	"hakurei.app/container/check"
+	"hakurei.app/container/comp"
 	"hakurei.app/container/fhs"
 	"hakurei.app/container/seccomp"
 	"hakurei.app/container/stub"
@@ -65,11 +65,11 @@ func TestSpParamsOp(t *testing.T) {
 			HostAbstract:   true,
 			Path:           config.Container.Path,
 			Args:           []string{config.Container.Path.String()},
-			SeccompPresets: bits.PresetExt | bits.PresetDenyDevel | bits.PresetDenyNS | bits.PresetDenyTTY,
+			SeccompPresets: comp.PresetExt | comp.PresetDenyDevel | comp.PresetDenyNS | comp.PresetDenyTTY,
 			Uid:            1000,
 			Gid:            100,
 			Ops: new(container.Ops).
-				Root(m("/var/lib/hakurei/base/org.debian"), bits.BindWritable).
+				Root(m("/var/lib/hakurei/base/org.debian"), comp.BindWritable).
 				Proc(fhs.AbsProc).Tmpfs(hst.AbsPrivateTmp, 1<<12, 0755).
 				DevWritable(fhs.AbsDev, true).
 				Tmpfs(fhs.AbsDev.Append("shm"), 0, 01777),
@@ -107,9 +107,9 @@ func TestSpParamsOp(t *testing.T) {
 			Uid:           1000,
 			Gid:           100,
 			Ops: new(container.Ops).
-				Root(m("/var/lib/hakurei/base/org.debian"), bits.BindWritable).
+				Root(m("/var/lib/hakurei/base/org.debian"), comp.BindWritable).
 				Proc(fhs.AbsProc).Tmpfs(hst.AbsPrivateTmp, 1<<12, 0755).
-				Bind(fhs.AbsDev, fhs.AbsDev, bits.BindWritable|bits.BindDevice).
+				Bind(fhs.AbsDev, fhs.AbsDev, comp.BindWritable|comp.BindDevice).
 				Tmpfs(fhs.AbsDev.Append("shm"), 0, 01777),
 		}, paramsWantEnv(config, map[string]string{
 			"TERM": "xterm",
@@ -425,8 +425,8 @@ func TestSpFilesystemOp(t *testing.T) {
 				Bind(
 					fhs.AbsVarLib.Append("hakurei/u0/org.chromium.Chromium"),
 					check.MustAbs("/data/data/org.chromium.Chromium"),
-					bits.BindWritable|bits.BindEnsure).
-				Bind(fhs.AbsDev.Append("dri"), fhs.AbsDev.Append("dri"), bits.BindDevice|bits.BindWritable|bits.BindOptional).
+					comp.BindWritable|comp.BindEnsure).
+				Bind(fhs.AbsDev.Append("dri"), fhs.AbsDev.Append("dri"), comp.BindDevice|comp.BindWritable|comp.BindOptional).
 				Remount(fhs.AbsRoot, syscall.MS_RDONLY),
 		}, nil, nil},
 	})

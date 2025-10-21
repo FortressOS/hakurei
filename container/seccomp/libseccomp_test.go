@@ -6,7 +6,7 @@ import (
 	"syscall"
 	"testing"
 
-	. "hakurei.app/container/bits"
+	. "hakurei.app/container/comp"
 	. "hakurei.app/container/seccomp"
 )
 

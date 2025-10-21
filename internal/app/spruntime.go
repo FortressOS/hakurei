@@ -3,8 +3,8 @@ package app
 import (
 	"encoding/gob"
 
-	"hakurei.app/container/bits"
 	"hakurei.app/container/check"
+	"hakurei.app/container/comp"
 	"hakurei.app/container/fhs"
 	"hakurei.app/hst"
 	"hakurei.app/system"
@@ -111,7 +111,7 @@ func (s *spRuntimeOp) toContainer(state *outcomeStateParams) error {
 	state.params.Tmpfs(fhs.AbsRunUser, 1<<12, 0755)
 	if state.Container.Flags&hst.FShareRuntime != 0 {
 		_, runtimeDirInst := s.commonPaths(state.outcomeState)
-		state.params.Bind(runtimeDirInst, state.runtimeDir, bits.BindWritable)
+		state.params.Bind(runtimeDirInst, state.runtimeDir, comp.BindWritable)
 	} else {
 		state.params.Mkdir(state.runtimeDir, 0700)
 	}

@@ -1,7 +1,7 @@
 package seccomp_test
 
 import (
-	. "hakurei.app/container/bits"
+	. "hakurei.app/container/comp"
 	. "hakurei.app/container/seccomp"
 )
 

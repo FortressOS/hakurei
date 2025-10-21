@@ -11,8 +11,8 @@ import (
 	"syscall"
 
 	"hakurei.app/container"
-	"hakurei.app/container/bits"
 	"hakurei.app/container/check"
+	"hakurei.app/container/comp"
 	"hakurei.app/container/fhs"
 	"hakurei.app/container/seccomp"
 	"hakurei.app/hst"
@@ -75,16 +75,16 @@ func (s *spParamsOp) toContainer(state *outcomeStateParams) error {
 	}
 
 	if state.Container.Flags&hst.FSeccompCompat == 0 {
-		state.params.SeccompPresets |= bits.PresetExt
+		state.params.SeccompPresets |= comp.PresetExt
 	}
 	if state.Container.Flags&hst.FDevel == 0 {
-		state.params.SeccompPresets |= bits.PresetDenyDevel
+		state.params.SeccompPresets |= comp.PresetDenyDevel
 	}
 	if state.Container.Flags&hst.FUserns == 0 {
-		state.params.SeccompPresets |= bits.PresetDenyNS
+		state.params.SeccompPresets |= comp.PresetDenyNS
 	}
 	if state.Container.Flags&hst.FTty == 0 {
-		state.params.SeccompPresets |= bits.PresetDenyTTY
+		state.params.SeccompPresets |= comp.PresetDenyTTY
 	}
 
 	if state.Container.Flags&hst.FMapRealUID != 0 {
@@ -112,7 +112,7 @@ func (s *spParamsOp) toContainer(state *outcomeStateParams) error {
 	if state.Container.Flags&hst.FDevice == 0 {
 		state.params.DevWritable(fhs.AbsDev, true)
 	} else {
-		state.params.Bind(fhs.AbsDev, fhs.AbsDev, bits.BindWritable|bits.BindDevice)
+		state.params.Bind(fhs.AbsDev, fhs.AbsDev, comp.BindWritable|comp.BindDevice)
 	}
 	// /dev is mounted readonly later on, this prevents /dev/shm from going readonly with it
 	state.params.Tmpfs(fhs.AbsDev.Append("shm"), 0, 01777)
