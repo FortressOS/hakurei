@@ -43,7 +43,7 @@ func TestPrintShowInstance(t *testing.T) {
  Groups:         video, dialout, plugdev
  Home:           /data/data/org.chromium.Chromium
  Hostname:       localhost
- Flags:          userns devel net abstract device tty mapuid
+ Flags:          multiarch, compat, devel, userns, net, abstract, tty, mapuid, device, runtime, tmpdir
  Path:           /run/current-system/sw/bin/chromium
  Arguments:      chromium --ignore-gpu-blocklist --disable-smooth-scrolling --enable-features=UseOzonePlatform --ozone-platform=wayland
 
@@ -88,6 +88,22 @@ App
  Flags:          none
 
 `, false},
+		{"config flag none directwl", nil, &hst.Config{DirectWayland: true, Container: new(hst.ContainerConfig)}, false, false, `Error: container configuration missing path to home directory!
+
+App
+ Identity:       0
+ Enablements:    (no enablements)
+ Flags:          directwl
+
+`, false},
+		{"config flag directwl", nil, &hst.Config{DirectWayland: true, Container: &hst.ContainerConfig{Flags: hst.FMultiarch}}, false, false, `Error: container configuration missing path to home directory!
+
+App
+ Identity:       0
+ Enablements:    (no enablements)
+ Flags:          multiarch, directwl
+
+`, false},
 		{"config nil entries", nil, &hst.Config{Container: &hst.ContainerConfig{Filesystem: make([]hst.FilesystemConfigJSON, 1)}, ExtraPerms: make([]hst.ExtraPermConfig, 1)}, false, false, `Error: container configuration missing path to home directory!
 
 App
@@ -124,7 +140,7 @@ App
  Groups:         video, dialout, plugdev
  Home:           /data/data/org.chromium.Chromium
  Hostname:       localhost
- Flags:          userns devel net abstract device tty mapuid
+ Flags:          multiarch, compat, devel, userns, net, abstract, tty, mapuid, device, runtime, tmpdir
  Path:           /run/current-system/sw/bin/chromium
  Arguments:      chromium --ignore-gpu-blocklist --disable-smooth-scrolling --enable-features=UseOzonePlatform --ozone-platform=wayland
 

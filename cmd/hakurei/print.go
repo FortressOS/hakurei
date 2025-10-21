@@ -89,24 +89,19 @@ func printShowInstance(
 		if params.Hostname != "" {
 			t.Printf(" Hostname:\t%s\n", params.Hostname)
 		}
-		flags := make([]string, 0, 7)
-		writeFlag := func(name string, flag uintptr, force bool) {
-			if params.Flags&flag != 0 || force {
-				flags = append(flags, name)
+		flags := params.Flags.String()
+
+		// this is included in the upper hst.Config struct but is relevant here
+		const flagDirectWayland = "directwl"
+		if config.DirectWayland {
+			// hardcoded value when every flag is unset
+			if flags == "none" {
+				flags = flagDirectWayland
+			} else {
+				flags += ", " + flagDirectWayland
 			}
 		}
-		writeFlag("userns", hst.FUserns, false)
-		writeFlag("devel", hst.FDevel, false)
-		writeFlag("net", hst.FHostNet, false)
-		writeFlag("abstract", hst.FHostAbstract, false)
-		writeFlag("device", hst.FDevice, false)
-		writeFlag("tty", hst.FTty, false)
-		writeFlag("mapuid", hst.FMapRealUID, false)
-		writeFlag("directwl", 0, config.DirectWayland)
-		if len(flags) == 0 {
-			flags = append(flags, "none")
-		}
-		t.Printf(" Flags:\t%s\n", strings.Join(flags, " "))
+		t.Printf(" Flags:\t%s\n", flags)
 
 		if params.Path != nil {
 			t.Printf(" Path:\t%s\n", params.Path)

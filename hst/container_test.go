@@ -3,12 +3,37 @@ package hst_test
 import (
 	"encoding/json"
 	"errors"
+	"math"
 	"reflect"
 	"syscall"
 	"testing"
 
 	"hakurei.app/hst"
 )
+
+func TestFlagsString(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name  string
+		flags hst.Flags
+		want  string
+	}{
+		{"none", 0, "none"},
+		{"none high", hst.FAll + 1, "none"},
+		{"all", hst.FAll, "multiarch, compat, devel, userns, net, abstract, tty, mapuid, device, runtime, tmpdir"},
+		{"all high", math.MaxUint, "multiarch, compat, devel, userns, net, abstract, tty, mapuid, device, runtime, tmpdir"},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			if got := tc.flags.String(); got != tc.want {
+				t.Errorf("String(%#b): %q, want %q", tc.flags, got, tc.want)
+			}
+		})
+	}
+}
 
 func TestContainerConfig(t *testing.T) {
 	t.Parallel()

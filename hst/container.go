@@ -2,6 +2,7 @@ package hst
 
 import (
 	"encoding/json"
+	"strings"
 	"syscall"
 	"time"
 
@@ -38,9 +39,12 @@ const (
 	ExitRequest = 254
 )
 
+// Flags are options held by [ContainerConfig].
+type Flags uintptr
+
 const (
 	// FMultiarch unblocks syscalls required for multiarch to work on applicable targets.
-	FMultiarch uintptr = 1 << iota
+	FMultiarch Flags = 1 << iota
 
 	// FSeccompCompat changes emitted seccomp filter programs to be identical to that of Flatpak.
 	FSeccompCompat
@@ -74,6 +78,45 @@ const (
 	FAll = fMax - 1
 )
 
+func (flags Flags) String() string {
+	switch flags {
+	case FMultiarch:
+		return "multiarch"
+	case FSeccompCompat:
+		return "compat"
+	case FDevel:
+		return "devel"
+	case FUserns:
+		return "userns"
+	case FHostNet:
+		return "net"
+	case FHostAbstract:
+		return "abstract"
+	case FTty:
+		return "tty"
+	case FMapRealUID:
+		return "mapuid"
+	case FDevice:
+		return "device"
+	case FShareRuntime:
+		return "runtime"
+	case FShareTmpdir:
+		return "tmpdir"
+
+	default:
+		s := make([]string, 0, 1<<4)
+		for f := Flags(1); f < fMax; f <<= 1 {
+			if flags&f != 0 {
+				s = append(s, f.String())
+			}
+		}
+		if len(s) == 0 {
+			return "none"
+		}
+		return strings.Join(s, ", ")
+	}
+}
+
 // ContainerConfig describes the container configuration to be applied to an underlying [container].
 type ContainerConfig struct {
 	// Container UTS namespace hostname.
@@ -106,7 +149,7 @@ type ContainerConfig struct {
 	Args []string `json:"args"`
 
 	// Flags holds boolean options of [ContainerConfig].
-	Flags uintptr `json:"-"`
+	Flags Flags `json:"-"`
 }
 
 // ContainerConfigF is [ContainerConfig] stripped of its methods.
