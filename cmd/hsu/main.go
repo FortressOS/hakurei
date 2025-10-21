@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"path"
+	"runtime"
 	"slices"
 	"strconv"
 	"strings"
@@ -32,6 +33,8 @@ const (
 var hakureiPath string
 
 func main() {
+	runtime.LockOSThread()
+
 	log.SetFlags(0)
 	log.SetPrefix("hsu: ")
 	log.SetOutput(os.Stderr)
