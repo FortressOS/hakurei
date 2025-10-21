@@ -5,38 +5,29 @@ import (
 	"unsafe"
 )
 
-// SetPtracer allows processes to ptrace(2) the calling process.
-func SetPtracer(pid uintptr) error {
-	_, _, errno := Syscall(SYS_PRCTL, PR_SET_PTRACER, pid, 0)
-	if errno == 0 {
-		return nil
+// Prctl manipulates various aspects of the behavior of the calling thread or process.
+func Prctl(op, arg2, arg3 uintptr) error {
+	r, _, errno := Syscall(SYS_PRCTL, op, arg2, arg3)
+	if r < 0 {
+		return errno
 	}
-	return errno
+	return nil
 }
 
+// SetPtracer allows processes to ptrace(2) the calling process.
+func SetPtracer(pid uintptr) error { return Prctl(PR_SET_PTRACER, pid, 0) }
+
+// linux/sched/coredump.h
 const (
 	SUID_DUMP_DISABLE = iota
 	SUID_DUMP_USER
 )
 
 // SetDumpable sets the "dumpable" attribute of the calling process.
-func SetDumpable(dumpable uintptr) error {
-	// linux/sched/coredump.h
-	if _, _, errno := Syscall(SYS_PRCTL, PR_SET_DUMPABLE, dumpable, 0); errno != 0 {
-		return errno
-	}
-
-	return nil
-}
+func SetDumpable(dumpable uintptr) error { return Prctl(PR_SET_DUMPABLE, dumpable, 0) }
 
 // SetNoNewPrivs sets the calling thread's no_new_privs attribute.
-func SetNoNewPrivs() error {
-	_, _, errno := Syscall(SYS_PRCTL, PR_SET_NO_NEW_PRIVS, 1, 0)
-	if errno == 0 {
-		return nil
-	}
-	return errno
-}
+func SetNoNewPrivs() error { return Prctl(PR_SET_NO_NEW_PRIVS, 1, 0) }
 
 // Isatty tests whether a file descriptor refers to a terminal.
 func Isatty(fd int) bool {
