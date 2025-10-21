@@ -41,15 +41,136 @@ func TestApp(t *testing.T) {
 		wantSys    *system.I
 		wantParams *container.Params
 	}{
-		{
-			"nixos permissive defaults no enablements", new(stubNixOS),
-			&hst.Config{Container: &hst.ContainerConfig{
+		{"nixos permissive defaults no enablements", new(stubNixOS), &hst.Config{Container: &hst.ContainerConfig{
+			Filesystem: []hst.FilesystemConfigJSON{
+				{FilesystemConfig: &hst.FSBind{
+					Target:  fhs.AbsRoot,
+					Source:  fhs.AbsRoot,
+					Write:   true,
+					Special: true,
+				}},
+				{FilesystemConfig: &hst.FSBind{
+					Source:   fhs.AbsDev.Append("kvm"),
+					Device:   true,
+					Optional: true,
+				}},
+				{FilesystemConfig: &hst.FSBind{
+					Target:  fhs.AbsEtc,
+					Source:  fhs.AbsEtc,
+					Special: true,
+				}},
+			},
+
+			Username: "chronos",
+			Shell:    m("/run/current-system/sw/bin/zsh"),
+			Home:     m("/home/chronos"),
+
+			Path: m("/run/current-system/sw/bin/zsh"),
+			Args: []string{"/run/current-system/sw/bin/zsh"},
+
+			Flags: hst.FUserns | hst.FHostNet | hst.FHostAbstract | hst.FTty | hst.FShareRuntime | hst.FShareTmpdir,
+		}}, state.ID{
+			0x4a, 0x45, 0x0b, 0x65,
+			0x96, 0xd7, 0xbc, 0x15,
+			0xbd, 0x01, 0x78, 0x0e,
+			0xb9, 0xa6, 0x07, 0xac,
+		}, system.New(t.Context(), msg, 1000000).
+			Ensure(m("/tmp/hakurei.0"), 0711).
+			Ensure(m("/tmp/hakurei.0/runtime"), 0700).
+			UpdatePermType(system.User, m("/tmp/hakurei.0/runtime"), acl.Execute).
+			Ensure(m("/tmp/hakurei.0/runtime/0"), 0700).
+			UpdatePermType(system.User, m("/tmp/hakurei.0/runtime/0"), acl.Read, acl.Write, acl.Execute).
+			Ensure(m("/tmp/hakurei.0/tmpdir"), 0700).
+			UpdatePermType(system.User, m("/tmp/hakurei.0/tmpdir"), acl.Execute).
+			Ensure(m("/tmp/hakurei.0/tmpdir/0"), 01700).
+			UpdatePermType(system.User, m("/tmp/hakurei.0/tmpdir/0"), acl.Read, acl.Write, acl.Execute), &container.Params{
+
+			Dir:  m("/home/chronos"),
+			Path: m("/run/current-system/sw/bin/zsh"),
+			Args: []string{"/run/current-system/sw/bin/zsh"},
+			Env: []string{
+				"HOME=/home/chronos",
+				"SHELL=/run/current-system/sw/bin/zsh",
+				"TERM=xterm-256color",
+				"USER=chronos",
+				"XDG_RUNTIME_DIR=/run/user/65534",
+				"XDG_SESSION_CLASS=user",
+				"XDG_SESSION_TYPE=tty",
+			},
+			Ops: new(container.Ops).
+				Root(m("/"), comp.BindWritable).
+				Proc(m("/proc/")).
+				Tmpfs(hst.AbsPrivateTmp, 4096, 0755).
+				DevWritable(m("/dev/"), true).
+				Tmpfs(m("/dev/shm"), 0, 01777).
+				Tmpfs(m("/run/user/"), 4096, 0755).
+				Bind(m("/tmp/hakurei.0/runtime/0"), m("/run/user/65534"), comp.BindWritable).
+				Bind(m("/tmp/hakurei.0/tmpdir/0"), m("/tmp/"), comp.BindWritable).
+				Place(m("/etc/passwd"), []byte("chronos:x:65534:65534:Hakurei:/home/chronos:/run/current-system/sw/bin/zsh\n")).
+				Place(m("/etc/group"), []byte("hakurei:x:65534:\n")).
+				Bind(m("/dev/kvm"), m("/dev/kvm"), comp.BindWritable|comp.BindDevice|comp.BindOptional).
+				Etc(m("/etc/"), "4a450b6596d7bc15bd01780eb9a607ac").
+				Tmpfs(m("/run/user/1971"), 8192, 0755).
+				Tmpfs(m("/run/nscd"), 8192, 0755).
+				Tmpfs(m("/run/dbus"), 8192, 0755).
+				Remount(m("/dev/"), syscall.MS_RDONLY).
+				Remount(m("/"), syscall.MS_RDONLY),
+			SeccompPresets: comp.PresetExt | comp.PresetDenyDevel,
+			HostNet:        true,
+			HostAbstract:   true,
+			RetainSession:  true,
+			ForwardCancel:  true,
+		}},
+
+		{"nixos permissive defaults chromium", new(stubNixOS), &hst.Config{
+			ID:       "org.chromium.Chromium",
+			Identity: 9,
+			Groups:   []string{"video"},
+			SessionBus: &hst.BusConfig{
+				Talk: []string{
+					"org.freedesktop.Notifications",
+					"org.freedesktop.FileManager1",
+					"org.freedesktop.ScreenSaver",
+					"org.freedesktop.secrets",
+					"org.kde.kwalletd5",
+					"org.kde.kwalletd6",
+					"org.gnome.SessionManager",
+				},
+				Own: []string{
+					"org.chromium.Chromium.*",
+					"org.mpris.MediaPlayer2.org.chromium.Chromium.*",
+					"org.mpris.MediaPlayer2.chromium.*",
+				},
+				Call: map[string]string{
+					"org.freedesktop.portal.*": "*",
+				},
+				Broadcast: map[string]string{
+					"org.freedesktop.portal.*": "@/org/freedesktop/portal/*",
+				},
+				Filter: true,
+			},
+			SystemBus: &hst.BusConfig{
+				Talk: []string{
+					"org.bluez",
+					"org.freedesktop.Avahi",
+					"org.freedesktop.UPower",
+				},
+				Filter: true,
+			},
+			Enablements: hst.NewEnablements(hst.EWayland | hst.EDBus | hst.EPulse),
+
+			Container: &hst.ContainerConfig{
 				Filesystem: []hst.FilesystemConfigJSON{
 					{FilesystemConfig: &hst.FSBind{
 						Target:  fhs.AbsRoot,
 						Source:  fhs.AbsRoot,
 						Write:   true,
 						Special: true,
+					}},
+					{FilesystemConfig: &hst.FSBind{
+						Source:   fhs.AbsDev.Append("dri"),
+						Device:   true,
+						Optional: true,
 					}},
 					{FilesystemConfig: &hst.FSBind{
 						Source:   fhs.AbsDev.Append("kvm"),
@@ -68,395 +189,264 @@ func TestApp(t *testing.T) {
 				Home:     m("/home/chronos"),
 
 				Path: m("/run/current-system/sw/bin/zsh"),
-				Args: []string{"/run/current-system/sw/bin/zsh"},
+				Args: []string{"zsh", "-c", "exec chromium "},
 
 				Flags: hst.FUserns | hst.FHostNet | hst.FHostAbstract | hst.FTty | hst.FShareRuntime | hst.FShareTmpdir,
-			}},
-			state.ID{
-				0x4a, 0x45, 0x0b, 0x65,
-				0x96, 0xd7, 0xbc, 0x15,
-				0xbd, 0x01, 0x78, 0x0e,
-				0xb9, 0xa6, 0x07, 0xac,
 			},
-			system.New(t.Context(), msg, 1000000).
-				Ensure(m("/tmp/hakurei.0"), 0711).
-				Ensure(m("/tmp/hakurei.0/runtime"), 0700).UpdatePermType(system.User, m("/tmp/hakurei.0/runtime"), acl.Execute).
-				Ensure(m("/tmp/hakurei.0/runtime/0"), 0700).UpdatePermType(system.User, m("/tmp/hakurei.0/runtime/0"), acl.Read, acl.Write, acl.Execute).
-				Ensure(m("/tmp/hakurei.0/tmpdir"), 0700).UpdatePermType(system.User, m("/tmp/hakurei.0/tmpdir"), acl.Execute).
-				Ensure(m("/tmp/hakurei.0/tmpdir/0"), 01700).UpdatePermType(system.User, m("/tmp/hakurei.0/tmpdir/0"), acl.Read, acl.Write, acl.Execute),
-			&container.Params{
-				Dir:  m("/home/chronos"),
-				Path: m("/run/current-system/sw/bin/zsh"),
-				Args: []string{"/run/current-system/sw/bin/zsh"},
-				Env: []string{
-					"HOME=/home/chronos",
-					"SHELL=/run/current-system/sw/bin/zsh",
-					"TERM=xterm-256color",
-					"USER=chronos",
-					"XDG_RUNTIME_DIR=/run/user/65534",
-					"XDG_SESSION_CLASS=user",
-					"XDG_SESSION_TYPE=tty",
+		}, state.ID{
+			0xeb, 0xf0, 0x83, 0xd1,
+			0xb1, 0x75, 0x91, 0x17,
+			0x82, 0xd4, 0x13, 0x36,
+			0x9b, 0x64, 0xce, 0x7c,
+		}, system.New(t.Context(), msg, 1000009).
+			Ensure(m("/tmp/hakurei.0"), 0711).
+			Ensure(m("/tmp/hakurei.0/runtime"), 0700).UpdatePermType(system.User, m("/tmp/hakurei.0/runtime"), acl.Execute).
+			Ensure(m("/tmp/hakurei.0/runtime/9"), 0700).UpdatePermType(system.User, m("/tmp/hakurei.0/runtime/9"), acl.Read, acl.Write, acl.Execute).
+			Ensure(m("/tmp/hakurei.0/tmpdir"), 0700).UpdatePermType(system.User, m("/tmp/hakurei.0/tmpdir"), acl.Execute).
+			Ensure(m("/tmp/hakurei.0/tmpdir/9"), 01700).UpdatePermType(system.User, m("/tmp/hakurei.0/tmpdir/9"), acl.Read, acl.Write, acl.Execute).
+			Ephemeral(system.Process, m("/tmp/hakurei.0/ebf083d1b175911782d413369b64ce7c"), 0711).
+			Wayland(m("/tmp/hakurei.0/ebf083d1b175911782d413369b64ce7c/wayland"), m("/run/user/1971/wayland-0"), "org.chromium.Chromium", "ebf083d1b175911782d413369b64ce7c").
+			Ensure(m("/run/user/1971/hakurei"), 0700).UpdatePermType(system.User, m("/run/user/1971/hakurei"), acl.Execute).
+			Ensure(m("/run/user/1971"), 0700).UpdatePermType(system.User, m("/run/user/1971"), acl.Execute). // this is ordered as is because the previous Ensure only calls mkdir if XDG_RUNTIME_DIR is unset
+			Ephemeral(system.Process, m("/run/user/1971/hakurei/ebf083d1b175911782d413369b64ce7c"), 0700).UpdatePermType(system.Process, m("/run/user/1971/hakurei/ebf083d1b175911782d413369b64ce7c"), acl.Execute).
+			Link(m("/run/user/1971/pulse/native"), m("/run/user/1971/hakurei/ebf083d1b175911782d413369b64ce7c/pulse")).
+			MustProxyDBus(&hst.BusConfig{
+				Talk: []string{
+					"org.freedesktop.Notifications",
+					"org.freedesktop.FileManager1",
+					"org.freedesktop.ScreenSaver",
+					"org.freedesktop.secrets",
+					"org.kde.kwalletd5",
+					"org.kde.kwalletd6",
+					"org.gnome.SessionManager",
 				},
-				Ops: new(container.Ops).
-					Root(m("/"), comp.BindWritable).
-					Proc(m("/proc/")).
-					Tmpfs(hst.AbsPrivateTmp, 4096, 0755).
-					DevWritable(m("/dev/"), true).
-					Tmpfs(m("/dev/shm"), 0, 01777).
-					Tmpfs(m("/run/user/"), 4096, 0755).
-					Bind(m("/tmp/hakurei.0/runtime/0"), m("/run/user/65534"), comp.BindWritable).
-					Bind(m("/tmp/hakurei.0/tmpdir/0"), m("/tmp/"), comp.BindWritable).
-					Place(m("/etc/passwd"), []byte("chronos:x:65534:65534:Hakurei:/home/chronos:/run/current-system/sw/bin/zsh\n")).
-					Place(m("/etc/group"), []byte("hakurei:x:65534:\n")).
-					Bind(m("/dev/kvm"), m("/dev/kvm"), comp.BindWritable|comp.BindDevice|comp.BindOptional).
-					Etc(m("/etc/"), "4a450b6596d7bc15bd01780eb9a607ac").
-					Tmpfs(m("/run/user/1971"), 8192, 0755).
-					Tmpfs(m("/run/nscd"), 8192, 0755).
-					Tmpfs(m("/run/dbus"), 8192, 0755).
-					Remount(m("/dev/"), syscall.MS_RDONLY).
-					Remount(m("/"), syscall.MS_RDONLY),
-				SeccompPresets: comp.PresetExt | comp.PresetDenyDevel,
-				HostNet:        true,
-				HostAbstract:   true,
-				RetainSession:  true,
-				ForwardCancel:  true,
+				Own: []string{
+					"org.chromium.Chromium.*",
+					"org.mpris.MediaPlayer2.org.chromium.Chromium.*",
+					"org.mpris.MediaPlayer2.chromium.*",
+				},
+				Call: map[string]string{
+					"org.freedesktop.portal.*": "*",
+				},
+				Broadcast: map[string]string{
+					"org.freedesktop.portal.*": "@/org/freedesktop/portal/*",
+				},
+				Filter: true,
+			}, &hst.BusConfig{
+				Talk: []string{
+					"org.bluez",
+					"org.freedesktop.Avahi",
+					"org.freedesktop.UPower",
+				},
+				Filter: true,
+			}, dbus.ProxyPair{
+				"unix:path=/run/user/1971/bus",
+				"/tmp/hakurei.0/ebf083d1b175911782d413369b64ce7c/bus",
+			}, dbus.ProxyPair{
+				"unix:path=/var/run/dbus/system_bus_socket",
+				"/tmp/hakurei.0/ebf083d1b175911782d413369b64ce7c/system_bus_socket",
+			}).
+			UpdatePerm(m("/tmp/hakurei.0/ebf083d1b175911782d413369b64ce7c/bus"), acl.Read, acl.Write).
+			UpdatePerm(m("/tmp/hakurei.0/ebf083d1b175911782d413369b64ce7c/system_bus_socket"), acl.Read, acl.Write), &container.Params{
+
+			Dir:  m("/home/chronos"),
+			Path: m("/run/current-system/sw/bin/zsh"),
+			Args: []string{"zsh", "-c", "exec chromium "},
+			Env: []string{
+				"DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/65534/bus",
+				"DBUS_SYSTEM_BUS_ADDRESS=unix:path=/var/run/dbus/system_bus_socket",
+				"HOME=/home/chronos",
+				"PULSE_COOKIE=" + hst.PrivateTmp + "/pulse-cookie",
+				"PULSE_SERVER=unix:/run/user/65534/pulse/native",
+				"SHELL=/run/current-system/sw/bin/zsh",
+				"TERM=xterm-256color",
+				"USER=chronos",
+				"WAYLAND_DISPLAY=wayland-0",
+				"XDG_RUNTIME_DIR=/run/user/65534",
+				"XDG_SESSION_CLASS=user",
+				"XDG_SESSION_TYPE=wayland",
 			},
-		},
-		{
-			"nixos permissive defaults chromium", new(stubNixOS),
-			&hst.Config{
-				ID:       "org.chromium.Chromium",
-				Identity: 9,
-				Groups:   []string{"video"},
-				SessionBus: &hst.BusConfig{
-					Talk: []string{
-						"org.freedesktop.Notifications",
-						"org.freedesktop.FileManager1",
-						"org.freedesktop.ScreenSaver",
-						"org.freedesktop.secrets",
-						"org.kde.kwalletd5",
-						"org.kde.kwalletd6",
-						"org.gnome.SessionManager",
-					},
-					Own: []string{
-						"org.chromium.Chromium.*",
-						"org.mpris.MediaPlayer2.org.chromium.Chromium.*",
-						"org.mpris.MediaPlayer2.chromium.*",
-					},
-					Call: map[string]string{
-						"org.freedesktop.portal.*": "*",
-					},
-					Broadcast: map[string]string{
-						"org.freedesktop.portal.*": "@/org/freedesktop/portal/*",
-					},
-					Filter: true,
+			Ops: new(container.Ops).
+				Root(m("/"), comp.BindWritable).
+				Proc(m("/proc/")).
+				Tmpfs(hst.AbsPrivateTmp, 4096, 0755).
+				DevWritable(m("/dev/"), true).
+				Tmpfs(m("/dev/shm"), 0, 01777).
+				Tmpfs(m("/run/user/"), 4096, 0755).
+				Bind(m("/tmp/hakurei.0/runtime/9"), m("/run/user/65534"), comp.BindWritable).
+				Bind(m("/tmp/hakurei.0/tmpdir/9"), m("/tmp/"), comp.BindWritable).
+				Place(m("/etc/passwd"), []byte("chronos:x:65534:65534:Hakurei:/home/chronos:/run/current-system/sw/bin/zsh\n")).
+				Place(m("/etc/group"), []byte("hakurei:x:65534:\n")).
+				Bind(m("/tmp/hakurei.0/ebf083d1b175911782d413369b64ce7c/wayland"), m("/run/user/65534/wayland-0"), 0).
+				Bind(m("/run/user/1971/hakurei/ebf083d1b175911782d413369b64ce7c/pulse"), m("/run/user/65534/pulse/native"), 0).
+				Place(m(hst.PrivateTmp+"/pulse-cookie"), bytes.Repeat([]byte{0}, pulseCookieSizeMax)).
+				Bind(m("/tmp/hakurei.0/ebf083d1b175911782d413369b64ce7c/bus"), m("/run/user/65534/bus"), 0).
+				Bind(m("/tmp/hakurei.0/ebf083d1b175911782d413369b64ce7c/system_bus_socket"), m("/var/run/dbus/system_bus_socket"), 0).
+				Bind(m("/dev/dri"), m("/dev/dri"), comp.BindWritable|comp.BindDevice|comp.BindOptional).
+				Bind(m("/dev/kvm"), m("/dev/kvm"), comp.BindWritable|comp.BindDevice|comp.BindOptional).
+				Etc(m("/etc/"), "ebf083d1b175911782d413369b64ce7c").
+				Tmpfs(m("/run/user/1971"), 8192, 0755).
+				Tmpfs(m("/run/nscd"), 8192, 0755).
+				Tmpfs(m("/run/dbus"), 8192, 0755).
+				Remount(m("/dev/"), syscall.MS_RDONLY).
+				Remount(m("/"), syscall.MS_RDONLY),
+			SeccompPresets: comp.PresetExt | comp.PresetDenyDevel,
+			HostNet:        true,
+			HostAbstract:   true,
+			RetainSession:  true,
+			ForwardCancel:  true,
+		}},
+
+		{"nixos chromium direct wayland", new(stubNixOS), &hst.Config{
+			ID:          "org.chromium.Chromium",
+			Enablements: hst.NewEnablements(hst.EWayland | hst.EDBus | hst.EPulse),
+			Container: &hst.ContainerConfig{
+				Env: nil,
+				Filesystem: []hst.FilesystemConfigJSON{
+					f(&hst.FSBind{Source: m("/bin")}),
+					f(&hst.FSBind{Source: m("/usr/bin/")}),
+					f(&hst.FSBind{Source: m("/nix/store")}),
+					f(&hst.FSBind{Source: m("/run/current-system")}),
+					f(&hst.FSBind{Source: m("/sys/block"), Optional: true}),
+					f(&hst.FSBind{Source: m("/sys/bus"), Optional: true}),
+					f(&hst.FSBind{Source: m("/sys/class"), Optional: true}),
+					f(&hst.FSBind{Source: m("/sys/dev"), Optional: true}),
+					f(&hst.FSBind{Source: m("/sys/devices"), Optional: true}),
+					f(&hst.FSBind{Source: m("/run/opengl-driver")}),
+					f(&hst.FSBind{Source: m("/dev/dri"), Device: true, Optional: true}),
+					f(&hst.FSBind{Source: m("/etc/"), Target: m("/etc/"), Special: true}),
+					f(&hst.FSBind{Source: m("/var/lib/persist/module/hakurei/0/1"), Write: true, Ensure: true}),
 				},
-				SystemBus: &hst.BusConfig{
-					Talk: []string{
-						"org.bluez",
-						"org.freedesktop.Avahi",
-						"org.freedesktop.UPower",
-					},
-					Filter: true,
-				},
-				Enablements: hst.NewEnablements(hst.EWayland | hst.EDBus | hst.EPulse),
 
-				Container: &hst.ContainerConfig{
-					Filesystem: []hst.FilesystemConfigJSON{
-						{FilesystemConfig: &hst.FSBind{
-							Target:  fhs.AbsRoot,
-							Source:  fhs.AbsRoot,
-							Write:   true,
-							Special: true,
-						}},
-						{FilesystemConfig: &hst.FSBind{
-							Source:   fhs.AbsDev.Append("dri"),
-							Device:   true,
-							Optional: true,
-						}},
-						{FilesystemConfig: &hst.FSBind{
-							Source:   fhs.AbsDev.Append("kvm"),
-							Device:   true,
-							Optional: true,
-						}},
-						{FilesystemConfig: &hst.FSBind{
-							Target:  fhs.AbsEtc,
-							Source:  fhs.AbsEtc,
-							Special: true,
-						}},
-					},
+				Username: "u0_a1",
+				Shell:    m("/run/current-system/sw/bin/zsh"),
+				Home:     m("/var/lib/persist/module/hakurei/0/1"),
 
-					Username: "chronos",
-					Shell:    m("/run/current-system/sw/bin/zsh"),
-					Home:     m("/home/chronos"),
-
-					Path: m("/run/current-system/sw/bin/zsh"),
-					Args: []string{"zsh", "-c", "exec chromium "},
-
-					Flags: hst.FUserns | hst.FHostNet | hst.FHostAbstract | hst.FTty | hst.FShareRuntime | hst.FShareTmpdir,
-				},
-			},
-			state.ID{
-				0xeb, 0xf0, 0x83, 0xd1,
-				0xb1, 0x75, 0x91, 0x17,
-				0x82, 0xd4, 0x13, 0x36,
-				0x9b, 0x64, 0xce, 0x7c,
-			},
-			system.New(t.Context(), msg, 1000009).
-				Ensure(m("/tmp/hakurei.0"), 0711).
-				Ensure(m("/tmp/hakurei.0/runtime"), 0700).UpdatePermType(system.User, m("/tmp/hakurei.0/runtime"), acl.Execute).
-				Ensure(m("/tmp/hakurei.0/runtime/9"), 0700).UpdatePermType(system.User, m("/tmp/hakurei.0/runtime/9"), acl.Read, acl.Write, acl.Execute).
-				Ensure(m("/tmp/hakurei.0/tmpdir"), 0700).UpdatePermType(system.User, m("/tmp/hakurei.0/tmpdir"), acl.Execute).
-				Ensure(m("/tmp/hakurei.0/tmpdir/9"), 01700).UpdatePermType(system.User, m("/tmp/hakurei.0/tmpdir/9"), acl.Read, acl.Write, acl.Execute).
-				Ephemeral(system.Process, m("/tmp/hakurei.0/ebf083d1b175911782d413369b64ce7c"), 0711).
-				Wayland(m("/tmp/hakurei.0/ebf083d1b175911782d413369b64ce7c/wayland"), m("/run/user/1971/wayland-0"), "org.chromium.Chromium", "ebf083d1b175911782d413369b64ce7c").
-				Ensure(m("/run/user/1971/hakurei"), 0700).UpdatePermType(system.User, m("/run/user/1971/hakurei"), acl.Execute).
-				Ensure(m("/run/user/1971"), 0700).UpdatePermType(system.User, m("/run/user/1971"), acl.Execute). // this is ordered as is because the previous Ensure only calls mkdir if XDG_RUNTIME_DIR is unset
-				Ephemeral(system.Process, m("/run/user/1971/hakurei/ebf083d1b175911782d413369b64ce7c"), 0700).UpdatePermType(system.Process, m("/run/user/1971/hakurei/ebf083d1b175911782d413369b64ce7c"), acl.Execute).
-				Link(m("/run/user/1971/pulse/native"), m("/run/user/1971/hakurei/ebf083d1b175911782d413369b64ce7c/pulse")).
-				MustProxyDBus(&hst.BusConfig{
-					Talk: []string{
-						"org.freedesktop.Notifications",
-						"org.freedesktop.FileManager1",
-						"org.freedesktop.ScreenSaver",
-						"org.freedesktop.secrets",
-						"org.kde.kwalletd5",
-						"org.kde.kwalletd6",
-						"org.gnome.SessionManager",
-					},
-					Own: []string{
-						"org.chromium.Chromium.*",
-						"org.mpris.MediaPlayer2.org.chromium.Chromium.*",
-						"org.mpris.MediaPlayer2.chromium.*",
-					},
-					Call: map[string]string{
-						"org.freedesktop.portal.*": "*",
-					},
-					Broadcast: map[string]string{
-						"org.freedesktop.portal.*": "@/org/freedesktop/portal/*",
-					},
-					Filter: true,
-				}, &hst.BusConfig{
-					Talk: []string{
-						"org.bluez",
-						"org.freedesktop.Avahi",
-						"org.freedesktop.UPower",
-					},
-					Filter: true,
-				}, dbus.ProxyPair{
-					"unix:path=/run/user/1971/bus",
-					"/tmp/hakurei.0/ebf083d1b175911782d413369b64ce7c/bus",
-				}, dbus.ProxyPair{
-					"unix:path=/var/run/dbus/system_bus_socket",
-					"/tmp/hakurei.0/ebf083d1b175911782d413369b64ce7c/system_bus_socket",
-				}).
-				UpdatePerm(m("/tmp/hakurei.0/ebf083d1b175911782d413369b64ce7c/bus"), acl.Read, acl.Write).
-				UpdatePerm(m("/tmp/hakurei.0/ebf083d1b175911782d413369b64ce7c/system_bus_socket"), acl.Read, acl.Write),
-			&container.Params{
-				Dir:  m("/home/chronos"),
-				Path: m("/run/current-system/sw/bin/zsh"),
-				Args: []string{"zsh", "-c", "exec chromium "},
-				Env: []string{
-					"DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/65534/bus",
-					"DBUS_SYSTEM_BUS_ADDRESS=unix:path=/var/run/dbus/system_bus_socket",
-					"HOME=/home/chronos",
-					"PULSE_COOKIE=" + hst.PrivateTmp + "/pulse-cookie",
-					"PULSE_SERVER=unix:/run/user/65534/pulse/native",
-					"SHELL=/run/current-system/sw/bin/zsh",
-					"TERM=xterm-256color",
-					"USER=chronos",
-					"WAYLAND_DISPLAY=wayland-0",
-					"XDG_RUNTIME_DIR=/run/user/65534",
-					"XDG_SESSION_CLASS=user",
-					"XDG_SESSION_TYPE=wayland",
-				},
-				Ops: new(container.Ops).
-					Root(m("/"), comp.BindWritable).
-					Proc(m("/proc/")).
-					Tmpfs(hst.AbsPrivateTmp, 4096, 0755).
-					DevWritable(m("/dev/"), true).
-					Tmpfs(m("/dev/shm"), 0, 01777).
-					Tmpfs(m("/run/user/"), 4096, 0755).
-					Bind(m("/tmp/hakurei.0/runtime/9"), m("/run/user/65534"), comp.BindWritable).
-					Bind(m("/tmp/hakurei.0/tmpdir/9"), m("/tmp/"), comp.BindWritable).
-					Place(m("/etc/passwd"), []byte("chronos:x:65534:65534:Hakurei:/home/chronos:/run/current-system/sw/bin/zsh\n")).
-					Place(m("/etc/group"), []byte("hakurei:x:65534:\n")).
-					Bind(m("/tmp/hakurei.0/ebf083d1b175911782d413369b64ce7c/wayland"), m("/run/user/65534/wayland-0"), 0).
-					Bind(m("/run/user/1971/hakurei/ebf083d1b175911782d413369b64ce7c/pulse"), m("/run/user/65534/pulse/native"), 0).
-					Place(m(hst.PrivateTmp+"/pulse-cookie"), bytes.Repeat([]byte{0}, pulseCookieSizeMax)).
-					Bind(m("/tmp/hakurei.0/ebf083d1b175911782d413369b64ce7c/bus"), m("/run/user/65534/bus"), 0).
-					Bind(m("/tmp/hakurei.0/ebf083d1b175911782d413369b64ce7c/system_bus_socket"), m("/var/run/dbus/system_bus_socket"), 0).
-					Bind(m("/dev/dri"), m("/dev/dri"), comp.BindWritable|comp.BindDevice|comp.BindOptional).
-					Bind(m("/dev/kvm"), m("/dev/kvm"), comp.BindWritable|comp.BindDevice|comp.BindOptional).
-					Etc(m("/etc/"), "ebf083d1b175911782d413369b64ce7c").
-					Tmpfs(m("/run/user/1971"), 8192, 0755).
-					Tmpfs(m("/run/nscd"), 8192, 0755).
-					Tmpfs(m("/run/dbus"), 8192, 0755).
-					Remount(m("/dev/"), syscall.MS_RDONLY).
-					Remount(m("/"), syscall.MS_RDONLY),
-				SeccompPresets: comp.PresetExt | comp.PresetDenyDevel,
-				HostNet:        true,
-				HostAbstract:   true,
-				RetainSession:  true,
-				ForwardCancel:  true,
-			},
-		},
-
-		{
-			"nixos chromium direct wayland", new(stubNixOS),
-			&hst.Config{
-				ID:          "org.chromium.Chromium",
-				Enablements: hst.NewEnablements(hst.EWayland | hst.EDBus | hst.EPulse),
-				Container: &hst.ContainerConfig{
-					Env: nil,
-					Filesystem: []hst.FilesystemConfigJSON{
-						f(&hst.FSBind{Source: m("/bin")}),
-						f(&hst.FSBind{Source: m("/usr/bin/")}),
-						f(&hst.FSBind{Source: m("/nix/store")}),
-						f(&hst.FSBind{Source: m("/run/current-system")}),
-						f(&hst.FSBind{Source: m("/sys/block"), Optional: true}),
-						f(&hst.FSBind{Source: m("/sys/bus"), Optional: true}),
-						f(&hst.FSBind{Source: m("/sys/class"), Optional: true}),
-						f(&hst.FSBind{Source: m("/sys/dev"), Optional: true}),
-						f(&hst.FSBind{Source: m("/sys/devices"), Optional: true}),
-						f(&hst.FSBind{Source: m("/run/opengl-driver")}),
-						f(&hst.FSBind{Source: m("/dev/dri"), Device: true, Optional: true}),
-						f(&hst.FSBind{Source: m("/etc/"), Target: m("/etc/"), Special: true}),
-						f(&hst.FSBind{Source: m("/var/lib/persist/module/hakurei/0/1"), Write: true, Ensure: true}),
-					},
-
-					Username: "u0_a1",
-					Shell:    m("/run/current-system/sw/bin/zsh"),
-					Home:     m("/var/lib/persist/module/hakurei/0/1"),
-
-					Path: m("/nix/store/yqivzpzzn7z5x0lq9hmbzygh45d8rhqd-chromium-start"),
-
-					Flags: hst.FUserns | hst.FHostNet | hst.FMapRealUID | hst.FShareRuntime | hst.FShareTmpdir,
-				},
-				SystemBus: &hst.BusConfig{
-					Talk:   []string{"org.bluez", "org.freedesktop.Avahi", "org.freedesktop.UPower"},
-					Filter: true,
-				},
-				SessionBus: &hst.BusConfig{
-					Talk: []string{
-						"org.freedesktop.FileManager1", "org.freedesktop.Notifications",
-						"org.freedesktop.ScreenSaver", "org.freedesktop.secrets",
-						"org.kde.kwalletd5", "org.kde.kwalletd6",
-					},
-					Own: []string{
-						"org.chromium.Chromium.*",
-						"org.mpris.MediaPlayer2.org.chromium.Chromium.*",
-						"org.mpris.MediaPlayer2.chromium.*",
-					},
-					Call: map[string]string{}, Broadcast: map[string]string{},
-					Filter: true,
-				},
-				DirectWayland: true,
-
-				Identity: 1, Groups: []string{},
-			},
-			state.ID{
-				0x8e, 0x2c, 0x76, 0xb0,
-				0x66, 0xda, 0xbe, 0x57,
-				0x4c, 0xf0, 0x73, 0xbd,
-				0xb4, 0x6e, 0xb5, 0xc1,
-			},
-			system.New(t.Context(), msg, 1000001).
-				Ensure(m("/tmp/hakurei.0"), 0711).
-				Ensure(m("/tmp/hakurei.0/runtime"), 0700).UpdatePermType(system.User, m("/tmp/hakurei.0/runtime"), acl.Execute).
-				Ensure(m("/tmp/hakurei.0/runtime/1"), 0700).UpdatePermType(system.User, m("/tmp/hakurei.0/runtime/1"), acl.Read, acl.Write, acl.Execute).
-				Ensure(m("/tmp/hakurei.0/tmpdir"), 0700).UpdatePermType(system.User, m("/tmp/hakurei.0/tmpdir"), acl.Execute).
-				Ensure(m("/tmp/hakurei.0/tmpdir/1"), 01700).UpdatePermType(system.User, m("/tmp/hakurei.0/tmpdir/1"), acl.Read, acl.Write, acl.Execute).
-				Ensure(m("/run/user/1971/hakurei"), 0700).UpdatePermType(system.User, m("/run/user/1971/hakurei"), acl.Execute).
-				Ensure(m("/run/user/1971"), 0700).UpdatePermType(system.User, m("/run/user/1971"), acl.Execute). // this is ordered as is because the previous Ensure only calls mkdir if XDG_RUNTIME_DIR is unset
-				UpdatePermType(hst.EWayland, m("/run/user/1971/wayland-0"), acl.Read, acl.Write, acl.Execute).
-				Ephemeral(system.Process, m("/run/user/1971/hakurei/8e2c76b066dabe574cf073bdb46eb5c1"), 0700).UpdatePermType(system.Process, m("/run/user/1971/hakurei/8e2c76b066dabe574cf073bdb46eb5c1"), acl.Execute).
-				Link(m("/run/user/1971/pulse/native"), m("/run/user/1971/hakurei/8e2c76b066dabe574cf073bdb46eb5c1/pulse")).
-				Ephemeral(system.Process, m("/tmp/hakurei.0/8e2c76b066dabe574cf073bdb46eb5c1"), 0711).
-				MustProxyDBus(&hst.BusConfig{
-					Talk: []string{
-						"org.freedesktop.FileManager1", "org.freedesktop.Notifications",
-						"org.freedesktop.ScreenSaver", "org.freedesktop.secrets",
-						"org.kde.kwalletd5", "org.kde.kwalletd6",
-					},
-					Own: []string{
-						"org.chromium.Chromium.*",
-						"org.mpris.MediaPlayer2.org.chromium.Chromium.*",
-						"org.mpris.MediaPlayer2.chromium.*",
-					},
-					Call: map[string]string{}, Broadcast: map[string]string{},
-					Filter: true,
-				}, &hst.BusConfig{
-					Talk: []string{
-						"org.bluez",
-						"org.freedesktop.Avahi",
-						"org.freedesktop.UPower",
-					},
-					Filter: true,
-				}, dbus.ProxyPair{
-					"unix:path=/run/user/1971/bus",
-					"/tmp/hakurei.0/8e2c76b066dabe574cf073bdb46eb5c1/bus",
-				}, dbus.ProxyPair{
-					"unix:path=/var/run/dbus/system_bus_socket",
-					"/tmp/hakurei.0/8e2c76b066dabe574cf073bdb46eb5c1/system_bus_socket",
-				}).
-				UpdatePerm(m("/tmp/hakurei.0/8e2c76b066dabe574cf073bdb46eb5c1/bus"), acl.Read, acl.Write).
-				UpdatePerm(m("/tmp/hakurei.0/8e2c76b066dabe574cf073bdb46eb5c1/system_bus_socket"), acl.Read, acl.Write),
-			&container.Params{
-				Uid:  1971,
-				Gid:  100,
-				Dir:  m("/var/lib/persist/module/hakurei/0/1"),
 				Path: m("/nix/store/yqivzpzzn7z5x0lq9hmbzygh45d8rhqd-chromium-start"),
-				Args: []string{"/nix/store/yqivzpzzn7z5x0lq9hmbzygh45d8rhqd-chromium-start"},
-				Env: []string{
-					"DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1971/bus",
-					"DBUS_SYSTEM_BUS_ADDRESS=unix:path=/var/run/dbus/system_bus_socket",
-					"HOME=/var/lib/persist/module/hakurei/0/1",
-					"PULSE_COOKIE=" + hst.PrivateTmp + "/pulse-cookie",
-					"PULSE_SERVER=unix:/run/user/1971/pulse/native",
-					"SHELL=/run/current-system/sw/bin/zsh",
-					"TERM=xterm-256color",
-					"USER=u0_a1",
-					"WAYLAND_DISPLAY=wayland-0",
-					"XDG_RUNTIME_DIR=/run/user/1971",
-					"XDG_SESSION_CLASS=user",
-					"XDG_SESSION_TYPE=wayland",
-				},
-				Ops: new(container.Ops).
-					Proc(m("/proc/")).
-					Tmpfs(hst.AbsPrivateTmp, 4096, 0755).
-					DevWritable(m("/dev/"), true).
-					Tmpfs(m("/dev/shm"), 0, 01777).
-					Tmpfs(m("/run/user/"), 4096, 0755).
-					Bind(m("/tmp/hakurei.0/runtime/1"), m("/run/user/1971"), comp.BindWritable).
-					Bind(m("/tmp/hakurei.0/tmpdir/1"), m("/tmp/"), comp.BindWritable).
-					Place(m("/etc/passwd"), []byte("u0_a1:x:1971:100:Hakurei:/var/lib/persist/module/hakurei/0/1:/run/current-system/sw/bin/zsh\n")).
-					Place(m("/etc/group"), []byte("hakurei:x:100:\n")).
-					Bind(m("/run/user/1971/wayland-0"), m("/run/user/1971/wayland-0"), 0).
-					Bind(m("/run/user/1971/hakurei/8e2c76b066dabe574cf073bdb46eb5c1/pulse"), m("/run/user/1971/pulse/native"), 0).
-					Place(m(hst.PrivateTmp+"/pulse-cookie"), bytes.Repeat([]byte{0}, pulseCookieSizeMax)).
-					Bind(m("/tmp/hakurei.0/8e2c76b066dabe574cf073bdb46eb5c1/bus"), m("/run/user/1971/bus"), 0).
-					Bind(m("/tmp/hakurei.0/8e2c76b066dabe574cf073bdb46eb5c1/system_bus_socket"), m("/var/run/dbus/system_bus_socket"), 0).
-					Bind(m("/bin"), m("/bin"), 0).
-					Bind(m("/usr/bin/"), m("/usr/bin/"), 0).
-					Bind(m("/nix/store"), m("/nix/store"), 0).
-					Bind(m("/run/current-system"), m("/run/current-system"), 0).
-					Bind(m("/sys/block"), m("/sys/block"), comp.BindOptional).
-					Bind(m("/sys/bus"), m("/sys/bus"), comp.BindOptional).
-					Bind(m("/sys/class"), m("/sys/class"), comp.BindOptional).
-					Bind(m("/sys/dev"), m("/sys/dev"), comp.BindOptional).
-					Bind(m("/sys/devices"), m("/sys/devices"), comp.BindOptional).
-					Bind(m("/run/opengl-driver"), m("/run/opengl-driver"), 0).
-					Bind(m("/dev/dri"), m("/dev/dri"), comp.BindDevice|comp.BindWritable|comp.BindOptional).
-					Etc(m("/etc/"), "8e2c76b066dabe574cf073bdb46eb5c1").
-					Bind(m("/var/lib/persist/module/hakurei/0/1"), m("/var/lib/persist/module/hakurei/0/1"), comp.BindWritable|comp.BindEnsure).
-					Remount(m("/dev/"), syscall.MS_RDONLY).
-					Remount(m("/"), syscall.MS_RDONLY),
-				SeccompPresets: comp.PresetExt | comp.PresetDenyTTY | comp.PresetDenyDevel,
-				HostNet:        true,
-				ForwardCancel:  true,
+
+				Flags: hst.FUserns | hst.FHostNet | hst.FMapRealUID | hst.FShareRuntime | hst.FShareTmpdir,
 			},
-		},
+			SystemBus: &hst.BusConfig{
+				Talk:   []string{"org.bluez", "org.freedesktop.Avahi", "org.freedesktop.UPower"},
+				Filter: true,
+			},
+			SessionBus: &hst.BusConfig{
+				Talk: []string{
+					"org.freedesktop.FileManager1", "org.freedesktop.Notifications",
+					"org.freedesktop.ScreenSaver", "org.freedesktop.secrets",
+					"org.kde.kwalletd5", "org.kde.kwalletd6",
+				},
+				Own: []string{
+					"org.chromium.Chromium.*",
+					"org.mpris.MediaPlayer2.org.chromium.Chromium.*",
+					"org.mpris.MediaPlayer2.chromium.*",
+				},
+				Call: map[string]string{}, Broadcast: map[string]string{},
+				Filter: true,
+			},
+			DirectWayland: true,
+
+			Identity: 1, Groups: []string{},
+		}, state.ID{
+			0x8e, 0x2c, 0x76, 0xb0,
+			0x66, 0xda, 0xbe, 0x57,
+			0x4c, 0xf0, 0x73, 0xbd,
+			0xb4, 0x6e, 0xb5, 0xc1,
+		}, system.New(t.Context(), msg, 1000001).
+			Ensure(m("/tmp/hakurei.0"), 0711).
+			Ensure(m("/tmp/hakurei.0/runtime"), 0700).UpdatePermType(system.User, m("/tmp/hakurei.0/runtime"), acl.Execute).
+			Ensure(m("/tmp/hakurei.0/runtime/1"), 0700).UpdatePermType(system.User, m("/tmp/hakurei.0/runtime/1"), acl.Read, acl.Write, acl.Execute).
+			Ensure(m("/tmp/hakurei.0/tmpdir"), 0700).UpdatePermType(system.User, m("/tmp/hakurei.0/tmpdir"), acl.Execute).
+			Ensure(m("/tmp/hakurei.0/tmpdir/1"), 01700).UpdatePermType(system.User, m("/tmp/hakurei.0/tmpdir/1"), acl.Read, acl.Write, acl.Execute).
+			Ensure(m("/run/user/1971/hakurei"), 0700).UpdatePermType(system.User, m("/run/user/1971/hakurei"), acl.Execute).
+			Ensure(m("/run/user/1971"), 0700).UpdatePermType(system.User, m("/run/user/1971"), acl.Execute). // this is ordered as is because the previous Ensure only calls mkdir if XDG_RUNTIME_DIR is unset
+			UpdatePermType(hst.EWayland, m("/run/user/1971/wayland-0"), acl.Read, acl.Write, acl.Execute).
+			Ephemeral(system.Process, m("/run/user/1971/hakurei/8e2c76b066dabe574cf073bdb46eb5c1"), 0700).UpdatePermType(system.Process, m("/run/user/1971/hakurei/8e2c76b066dabe574cf073bdb46eb5c1"), acl.Execute).
+			Link(m("/run/user/1971/pulse/native"), m("/run/user/1971/hakurei/8e2c76b066dabe574cf073bdb46eb5c1/pulse")).
+			Ephemeral(system.Process, m("/tmp/hakurei.0/8e2c76b066dabe574cf073bdb46eb5c1"), 0711).
+			MustProxyDBus(&hst.BusConfig{
+				Talk: []string{
+					"org.freedesktop.FileManager1", "org.freedesktop.Notifications",
+					"org.freedesktop.ScreenSaver", "org.freedesktop.secrets",
+					"org.kde.kwalletd5", "org.kde.kwalletd6",
+				},
+				Own: []string{
+					"org.chromium.Chromium.*",
+					"org.mpris.MediaPlayer2.org.chromium.Chromium.*",
+					"org.mpris.MediaPlayer2.chromium.*",
+				},
+				Call: map[string]string{}, Broadcast: map[string]string{},
+				Filter: true,
+			}, &hst.BusConfig{
+				Talk: []string{
+					"org.bluez",
+					"org.freedesktop.Avahi",
+					"org.freedesktop.UPower",
+				},
+				Filter: true,
+			}, dbus.ProxyPair{
+				"unix:path=/run/user/1971/bus",
+				"/tmp/hakurei.0/8e2c76b066dabe574cf073bdb46eb5c1/bus",
+			}, dbus.ProxyPair{
+				"unix:path=/var/run/dbus/system_bus_socket",
+				"/tmp/hakurei.0/8e2c76b066dabe574cf073bdb46eb5c1/system_bus_socket",
+			}).
+			UpdatePerm(m("/tmp/hakurei.0/8e2c76b066dabe574cf073bdb46eb5c1/bus"), acl.Read, acl.Write).
+			UpdatePerm(m("/tmp/hakurei.0/8e2c76b066dabe574cf073bdb46eb5c1/system_bus_socket"), acl.Read, acl.Write), &container.Params{
+
+			Uid:  1971,
+			Gid:  100,
+			Dir:  m("/var/lib/persist/module/hakurei/0/1"),
+			Path: m("/nix/store/yqivzpzzn7z5x0lq9hmbzygh45d8rhqd-chromium-start"),
+			Args: []string{"/nix/store/yqivzpzzn7z5x0lq9hmbzygh45d8rhqd-chromium-start"},
+			Env: []string{
+				"DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1971/bus",
+				"DBUS_SYSTEM_BUS_ADDRESS=unix:path=/var/run/dbus/system_bus_socket",
+				"HOME=/var/lib/persist/module/hakurei/0/1",
+				"PULSE_COOKIE=" + hst.PrivateTmp + "/pulse-cookie",
+				"PULSE_SERVER=unix:/run/user/1971/pulse/native",
+				"SHELL=/run/current-system/sw/bin/zsh",
+				"TERM=xterm-256color",
+				"USER=u0_a1",
+				"WAYLAND_DISPLAY=wayland-0",
+				"XDG_RUNTIME_DIR=/run/user/1971",
+				"XDG_SESSION_CLASS=user",
+				"XDG_SESSION_TYPE=wayland",
+			},
+			Ops: new(container.Ops).
+				Proc(m("/proc/")).
+				Tmpfs(hst.AbsPrivateTmp, 4096, 0755).
+				DevWritable(m("/dev/"), true).
+				Tmpfs(m("/dev/shm"), 0, 01777).
+				Tmpfs(m("/run/user/"), 4096, 0755).
+				Bind(m("/tmp/hakurei.0/runtime/1"), m("/run/user/1971"), comp.BindWritable).
+				Bind(m("/tmp/hakurei.0/tmpdir/1"), m("/tmp/"), comp.BindWritable).
+				Place(m("/etc/passwd"), []byte("u0_a1:x:1971:100:Hakurei:/var/lib/persist/module/hakurei/0/1:/run/current-system/sw/bin/zsh\n")).
+				Place(m("/etc/group"), []byte("hakurei:x:100:\n")).
+				Bind(m("/run/user/1971/wayland-0"), m("/run/user/1971/wayland-0"), 0).
+				Bind(m("/run/user/1971/hakurei/8e2c76b066dabe574cf073bdb46eb5c1/pulse"), m("/run/user/1971/pulse/native"), 0).
+				Place(m(hst.PrivateTmp+"/pulse-cookie"), bytes.Repeat([]byte{0}, pulseCookieSizeMax)).
+				Bind(m("/tmp/hakurei.0/8e2c76b066dabe574cf073bdb46eb5c1/bus"), m("/run/user/1971/bus"), 0).
+				Bind(m("/tmp/hakurei.0/8e2c76b066dabe574cf073bdb46eb5c1/system_bus_socket"), m("/var/run/dbus/system_bus_socket"), 0).
+				Bind(m("/bin"), m("/bin"), 0).
+				Bind(m("/usr/bin/"), m("/usr/bin/"), 0).
+				Bind(m("/nix/store"), m("/nix/store"), 0).
+				Bind(m("/run/current-system"), m("/run/current-system"), 0).
+				Bind(m("/sys/block"), m("/sys/block"), comp.BindOptional).
+				Bind(m("/sys/bus"), m("/sys/bus"), comp.BindOptional).
+				Bind(m("/sys/class"), m("/sys/class"), comp.BindOptional).
+				Bind(m("/sys/dev"), m("/sys/dev"), comp.BindOptional).
+				Bind(m("/sys/devices"), m("/sys/devices"), comp.BindOptional).
+				Bind(m("/run/opengl-driver"), m("/run/opengl-driver"), 0).
+				Bind(m("/dev/dri"), m("/dev/dri"), comp.BindDevice|comp.BindWritable|comp.BindOptional).
+				Etc(m("/etc/"), "8e2c76b066dabe574cf073bdb46eb5c1").
+				Bind(m("/var/lib/persist/module/hakurei/0/1"), m("/var/lib/persist/module/hakurei/0/1"), comp.BindWritable|comp.BindEnsure).
+				Remount(m("/dev/"), syscall.MS_RDONLY).
+				Remount(m("/"), syscall.MS_RDONLY),
+			SeccompPresets: comp.PresetExt | comp.PresetDenyTTY | comp.PresetDenyDevel,
+			HostNet:        true,
+			ForwardCancel:  true,
+		}},
 	}
 
 	for _, tc := range testCases {
