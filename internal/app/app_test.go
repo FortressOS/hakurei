@@ -574,9 +574,8 @@ func (s stubOsFileReadCloser) Stat() (fs.FileInfo, error) { panic("attempting to
 
 type stubNixOS struct {
 	usernameErr map[string]error
+	panicDispatcher
 }
-
-func (k *stubNixOS) new(func(k syscallDispatcher)) { panic("not implemented") }
 
 func (k *stubNixOS) getpid() int { return 0xdeadbeef }
 func (k *stubNixOS) getuid() int { return 1971 }

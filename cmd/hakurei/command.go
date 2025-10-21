@@ -50,7 +50,7 @@ func buildCommand(ctx context.Context, msg message.Msg, early *earlyHardeningErr
 		Flag(&flagVerbose, "v", command.BoolFlag(false), "Increase log verbosity").
 		Flag(&flagJSON, "json", command.BoolFlag(false), "Serialise output in JSON when applicable")
 
-	c.Command("shim", command.UsageInternal, func([]string) error { app.ShimMain(); return errSuccess })
+	c.Command("shim", command.UsageInternal, func([]string) error { app.Shim(msg); return errSuccess })
 
 	c.Command("app", "Load and start container from configuration file", func(args []string) error {
 		if len(args) < 1 {

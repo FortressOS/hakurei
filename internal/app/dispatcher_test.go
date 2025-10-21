@@ -2,6 +2,7 @@ package app
 
 import (
 	"bytes"
+	"context"
 	"io"
 	"io/fs"
 	"log"
@@ -15,6 +16,7 @@ import (
 
 	"hakurei.app/container"
 	"hakurei.app/container/check"
+	"hakurei.app/container/seccomp"
 	"hakurei.app/container/stub"
 	"hakurei.app/hst"
 	"hakurei.app/internal/app/state"
@@ -492,20 +494,38 @@ func (panicMsgContext) Value(any) any               { panic("unreachable") }
 // This type is meant to be embedded in partial syscallDispatcher implementations.
 type panicDispatcher struct{}
 
-func (panicDispatcher) new(func(k syscallDispatcher))         { panic("unreachable") }
-func (panicDispatcher) getpid() int                           { panic("unreachable") }
-func (panicDispatcher) getuid() int                           { panic("unreachable") }
-func (panicDispatcher) getgid() int                           { panic("unreachable") }
-func (panicDispatcher) lookupEnv(string) (string, bool)       { panic("unreachable") }
-func (panicDispatcher) stat(string) (os.FileInfo, error)      { panic("unreachable") }
-func (panicDispatcher) open(string) (osFile, error)           { panic("unreachable") }
-func (panicDispatcher) readdir(string) ([]os.DirEntry, error) { panic("unreachable") }
-func (panicDispatcher) tempdir() string                       { panic("unreachable") }
-func (panicDispatcher) evalSymlinks(string) (string, error)   { panic("unreachable") }
-func (panicDispatcher) lookupGroupId(string) (string, error)  { panic("unreachable") }
-func (panicDispatcher) cmdOutput(*exec.Cmd) ([]byte, error)   { panic("unreachable") }
-func (panicDispatcher) overflowUid(message.Msg) int           { panic("unreachable") }
-func (panicDispatcher) overflowGid(message.Msg) int           { panic("unreachable") }
-func (panicDispatcher) mustHsuPath() *check.Absolute          { panic("unreachable") }
-func (panicDispatcher) dbusAddress() (string, string)         { panic("unreachable") }
-func (panicDispatcher) fatalf(string, ...any)                 { panic("unreachable") }
+func (panicDispatcher) new(func(k syscallDispatcher, msg message.Msg))      { panic("unreachable") }
+func (panicDispatcher) getpid() int                                         { panic("unreachable") }
+func (panicDispatcher) getuid() int                                         { panic("unreachable") }
+func (panicDispatcher) getgid() int                                         { panic("unreachable") }
+func (panicDispatcher) lookupEnv(string) (string, bool)                     { panic("unreachable") }
+func (panicDispatcher) pipe() (*os.File, *os.File, error)                   { panic("unreachable") }
+func (panicDispatcher) stat(string) (os.FileInfo, error)                    { panic("unreachable") }
+func (panicDispatcher) open(string) (osFile, error)                         { panic("unreachable") }
+func (panicDispatcher) readdir(string) ([]os.DirEntry, error)               { panic("unreachable") }
+func (panicDispatcher) tempdir() string                                     { panic("unreachable") }
+func (panicDispatcher) exit(int)                                            { panic("unreachable") }
+func (panicDispatcher) evalSymlinks(string) (string, error)                 { panic("unreachable") }
+func (panicDispatcher) prctl(uintptr, uintptr, uintptr) error               { panic("unreachable") }
+func (panicDispatcher) lookupGroupId(string) (string, error)                { panic("unreachable") }
+func (panicDispatcher) cmdOutput(*exec.Cmd) ([]byte, error)                 { panic("unreachable") }
+func (panicDispatcher) overflowUid(message.Msg) int                         { panic("unreachable") }
+func (panicDispatcher) overflowGid(message.Msg) int                         { panic("unreachable") }
+func (panicDispatcher) setDumpable(uintptr) error                           { panic("unreachable") }
+func (panicDispatcher) receive(string, any, *uintptr) (func() error, error) { panic("unreachable") }
+func (panicDispatcher) containerStart(*container.Container) error           { panic("unreachable") }
+func (panicDispatcher) containerServe(*container.Container) error           { panic("unreachable") }
+func (panicDispatcher) containerWait(*container.Container) error            { panic("unreachable") }
+func (panicDispatcher) mustHsuPath() *check.Absolute                        { panic("unreachable") }
+func (panicDispatcher) dbusAddress() (string, string)                       { panic("unreachable") }
+func (panicDispatcher) setupContSignal(int) (io.ReadCloser, func(), error)  { panic("unreachable") }
+func (panicDispatcher) getMsg() message.Msg                                 { panic("unreachable") }
+func (panicDispatcher) fatal(...any)                                        { panic("unreachable") }
+func (panicDispatcher) fatalf(string, ...any)                               { panic("unreachable") }
+
+func (panicDispatcher) notifyContext(context.Context, ...os.Signal) (context.Context, context.CancelFunc) {
+	panic("unreachable")
+}
+func (panicDispatcher) seccompLoad([]seccomp.NativeRule, seccomp.ExportFlag) error {
+	panic("unreachable")
+}

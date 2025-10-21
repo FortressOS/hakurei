@@ -18,7 +18,7 @@ func Main(ctx context.Context, msg message.Msg, config *hst.Config) {
 		log.Fatal(err)
 	}
 
-	seal := outcome{syscallDispatcher: direct{}}
+	seal := outcome{syscallDispatcher: direct{msg}}
 	if err := seal.finalise(ctx, msg, &id, config); err != nil {
 		printMessageError("cannot seal app:", err)
 		os.Exit(1)

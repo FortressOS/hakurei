@@ -21,7 +21,9 @@ type Hsu struct {
 	id     int
 
 	kOnce sync.Once
-	k     syscallDispatcher
+
+	// msg is not populated
+	k syscallDispatcher
 }
 
 var ErrHsuAccess = errors.New("current user is not in the hsurc file")
