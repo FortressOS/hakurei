@@ -32,6 +32,16 @@ nixosTest {
       environment.systemPackages = [
         # For go tests:
         (writeShellScriptBin "hakurei-test" ''
+          # Assert hst CGO_ENABLED=0: ${
+            with pkgs;
+            runCommand "hakurei-hst-cgo" { nativeBuildInputs = [ go ]; } ''
+              cp -r ${options.environment.hakurei.package.default.src} "$out"
+              chmod -R +w "$out"
+              cp ${writeText "hst_cgo_test.go" ''package hakurei_test;import("testing";"hakurei.app/hst");func TestTemplate(t *testing.T){hst.Template()}''} "$out/hst_cgo_test.go"
+              (cd "$out" && HOME="$(mktemp -d)" CGO_ENABLED=0 go test .)
+            ''
+          }
+
           cd ${self.packages.${system}.hakurei.src}
           ${fhs}/bin/hakurei-fhs -c \
             'go test ${if withRace then "-race" else "-count 16"} ./...' \
