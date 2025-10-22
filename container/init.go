@@ -341,7 +341,6 @@ func initEntrypoint(k syscallDispatcher, msg message.Msg) {
 	if err := k.start(cmd); err != nil {
 		k.fatalf(msg, "%v", err)
 	}
-	msg.Suspend()
 
 	if err := closeSetup(); err != nil {
 		k.printf(msg, "cannot close setup pipe: %v", err)
@@ -401,7 +400,6 @@ func initEntrypoint(k syscallDispatcher, msg message.Msg) {
 		select {
 		case s := <-sig:
 			if s == CancelSignal && params.ForwardCancel && cmd.Process != nil {
-				msg.Resume()
 				msg.Verbose("forwarding context cancellation")
 				if err := k.signal(cmd, os.Interrupt); err != nil {
 					k.printf(msg, "cannot forward cancellation: %v", err)
@@ -417,11 +415,7 @@ func initEntrypoint(k syscallDispatcher, msg message.Msg) {
 				continue
 			}
 
-			if msg.Resume() {
-				msg.Verbosef("%s after process start", s.String())
-			} else {
-				msg.Verbosef("got %s", s.String())
-			}
+			msg.Verbosef("got %s", s.String())
 			msg.BeforeExit()
 			k.exit(0)
 
@@ -433,9 +427,6 @@ func initEntrypoint(k syscallDispatcher, msg message.Msg) {
 			}
 
 			if w.wpid == cmd.Process.Pid {
-				// initial process exited, output is most likely available again
-				msg.Resume()
-
 				switch {
 				case w.wstatus.Exited():
 					r = w.wstatus.ExitStatus()
