@@ -11,8 +11,10 @@ import (
 	"os/exec"
 	"reflect"
 	"slices"
+	"sync"
 	"testing"
 	"time"
+	"unsafe"
 
 	"hakurei.app/container"
 	"hakurei.app/container/check"
@@ -314,6 +316,10 @@ type kstub struct {
 	*stub.Stub[syscallDispatcher]
 }
 
+func (k *kstub) new(f func(k syscallDispatcher, msg message.Msg)) {
+	k.New(func(k syscallDispatcher) { f(k, k.(*kstub)) })
+}
+
 func (k *kstub) getpid() int { k.Helper(); return k.Expects("getpid").Ret.(int) }
 func (k *kstub) getuid() int { k.Helper(); return k.Expects("getuid").Ret.(int) }
 func (k *kstub) getgid() int { k.Helper(); return k.Expects("getgid").Ret.(int) }
@@ -355,6 +361,61 @@ func (k *kstub) evalSymlinks(path string) (string, error) {
 		stub.CheckArg(k.Stub, "path", path, 0))
 }
 
+func (k *kstub) prctl(op, arg2, arg3 uintptr) error {
+	k.Helper()
+	return k.Expects("prctl").Error(
+		stub.CheckArg(k.Stub, "op", op, 0),
+		stub.CheckArg(k.Stub, "arg2", arg2, 1),
+		stub.CheckArg(k.Stub, "arg3", arg3, 2))
+}
+
+func (k *kstub) setDumpable(dumpable uintptr) error {
+	k.Helper()
+	return k.Expects("setDumpable").Error(
+		stub.CheckArg(k.Stub, "dumpable", dumpable, 0))
+}
+
+func (k *kstub) receive(key string, e any, fdp *uintptr) (closeFunc func() error, err error) {
+	k.Helper()
+	expect := k.Expects("receive")
+	reflect.ValueOf(e).Elem().Set(reflect.ValueOf(expect.Args[1]))
+	if expect.Args[2] != nil {
+		*fdp = expect.Args[2].(uintptr)
+	}
+	return func() error { return k.Expects("closeReceive").Err }, expect.Error(
+		stub.CheckArg(k.Stub, "key", key, 0))
+}
+
+func (k *kstub) expectCheckContainer(expect *stub.Call, z *container.Container) error {
+	k.Helper()
+	err := expect.Error(
+		stub.CheckArgReflect(k.Stub, "params", &z.Params, 0))
+	if err != nil {
+		k.Errorf("params:\n%s\n%s", mustMarshal(&z.Params), mustMarshal(expect.Args[0]))
+	}
+	return err
+}
+
+func (k *kstub) containerStart(z *container.Container) error {
+	k.Helper()
+	return k.expectCheckContainer(k.Expects("containerStart"), z)
+}
+func (k *kstub) containerServe(z *container.Container) error {
+	k.Helper()
+	return k.expectCheckContainer(k.Expects("containerServe"), z)
+}
+func (k *kstub) containerWait(z *container.Container) error {
+	k.Helper()
+	return k.expectCheckContainer(k.Expects("containerWait"), z)
+}
+
+func (k *kstub) seccompLoad(rules []seccomp.NativeRule, flags seccomp.ExportFlag) error {
+	k.Helper()
+	return k.Expects("seccompLoad").Error(
+		stub.CheckArgReflect(k.Stub, "rules", rules, 0),
+		stub.CheckArg(k.Stub, "flags", flags, 1))
+}
+
 func (k *kstub) cmdOutput(cmd *exec.Cmd) ([]byte, error) {
 	k.Helper()
 	expect := k.Expects("cmdOutput")
@@ -363,6 +424,16 @@ func (k *kstub) cmdOutput(cmd *exec.Cmd) ([]byte, error) {
 		stub.CheckArgReflect(k.Stub, "cmd.Stderr", cmd.Stderr, 1),
 		stub.CheckArgReflect(k.Stub, "cmd.Env", cmd.Env, 2),
 		stub.CheckArg(k.Stub, "cmd.Dir", cmd.Dir, 3))
+}
+
+func (k *kstub) notifyContext(parent context.Context, signals ...os.Signal) (ctx context.Context, stop context.CancelFunc) {
+	k.Helper()
+	if k.Expects("notifyContext").Error(
+		stub.CheckArgReflect(k.Stub, "parent", parent, 0),
+		stub.CheckArgReflect(k.Stub, "signals", signals, 1)) != nil {
+		k.FailNow()
+	}
+	return k.Context(), func() { k.Helper(); k.Expects("notifyContextStop") }
 }
 
 func (k *kstub) mustHsuPath() *check.Absolute {
@@ -376,9 +447,52 @@ func (k *kstub) dbusAddress() (session, system string) {
 	return ret[0], ret[1]
 }
 
-func (k *kstub) GetLogger() *log.Logger { panic("unreachable") }
+// stubTrackReader embeds kstub but switches the underlying [stub.Stub] index to sub on its first Read.
+// The resulting kstub does not share any state with the instance passed to the instrumented goroutine.
+// Therefore, any method making use of such must not be called.
+type stubTrackReader struct {
+	sub     int
+	subOnce sync.Once
 
-func (k *kstub) IsVerbose() bool { k.Helper(); return k.Expects("isVerbose").Ret.(bool) }
+	*kstub
+}
+
+func (r *stubTrackReader) Read(p []byte) (n int, err error) {
+	r.subOnce.Do(func() {
+		subVal := reflect.ValueOf(r.kstub.Stub).Elem().FieldByName("sub")
+		r.kstub = &kstub{panicDispatcher{}, reflect.
+			NewAt(subVal.Type(), unsafe.Pointer(subVal.UnsafeAddr())).Elem().
+			Interface().([]*stub.Stub[syscallDispatcher])[r.sub]}
+	})
+
+	return r.kstub.Read(p)
+}
+
+func (k *kstub) setupContSignal(pid int) (io.ReadCloser, func(), error) {
+	k.Helper()
+	expect := k.Expects("setupContSignal")
+	return &stubTrackReader{sub: expect.Ret.(int), kstub: k}, func() { k.Expects("wKeepAlive") }, expect.Error(
+		stub.CheckArg(k.Stub, "pid", pid, 0))
+}
+
+func (k *kstub) getMsg() message.Msg { k.Helper(); k.Expects("getMsg"); return k }
+
+func (k *kstub) Close() error { k.Helper(); return k.Expects("rcClose").Err }
+func (k *kstub) Read(p []byte) (n int, err error) {
+	k.Helper()
+	expect := k.Expects("rcRead")
+
+	// special case to terminate exit outcomes goroutine
+	// to proceed with further testing of the entrypoint
+	if expect.Ret == nil {
+		panic(stub.PanicExit)
+	}
+
+	return copy(p, expect.Ret.([]byte)), expect.Err
+}
+
+func (k *kstub) GetLogger() *log.Logger { k.Helper(); return k.Expects("getLogger").Ret.(*log.Logger) }
+func (k *kstub) IsVerbose() bool        { k.Helper(); return k.Expects("isVerbose").Ret.(bool) }
 func (k *kstub) SwapVerbose(verbose bool) bool {
 	k.Helper()
 	expect := k.Expects("swapVerbose")
