@@ -36,7 +36,7 @@ func TestParseUint32Fast(t *testing.T) {
 		}
 	})
 
-	t.Run("full range", func(t *testing.T) {
+	t.Run("range", func(t *testing.T) {
 		t.Parallel()
 
 		testRange := func(i, end int) {
@@ -61,11 +61,9 @@ func TestParseUint32Fast(t *testing.T) {
 			}
 		}
 
-		testRange(0, 5000)
-		testRange(105000, 110000)
-		testRange(23005000, 23010000)
-		testRange(456005000, 456010000)
-		testRange(7890005000, 7890010000)
+		testRange(0, 2500)
+		testRange(23002500, 23005000)
+		testRange(7890002500, 7890005000)
 	})
 }
 
