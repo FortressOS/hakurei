@@ -24,7 +24,7 @@ import (
 const (
 	// CancelSignal is the signal expected by container init on context cancel.
 	// A custom [Container.Cancel] function must eventually deliver this signal.
-	CancelSignal = SIGTERM
+	CancelSignal = SIGUSR2
 )
 
 type (

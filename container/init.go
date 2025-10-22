@@ -390,7 +390,8 @@ func initEntrypoint(k syscallDispatcher, msg message.Msg) {
 
 	// handle signals to dump withheld messages
 	sig := make(chan os.Signal, 2)
-	k.notify(sig, os.Interrupt, CancelSignal)
+	k.notify(sig, CancelSignal,
+		os.Interrupt, SIGTERM, SIGQUIT)
 
 	// closed after residualProcessTimeout has elapsed after initial process death
 	timeout := make(chan struct{})
@@ -399,17 +400,27 @@ func initEntrypoint(k syscallDispatcher, msg message.Msg) {
 	for {
 		select {
 		case s := <-sig:
-			if msg.Resume() {
-				msg.Verbosef("%s after process start", s.String())
-			} else {
-				msg.Verbosef("got %s", s.String())
-			}
 			if s == CancelSignal && params.ForwardCancel && cmd.Process != nil {
+				msg.Resume()
 				msg.Verbose("forwarding context cancellation")
 				if err := k.signal(cmd, os.Interrupt); err != nil {
 					k.printf(msg, "cannot forward cancellation: %v", err)
 				}
 				continue
+			}
+
+			if s == SIGTERM || s == SIGQUIT {
+				msg.Verbosef("got %s, forwarding to initial process", s.String())
+				if err := k.signal(cmd, s); err != nil {
+					k.printf(msg, "cannot forward signal: %v", err)
+				}
+				continue
+			}
+
+			if msg.Resume() {
+				msg.Verbosef("%s after process start", s.String())
+			} else {
+				msg.Verbosef("got %s", s.String())
 			}
 			msg.BeforeExit()
 			k.exit(0)
