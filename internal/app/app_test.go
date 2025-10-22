@@ -20,6 +20,7 @@ import (
 	"hakurei.app/container/check"
 	"hakurei.app/container/comp"
 	"hakurei.app/container/fhs"
+	"hakurei.app/container/seccomp"
 	"hakurei.app/hst"
 	"hakurei.app/internal/app/state"
 	"hakurei.app/message"
@@ -41,6 +42,148 @@ func TestApp(t *testing.T) {
 		wantSys    *system.I
 		wantParams *container.Params
 	}{
+		{"template", new(stubNixOS), hst.Template(), checkExpectInstanceId, system.New(panicMsgContext{}, message.NewMsg(nil), 1000009).
+			// spParamsOp
+			Ensure(m("/tmp/hakurei.0"), 0711).
+
+			// spRuntimeOp
+			Ensure(m("/tmp/hakurei.0/runtime"), 0700).
+			UpdatePermType(system.User, m("/tmp/hakurei.0/runtime"), acl.Execute).
+			Ensure(m("/tmp/hakurei.0/runtime/9"), 0700).
+			UpdatePermType(system.User, m("/tmp/hakurei.0/runtime/9"), acl.Read, acl.Write, acl.Execute).
+
+			// spTmpdirOp
+			Ensure(m("/tmp/hakurei.0/tmpdir"), 0700).
+			UpdatePermType(system.User, m("/tmp/hakurei.0/tmpdir"), acl.Execute).
+			Ensure(m("/tmp/hakurei.0/tmpdir/9"), 01700).
+			UpdatePermType(system.User, m("/tmp/hakurei.0/tmpdir/9"), acl.Read, acl.Write, acl.Execute).
+
+			// instance
+			Ephemeral(system.Process, m("/tmp/hakurei.0/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"), 0711).
+
+			// spWaylandOp
+			Wayland(
+				m("/tmp/hakurei.0/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/wayland"),
+				m("/run/user/1971/wayland-0"),
+				"org.chromium.Chromium",
+				"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+			).
+
+			// ensureRuntimeDir
+			Ensure(m("/run/user/1971/hakurei"), 0700).
+			UpdatePermType(system.User, m("/run/user/1971/hakurei"), acl.Execute).
+			Ensure(m("/run/user/1971"), 0700).
+			UpdatePermType(system.User, m("/run/user/1971"), acl.Execute).
+
+			// runtime
+			Ephemeral(system.Process, m("/run/user/1971/hakurei/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"), 0700).
+			UpdatePerm(m("/run/user/1971/hakurei/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"), acl.Execute).
+
+			// spPulseOp
+			Link(m("/run/user/1971/pulse/native"), m("/run/user/1971/hakurei/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/pulse")).
+
+			// spDBusOp
+			MustProxyDBus(
+				hst.Template().SessionBus,
+				hst.Template().SystemBus, dbus.ProxyPair{
+					"unix:path=/run/user/1971/bus",
+					"/tmp/hakurei.0/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/bus",
+				}, dbus.ProxyPair{
+					"unix:path=/var/run/dbus/system_bus_socket",
+					"/tmp/hakurei.0/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/system_bus_socket",
+				},
+			).UpdatePerm(m("/tmp/hakurei.0/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/bus"), acl.Read, acl.Write).
+			UpdatePerm(m("/tmp/hakurei.0/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/system_bus_socket"), acl.Read, acl.Write).
+
+			// spFilesystemOp
+			Ensure(m("/var/lib/hakurei/u0"), 0700).
+			UpdatePermType(system.User, m("/var/lib/hakurei/u0"), acl.Execute).
+			UpdatePermType(system.User, m("/var/lib/hakurei/u0/org.chromium.Chromium"), acl.Read, acl.Write, acl.Execute), &container.Params{
+
+			Dir: m("/data/data/org.chromium.Chromium"),
+			Env: []string{
+				"DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1971/bus",
+				"DBUS_SYSTEM_BUS_ADDRESS=unix:path=/var/run/dbus/system_bus_socket",
+				"GOOGLE_API_KEY=AIzaSyBHDrl33hwRp4rMQY0ziRbj8K9LPA6vUCY",
+				"GOOGLE_DEFAULT_CLIENT_ID=77185425430.apps.googleusercontent.com",
+				"GOOGLE_DEFAULT_CLIENT_SECRET=OTJgUOQcT7lO7GsGZq2G4IlT",
+				"HOME=/data/data/org.chromium.Chromium",
+				"PULSE_COOKIE=/.hakurei/pulse-cookie",
+				"PULSE_SERVER=unix:/run/user/1971/pulse/native",
+				"SHELL=/run/current-system/sw/bin/zsh",
+				"TERM=xterm-256color",
+				"USER=chronos",
+				"WAYLAND_DISPLAY=wayland-0",
+				"XDG_RUNTIME_DIR=/run/user/1971",
+				"XDG_SESSION_CLASS=user",
+				"XDG_SESSION_TYPE=wayland",
+			},
+
+			// spParamsOp
+			Hostname:      "localhost",
+			RetainSession: true,
+			HostNet:       true,
+			HostAbstract:  true,
+			Path:          m("/run/current-system/sw/bin/chromium"),
+			Args: []string{
+				"chromium",
+				"--ignore-gpu-blocklist",
+				"--disable-smooth-scrolling",
+				"--enable-features=UseOzonePlatform",
+				"--ozone-platform=wayland",
+			},
+			SeccompFlags: seccomp.AllowMultiarch,
+			Uid:          1971,
+			Gid:          100,
+
+			Ops: new(container.Ops).
+				// resolveRoot
+				Root(m("/var/lib/hakurei/base/org.debian"), comp.BindWritable).
+				// spParamsOp
+				Proc(fhs.AbsProc).
+				Tmpfs(hst.AbsPrivateTmp, 1<<12, 0755).
+				Bind(fhs.AbsDev, fhs.AbsDev, comp.BindWritable|comp.BindDevice).
+				Tmpfs(fhs.AbsDev.Append("shm"), 0, 01777).
+
+				// spRuntimeOp
+				Tmpfs(fhs.AbsRunUser, 1<<12, 0755).
+				Bind(m("/tmp/hakurei.0/runtime/9"), m("/run/user/1971"), comp.BindWritable).
+
+				// spTmpdirOp
+				Bind(m("/tmp/hakurei.0/tmpdir/9"), fhs.AbsTmp, comp.BindWritable).
+
+				// spAccountOp
+				Place(m("/etc/passwd"), []byte("chronos:x:1971:100:Hakurei:/data/data/org.chromium.Chromium:/run/current-system/sw/bin/zsh\n")).
+				Place(m("/etc/group"), []byte("hakurei:x:100:\n")).
+
+				// spWaylandOp
+				Bind(m("/tmp/hakurei.0/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/wayland"), m("/run/user/1971/wayland-0"), 0).
+
+				// spPulseOp
+				Bind(m("/run/user/1971/hakurei/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/pulse"), m("/run/user/1971/pulse/native"), 0).
+				Place(m("/.hakurei/pulse-cookie"), bytes.Repeat([]byte{0}, pulseCookieSizeMax)).
+
+				// spDBusOp
+				Bind(m("/tmp/hakurei.0/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/bus"), m("/run/user/1971/bus"), 0).
+				Bind(m("/tmp/hakurei.0/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/system_bus_socket"), m("/var/run/dbus/system_bus_socket"), 0).
+
+				// spFilesystemOp
+				Etc(fhs.AbsEtc, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").
+				Tmpfs(fhs.AbsTmp, 0, 0755).
+				Overlay(m("/nix/store"),
+					fhs.AbsVarLib.Append("hakurei/nix/u0/org.chromium.Chromium/rw-store/upper"),
+					fhs.AbsVarLib.Append("hakurei/nix/u0/org.chromium.Chromium/rw-store/work"),
+					fhs.AbsVarLib.Append("hakurei/base/org.nixos/ro-store")).
+				Link(m("/run/current-system"), "/run/current-system", true).
+				Link(m("/run/opengl-driver"), "/run/opengl-driver", true).
+				Bind(fhs.AbsVarLib.Append("hakurei/u0/org.chromium.Chromium"),
+					m("/data/data/org.chromium.Chromium"),
+					comp.BindWritable|comp.BindEnsure).
+				Bind(fhs.AbsDev.Append("dri"), fhs.AbsDev.Append("dri"),
+					comp.BindOptional|comp.BindWritable|comp.BindDevice).
+				Remount(fhs.AbsRoot, syscall.MS_RDONLY),
+		}},
+
 		{"nixos permissive defaults no enablements", new(stubNixOS), &hst.Config{Container: &hst.ContainerConfig{
 			Filesystem: []hst.FilesystemConfigJSON{
 				{FilesystemConfig: &hst.FSBind{
@@ -648,6 +791,10 @@ func (k *stubNixOS) readdir(name string) ([]fs.DirEntry, error) {
 			"tmpfiles.d", "udev", "udisks2", "UPower", "vconsole.conf", "X11", "zfs", "zinputrc",
 			"zoneinfo", "zprofile", "zshenv", "zshrc")
 
+	case "/var/lib/hakurei/base/org.debian":
+		return stubDirEntries("bin", "dev", "etc", "home", "lib64", "lost+found",
+			"mnt", "nix", "proc", "root", "run", "srv", "sys", "tmp", "usr", "var")
+
 	default:
 		panic(fmt.Sprintf("attempted to read unexpected directory %q", name))
 	}
@@ -715,6 +862,38 @@ func (k *stubNixOS) evalSymlinks(path string) (string, error) {
 		return "/nix/store/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-graphics-drivers", nil
 	case "/var/lib/persist/module/hakurei/0/1":
 		return "/var/lib/persist/module/hakurei/0/1", nil
+
+	case "/var/lib/hakurei/nix/u0/org.chromium.Chromium/rw-store/upper":
+		return "/var/lib/hakurei/nix/u0/org.chromium.Chromium/rw-store/upper", nil
+	case "/var/lib/hakurei/nix/u0/org.chromium.Chromium/rw-store/work":
+		return "/var/lib/hakurei/nix/u0/org.chromium.Chromium/rw-store/work", nil
+	case "/var/lib/hakurei/base/org.nixos/ro-store":
+		return "/var/lib/hakurei/base/org.nixos/ro-store", nil
+	case "/var/lib/hakurei/u0/org.chromium.Chromium":
+		return "/var/lib/hakurei/u0/org.chromium.Chromium", nil
+	case "/var/lib/hakurei/base/org.debian/bin":
+		return "/var/lib/hakurei/base/org.debian/bin", nil
+	case "/var/lib/hakurei/base/org.debian/home":
+		return "/var/lib/hakurei/base/org.debian/home", nil
+	case "/var/lib/hakurei/base/org.debian/lib64":
+		return "/var/lib/hakurei/base/org.debian/lib64", nil
+	case "/var/lib/hakurei/base/org.debian/lost+found":
+		return "/var/lib/hakurei/base/org.debian/lost+found", nil
+	case "/var/lib/hakurei/base/org.debian/nix":
+		return "/var/lib/hakurei/base/org.debian/nix", nil
+	case "/var/lib/hakurei/base/org.debian/root":
+		return "/var/lib/hakurei/base/org.debian/root", nil
+	case "/var/lib/hakurei/base/org.debian/run":
+		return "/var/lib/hakurei/base/org.debian/run", nil
+	case "/var/lib/hakurei/base/org.debian/srv":
+		return "/var/lib/hakurei/base/org.debian/srv", nil
+	case "/var/lib/hakurei/base/org.debian/sys":
+		return "/var/lib/hakurei/base/org.debian/sys", nil
+	case "/var/lib/hakurei/base/org.debian/usr":
+		return "/var/lib/hakurei/base/org.debian/usr", nil
+	case "/var/lib/hakurei/base/org.debian/var":
+		return "/var/lib/hakurei/base/org.debian/var", nil
+
 	default:
 		panic(fmt.Sprintf("attempted to evaluate unexpected path %q", path))
 	}
