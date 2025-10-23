@@ -523,13 +523,13 @@ func TestPrintPs(t *testing.T) {
 		{"state corruption", map[hst.ID]*hst.State{hst.ID{}: testState}, false, false, "    Instance    PID    Application    Uptime\n"},
 
 		{"valid pd", map[hst.ID]*hst.State{testID: {ID: testID, PID: 1 << 8, Config: new(hst.Config), Time: testAppTime}}, false, false, `    Instance    PID    Application                 Uptime
-    8e2c76b0    256    0 (app.hakurei.8e2c76b0)    1h2m32s
+    4cf073bd    256    0 (app.hakurei.4cf073bd)    1h2m32s
 `},
 
 		{"valid", map[hst.ID]*hst.State{testID: testState}, false, false, `    Instance    PID           Application                  Uptime
-    8e2c76b0    3405691582    9 (org.chromium.Chromium)    1h2m32s
+    4cf073bd    3405691582    9 (org.chromium.Chromium)    1h2m32s
 `},
-		{"valid short", map[hst.ID]*hst.State{testID: testState}, true, false, "8e2c76b0\n"},
+		{"valid short", map[hst.ID]*hst.State{testID: testState}, true, false, "4cf073bd\n"},
 		{"valid json", map[hst.ID]*hst.State{testID: testState}, false, true, `{
   "8e2c76b066dabe574cf073bdb46eb5c1": {
     "instance": "8e2c76b066dabe574cf073bdb46eb5c1",

@@ -215,7 +215,7 @@ func printPs(output io.Writer, now time.Time, s state.Store, short, flagJSON boo
 			encodeJSON(log.Fatal, output, short, v)
 		} else {
 			for _, e := range exp {
-				mustPrintln(output, e.s[:8])
+				mustPrintln(output, shortIdentifierString(e.s))
 			}
 		}
 		return
@@ -237,12 +237,12 @@ func printPs(output io.Writer, now time.Time, s state.Store, short, flagJSON boo
 			as = strconv.Itoa(e.Config.Identity)
 			id := e.Config.ID
 			if id == "" {
-				id = "app.hakurei." + e.s[:8]
+				id = "app.hakurei." + shortIdentifierString(e.s)
 			}
 			as += " (" + id + ")"
 		}
 		t.Printf("\t%s\t%d\t%s\t%s\n",
-			e.s[:8], e.PID, as, now.Sub(e.Time).Round(time.Second).String())
+			shortIdentifierString(e.s), e.PID, as, now.Sub(e.Time).Round(time.Second).String())
 	}
 }
 

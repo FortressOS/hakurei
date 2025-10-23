@@ -301,7 +301,7 @@ func buildCommand(ctx context.Context, msg message.Msg, early *earlyHardeningErr
 
 			case 1: // instance
 				name := args[0]
-				config, entry := tryShort(msg, name)
+				config, entry := tryIdentifier(msg, name)
 				if config == nil {
 					config = tryPath(msg, name)
 				}
