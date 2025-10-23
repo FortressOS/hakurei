@@ -131,7 +131,7 @@ type multiBackend struct {
 	mu sync.RWMutex
 }
 
-func (b *multiBackend) filename(id *ID) string { return path.Join(b.path, id.String()) }
+func (b *multiBackend) filename(id *hst.ID) string { return path.Join(b.path, id.String()) }
 
 func (b *multiBackend) lockFileAct(lt int) (err error) {
 	op := "LockAct"
@@ -163,7 +163,7 @@ func (b *multiBackend) unlockFile() error { return b.lockFileAct(syscall.LOCK_UN
 
 // reads all launchers in simpleBackend
 // file contents are ignored if decode is false
-func (b *multiBackend) load(decode bool) (Entries, error) {
+func (b *multiBackend) load(decode bool) (map[hst.ID]*hst.State, error) {
 	b.mu.RLock()
 	defer b.mu.RUnlock()
 
@@ -177,15 +177,15 @@ func (b *multiBackend) load(decode bool) (Entries, error) {
 
 	// allocate as if every entry is valid
 	// since that should be the case assuming no external interference happens
-	r := make(Entries, len(entries))
+	r := make(map[hst.ID]*hst.State, len(entries))
 
 	for _, e := range entries {
 		if e.IsDir() {
 			return nil, fmt.Errorf("unexpected directory %q in store", e.Name())
 		}
 
-		var id ID
-		if err := ParseAppID(&id, e.Name()); err != nil {
+		var id hst.ID
+		if err := id.UnmarshalText([]byte(e.Name())); err != nil {
 			return nil, &hst.AppError{Step: "parse state key", Err: err}
 		}
 
@@ -195,7 +195,7 @@ func (b *multiBackend) load(decode bool) (Entries, error) {
 			if f, err := os.Open(path.Join(b.path, e.Name())); err != nil {
 				return &hst.AppError{Step: "open state file", Err: err}
 			} else {
-				var s State
+				var s hst.State
 				r[id] = &s
 
 				// append regardless, but only parse if required, implements Len
@@ -226,7 +226,7 @@ func (b *multiBackend) load(decode bool) (Entries, error) {
 }
 
 // Save writes process state to filesystem
-func (b *multiBackend) Save(state *State) error {
+func (b *multiBackend) Save(state *hst.State) error {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
@@ -247,7 +247,7 @@ func (b *multiBackend) Save(state *State) error {
 	return nil
 }
 
-func (b *multiBackend) Destroy(id ID) error {
+func (b *multiBackend) Destroy(id hst.ID) error {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
@@ -257,7 +257,7 @@ func (b *multiBackend) Destroy(id ID) error {
 	return nil
 }
 
-func (b *multiBackend) Load() (Entries, error) { return b.load(true) }
+func (b *multiBackend) Load() (map[hst.ID]*hst.State, error) { return b.load(true) }
 
 func (b *multiBackend) Len() (int, error) {
 	// rn consists of only nil entries but has the correct length

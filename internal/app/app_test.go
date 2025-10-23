@@ -22,7 +22,6 @@ import (
 	"hakurei.app/container/fhs"
 	"hakurei.app/container/seccomp"
 	"hakurei.app/hst"
-	"hakurei.app/internal/app/state"
 	"hakurei.app/message"
 	"hakurei.app/system"
 	"hakurei.app/system/acl"
@@ -38,7 +37,7 @@ func TestApp(t *testing.T) {
 		name       string
 		k          syscallDispatcher
 		config     *hst.Config
-		id         state.ID
+		id         hst.ID
 		wantSys    *system.I
 		wantParams *container.Params
 	}{
@@ -212,7 +211,7 @@ func TestApp(t *testing.T) {
 			Args: []string{"/run/current-system/sw/bin/zsh"},
 
 			Flags: hst.FUserns | hst.FHostNet | hst.FHostAbstract | hst.FTty | hst.FShareRuntime | hst.FShareTmpdir,
-		}}, state.ID{
+		}}, hst.ID{
 			0x4a, 0x45, 0x0b, 0x65,
 			0x96, 0xd7, 0xbc, 0x15,
 			0xbd, 0x01, 0x78, 0x0e,
@@ -336,7 +335,7 @@ func TestApp(t *testing.T) {
 
 				Flags: hst.FUserns | hst.FHostNet | hst.FHostAbstract | hst.FTty | hst.FShareRuntime | hst.FShareTmpdir,
 			},
-		}, state.ID{
+		}, hst.ID{
 			0xeb, 0xf0, 0x83, 0xd1,
 			0xb1, 0x75, 0x91, 0x17,
 			0x82, 0xd4, 0x13, 0x36,
@@ -490,7 +489,7 @@ func TestApp(t *testing.T) {
 			DirectWayland: true,
 
 			Identity: 1, Groups: []string{},
-		}, state.ID{
+		}, hst.ID{
 			0x8e, 0x2c, 0x76, 0xb0,
 			0x66, 0xda, 0xbe, 0x57,
 			0x4c, 0xf0, 0x73, 0xbd,

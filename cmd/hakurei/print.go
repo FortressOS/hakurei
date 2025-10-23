@@ -41,7 +41,7 @@ func printShowSystem(output io.Writer, short, flagJSON bool) {
 // printShowInstance writes a representation of [state.State] or [hst.Config] to output.
 func printShowInstance(
 	output io.Writer, now time.Time,
-	instance *state.State, config *hst.Config,
+	instance *hst.State, config *hst.Config,
 	short, flagJSON bool) (valid bool) {
 	valid = true
 
@@ -168,7 +168,7 @@ func printShowInstance(
 
 // printPs writes a representation of active instances to output.
 func printPs(output io.Writer, now time.Time, s state.Store, short, flagJSON bool) {
-	var entries state.Entries
+	var entries map[hst.ID]*hst.State
 	if e, err := state.Join(s); err != nil {
 		log.Fatalf("cannot join store: %v", err)
 	} else {
@@ -179,7 +179,7 @@ func printPs(output io.Writer, now time.Time, s state.Store, short, flagJSON boo
 	}
 
 	if !short && flagJSON {
-		es := make(map[string]*state.State, len(entries))
+		es := make(map[string]*hst.State, len(entries))
 		for id, instance := range entries {
 			es[id.String()] = instance
 		}
@@ -249,7 +249,7 @@ func printPs(output io.Writer, now time.Time, s state.Store, short, flagJSON boo
 // expandedStateEntry stores [state.State] alongside a string representation of its [state.ID].
 type expandedStateEntry struct {
 	s string
-	*state.State
+	*hst.State
 }
 
 // newPrinter returns a configured, wrapped [tabwriter.Writer].

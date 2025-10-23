@@ -7,15 +7,14 @@ import (
 	"os"
 
 	"hakurei.app/hst"
-	"hakurei.app/internal/app/state"
 	"hakurei.app/message"
 )
 
 // Main runs an app according to [hst.Config] and terminates. Main does not return.
 func Main(ctx context.Context, msg message.Msg, config *hst.Config) {
-	var id state.ID
-	if err := state.NewAppID(&id); err != nil {
-		log.Fatal(err)
+	var id hst.ID
+	if err := hst.NewInstanceID(&id); err != nil {
+		log.Fatal(err.Error())
 	}
 
 	seal := outcome{syscallDispatcher: direct{msg}}

@@ -28,7 +28,7 @@ func testStore(t *testing.T, s state.Store) {
 		tl
 	)
 
-	var tc [tl]state.State
+	var tc [tl]hst.State
 	for i := 0; i < tl; i++ {
 		makeState(t, &tc[i])
 	}
@@ -122,8 +122,8 @@ func testStore(t *testing.T, s state.Store) {
 	})
 }
 
-func makeState(t *testing.T, s *state.State) {
-	if err := state.NewAppID(&s.ID); err != nil {
+func makeState(t *testing.T, s *hst.State) {
+	if err := hst.NewInstanceID(&s.ID); err != nil {
 		t.Fatalf("cannot create dummy state: %v", err)
 	}
 	s.PID = rand.Int()

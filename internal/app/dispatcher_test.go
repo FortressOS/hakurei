@@ -21,7 +21,6 @@ import (
 	"hakurei.app/container/seccomp"
 	"hakurei.app/container/stub"
 	"hakurei.app/hst"
-	"hakurei.app/internal/app/state"
 	"hakurei.app/message"
 	"hakurei.app/system"
 )
@@ -49,7 +48,7 @@ const (
 )
 
 // checkExpectInstanceId is the [state.ID] value used by checkOpBehaviour to initialise outcomeState.
-var checkExpectInstanceId = *(*state.ID)(bytes.Repeat([]byte{0xaa}, len(state.ID{})))
+var checkExpectInstanceId = *(*hst.ID)(bytes.Repeat([]byte{0xaa}, len(hst.ID{})))
 
 type (
 	// pStateSysFunc is called before each test case is run to prepare outcomeStateSys.

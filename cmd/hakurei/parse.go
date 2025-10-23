@@ -61,7 +61,7 @@ func tryFd(msg message.Msg, name string) io.ReadCloser {
 	}
 }
 
-func tryShort(msg message.Msg, name string) (config *hst.Config, entry *state.State) {
+func tryShort(msg message.Msg, name string) (config *hst.Config, entry *hst.State) {
 	likePrefix := false
 	if len(name) <= 32 {
 		likePrefix = true

@@ -10,13 +10,13 @@ import (
 )
 
 var (
-	testID = state.ID{
+	testID = hst.ID{
 		0x8e, 0x2c, 0x76, 0xb0,
 		0x66, 0xda, 0xbe, 0x57,
 		0x4c, 0xf0, 0x73, 0xbd,
 		0xb4, 0x6e, 0xb5, 0xc1,
 	}
-	testState = &state.State{
+	testState = &hst.State{
 		ID:     testID,
 		PID:    0xDEADBEEF,
 		Config: hst.Template(),
@@ -31,7 +31,7 @@ func TestPrintShowInstance(t *testing.T) {
 
 	testCases := []struct {
 		name        string
-		instance    *state.State
+		instance    *hst.State
 		config      *hst.Config
 		short, json bool
 		want        string
@@ -185,24 +185,7 @@ App
 		{"json nil", nil, nil, false, true, `null
 `, true},
 		{"json instance", testState, nil, false, true, `{
-  "instance": [
-    142,
-    44,
-    118,
-    176,
-    102,
-    218,
-    190,
-    87,
-    76,
-    240,
-    115,
-    189,
-    180,
-    110,
-    181,
-    193
-  ],
+  "instance": "8e2c76b066dabe574cf073bdb46eb5c1",
   "pid": 3735928559,
   "config": {
     "id": "org.chromium.Chromium",
@@ -530,43 +513,26 @@ func TestPrintPs(t *testing.T) {
 
 	testCases := []struct {
 		name        string
-		entries     state.Entries
+		entries     map[hst.ID]*hst.State
 		short, json bool
 		want        string
 	}{
-		{"no entries", make(state.Entries), false, false, "    Instance    PID    Application    Uptime\n"},
-		{"no entries short", make(state.Entries), true, false, ""},
-		{"nil instance", state.Entries{testID: nil}, false, false, "    Instance    PID    Application    Uptime\n"},
-		{"state corruption", state.Entries{state.ID{}: testState}, false, false, "    Instance    PID    Application    Uptime\n"},
+		{"no entries", make(map[hst.ID]*hst.State), false, false, "    Instance    PID    Application    Uptime\n"},
+		{"no entries short", make(map[hst.ID]*hst.State), true, false, ""},
+		{"nil instance", map[hst.ID]*hst.State{testID: nil}, false, false, "    Instance    PID    Application    Uptime\n"},
+		{"state corruption", map[hst.ID]*hst.State{hst.ID{}: testState}, false, false, "    Instance    PID    Application    Uptime\n"},
 
-		{"valid pd", state.Entries{testID: &state.State{ID: testID, PID: 1 << 8, Config: new(hst.Config), Time: testAppTime}}, false, false, `    Instance    PID    Application                 Uptime
+		{"valid pd", map[hst.ID]*hst.State{testID: {ID: testID, PID: 1 << 8, Config: new(hst.Config), Time: testAppTime}}, false, false, `    Instance    PID    Application                 Uptime
     8e2c76b0    256    0 (app.hakurei.8e2c76b0)    1h2m32s
 `},
 
-		{"valid", state.Entries{testID: testState}, false, false, `    Instance    PID           Application                  Uptime
+		{"valid", map[hst.ID]*hst.State{testID: testState}, false, false, `    Instance    PID           Application                  Uptime
     8e2c76b0    3735928559    9 (org.chromium.Chromium)    1h2m32s
 `},
-		{"valid short", state.Entries{testID: testState}, true, false, "8e2c76b0\n"},
-		{"valid json", state.Entries{testID: testState}, false, true, `{
+		{"valid short", map[hst.ID]*hst.State{testID: testState}, true, false, "8e2c76b0\n"},
+		{"valid json", map[hst.ID]*hst.State{testID: testState}, false, true, `{
   "8e2c76b066dabe574cf073bdb46eb5c1": {
-    "instance": [
-      142,
-      44,
-      118,
-      176,
-      102,
-      218,
-      190,
-      87,
-      76,
-      240,
-      115,
-      189,
-      180,
-      110,
-      181,
-      193
-    ],
+    "instance": "8e2c76b066dabe574cf073bdb46eb5c1",
     "pid": 3735928559,
     "config": {
       "id": "org.chromium.Chromium",
@@ -721,7 +687,7 @@ func TestPrintPs(t *testing.T) {
   }
 }
 `},
-		{"valid short json", state.Entries{testID: testState}, true, true, `["8e2c76b066dabe574cf073bdb46eb5c1"]
+		{"valid short json", map[hst.ID]*hst.State{testID: testState}, true, true, `["8e2c76b066dabe574cf073bdb46eb5c1"]
 `},
 	}
 
@@ -741,9 +707,9 @@ func TestPrintPs(t *testing.T) {
 }
 
 // stubStore implements [state.Store] and returns test samples via [state.Joiner].
-type stubStore state.Entries
+type stubStore map[hst.ID]*hst.State
 
-func (s stubStore) Join() (state.Entries, error)               { return state.Entries(s), nil }
+func (s stubStore) Join() (map[hst.ID]*hst.State, error)       { return s, nil }
 func (s stubStore) Do(int, func(c state.Cursor)) (bool, error) { panic("unreachable") }
 func (s stubStore) List() ([]int, error)                       { panic("unreachable") }
 func (s stubStore) Close() error                               { return nil }

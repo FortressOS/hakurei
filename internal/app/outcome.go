@@ -8,7 +8,6 @@ import (
 	"hakurei.app/container"
 	"hakurei.app/container/check"
 	"hakurei.app/hst"
-	"hakurei.app/internal/app/state"
 	"hakurei.app/message"
 	"hakurei.app/system"
 	"hakurei.app/system/acl"
@@ -36,9 +35,9 @@ type outcomeState struct {
 	Shim *shimParams
 
 	// Generated and accounted for by the caller.
-	ID *state.ID
+	ID *hst.ID
 	// Copied from ID.
-	id *stringPair[state.ID]
+	id *stringPair[hst.ID]
 
 	// Copied from the [hst.Config] field of the same name.
 	Identity int
@@ -77,7 +76,7 @@ func (s *outcomeState) valid() bool {
 }
 
 // newOutcomeState returns the address of a new outcomeState with its exported fields populated via syscallDispatcher.
-func newOutcomeState(k syscallDispatcher, msg message.Msg, id *state.ID, config *hst.Config, hsu *Hsu) *outcomeState {
+func newOutcomeState(k syscallDispatcher, msg message.Msg, id *hst.ID, config *hst.Config, hsu *Hsu) *outcomeState {
 	s := outcomeState{
 		Shim:      &shimParams{PrivPID: k.getpid(), Verbose: msg.IsVerbose()},
 		ID:        id,
@@ -120,7 +119,7 @@ func (s *outcomeState) populateLocal(k syscallDispatcher, msg message.Msg) error
 	s.k = k
 	s.msg = msg
 
-	s.id = &stringPair[state.ID]{*s.ID, s.ID.String()}
+	s.id = &stringPair[hst.ID]{*s.ID, s.ID.String()}
 
 	s.Copy(&s.sc, s.UserID)
 	msg.Verbosef("process share directory at %q, runtime directory at %q", s.sc.SharePath, s.sc.RunDirPath)

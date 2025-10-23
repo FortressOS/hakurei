@@ -3,6 +3,8 @@ package state
 import (
 	"errors"
 	"maps"
+
+	"hakurei.app/hst"
 )
 
 var (
@@ -14,20 +16,22 @@ Joiner is the interface that wraps the Join method.
 
 The Join function uses Joiner if available.
 */
-type Joiner interface{ Join() (Entries, error) }
+type Joiner interface {
+	Join() (map[hst.ID]*hst.State, error)
+}
 
-// Join returns joined state entries of all active aids.
-func Join(s Store) (Entries, error) {
+// Join returns joined state entries of all active identities.
+func Join(s Store) (map[hst.ID]*hst.State, error) {
 	if j, ok := s.(Joiner); ok {
 		return j.Join()
 	}
 
 	var (
 		aids    []int
-		entries = make(Entries)
+		entries = make(map[hst.ID]*hst.State)
 
 		el      int
-		res     Entries
+		res     map[hst.ID]*hst.State
 		loadErr error
 	)
 

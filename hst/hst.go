@@ -16,7 +16,7 @@ type AppError struct {
 	// A user-facing description of where the error occurred.
 	Step string `json:"step"`
 	// The underlying error value.
-	Err error
+	Err error `json:"err"`
 	// An arbitrary error message, overriding the return value of Message if not empty.
 	Msg string `json:"message,omitempty"`
 }
