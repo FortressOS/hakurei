@@ -17,10 +17,11 @@ var (
 		0xb4, 0x6e, 0xb5, 0xc1,
 	}
 	testState = &hst.State{
-		ID:     testID,
-		PID:    0xDEADBEEF,
-		Config: hst.Template(),
-		Time:   testAppTime,
+		ID:      testID,
+		PID:     0xcafebabe,
+		ShimPID: 0xdeadbeef,
+		Config:  hst.Template(),
+		Time:    testAppTime,
 	}
 	testTime    = time.Unix(3752, 1).UTC()
 	testAppTime = time.Unix(0, 9).UTC()
@@ -131,7 +132,7 @@ Session bus
 `, false},
 
 		{"instance", testState, hst.Template(), false, false, `State
- Instance:    8e2c76b066dabe574cf073bdb46eb5c1 (3735928559)
+ Instance:    8e2c76b066dabe574cf073bdb46eb5c1 (3405691582 -> 3735928559)
  Uptime:      1h2m32s
 
 App
@@ -173,7 +174,7 @@ System bus
 		{"instance pd", testState, new(hst.Config), false, false, `Error: configuration missing container state!
 
 State
- Instance:    8e2c76b066dabe574cf073bdb46eb5c1 (3735928559)
+ Instance:    8e2c76b066dabe574cf073bdb46eb5c1 (3405691582 -> 3735928559)
  Uptime:      1h2m32s
 
 App
@@ -186,7 +187,8 @@ App
 `, true},
 		{"json instance", testState, nil, false, true, `{
   "instance": "8e2c76b066dabe574cf073bdb46eb5c1",
-  "pid": 3735928559,
+  "pid": 3405691582,
+  "shim_pid": 3735928559,
   "config": {
     "id": "org.chromium.Chromium",
     "enablements": {
@@ -527,13 +529,14 @@ func TestPrintPs(t *testing.T) {
 `},
 
 		{"valid", map[hst.ID]*hst.State{testID: testState}, false, false, `    Instance    PID           Application                  Uptime
-    8e2c76b0    3735928559    9 (org.chromium.Chromium)    1h2m32s
+    8e2c76b0    3405691582    9 (org.chromium.Chromium)    1h2m32s
 `},
 		{"valid short", map[hst.ID]*hst.State{testID: testState}, true, false, "8e2c76b0\n"},
 		{"valid json", map[hst.ID]*hst.State{testID: testState}, false, true, `{
   "8e2c76b066dabe574cf073bdb46eb5c1": {
     "instance": "8e2c76b066dabe574cf073bdb46eb5c1",
-    "pid": 3735928559,
+    "pid": 3405691582,
+    "shim_pid": 3735928559,
     "config": {
       "id": "org.chromium.Chromium",
       "enablements": {

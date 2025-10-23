@@ -66,7 +66,7 @@ func printShowInstance(
 
 	if instance != nil {
 		t.Printf("State\n")
-		t.Printf(" Instance:\t%s (%d)\n", instance.ID.String(), instance.PID)
+		t.Printf(" Instance:\t%s (%d -> %d)\n", instance.ID.String(), instance.PID, instance.ShimPID)
 		t.Printf(" Uptime:\t%s\n", now.Sub(instance.Time).Round(time.Second).String())
 		t.Printf("\n")
 	}

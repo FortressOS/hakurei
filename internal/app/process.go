@@ -290,10 +290,11 @@ func (k *outcome) main(msg message.Msg) {
 	// shim accepted setup payload, create process state
 	if ok, err := ms.store.Do(k.state.identity.unwrap(), func(c state.Cursor) {
 		if err := c.Save(&hst.State{
-			ID:     k.state.id.unwrap(),
-			PID:    ms.cmd.Process.Pid,
-			Config: k.config,
-			Time:   *ms.Time,
+			ID:      k.state.id.unwrap(),
+			PID:     os.Getpid(),
+			ShimPID: ms.cmd.Process.Pid,
+			Config:  k.config,
+			Time:    *ms.Time,
 		}); err != nil {
 			ms.fatal("cannot save state entry:", err)
 		}

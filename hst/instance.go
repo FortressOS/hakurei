@@ -74,8 +74,11 @@ func (a *ID) UnmarshalText(text []byte) error {
 type State struct {
 	// Unique instance id, created by [NewInstanceID].
 	ID ID `json:"instance"`
-	// Shim process pid. Runs as the target user.
+	// Monitoring process pid. Runs as the priv user.
 	PID int `json:"pid"`
+	// Shim process pid. Runs as the target user.
+	ShimPID int `json:"shim_pid"`
+
 	// Configuration used to start the container.
 	Config *Config `json:"config"`
 
