@@ -58,17 +58,15 @@ def check_state(name, enablements):
         raise Exception(f"unexpected state length {len(instances)}")
     instance = next(iter(instances.values()))
 
-    config = instance['config']
-
     command = f"{name}-start"
-    if not (config['container']['path'].startswith("/nix/store/")) or not (config['container']['path'].endswith(command)):
-        raise Exception(f"unexpected path {config['path']}")
+    if not (instance['container']['path'].startswith("/nix/store/")) or not (instance['container']['path'].endswith(command)):
+        raise Exception(f"unexpected path {instance['path']}")
 
-    if len(config['container']['args']) != 1 or config['container']['args'][0] != command:
-        raise Exception(f"unexpected args {config['args']}")
+    if len(instance['container']['args']) != 1 or instance['container']['args'][0] != command:
+        raise Exception(f"unexpected args {instance['args']}")
 
-    if config['enablements'] != enablements:
-        raise Exception(f"unexpected enablements {config['enablements']['enablements']}")
+    if instance['enablements'] != enablements:
+        raise Exception(f"unexpected enablements {instance['enablements']['enablements']}")
 
 
 def hakurei(command):

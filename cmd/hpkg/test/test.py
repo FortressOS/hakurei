@@ -60,13 +60,11 @@ def check_state(name, enablements):
         raise Exception(f"unexpected state length {len(instances)}")
     instance = next(iter(instances.values()))
 
-    config = instance['config']
+    if len(instance['container']['args']) != 1 or not (instance['container']['args'][0].startswith("/nix/store/")) or f"hakurei-{name}-" not in (instance['container']['args'][0]):
+        raise Exception(f"unexpected args {instance['container']['args']}")
 
-    if len(config['container']['args']) != 1 or not (config['container']['args'][0].startswith("/nix/store/")) or f"hakurei-{name}-" not in (config['container']['args'][0]):
-        raise Exception(f"unexpected args {config['container']['args']}")
-
-    if config['enablements'] != enablements:
-        raise Exception(f"unexpected enablements {config['enablements']}")
+    if instance['enablements'] != enablements:
+        raise Exception(f"unexpected enablements {instance['enablements']}")
 
 
 start_all()

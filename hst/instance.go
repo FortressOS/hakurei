@@ -80,7 +80,7 @@ type State struct {
 	ShimPID int `json:"shim_pid"`
 
 	// Configuration used to start the container.
-	Config *Config `json:"config"`
+	*Config
 
 	// Point in time the shim process was created.
 	Time time.Time `json:"time"`
