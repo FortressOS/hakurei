@@ -221,7 +221,7 @@ func (k *outcome) main(msg message.Msg) {
 		ms.fatal("cannot commit system setup:", err)
 	}
 	ms.uintptr |= mainNeedsRevert
-	ms.store = state.NewMulti(msg, k.state.sc.RunDirPath.String())
+	ms.store = state.NewMulti(msg, k.state.sc.RunDirPath)
 
 	ctx, cancel := context.WithCancel(k.ctx)
 	defer cancel()
