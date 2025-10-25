@@ -1,6 +1,8 @@
 package container
 
 import (
+	"fmt"
+	"log"
 	"os"
 	"sync"
 
@@ -14,8 +16,13 @@ var (
 
 func copyExecutable(msg message.Msg) {
 	if name, err := os.Executable(); err != nil {
-		msg.BeforeExit()
-		msg.GetLogger().Fatalf("cannot read executable path: %v", err)
+		m := fmt.Sprintf("cannot read executable path: %v", err)
+		if msg != nil {
+			msg.BeforeExit()
+			msg.GetLogger().Fatal(m)
+		} else {
+			log.Fatal(m)
+		}
 	} else {
 		executable = name
 	}
