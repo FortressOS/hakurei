@@ -2,13 +2,8 @@
 package state
 
 import (
-	"errors"
-
 	"hakurei.app/hst"
 )
-
-// ErrNoConfig is returned by [Cursor] when used with a nil [hst.Config].
-var ErrNoConfig = errors.New("state does not contain config")
 
 type Store interface {
 	// Do calls f exactly once and ensures store exclusivity until f returns.

@@ -117,7 +117,7 @@ type multiBackend struct {
 
 func (b *multiBackend) filename(id *hst.ID) string { return path.Join(b.path, id.String()) }
 
-// reads all launchers in simpleBackend
+// reads all launchers in multiBackend
 // file contents are ignored if decode is false
 func (b *multiBackend) load(decode bool) (map[hst.ID]*hst.State, error) {
 	b.mu.RLock()
@@ -161,18 +161,22 @@ func (b *multiBackend) load(decode bool) (map[hst.ID]*hst.State, error) {
 
 				// append regardless, but only parse if required, implements Len
 				if decode {
-					if err = gob.NewDecoder(f).Decode(&s); err != nil {
+					var et hst.Enablement
+					if et, err = entryReadHeader(f); err != nil {
 						_ = f.Close()
-						return &hst.AppError{Step: "decode state data", Err: err}
+						return &hst.AppError{Step: "decode state header", Err: err}
+					} else if err = gob.NewDecoder(f).Decode(&s); err != nil {
+						_ = f.Close()
+						return &hst.AppError{Step: "decode state body", Err: err}
 					} else if s.ID != id {
 						_ = f.Close()
 						return fmt.Errorf("state entry %s has unexpected id %s", id, &s.ID)
 					} else if err = f.Close(); err != nil {
 						return &hst.AppError{Step: "close state file", Err: err}
-					}
-
-					if s.Config == nil {
-						return ErrNoConfig
+					} else if err = s.Config.Validate(); err != nil {
+						return err
+					} else if s.Enablements.Unwrap() != et {
+						return fmt.Errorf("state entry %s has unexpected enablement byte %x, %x", id, s.Enablements, et)
 					}
 				}
 
@@ -186,22 +190,24 @@ func (b *multiBackend) load(decode bool) (map[hst.ID]*hst.State, error) {
 	return r, nil
 }
 
-// Save writes process state to filesystem
+// Save writes process state to filesystem.
 func (b *multiBackend) Save(state *hst.State) error {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
-	if state.Config == nil {
-		return ErrNoConfig
+	if err := state.Config.Validate(); err != nil {
+		return err
 	}
 
 	statePath := b.filename(&state.ID)
-
 	if f, err := os.OpenFile(statePath, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0600); err != nil {
 		return &hst.AppError{Step: "create state file", Err: err}
+	} else if err = entryWriteHeader(f, state.Enablements.Unwrap()); err != nil {
+		_ = f.Close()
+		return &hst.AppError{Step: "encode state header", Err: err}
 	} else if err = gob.NewEncoder(f).Encode(state); err != nil {
 		_ = f.Close()
-		return &hst.AppError{Step: "encode state data", Err: err}
+		return &hst.AppError{Step: "encode state body", Err: err}
 	} else if err = f.Close(); err != nil {
 		return &hst.AppError{Step: "close state file", Err: err}
 	}
