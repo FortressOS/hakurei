@@ -62,62 +62,49 @@ func testStore(t *testing.T, s state.Store) {
 		})
 	}
 
-	t.Run("insert entry checked", func(t *testing.T) {
-		insert(insertEntryChecked, 0)
-		check(insertEntryChecked, 0)
-	})
+	// insert entry checked
+	insert(insertEntryChecked, 0)
+	check(insertEntryChecked, 0)
 
-	t.Run("insert entry unchecked", func(t *testing.T) {
-		insert(insertEntryNoCheck, 0)
-	})
+	// insert entry unchecked
+	insert(insertEntryNoCheck, 0)
 
-	t.Run("insert entry different identity", func(t *testing.T) {
-		insert(insertEntryOtherApp, 1)
-		check(insertEntryOtherApp, 1)
-	})
+	// insert entry different identity
+	insert(insertEntryOtherApp, 1)
+	check(insertEntryOtherApp, 1)
 
-	t.Run("check previous insertion", func(t *testing.T) {
-		check(insertEntryNoCheck, 0)
-	})
+	// check previous insertion
+	check(insertEntryNoCheck, 0)
 
-	t.Run("list identities", func(t *testing.T) {
-		if identities, err := s.List(); err != nil {
-			t.Fatalf("List: error = %v", err)
-		} else {
-			slices.Sort(identities)
-			want := []int{0, 1}
-			if !slices.Equal(identities, want) {
-				t.Fatalf("List() = %#v, want %#v", identities, want)
-			}
+	// list identities
+	if identities, err := s.List(); err != nil {
+		t.Fatalf("List: error = %v", err)
+	} else {
+		slices.Sort(identities)
+		want := []int{0, 1}
+		if !slices.Equal(identities, want) {
+			t.Fatalf("List() = %#v, want %#v", identities, want)
+		}
+	}
+
+	// join store
+	if entries, err := state.Join(s); err != nil {
+		t.Fatalf("Join: error = %v", err)
+	} else if len(entries) != 3 {
+		t.Fatalf("Join(s) = %#v", entries)
+	}
+
+	// clear identity 1
+	do(1, func(c state.Cursor) {
+		if err := c.Destroy(tc[insertEntryOtherApp].ID); err != nil {
+			t.Fatalf("Destroy: error = %v", err)
 		}
 	})
-
-	t.Run("join store", func(t *testing.T) {
-		if entries, err := state.Join(s); err != nil {
-			t.Fatalf("Join: error = %v", err)
-		} else if len(entries) != 3 {
-			t.Fatalf("Join(s) = %#v", entries)
-		}
-	})
-
-	t.Run("clear identity 1", func(t *testing.T) {
-		do(1, func(c state.Cursor) {
-			if err := c.Destroy(tc[insertEntryOtherApp].ID); err != nil {
-				t.Fatalf("Destroy: error = %v", err)
-			}
-		})
-		do(1, func(c state.Cursor) {
-			if l, err := c.Len(); err != nil {
-				t.Fatalf("Len: error = %v", err)
-			} else if l != 0 {
-				t.Fatalf("Len: %d, want 0", l)
-			}
-		})
-	})
-
-	t.Run("close store", func(t *testing.T) {
-		if err := s.Close(); err != nil {
-			t.Fatalf("Close: error = %v", err)
+	do(1, func(c state.Cursor) {
+		if l, err := c.Len(); err != nil {
+			t.Fatalf("Len: error = %v", err)
+		} else if l != 0 {
+			t.Fatalf("Len: %d, want 0", l)
 		}
 	})
 }

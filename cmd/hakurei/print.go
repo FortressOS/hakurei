@@ -174,9 +174,6 @@ func printPs(output io.Writer, now time.Time, s state.Store, short, flagJSON boo
 	} else {
 		entries = e
 	}
-	if err := s.Close(); err != nil {
-		log.Printf("cannot close store: %v", err)
-	}
 
 	if !short && flagJSON {
 		es := make(map[string]*hst.State, len(entries))

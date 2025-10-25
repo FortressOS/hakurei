@@ -9,11 +9,14 @@ import (
 	"path"
 	"strconv"
 	"sync"
-	"syscall"
 
 	"hakurei.app/hst"
+	"hakurei.app/internal/lockedfile"
 	"hakurei.app/message"
 )
+
+// multiLockFileName is the name of the file backing [lockedfile.Mutex] of a multiBackend.
+const multiLockFileName = "lock"
 
 // fine-grained locking and access
 type multiStore struct {
@@ -44,19 +47,18 @@ func (s *multiStore) Do(identity int, f func(c Cursor)) (bool, error) {
 			return false, &hst.AppError{Step: "create store segment directory", Err: err}
 		}
 
-		// open locker file
-		if l, err := os.OpenFile(b.path+".lock", os.O_RDWR|os.O_CREATE, 0600); err != nil {
-			s.backends.CompareAndDelete(identity, b)
-			return false, &hst.AppError{Step: "open store segment lock file", Err: err}
-		} else {
-			b.lockfile = l
-		}
+		// set up file-based mutex
+		b.lockfile = lockedfile.MutexAt(path.Join(b.path, multiLockFileName))
+
 		b.mu.Unlock()
 	}
 
 	// lock backend
-	if err := b.lockFile(); err != nil {
+	if unlock, err := b.lockfile.Lock(); err != nil {
 		return false, &hst.AppError{Step: "lock store segment", Err: err}
+	} else {
+		// unlock backend after Do is complete
+		defer unlock()
 	}
 
 	// expose backend methods without exporting the pointer
@@ -66,10 +68,6 @@ func (s *multiStore) Do(identity int, f func(c Cursor)) (bool, error) {
 	// disable access to the backend on a best-effort basis
 	c.multiBackend = nil
 
-	// unlock backend
-	if err := b.unlockFile(); err != nil {
-		return true, &hst.AppError{Step: "unlock store segment", Err: err}
-	}
 	return true, nil
 }
 
@@ -108,58 +106,16 @@ func (s *multiStore) List() ([]int, error) {
 	return append([]int(nil), aidsBuf...), nil
 }
 
-func (s *multiStore) Close() error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	var errs []error
-	s.backends.Range(func(_, value any) bool {
-		b := value.(*multiBackend)
-		errs = append(errs, b.close())
-		return true
-	})
-
-	return errors.Join(errs...)
-}
-
 type multiBackend struct {
 	path string
 
 	// created/opened by prepare
-	lockfile *os.File
+	lockfile *lockedfile.Mutex
 
 	mu sync.RWMutex
 }
 
 func (b *multiBackend) filename(id *hst.ID) string { return path.Join(b.path, id.String()) }
-
-func (b *multiBackend) lockFileAct(lt int) (err error) {
-	op := "LockAct"
-	switch lt {
-	case syscall.LOCK_EX:
-		op = "Lock"
-	case syscall.LOCK_UN:
-		op = "Unlock"
-	}
-
-	for {
-		err = syscall.Flock(int(b.lockfile.Fd()), lt)
-		if !errors.Is(err, syscall.EINTR) {
-			break
-		}
-	}
-	if err != nil {
-		return &fs.PathError{
-			Op:   op,
-			Path: b.lockfile.Name(),
-			Err:  err,
-		}
-	}
-	return nil
-}
-
-func (b *multiBackend) lockFile() error   { return b.lockFileAct(syscall.LOCK_EX) }
-func (b *multiBackend) unlockFile() error { return b.lockFileAct(syscall.LOCK_UN) }
 
 // reads all launchers in simpleBackend
 // file contents are ignored if decode is false
@@ -182,6 +138,11 @@ func (b *multiBackend) load(decode bool) (map[hst.ID]*hst.State, error) {
 	for _, e := range entries {
 		if e.IsDir() {
 			return nil, fmt.Errorf("unexpected directory %q in store", e.Name())
+		}
+
+		// skip lock file
+		if e.Name() == multiLockFileName {
+			continue
 		}
 
 		var id hst.ID
@@ -266,17 +227,6 @@ func (b *multiBackend) Len() (int, error) {
 		return -1, &hst.AppError{Step: "count state entries", Err: err}
 	}
 	return len(rn), nil
-}
-
-func (b *multiBackend) close() error {
-	b.mu.Lock()
-	defer b.mu.Unlock()
-
-	err := b.lockfile.Close()
-	if err == nil || errors.Is(err, os.ErrInvalid) || errors.Is(err, os.ErrClosed) {
-		return nil
-	}
-	return &hst.AppError{Step: "close lock file", Err: err}
 }
 
 // NewMulti returns an instance of the multi-file store.

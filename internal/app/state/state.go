@@ -19,9 +19,6 @@ type Store interface {
 	// List queries the store and returns a list of identities known to the store.
 	// Note that some or all returned identities might not have any active apps.
 	List() (identities []int, err error)
-
-	// Close releases any resources held by Store.
-	Close() error
 }
 
 // Cursor provides access to the store of an identity.

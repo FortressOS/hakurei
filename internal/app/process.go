@@ -192,12 +192,6 @@ func (ms mainState) beforeExit(isFault bool) {
 	} else if ms.uintptr&mainNeedsDestroy != 0 {
 		panic("unreachable")
 	}
-
-	if ms.store != nil {
-		if err := ms.store.Close(); err != nil {
-			perror(err, "close state store")
-		}
-	}
 }
 
 // fatal calls printMessageError, performs necessary cleanup, followed by a call to [os.Exit](1).
