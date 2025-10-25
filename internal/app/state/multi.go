@@ -62,7 +62,7 @@ func (s *multiStore) Do(identity int, f func(c Cursor)) (bool, error) {
 	// expose backend methods without exporting the pointer
 	c := new(struct{ *multiBackend })
 	c.multiBackend = b
-	f(b)
+	f(c)
 	// disable access to the backend on a best-effort basis
 	c.multiBackend = nil
 
