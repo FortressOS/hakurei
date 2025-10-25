@@ -47,7 +47,7 @@ const (
 	wantRuntimeSharePath = wantRunDirPath + "/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 )
 
-// checkExpectInstanceId is the [state.ID] value used by checkOpBehaviour to initialise outcomeState.
+// checkExpectInstanceId is the [hst.ID] value used by checkOpBehaviour to initialise outcomeState.
 var checkExpectInstanceId = *(*hst.ID)(bytes.Repeat([]byte{0xaa}, len(hst.ID{})))
 
 type (

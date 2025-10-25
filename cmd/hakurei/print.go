@@ -38,7 +38,7 @@ func printShowSystem(output io.Writer, short, flagJSON bool) {
 	t.Printf("RunDirPath:\t%s\n", info.RunDirPath)
 }
 
-// printShowInstance writes a representation of [state.State] or [hst.Config] to output.
+// printShowInstance writes a representation of [hst.State] or [hst.Config] to output.
 func printShowInstance(
 	output io.Writer, now time.Time,
 	instance *hst.State, config *hst.Config,
@@ -243,7 +243,7 @@ func printPs(output io.Writer, now time.Time, s state.Store, short, flagJSON boo
 	}
 }
 
-// expandedStateEntry stores [state.State] alongside a string representation of its [state.ID].
+// expandedStateEntry stores [hst.State] alongside a string representation of its [hst.ID].
 type expandedStateEntry struct {
 	s string
 	*hst.State
