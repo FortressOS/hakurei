@@ -1,7 +1,6 @@
 package state
 
 import (
-	"encoding/gob"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -161,25 +160,18 @@ func (b *multiBackend) load(decode bool) (map[hst.ID]*hst.State, error) {
 
 				// append regardless, but only parse if required, implements Len
 				if decode {
-					var et hst.Enablement
-					if et, err = entryReadHeader(f); err != nil {
+					if err = entryDecode(f, &s); err != nil {
 						_ = f.Close()
-						return &hst.AppError{Step: "decode state header", Err: err}
-					} else if err = gob.NewDecoder(f).Decode(&s); err != nil {
-						_ = f.Close()
-						return &hst.AppError{Step: "decode state body", Err: err}
-					} else if s.ID != id {
-						_ = f.Close()
-						return fmt.Errorf("state entry %s has unexpected id %s", id, &s.ID)
-					} else if err = f.Close(); err != nil {
-						return &hst.AppError{Step: "close state file", Err: err}
-					} else if err = s.Config.Validate(); err != nil {
 						return err
-					} else if s.Enablements.Unwrap() != et {
-						return fmt.Errorf("state entry %s has unexpected enablement byte %x, %x", id, s.Enablements, et)
+					} else if s.ID != id {
+						return &hst.AppError{Step: "validate state identifier", Err: os.ErrInvalid,
+							Msg: fmt.Sprintf("state entry %s has unexpected id %s", id, &s.ID)}
 					}
 				}
 
+				if err = f.Close(); err != nil {
+					return &hst.AppError{Step: "close state file", Err: err}
+				}
 				return nil
 			}
 		}(); err != nil {
@@ -202,12 +194,9 @@ func (b *multiBackend) Save(state *hst.State) error {
 	statePath := b.filename(&state.ID)
 	if f, err := os.OpenFile(statePath, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0600); err != nil {
 		return &hst.AppError{Step: "create state file", Err: err}
-	} else if err = entryWriteHeader(f, state.Enablements.Unwrap()); err != nil {
+	} else if err = entryEncode(f, state); err != nil {
 		_ = f.Close()
-		return &hst.AppError{Step: "encode state header", Err: err}
-	} else if err = gob.NewEncoder(f).Encode(state); err != nil {
-		_ = f.Close()
-		return &hst.AppError{Step: "encode state body", Err: err}
+		return err
 	} else if err = f.Close(); err != nil {
 		return &hst.AppError{Step: "close state file", Err: err}
 	}
