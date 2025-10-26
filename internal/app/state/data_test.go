@@ -17,15 +17,6 @@ import (
 
 func TestEntryData(t *testing.T) {
 	t.Parallel()
-	newTemplateState := func() *hst.State {
-		return &hst.State{
-			ID:      hst.ID(bytes.Repeat([]byte{0xaa}, len(hst.ID{}))),
-			PID:     0xcafebabe,
-			ShimPID: 0xdeadbeef,
-			Config:  hst.Template(),
-			Time:    time.Unix(0, 0),
-		}
-	}
 
 	mustEncodeGob := func(e any) string {
 		var buf bytes.Buffer
@@ -80,8 +71,10 @@ func TestEntryData(t *testing.T) {
 					// While the current implementation mostly is, it has randomised order
 					// for iterating over maps, and hst.Config holds a map for environ.
 					var got hst.State
-					if err := entryDecode(&buf, &got); err != nil {
+					if et, err := entryDecode(&buf, &got); err != nil {
 						t.Fatalf("entryDecode: error = %v", err)
+					} else if stateEt := got.Enablements.Unwrap(); et != stateEt {
+						t.Fatalf("entryDecode: et = %x, state %x", et, stateEt)
 					}
 					if !reflect.DeepEqual(&got, tc.s) {
 						t.Errorf("entryEncode: %x", buf.Bytes())
@@ -95,10 +88,12 @@ func TestEntryData(t *testing.T) {
 				t.Parallel()
 
 				var got hst.State
-				if err := entryDecode(strings.NewReader(tc.data), &got); !reflect.DeepEqual(err, tc.err) {
+				if et, err := entryDecode(strings.NewReader(tc.data), &got); !reflect.DeepEqual(err, tc.err) {
 					t.Fatalf("entryDecode: error = %#v, want %#v", err, tc.err)
 				} else if err != nil {
 					return
+				} else if stateEt := got.Enablements.Unwrap(); et != stateEt {
+					t.Fatalf("entryDecode: et = %x, state %x", et, stateEt)
 				}
 
 				if !reflect.DeepEqual(&got, tc.s) {
@@ -126,6 +121,17 @@ func TestEntryData(t *testing.T) {
 			}
 		})
 	})
+}
+
+// newTemplateState returns the address of a new template [hst.State] struct.
+func newTemplateState() *hst.State {
+	return &hst.State{
+		ID:      hst.ID(bytes.Repeat([]byte{0xaa}, len(hst.ID{}))),
+		PID:     0xcafebabe,
+		ShimPID: 0xdeadbeef,
+		Config:  hst.Template(),
+		Time:    time.Unix(0, 0),
+	}
 }
 
 // stubNErrorWriter returns an error for writes above a certain size.

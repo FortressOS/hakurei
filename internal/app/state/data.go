@@ -23,21 +23,30 @@ func entryEncode(w io.Writer, s *hst.State) error {
 	}
 }
 
+// entryDecodeHeader calls entryReadHeader, returning [hst.AppError] for a non-nil error.
+func entryDecodeHeader(r io.Reader) (hst.Enablement, error) {
+	if et, err := entryReadHeader(r); err != nil {
+		return 0, &hst.AppError{Step: "decode state header", Err: err}
+	} else {
+		return et, nil
+	}
+}
+
 // entryDecode decodes [hst.State] from [io.Reader] and stores the result in the value pointed to by p.
 // entryDecode validates the embedded [hst.Config] value.
 //
 // A non-nil error returned by entryDecode is of type [hst.AppError].
-func entryDecode(r io.Reader, p *hst.State) error {
-	if et, err := entryReadHeader(r); err != nil {
-		return &hst.AppError{Step: "decode state header", Err: err}
+func entryDecode(r io.Reader, p *hst.State) (hst.Enablement, error) {
+	if et, err := entryDecodeHeader(r); err != nil {
+		return et, err
 	} else if err = gob.NewDecoder(r).Decode(&p); err != nil {
-		return &hst.AppError{Step: "decode state body", Err: err}
+		return et, &hst.AppError{Step: "decode state body", Err: err}
 	} else if err = p.Config.Validate(); err != nil {
-		return err
+		return et, err
 	} else if p.Enablements.Unwrap() != et {
-		return &hst.AppError{Step: "validate state enablement", Err: os.ErrInvalid,
+		return et, &hst.AppError{Step: "validate state enablement", Err: os.ErrInvalid,
 			Msg: fmt.Sprintf("state entry %s has unexpected enablement byte %#x, %#x", p.ID.String(), byte(p.Enablements.Unwrap()), byte(et))}
 	} else {
-		return nil
+		return et, nil
 	}
 }
