@@ -8,6 +8,7 @@ import (
 	"hakurei.app/container"
 	"hakurei.app/container/check"
 	"hakurei.app/hst"
+	"hakurei.app/internal/env"
 	"hakurei.app/message"
 	"hakurei.app/system"
 	"hakurei.app/system/acl"
@@ -58,7 +59,7 @@ type outcomeState struct {
 
 	// Copied from [EnvPaths] per-process.
 	sc hst.Paths
-	*EnvPaths
+	*env.Paths
 
 	// Copied via populateLocal.
 	k syscallDispatcher
@@ -72,7 +73,7 @@ func (s *outcomeState) valid() bool {
 		s.Shim.valid() &&
 		s.ID != nil &&
 		s.Container != nil &&
-		s.EnvPaths != nil
+		s.Paths != nil
 }
 
 // newOutcomeState returns the address of a new outcomeState with its exported fields populated via syscallDispatcher.
@@ -82,7 +83,7 @@ func newOutcomeState(k syscallDispatcher, msg message.Msg, id *hst.ID, config *h
 		ID:        id,
 		Identity:  config.Identity,
 		UserID:    hsu.MustID(msg),
-		EnvPaths:  copyPaths(k),
+		Paths:     env.CopyPathsFunc(k.fatalf, k.tempdir, func(key string) string { v, _ := k.lookupEnv(key); return v }),
 		Container: config.Container,
 	}
 

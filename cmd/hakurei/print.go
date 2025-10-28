@@ -14,6 +14,7 @@ import (
 	"hakurei.app/internal"
 	"hakurei.app/internal/app"
 	"hakurei.app/internal/app/state"
+	"hakurei.app/internal/env"
 	"hakurei.app/message"
 )
 
@@ -23,7 +24,7 @@ func printShowSystem(output io.Writer, short, flagJSON bool) {
 	defer t.MustFlush()
 
 	info := &hst.Info{Version: internal.Version(), User: new(app.Hsu).MustID(nil)}
-	app.CopyPaths().Copy(&info.Paths, info.User)
+	env.CopyPaths().Copy(&info.Paths, info.User)
 
 	if flagJSON {
 		encodeJSON(log.Fatal, output, short, info)

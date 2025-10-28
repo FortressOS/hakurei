@@ -20,6 +20,7 @@ import (
 	"hakurei.app/internal"
 	"hakurei.app/internal/app"
 	"hakurei.app/internal/app/state"
+	"hakurei.app/internal/env"
 	"hakurei.app/message"
 	"hakurei.app/system/dbus"
 )
@@ -320,7 +321,7 @@ func buildCommand(ctx context.Context, msg message.Msg, early *earlyHardeningErr
 		var flagShort bool
 		c.NewCommand("ps", "List active instances", func(args []string) error {
 			var sc hst.Paths
-			app.CopyPaths().Copy(&sc, new(app.Hsu).MustID(nil))
+			env.CopyPaths().Copy(&sc, new(app.Hsu).MustID(nil))
 			printPs(os.Stdout, time.Now().UTC(), state.NewMulti(msg, sc.RunDirPath), flagShort, flagJSON)
 			return errSuccess
 		}).Flag(&flagShort, "short", command.BoolFlag(false), "Print instance id")

@@ -14,6 +14,7 @@ import (
 	"hakurei.app/container/seccomp"
 	"hakurei.app/container/stub"
 	"hakurei.app/hst"
+	"hakurei.app/internal/env"
 )
 
 func TestShimEntrypoint(t *testing.T) {
@@ -128,7 +129,7 @@ func TestShimEntrypoint(t *testing.T) {
 				Container: hst.Template().Container,
 				Mapuid:    1000,
 				Mapgid:    100,
-				EnvPaths:  &EnvPaths{TempDir: fhs.AbsTmp, RuntimePath: fhs.AbsRunUser.Append("1000")},
+				Paths:     &env.Paths{TempDir: fhs.AbsTmp, RuntimePath: fhs.AbsRunUser.Append("1000")},
 			}, nil}, nil, nil),
 			call("swapVerbose", stub.ExpectArgs{true}, false, nil),
 			call("verbosef", stub.ExpectArgs{"process share directory at %q, runtime directory at %q", []any{m("/tmp/hakurei.10"), m("/run/user/1000/hakurei")}}, nil, nil),

@@ -1,4 +1,4 @@
-package app
+package env_test
 
 import (
 	"fmt"
@@ -10,26 +10,27 @@ import (
 	"hakurei.app/container/fhs"
 	"hakurei.app/container/stub"
 	"hakurei.app/hst"
+	"hakurei.app/internal/env"
 )
 
-func TestEnvPaths(t *testing.T) {
+func TestPaths(t *testing.T) {
 	t.Parallel()
 
 	testCases := []struct {
 		name string
-		env  *EnvPaths
+		env  *env.Paths
 		want hst.Paths
 
 		wantPanic string
 	}{
-		{"nil", nil, hst.Paths{}, "attempting to use an invalid EnvPaths"},
-		{"zero", new(EnvPaths), hst.Paths{}, "attempting to use an invalid EnvPaths"},
+		{"nil", nil, hst.Paths{}, "attempting to use an invalid Paths"},
+		{"zero", new(env.Paths), hst.Paths{}, "attempting to use an invalid Paths"},
 
-		{"nil tempdir", &EnvPaths{
+		{"nil tempdir", &env.Paths{
 			RuntimePath: fhs.AbsTmp,
-		}, hst.Paths{}, "attempting to use an invalid EnvPaths"},
+		}, hst.Paths{}, "attempting to use an invalid Paths"},
 
-		{"nil runtime", &EnvPaths{
+		{"nil runtime", &env.Paths{
 			TempDir: fhs.AbsTmp,
 		}, hst.Paths{
 			TempDir:     fhs.AbsTmp,
@@ -38,7 +39,7 @@ func TestEnvPaths(t *testing.T) {
 			RunDirPath:  fhs.AbsTmp.Append("hakurei.3735928559/run"),
 		}, ""},
 
-		{"full", &EnvPaths{
+		{"full", &env.Paths{
 			TempDir:     fhs.AbsTmp,
 			RuntimePath: fhs.AbsRunUser.Append("1000"),
 		}, hst.Paths{
@@ -76,16 +77,16 @@ func TestCopyPaths(t *testing.T) {
 		env   map[string]string
 		tmp   string
 		fatal string
-		want  EnvPaths
+		want  env.Paths
 	}{
 		{"invalid tempdir", nil, "\x00",
-			"invalid TMPDIR: path \"\\x00\" is not absolute", EnvPaths{}},
+			"invalid TMPDIR: path \"\\x00\" is not absolute", env.Paths{}},
 		{"empty environment", make(map[string]string), container.Nonexistent,
-			"", EnvPaths{TempDir: check.MustAbs(container.Nonexistent)}},
+			"", env.Paths{TempDir: check.MustAbs(container.Nonexistent)}},
 		{"invalid XDG_RUNTIME_DIR", map[string]string{"XDG_RUNTIME_DIR": "\x00"}, container.Nonexistent,
-			"", EnvPaths{TempDir: check.MustAbs(container.Nonexistent)}},
+			"", env.Paths{TempDir: check.MustAbs(container.Nonexistent)}},
 		{"full", map[string]string{"XDG_RUNTIME_DIR": "/\x00"}, container.Nonexistent,
-			"", EnvPaths{TempDir: check.MustAbs(container.Nonexistent), RuntimePath: check.MustAbs("/\x00")}},
+			"", env.Paths{TempDir: check.MustAbs(container.Nonexistent), RuntimePath: check.MustAbs("/\x00")}},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -94,8 +95,16 @@ func TestCopyPaths(t *testing.T) {
 				defer stub.HandleExit(t)
 			}
 
-			k := copyPathsDispatcher{t: t, env: tc.env, tmp: tc.tmp, expectsFatal: tc.fatal}
-			got := copyPaths(k)
+			got := env.CopyPathsFunc(func(format string, v ...any) {
+				if tc.fatal == "" {
+					t.Fatalf("unexpected call to fatalf: format = %q, v = %#v", format, v)
+				}
+
+				if got := fmt.Sprintf(format, v...); got != tc.fatal {
+					t.Fatalf("fatalf: %q, want %q", got, tc.fatal)
+				}
+				panic(stub.PanicExit)
+			}, func() string { return tc.tmp }, func(key string) string { return tc.env[key] })
 
 			if tc.fatal != "" {
 				t.Fatalf("copyPaths: expected fatal %q", tc.fatal)
@@ -106,32 +115,4 @@ func TestCopyPaths(t *testing.T) {
 			}
 		})
 	}
-}
-
-// copyPathsDispatcher implements enough of syscallDispatcher for all copyPaths code paths.
-type copyPathsDispatcher struct {
-	env map[string]string
-	tmp string
-
-	// must be checked at the conclusion of the test
-	expectsFatal string
-
-	t *testing.T
-	panicDispatcher
-}
-
-func (k copyPathsDispatcher) tempdir() string { return k.tmp }
-func (k copyPathsDispatcher) lookupEnv(key string) (value string, ok bool) {
-	value, ok = k.env[key]
-	return
-}
-func (k copyPathsDispatcher) fatalf(format string, v ...any) {
-	if k.expectsFatal == "" {
-		k.t.Fatalf("unexpected call to fatalf: format = %q, v = %#v", format, v)
-	}
-
-	if got := fmt.Sprintf(format, v...); got != k.expectsFatal {
-		k.t.Fatalf("fatalf: %q, want %q", got, k.expectsFatal)
-	}
-	panic(stub.PanicExit)
 }
