@@ -43,7 +43,7 @@ type outcomeState struct {
 	Identity int
 	// Copied from Identity.
 	identity *stringPair[int]
-	// Returned by [Hsu.MustIDMsg].
+	// Returned by [Hsu.MustID].
 	UserID int
 	// Target init namespace uid resolved from UserID and identity.
 	uid *stringPair[int]

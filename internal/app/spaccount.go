@@ -6,6 +6,7 @@ import (
 	"syscall"
 
 	"hakurei.app/container/fhs"
+	"hakurei.app/internal/validate"
 )
 
 func init() { gob.Register(spAccountOp{}) }
@@ -21,7 +22,7 @@ func (s spAccountOp) toSystem(state *outcomeStateSys) error {
 	}
 
 	// default is applied in toContainer
-	if state.Container.Username != "" && !isValidUsername(state.Container.Username) {
+	if state.Container.Username != "" && !validate.IsValidUsername(state.Container.Username) {
 		return newWithMessage(fmt.Sprintf("invalid user name %q", state.Container.Username))
 	}
 	return nil

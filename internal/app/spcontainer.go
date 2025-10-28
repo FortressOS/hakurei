@@ -16,6 +16,7 @@ import (
 	"hakurei.app/container/fhs"
 	"hakurei.app/container/seccomp"
 	"hakurei.app/hst"
+	"hakurei.app/internal/validate"
 	"hakurei.app/message"
 	"hakurei.app/system"
 	"hakurei.app/system/acl"
@@ -243,7 +244,7 @@ func (s *spFilesystemOp) toSystem(state *outcomeStateSys) error {
 				continue
 			}
 
-			if ok, err := deepContainsH(p[0], hidePaths[i]); err != nil {
+			if ok, err := validate.DeepContainsH(p[0], hidePaths[i]); err != nil {
 				return &hst.AppError{Step: "determine path hiding outcome", Err: err}
 			} else if ok {
 				hidePathMatch[i] = true

@@ -1,6 +1,10 @@
-package app
+package validate_test
 
-import "testing"
+import (
+	"testing"
+
+	"hakurei.app/internal/validate"
+)
 
 const (
 	_POSIX_LOGIN_NAME_MAX = 9
@@ -10,7 +14,7 @@ func TestSysconf(t *testing.T) {
 	t.Parallel()
 
 	t.Run("LOGIN_NAME_MAX", func(t *testing.T) {
-		if got := sysconf(_SC_LOGIN_NAME_MAX); got < _POSIX_LOGIN_NAME_MAX {
+		if got := validate.Sysconf(validate.SC_LOGIN_NAME_MAX); got < _POSIX_LOGIN_NAME_MAX {
 			t.Errorf("sysconf(_SC_LOGIN_NAME_MAX): %d < _POSIX_LOGIN_NAME_MAX", got)
 		}
 	})

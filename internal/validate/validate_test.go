@@ -1,7 +1,9 @@
-package app
+package validate_test
 
 import (
 	"testing"
+
+	"hakurei.app/internal/validate"
 )
 
 func TestDeepContainsH(t *testing.T) {
@@ -78,10 +80,10 @@ func TestDeepContainsH(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			if got, err := deepContainsH(tc.basepath, tc.targpath); (err != nil) != tc.wantErr {
-				t.Errorf("deepContainsH() error = %v, wantErr %v", err, tc.wantErr)
+			if got, err := validate.DeepContainsH(tc.basepath, tc.targpath); (err != nil) != tc.wantErr {
+				t.Errorf("DeepContainsH: error = %v, wantErr %v", err, tc.wantErr)
 			} else if got != tc.want {
-				t.Errorf("deepContainsH() = %v, want %v", got, tc.want)
+				t.Errorf("DeepContainsH: = %v, want %v", got, tc.want)
 			}
 		})
 	}
