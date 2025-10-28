@@ -6,7 +6,6 @@ import (
 
 	"hakurei.app/container/check"
 	"hakurei.app/hst"
-	"hakurei.app/internal/lockedfile"
 	"hakurei.app/message"
 )
 
@@ -23,11 +22,45 @@ type Store interface {
 	List() (identities []int, err error)
 }
 
+func (s *stateStore) Do(identity int, f func(c Cursor)) (bool, error) {
+	if h, err := s.identityHandle(identity); err != nil {
+		return false, err
+	} else {
+		return h.do(f)
+	}
+}
+
+// storeAdapter satisfies [Store] via stateStore.
+type storeAdapter struct {
+	msg message.Msg
+	*stateStore
+}
+
+func (s storeAdapter) List() ([]int, error) {
+	segments, n, err := s.segments()
+	if err != nil {
+		return nil, err
+	}
+
+	identities := make([]int, 0, n)
+	for si := range segments {
+		if si.err != nil {
+			if m, ok := message.GetMessage(err); ok {
+				s.msg.Verbose(m)
+			} else {
+				// unreachable
+				return nil, err
+			}
+			continue
+		}
+		identities = append(identities, si.identity)
+	}
+	return identities, nil
+}
+
 // NewMulti returns an instance of the multi-file store.
 func NewMulti(msg message.Msg, prefix *check.Absolute) Store {
-	store := &stateStore{msg: msg, base: prefix.Append("state")}
-	store.fileMu = lockedfile.MutexAt(store.base.Append(storeMutexName).String())
-	return store
+	return storeAdapter{msg, newStore(prefix.Append("state"))}
 }
 
 // Cursor provides access to the store of an identity.

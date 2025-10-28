@@ -1,17 +1,22 @@
 package state_test
 
 import (
-	"math/rand/v2"
+	"log"
+	"math/rand"
 	"reflect"
 	"slices"
 	"testing"
 	"time"
 
+	"hakurei.app/container/check"
 	"hakurei.app/hst"
 	"hakurei.app/internal/app/state"
+	"hakurei.app/message"
 )
 
-func testStore(t *testing.T, s state.Store) {
+func TestMulti(t *testing.T) {
+	s := state.NewMulti(message.NewMsg(log.New(log.Writer(), "multi: ", 0)), check.MustAbs(t.TempDir()))
+
 	t.Run("list empty store", func(t *testing.T) {
 		if identities, err := s.List(); err != nil {
 			t.Fatalf("List: error = %v", err)
@@ -30,7 +35,12 @@ func testStore(t *testing.T, s state.Store) {
 
 	var tc [tl]hst.State
 	for i := 0; i < tl; i++ {
-		makeState(t, &tc[i])
+		if err := hst.NewInstanceID(&tc[i].ID); err != nil {
+			t.Fatalf("cannot create dummy state: %v", err)
+		}
+		tc[i].PID = rand.Int()
+		tc[i].Config = hst.Template()
+		tc[i].Time = time.Now()
 	}
 
 	do := func(identity int, f func(c state.Cursor)) {
@@ -107,13 +117,4 @@ func testStore(t *testing.T, s state.Store) {
 			t.Fatalf("Len: %d, want 0", l)
 		}
 	})
-}
-
-func makeState(t *testing.T, s *hst.State) {
-	if err := hst.NewInstanceID(&s.ID); err != nil {
-		t.Fatalf("cannot create dummy state: %v", err)
-	}
-	s.PID = rand.Int()
-	s.Config = hst.Template()
-	s.Time = time.Now()
 }

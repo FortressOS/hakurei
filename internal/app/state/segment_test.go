@@ -194,19 +194,7 @@ func TestStoreHandle(t *testing.T) {
 			if err := os.Mkdir(p.String(), 0700); err != nil {
 				t.Fatal(err.Error())
 			}
-
-			for _, s := range tc.ents[0] {
-				if f, err := os.OpenFile(p.Append(s).String(), os.O_CREATE|os.O_EXCL, 0600); err != nil {
-					t.Fatal(err.Error())
-				} else if err = f.Close(); err != nil {
-					t.Fatal(err.Error())
-				}
-			}
-			for _, s := range tc.ents[1] {
-				if err := os.Mkdir(p.Append(s).String(), 0700); err != nil {
-					t.Fatal(err.Error())
-				}
-			}
+			createEntries(t, p, tc.ents)
 
 			var got []*stateEntryHandle
 			if entries, n, err := (&storeHandle{
@@ -252,4 +240,20 @@ func TestStoreHandle(t *testing.T) {
 			t.Fatalf("entries: error = %#v, want %#v", err, wantErr)
 		}
 	})
+}
+
+// createEntries creates file and directory entries in the specified prefix.
+func createEntries(t *testing.T, prefix *check.Absolute, ents [2][]string) {
+	for _, s := range ents[0] {
+		if f, err := os.OpenFile(prefix.Append(s).String(), os.O_CREATE|os.O_EXCL, 0600); err != nil {
+			t.Fatal(err.Error())
+		} else if err = f.Close(); err != nil {
+			t.Fatal(err.Error())
+		}
+	}
+	for _, s := range ents[1] {
+		if err := os.Mkdir(prefix.Append(s).String(), 0700); err != nil {
+			t.Fatal(err.Error())
+		}
+	}
 }
