@@ -10,7 +10,7 @@ import (
 
 	"hakurei.app/container/check"
 	"hakurei.app/hst"
-	"hakurei.app/internal/app/state"
+	"hakurei.app/internal/state"
 	"hakurei.app/message"
 )
 

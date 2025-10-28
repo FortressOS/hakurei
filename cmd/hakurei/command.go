@@ -18,9 +18,9 @@ import (
 	"hakurei.app/container/fhs"
 	"hakurei.app/hst"
 	"hakurei.app/internal"
-	"hakurei.app/internal/app"
-	"hakurei.app/internal/app/state"
 	"hakurei.app/internal/env"
+	"hakurei.app/internal/outcome"
+	"hakurei.app/internal/state"
 	"hakurei.app/message"
 	"hakurei.app/system/dbus"
 )
@@ -51,7 +51,7 @@ func buildCommand(ctx context.Context, msg message.Msg, early *earlyHardeningErr
 		Flag(&flagVerbose, "v", command.BoolFlag(false), "Increase log verbosity").
 		Flag(&flagJSON, "json", command.BoolFlag(false), "Serialise output in JSON when applicable")
 
-	c.Command("shim", command.UsageInternal, func([]string) error { app.Shim(msg); return errSuccess })
+	c.Command("shim", command.UsageInternal, func([]string) error { outcome.Shim(msg); return errSuccess })
 
 	c.Command("app", "Load and start container from configuration file", func(args []string) error {
 		if len(args) < 1 {
@@ -64,7 +64,7 @@ func buildCommand(ctx context.Context, msg message.Msg, early *earlyHardeningErr
 			config.Container.Args = append(config.Container.Args, args[1:]...)
 		}
 
-		app.Main(ctx, msg, config)
+		outcome.Main(ctx, msg, config)
 		panic("unreachable")
 	})
 
@@ -96,7 +96,7 @@ func buildCommand(ctx context.Context, msg message.Msg, early *earlyHardeningErr
 				passwd     *user.User
 				passwdOnce sync.Once
 				passwdFunc = func() {
-					us := strconv.Itoa(app.HsuUid(new(app.Hsu).MustID(msg), flagIdentity))
+					us := strconv.Itoa(outcome.HsuUid(new(outcome.Hsu).MustID(msg), flagIdentity))
 					if u, err := user.LookupId(us); err != nil {
 						msg.Verbosef("cannot look up uid %s", us)
 						passwd = &user.User{
@@ -258,7 +258,7 @@ func buildCommand(ctx context.Context, msg message.Msg, early *earlyHardeningErr
 				}
 			}
 
-			app.Main(ctx, msg, config)
+			outcome.Main(ctx, msg, config)
 			panic("unreachable")
 		}).
 			Flag(&flagDBusConfigSession, "dbus-config", command.StringFlag("builtin"),
@@ -321,7 +321,7 @@ func buildCommand(ctx context.Context, msg message.Msg, early *earlyHardeningErr
 		var flagShort bool
 		c.NewCommand("ps", "List active instances", func(args []string) error {
 			var sc hst.Paths
-			env.CopyPaths().Copy(&sc, new(app.Hsu).MustID(nil))
+			env.CopyPaths().Copy(&sc, new(outcome.Hsu).MustID(nil))
 			printPs(os.Stdout, time.Now().UTC(), state.NewMulti(msg, sc.RunDirPath), flagShort, flagJSON)
 			return errSuccess
 		}).Flag(&flagShort, "short", command.BoolFlag(false), "Print instance id")

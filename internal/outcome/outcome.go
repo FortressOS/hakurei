@@ -1,4 +1,5 @@
-package app
+// Package outcome implements the outcome of the privileged and container sides of a hakurei container.
+package outcome
 
 import (
 	"errors"

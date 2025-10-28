@@ -12,9 +12,9 @@ import (
 
 	"hakurei.app/hst"
 	"hakurei.app/internal"
-	"hakurei.app/internal/app"
-	"hakurei.app/internal/app/state"
 	"hakurei.app/internal/env"
+	"hakurei.app/internal/outcome"
+	"hakurei.app/internal/state"
 	"hakurei.app/message"
 )
 
@@ -23,7 +23,7 @@ func printShowSystem(output io.Writer, short, flagJSON bool) {
 	t := newPrinter(output)
 	defer t.MustFlush()
 
-	info := &hst.Info{Version: internal.Version(), User: new(app.Hsu).MustID(nil)}
+	info := &hst.Info{Version: internal.Version(), User: new(outcome.Hsu).MustID(nil)}
 	env.CopyPaths().Copy(&info.Paths, info.User)
 
 	if flagJSON {

@@ -1,4 +1,4 @@
-package app
+package outcome
 
 import (
 	"bytes"
@@ -118,7 +118,7 @@ func TestShimEntrypoint(t *testing.T) {
 					spTmpdirOp{},
 					spAccountOp{},
 					&spWaylandOp{},
-					&spPulseOp{(*[256]byte)(bytes.Repeat([]byte{0}, pulseCookieSizeMax)), pulseCookieSizeMax},
+					&spPulseOp{(*[pulseCookieSizeMax]byte)(bytes.Repeat([]byte{0}, pulseCookieSizeMax)), pulseCookieSizeMax},
 					&spDBusOp{true},
 					&spFilesystemOp{},
 				}},

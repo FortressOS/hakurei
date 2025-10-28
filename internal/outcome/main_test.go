@@ -1,9 +1,8 @@
-package app
+package outcome
 
 import (
 	"bytes"
 	"encoding/gob"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -28,7 +27,7 @@ import (
 	"hakurei.app/system/dbus"
 )
 
-func TestApp(t *testing.T) {
+func TestOutcomeMain(t *testing.T) {
 	t.Parallel()
 	msg := message.NewMsg(nil)
 	msg.SwapVerbose(testing.Verbose())
@@ -653,14 +652,6 @@ func TestApp(t *testing.T) {
 	}
 }
 
-func mustMarshal(v any) string {
-	if b, err := json.Marshal(v); err != nil {
-		panic(err.Error())
-	} else {
-		return string(b)
-	}
-}
-
 func stubDirEntries(names ...string) (e []fs.DirEntry, err error) {
 	e = make([]fs.DirEntry, len(names))
 	for i, name := range names {
@@ -930,11 +921,3 @@ func (k *stubNixOS) fatalf(format string, v ...any) { panic(fmt.Sprintf(format, 
 func (k *stubNixOS) isVerbose() bool                  { return true }
 func (k *stubNixOS) verbose(v ...any)                 { log.Print(v...) }
 func (k *stubNixOS) verbosef(format string, v ...any) { log.Printf(format, v...) }
-
-func m(pathname string) *check.Absolute {
-	return check.MustAbs(pathname)
-}
-
-func f(c hst.FilesystemConfig) hst.FilesystemConfigJSON {
-	return hst.FilesystemConfigJSON{FilesystemConfig: c}
-}

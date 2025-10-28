@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"hakurei.app/hst"
-	"hakurei.app/internal/app/state"
+	"hakurei.app/internal/state"
 )
 
 var (

@@ -1,8 +1,9 @@
-package app
+package outcome
 
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"io"
 	"io/fs"
 	"log"
@@ -584,6 +585,23 @@ func (nameDentry) Info() (fs.FileInfo, error) { panic("unreachable") }
 type errorReader struct{ val error }
 
 func (r errorReader) Read([]byte) (int, error) { return -1, r.val }
+
+// mustMarshal returns the result of [json.Marshal] as a string and panics on error.
+func mustMarshal(v any) string {
+	if b, err := json.Marshal(v); err != nil {
+		panic(err.Error())
+	} else {
+		return string(b)
+	}
+}
+
+// m is a shortcut for [check.MustAbs].
+func m(pathname string) *check.Absolute { return check.MustAbs(pathname) }
+
+// f returns [hst.FilesystemConfig] wrapped in its [json] adapter.
+func f(c hst.FilesystemConfig) hst.FilesystemConfigJSON {
+	return hst.FilesystemConfigJSON{FilesystemConfig: c}
+}
 
 // panicMsgContext implements [message.Msg] and [context.Context] with methods wrapping panic.
 // This should be assigned to test cases to be checked against.

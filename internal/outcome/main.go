@@ -1,5 +1,4 @@
-// Package app implements high-level hakurei container behaviour.
-package app
+package outcome
 
 import (
 	"context"

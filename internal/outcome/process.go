@@ -1,4 +1,4 @@
-package app
+package outcome
 
 import (
 	"context"
@@ -16,7 +16,7 @@ import (
 	"hakurei.app/container/fhs"
 	"hakurei.app/hst"
 	"hakurei.app/internal"
-	"hakurei.app/internal/app/state"
+	"hakurei.app/internal/state"
 	"hakurei.app/message"
 	"hakurei.app/system"
 )
