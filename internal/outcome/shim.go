@@ -93,7 +93,7 @@ func shimEntrypoint(k syscallDispatcher) {
 	}
 
 	if err := k.setDumpable(container.SUID_DUMP_DISABLE); err != nil {
-		k.fatalf("cannot set SUID_DUMP_DISABLE: %s", err)
+		k.fatalf("cannot set SUID_DUMP_DISABLE: %v", err)
 	}
 
 	var (
@@ -114,11 +114,8 @@ func shimEntrypoint(k syscallDispatcher) {
 		closeSetup = f
 
 		if err = state.populateLocal(k, msg); err != nil {
-			if m, ok := message.GetMessage(err); ok {
-				k.fatal(m)
-			} else {
-				k.fatalf("cannot populate local state: %v", err)
-			}
+			printMessageError(func(v ...any) { k.fatal(fmt.Sprintln(v...)) },
+				"cannot populate local state:", err)
 		}
 	}
 
@@ -138,7 +135,6 @@ func shimEntrypoint(k syscallDispatcher) {
 			k.fatalf("cannot set up exit request: %v", err)
 			return
 		}
-
 	} else {
 		defer wKeepAlive()
 		signalPipe = r
@@ -152,15 +148,12 @@ func shimEntrypoint(k syscallDispatcher) {
 	stateParams := state.newParams()
 	for _, op := range state.Shim.Ops {
 		if err := op.toContainer(stateParams); err != nil {
-			if m, ok := message.GetMessage(err); ok {
-				k.fatal(m)
-			} else {
-				k.fatalf("cannot create container state: %v", err)
-			}
+			printMessageError(func(v ...any) { k.fatal(fmt.Sprintln(v...)) },
+				"cannot create container state:", err)
 		}
 	}
-	if stateParams.params.Ops == nil { // unreachable
-		k.fatal("invalid container params")
+	if stateParams.params.Ops == nil { // only reachable with corrupted outcomeState
+		k.fatal("invalid container state")
 	}
 
 	// shim exit outcomes
@@ -226,7 +219,8 @@ func shimEntrypoint(k syscallDispatcher) {
 		k.exit(hst.ExitFailure)
 	}
 	if err := k.containerServe(z); err != nil {
-		printMessageError(func(v ...any) { k.fatal(fmt.Sprintln(v...)) }, "cannot configure container:", err)
+		printMessageError(func(v ...any) { k.fatal(fmt.Sprintln(v...)) },
+			"cannot configure container:", err)
 	}
 
 	if err := k.seccompLoad(

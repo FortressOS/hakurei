@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"io/fs"
 	"log"
@@ -193,8 +194,8 @@ func checkOpBehaviour(t *testing.T, testCases []opBehaviourTestCase) {
 			}
 
 			wantConfig := tc.newConfig()
-			k := &kstub{panicDispatcher{}, stub.New(t,
-				func(s *stub.Stub[syscallDispatcher]) syscallDispatcher { return &kstub{panicDispatcher{}, s} },
+			k := &kstub{nil, nil, panicDispatcher{}, stub.New(t,
+				func(s *stub.Stub[syscallDispatcher]) syscallDispatcher { return &kstub{nil, nil, panicDispatcher{}, s} },
 				stub.Expect{Calls: wantCallsFull},
 			)}
 			defer stub.HandleExit(t)
@@ -297,7 +298,12 @@ func checkSimple(t *testing.T, fname string, testCases []simpleTestCase) {
 			t.Parallel()
 
 			defer stub.HandleExit(t)
-			k := &kstub{panicDispatcher{}, stub.New(t, func(s *stub.Stub[syscallDispatcher]) syscallDispatcher { return &kstub{panicDispatcher{}, s} }, tc.want)}
+
+			uNotifyContext, uShimReader := make(chan struct{}), make(chan struct{})
+			k := &kstub{uNotifyContext, uShimReader, panicDispatcher{},
+				stub.New(t, func(s *stub.Stub[syscallDispatcher]) syscallDispatcher {
+					return &kstub{uNotifyContext, uShimReader, panicDispatcher{}, s}
+				}, tc.want)}
 			if err := tc.f(k); !reflect.DeepEqual(err, tc.wantErr) {
 				t.Errorf("%s: error = %#v, want %#v", fname, err, tc.wantErr)
 			}
@@ -312,6 +318,11 @@ func checkSimple(t *testing.T, fname string, testCases []simpleTestCase) {
 
 // kstub partially implements syscallDispatcher via [stub.Stub].
 type kstub struct {
+	// notifyContext blocks on unblockNotifyContext if provided with a kstub.Stub track.
+	unblockNotifyContext chan struct{}
+	// stubTrackReader blocks on unblockShimReader if unblocking notifyContext.
+	unblockShimReader chan struct{}
+
 	panicDispatcher
 	*stub.Stub[syscallDispatcher]
 }
@@ -354,6 +365,19 @@ func (k *kstub) readdir(name string) ([]os.DirEntry, error) {
 		stub.CheckArg(k.Stub, "name", name, 0))
 }
 func (k *kstub) tempdir() string { k.Helper(); return k.Expects("tempdir").Ret.(string) }
+func (k *kstub) exit(code int) {
+	k.Helper()
+	expect := k.Expects("exit")
+
+	if errors.Is(expect.Err, unblockNotifyContext) {
+		close(k.unblockNotifyContext)
+	}
+
+	if !stub.CheckArg(k.Stub, "code", code, 0) {
+		k.FailNow()
+	}
+	panic(expect.Ret.(int))
+}
 func (k *kstub) evalSymlinks(path string) (string, error) {
 	k.Helper()
 	expect := k.Expects("evalSymlinks")
@@ -388,16 +412,17 @@ func (k *kstub) receive(key string, e any, fdp *uintptr) (closeFunc func() error
 
 func (k *kstub) expectCheckContainer(expect *stub.Call, z *container.Container) error {
 	k.Helper()
-	err := expect.Error(
-		stub.CheckArgReflect(k.Stub, "params", &z.Params, 0))
-	if err != nil {
+	if !stub.CheckArgReflect(k.Stub, "params", &z.Params, 0) {
 		k.Errorf("params:\n%s\n%s", mustMarshal(&z.Params), mustMarshal(expect.Args[0]))
 	}
-	return err
+	return expect.Err
 }
 
 func (k *kstub) containerStart(z *container.Container) error {
 	k.Helper()
+	if k.unblockShimReader != nil {
+		close(k.unblockShimReader)
+	}
 	return k.expectCheckContainer(k.Expects("containerStart"), z)
 }
 func (k *kstub) containerServe(z *container.Container) error {
@@ -428,12 +453,25 @@ func (k *kstub) cmdOutput(cmd *exec.Cmd) ([]byte, error) {
 
 func (k *kstub) notifyContext(parent context.Context, signals ...os.Signal) (ctx context.Context, stop context.CancelFunc) {
 	k.Helper()
-	if k.Expects("notifyContext").Error(
+	expect := k.Expects("notifyContext")
+
+	if expect.Error(
 		stub.CheckArgReflect(k.Stub, "parent", parent, 0),
 		stub.CheckArgReflect(k.Stub, "signals", signals, 1)) != nil {
 		k.FailNow()
 	}
-	return k.Context(), func() { k.Helper(); k.Expects("notifyContextStop") }
+
+	if sub, ok := expect.Ret.(int); ok && sub >= 0 {
+		subVal := reflect.ValueOf(k.Stub).Elem().FieldByName("sub")
+		ks := &kstub{nil, nil, panicDispatcher{}, reflect.
+			NewAt(subVal.Type(), unsafe.Pointer(subVal.UnsafeAddr())).Elem().
+			Interface().([]*stub.Stub[syscallDispatcher])[sub]}
+
+		<-k.unblockNotifyContext
+		return k.Context(), func() { k.Helper(); ks.Expects("notifyContextStop") }
+	}
+
+	return k.Context(), func() { panic("unexpected call to stop") }
 }
 
 func (k *kstub) mustHsuPath() *check.Absolute {
@@ -457,25 +495,50 @@ type stubTrackReader struct {
 	*kstub
 }
 
+// unblockNotifyContext is passed via call and must be handled by stubTrackReader.Read
+var unblockNotifyContext = errors.New("this error unblocks notifyContext and must not be returned")
+
 func (r *stubTrackReader) Read(p []byte) (n int, err error) {
 	r.subOnce.Do(func() {
 		subVal := reflect.ValueOf(r.kstub.Stub).Elem().FieldByName("sub")
-		r.kstub = &kstub{panicDispatcher{}, reflect.
+		r.kstub = &kstub{r.kstub.unblockNotifyContext, r.kstub.unblockShimReader, panicDispatcher{}, reflect.
 			NewAt(subVal.Type(), unsafe.Pointer(subVal.UnsafeAddr())).Elem().
 			Interface().([]*stub.Stub[syscallDispatcher])[r.sub]}
 	})
 
-	return r.kstub.Read(p)
+	n, err = r.kstub.Read(p)
+	if errors.Is(err, unblockNotifyContext) {
+		err = nil
+		close(r.unblockNotifyContext)
+		<-r.unblockShimReader
+	}
+	return n, err
 }
 
 func (k *kstub) setupContSignal(pid int) (io.ReadCloser, func(), error) {
 	k.Helper()
 	expect := k.Expects("setupContSignal")
-	return &stubTrackReader{sub: expect.Ret.(int), kstub: k}, func() { k.Expects("wKeepAlive") }, expect.Error(
+	return &stubTrackReader{sub: expect.Ret.(int), kstub: k}, func() { k.Helper(); k.Expects("wKeepAlive") }, expect.Error(
 		stub.CheckArg(k.Stub, "pid", pid, 0))
 }
 
 func (k *kstub) getMsg() message.Msg { k.Helper(); k.Expects("getMsg"); return k }
+
+func (k *kstub) fatal(v ...any) {
+	if k.Expects("fatal").Error(
+		stub.CheckArgReflect(k.Stub, "v", v, 0)) != nil {
+		k.FailNow()
+	}
+	panic(stub.PanicExit)
+}
+func (k *kstub) fatalf(format string, v ...any) {
+	if k.Expects("fatalf").Error(
+		stub.CheckArg(k.Stub, "format", format, 0),
+		stub.CheckArgReflect(k.Stub, "v", v, 1)) != nil {
+		k.FailNow()
+	}
+	panic(stub.PanicExit)
+}
 
 func (k *kstub) Close() error { k.Helper(); return k.Expects("rcClose").Err }
 func (k *kstub) Read(p []byte) (n int, err error) {
