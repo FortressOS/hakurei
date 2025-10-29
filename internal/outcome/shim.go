@@ -22,6 +22,17 @@ import (
 //#include "shim-signal.h"
 import "C"
 
+const (
+	/* hakurei requests shim exit */
+	shimMsgExitRequested = C.HAKUREI_SHIM_EXIT_REQUESTED
+	/* shim orphaned before hakurei delivers a signal */
+	shimMsgOrphaned = C.HAKUREI_SHIM_ORPHAN
+	/* unreachable */
+	shimMsgInvalid = C.HAKUREI_SHIM_INVALID
+	/* unexpected si_pid */
+	shimMsgBadPID = C.HAKUREI_SHIM_BAD_PID
+)
+
 // setupContSignal sets up the SIGCONT signal handler for the cross-uid shim exit hack.
 // The signal handler is implemented in C, signals can be processed by reading from the returned reader.
 // The returned function must be called after all signal processing concludes.
@@ -161,7 +172,7 @@ func shimEntrypoint(k syscallDispatcher) {
 			}
 
 			switch buf[0] {
-			case 0: // got SIGCONT from monitor: shim exit requested
+			case shimMsgExitRequested: // got SIGCONT from hakurei: shim exit requested
 				if fp := cancelContainer.Load(); stateParams.params.ForwardCancel && fp != nil && *fp != nil {
 					(*fp)()
 					// shim now bound by ShimWaitDelay, implemented below
@@ -171,13 +182,13 @@ func shimEntrypoint(k syscallDispatcher) {
 				// setup has not completed, terminate immediately
 				k.exit(hst.ExitRequest)
 
-			case 1: // got SIGCONT via pdeath_signal: monitor died before delivering signal
+			case shimMsgOrphaned: // got SIGCONT after orphaned: hakurei died before delivering signal
 				k.exit(hst.ExitOrphan)
 
-			case 2: // unreachable
+			case shimMsgInvalid: // unreachable
 				msg.Verbose("sa_sigaction got invalid siginfo")
 
-			case 3: // got SIGCONT from unexpected process: hopefully the terminal driver
+			case shimMsgBadPID: // got SIGCONT from unexpected process: hopefully the terminal driver
 				msg.Verbose("got SIGCONT from unexpected process")
 
 			default: // unreachable

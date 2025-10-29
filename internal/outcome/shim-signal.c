@@ -8,35 +8,32 @@
 static pid_t hakurei_shim_param_ppid = -1;
 static int hakurei_shim_fd = -1;
 
-static ssize_t hakurei_shim_write(const void *buf, size_t count) {
+/* see shim.go for handling of the message */
+static inline ssize_t hakurei_shim_write(hakurei_shim_msg msg) {
   int savedErrno = errno;
-  ssize_t ret = write(hakurei_shim_fd, buf, count);
+  unsigned char buf = (unsigned char)msg;
+  ssize_t ret = write(hakurei_shim_fd, &buf, 1);
   if (ret == -1 && errno != EAGAIN)
     exit(EXIT_FAILURE);
   errno = savedErrno;
   return ret;
 }
 
-/* see shim_linux.go for handling of the value */
 static void hakurei_shim_sigaction(int sig, siginfo_t *si, void *ucontext) {
   if (sig != SIGCONT || si == NULL) {
-    /* unreachable */
-    hakurei_shim_write("\2", 1);
+    hakurei_shim_write(HAKUREI_SHIM_INVALID);
     return;
   }
 
   if (si->si_pid == hakurei_shim_param_ppid) {
-    /* monitor requests shim exit */
-    hakurei_shim_write("\0", 1);
+    hakurei_shim_write(HAKUREI_SHIM_EXIT_REQUESTED);
     return;
   }
 
-  /* unexpected si_pid */
-  hakurei_shim_write("\3", 1);
+  hakurei_shim_write(HAKUREI_SHIM_BAD_PID);
 
   if (getppid() != hakurei_shim_param_ppid)
-    /* shim orphaned before monitor delivers a signal */
-    hakurei_shim_write("\1", 1);
+    hakurei_shim_write(HAKUREI_SHIM_ORPHAN);
 }
 
 void hakurei_shim_setup_cont_signal(pid_t ppid, int fd) {

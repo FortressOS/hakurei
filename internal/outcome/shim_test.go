@@ -148,9 +148,9 @@ func TestShimEntrypoint(t *testing.T) {
 			// deferred
 			call("wKeepAlive", stub.ExpectArgs{}, nil, nil),
 		}, Tracks: []stub.Expect{{Calls: []stub.Call{
-			call("rcRead", stub.ExpectArgs{}, []byte{2}, nil),
+			call("rcRead", stub.ExpectArgs{}, []byte{shimMsgInvalid}, nil),
 			call("verbose", stub.ExpectArgs{[]any{"sa_sigaction got invalid siginfo"}}, nil, nil),
-			call("rcRead", stub.ExpectArgs{}, []byte{3}, nil),
+			call("rcRead", stub.ExpectArgs{}, []byte{shimMsgBadPID}, nil),
 			call("verbose", stub.ExpectArgs{[]any{"got SIGCONT from unexpected process"}}, nil, nil),
 			call("rcRead", stub.ExpectArgs{}, nil, nil), // stub terminates this goroutine
 		}}}}, nil},
