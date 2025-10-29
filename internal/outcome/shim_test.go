@@ -106,31 +106,33 @@ func TestShimEntrypoint(t *testing.T) {
 			Remount(fhs.AbsRoot, syscall.MS_RDONLY),
 	}
 
+	templateState := outcomeState{
+		Shim: &shimParams{PrivPID: 0xbad, WaitDelay: 0xf, Verbose: true, Ops: []outcomeOp{
+			&spParamsOp{"xterm-256color", true},
+			&spRuntimeOp{sessionTypeWayland},
+			spTmpdirOp{},
+			spAccountOp{},
+			&spWaylandOp{},
+			&spPulseOp{(*[pulseCookieSizeMax]byte)(bytes.Repeat([]byte{0}, pulseCookieSizeMax)), pulseCookieSizeMax},
+			&spDBusOp{true},
+			&spFilesystemOp{},
+		}},
+
+		ID:        &checkExpectInstanceId,
+		Identity:  hst.IdentityMax,
+		UserID:    10,
+		Container: hst.Template().Container,
+		Mapuid:    1000,
+		Mapgid:    100,
+		Paths:     &env.Paths{TempDir: fhs.AbsTmp, RuntimePath: fhs.AbsRunUser.Append("1000")},
+	}
+
 	checkSimple(t, "shimEntrypoint", []simpleTestCase{
 		{"success", func(k *kstub) error { shimEntrypoint(k); return nil }, stub.Expect{Calls: []stub.Call{
 			call("getMsg", stub.ExpectArgs{}, nil, nil),
 			call("getLogger", stub.ExpectArgs{}, (*log.Logger)(nil), nil),
 			call("setDumpable", stub.ExpectArgs{uintptr(container.SUID_DUMP_DISABLE)}, nil, nil),
-			call("receive", stub.ExpectArgs{"HAKUREI_SHIM", outcomeState{
-				Shim: &shimParams{PrivPID: 0xbad, WaitDelay: 0xf, Verbose: true, Ops: []outcomeOp{
-					&spParamsOp{"xterm-256color", true},
-					&spRuntimeOp{sessionTypeWayland},
-					spTmpdirOp{},
-					spAccountOp{},
-					&spWaylandOp{},
-					&spPulseOp{(*[pulseCookieSizeMax]byte)(bytes.Repeat([]byte{0}, pulseCookieSizeMax)), pulseCookieSizeMax},
-					&spDBusOp{true},
-					&spFilesystemOp{},
-				}},
-
-				ID:        &checkExpectInstanceId,
-				Identity:  hst.IdentityMax,
-				UserID:    10,
-				Container: hst.Template().Container,
-				Mapuid:    1000,
-				Mapgid:    100,
-				Paths:     &env.Paths{TempDir: fhs.AbsTmp, RuntimePath: fhs.AbsRunUser.Append("1000")},
-			}, nil}, nil, nil),
+			call("receive", stub.ExpectArgs{"HAKUREI_SHIM", templateState, nil}, nil, nil),
 			call("swapVerbose", stub.ExpectArgs{true}, false, nil),
 			call("verbosef", stub.ExpectArgs{"process share directory at %q, runtime directory at %q", []any{m("/tmp/hakurei.10"), m("/run/user/1000/hakurei")}}, nil, nil),
 			call("setupContSignal", stub.ExpectArgs{0xbad}, 0, nil),

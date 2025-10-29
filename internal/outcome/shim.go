@@ -147,6 +147,9 @@ func shimEntrypoint(k syscallDispatcher) {
 			}
 		}
 	}
+	if stateParams.params.Ops == nil { // unreachable
+		k.fatal("invalid container params")
+	}
 
 	// shim exit outcomes
 	var cancelContainer atomic.Pointer[context.CancelFunc]
@@ -186,10 +189,6 @@ func shimEntrypoint(k syscallDispatcher) {
 			}
 		}
 	})
-
-	if stateParams.params.Ops == nil {
-		k.fatal("invalid container params")
-	}
 
 	// close setup socket
 	if err := closeSetup(); err != nil {
