@@ -3,7 +3,6 @@ package outcome
 import (
 	"context"
 	"log"
-	"os"
 
 	"hakurei.app/hst"
 	"hakurei.app/message"
@@ -18,8 +17,8 @@ func Main(ctx context.Context, msg message.Msg, config *hst.Config) {
 
 	seal := outcome{syscallDispatcher: direct{msg}}
 	if err := seal.finalise(ctx, msg, &id, config); err != nil {
-		printMessageError("cannot seal app:", err)
-		os.Exit(1)
+		printMessageError(msg.GetLogger().Fatalln, "cannot seal app:", err)
+		panic("unreachable")
 	}
 
 	seal.main(msg)

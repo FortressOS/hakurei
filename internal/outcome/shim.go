@@ -3,6 +3,7 @@ package outcome
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"os"
@@ -213,11 +214,19 @@ func shimEntrypoint(k syscallDispatcher) {
 	z.WaitDelay = state.Shim.WaitDelay
 
 	if err := k.containerStart(z); err != nil {
-		printMessageError("cannot start container:", err)
+		var f func(v ...any)
+		if logger := msg.GetLogger(); logger != nil {
+			f = logger.Println
+		} else {
+			f = func(v ...any) {
+				msg.Verbose(fmt.Sprintln(v...))
+			}
+		}
+		printMessageError(f, "cannot start container:", err)
 		k.exit(hst.ExitFailure)
 	}
 	if err := k.containerServe(z); err != nil {
-		printMessageError("cannot configure container:", err)
+		printMessageError(func(v ...any) { k.fatal(fmt.Sprintln(v...)) }, "cannot configure container:", err)
 	}
 
 	if err := k.seccompLoad(

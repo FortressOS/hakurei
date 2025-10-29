@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/gob"
 	"errors"
-	"log"
 	"os"
 	"os/exec"
 	"strconv"
@@ -68,7 +67,7 @@ func (ms mainState) beforeExit(isFault bool) {
 	// updates hasErr but does not terminate
 	perror := func(err error, message string) {
 		hasErr = true
-		printMessageError("cannot "+message+":", err)
+		printMessageError(ms.GetLogger().Println, "cannot "+message+":", err)
 	}
 	exitCode := 1
 	defer func() {
@@ -121,7 +120,7 @@ func (ms mainState) beforeExit(isFault bool) {
 			// this is only reachable when shim did not exit within shimWaitTimeout, after its WaitDelay has elapsed.
 			// This is different from the container failing to terminate within its timeout period, as that is enforced
 			// by the shim. This path is instead reached when there is a lockup in shim preventing it from completing.
-			log.Printf("process %d did not terminate", ms.cmd.Process.Pid)
+			ms.GetLogger().Printf("process %d did not terminate", ms.cmd.Process.Pid)
 		}
 
 		ms.Resume()
@@ -167,7 +166,7 @@ func (ms mainState) beforeExit(isFault bool) {
 					if s.Config != nil {
 						rt |= s.Config.Enablements.Unwrap()
 					} else {
-						log.Printf("state entry %d does not contain config", i)
+						ms.GetLogger().Printf("state entry %d does not contain config", i)
 					}
 				}
 
@@ -196,7 +195,7 @@ func (ms mainState) beforeExit(isFault bool) {
 
 // fatal calls printMessageError, performs necessary cleanup, followed by a call to [os.Exit](1).
 func (ms mainState) fatal(fallback string, ferr error) {
-	printMessageError(fallback, ferr)
+	printMessageError(ms.GetLogger().Println, fallback, ferr)
 	ms.beforeExit(true)
 	os.Exit(1)
 }
@@ -310,12 +309,12 @@ func (k *outcome) main(msg message.Msg) {
 
 // printMessageError prints the error message according to [message.GetMessage],
 // or fallback prepended to err if an error message is not available.
-func printMessageError(fallback string, err error) {
+func printMessageError(println func(v ...any), fallback string, err error) {
 	m, ok := message.GetMessage(err)
 	if !ok {
-		log.Println(fallback, err)
+		println(fallback, err)
 		return
 	}
 
-	log.Print(m)
+	println(m)
 }
