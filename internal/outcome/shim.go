@@ -169,14 +169,10 @@ func shimEntrypoint(k syscallDispatcher) {
 				}
 
 				// setup has not completed, terminate immediately
-				msg.Resume()
 				k.exit(hst.ExitRequest)
-				return
 
-			case 1: // got SIGCONT after adoption: monitor died before delivering signal
-				msg.BeforeExit()
+			case 1: // got SIGCONT via pdeath_signal: monitor died before delivering signal
 				k.exit(hst.ExitOrphan)
-				return
 
 			case 2: // unreachable
 				msg.Verbose("sa_sigaction got invalid siginfo")
