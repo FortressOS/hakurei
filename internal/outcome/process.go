@@ -34,7 +34,7 @@ type mainState struct {
 	// Time is nil if no process was ever created.
 	Time *time.Time
 
-	store   store.Store
+	store   store.Compat
 	cancel  context.CancelFunc
 	cmd     *exec.Cmd
 	cmdWait chan error
