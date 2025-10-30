@@ -22,18 +22,18 @@ type Compat interface {
 	List() (identities []int, err error)
 }
 
-func (s *Store) Do(identity int, f func(c Cursor)) (bool, error) {
-	if h, err := s.Handle(identity); err != nil {
-		return false, err
-	} else {
-		return h.do(f)
-	}
-}
-
 // storeAdapter satisfies [Compat] via [Store].
 type storeAdapter struct {
 	msg message.Msg
 	*Store
+}
+
+func (s storeAdapter) Do(identity int, f func(c Cursor)) (bool, error) {
+	if h, err := s.Handle(identity); err != nil {
+		return false, err
+	} else {
+		return handleAdapter{h}.do(f)
+	}
 }
 
 func (s storeAdapter) List() ([]int, error) {
@@ -71,8 +71,11 @@ type Cursor interface {
 	Len() (int, error)
 }
 
+// handleAdapter satisfies [Cursor] via [Handle].
+type handleAdapter struct{ *Handle }
+
 // do implements [Compat.Do] on [Handle].
-func (h *Handle) do(f func(c Cursor)) (bool, error) {
+func (h handleAdapter) do(f func(c Cursor)) (bool, error) {
 	if unlock, err := h.Lock(); err != nil {
 		return false, err
 	} else {
@@ -85,15 +88,13 @@ func (h *Handle) do(f func(c Cursor)) (bool, error) {
 
 /* these compatibility methods must only be called while fileMu is held */
 
-func (h *Handle) Save(state *hst.State) error {
-	return (&EntryHandle{nil, h.Path.Append(state.ID.String()), state.ID}).Save(state)
-}
+func (h handleAdapter) Save(state *hst.State) error { _, err := h.Handle.Save(state); return err }
 
-func (h *Handle) Destroy(id hst.ID) error {
+func (h handleAdapter) Destroy(id hst.ID) error {
 	return (&EntryHandle{nil, h.Path.Append(id.String()), id}).Destroy()
 }
 
-func (h *Handle) Load() (map[hst.ID]*hst.State, error) {
+func (h handleAdapter) Load() (map[hst.ID]*hst.State, error) {
 	entries, n, err := h.Entries()
 	if err != nil {
 		return nil, err
@@ -114,7 +115,7 @@ func (h *Handle) Load() (map[hst.ID]*hst.State, error) {
 	return r, err
 }
 
-func (h *Handle) Len() (int, error) {
+func (h handleAdapter) Len() (int, error) {
 	entries, _, err := h.Entries()
 	if err != nil {
 		return -1, err

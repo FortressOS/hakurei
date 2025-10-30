@@ -30,6 +30,9 @@ func newHandle(base *check.Absolute, identity int) *store.Handle
 //go:linkname open hakurei.app/internal/store.(*EntryHandle).open
 func open(eh *store.EntryHandle, flag int, perm os.FileMode) (*os.File, error)
 
+//go:linkname save hakurei.app/internal/store.(*EntryHandle).save
+func save(eh *store.EntryHandle, state *hst.State) error
+
 func TestStateEntryHandle(t *testing.T) {
 	t.Parallel()
 
@@ -44,7 +47,7 @@ func TestStateEntryHandle(t *testing.T) {
 		if err := eh.Destroy(); !reflect.DeepEqual(err, wantErr()) {
 			t.Errorf("destroy: error = %v, want %v", err, wantErr())
 		}
-		if err := eh.Save(nil); !reflect.DeepEqual(err, wantErr()) {
+		if err := save(&eh, nil); !reflect.DeepEqual(err, wantErr()) {
 			t.Errorf("save: error = %v, want %v", err, wantErr())
 		}
 		if _, err := eh.Load(nil); !reflect.DeepEqual(err, wantErr()) {
@@ -90,7 +93,7 @@ func TestStateEntryHandle(t *testing.T) {
 		eh := store.EntryHandle{Pathname: check.MustAbs(t.TempDir()).Append("entry"),
 			ID: newTemplateState().ID}
 
-		if err := eh.Save(newTemplateState()); err != nil {
+		if err := save(&eh, newTemplateState()); err != nil {
 			t.Fatalf("save: error = %v", err)
 		}
 

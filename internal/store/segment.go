@@ -54,11 +54,11 @@ func (eh *EntryHandle) Destroy() error {
 	return nil
 }
 
-// Save encodes [hst.State] and writes it to the underlying file.
+// save encodes [hst.State] and writes it to the underlying file.
 // An error is returned if a file already exists with the same identifier.
-// Save does not validate the embedded [hst.Config].
-// A non-nil error returned by Save is of type [hst.AppError].
-func (eh *EntryHandle) Save(state *hst.State) error {
+// save does not validate the embedded [hst.Config].
+// A non-nil error returned by save is of type [hst.AppError].
+func (eh *EntryHandle) save(state *hst.State) error {
 	f, err := eh.open(os.O_RDWR|os.O_CREATE|os.O_EXCL, 0600)
 	if err != nil {
 		return err
@@ -121,6 +121,16 @@ func (h *Handle) Lock() (unlock func(), err error) {
 		return nil, &hst.AppError{Step: "acquire lock on store segment " + strconv.Itoa(h.Identity), Err: err}
 	}
 	return
+}
+
+// Save attempts to save [hst.State] as a segment entry, and returns its [EntryHandle].
+// Must be called while holding [Handle.Lock].
+// An error is returned if an entry already exists with the same identifier.
+// Save does not validate the embedded [hst.Config].
+// A non-nil error returned by Save is of type [hst.AppError].
+func (h *Handle) Save(state *hst.State) (*EntryHandle, error) {
+	eh := EntryHandle{nil, h.Path.Append(state.ID.String()), state.ID}
+	return &eh, eh.save(state)
 }
 
 // Entries returns an iterator over all [EntryHandle] held in this segment.
