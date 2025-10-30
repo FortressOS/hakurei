@@ -1,3 +1,4 @@
+// Package store implements cross-process state tracking for hakurei container instances.
 package store
 
 import (
@@ -14,16 +15,16 @@ import (
 	"hakurei.app/internal/lockedfile"
 )
 
-// storeMutexName is the pathname of the file backing [lockedfile.Mutex] of a stateStore and storeHandle.
-const storeMutexName = "lock"
+// MutexName is the pathname of the file backing [lockedfile.Mutex] of a [Store] and [Handle].
+const MutexName = "lock"
 
-// A stateStore keeps track of [hst.State] via a well-known filesystem accessible to all hakurei priv-side processes.
-// Access to store data and related resources are synchronised on a per-segment basis via storeHandle.
-type stateStore struct {
+// A Store keeps track of [hst.State] via a well-known filesystem accessible to all hakurei priv-side processes.
+// Access to store data and related resources are synchronised on a per-segment basis via [Handle].
+type Store struct {
 	// Pathname of directory that the store is rooted in.
 	base *check.Absolute
 
-	// All currently known instances of storeHandle, keyed by their identity.
+	// All currently known instances of Handle, keyed by their identity.
 	handles sync.Map
 
 	// Inter-process mutex to synchronise operations against the entire store.
@@ -37,9 +38,9 @@ type stateStore struct {
 	mkdirErr error
 }
 
-// bigLock acquires fileMu on stateStore.
+// bigLock acquires fileMu on [Store].
 // A non-nil error returned by bigLock is of type [hst.AppError].
-func (s *stateStore) bigLock() (unlock func(), err error) {
+func (s *Store) bigLock() (unlock func(), err error) {
 	s.mkdirOnce.Do(func() { s.mkdirErr = os.MkdirAll(s.base.String(), 0700) })
 	if s.mkdirErr != nil {
 		return nil, &hst.AppError{Step: "create state store directory", Err: s.mkdirErr}
@@ -51,14 +52,14 @@ func (s *stateStore) bigLock() (unlock func(), err error) {
 	return
 }
 
-// identityHandle loads or initialises a storeHandle for identity.
-// A non-nil error returned by identityHandle is of type [hst.AppError].
-func (s *stateStore) identityHandle(identity int) (*storeHandle, error) {
-	h := new(storeHandle)
+// Handle loads or initialises a [Handle] for identity.
+// A non-nil error returned by Handle is of type [hst.AppError].
+func (s *Store) Handle(identity int) (*Handle, error) {
+	h := newHandle(s.base, identity)
 	h.mu.Lock()
 
 	if v, ok := s.handles.LoadOrStore(identity, h); ok {
-		h = v.(*storeHandle)
+		h = v.(*Handle)
 	} else {
 		// acquire big lock to initialise previously unknown segment handle
 		if unlock, err := s.bigLock(); err != nil {
@@ -67,11 +68,7 @@ func (s *stateStore) identityHandle(identity int) (*storeHandle, error) {
 			defer unlock()
 		}
 
-		h.identity = identity
-		h.path = s.base.Append(strconv.Itoa(identity))
-		h.fileMu = lockedfile.MutexAt(h.path.Append(storeMutexName).String())
-
-		err := os.MkdirAll(h.path.String(), 0700)
+		err := os.MkdirAll(h.Path.String(), 0700)
 		h.mu.Unlock()
 		if err != nil && !errors.Is(err, fs.ErrExist) {
 			// handle methods will likely return ENOENT
@@ -82,18 +79,18 @@ func (s *stateStore) identityHandle(identity int) (*storeHandle, error) {
 	return h, nil
 }
 
-// segmentIdentity is produced by the iterator returned by stateStore.segments.
-type segmentIdentity struct {
+// SegmentIdentity is produced by the iterator returned by [Store.Segments].
+type SegmentIdentity struct {
 	// Identity of the current segment.
-	identity int
+	Identity int
 	// Error encountered while processing this segment.
-	err error
+	Err error
 }
 
-// segments returns an iterator over all segmentIdentity known to the store.
-// To obtain a storeHandle on a segment, caller must then call identityHandle.
+// Segments returns an iterator over all [SegmentIdentity] known to the [Store].
+// To obtain a [Handle] on a segment, caller must then call [Store.Handle].
 // A non-nil error returned by segments is of type [hst.AppError].
-func (s *stateStore) segments() (iter.Seq[segmentIdentity], int, error) {
+func (s *Store) Segments() (iter.Seq[SegmentIdentity], int, error) {
 	// read directory contents, should only contain storeMutexName and identity
 	var entries []os.DirEntry
 
@@ -115,36 +112,36 @@ func (s *stateStore) segments() (iter.Seq[segmentIdentity], int, error) {
 		l--
 	}
 
-	return func(yield func(segmentIdentity) bool) {
+	return func(yield func(SegmentIdentity) bool) {
 		// for error reporting
 		const step = "process store segment"
 
 		for _, ent := range entries {
-			si := segmentIdentity{identity: -1}
+			si := SegmentIdentity{Identity: -1}
 
 			// should only be the big lock
 			if !ent.IsDir() {
-				if ent.Name() == storeMutexName {
+				if ent.Name() == MutexName {
 					continue
 				}
 
 				// this should never happen
-				si.err = &hst.AppError{Step: step, Err: syscall.EISDIR,
+				si.Err = &hst.AppError{Step: step, Err: syscall.EISDIR,
 					Msg: "skipped non-directory entry " + strconv.Quote(ent.Name())}
 				goto out
 			}
 
 			// failure paths either indicates a serious bug or external interference
 			if v, err := strconv.Atoi(ent.Name()); err != nil {
-				si.err = &hst.AppError{Step: step, Err: err,
+				si.Err = &hst.AppError{Step: step, Err: err,
 					Msg: "skipped non-identity entry " + strconv.Quote(ent.Name())}
 				goto out
 			} else if v < hst.IdentityMin || v > hst.IdentityMax {
-				si.err = &hst.AppError{Step: step, Err: syscall.ERANGE,
+				si.Err = &hst.AppError{Step: step, Err: syscall.ERANGE,
 					Msg: "skipped out of bounds entry " + strconv.Itoa(v)}
 				goto out
 			} else {
-				si.identity = v
+				si.Identity = v
 			}
 
 		out:
@@ -155,8 +152,8 @@ func (s *stateStore) segments() (iter.Seq[segmentIdentity], int, error) {
 	}, l, nil
 }
 
-// newStore returns the address of a new instance of stateStore.
-// Multiple instances of stateStore rooted in the same directory is supported, but discouraged.
-func newStore(base *check.Absolute) *stateStore {
-	return &stateStore{base: base, fileMu: lockedfile.MutexAt(base.Append(storeMutexName).String())}
+// New returns the address of a new instance of [Store].
+// Multiple instances of [Store] rooted in the same directory is possible, but unsupported.
+func New(base *check.Absolute) *Store {
+	return &Store{base: base, fileMu: lockedfile.MutexAt(base.Append(MutexName).String())}
 }

@@ -3,7 +3,6 @@ package store
 import (
 	"errors"
 	"maps"
-	"strconv"
 
 	"hakurei.app/container/check"
 	"hakurei.app/hst"
@@ -23,29 +22,29 @@ type Compat interface {
 	List() (identities []int, err error)
 }
 
-func (s *stateStore) Do(identity int, f func(c Cursor)) (bool, error) {
-	if h, err := s.identityHandle(identity); err != nil {
+func (s *Store) Do(identity int, f func(c Cursor)) (bool, error) {
+	if h, err := s.Handle(identity); err != nil {
 		return false, err
 	} else {
 		return h.do(f)
 	}
 }
 
-// storeAdapter satisfies [Store] via stateStore.
+// storeAdapter satisfies [Compat] via [Store].
 type storeAdapter struct {
 	msg message.Msg
-	*stateStore
+	*Store
 }
 
 func (s storeAdapter) List() ([]int, error) {
-	segments, n, err := s.segments()
+	segments, n, err := s.Segments()
 	if err != nil {
 		return nil, err
 	}
 
 	identities := make([]int, 0, n)
 	for si := range segments {
-		if si.err != nil {
+		if si.Err != nil {
 			if m, ok := message.GetMessage(err); ok {
 				s.msg.Verbose(m)
 			} else {
@@ -54,14 +53,14 @@ func (s storeAdapter) List() ([]int, error) {
 			}
 			continue
 		}
-		identities = append(identities, si.identity)
+		identities = append(identities, si.Identity)
 	}
 	return identities, nil
 }
 
 // NewMulti returns an instance of the multi-file store.
 func NewMulti(msg message.Msg, prefix *check.Absolute) Compat {
-	return storeAdapter{msg, newStore(prefix.Append("state"))}
+	return storeAdapter{msg, New(prefix.Append("state"))}
 }
 
 // Cursor provides access to the store of an identity.
@@ -72,10 +71,10 @@ type Cursor interface {
 	Len() (int, error)
 }
 
-// do implements stateStore.Do on storeHandle.
-func (h *storeHandle) do(f func(c Cursor)) (bool, error) {
-	if unlock, err := h.fileMu.Lock(); err != nil {
-		return false, &hst.AppError{Step: "acquire lock on store segment " + strconv.Itoa(h.identity), Err: err}
+// do implements [Compat.Do] on [Handle].
+func (h *Handle) do(f func(c Cursor)) (bool, error) {
+	if unlock, err := h.Lock(); err != nil {
+		return false, err
 	} else {
 		defer unlock()
 	}
@@ -86,28 +85,28 @@ func (h *storeHandle) do(f func(c Cursor)) (bool, error) {
 
 /* these compatibility methods must only be called while fileMu is held */
 
-func (h *storeHandle) Save(state *hst.State) error {
-	return (&stateEntryHandle{nil, h.path.Append(state.ID.String()), state.ID}).save(state)
+func (h *Handle) Save(state *hst.State) error {
+	return (&EntryHandle{nil, h.Path.Append(state.ID.String()), state.ID}).Save(state)
 }
 
-func (h *storeHandle) Destroy(id hst.ID) error {
-	return (&stateEntryHandle{nil, h.path.Append(id.String()), id}).destroy()
+func (h *Handle) Destroy(id hst.ID) error {
+	return (&EntryHandle{nil, h.Path.Append(id.String()), id}).Destroy()
 }
 
-func (h *storeHandle) Load() (map[hst.ID]*hst.State, error) {
-	entries, n, err := h.entries()
+func (h *Handle) Load() (map[hst.ID]*hst.State, error) {
+	entries, n, err := h.Entries()
 	if err != nil {
 		return nil, err
 	}
 
 	r := make(map[hst.ID]*hst.State, n)
 	for eh := range entries {
-		if eh.decodeErr != nil {
-			err = eh.decodeErr
+		if eh.DecodeErr != nil {
+			err = eh.DecodeErr
 			break
 		}
 		var s hst.State
-		if _, err = eh.load(&s); err != nil {
+		if _, err = eh.Load(&s); err != nil {
 			break
 		}
 		r[eh.ID] = &s
@@ -115,16 +114,16 @@ func (h *storeHandle) Load() (map[hst.ID]*hst.State, error) {
 	return r, err
 }
 
-func (h *storeHandle) Len() (int, error) {
-	entries, _, err := h.entries()
+func (h *Handle) Len() (int, error) {
+	entries, _, err := h.Entries()
 	if err != nil {
 		return -1, err
 	}
 
 	var n int
 	for eh := range entries {
-		if eh.decodeErr != nil {
-			err = eh.decodeErr
+		if eh.DecodeErr != nil {
+			err = eh.DecodeErr
 		}
 		n++
 	}
