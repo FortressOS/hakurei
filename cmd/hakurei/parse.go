@@ -13,7 +13,7 @@ import (
 	"hakurei.app/hst"
 	"hakurei.app/internal/env"
 	"hakurei.app/internal/outcome"
-	"hakurei.app/internal/state"
+	"hakurei.app/internal/store"
 	"hakurei.app/message"
 )
 
@@ -85,8 +85,8 @@ func tryIdentifier(msg message.Msg, name string) (config *hst.Config, entry *hst
 	return tryIdentifierEntries(msg, name, func() map[hst.ID]*hst.State {
 		var sc hst.Paths
 		env.CopyPaths().Copy(&sc, new(outcome.Hsu).MustID(nil))
-		s := state.NewMulti(msg, sc.RunDirPath)
-		if entries, err := state.Join(s); err != nil {
+		s := store.NewMulti(msg, sc.RunDirPath)
+		if entries, err := store.Join(s); err != nil {
 			msg.GetLogger().Printf("cannot join store: %v", err) // not fatal
 			return nil
 		} else {

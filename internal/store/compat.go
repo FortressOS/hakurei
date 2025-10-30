@@ -1,5 +1,4 @@
-// Package state provides cross-process state tracking for hakurei container instances.
-package state
+package store
 
 import (
 	"strconv"

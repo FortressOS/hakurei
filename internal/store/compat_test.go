@@ -1,4 +1,4 @@
-package state_test
+package store_test
 
 import (
 	"log"
@@ -10,12 +10,12 @@ import (
 
 	"hakurei.app/container/check"
 	"hakurei.app/hst"
-	"hakurei.app/internal/state"
+	"hakurei.app/internal/store"
 	"hakurei.app/message"
 )
 
 func TestMulti(t *testing.T) {
-	s := state.NewMulti(message.NewMsg(log.New(log.Writer(), "multi: ", 0)), check.MustAbs(t.TempDir()))
+	s := store.NewMulti(message.NewMsg(log.New(log.Writer(), "multi: ", 0)), check.MustAbs(t.TempDir()))
 
 	t.Run("list empty store", func(t *testing.T) {
 		if identities, err := s.List(); err != nil {
@@ -43,14 +43,14 @@ func TestMulti(t *testing.T) {
 		tc[i].Time = time.Now()
 	}
 
-	do := func(identity int, f func(c state.Cursor)) {
+	do := func(identity int, f func(c store.Cursor)) {
 		if ok, err := s.Do(identity, f); err != nil {
 			t.Fatalf("Do: ok = %v, error = %v", ok, err)
 		}
 	}
 
 	insert := func(i, identity int) {
-		do(identity, func(c state.Cursor) {
+		do(identity, func(c store.Cursor) {
 			if err := c.Save(&tc[i]); err != nil {
 				t.Fatalf("Save: error = %v", err)
 			}
@@ -58,7 +58,7 @@ func TestMulti(t *testing.T) {
 	}
 
 	check := func(i, identity int) {
-		do(identity, func(c state.Cursor) {
+		do(identity, func(c store.Cursor) {
 			if entries, err := c.Load(); err != nil {
 				t.Fatalf("Load: error = %v", err)
 			} else if got, ok := entries[tc[i].ID]; !ok {
@@ -98,19 +98,19 @@ func TestMulti(t *testing.T) {
 	}
 
 	// join store
-	if entries, err := state.Join(s); err != nil {
+	if entries, err := store.Join(s); err != nil {
 		t.Fatalf("Join: error = %v", err)
 	} else if len(entries) != 3 {
 		t.Fatalf("Join(s) = %#v", entries)
 	}
 
 	// clear identity 1
-	do(1, func(c state.Cursor) {
+	do(1, func(c store.Cursor) {
 		if err := c.Destroy(tc[insertEntryOtherApp].ID); err != nil {
 			t.Fatalf("Destroy: error = %v", err)
 		}
 	})
-	do(1, func(c state.Cursor) {
+	do(1, func(c store.Cursor) {
 		if l, err := c.Len(); err != nil {
 			t.Fatalf("Len: error = %v", err)
 		} else if l != 0 {

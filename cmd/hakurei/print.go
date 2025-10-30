@@ -14,7 +14,7 @@ import (
 	"hakurei.app/internal"
 	"hakurei.app/internal/env"
 	"hakurei.app/internal/outcome"
-	"hakurei.app/internal/state"
+	"hakurei.app/internal/store"
 	"hakurei.app/message"
 )
 
@@ -168,9 +168,9 @@ func printShowInstance(
 }
 
 // printPs writes a representation of active instances to output.
-func printPs(output io.Writer, now time.Time, s state.Store, short, flagJSON bool) {
+func printPs(output io.Writer, now time.Time, s store.Store, short, flagJSON bool) {
 	var entries map[hst.ID]*hst.State
-	if e, err := state.Join(s); err != nil {
+	if e, err := store.Join(s); err != nil {
 		log.Fatalf("cannot join store: %v", err)
 	} else {
 		entries = e

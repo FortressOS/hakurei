@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"hakurei.app/hst"
-	"hakurei.app/internal/state"
+	"hakurei.app/internal/store"
 )
 
 var (
@@ -709,6 +709,6 @@ func TestPrintPs(t *testing.T) {
 type stubStore map[hst.ID]*hst.State
 
 func (s stubStore) Join() (map[hst.ID]*hst.State, error)       { return s, nil }
-func (s stubStore) Do(int, func(c state.Cursor)) (bool, error) { panic("unreachable") }
+func (s stubStore) Do(int, func(c store.Cursor)) (bool, error) { panic("unreachable") }
 func (s stubStore) List() ([]int, error)                       { panic("unreachable") }
 func (s stubStore) Close() error                               { return nil }

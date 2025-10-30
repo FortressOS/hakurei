@@ -15,7 +15,7 @@ import (
 	"hakurei.app/container/fhs"
 	"hakurei.app/hst"
 	"hakurei.app/internal"
-	"hakurei.app/internal/state"
+	"hakurei.app/internal/store"
 	"hakurei.app/message"
 	"hakurei.app/system"
 )
@@ -34,7 +34,7 @@ type mainState struct {
 	// Time is nil if no process was ever created.
 	Time *time.Time
 
-	store   state.Store
+	store   store.Store
 	cancel  context.CancelFunc
 	cmd     *exec.Cmd
 	cmdWait chan error
@@ -127,7 +127,7 @@ func (ms mainState) beforeExit(isFault bool) {
 	}
 
 	if ms.uintptr&mainNeedsRevert != 0 {
-		if ok, err := ms.store.Do(ms.k.state.identity.unwrap(), func(c state.Cursor) {
+		if ok, err := ms.store.Do(ms.k.state.identity.unwrap(), func(c store.Cursor) {
 			if ms.uintptr&mainNeedsDestroy != 0 {
 				if err := c.Destroy(ms.k.state.id.unwrap()); err != nil {
 					perror(err, "destroy state entry")
@@ -220,7 +220,7 @@ func (k *outcome) main(msg message.Msg) {
 		ms.fatal("cannot commit system setup:", err)
 	}
 	ms.uintptr |= mainNeedsRevert
-	ms.store = state.NewMulti(msg, k.state.sc.RunDirPath)
+	ms.store = store.NewMulti(msg, k.state.sc.RunDirPath)
 
 	ctx, cancel := context.WithCancel(k.ctx)
 	defer cancel()
@@ -281,7 +281,7 @@ func (k *outcome) main(msg message.Msg) {
 	}
 
 	// shim accepted setup payload, create process state
-	if ok, err := ms.store.Do(k.state.identity.unwrap(), func(c state.Cursor) {
+	if ok, err := ms.store.Do(k.state.identity.unwrap(), func(c store.Cursor) {
 		if err := c.Save(&hst.State{
 			ID:      k.state.id.unwrap(),
 			PID:     os.Getpid(),
