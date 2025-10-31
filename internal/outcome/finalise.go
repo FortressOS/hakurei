@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 	"os/user"
-	"sync/atomic"
 
 	"hakurei.app/hst"
 	"hakurei.app/message"
@@ -26,11 +25,8 @@ type outcome struct {
 	sys *system.I
 	// Transmitted to shim. Populated during finalise.
 	state *outcomeState
-	// Kept for saving to [state].
+	// Retained for registering current instance.
 	config *hst.Config
-
-	// Whether the current process is in outcome.main.
-	active atomic.Bool
 
 	ctx context.Context
 	syscallDispatcher

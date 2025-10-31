@@ -206,10 +206,6 @@ func (ms mainState) fatal(fallback string, ferr error) {
 
 // main carries out outcome and terminates. main does not return.
 func (k *outcome) main(msg message.Msg) {
-	if !k.active.CompareAndSwap(false, true) {
-		panic("outcome: attempted to run twice")
-	}
-
 	if k.ctx == nil || k.sys == nil || k.state == nil {
 		panic("outcome: did not finalise")
 	}
