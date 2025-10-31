@@ -20,8 +20,12 @@ import (
 	"hakurei.app/system"
 )
 
-// Duration to wait for shim to exit on top of container WaitDelay.
-const shimWaitTimeout = 5 * time.Second
+const (
+	// Duration to wait for shim to exit on top of container WaitDelay.
+	shimWaitTimeout = 5 * time.Second
+	// Timeout for writing outcomeState to the shim setup pipe.
+	shimSetupTimeout = 5 * time.Second
+)
 
 // mainState holds persistent state bound to outcome.main.
 type mainState struct {
@@ -214,7 +218,7 @@ func (k *outcome) main(msg message.Msg) {
 	hsuPath := internal.MustHsuPath()
 
 	// ms.beforeExit required beyond this point
-	ms := &mainState{Msg: msg, k: k}
+	ms := mainState{Msg: msg, k: k}
 
 	if err := k.sys.Commit(); err != nil {
 		ms.fatal("cannot commit system setup:", err)
@@ -232,11 +236,12 @@ func (k *outcome) main(msg message.Msg) {
 	// shim runs in the same session as monitor; see shim.go for behaviour
 	ms.cmd.Cancel = func() error { return ms.cmd.Process.Signal(syscall.SIGCONT) }
 
-	var e *gob.Encoder
-	if fd, encoder, err := container.Setup(&ms.cmd.ExtraFiles); err != nil {
+	var shimPipe *os.File
+	if fd, w, err := container.Setup(&ms.cmd.ExtraFiles); err != nil {
 		ms.fatal("cannot create shim setup pipe:", err)
+		panic("unreachable")
 	} else {
-		e = encoder
+		shimPipe = w
 		ms.cmd.Env = []string{
 			// passed through to shim by hsu
 			shimEnv + "=" + strconv.Itoa(fd),
@@ -262,23 +267,14 @@ func (k *outcome) main(msg message.Msg) {
 	go func() { ms.cmdWait <- ms.cmd.Wait(); cancel() }()
 	ms.Time = &startTime
 
-	// unfortunately the I/O here cannot be directly canceled;
-	// the cancellation path leads to fatal in this case so that is fine
-	select {
-	case err := <-func() (setupErr chan error) {
-		setupErr = make(chan error, 1)
-		go func() { setupErr <- e.Encode(k.state) }()
-		return
-	}():
-		if err != nil {
-			msg.Resume()
-			ms.fatal("cannot transmit shim config:", err)
-		}
-
-	case <-ctx.Done():
-		msg.Resume()
-		ms.fatal("shim context canceled:", newWithMessageError("shim setup canceled", ctx.Err()))
+	if err := shimPipe.SetDeadline(time.Now().Add(shimSetupTimeout)); err != nil {
+		msg.Verbose(err.Error())
 	}
+	if err := gob.NewEncoder(shimPipe).Encode(k.state); err != nil {
+		msg.Resume()
+		ms.fatal("cannot transmit shim config:", err)
+	}
+	_ = shimPipe.Close()
 
 	// shim accepted setup payload, create process state
 	if ok, err := ms.store.Do(k.state.identity.unwrap(), func(c store.Cursor) {

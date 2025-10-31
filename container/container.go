@@ -25,6 +25,9 @@ const (
 	// CancelSignal is the signal expected by container init on context cancel.
 	// A custom [Container.Cancel] function must eventually deliver this signal.
 	CancelSignal = SIGUSR2
+
+	// Timeout for writing initParams to Container.setup.
+	initSetupTimeout = 5 * time.Second
 )
 
 type (
@@ -37,8 +40,8 @@ type (
 		// with behaviour identical to its [exec.Cmd] counterpart.
 		ExtraFiles []*os.File
 
-		// param encoder for shim and init
-		setup *gob.Encoder
+		// param pipe for shim and init
+		setup *os.File
 		// cancels cmd
 		cancel context.CancelFunc
 		// closed after Wait returns
@@ -228,10 +231,10 @@ func (p *Container) Start() error {
 	}
 
 	// place setup pipe before user supplied extra files, this is later restored by init
-	if fd, e, err := Setup(&p.cmd.ExtraFiles); err != nil {
+	if fd, f, err := Setup(&p.cmd.ExtraFiles); err != nil {
 		return &StartError{true, "set up params stream", err, false, false}
 	} else {
-		p.setup = e
+		p.setup = f
 		p.cmd.Env = []string{setupEnv + "=" + strconv.Itoa(fd)}
 	}
 	p.cmd.ExtraFiles = append(p.cmd.ExtraFiles, p.ExtraFiles...)
@@ -310,6 +313,9 @@ func (p *Container) Serve() error {
 
 	setup := p.setup
 	p.setup = nil
+	if err := setup.SetDeadline(time.Now().Add(initSetupTimeout)); err != nil {
+		return &StartError{true, "set init pipe deadline", err, false, true}
+	}
 
 	if p.Path == nil {
 		p.cancel()
@@ -324,15 +330,14 @@ func (p *Container) Serve() error {
 		p.SeccompRules = make([]seccomp.NativeRule, 0)
 	}
 
-	err := setup.Encode(
-		&initParams{
-			p.Params,
-			Getuid(),
-			Getgid(),
-			len(p.ExtraFiles),
-			p.msg.IsVerbose(),
-		},
-	)
+	err := gob.NewEncoder(setup).Encode(&initParams{
+		p.Params,
+		Getuid(),
+		Getgid(),
+		len(p.ExtraFiles),
+		p.msg.IsVerbose(),
+	})
+	_ = setup.Close()
 	if err != nil {
 		p.cancel()
 	}

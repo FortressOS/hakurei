@@ -1,6 +1,7 @@
 package container_test
 
 import (
+	"encoding/gob"
 	"errors"
 	"os"
 	"slices"
@@ -59,12 +60,16 @@ func TestSetupReceive(t *testing.T) {
 
 			encoderDone := make(chan error, 1)
 			extraFiles := make([]*os.File, 0, 1)
-			if fd, encoder, err := container.Setup(&extraFiles); err != nil {
+			deadline, _ := t.Deadline()
+			if fd, f, err := container.Setup(&extraFiles); err != nil {
 				t.Fatalf("Setup: error = %v", err)
 			} else if fd != 3 {
 				t.Fatalf("Setup: fd = %d, want 3", fd)
 			} else {
-				go func() { encoderDone <- encoder.Encode(payload) }()
+				if err = f.SetDeadline(deadline); err != nil {
+					t.Fatal(err.Error())
+				}
+				go func() { encoderDone <- gob.NewEncoder(f).Encode(payload) }()
 			}
 
 			if len(extraFiles) != 1 {

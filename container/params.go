@@ -9,13 +9,13 @@ import (
 )
 
 // Setup appends the read end of a pipe for setup params transmission and returns its fd.
-func Setup(extraFiles *[]*os.File) (int, *gob.Encoder, error) {
+func Setup(extraFiles *[]*os.File) (int, *os.File, error) {
 	if r, w, err := os.Pipe(); err != nil {
 		return -1, nil, err
 	} else {
 		fd := 3 + len(*extraFiles)
 		*extraFiles = append(*extraFiles, r)
-		return fd, gob.NewEncoder(w), nil
+		return fd, w, nil
 	}
 }
 
