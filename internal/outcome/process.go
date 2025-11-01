@@ -110,14 +110,13 @@ func (k *outcome) main(msg message.Msg) {
 	)
 
 	for {
-		var processTimePrev time.Time
-		processTimePrev, processTime = processTime, time.Now()
 		var processStatePrev uintptr
 		processStatePrev, processStateCur = processStateCur, processState
 
-		if !processTimePrev.IsZero() && processStatePrev != processLifecycle {
-			msg.Verbosef("state %d took %d ms", processStatePrev, processTime.Sub(processTimePrev).Milliseconds())
+		if !processTime.IsZero() && processStatePrev != processLifecycle {
+			msg.Verbosef("state %d took %.2f ms", processStatePrev, float64(time.Since(processTime).Nanoseconds())/1e6)
 		}
+		processTime = time.Now()
 
 		switch processState {
 		case processStart:

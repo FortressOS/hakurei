@@ -3,6 +3,7 @@ package outcome
 import (
 	"context"
 	"log"
+	"time"
 
 	"hakurei.app/hst"
 	"hakurei.app/message"
@@ -16,10 +17,13 @@ func Main(ctx context.Context, msg message.Msg, config *hst.Config) {
 	}
 
 	seal := outcome{syscallDispatcher: direct{msg}}
+
+	finaliseTime := time.Now()
 	if err := seal.finalise(ctx, msg, &id, config); err != nil {
 		printMessageError(msg.GetLogger().Fatalln, "cannot seal app:", err)
 		panic("unreachable")
 	}
+	msg.Verbosef("finalise took %.2f ms", float64(time.Since(finaliseTime).Nanoseconds())/1e6)
 
 	seal.main(msg)
 	panic("unreachable")

@@ -690,6 +690,7 @@ func (panicMsgContext) Value(any) any               { panic("unreachable") }
 type panicDispatcher struct{}
 
 func (panicDispatcher) new(func(k syscallDispatcher, msg message.Msg))      { panic("unreachable") }
+func (panicDispatcher) getppid() int                                        { panic("unreachable") }
 func (panicDispatcher) getpid() int                                         { panic("unreachable") }
 func (panicDispatcher) getuid() int                                         { panic("unreachable") }
 func (panicDispatcher) getgid() int                                         { panic("unreachable") }
