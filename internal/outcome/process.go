@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"hakurei.app/container"
+	"hakurei.app/container/check"
 	"hakurei.app/container/fhs"
 	"hakurei.app/hst"
 	"hakurei.app/internal"
@@ -32,16 +33,12 @@ type mainState struct {
 	// done is whether beforeExit has been called already.
 	done bool
 
-	// Time is the exact point in time where the process was created.
-	// Location must be set to UTC.
-	//
-	// Time is nil if no process was ever created.
-	Time *time.Time
+	// Populated on successful hsu startup.
+	cmd *exec.Cmd
+	// Cancels cmd, must be populated before cmd is populated.
+	cancel context.CancelFunc
 
-	store   store.Compat
-	cancel  context.CancelFunc
-	cmd     *exec.Cmd
-	cmdWait chan error
+	store store.Compat
 
 	k *outcome
 	message.Msg
@@ -81,14 +78,9 @@ func (ms mainState) beforeExit(isFault bool) {
 	}()
 
 	// this also handles wait for a non-fault termination
-	if ms.cmd != nil && ms.cmdWait != nil {
-		waitDone := make(chan struct{})
-
-		// this ties waitDone to ctx with the additional compensated timeout duration
-		go func() { <-ms.k.ctx.Done(); time.Sleep(ms.k.state.Shim.WaitDelay + shimWaitTimeout); close(waitDone) }()
-
+	if ms.cmd != nil {
 		select {
-		case err := <-ms.cmdWait:
+		case err := <-func() chan error { w := make(chan error, 1); go func() { w <- ms.cmd.Wait(); ms.cancel() }(); return w }():
 			wstatus, ok := ms.cmd.ProcessState.Sys().(syscall.WaitStatus)
 			if ok {
 				if v := wstatus.ExitStatus(); v != 0 {
@@ -119,7 +111,12 @@ func (ms mainState) beforeExit(isFault bool) {
 				}
 			}
 
-		case <-waitDone:
+		case <-func() chan struct{} {
+			w := make(chan struct{})
+			// this ties waitDone to ctx with the additional compensated timeout duration
+			go func() { <-ms.k.ctx.Done(); time.Sleep(ms.k.state.Shim.WaitDelay + shimWaitTimeout); close(w) }()
+			return w
+		}():
 			ms.Resume()
 			// this is only reachable when shim did not exit within shimWaitTimeout, after its WaitDelay has elapsed.
 			// This is different from the container failing to terminate within its timeout period, as that is enforced
@@ -226,51 +223,22 @@ func (k *outcome) main(msg message.Msg) {
 	defer cancel()
 	ms.cancel = cancel
 
-	ms.cmd = exec.CommandContext(ctx, hsuPath.String())
-	ms.cmd.Stdin, ms.cmd.Stdout, ms.cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
-	ms.cmd.Dir = fhs.Root // container init enters final working directory
-	// shim runs in the same session as monitor; see shim.go for behaviour
-	ms.cmd.Cancel = func() error { return ms.cmd.Process.Signal(syscall.SIGCONT) }
-
-	var shimPipe *os.File
-	if fd, w, err := container.Setup(&ms.cmd.ExtraFiles); err != nil {
-		ms.fatal("cannot create shim setup pipe:", err)
+	// shim starts and blocks on setup payload before container is started
+	var (
+		startTime time.Time
+		shimPipe  *os.File
+	)
+	if cmd, f, err := k.start(ctx, msg, hsuPath, &startTime); err != nil {
+		ms.fatal("cannot start shim:", err)
 		panic("unreachable")
 	} else {
-		shimPipe = w
-		ms.cmd.Env = []string{
-			// passed through to shim by hsu
-			shimEnv + "=" + strconv.Itoa(fd),
-			// interpreted by hsu
-			"HAKUREI_IDENTITY=" + k.state.identity.String(),
-		}
+		ms.cmd, shimPipe = cmd, f
 	}
 
-	if len(k.supp) > 0 {
-		msg.Verbosef("attaching supplementary group ids %s", k.supp)
-		// interpreted by hsu
-		ms.cmd.Env = append(ms.cmd.Env, "HAKUREI_GROUPS="+strings.Join(k.supp, " "))
+	// this starts the container, system setup must complete before this point
+	if err := serveShim(msg, shimPipe, k.state); err != nil {
+		ms.fatal("cannot serve shim payload:", err)
 	}
-
-	msg.Verbosef("setuid helper at %s", hsuPath)
-	msg.Suspend()
-	if err := ms.cmd.Start(); err != nil {
-		ms.fatal("cannot start setuid wrapper:", err)
-	}
-	startTime := time.Now().UTC()
-	ms.cmdWait = make(chan error, 1)
-	// this ties context back to the life of the process
-	go func() { ms.cmdWait <- ms.cmd.Wait(); cancel() }()
-	ms.Time = &startTime
-
-	if err := shimPipe.SetDeadline(time.Now().Add(shimSetupTimeout)); err != nil {
-		msg.Verbose(err.Error())
-	}
-	if err := gob.NewEncoder(shimPipe).Encode(k.state); err != nil {
-		msg.Resume()
-		ms.fatal("cannot transmit shim config:", err)
-	}
-	_ = shimPipe.Close()
 
 	// shim accepted setup payload, create process state
 	if ok, err := ms.store.Do(k.state.identity.unwrap(), func(c store.Cursor) {
@@ -279,7 +247,7 @@ func (k *outcome) main(msg message.Msg) {
 			PID:     os.Getpid(),
 			ShimPID: ms.cmd.Process.Pid,
 			Config:  k.config,
-			Time:    *ms.Time,
+			Time:    startTime,
 		}); err != nil {
 			ms.fatal("cannot save state entry:", err)
 		}
@@ -297,6 +265,63 @@ func (k *outcome) main(msg message.Msg) {
 	// beforeExit ties shim process to context
 	ms.beforeExit(false)
 	os.Exit(0)
+}
+
+// start starts the shim via cmd/hsu.
+//
+// If successful, a [time.Time] value for [hst.State] is stored in the value pointed to by startTime.
+// The resulting [exec.Cmd] and write end of the shim setup pipe is returned.
+func (k *outcome) start(ctx context.Context, msg message.Msg,
+	hsuPath *check.Absolute,
+	startTime *time.Time,
+) (*exec.Cmd, *os.File, error) {
+	cmd := exec.CommandContext(ctx, hsuPath.String())
+	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
+	cmd.Dir = fhs.Root // container init enters final working directory
+	// shim runs in the same session as monitor; see shim.go for behaviour
+	cmd.Cancel = func() error { return cmd.Process.Signal(syscall.SIGCONT) }
+
+	var shimPipe *os.File
+	if fd, w, err := container.Setup(&cmd.ExtraFiles); err != nil {
+		return cmd, nil, &hst.AppError{Step: "create shim setup pipe", Err: err}
+	} else {
+		shimPipe = w
+		cmd.Env = []string{
+			// passed through to shim by hsu
+			shimEnv + "=" + strconv.Itoa(fd),
+			// interpreted by hsu
+			"HAKUREI_IDENTITY=" + k.state.identity.String(),
+		}
+	}
+
+	if len(k.supp) > 0 {
+		msg.Verbosef("attaching supplementary group ids %s", k.supp)
+		// interpreted by hsu
+		cmd.Env = append(cmd.Env, "HAKUREI_GROUPS="+strings.Join(k.supp, " "))
+	}
+
+	msg.Verbosef("setuid helper at %s", hsuPath)
+	msg.Suspend()
+	if err := cmd.Start(); err != nil {
+		msg.Resume()
+		return cmd, shimPipe, &hst.AppError{Step: "start setuid wrapper", Err: err}
+	}
+
+	*startTime = time.Now().UTC()
+	return cmd, shimPipe, nil
+}
+
+// serveShim serves outcomeState through the shim setup pipe.
+func serveShim(msg message.Msg, shimPipe *os.File, state *outcomeState) error {
+	if err := shimPipe.SetDeadline(time.Now().Add(shimSetupTimeout)); err != nil {
+		msg.Verbose(err.Error())
+	}
+	if err := gob.NewEncoder(shimPipe).Encode(state); err != nil {
+		msg.Resume()
+		return &hst.AppError{Step: "transmit shim config", Err: err}
+	}
+	_ = shimPipe.Close()
+	return nil
 }
 
 // printMessageError prints the error message according to [message.GetMessage],
