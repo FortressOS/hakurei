@@ -32,6 +32,8 @@ type syscallDispatcher interface {
 	// just synchronising access is not enough, as this is for test instrumentation.
 	new(f func(k syscallDispatcher, msg message.Msg))
 
+	// getppid provides [os.Getppid].
+	getppid() int
 	// getpid provides [os.Getpid].
 	getpid() int
 	// getuid provides [os.Getuid].
@@ -108,6 +110,7 @@ type direct struct{ msg message.Msg }
 
 func (k direct) new(f func(k syscallDispatcher, msg message.Msg)) { go f(k, k.msg) }
 
+func (direct) getppid() int                               { return os.Getppid() }
 func (direct) getpid() int                                { return os.Getpid() }
 func (direct) getuid() int                                { return os.Getuid() }
 func (direct) getgid() int                                { return os.Getgid() }

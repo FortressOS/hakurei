@@ -331,9 +331,10 @@ func (k *kstub) new(f func(k syscallDispatcher, msg message.Msg)) {
 	k.New(func(k syscallDispatcher) { f(k, k.(*kstub)) })
 }
 
-func (k *kstub) getpid() int { k.Helper(); return k.Expects("getpid").Ret.(int) }
-func (k *kstub) getuid() int { k.Helper(); return k.Expects("getuid").Ret.(int) }
-func (k *kstub) getgid() int { k.Helper(); return k.Expects("getgid").Ret.(int) }
+func (k *kstub) getppid() int { k.Helper(); return k.Expects("getppid").Ret.(int) }
+func (k *kstub) getpid() int  { k.Helper(); return k.Expects("getpid").Ret.(int) }
+func (k *kstub) getuid() int  { k.Helper(); return k.Expects("getuid").Ret.(int) }
+func (k *kstub) getgid() int  { k.Helper(); return k.Expects("getgid").Ret.(int) }
 func (k *kstub) lookupEnv(key string) (string, bool) {
 	k.Helper()
 	expect := k.Expects("lookupEnv")

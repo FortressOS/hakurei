@@ -96,11 +96,37 @@ func shimEntrypoint(k syscallDispatcher) {
 		k.fatalf("cannot set SUID_DUMP_DISABLE: %v", err)
 	}
 
+	// the Go runtime does not expose siginfo_t so SIGCONT is handled in C to check si_pid
+	ppid := k.getppid()
+	var signalPipe io.ReadCloser
+	if r, wKeepAlive, err := k.setupContSignal(ppid); err != nil {
+		switch {
+		case errors.As(err, new(*os.SyscallError)): // returned by os.Pipe
+			k.fatal(err.Error())
+			return
+
+		case errors.As(err, new(syscall.Errno)): // returned by hakurei_shim_setup_cont_signal
+			k.fatalf("cannot install SIGCONT handler: %v", err)
+			return
+
+		default: // unreachable
+			k.fatalf("cannot set up exit request: %v", err)
+			return
+		}
+	} else {
+		defer wKeepAlive()
+		signalPipe = r
+	}
+
 	var (
 		state      outcomeState
 		closeSetup func() error
 	)
 	if f, err := k.receive(shimEnv, &state, nil); err != nil {
+		if errors.Is(err, io.EOF) {
+			// fallback exit request: signal handler not yet installed
+			k.exit(hst.ExitRequest)
+		}
 		if errors.Is(err, syscall.EBADF) {
 			k.fatal("invalid config descriptor")
 		}
@@ -119,25 +145,8 @@ func shimEntrypoint(k syscallDispatcher) {
 		}
 	}
 
-	// the Go runtime does not expose siginfo_t so SIGCONT is handled in C to check si_pid
-	var signalPipe io.ReadCloser
-	if r, wKeepAlive, err := k.setupContSignal(state.Shim.PrivPID); err != nil {
-		switch {
-		case errors.As(err, new(*os.SyscallError)): // returned by os.Pipe
-			k.fatal(err.Error())
-			return
-
-		case errors.As(err, new(syscall.Errno)): // returned by hakurei_shim_setup_cont_signal
-			k.fatalf("cannot install SIGCONT handler: %v", err)
-			return
-
-		default: // unreachable
-			k.fatalf("cannot set up exit request: %v", err)
-			return
-		}
-	} else {
-		defer wKeepAlive()
-		signalPipe = r
+	if state.Shim.PrivPID != ppid {
+		k.fatalf("unexpectedly reparented from %d to %d", state.Shim.PrivPID, ppid)
 	}
 
 	// pdeath_signal delivery is checked as if the dying process called kill(2), see kernel/exit.c
