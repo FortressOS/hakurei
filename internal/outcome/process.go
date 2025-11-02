@@ -29,6 +29,9 @@ const (
 	shimSetupTimeout = 5 * time.Second
 )
 
+// NewStore returns the address of a new instance of [store.Store].
+func NewStore(sc *hst.Paths) *store.Store { return store.New(sc.SharePath.Append("state")) }
+
 // main carries out outcome and terminates. main does not return.
 func (k *outcome) main(msg message.Msg) {
 	if k.ctx == nil || k.sys == nil || k.state == nil {
@@ -119,7 +122,7 @@ func (k *outcome) main(msg message.Msg) {
 
 		switch processState {
 		case processStart:
-			if h, err := store.New(k.state.sc.RunDirPath.Append("state")).Handle(k.state.identity.unwrap()); err != nil {
+			if h, err := NewStore(&k.state.sc).Handle(k.state.identity.unwrap()); err != nil {
 				perrorFatal(err, "obtain store segment handle", processFinal)
 				continue
 			} else {

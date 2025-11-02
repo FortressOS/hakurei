@@ -85,7 +85,7 @@ func tryIdentifier(msg message.Msg, name string) (config *hst.Config, entry *hst
 	return tryIdentifierEntries(msg, name, func() map[hst.ID]*hst.State {
 		var sc hst.Paths
 		env.CopyPaths().Copy(&sc, new(outcome.Hsu).MustID(nil))
-		s := store.NewMulti(msg, sc.RunDirPath)
+		s := store.NewMulti(msg, sc.SharePath)
 		if entries, err := store.Join(s); err != nil {
 			msg.GetLogger().Printf("cannot join store: %v", err) // not fatal
 			return nil
