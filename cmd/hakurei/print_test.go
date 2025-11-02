@@ -1,10 +1,12 @@
 package main
 
 import (
+	"bytes"
 	"strings"
 	"testing"
 	"time"
 
+	"hakurei.app/container/check"
 	"hakurei.app/hst"
 	"hakurei.app/internal/store"
 )
@@ -530,8 +532,25 @@ func TestPrintPs(t *testing.T) {
     4cf073bd    3405691582    9 (org.chromium.Chromium)    1h2m32s
 `},
 		{"valid short", map[hst.ID]*hst.State{testID: testState}, true, false, "4cf073bd\n"},
-		{"valid json", map[hst.ID]*hst.State{testID: testState}, false, true, `{
-  "8e2c76b066dabe574cf073bdb46eb5c1": {
+		{"valid json", map[hst.ID]*hst.State{testID: testState, (hst.ID)(bytes.Repeat([]byte{0xaa}, len(hst.ID{}))): {
+			ID:      (hst.ID)(bytes.Repeat([]byte{0xaa}, len(hst.ID{}))),
+			PID:     0xbeef,
+			ShimPID: 0xcafe,
+			Config: &hst.Config{
+				ID:          "uk.gensokyo.cat",
+				Enablements: hst.NewEnablements(hst.EWayland | hst.EPulse),
+				Identity:    1,
+				Container: &hst.ContainerConfig{
+					Shell: check.MustAbs("/bin/sh"),
+					Home:  check.MustAbs("/data/data/uk.gensokyo.cat"),
+					Path:  check.MustAbs("/usr/bin/cat"),
+					Args:  []string{"cat"},
+					Flags: hst.FUserns,
+				},
+			},
+			Time: time.Unix(0, 0xdeadbeef).UTC(),
+		}}, false, true, `[
+  {
     "instance": "8e2c76b066dabe574cf073bdb46eb5c1",
     "pid": 3405691582,
     "shim_pid": 3735928559,
@@ -683,8 +702,33 @@ func TestPrintPs(t *testing.T) {
       "share_tmpdir": true
     },
     "time": "1970-01-01T00:00:00.000000009Z"
+  },
+  {
+    "instance": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "pid": 48879,
+    "shim_pid": 51966,
+    "id": "uk.gensokyo.cat",
+    "enablements": {
+      "wayland": true,
+      "pulse": true
+    },
+    "identity": 1,
+    "groups": null,
+    "container": {
+      "env": null,
+      "filesystem": null,
+      "shell": "/bin/sh",
+      "home": "/data/data/uk.gensokyo.cat",
+      "path": "/usr/bin/cat",
+      "args": [
+        "cat"
+      ],
+      "userns": true,
+      "map_real_uid": false
+    },
+    "time": "1970-01-01T00:00:03.735928559Z"
   }
-}
+]
 `},
 		{"valid short json", map[hst.ID]*hst.State{testID: testState}, true, true, `["8e2c76b066dabe574cf073bdb46eb5c1"]
 `},

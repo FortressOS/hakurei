@@ -84,14 +84,14 @@
 
   virtualisation = {
     # Hopefully reduces spurious test failures:
-    memorySize = 4096;
+    memorySize = 8192;
 
     qemu.options = [
       # Need to switch to a different GPU driver than the default one (-vga std) so that Sway can launch:
       "-vga none -device virtio-gpu-pci"
 
       # Increase Go test compiler performance:
-      "-smp 8"
+      "-smp 16"
     ];
   };
 

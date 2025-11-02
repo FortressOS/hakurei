@@ -58,7 +58,7 @@ def check_state(name, enablements):
     instances = json.loads(machine.succeed("sudo -u alice -i XDG_RUNTIME_DIR=/run/user/1000 hakurei --json ps"))
     if len(instances) != 1:
         raise Exception(f"unexpected state length {len(instances)}")
-    instance = next(iter(instances.values()))
+    instance = instances[0]
 
     if len(instance['container']['args']) != 1 or not (instance['container']['args'][0].startswith("/nix/store/")) or f"hakurei-{name}-" not in (instance['container']['args'][0]):
         raise Exception(f"unexpected args {instance['container']['args']}")

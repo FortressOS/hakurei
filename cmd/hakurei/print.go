@@ -1,9 +1,11 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"log"
+	"maps"
 	"slices"
 	"strconv"
 	"strings"
@@ -177,10 +179,8 @@ func printPs(output io.Writer, now time.Time, s store.Compat, short, flagJSON bo
 	}
 
 	if !short && flagJSON {
-		es := make(map[string]*hst.State, len(entries))
-		for id, instance := range entries {
-			es[id.String()] = instance
-		}
+		es := slices.Collect(maps.Values(entries))
+		slices.SortFunc(es, func(a, b *hst.State) int { return bytes.Compare(a.ID[:], b.ID[:]) })
 		encodeJSON(log.Fatal, output, short, es)
 		return
 	}

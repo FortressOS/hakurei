@@ -56,7 +56,7 @@ def check_state(name, enablements):
     instances = json.loads(machine.succeed("sudo -u alice -i XDG_RUNTIME_DIR=/run/user/1000 hakurei --json ps"))
     if len(instances) != 1:
         raise Exception(f"unexpected state length {len(instances)}")
-    instance = next(iter(instances.values()))
+    instance = instances[0]
 
     command = f"{name}-start"
     if not (instance['container']['path'].startswith("/nix/store/")) or not (instance['container']['path'].endswith(command)):
