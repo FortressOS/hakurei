@@ -12,7 +12,7 @@ import (
 type Config struct {
 	// Reverse-DNS style configured arbitrary identifier string.
 	// Passed to wayland security-context-v1 and used as part of defaults in dbus session proxy.
-	ID string `json:"id"`
+	ID string `json:"id,omitempty"`
 
 	// System services to make available in the container.
 	Enablements *Enablements `json:"enablements,omitempty"`

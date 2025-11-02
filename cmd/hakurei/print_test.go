@@ -712,7 +712,6 @@ func TestPrintPs(t *testing.T) {
     "instance": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
     "pid": 48879,
     "shim_pid": 51966,
-    "id": "",
     "enablements": {
       "wayland": true,
       "pulse": true
