@@ -227,7 +227,7 @@ in
                     in
                     pkgs.runCommand "checked-${name}" { nativeBuildInputs = [ cfg.package ]; } ''
                       ln -vs ${file} "$out"
-                      hakurei show ${file}
+                      hakurei show --no-store ${file}
                     '';
                 in
                 pkgs.writeShellScriptBin app.name ''

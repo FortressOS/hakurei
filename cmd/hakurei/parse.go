@@ -11,8 +11,6 @@ import (
 	"syscall"
 
 	"hakurei.app/hst"
-	"hakurei.app/internal/env"
-	"hakurei.app/internal/outcome"
 	"hakurei.app/internal/store"
 	"hakurei.app/message"
 )
@@ -81,26 +79,7 @@ func shortIdentifierString(s string) string {
 }
 
 // tryIdentifier attempts to match [hst.State] from a [hex] representation of [hst.ID] or a prefix of its lower half.
-func tryIdentifier(msg message.Msg, name string) (config *hst.Config, entry *hst.State) {
-	return tryIdentifierEntries(msg, name, func() map[hst.ID]*hst.State {
-		var sc hst.Paths
-		env.CopyPaths().Copy(&sc, new(outcome.Hsu).MustID(nil))
-		s := store.NewMulti(msg, sc.SharePath)
-		if entries, err := store.Join(s); err != nil {
-			msg.GetLogger().Printf("cannot join store: %v", err) // not fatal
-			return nil
-		} else {
-			return entries
-		}
-	})
-}
-
-// tryIdentifierEntries implements tryIdentifier with a custom entries pair getter.
-func tryIdentifierEntries(
-	msg message.Msg,
-	name string,
-	getEntries func() map[hst.ID]*hst.State,
-) (config *hst.Config, entry *hst.State) {
+func tryIdentifier(msg message.Msg, name string, s *store.Store) *hst.State {
 	const (
 		likeShort = 1 << iota
 		likeFull
@@ -116,7 +95,7 @@ func tryIdentifierEntries(
 			if c >= 'a' && c <= 'f' {
 				continue
 			}
-			return
+			return nil
 		}
 		likely |= likeShort
 	} else if len(name) == hex.EncodedLen(len(hst.ID{})) {
@@ -124,40 +103,58 @@ func tryIdentifierEntries(
 	}
 
 	if likely == 0 {
-		return
+		return nil
 	}
-	entries := getEntries()
-	if entries == nil {
-		return
-	}
+
+	entries, copyError := s.All()
+	defer func() {
+		if err := copyError(); err != nil {
+			msg.GetLogger().Println(getMessage("cannot iterate over store:", err))
+		}
+	}()
 
 	switch {
 	case likely&likeShort != 0:
 		msg.Verbose("argument looks like short identifier")
-		for id := range entries {
-			v := id.String()
-			if strings.HasPrefix(v[len(hst.ID{}):], name) {
-				// match, use config from this state entry
-				entry = entries[id]
-				config = entry.Config
-				break
+		for eh := range entries {
+			if eh.DecodeErr != nil {
+				msg.Verbose(getMessage("skipping instance:", eh.DecodeErr))
+				continue
 			}
 
-			msg.Verbosef("instance %s skipped", v)
+			if strings.HasPrefix(eh.ID.String()[len(hst.ID{}):], name) {
+				var entry hst.State
+				if _, err := eh.Load(&entry); err != nil {
+					msg.GetLogger().Println(getMessage("cannot load state entry:", err))
+					continue
+				}
+				return &entry
+			}
 		}
-		return
+		return nil
 
 	case likely&likeFull != 0:
 		var likelyID hst.ID
 		if likelyID.UnmarshalText([]byte(name)) != nil {
-			return
+			return nil
 		}
 		msg.Verbose("argument looks like identifier")
-		if ent, ok := entries[likelyID]; ok {
-			entry = ent
-			config = ent.Config
+		for eh := range entries {
+			if eh.DecodeErr != nil {
+				msg.Verbose(getMessage("skipping instance:", eh.DecodeErr))
+				continue
+			}
+
+			if eh.ID == likelyID {
+				var entry hst.State
+				if _, err := eh.Load(&entry); err != nil {
+					msg.GetLogger().Println(getMessage("cannot load state entry:", err))
+					continue
+				}
+				return &entry
+			}
 		}
-		return
+		return nil
 
 	default:
 		panic("unreachable")

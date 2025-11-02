@@ -294,7 +294,10 @@ func buildCommand(ctx context.Context, msg message.Msg, early *earlyHardeningErr
 	}
 
 	{
-		var flagShort bool
+		var (
+			flagShort   bool
+			flagNoStore bool
+		)
 		c.NewCommand("show", "Show live or local app configuration", func(args []string) error {
 			switch len(args) {
 			case 0: // system
@@ -302,10 +305,23 @@ func buildCommand(ctx context.Context, msg message.Msg, early *earlyHardeningErr
 
 			case 1: // instance
 				name := args[0]
-				config, entry := tryIdentifier(msg, name)
-				if config == nil {
-					config = tryPath(msg, name)
+
+				var (
+					config *hst.Config
+					entry  *hst.State
+				)
+				if !flagNoStore {
+					var sc hst.Paths
+					env.CopyPaths().Copy(&sc, new(outcome.Hsu).MustID(nil))
+					entry = tryIdentifier(msg, name, outcome.NewStore(&sc))
 				}
+
+				if entry == nil {
+					config = tryPath(msg, name)
+				} else {
+					config = entry.Config
+				}
+
 				if !printShowInstance(os.Stdout, time.Now().UTC(), entry, config, flagShort, flagJSON) {
 					os.Exit(1)
 				}
@@ -314,7 +330,9 @@ func buildCommand(ctx context.Context, msg message.Msg, early *earlyHardeningErr
 				log.Fatal("show requires 1 argument")
 			}
 			return errSuccess
-		}).Flag(&flagShort, "short", command.BoolFlag(false), "Omit filesystem information")
+		}).
+			Flag(&flagShort, "short", command.BoolFlag(false), "Omit filesystem information").
+			Flag(&flagNoStore, "no-store", command.BoolFlag(false), "Do not attempt to match from active instances")
 	}
 
 	{

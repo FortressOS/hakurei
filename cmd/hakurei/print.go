@@ -287,3 +287,11 @@ func mustPrintln(output io.Writer, a ...any) {
 		log.Fatalf("cannot print: %v", err)
 	}
 }
+
+// getMessage returns a [message.Error] message if available, or err prefixed with fallback otherwise.
+func getMessage(fallback string, err error) string {
+	if m, ok := message.GetMessage(err); ok {
+		return m
+	}
+	return fmt.Sprintln(fallback, err)
+}
