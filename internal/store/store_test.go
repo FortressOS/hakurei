@@ -1,6 +1,7 @@
 package store_test
 
 import (
+	"bytes"
 	"cmp"
 	"iter"
 	"os"
@@ -10,6 +11,7 @@ import (
 	"strings"
 	"syscall"
 	"testing"
+	"time"
 	_ "unsafe"
 
 	"hakurei.app/container/check"
@@ -20,7 +22,7 @@ import (
 //go:linkname bigLock hakurei.app/internal/store.(*Store).bigLock
 func bigLock(s *store.Store) (unlock func(), err error)
 
-func TestStateStoreBigLock(t *testing.T) {
+func TestStoreBigLock(t *testing.T) {
 	t.Parallel()
 
 	{
@@ -62,7 +64,7 @@ func TestStateStoreBigLock(t *testing.T) {
 	})
 }
 
-func TestStateStoreHandle(t *testing.T) {
+func TestStoreHandle(t *testing.T) {
 	t.Parallel()
 
 	t.Run("loadstore", func(t *testing.T) {
@@ -143,7 +145,7 @@ func TestStateStoreHandle(t *testing.T) {
 	})
 }
 
-func TestStateStoreSegments(t *testing.T) {
+func TestStoreSegments(t *testing.T) {
 	t.Parallel()
 
 	testCases := []struct {
@@ -159,7 +161,7 @@ func TestStateStoreSegments(t *testing.T) {
 			"9999",
 			"16384",
 		}}, []store.SegmentIdentity{
-			{-1, &hst.AppError{Step: "process store segment", Err: syscall.EISDIR,
+			{-1, &hst.AppError{Step: "process store segment", Err: syscall.ENOTDIR,
 				Msg: `skipped non-directory entry "f0-invalid-file"`}},
 			{-1, &hst.AppError{Step: "process store segment", Err: syscall.ERANGE,
 				Msg: `skipped out of bounds entry 16384`}},
@@ -256,4 +258,148 @@ func TestStateStoreSegments(t *testing.T) {
 			t.Errorf("Segments: error = %#v, want %#v", err, wantErr)
 		}
 	})
+}
+
+func TestStoreAll(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name  string
+		data  []hst.State
+		extra func(t *testing.T, base *check.Absolute)
+		err   func(base *check.Absolute) error
+	}{
+		{"segment access", []hst.State{
+			{ID: (hst.ID)(bytes.Repeat([]byte{0xaa}, len(hst.ID{}))), PID: 0xbeef, ShimPID: 0xcafe, Config: hst.Template(), Time: time.Unix(0, 0xdeadbeef0)},
+		}, func(t *testing.T, base *check.Absolute) {
+			segmentPath := base.Append("0")
+			if err := os.Mkdir(segmentPath.String(), 0); err != nil {
+				t.Fatal(err.Error())
+			}
+			t.Cleanup(func() {
+				if err := os.Chmod(segmentPath.String(), 0755); err != nil {
+					t.Fatal(err.Error())
+				}
+			})
+		}, func(base *check.Absolute) error {
+			return &hst.AppError{
+				Step: "acquire lock on store segment 0",
+				Err:  &os.PathError{Op: "open", Path: base.Append("0", store.MutexName).String(), Err: syscall.EACCES},
+			}
+		}},
+
+		{"bad segment", []hst.State{
+			{ID: (hst.ID)(bytes.Repeat([]byte{0xaa}, len(hst.ID{}))), PID: 0xbeef, ShimPID: 0xcafe, Config: hst.Template(), Time: time.Unix(0, 0xdeadbeef0)},
+		}, func(t *testing.T, base *check.Absolute) {
+			if f, err := os.Create(base.Append("invalid").String()); err != nil {
+				t.Fatal(err.Error())
+			} else if err = f.Close(); err != nil {
+				t.Fatal(err.Error())
+			}
+		}, func(base *check.Absolute) error {
+			return &hst.AppError{
+				Step: "process store segment",
+				Err:  syscall.ENOTDIR,
+				Msg:  `skipped non-directory entry "invalid"`,
+			}
+		}},
+
+		{"access", []hst.State{
+			{ID: (hst.ID)(bytes.Repeat([]byte{0xaa}, len(hst.ID{}))), PID: 0xbeef, ShimPID: 0xcafe, Config: hst.Template(), Time: time.Unix(0, 0xdeadbeef0)},
+		}, func(t *testing.T, base *check.Absolute) {
+			if err := os.Chmod(base.String(), 0); err != nil {
+				t.Fatal(err.Error())
+			}
+			t.Cleanup(func() {
+				if err := os.Chmod(base.String(), 0755); err != nil {
+					t.Fatal(err.Error())
+				}
+			})
+		}, func(base *check.Absolute) error {
+			return &hst.AppError{
+				Step: "acquire lock on the state store",
+				Err:  &os.PathError{Op: "open", Path: base.Append(store.MutexName).String(), Err: syscall.EACCES},
+			}
+		}},
+
+		{"success single", []hst.State{
+			{ID: (hst.ID)(bytes.Repeat([]byte{0xaa}, len(hst.ID{}))), PID: 0xbeef, ShimPID: 0xcafe, Config: hst.Template(), Time: time.Unix(0, 0xdeadbeef0)},
+		}, func(t *testing.T, base *check.Absolute) {
+			for i := 0; i < hst.Template().Identity; i++ {
+				if err := os.Mkdir(base.Append(strconv.Itoa(i)).String(), 0700); err != nil {
+					t.Fatal(err.Error())
+				}
+			}
+		}, nil},
+
+		{"success", []hst.State{
+			{ID: (hst.ID)(bytes.Repeat([]byte{0xaa}, len(hst.ID{}))), PID: 0xbeef, ShimPID: 0xcafe, Config: hst.Template(), Time: time.Unix(0, 0xdeadbeef0)},
+			{ID: (hst.ID)(bytes.Repeat([]byte{0xab}, len(hst.ID{}))), PID: 0x1beef, ShimPID: 0x1cafe, Config: hst.Template(), Time: time.Unix(0, 0xdeadbeef1)},
+			{ID: (hst.ID)(bytes.Repeat([]byte{0xf0}, len(hst.ID{}))), PID: 0x2beef, ShimPID: 0x2cafe, Config: hst.Template(), Time: time.Unix(0, 0xdeadbeef2)},
+
+			{ID: (hst.ID)(bytes.Repeat([]byte{0xfe}, len(hst.ID{}))), PID: 0xbed, ShimPID: 0xfff, Config: func() *hst.Config {
+				template := hst.Template()
+				template.Identity = hst.IdentityMax
+				return template
+			}(), Time: time.Unix(0, 0xcafebabe0)},
+			{ID: (hst.ID)(bytes.Repeat([]byte{0xfc}, len(hst.ID{}))), PID: 0x1bed, ShimPID: 0x1fff, Config: func() *hst.Config {
+				template := hst.Template()
+				template.Identity = 0xfc
+				return template
+			}(), Time: time.Unix(0, 0xcafebabe1)},
+			{ID: (hst.ID)(bytes.Repeat([]byte{0xce}, len(hst.ID{}))), PID: 0x2bed, ShimPID: 0x2fff, Config: func() *hst.Config {
+				template := hst.Template()
+				template.Identity = 0xce
+				return template
+			}(), Time: time.Unix(0, 0xcafebabe2)},
+		}, nil, nil},
+	}
+	for _, tc := range testCases {
+		base := check.MustAbs(t.TempDir()).Append("store")
+		s := store.New(base)
+		want := make([]*store.EntryHandle, 0, len(tc.data))
+		for i := range tc.data {
+			if h, err := s.Handle(tc.data[i].Identity); err != nil {
+				t.Fatalf("Handle: error = %v", err)
+			} else {
+				var unlock func()
+				if unlock, err = h.Lock(); err != nil {
+					t.Fatalf("Lock: error = %v", err)
+				}
+				var eh *store.EntryHandle
+				eh, err = h.Save(&tc.data[i])
+				unlock()
+				if err != nil {
+					t.Fatalf("Save: error = %v", err)
+				}
+				want = append(want, eh)
+			}
+		}
+		slices.SortFunc(want, func(a, b *store.EntryHandle) int { return strings.Compare(a.Pathname.String(), b.Pathname.String()) })
+		var wantErr error
+		if tc.err != nil {
+			wantErr = tc.err(base)
+		}
+		if tc.extra != nil {
+			tc.extra(t, base)
+		}
+
+		// store must not be written to beyond this point
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			entries, copyError := s.All()
+			got := slices.Collect(entries)
+			if err := copyError(); !reflect.DeepEqual(err, wantErr) {
+				t.Fatalf("All: error = %#v, want %#v", err, wantErr)
+			}
+
+			if wantErr == nil {
+				slices.SortFunc(got, func(a, b *store.EntryHandle) int { return strings.Compare(a.Pathname.String(), b.Pathname.String()) })
+				if !reflect.DeepEqual(got, want) {
+					t.Fatalf("All: %#v, want %#v", got, want)
+				}
+			}
+		})
+	}
 }

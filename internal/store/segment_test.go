@@ -152,7 +152,7 @@ func TestStateEntryHandle(t *testing.T) {
 	})
 }
 
-func TestStoreHandle(t *testing.T) {
+func TestSegmentHandle(t *testing.T) {
 	t.Parallel()
 
 	testCases := []struct {

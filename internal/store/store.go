@@ -126,7 +126,7 @@ func (s *Store) Segments() (iter.Seq[SegmentIdentity], int, error) {
 				}
 
 				// this should never happen
-				si.Err = &hst.AppError{Step: step, Err: syscall.EISDIR,
+				si.Err = &hst.AppError{Step: step, Err: syscall.ENOTDIR,
 					Msg: "skipped non-directory entry " + strconv.Quote(ent.Name())}
 				goto out
 			}
@@ -150,6 +150,50 @@ func (s *Store) Segments() (iter.Seq[SegmentIdentity], int, error) {
 			}
 		}
 	}, l, nil
+}
+
+// All returns a non-reusable iterator over all [EntryHandle] known to this [Store].
+// Callers must call copyError after completing iteration and handle the error accordingly.
+// A non-nil error returned by copyError is of type [hst.AppError].
+func (s *Store) All() (entries iter.Seq[*EntryHandle], copyError func() error) {
+	var savedErr error
+	return func(yield func(*EntryHandle) bool) {
+		var segments iter.Seq[SegmentIdentity]
+		segments, _, savedErr = s.Segments()
+		if savedErr != nil {
+			return
+		}
+
+		for si := range segments {
+			if savedErr = si.Err; savedErr != nil {
+				return
+			}
+
+			var handle *Handle
+			if handle, savedErr = s.Handle(si.Identity); savedErr != nil {
+				return // not reached
+			}
+
+			var unlock func()
+			if unlock, savedErr = handle.Lock(); savedErr != nil {
+				return
+			}
+
+			var segmentEntries iter.Seq[*EntryHandle]
+			if segmentEntries, _, savedErr = handle.Entries(); savedErr != nil {
+				unlock()
+				return // not reached: lock has succeeded
+			}
+
+			for eh := range segmentEntries {
+				if !yield(eh) {
+					unlock()
+					return
+				}
+			}
+			unlock()
+		}
+	}, func() error { return savedErr }
 }
 
 // New returns the address of a new instance of [Store].
