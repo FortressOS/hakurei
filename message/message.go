@@ -52,7 +52,7 @@ type Msg interface {
 }
 
 // defaultMsg is the default implementation of the [Msg] interface.
-// The zero value is not safe for use. Callers should use the [NewMsg] function instead.
+// The zero value is not safe for use. Callers should use the [New] function instead.
 type defaultMsg struct {
 	verbose atomic.Bool
 
@@ -60,10 +60,10 @@ type defaultMsg struct {
 	Suspendable
 }
 
-// NewMsg initialises a downstream [log.Logger] for a new [Msg].
-// The [log.Logger] should no longer be configured after NewMsg returns.
+// New initialises a downstream [log.Logger] for a new [Msg].
+// The [log.Logger] should no longer be configured after [New] returns.
 // If downstream is nil, a new logger is initialised in its place.
-func NewMsg(downstream *log.Logger) Msg {
+func New(downstream *log.Logger) Msg {
 	if downstream == nil {
 		downstream = log.New(log.Writer(), "container: ", 0)
 	}

@@ -29,7 +29,7 @@ import (
 
 func TestOutcomeMain(t *testing.T) {
 	t.Parallel()
-	msg := message.NewMsg(nil)
+	msg := message.New(nil)
 	msg.SwapVerbose(testing.Verbose())
 
 	testCases := []struct {
@@ -40,7 +40,7 @@ func TestOutcomeMain(t *testing.T) {
 		wantSys    *system.I
 		wantParams *container.Params
 	}{
-		{"template", new(stubNixOS), hst.Template(), checkExpectInstanceId, system.New(panicMsgContext{}, message.NewMsg(nil), 1000009).
+		{"template", new(stubNixOS), hst.Template(), checkExpectInstanceId, system.New(panicMsgContext{}, message.New(nil), 1000009).
 			// spParamsOp
 			Ensure(m("/tmp/hakurei.0"), 0711).
 

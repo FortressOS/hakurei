@@ -77,7 +77,7 @@ Flags:
 			t.Parallel()
 
 			out := new(bytes.Buffer)
-			c := buildCommand(t.Context(), message.NewMsg(nil), new(earlyHardeningErrs), out)
+			c := buildCommand(t.Context(), message.New(nil), new(earlyHardeningErrs), out)
 			if err := c.Parse(tc.args); !errors.Is(err, command.ErrHelp) && !errors.Is(err, flag.ErrHelp) {
 				t.Errorf("Parse: error = %v; want %v",
 					err, command.ErrHelp)

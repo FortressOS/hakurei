@@ -82,7 +82,7 @@ func TestNew(t *testing.T) {
 					t.Errorf("recover: %v, want %v", r, want)
 				}
 			}()
-			New(nil, message.NewMsg(nil), 0)
+			New(nil, message.New(nil), 0)
 		})
 
 		t.Run("msg", func(t *testing.T) {
@@ -102,11 +102,11 @@ func TestNew(t *testing.T) {
 					t.Errorf("recover: %v, want %v", r, want)
 				}
 			}()
-			New(t.Context(), message.NewMsg(nil), -1)
+			New(t.Context(), message.New(nil), -1)
 		})
 	})
 
-	sys := New(t.Context(), message.NewMsg(nil), 0xdeadbeef)
+	sys := New(t.Context(), message.New(nil), 0xdeadbeef)
 	if sys.ctx == nil {
 		t.Error("New: ctx = nil")
 	}
@@ -125,51 +125,51 @@ func TestEqual(t *testing.T) {
 		want bool
 	}{
 		{"simple UID",
-			New(t.Context(), message.NewMsg(nil), 150),
-			New(t.Context(), message.NewMsg(nil), 150),
+			New(t.Context(), message.New(nil), 150),
+			New(t.Context(), message.New(nil), 150),
 			true},
 
 		{"simple UID differ",
-			New(t.Context(), message.NewMsg(nil), 150),
-			New(t.Context(), message.NewMsg(nil), 151),
+			New(t.Context(), message.New(nil), 150),
+			New(t.Context(), message.New(nil), 151),
 			false},
 
 		{"simple UID nil",
-			New(t.Context(), message.NewMsg(nil), 150),
+			New(t.Context(), message.New(nil), 150),
 			nil,
 			false},
 
 		{"op length mismatch",
-			New(t.Context(), message.NewMsg(nil), 150).
+			New(t.Context(), message.New(nil), 150).
 				ChangeHosts("chronos"),
-			New(t.Context(), message.NewMsg(nil), 150).
+			New(t.Context(), message.New(nil), 150).
 				ChangeHosts("chronos").
 				Ensure(m("/run"), 0755),
 			false},
 
 		{"op value mismatch",
-			New(t.Context(), message.NewMsg(nil), 150).
+			New(t.Context(), message.New(nil), 150).
 				ChangeHosts("chronos").
 				Ensure(m("/run"), 0644),
-			New(t.Context(), message.NewMsg(nil), 150).
+			New(t.Context(), message.New(nil), 150).
 				ChangeHosts("chronos").
 				Ensure(m("/run"), 0755),
 			false},
 
 		{"op type mismatch",
-			New(t.Context(), message.NewMsg(nil), 150).
+			New(t.Context(), message.New(nil), 150).
 				ChangeHosts("chronos").
 				Wayland(m("/proc/nonexistent/dst"), m("/proc/nonexistent/src"), "\x00", "\x00"),
-			New(t.Context(), message.NewMsg(nil), 150).
+			New(t.Context(), message.New(nil), 150).
 				ChangeHosts("chronos").
 				Ensure(m("/run"), 0755),
 			false},
 
 		{"op equals",
-			New(t.Context(), message.NewMsg(nil), 150).
+			New(t.Context(), message.New(nil), 150).
 				ChangeHosts("chronos").
 				Ensure(m("/run"), 0755),
-			New(t.Context(), message.NewMsg(nil), 150).
+			New(t.Context(), message.New(nil), 150).
 				ChangeHosts("chronos").
 				Ensure(m("/run"), 0755),
 			true},

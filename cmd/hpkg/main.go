@@ -24,7 +24,7 @@ var (
 func main() {
 	log.SetPrefix("hpkg: ")
 	log.SetFlags(0)
-	msg := message.NewMsg(log.Default())
+	msg := message.New(log.Default())
 
 	if err := os.Setenv("SHELL", pathShell.String()); err != nil {
 		log.Fatalf("cannot set $SHELL: %v", err)

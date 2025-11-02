@@ -93,9 +93,9 @@ func testProxyFinaliseStartWaitCloseString(t *testing.T, useSandbox bool) {
 
 	t.Run("invalid start", func(t *testing.T) {
 		if !useSandbox {
-			p = dbus.NewDirect(t.Context(), message.NewMsg(nil), nil, nil)
+			p = dbus.NewDirect(t.Context(), message.New(nil), nil, nil)
 		} else {
-			p = dbus.New(t.Context(), message.NewMsg(nil), nil, nil)
+			p = dbus.New(t.Context(), message.New(nil), nil, nil)
 		}
 
 		if err := p.Start(); !errors.Is(err, syscall.ENOTRECOVERABLE) {
@@ -125,9 +125,9 @@ func testProxyFinaliseStartWaitCloseString(t *testing.T, useSandbox bool) {
 			defer cancel()
 			output := new(strings.Builder)
 			if !useSandbox {
-				p = dbus.NewDirect(ctx, message.NewMsg(nil), final, output)
+				p = dbus.NewDirect(ctx, message.New(nil), final, output)
 			} else {
-				p = dbus.New(ctx, message.NewMsg(nil), final, output)
+				p = dbus.New(ctx, message.New(nil), final, output)
 			}
 
 			{ // check invalid wait behaviour

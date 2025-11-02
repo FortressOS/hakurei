@@ -80,7 +80,7 @@ func TestSpDBusOp(t *testing.T) {
 				"--broadcast=org.freedesktop.portal.*=@/org/freedesktop/portal/*",
 			)}}, nil, nil),
 		}, func() *system.I {
-			sys := system.New(panicMsgContext{}, message.NewMsg(nil), checkExpectUid)
+			sys := system.New(panicMsgContext{}, message.New(nil), checkExpectUid)
 			sys.Ephemeral(system.Process, m(wantInstancePrefix), 0711)
 			if err := sys.ProxyDBus(
 				dbus.NewConfig(config.ID, true, true), nil,
@@ -162,7 +162,7 @@ func TestSpDBusOp(t *testing.T) {
 				"--talk=org.freedesktop.UPower",
 			)}}, nil, nil),
 		}, func() *system.I {
-			sys := system.New(panicMsgContext{}, message.NewMsg(nil), checkExpectUid)
+			sys := system.New(panicMsgContext{}, message.New(nil), checkExpectUid)
 			sys.Ephemeral(system.Process, m(wantInstancePrefix), 0711)
 			if err := sys.ProxyDBus(
 				config.SessionBus, config.SystemBus,

@@ -32,7 +32,7 @@ func main() {
 
 	log.SetPrefix("hakurei: ")
 	log.SetFlags(0)
-	msg := message.NewMsg(log.Default())
+	msg := message.New(log.Default())
 
 	early := earlyHardeningErrs{
 		yamaLSM:  container.SetPtracer(0),

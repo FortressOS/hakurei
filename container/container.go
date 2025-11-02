@@ -404,7 +404,7 @@ func (p *Container) ProcessState() *os.ProcessState {
 // New returns the address to a new instance of [Container] that requires further initialisation before use.
 func New(ctx context.Context, msg message.Msg) *Container {
 	if msg == nil {
-		msg = message.NewMsg(nil)
+		msg = message.New(nil)
 	}
 
 	p := &Container{ctx: ctx, msg: msg, Params: Params{Ops: new(Ops)}}

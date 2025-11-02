@@ -556,7 +556,7 @@ func testContainerCancel(
 
 func TestContainerString(t *testing.T) {
 	t.Parallel()
-	msg := message.NewMsg(nil)
+	msg := message.New(nil)
 	c := container.NewCommand(t.Context(), msg, check.MustAbs("/run/current-system/sw/bin/ldd"), "ldd", "/usr/bin/env")
 	c.SeccompFlags |= seccomp.AllowMultiarch
 	c.SeccompRules = seccomp.Preset(
@@ -721,7 +721,7 @@ func TestMain(m *testing.M) {
 }
 
 func helperNewContainerLibPaths(ctx context.Context, libPaths *[]*check.Absolute, args ...string) (c *container.Container) {
-	msg := message.NewMsg(nil)
+	msg := message.New(nil)
 	c = container.NewCommand(ctx, msg, absHelperInnerPath, "helper", args...)
 	c.Env = append(c.Env, envDoCheck+"=1")
 	c.Bind(check.MustAbs(os.Args[0]), absHelperInnerPath, 0)

@@ -761,7 +761,7 @@ func TestPrintPs(t *testing.T) {
 			t.Parallel()
 
 			var printBuf, logBuf bytes.Buffer
-			msg := message.NewMsg(log.New(&logBuf, "check: ", 0))
+			msg := message.New(log.New(&logBuf, "check: ", 0))
 			msg.SwapVerbose(true)
 			printPs(msg, &printBuf, testTime, s, tc.short, tc.json)
 			if got := printBuf.String(); got != tc.want {

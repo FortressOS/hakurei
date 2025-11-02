@@ -78,7 +78,7 @@ const shimName = "shim"
 // Shim does not return.
 func Shim(msg message.Msg) {
 	if msg == nil {
-		msg = message.NewMsg(log.Default())
+		msg = message.New(log.Default())
 	}
 	shimEntrypoint(direct{msg})
 }

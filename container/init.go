@@ -461,7 +461,7 @@ func TryArgv0(msg message.Msg) {
 	if msg == nil {
 		log.SetPrefix(initName + ": ")
 		log.SetFlags(0)
-		msg = message.NewMsg(log.Default())
+		msg = message.New(log.Default())
 	}
 
 	if len(os.Args) > 0 && path.Base(os.Args[0]) == initName {

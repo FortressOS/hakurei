@@ -51,7 +51,7 @@ func TestDefaultMsg(t *testing.T) {
 
 	t.Run("logger", func(t *testing.T) {
 		t.Run("nil", func(t *testing.T) {
-			got := message.NewMsg(nil).GetLogger()
+			got := message.New(nil).GetLogger()
 
 			if out := got.Writer().(*message.Suspendable).Downstream; out != log.Writer() {
 				t.Errorf("GetLogger: Downstream = %#v", out)
@@ -64,7 +64,7 @@ func TestDefaultMsg(t *testing.T) {
 
 		t.Run("takeover", func(t *testing.T) {
 			l := log.New(io.Discard, "\x00", 0xdeadbeef)
-			got := message.NewMsg(l)
+			got := message.New(l)
 
 			if logger := got.GetLogger(); logger != l {
 				t.Errorf("GetLogger: %#v, want %#v", logger, l)
@@ -169,7 +169,7 @@ func TestDefaultMsg(t *testing.T) {
 		}},
 	}
 
-	msg := message.NewMsg(log.New(&dw, "test: ", 0))
+	msg := message.New(log.New(&dw, "test: ", 0))
 	for _, step := range steps {
 		// these share the same writer, so cannot be subtests
 		t.Logf("running step %q", step.name)
