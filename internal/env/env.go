@@ -29,12 +29,11 @@ func (env *Paths) Copy(v *hst.Paths, userid int) {
 
 	if env.RuntimePath == nil {
 		// fall back to path in share since hakurei has no hard XDG dependency
-		v.RunDirPath = v.SharePath.Append("run")
-		v.RuntimePath = v.RunDirPath.Append("compat")
+		v.RuntimePath = v.SharePath.Append("compat")
 	} else {
 		v.RuntimePath = env.RuntimePath
-		v.RunDirPath = env.RuntimePath.Append("hakurei")
 	}
+	v.RunDirPath = v.RuntimePath.Append("hakurei")
 }
 
 // CopyPaths returns a populated [Paths].

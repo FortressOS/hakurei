@@ -196,10 +196,10 @@ func (state *outcomeStateSys) ensureRuntimeDir() {
 		return
 	}
 	state.useRuntimeDir = true
-	state.sys.Ensure(state.sc.RunDirPath, 0700)
-	state.sys.UpdatePermType(system.User, state.sc.RunDirPath, acl.Execute)
-	state.sys.Ensure(state.sc.RuntimePath, 0700) // ensure this dir in case XDG_RUNTIME_DIR is unset
-	state.sys.UpdatePermType(system.User, state.sc.RuntimePath, acl.Execute)
+	state.sys.
+		// ensure this dir in case XDG_RUNTIME_DIR is unset
+		Ensure(state.sc.RuntimePath, 0700).UpdatePermType(system.User, state.sc.RuntimePath, acl.Execute).
+		Ensure(state.sc.RunDirPath, 0700).UpdatePermType(system.User, state.sc.RunDirPath, acl.Execute)
 }
 
 // instance returns the pathname to a process-specific directory within TMPDIR.

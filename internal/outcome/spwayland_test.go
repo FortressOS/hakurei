@@ -64,10 +64,10 @@ func TestSpWaylandOp(t *testing.T) {
 			call("verbose", stub.ExpectArgs{[]any{"direct wayland access, PROCEED WITH CAUTION"}}, nil, nil),
 		}, newI().
 			// state.ensureRuntimeDir
-			Ensure(m(wantRunDirPath), 0700).
-			UpdatePermType(system.User, m(wantRunDirPath), acl.Execute).
 			Ensure(m(wantRuntimePath), 0700).
 			UpdatePermType(system.User, m(wantRuntimePath), acl.Execute).
+			Ensure(m(wantRunDirPath), 0700).
+			UpdatePermType(system.User, m(wantRunDirPath), acl.Execute).
 			// toSystem
 			UpdatePermType(hst.EWayland, m("/proc/nonexistent/wayland"), acl.Read, acl.Write, acl.Execute), nil, nil, insertsOps(afterSpRuntimeOp(nil)), []stub.Call{
 			// this op configures the container state and does not make calls during toContainer

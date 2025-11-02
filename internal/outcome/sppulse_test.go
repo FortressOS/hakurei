@@ -127,10 +127,10 @@ func TestSpPulseOp(t *testing.T) {
 			call("open", stub.ExpectArgs{"/proc/nonexistent/cookie"}, &stubOsFile{Reader: bytes.NewReader(sampleCookie)}, nil),
 		}, newI().
 			// state.ensureRuntimeDir
-			Ensure(m(wantRunDirPath), 0700).
-			UpdatePermType(system.User, m(wantRunDirPath), acl.Execute).
 			Ensure(m(wantRuntimePath), 0700).
 			UpdatePermType(system.User, m(wantRuntimePath), acl.Execute).
+			Ensure(m(wantRunDirPath), 0700).
+			UpdatePermType(system.User, m(wantRunDirPath), acl.Execute).
 			// state.runtime
 			Ephemeral(system.Process, m(wantRuntimeSharePath), 0700).
 			UpdatePerm(m(wantRuntimeSharePath), acl.Execute).
@@ -159,10 +159,10 @@ func TestSpPulseOp(t *testing.T) {
 			call("open", stub.ExpectArgs{"/proc/nonexistent/cookie"}, &stubOsFile{Reader: bytes.NewReader(sampleCookie[:len(sampleCookie)-0xe])}, nil),
 		}, newI().
 			// state.ensureRuntimeDir
-			Ensure(m(wantRunDirPath), 0700).
-			UpdatePermType(system.User, m(wantRunDirPath), acl.Execute).
 			Ensure(m(wantRuntimePath), 0700).
 			UpdatePermType(system.User, m(wantRuntimePath), acl.Execute).
+			Ensure(m(wantRunDirPath), 0700).
+			UpdatePermType(system.User, m(wantRunDirPath), acl.Execute).
 			// state.runtime
 			Ephemeral(system.Process, m(wantRuntimeSharePath), 0700).
 			UpdatePerm(m(wantRuntimeSharePath), acl.Execute).
@@ -192,10 +192,10 @@ func TestSpPulseOp(t *testing.T) {
 			call("open", stub.ExpectArgs{"/proc/nonexistent/cookie"}, &stubOsFile{Reader: bytes.NewReader(sampleCookie)}, nil),
 		}, newI().
 			// state.ensureRuntimeDir
-			Ensure(m(wantRunDirPath), 0700).
-			UpdatePermType(system.User, m(wantRunDirPath), acl.Execute).
 			Ensure(m(wantRuntimePath), 0700).
 			UpdatePermType(system.User, m(wantRuntimePath), acl.Execute).
+			Ensure(m(wantRunDirPath), 0700).
+			UpdatePermType(system.User, m(wantRunDirPath), acl.Execute).
 			// state.runtime
 			Ephemeral(system.Process, m(wantRuntimeSharePath), 0700).
 			UpdatePerm(m(wantRuntimeSharePath), acl.Execute).
@@ -222,10 +222,10 @@ func TestSpPulseOp(t *testing.T) {
 			call("verbose", stub.ExpectArgs{[]any{"cannot locate PulseAudio cookie (tried $PULSE_COOKIE, $XDG_CONFIG_HOME/pulse/cookie, $HOME/.pulse-cookie)"}}, nil, nil),
 		}, newI().
 			// state.ensureRuntimeDir
-			Ensure(m(wantRunDirPath), 0700).
-			UpdatePermType(system.User, m(wantRunDirPath), acl.Execute).
 			Ensure(m(wantRuntimePath), 0700).
 			UpdatePermType(system.User, m(wantRuntimePath), acl.Execute).
+			Ensure(m(wantRunDirPath), 0700).
+			UpdatePermType(system.User, m(wantRunDirPath), acl.Execute).
 			// state.runtime
 			Ephemeral(system.Process, m(wantRuntimeSharePath), 0700).
 			UpdatePerm(m(wantRuntimeSharePath), acl.Execute).

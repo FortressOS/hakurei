@@ -35,8 +35,8 @@ func TestPaths(t *testing.T) {
 		}, hst.Paths{
 			TempDir:     fhs.AbsTmp,
 			SharePath:   fhs.AbsTmp.Append("hakurei.3735928559"),
-			RuntimePath: fhs.AbsTmp.Append("hakurei.3735928559/run/compat"),
-			RunDirPath:  fhs.AbsTmp.Append("hakurei.3735928559/run"),
+			RuntimePath: fhs.AbsTmp.Append("hakurei.3735928559/compat"),
+			RunDirPath:  fhs.AbsTmp.Append("hakurei.3735928559/compat/hakurei"),
 		}, ""},
 
 		{"full", &env.Paths{

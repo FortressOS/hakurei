@@ -68,10 +68,10 @@ func TestOutcomeMain(t *testing.T) {
 			).
 
 			// ensureRuntimeDir
-			Ensure(m("/run/user/1971/hakurei"), 0700).
-			UpdatePermType(system.User, m("/run/user/1971/hakurei"), acl.Execute).
 			Ensure(m("/run/user/1971"), 0700).
 			UpdatePermType(system.User, m("/run/user/1971"), acl.Execute).
+			Ensure(m("/run/user/1971/hakurei"), 0700).
+			UpdatePermType(system.User, m("/run/user/1971/hakurei"), acl.Execute).
 
 			// runtime
 			Ephemeral(system.Process, m("/run/user/1971/hakurei/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"), 0700).
@@ -347,8 +347,8 @@ func TestOutcomeMain(t *testing.T) {
 			Ensure(m("/tmp/hakurei.0/tmpdir/9"), 01700).UpdatePermType(system.User, m("/tmp/hakurei.0/tmpdir/9"), acl.Read, acl.Write, acl.Execute).
 			Ephemeral(system.Process, m("/tmp/hakurei.0/ebf083d1b175911782d413369b64ce7c"), 0711).
 			Wayland(m("/tmp/hakurei.0/ebf083d1b175911782d413369b64ce7c/wayland"), m("/run/user/1971/wayland-0"), "org.chromium.Chromium", "ebf083d1b175911782d413369b64ce7c").
-			Ensure(m("/run/user/1971/hakurei"), 0700).UpdatePermType(system.User, m("/run/user/1971/hakurei"), acl.Execute).
 			Ensure(m("/run/user/1971"), 0700).UpdatePermType(system.User, m("/run/user/1971"), acl.Execute). // this is ordered as is because the previous Ensure only calls mkdir if XDG_RUNTIME_DIR is unset
+			Ensure(m("/run/user/1971/hakurei"), 0700).UpdatePermType(system.User, m("/run/user/1971/hakurei"), acl.Execute).
 			Ephemeral(system.Process, m("/run/user/1971/hakurei/ebf083d1b175911782d413369b64ce7c"), 0700).UpdatePermType(system.Process, m("/run/user/1971/hakurei/ebf083d1b175911782d413369b64ce7c"), acl.Execute).
 			Link(m("/run/user/1971/pulse/native"), m("/run/user/1971/hakurei/ebf083d1b175911782d413369b64ce7c/pulse")).
 			MustProxyDBus(&hst.BusConfig{
@@ -499,8 +499,8 @@ func TestOutcomeMain(t *testing.T) {
 			Ensure(m("/tmp/hakurei.0/runtime/1"), 0700).UpdatePermType(system.User, m("/tmp/hakurei.0/runtime/1"), acl.Read, acl.Write, acl.Execute).
 			Ensure(m("/tmp/hakurei.0/tmpdir"), 0700).UpdatePermType(system.User, m("/tmp/hakurei.0/tmpdir"), acl.Execute).
 			Ensure(m("/tmp/hakurei.0/tmpdir/1"), 01700).UpdatePermType(system.User, m("/tmp/hakurei.0/tmpdir/1"), acl.Read, acl.Write, acl.Execute).
-			Ensure(m("/run/user/1971/hakurei"), 0700).UpdatePermType(system.User, m("/run/user/1971/hakurei"), acl.Execute).
 			Ensure(m("/run/user/1971"), 0700).UpdatePermType(system.User, m("/run/user/1971"), acl.Execute). // this is ordered as is because the previous Ensure only calls mkdir if XDG_RUNTIME_DIR is unset
+			Ensure(m("/run/user/1971/hakurei"), 0700).UpdatePermType(system.User, m("/run/user/1971/hakurei"), acl.Execute).
 			UpdatePermType(hst.EWayland, m("/run/user/1971/wayland-0"), acl.Read, acl.Write, acl.Execute).
 			Ephemeral(system.Process, m("/run/user/1971/hakurei/8e2c76b066dabe574cf073bdb46eb5c1"), 0700).UpdatePermType(system.Process, m("/run/user/1971/hakurei/8e2c76b066dabe574cf073bdb46eb5c1"), acl.Execute).
 			Link(m("/run/user/1971/pulse/native"), m("/run/user/1971/hakurei/8e2c76b066dabe574cf073bdb46eb5c1/pulse")).
