@@ -3,6 +3,7 @@ package outcome
 import (
 	"bytes"
 	"context"
+	"io"
 	"log"
 	"os"
 	"syscall"
@@ -138,6 +139,19 @@ func TestShimEntrypoint(t *testing.T) {
 			call("fatalf", stub.ExpectArgs{"cannot set SUID_DUMP_DISABLE: %v", []any{stub.UniqueError(11)}}, nil, nil),
 		}}, nil},
 
+		{"receive exit request", func(k *kstub) error { shimEntrypoint(k); return nil }, stub.Expect{Calls: []stub.Call{
+			call("getMsg", stub.ExpectArgs{}, nil, nil),
+			call("getLogger", stub.ExpectArgs{}, (*log.Logger)(nil), nil),
+			call("setDumpable", stub.ExpectArgs{uintptr(container.SUID_DUMP_DISABLE)}, nil, nil),
+			call("getppid", stub.ExpectArgs{}, 0xbad, nil),
+			call("setupContSignal", stub.ExpectArgs{0xbad}, 0, nil),
+			call("receive", stub.ExpectArgs{"HAKUREI_SHIM", outcomeState{}, nil}, nil, io.EOF),
+			call("exit", stub.ExpectArgs{hst.ExitRequest}, stub.PanicExit, nil),
+
+			// deferred
+			call("wKeepAlive", stub.ExpectArgs{}, nil, nil),
+		}}, nil},
+
 		{"receive fd", func(k *kstub) error { shimEntrypoint(k); return nil }, stub.Expect{Calls: []stub.Call{
 			call("getMsg", stub.ExpectArgs{}, nil, nil),
 			call("getLogger", stub.ExpectArgs{}, (*log.Logger)(nil), nil),
@@ -172,6 +186,26 @@ func TestShimEntrypoint(t *testing.T) {
 			call("setupContSignal", stub.ExpectArgs{0xbad}, 0, nil),
 			call("receive", stub.ExpectArgs{"HAKUREI_SHIM", outcomeState{}, nil}, nil, stub.UniqueError(10)),
 			call("fatalf", stub.ExpectArgs{"cannot receive shim setup params: %v", []any{stub.UniqueError(10)}}, nil, nil),
+
+			// deferred
+			call("wKeepAlive", stub.ExpectArgs{}, nil, nil),
+		}}, nil},
+
+		{"reparent", func(k *kstub) error { shimEntrypoint(k); return nil }, stub.Expect{Calls: []stub.Call{
+			call("getMsg", stub.ExpectArgs{}, nil, nil),
+			call("getLogger", stub.ExpectArgs{}, (*log.Logger)(nil), nil),
+			call("setDumpable", stub.ExpectArgs{uintptr(container.SUID_DUMP_DISABLE)}, nil, nil),
+			call("getppid", stub.ExpectArgs{}, 0xbad, nil),
+			call("setupContSignal", stub.ExpectArgs{0xbad}, 0, nil),
+			call("receive", stub.ExpectArgs{"HAKUREI_SHIM", func() outcomeState {
+				state := templateState
+				state.Shim = newShimParams()
+				state.Shim.PrivPID = 0xfff
+				return state
+			}(), nil}, nil, nil),
+			call("swapVerbose", stub.ExpectArgs{true}, false, nil),
+			call("verbosef", stub.ExpectArgs{"process share directory at %q, runtime directory at %q", []any{m("/tmp/hakurei.10"), m("/run/user/1000/hakurei")}}, nil, nil),
+			call("fatalf", stub.ExpectArgs{"unexpectedly reparented from %d to %d", []any{0xfff, 0xbad}}, nil, nil),
 
 			// deferred
 			call("wKeepAlive", stub.ExpectArgs{}, nil, nil),
