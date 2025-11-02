@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"log"
 	"strings"
 	"testing"
 	"time"
@@ -9,6 +10,7 @@ import (
 	"hakurei.app/container/check"
 	"hakurei.app/hst"
 	"hakurei.app/internal/store"
+	"hakurei.app/message"
 )
 
 var (
@@ -18,12 +20,29 @@ var (
 		0x4c, 0xf0, 0x73, 0xbd,
 		0xb4, 0x6e, 0xb5, 0xc1,
 	}
-	testState = &hst.State{
+	testState = hst.State{
 		ID:      testID,
 		PID:     0xcafebabe,
 		ShimPID: 0xdeadbeef,
 		Config:  hst.Template(),
 		Time:    testAppTime,
+	}
+	testStateSmall = hst.State{
+		ID:      (hst.ID)(bytes.Repeat([]byte{0xaa}, len(hst.ID{}))),
+		PID:     0xbeef,
+		ShimPID: 0xcafe,
+		Config: &hst.Config{
+			Enablements: hst.NewEnablements(hst.EWayland | hst.EPulse),
+			Identity:    1,
+			Container: &hst.ContainerConfig{
+				Shell: check.MustAbs("/bin/sh"),
+				Home:  check.MustAbs("/data/data/uk.gensokyo.cat"),
+				Path:  check.MustAbs("/usr/bin/cat"),
+				Args:  []string{"cat"},
+				Flags: hst.FUserns,
+			},
+		},
+		Time: time.Unix(0, 0xdeadbeef).UTC(),
 	}
 	testTime    = time.Unix(3752, 1).UTC()
 	testAppTime = time.Unix(0, 9).UTC()
@@ -133,7 +152,7 @@ Session bus
 
 `, false},
 
-		{"instance", testState, hst.Template(), false, false, `State
+		{"instance", &testState, hst.Template(), false, false, `State
  Instance:    8e2c76b066dabe574cf073bdb46eb5c1 (3405691582 -> 3735928559)
  Uptime:      1h2m32s
 
@@ -173,7 +192,7 @@ System bus
  Talk:      ["org.bluez" "org.freedesktop.Avahi" "org.freedesktop.UPower"]
 
 `, true},
-		{"instance pd", testState, new(hst.Config), false, false, `Error: configuration missing container state!
+		{"instance pd", &testState, new(hst.Config), false, false, `Error: configuration missing container state!
 
 State
  Instance:    8e2c76b066dabe574cf073bdb46eb5c1 (3405691582 -> 3735928559)
@@ -187,7 +206,7 @@ App
 
 		{"json nil", nil, nil, false, true, `null
 `, true},
-		{"json instance", testState, nil, false, true, `{
+		{"json instance", &testState, nil, false, true, `{
   "instance": "8e2c76b066dabe574cf073bdb46eb5c1",
   "pid": 3405691582,
   "shim_pid": 3735928559,
@@ -515,41 +534,27 @@ func TestPrintPs(t *testing.T) {
 
 	testCases := []struct {
 		name        string
-		entries     map[hst.ID]*hst.State
+		data        []hst.State
 		short, json bool
-		want        string
+		want, log   string
 	}{
-		{"no entries", make(map[hst.ID]*hst.State), false, false, "    Instance    PID    Application    Uptime\n"},
-		{"no entries short", make(map[hst.ID]*hst.State), true, false, ""},
-		{"nil instance", map[hst.ID]*hst.State{testID: nil}, false, false, "    Instance    PID    Application    Uptime\n"},
-		{"state corruption", map[hst.ID]*hst.State{hst.ID{}: testState}, false, false, "    Instance    PID    Application    Uptime\n"},
+		{"no entries", []hst.State{}, false, false, "    Instance    PID    Application    Uptime\n", ""},
+		{"no entries short", []hst.State{}, true, false, "", ""},
 
-		{"valid pd", map[hst.ID]*hst.State{testID: {ID: testID, PID: 1 << 8, Config: new(hst.Config), Time: testAppTime}}, false, false, `    Instance    PID    Application                 Uptime
-    4cf073bd    256    0 (app.hakurei.4cf073bd)    1h2m32s
-`},
+		{"invalid config", []hst.State{{ID: testID, PID: 1 << 8, Config: new(hst.Config), Time: testAppTime}}, false, false, "    Instance    PID    Application    Uptime\n", "check: configuration missing container state\n"},
 
-		{"valid", map[hst.ID]*hst.State{testID: testState}, false, false, `    Instance    PID           Application                  Uptime
+		{"valid", []hst.State{testStateSmall, testState}, false, false, `    Instance    PID           Application                  Uptime
     4cf073bd    3405691582    9 (org.chromium.Chromium)    1h2m32s
-`},
-		{"valid short", map[hst.ID]*hst.State{testID: testState}, true, false, "4cf073bd\n"},
-		{"valid json", map[hst.ID]*hst.State{testID: testState, (hst.ID)(bytes.Repeat([]byte{0xaa}, len(hst.ID{}))): {
-			ID:      (hst.ID)(bytes.Repeat([]byte{0xaa}, len(hst.ID{}))),
-			PID:     0xbeef,
-			ShimPID: 0xcafe,
-			Config: &hst.Config{
-				ID:          "uk.gensokyo.cat",
-				Enablements: hst.NewEnablements(hst.EWayland | hst.EPulse),
-				Identity:    1,
-				Container: &hst.ContainerConfig{
-					Shell: check.MustAbs("/bin/sh"),
-					Home:  check.MustAbs("/data/data/uk.gensokyo.cat"),
-					Path:  check.MustAbs("/usr/bin/cat"),
-					Args:  []string{"cat"},
-					Flags: hst.FUserns,
-				},
-			},
-			Time: time.Unix(0, 0xdeadbeef).UTC(),
-		}}, false, true, `[
+    aaaaaaaa    48879         1 (app.hakurei.aaaaaaaa)     1h2m28s
+`, ""},
+		{"valid single", []hst.State{testState}, false, false, `    Instance    PID           Application                  Uptime
+    4cf073bd    3405691582    9 (org.chromium.Chromium)    1h2m32s
+`, ""},
+
+		{"valid short", []hst.State{testStateSmall, testState}, true, false, "4cf073bd\naaaaaaaa\n", ""},
+		{"valid short single", []hst.State{testState}, true, false, "4cf073bd\n", ""},
+
+		{"valid json", []hst.State{testState, testStateSmall}, false, true, `[
   {
     "instance": "8e2c76b066dabe574cf073bdb46eb5c1",
     "pid": 3405691582,
@@ -707,7 +712,7 @@ func TestPrintPs(t *testing.T) {
     "instance": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
     "pid": 48879,
     "shim_pid": 51966,
-    "id": "uk.gensokyo.cat",
+    "id": "",
     "enablements": {
       "wayland": true,
       "pulse": true
@@ -729,30 +734,44 @@ func TestPrintPs(t *testing.T) {
     "time": "1970-01-01T00:00:03.735928559Z"
   }
 ]
-`},
-		{"valid short json", map[hst.ID]*hst.State{testID: testState}, true, true, `["8e2c76b066dabe574cf073bdb46eb5c1"]
-`},
+`, ""},
+		{"valid short json", []hst.State{testStateSmall, testState}, true, true, `["8e2c76b066dabe574cf073bdb46eb5c1","aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"]
+`, ""},
 	}
 
 	for _, tc := range testCases {
+		s := store.New(check.MustAbs(t.TempDir()).Append("store"))
+		for i := range tc.data {
+			if h, err := s.Handle(tc.data[i].Identity); err != nil {
+				t.Fatalf("Handle: error = %v", err)
+			} else {
+				var unlock func()
+				if unlock, err = h.Lock(); err != nil {
+					t.Fatalf("Lock: error = %v", err)
+				}
+				_, err = h.Save(&tc.data[i])
+				unlock()
+				if err != nil {
+					t.Fatalf("Save: error = %v", err)
+				}
+			}
+		}
+
+		// store must not be written to beyond this point
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			output := new(strings.Builder)
-			printPs(output, testTime, stubStore(tc.entries), tc.short, tc.json)
-			if got := output.String(); got != tc.want {
-				t.Errorf("printPs: got\n%s\nwant\n%s",
-					got, tc.want)
+			var printBuf, logBuf bytes.Buffer
+			msg := message.NewMsg(log.New(&logBuf, "check: ", 0))
+			msg.SwapVerbose(true)
+			printPs(msg, &printBuf, testTime, s, tc.short, tc.json)
+			if got := printBuf.String(); got != tc.want {
+				t.Errorf("printPs:\n%s\nwant\n%s", got, tc.want)
 				return
+			}
+			if got := logBuf.String(); got != tc.log {
+				t.Errorf("msg:\n%s\nwant\n%s", got, tc.log)
 			}
 		})
 	}
 }
-
-// stubStore implements [state.Store] and returns test samples via [state.Joiner].
-type stubStore map[hst.ID]*hst.State
-
-func (s stubStore) Join() (map[hst.ID]*hst.State, error)       { return s, nil }
-func (s stubStore) Do(int, func(c store.Cursor)) (bool, error) { panic("unreachable") }
-func (s stubStore) List() ([]int, error)                       { panic("unreachable") }
-func (s stubStore) Close() error                               { return nil }

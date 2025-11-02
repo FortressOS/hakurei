@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"maps"
 	"slices"
 	"strconv"
 	"strings"
@@ -170,52 +169,52 @@ func printShowInstance(
 }
 
 // printPs writes a representation of active instances to output.
-func printPs(output io.Writer, now time.Time, s store.Compat, short, flagJSON bool) {
-	var entries map[hst.ID]*hst.State
-	if e, err := store.Join(s); err != nil {
-		log.Fatalf("cannot join store: %v", err)
-	} else {
-		entries = e
+func printPs(msg message.Msg, output io.Writer, now time.Time, s *store.Store, short, flagJSON bool) {
+	f := func(a func(eh *store.EntryHandle)) {
+		entries, copyError := s.All()
+		for eh := range entries {
+			a(eh)
+		}
+		if err := copyError(); err != nil {
+			msg.GetLogger().Println(getMessage("cannot iterate over store:", err))
+		}
 	}
 
-	if !short && flagJSON {
-		es := slices.Collect(maps.Values(entries))
-		slices.SortFunc(es, func(a, b *hst.State) int { return bytes.Compare(a.ID[:], b.ID[:]) })
-		encodeJSON(log.Fatal, output, short, es)
+	if short { // short output requires identifier only
+		var identifiers []*hst.ID
+		f(func(eh *store.EntryHandle) {
+			if _, err := eh.Load(nil); err != nil { // passes through decode error
+				msg.GetLogger().Println(getMessage("cannot validate state entry header:", err))
+				return
+			}
+			identifiers = append(identifiers, &eh.ID)
+		})
+		slices.SortFunc(identifiers, func(a, b *hst.ID) int { return bytes.Compare(a[:], b[:]) })
+
+		if flagJSON {
+			encodeJSON(log.Fatal, output, short, identifiers)
+		} else {
+			for _, id := range identifiers {
+				mustPrintln(output, shortIdentifier(id))
+			}
+		}
 		return
 	}
 
-	// sort state entries by id string to ensure consistency between runs
-	exp := make([]*expandedStateEntry, 0, len(entries))
-	for id, instance := range entries {
-		// gracefully skip nil states
-		if instance == nil {
-			log.Printf("got invalid state entry %s", id.String())
-			continue
+	// long output requires full instance state
+	var instances []*hst.State
+	f(func(eh *store.EntryHandle) {
+		var state hst.State
+		if _, err := eh.Load(&state); err != nil { // passes through decode error
+			msg.GetLogger().Println(getMessage("cannot load state entry:", err))
+			return
 		}
+		instances = append(instances, &state)
+	})
+	slices.SortFunc(instances, func(a, b *hst.State) int { return bytes.Compare(a.ID[:], b.ID[:]) })
 
-		// gracefully skip inconsistent states
-		if id != instance.ID {
-			log.Printf("possible store corruption: entry %s has id %s",
-				id.String(), instance.ID.String())
-			continue
-		}
-		exp = append(exp, &expandedStateEntry{s: id.String(), State: instance})
-	}
-	slices.SortFunc(exp, func(a, b *expandedStateEntry) int { return a.Time.Compare(b.Time) })
-
-	if short {
-		if flagJSON {
-			v := make([]string, len(exp))
-			for i, e := range exp {
-				v[i] = e.s
-			}
-			encodeJSON(log.Fatal, output, short, v)
-		} else {
-			for _, e := range exp {
-				mustPrintln(output, shortIdentifierString(e.s))
-			}
-		}
+	if flagJSON {
+		encodeJSON(log.Fatal, output, short, instances)
 		return
 	}
 
@@ -223,31 +222,19 @@ func printPs(output io.Writer, now time.Time, s store.Compat, short, flagJSON bo
 	defer t.MustFlush()
 
 	t.Println("\tInstance\tPID\tApplication\tUptime")
-	for _, e := range exp {
-		if len(e.s) != 1<<5 {
-			// unreachable
-			log.Printf("possible store corruption: invalid instance string %s", e.s)
-			continue
-		}
-
+	for _, instance := range instances {
 		as := "(No configuration information)"
-		if e.Config != nil {
-			as = strconv.Itoa(e.Config.Identity)
-			id := e.Config.ID
+		if instance.Config != nil {
+			as = strconv.Itoa(instance.Config.Identity)
+			id := instance.Config.ID
 			if id == "" {
-				id = "app.hakurei." + shortIdentifierString(e.s)
+				id = "app.hakurei." + shortIdentifier(&instance.ID)
 			}
 			as += " (" + id + ")"
 		}
 		t.Printf("\t%s\t%d\t%s\t%s\n",
-			shortIdentifierString(e.s), e.PID, as, now.Sub(e.Time).Round(time.Second).String())
+			shortIdentifier(&instance.ID), instance.PID, as, now.Sub(instance.Time).Round(time.Second).String())
 	}
-}
-
-// expandedStateEntry stores [hst.State] alongside a string representation of its [hst.ID].
-type expandedStateEntry struct {
-	s string
-	*hst.State
 }
 
 // newPrinter returns a configured, wrapped [tabwriter.Writer].
