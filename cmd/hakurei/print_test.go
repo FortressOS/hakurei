@@ -59,6 +59,7 @@ func TestPrintShowInstance(t *testing.T) {
 		want        string
 		valid       bool
 	}{
+		{"nil", nil, nil, false, false, "Error: invalid configuration!\n\n", false},
 		{"config", nil, hst.Template(), false, false, `App
  Identity:       9 (org.chromium.Chromium)
  Enablements:    wayland, dbus, pulseaudio

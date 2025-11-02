@@ -44,7 +44,8 @@ func printShowSystem(output io.Writer, short, flagJSON bool) {
 func printShowInstance(
 	output io.Writer, now time.Time,
 	instance *hst.State, config *hst.Config,
-	short, flagJSON bool) (valid bool) {
+	short, flagJSON bool,
+) (valid bool) {
 	valid = true
 
 	if flagJSON {
@@ -66,6 +67,11 @@ func printShowInstance(
 		}
 	}
 
+	if config == nil {
+		// nothing to print
+		return
+	}
+
 	if instance != nil {
 		t.Printf("State\n")
 		t.Printf(" Instance:\t%s (%d -> %d)\n", instance.ID.String(), instance.PID, instance.ShimPID)
@@ -84,14 +90,13 @@ func printShowInstance(
 		t.Printf(" Groups:\t%s\n", strings.Join(config.Groups, ", "))
 	}
 	if config.Container != nil {
-		params := config.Container
-		if params.Home != nil {
-			t.Printf(" Home:\t%s\n", params.Home)
+		if config.Container.Home != nil {
+			t.Printf(" Home:\t%s\n", config.Container.Home)
 		}
-		if params.Hostname != "" {
-			t.Printf(" Hostname:\t%s\n", params.Hostname)
+		if config.Container.Hostname != "" {
+			t.Printf(" Hostname:\t%s\n", config.Container.Hostname)
 		}
-		flags := params.Flags.String()
+		flags := config.Container.Flags.String()
 
 		// this is included in the upper hst.Config struct but is relevant here
 		const flagDirectWayland = "directwl"
@@ -105,11 +110,11 @@ func printShowInstance(
 		}
 		t.Printf(" Flags:\t%s\n", flags)
 
-		if params.Path != nil {
-			t.Printf(" Path:\t%s\n", params.Path)
+		if config.Container.Path != nil {
+			t.Printf(" Path:\t%s\n", config.Container.Path)
 		}
-		if len(params.Args) > 0 {
-			t.Printf(" Arguments:\t%s\n", strings.Join(params.Args, " "))
+		if len(config.Container.Args) > 0 {
+			t.Printf(" Arguments:\t%s\n", strings.Join(config.Container.Args, " "))
 		}
 	}
 	t.Printf("\n")
