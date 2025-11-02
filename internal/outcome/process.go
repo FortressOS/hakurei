@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/gob"
 	"errors"
-	"iter"
 	"math"
 	"os"
 	"os/exec"
@@ -237,13 +236,15 @@ func (k *outcome) main(msg message.Msg) {
 			// this state transition to processFinal only
 			processState = processFinal
 
-			unlock, err := handle.Lock()
-			if err != nil {
+			unlock := func() { msg.Verbose("skipping unlock as lock was not successfully acquired") }
+			if f, err := handle.Lock(); err != nil {
 				perror(err, "acquire lock on store segment")
+			} else {
+				unlock = f
 			}
 
 			if entryHandle != nil {
-				if err = entryHandle.Destroy(); err != nil {
+				if err := entryHandle.Destroy(); err != nil {
 					perror(err, "destroy state entry")
 				}
 			}
@@ -251,8 +252,7 @@ func (k *outcome) main(msg message.Msg) {
 			if isBeforeRevert {
 				ec := system.Process
 
-				var entries iter.Seq[*store.EntryHandle]
-				if entries, _, err = handle.Entries(); err != nil {
+				if entries, _, err := handle.Entries(); err != nil {
 					// it is impossible to continue from this point,
 					// per-process state will be reverted to limit damage
 					perror(err, "read store segment entries")
@@ -287,7 +287,7 @@ func (k *outcome) main(msg message.Msg) {
 					}
 				}
 
-				if err = k.sys.Revert((*system.Criteria)(&ec)); err != nil {
+				if err := k.sys.Revert((*system.Criteria)(&ec)); err != nil {
 					var joinError interface {
 						Unwrap() []error
 						error
