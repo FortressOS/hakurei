@@ -102,5 +102,9 @@ machine.wait_until_fails("getfacl --absolute-names --omit-header --numeric /run/
 swaymsg("exit", succeed=False)
 machine.wait_for_file("/tmp/sway-exit-ok")
 
-# Print hakurei runDir contents:
+# Print hakurei share and rundir contents:
+print(machine.succeed("find /tmp/hakurei.0 "
+    + "-path '/tmp/hakurei.0/runtime/*/*' -prune -o "
+    + "-path '/tmp/hakurei.0/tmpdir/*/*' -prune -o "
+    + "-print"))
 print(machine.succeed("find /run/user/1000/hakurei"))
