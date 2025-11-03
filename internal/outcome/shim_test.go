@@ -123,7 +123,7 @@ func TestShimEntrypoint(t *testing.T) {
 	templateState := outcomeState{
 		Shim:      newShimParams(),
 		ID:        &checkExpectInstanceId,
-		Identity:  hst.IdentityMax,
+		Identity:  hst.IdentityEnd,
 		UserID:    10,
 		Container: hst.Template().Container,
 		Mapuid:    1000,

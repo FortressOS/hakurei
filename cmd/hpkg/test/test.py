@@ -92,11 +92,11 @@ machine.wait_for_file("/tmp/hakurei.0/tmpdir/2/success-client")
 collect_state_ui("app_wayland")
 check_state("foot", {"wayland": True, "dbus": True, "pulse": True})
 # Verify acl on XDG_RUNTIME_DIR:
-print(machine.succeed("getfacl --absolute-names --omit-header --numeric /run/user/1000 | grep 1000002"))
+print(machine.succeed("getfacl --absolute-names --omit-header --numeric /run/user/1000 | grep 10002"))
 machine.send_chars("exit\n")
 machine.wait_until_fails("pgrep foot")
 # Verify acl cleanup on XDG_RUNTIME_DIR:
-machine.wait_until_fails("getfacl --absolute-names --omit-header --numeric /run/user/1000 | grep 1000002")
+machine.wait_until_fails("getfacl --absolute-names --omit-header --numeric /run/user/1000 | grep 10002")
 
 # Exit Sway and verify process exit status 0:
 swaymsg("exit", succeed=False)

@@ -211,19 +211,19 @@ in
     } null;
 
     mount = [
-      (ent "/sysroot" "/" "ro,nosuid,nodev,relatime" "tmpfs" "rootfs" "rw,uid=1000004,gid=1000004")
+      (ent "/sysroot" "/" "ro,nosuid,nodev,relatime" "tmpfs" "rootfs" "rw,uid=10004,gid=10004")
       (ent "/" "/proc" "rw,nosuid,nodev,noexec,relatime" "proc" "proc" "rw")
-      (ent "/" "/.hakurei" "rw,nosuid,nodev,relatime" "tmpfs" "ephemeral" "rw,size=4k,mode=755,uid=1000004,gid=1000004")
+      (ent "/" "/.hakurei" "rw,nosuid,nodev,relatime" "tmpfs" "ephemeral" "rw,size=4k,mode=755,uid=10004,gid=10004")
       (ent "/" "/dev" "rw,nosuid" "devtmpfs" "devtmpfs" ignore)
       (ent "/" "/dev/pts" "rw,nosuid,noexec,relatime" "devpts" "devpts" "rw,gid=3,mode=620,ptmxmode=666")
       (ent "/" ignore ignore ignore ignore ignore) # not deterministic
       (ent "/" ignore ignore ignore ignore ignore)
       (ent "/" ignore ignore ignore ignore ignore)
-      (ent "/" "/dev/shm" "rw,nosuid,nodev,relatime" "tmpfs" "ephemeral" "rw,uid=1000004,gid=1000004")
-      (ent "/" "/run/user" "rw,nosuid,nodev,relatime" "tmpfs" "ephemeral" "rw,size=4k,mode=755,uid=1000004,gid=1000004")
+      (ent "/" "/dev/shm" "rw,nosuid,nodev,relatime" "tmpfs" "ephemeral" "rw,uid=10004,gid=10004")
+      (ent "/" "/run/user" "rw,nosuid,nodev,relatime" "tmpfs" "ephemeral" "rw,size=4k,mode=755,uid=10004,gid=10004")
       (ent "/tmp/hakurei.0/tmpdir/4" "/tmp" "rw,nosuid,nodev,relatime" "ext4" "/dev/disk/by-label/nixos" "rw")
-      (ent ignore "/etc/passwd" "ro,nosuid,nodev,relatime" "tmpfs" "rootfs" "rw,uid=1000004,gid=1000004")
-      (ent ignore "/etc/group" "ro,nosuid,nodev,relatime" "tmpfs" "rootfs" "rw,uid=1000004,gid=1000004")
+      (ent ignore "/etc/passwd" "ro,nosuid,nodev,relatime" "tmpfs" "rootfs" "rw,uid=10004,gid=10004")
+      (ent ignore "/etc/group" "ro,nosuid,nodev,relatime" "tmpfs" "rootfs" "rw,uid=10004,gid=10004")
       (ent ignore "/run/user/65534/wayland-0" "ro,nosuid,nodev,relatime" "ext4" "/dev/disk/by-label/nixos" "rw")
       (ent "/tmp/.X11-unix" "/tmp/.X11-unix" "ro,nosuid,nodev,relatime" "ext4" "/dev/disk/by-label/nixos" "rw")
       (ent ignore "/run/user/65534/pulse/native" "ro,nosuid,nodev,relatime" "tmpfs" "tmpfs" ignore)

@@ -339,7 +339,7 @@ func TestStoreAll(t *testing.T) {
 
 			{ID: (hst.ID)(bytes.Repeat([]byte{0xfe}, len(hst.ID{}))), PID: 0xbed, ShimPID: 0xfff, Config: func() *hst.Config {
 				template := hst.Template()
-				template.Identity = hst.IdentityMax
+				template.Identity = hst.IdentityEnd
 				return template
 			}(), Time: time.Unix(0, 0xcafebabe0)},
 			{ID: (hst.ID)(bytes.Repeat([]byte{0xfc}, len(hst.ID{}))), PID: 0x1bed, ShimPID: 0x1fff, Config: func() *hst.Config {

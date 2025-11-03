@@ -20,11 +20,6 @@ const (
 	WaitDelayDefault = 5 * time.Second
 	// WaitDelayMax is used if WaitDelay exceeds its value.
 	WaitDelayMax = 30 * time.Second
-
-	// IdentityMin is the minimum value of [Config.Identity]. This is enforced by cmd/hsu.
-	IdentityMin = 0
-	// IdentityMax is the maximum value of [Config.Identity]. This is enforced by cmd/hsu.
-	IdentityMax = 9999
 )
 
 const (

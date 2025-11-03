@@ -128,7 +128,7 @@ func (s *outcomeState) populateLocal(k syscallDispatcher, msg message.Msg) error
 
 	s.identity = newInt(s.Identity)
 	s.mapuid, s.mapgid = newInt(s.Mapuid), newInt(s.Mapgid)
-	s.uid = newInt(HsuUid(s.UserID, s.identity.unwrap()))
+	s.uid = newInt(hst.ToUser(s.UserID, s.identity.unwrap()))
 
 	return nil
 }

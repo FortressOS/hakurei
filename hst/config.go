@@ -59,7 +59,7 @@ func (config *Config) Validate() error {
 	}
 
 	// this is checked again in hsu
-	if config.Identity < IdentityMin || config.Identity > IdentityMax {
+	if config.Identity < IdentityStart || config.Identity > IdentityEnd {
 		return &AppError{Step: "validate configuration", Err: ErrIdentityBounds,
 			Msg: "identity " + strconv.Itoa(config.Identity) + " out of range"}
 	}

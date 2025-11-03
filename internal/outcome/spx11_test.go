@@ -60,7 +60,7 @@ func TestSpX11Op(t *testing.T) {
 			call("lookupEnv", stub.ExpectArgs{"DISPLAY"}, "unix:/tmp/.X11-unix/X0", nil),
 			call("stat", stub.ExpectArgs{"/tmp/.X11-unix/X0"}, (*stubFi)(nil), os.ErrNotExist),
 		}, newI().
-			ChangeHosts("#1000009"), nil, nil, insertsOps(nil), []stub.Call{
+			ChangeHosts("#10009"), nil, nil, insertsOps(nil), []stub.Call{
 			// this op configures the container state and does not make calls during toContainer
 		}, &container.Params{
 			Ops: new(container.Ops).
@@ -84,7 +84,7 @@ func TestSpX11Op(t *testing.T) {
 			call("stat", stub.ExpectArgs{"/tmp/.X11-unix/X0"}, (*stubFi)(nil), nil),
 		}, newI().
 			UpdatePermType(hst.EX11, m("/tmp/.X11-unix/X0"), acl.Read, acl.Write, acl.Execute).
-			ChangeHosts("#1000009"), nil, nil, insertsOps(nil), []stub.Call{
+			ChangeHosts("#10009"), nil, nil, insertsOps(nil), []stub.Call{
 			// this op configures the container state and does not make calls during toContainer
 		}, &container.Params{
 			Ops: new(container.Ops).
@@ -107,7 +107,7 @@ func TestSpX11Op(t *testing.T) {
 			call("stat", stub.ExpectArgs{"/tmp/.X11-unix/X0"}, (*stubFi)(nil), nil),
 		}, newI().
 			UpdatePermType(hst.EX11, m("/tmp/.X11-unix/X0"), acl.Read, acl.Write, acl.Execute).
-			ChangeHosts("#1000009"), nil, nil, insertsOps(nil), []stub.Call{
+			ChangeHosts("#10009"), nil, nil, insertsOps(nil), []stub.Call{
 			// this op configures the container state and does not make calls during toContainer
 		}, &container.Params{
 			Ops: new(container.Ops).

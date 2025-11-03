@@ -20,9 +20,10 @@ let
 
   cfg = config.environment.hakurei;
 
-  getsubuid = fid: aid: 1000000 + fid * 10000 + aid;
-  getsubname = fid: aid: "u${toString fid}_a${toString aid}";
-  getsubhome = fid: aid: "${cfg.stateDir}/u${toString fid}/a${toString aid}";
+  # userid*userOffset + appStart + appid
+  getsubuid = userid: appid: userid * 100000 + 10000 + appid;
+  getsubname = userid: appid: "u${toString userid}_a${toString appid}";
+  getsubhome = userid: appid: "${cfg.stateDir}/u${toString userid}/a${toString appid}";
 in
 
 {

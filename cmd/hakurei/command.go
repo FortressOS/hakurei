@@ -86,7 +86,7 @@ func buildCommand(ctx context.Context, msg message.Msg, early *earlyHardeningErr
 		)
 
 		c.NewCommand("run", "Configure and start a permissive container", func(args []string) error {
-			if flagIdentity < hst.IdentityMin || flagIdentity > hst.IdentityMax {
+			if flagIdentity < hst.IdentityStart || flagIdentity > hst.IdentityEnd {
 				log.Fatalf("identity %d out of range", flagIdentity)
 			}
 
@@ -95,7 +95,7 @@ func buildCommand(ctx context.Context, msg message.Msg, early *earlyHardeningErr
 				passwd     *user.User
 				passwdOnce sync.Once
 				passwdFunc = func() {
-					us := strconv.Itoa(outcome.HsuUid(new(outcome.Hsu).MustID(msg), flagIdentity))
+					us := strconv.Itoa(hst.ToUser(new(outcome.Hsu).MustID(msg), flagIdentity))
 					if u, err := user.LookupId(us); err != nil {
 						msg.Verbosef("cannot look up uid %s", us)
 						passwd = &user.User{

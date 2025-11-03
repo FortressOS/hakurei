@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"math"
 	"strconv"
 	"testing"
 )
@@ -39,22 +40,20 @@ func TestParseUint32Fast(t *testing.T) {
 	t.Run("range", func(t *testing.T) {
 		t.Parallel()
 
-		testRange := func(i, end int) {
+		testRange := func(i, end uint32) {
 			for ; i < end; i++ {
-				s := strconv.Itoa(i)
+				s := strconv.Itoa(int(i))
 				w := i
 				t.Run("parse "+s, func(t *testing.T) {
 					t.Parallel()
 
 					v, err := parseUint32Fast(s)
 					if err != nil {
-						t.Errorf("parseUint32Fast(%q): error = %v",
-							s, err)
+						t.Errorf("parseUint32Fast(%q): error = %v", s, err)
 						return
 					}
 					if v != w {
-						t.Errorf("parseUint32Fast(%q): got %v",
-							s, v)
+						t.Errorf("parseUint32Fast(%q): got %v", s, v)
 						return
 					}
 				})
@@ -63,7 +62,7 @@ func TestParseUint32Fast(t *testing.T) {
 
 		testRange(0, 2500)
 		testRange(23002500, 23005000)
-		testRange(7890002500, 7890005000)
+		testRange(math.MaxUint32-2500, math.MaxUint32)
 	})
 }
 
@@ -72,14 +71,14 @@ func TestParseConfig(t *testing.T) {
 
 	testCases := []struct {
 		name       string
-		puid, want int
+		puid, want uint32
 		wantErr    string
 		rc         string
 	}{
-		{"empty", 0, -1, "", ``},
-		{"invalid field", 0, -1, "invalid entry on line 1", `9`},
-		{"invalid puid", 0, -1, "invalid parent uid on line 1", `f 9`},
-		{"invalid fid", 1000, -1, "invalid identity on line 1", `1000 f`},
+		{"empty", 0, useridEnd + 1, "", ``},
+		{"invalid field", 0, useridEnd + 1, "invalid entry on line 1", `9`},
+		{"invalid puid", 0, useridEnd + 1, "invalid parent uid on line 1", `f 9`},
+		{"invalid userid", 1000, useridEnd + 1, "invalid userid on line 1", `1000 f`},
 		{"match", 1000, 0, "", `1000 0`},
 	}
 
@@ -87,25 +86,21 @@ func TestParseConfig(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			fid, ok, err := parseConfig(bytes.NewBufferString(tc.rc), tc.puid)
+			userid, ok, err := parseConfig(bytes.NewBufferString(tc.rc), tc.puid)
 			if err == nil && tc.wantErr != "" {
-				t.Errorf("parseConfig: error = %v; wantErr %q",
-					err, tc.wantErr)
+				t.Errorf("parseConfig: error = %v; want %q", err, tc.wantErr)
 				return
 			}
 			if err != nil && err.Error() != tc.wantErr {
-				t.Errorf("parseConfig: error = %q; wantErr %q",
-					err, tc.wantErr)
+				t.Errorf("parseConfig: error = %q; want %q", err, tc.wantErr)
 				return
 			}
-			if ok == (tc.want == -1) {
-				t.Errorf("parseConfig: ok = %v; want %v",
-					ok, tc.want)
+			if ok == (tc.want == useridEnd+1) {
+				t.Errorf("parseConfig: ok = %v; want %v", ok, tc.want)
 				return
 			}
-			if fid != tc.want {
-				t.Errorf("parseConfig: fid = %v; want %v",
-					fid, tc.want)
+			if userid != tc.want {
+				t.Errorf("parseConfig: %v; want %v", userid, tc.want)
 			}
 		})
 	}

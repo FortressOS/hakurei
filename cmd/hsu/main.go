@@ -16,15 +16,12 @@ import (
 )
 
 const (
-	hsuConfFile = "/etc/hsurc"
-	envShim     = "HAKUREI_SHIM"
-	envIdentity = "HAKUREI_IDENTITY"
-	envGroups   = "HAKUREI_GROUPS"
-
-	PR_SET_NO_NEW_PRIVS = 0x26
-
-	identityMin = 0
-	identityMax = 9999
+	// envIdentity is the name of the environment variable holding a
+	// single byte representing the shim setup pipe file descriptor.
+	envShim = "HAKUREI_SHIM"
+	// envGroups holds a ' ' separated list of string representations of
+	// supplementary group gid. Membership requirements are enforced.
+	envGroups = "HAKUREI_GROUPS"
 )
 
 // hakureiPath is the absolute path to Hakurei.
@@ -33,6 +30,7 @@ const (
 var hakureiPath string
 
 func main() {
+	const PR_SET_NO_NEW_PRIVS = 0x26
 	runtime.LockOSThread()
 
 	log.SetFlags(0)
@@ -68,13 +66,8 @@ func main() {
 		toolPath = p
 	}
 
-	// uid = 1000000 +
-	//    id * 10000 +
-	//      identity
-	uid := 1000000
-
 	// refuse to run if hsurc is not protected correctly
-	if s, err := os.Stat(hsuConfFile); err != nil {
+	if s, err := os.Stat(hsuConfPath); err != nil {
 		log.Fatal(err)
 	} else if s.Mode().Perm() != 0400 {
 		log.Fatal("bad hsurc perm")
@@ -83,25 +76,13 @@ func main() {
 	}
 
 	// authenticate before accepting user input
-	var id int
-	if f, err := os.Open(hsuConfFile); err != nil {
-		log.Fatal(err)
-	} else if v, ok := mustParseConfig(f, puid); !ok {
-		log.Fatalf("uid %d is not in the hsurc file", puid)
-	} else {
-		id = v
-		if err = f.Close(); err != nil {
-			log.Fatal(err)
-		}
-
-		uid += id * 10000
-	}
+	userid := mustParseConfig(puid)
 
 	// pass through setup fd to shim
 	var shimSetupFd string
 	if s, ok := os.LookupEnv(envShim); !ok {
 		// hakurei requests hsurc user id
-		fmt.Print(id)
+		fmt.Print(userid)
 		os.Exit(0)
 	} else if len(s) != 1 || s[0] > '9' || s[0] < '3' {
 		log.Fatal("HAKUREI_SHIM holds an invalid value")
@@ -109,13 +90,22 @@ func main() {
 		shimSetupFd = s
 	}
 
-	// allowed identity range 0 to 9999
-	if as, ok := os.LookupEnv(envIdentity); !ok {
-		log.Fatal("HAKUREI_IDENTITY not set")
-	} else if identity, err := parseUint32Fast(as); err != nil || identity < identityMin || identity > identityMax {
-		log.Fatal("invalid identity")
-	} else {
-		uid += identity
+	// start is going ahead at this point
+	identity := mustReadIdentity()
+
+	const (
+		// first possible uid outcome
+		uidStart = 10000
+		// last possible uid outcome
+		uidEnd = 999919999
+	)
+
+	// cast to int for use with library functions
+	uid := int(toUser(userid, identity))
+
+	// final bounds check to catch any bugs
+	if uid < uidStart || uid >= uidEnd {
+		panic("uid out of bounds")
 	}
 
 	// supplementary groups
@@ -143,11 +133,6 @@ func main() {
 		suppGroups[len(suppGroups)-1] = uid
 	} else {
 		suppGroups = []int{uid}
-	}
-
-	// final bounds check to catch any bugs
-	if uid < 1000000 || uid >= 2000000 {
-		panic("uid out of bounds")
 	}
 
 	// careful! users in the allowlist is effectively allowed to drop groups via hsu

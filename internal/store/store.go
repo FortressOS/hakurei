@@ -136,7 +136,7 @@ func (s *Store) Segments() (iter.Seq[SegmentIdentity], int, error) {
 				si.Err = &hst.AppError{Step: step, Err: err,
 					Msg: "skipped non-identity entry " + strconv.Quote(ent.Name())}
 				goto out
-			} else if v < hst.IdentityMin || v > hst.IdentityMax {
+			} else if v < hst.IdentityStart || v > hst.IdentityEnd {
 				si.Err = &hst.AppError{Step: step, Err: syscall.ERANGE,
 					Msg: "skipped out of bounds entry " + strconv.Itoa(v)}
 				goto out

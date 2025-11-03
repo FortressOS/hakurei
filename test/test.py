@@ -160,17 +160,17 @@ machine.succeed("pkill -9 mako")
 # Check revert type selection:
 hakurei("-v run --wayland -X --dbus --pulse -u p0 foot && touch /tmp/p0-exit-ok")
 wait_for_window("p0@machine")
-print(machine.succeed("getfacl --absolute-names --omit-header --numeric /run/user/1000 | grep 1000000"))
+print(machine.succeed("getfacl --absolute-names --omit-header --numeric /run/user/1000 | grep 10000"))
 hakurei("-v run --wayland -X --dbus --pulse -u p1 foot && touch /tmp/p1-exit-ok")
 wait_for_window("p1@machine")
-print(machine.succeed("getfacl --absolute-names --omit-header --numeric /run/user/1000 | grep 1000000"))
+print(machine.succeed("getfacl --absolute-names --omit-header --numeric /run/user/1000 | grep 10000"))
 machine.send_chars("exit\n")
 machine.wait_for_file("/tmp/p1-exit-ok", timeout=15)
 # Verify acl is kept alive:
-print(machine.succeed("getfacl --absolute-names --omit-header --numeric /run/user/1000 | grep 1000000"))
+print(machine.succeed("getfacl --absolute-names --omit-header --numeric /run/user/1000 | grep 10000"))
 machine.send_chars("exit\n")
 machine.wait_for_file("/tmp/p0-exit-ok", timeout=15)
-machine.fail("getfacl --absolute-names --omit-header --numeric /run/user/1000 | grep 1000000")
+machine.fail("getfacl --absolute-names --omit-header --numeric /run/user/1000 | grep 10000")
 
 # Check interrupt shim behaviour:
 swaymsg("exec sh -c 'ne-foot; echo -n $? > /tmp/monitor-exit-code'")
@@ -209,10 +209,10 @@ machine.wait_for_file("/var/tmp/client-ok", timeout=15)
 collect_state_ui("foot_wayland")
 check_state("ne-foot", {"wayland": True})
 # Verify lack of acl on XDG_RUNTIME_DIR:
-machine.fail(f"getfacl --absolute-names --omit-header --numeric /run/user/1000 | grep {hakurei_identity(0) + 1000000}")
+machine.fail(f"getfacl --absolute-names --omit-header --numeric /run/user/1000 | grep {hakurei_identity(0) + 10000}")
 machine.send_chars("exit\n")
 machine.wait_until_fails("pgrep foot", timeout=5)
-machine.fail(f"getfacl --absolute-names --omit-header --numeric /run/user/1000 | grep {hakurei_identity(0) + 1000000}", timeout=5)
+machine.fail(f"getfacl --absolute-names --omit-header --numeric /run/user/1000 | grep {hakurei_identity(0) + 10000}", timeout=5)
 
 # Test PulseAudio (hakurei does not support PipeWire yet):
 swaymsg("exec pa-foot")
@@ -242,11 +242,11 @@ collect_state_ui("foot_direct")
 machine.wait_for_file("/var/tmp/direct-ok", timeout=15)
 check_state("da-foot", {"wayland": True})
 # Verify acl on XDG_RUNTIME_DIR:
-print(machine.succeed(f"getfacl --absolute-names --omit-header --numeric /run/user/1000 | grep {hakurei_identity(3) + 1000000}"))
+print(machine.succeed(f"getfacl --absolute-names --omit-header --numeric /run/user/1000 | grep {hakurei_identity(3) + 10000}"))
 machine.send_chars("exit\n")
 machine.wait_until_fails("pgrep foot", timeout=5)
 # Verify acl cleanup on XDG_RUNTIME_DIR:
-machine.wait_until_fails(f"getfacl --absolute-names --omit-header --numeric /run/user/1000 | grep {hakurei_identity(3) + 1000000}", timeout=5)
+machine.wait_until_fails(f"getfacl --absolute-names --omit-header --numeric /run/user/1000 | grep {hakurei_identity(3) + 10000}", timeout=5)
 
 # Test syscall filter:
 print(machine.fail("sudo -u alice -i XDG_RUNTIME_DIR=/run/user/1000 strace-failure"))

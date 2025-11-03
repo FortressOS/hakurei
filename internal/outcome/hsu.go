@@ -95,7 +95,3 @@ func (h *Hsu) MustID(msg message.Msg) int {
 		return -0xdeadbeef // not reached
 	}
 }
-
-// HsuUid returns target uid for the stable hsu uid format.
-// No bounds check is performed, a value retrieved by [Hsu] is expected.
-func HsuUid(id, identity int) int { return 1000000 + id*10000 + identity }

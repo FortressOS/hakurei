@@ -138,7 +138,7 @@
     } null;
 
     mount = [
-      (ent "/sysroot" "/" "ro,nosuid,nodev,relatime" "tmpfs" "rootfs" "rw,uid=1000000,gid=1000000")
+      (ent "/sysroot" "/" "ro,nosuid,nodev,relatime" "tmpfs" "rootfs" "rw,uid=10000,gid=10000")
       (ent "/bin" "/bin" "rw,nosuid,nodev,relatime" "ext4" "/dev/disk/by-label/nixos" "rw")
       (ent "/home" "/home" "rw,nosuid,nodev,relatime" "ext4" "/dev/disk/by-label/nixos" "rw")
       (ent "/lib64" "/lib64" "rw,nosuid,nodev,relatime" "ext4" "/dev/disk/by-label/nixos" "rw")
@@ -169,8 +169,8 @@
       (ent "/usr" "/usr" "rw,nosuid,nodev,relatime" "ext4" "/dev/disk/by-label/nixos" "rw")
       (ent "/var" "/var" "rw,nosuid,nodev,relatime" "ext4" "/dev/disk/by-label/nixos" "rw")
       (ent "/" "/proc" "rw,nosuid,nodev,noexec,relatime" "proc" "proc" "rw")
-      (ent "/" "/.hakurei" "rw,nosuid,nodev,relatime" "tmpfs" "ephemeral" "rw,size=4k,mode=755,uid=1000000,gid=1000000")
-      (ent "/" "/dev" "ro,nosuid,nodev,relatime" "tmpfs" "devtmpfs" "rw,mode=755,uid=1000000,gid=1000000")
+      (ent "/" "/.hakurei" "rw,nosuid,nodev,relatime" "tmpfs" "ephemeral" "rw,size=4k,mode=755,uid=10000,gid=10000")
+      (ent "/" "/dev" "ro,nosuid,nodev,relatime" "tmpfs" "devtmpfs" "rw,mode=755,uid=10000,gid=10000")
       (ent "/null" "/dev/null" "rw,nosuid" "devtmpfs" "devtmpfs" ignore)
       (ent "/zero" "/dev/zero" "rw,nosuid" "devtmpfs" "devtmpfs" ignore)
       (ent "/full" "/dev/full" "rw,nosuid" "devtmpfs" "devtmpfs" ignore)
@@ -180,17 +180,17 @@
       (ent "/" "/dev/pts" "rw,nosuid,noexec,relatime" "devpts" "devpts" "rw,mode=620,ptmxmode=666")
       (ent ignore "/dev/console" "rw,nosuid,noexec,relatime" "devpts" "devpts" "rw,gid=3,mode=620,ptmxmode=666")
       (ent "/" "/dev/mqueue" "rw,nosuid,nodev,noexec,relatime" "mqueue" "mqueue" "rw")
-      (ent "/" "/dev/shm" "rw,nosuid,nodev,relatime" "tmpfs" "ephemeral" "rw,uid=1000000,gid=1000000")
-      (ent "/" "/run/user" "rw,nosuid,nodev,relatime" "tmpfs" "ephemeral" "rw,size=4k,mode=755,uid=1000000,gid=1000000")
+      (ent "/" "/dev/shm" "rw,nosuid,nodev,relatime" "tmpfs" "ephemeral" "rw,uid=10000,gid=10000")
+      (ent "/" "/run/user" "rw,nosuid,nodev,relatime" "tmpfs" "ephemeral" "rw,size=4k,mode=755,uid=10000,gid=10000")
       (ent "/tmp/hakurei.0/runtime/0" "/run/user/65534" "rw,nosuid,nodev,relatime" "ext4" "/dev/disk/by-label/nixos" "rw")
       (ent "/tmp/hakurei.0/tmpdir/0" "/tmp" "rw,nosuid,nodev,relatime" "ext4" "/dev/disk/by-label/nixos" "rw")
-      (ent ignore "/etc/passwd" "ro,nosuid,nodev,relatime" "tmpfs" "rootfs" "rw,uid=1000000,gid=1000000")
-      (ent ignore "/etc/group" "ro,nosuid,nodev,relatime" "tmpfs" "rootfs" "rw,uid=1000000,gid=1000000")
+      (ent ignore "/etc/passwd" "ro,nosuid,nodev,relatime" "tmpfs" "rootfs" "rw,uid=10000,gid=10000")
+      (ent ignore "/etc/group" "ro,nosuid,nodev,relatime" "tmpfs" "rootfs" "rw,uid=10000,gid=10000")
       (ent "/kvm" "/dev/kvm" "rw,nosuid" "devtmpfs" "devtmpfs" ignore)
       (ent "/etc" ignore "ro,nosuid,nodev,relatime" "ext4" "/dev/disk/by-label/nixos" "rw")
-      (ent "/" "/run/user/1000" "rw,nosuid,nodev,relatime" "tmpfs" "ephemeral" "rw,size=8k,mode=755,uid=1000000,gid=1000000")
-      (ent "/" "/run/nscd" "rw,nosuid,nodev,relatime" "tmpfs" "ephemeral" "rw,size=8k,mode=755,uid=1000000,gid=1000000")
-      (ent "/" "/run/dbus" "rw,nosuid,nodev,relatime" "tmpfs" "ephemeral" "rw,size=8k,mode=755,uid=1000000,gid=1000000")
+      (ent "/" "/run/user/1000" "rw,nosuid,nodev,relatime" "tmpfs" "ephemeral" "rw,size=8k,mode=755,uid=10000,gid=10000")
+      (ent "/" "/run/nscd" "rw,nosuid,nodev,relatime" "tmpfs" "ephemeral" "rw,size=8k,mode=755,uid=10000,gid=10000")
+      (ent "/" "/run/dbus" "rw,nosuid,nodev,relatime" "tmpfs" "ephemeral" "rw,size=8k,mode=755,uid=10000,gid=10000")
     ];
 
     seccomp = true;

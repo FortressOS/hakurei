@@ -40,7 +40,7 @@ func TestOutcomeMain(t *testing.T) {
 		wantSys    *system.I
 		wantParams *container.Params
 	}{
-		{"template", new(stubNixOS), hst.Template(), checkExpectInstanceId, system.New(panicMsgContext{}, message.New(nil), 1000009).
+		{"template", new(stubNixOS), hst.Template(), checkExpectInstanceId, system.New(panicMsgContext{}, message.New(nil), 10009).
 			// spParamsOp
 			Ensure(m("/tmp/hakurei.0"), 0711).
 
@@ -215,7 +215,7 @@ func TestOutcomeMain(t *testing.T) {
 			0x96, 0xd7, 0xbc, 0x15,
 			0xbd, 0x01, 0x78, 0x0e,
 			0xb9, 0xa6, 0x07, 0xac,
-		}, system.New(t.Context(), msg, 1000000).
+		}, system.New(t.Context(), msg, 10000).
 			Ensure(m("/tmp/hakurei.0"), 0711).
 			Ensure(m("/tmp/hakurei.0/runtime"), 0700).
 			UpdatePermType(system.User, m("/tmp/hakurei.0/runtime"), acl.Execute).
@@ -339,7 +339,7 @@ func TestOutcomeMain(t *testing.T) {
 			0xb1, 0x75, 0x91, 0x17,
 			0x82, 0xd4, 0x13, 0x36,
 			0x9b, 0x64, 0xce, 0x7c,
-		}, system.New(t.Context(), msg, 1000009).
+		}, system.New(t.Context(), msg, 10009).
 			Ensure(m("/tmp/hakurei.0"), 0711).
 			Ensure(m("/tmp/hakurei.0/runtime"), 0700).UpdatePermType(system.User, m("/tmp/hakurei.0/runtime"), acl.Execute).
 			Ensure(m("/tmp/hakurei.0/runtime/9"), 0700).UpdatePermType(system.User, m("/tmp/hakurei.0/runtime/9"), acl.Read, acl.Write, acl.Execute).
@@ -493,7 +493,7 @@ func TestOutcomeMain(t *testing.T) {
 			0x66, 0xda, 0xbe, 0x57,
 			0x4c, 0xf0, 0x73, 0xbd,
 			0xb4, 0x6e, 0xb5, 0xc1,
-		}, system.New(t.Context(), msg, 1000001).
+		}, system.New(t.Context(), msg, 10001).
 			Ensure(m("/tmp/hakurei.0"), 0711).
 			Ensure(m("/tmp/hakurei.0/runtime"), 0700).UpdatePermType(system.User, m("/tmp/hakurei.0/runtime"), acl.Execute).
 			Ensure(m("/tmp/hakurei.0/runtime/1"), 0700).UpdatePermType(system.User, m("/tmp/hakurei.0/runtime/1"), acl.Read, acl.Write, acl.Execute).

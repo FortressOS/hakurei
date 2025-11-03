@@ -69,8 +69,8 @@ func TestRemount(t *testing.T) {
 403 397 0:63 / /host/run/user/1000 rw,nosuid,nodev,relatime master:295 - tmpfs tmpfs rw,size=401060k,nr_inodes=100265,mode=700,uid=1000,gid=100
 404 254 0:46 / /host/mnt/cwd rw,relatime master:96 - overlay overlay rw,lowerdir=/mnt/.ro-cwd,upperdir=/tmp/.cwd/upper,workdir=/tmp/.cwd/work
 405 254 0:47 / /host/mnt/src rw,relatime master:99 - overlay overlay rw,lowerdir=/nix/store/ihcrl3zwvp2002xyylri2wz0drwajx4z-ns0pa7q2b1jpx9pbf1l9352x6rniwxjn-source,upperdir=/tmp/.src/upper,workdir=/tmp/.src/work
-407 253 0:65 / / rw,nosuid,nodev,relatime - tmpfs rootfs rw,uid=1000000,gid=1000000
-408 407 0:65 /sysroot /sysroot rw,nosuid,nodev,relatime - tmpfs rootfs rw,uid=1000000,gid=1000000
+407 253 0:65 / / rw,nosuid,nodev,relatime - tmpfs rootfs rw,uid=10000,gid=10000
+408 407 0:65 /sysroot /sysroot rw,nosuid,nodev,relatime - tmpfs rootfs rw,uid=10000,gid=10000
 409 408 253:0 /bin /sysroot/bin rw,nosuid,nodev,relatime master:1 - ext4 /dev/disk/by-label/nixos rw
 410 408 253:0 /home /sysroot/home rw,nosuid,nodev,relatime master:1 - ext4 /dev/disk/by-label/nixos rw
 411 408 253:0 /lib64 /sysroot/lib64 rw,nosuid,nodev,relatime master:1 - ext4 /dev/disk/by-label/nixos rw
