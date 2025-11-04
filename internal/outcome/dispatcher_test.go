@@ -21,6 +21,7 @@ import (
 	"hakurei.app/container"
 	"hakurei.app/container/check"
 	"hakurei.app/container/seccomp"
+	"hakurei.app/container/std"
 	"hakurei.app/container/stub"
 	"hakurei.app/hst"
 	"hakurei.app/message"
@@ -435,7 +436,7 @@ func (k *kstub) containerWait(z *container.Container) error {
 	return k.expectCheckContainer(k.Expects("containerWait"), z)
 }
 
-func (k *kstub) seccompLoad(rules []seccomp.NativeRule, flags seccomp.ExportFlag) error {
+func (k *kstub) seccompLoad(rules []std.NativeRule, flags seccomp.ExportFlag) error {
 	k.Helper()
 	return k.Expects("seccompLoad").Error(
 		stub.CheckArgReflect(k.Stub, "rules", rules, 0),
@@ -722,6 +723,6 @@ func (panicDispatcher) fatalf(string, ...any)                               { pa
 func (panicDispatcher) notifyContext(context.Context, ...os.Signal) (context.Context, context.CancelFunc) {
 	panic("unreachable")
 }
-func (panicDispatcher) seccompLoad([]seccomp.NativeRule, seccomp.ExportFlag) error {
+func (panicDispatcher) seccompLoad([]std.NativeRule, seccomp.ExportFlag) error {
 	panic("unreachable")
 }

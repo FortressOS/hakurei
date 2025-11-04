@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"hakurei.app/container/seccomp"
+	"hakurei.app/container/std"
 	"hakurei.app/container/stub"
 	"hakurei.app/message"
 )
@@ -456,7 +457,7 @@ func (k *kstub) ensureFile(name string, perm, pperm os.FileMode) error {
 		stub.CheckArg(k.Stub, "pperm", pperm, 2))
 }
 
-func (k *kstub) seccompLoad(rules []seccomp.NativeRule, flags seccomp.ExportFlag) error {
+func (k *kstub) seccompLoad(rules []std.NativeRule, flags seccomp.ExportFlag) error {
 	k.Helper()
 	return k.Expects("seccompLoad").Error(
 		stub.CheckArgReflect(k.Stub, "rules", rules, 0),

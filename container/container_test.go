@@ -204,7 +204,7 @@ var containerTestCases = []struct {
 	uid int
 	gid int
 
-	rules   []seccomp.NativeRule
+	rules   []std.NativeRule
 	flags   seccomp.ExportFlag
 	presets std.FilterPreset
 }{
@@ -219,7 +219,7 @@ var containerTestCases = []struct {
 		1000, 100, nil, 0, std.PresetExt},
 	{"custom rules", true, true, true, false,
 		emptyOps, emptyMnt,
-		1, 31, []seccomp.NativeRule{{Syscall: seccomp.ScmpSyscall(syscall.SYS_SETUID), Errno: seccomp.ScmpErrno(syscall.EPERM)}}, 0, std.PresetExt},
+		1, 31, []std.NativeRule{{Syscall: std.ScmpSyscall(syscall.SYS_SETUID), Errno: std.ScmpErrno(syscall.EPERM)}}, 0, std.PresetExt},
 
 	{"tmpfs", true, false, false, true,
 		earlyOps(new(container.Ops).

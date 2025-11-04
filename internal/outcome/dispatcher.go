@@ -13,6 +13,7 @@ import (
 	"hakurei.app/container"
 	"hakurei.app/container/check"
 	"hakurei.app/container/seccomp"
+	"hakurei.app/container/std"
 	"hakurei.app/internal"
 	"hakurei.app/message"
 	"hakurei.app/system/dbus"
@@ -86,7 +87,7 @@ type syscallDispatcher interface {
 	containerWait(z *container.Container) error
 
 	// seccompLoad provides [seccomp.Load].
-	seccompLoad(rules []seccomp.NativeRule, flags seccomp.ExportFlag) error
+	seccompLoad(rules []std.NativeRule, flags seccomp.ExportFlag) error
 
 	// mustHsuPath provides [internal.MustHsuPath].
 	mustHsuPath() *check.Absolute
@@ -151,7 +152,7 @@ func (direct) containerStart(z *container.Container) error { return z.Start() }
 func (direct) containerServe(z *container.Container) error { return z.Serve() }
 func (direct) containerWait(z *container.Container) error  { return z.Wait() }
 
-func (direct) seccompLoad(rules []seccomp.NativeRule, flags seccomp.ExportFlag) error {
+func (direct) seccompLoad(rules []std.NativeRule, flags seccomp.ExportFlag) error {
 	return seccomp.Load(rules, flags)
 }
 

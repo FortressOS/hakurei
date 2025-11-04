@@ -24,13 +24,13 @@ func TestSyscallResolveName(t *testing.T) {
 }
 
 func TestRuleType(t *testing.T) {
-	assertKind[ScmpUint, scmpUint](t)
-	assertKind[ScmpInt, scmpInt](t)
+	assertKind[std.ScmpUint, scmpUint](t)
+	assertKind[std.ScmpInt, scmpInt](t)
 
-	assertSize[NativeRule, syscallRule](t)
-	assertKind[ScmpDatum, scmpDatum](t)
-	assertKind[ScmpCompare, scmpCompare](t)
-	assertSize[ScmpArgCmp, scmpArgCmp](t)
+	assertSize[std.NativeRule, syscallRule](t)
+	assertKind[std.ScmpDatum, scmpDatum](t)
+	assertKind[std.ScmpCompare, scmpCompare](t)
+	assertSize[std.ScmpArgCmp, scmpArgCmp](t)
 }
 
 // assertSize asserts that native and equivalent are of the same size.

@@ -85,7 +85,7 @@ type (
 		*Ops
 
 		// Seccomp system call filter rules.
-		SeccompRules []seccomp.NativeRule
+		SeccompRules []std.NativeRule
 		// Extra seccomp flags.
 		SeccompFlags seccomp.ExportFlag
 		// Seccomp presets. Has no effect unless SeccompRules is zero-length.
@@ -327,7 +327,7 @@ func (p *Container) Serve() error {
 		p.Dir = fhs.AbsRoot
 	}
 	if p.SeccompRules == nil {
-		p.SeccompRules = make([]seccomp.NativeRule, 0)
+		p.SeccompRules = make([]std.NativeRule, 0)
 	}
 
 	err := gob.NewEncoder(setup).Encode(&initParams{

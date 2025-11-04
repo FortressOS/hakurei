@@ -14,6 +14,8 @@ import (
 	"runtime/cgo"
 	"syscall"
 	"unsafe"
+
+	"hakurei.app/container/std"
 )
 
 // ErrInvalidRules is returned for a zero-length rules slice.
@@ -54,31 +56,12 @@ func (e *LibraryError) Is(err error) bool {
 }
 
 type (
-	// scmpUint is equivalent to [ScmpUint].
+	// scmpUint is equivalent to [std.ScmpUint].
 	scmpUint = C.uint
-	// ScmpUint is equivalent to C.uint.
-	ScmpUint uint32
-	// scmpInt is equivalent to [ScmpInt].
+	// scmpInt is equivalent to [std.ScmpInt].
 	scmpInt = C.int
-	// ScmpInt is equivalent to C.int.
-	ScmpInt int32
 
-	// ScmpSyscall represents a syscall number passed to libseccomp via [NativeRule.Syscall].
-	ScmpSyscall ScmpInt
-	// ScmpErrno represents an errno value passed to libseccomp via [NativeRule.Errno].
-	ScmpErrno ScmpInt
-
-	// A NativeRule specifies an arch-specific action taken by seccomp under certain conditions.
-	NativeRule struct {
-		// Syscall is the arch-dependent syscall number to act against.
-		Syscall ScmpSyscall
-		// Errno is the errno value to return when the condition is satisfied.
-		Errno ScmpErrno
-		// Arg is the optional struct scmp_arg_cmp passed to libseccomp.
-		Arg *ScmpArgCmp
-	}
-
-	// syscallRule is equivalent to [NativeRule].
+	// syscallRule is equivalent to [std.NativeRule].
 	syscallRule = C.struct_hakurei_syscall_rule
 )
 
@@ -115,9 +98,9 @@ func hakurei_scmp_allocate(f C.uintptr_t, len C.size_t) (buf unsafe.Pointer) {
 	return cgo.Handle(f).Value().(cbAllocateBuffer)(len)
 }
 
-// makeFilter generates a bpf program from a slice of [NativeRule] and writes the resulting byte slice to p.
+// makeFilter generates a bpf program from a slice of [std.NativeRule] and writes the resulting byte slice to p.
 // The filter is installed to the current process if p is nil.
-func makeFilter(rules []NativeRule, flags ExportFlag, p *[]byte) error {
+func makeFilter(rules []std.NativeRule, flags ExportFlag, p *[]byte) error {
 	if len(rules) == 0 {
 		return ErrInvalidRules
 	}
@@ -180,22 +163,26 @@ func makeFilter(rules []NativeRule, flags ExportFlag, p *[]byte) error {
 	return err
 }
 
-// Export generates a bpf program from a slice of [NativeRule].
+// Export generates a bpf program from a slice of [std.NativeRule].
 // Errors returned by libseccomp is wrapped in [LibraryError].
-func Export(rules []NativeRule, flags ExportFlag) (data []byte, err error) {
+func Export(rules []std.NativeRule, flags ExportFlag) (data []byte, err error) {
 	err = makeFilter(rules, flags, &data)
 	return
 }
 
-// Load generates a bpf program from a slice of [NativeRule] and enforces it on the current process.
+// Load generates a bpf program from a slice of [std.NativeRule] and enforces it on the current process.
 // Errors returned by libseccomp is wrapped in [LibraryError].
-func Load(rules []NativeRule, flags ExportFlag) error { return makeFilter(rules, flags, nil) }
+func Load(rules []std.NativeRule, flags ExportFlag) error { return makeFilter(rules, flags, nil) }
 
 type (
 	// Comparison operators.
 	scmpCompare = C.enum_scmp_compare
-	// ScmpCompare is equivalent to enum scmp_compare;
-	ScmpCompare ScmpUint
+
+	// Argument datum.
+	scmpDatum = C.scmp_datum_t
+
+	// Argument / Value comparison definition.
+	scmpArgCmp = C.struct_scmp_arg_cmp
 )
 
 const (
@@ -219,29 +206,10 @@ const (
 	_SCMP_CMP_MAX = C._SCMP_CMP_MAX
 )
 
-type (
-	// Argument datum.
-	scmpDatum = C.scmp_datum_t
-	// ScmpDatum is equivalent to scmp_datum_t.
-	ScmpDatum uint64
-
-	// Argument / Value comparison definition.
-	scmpArgCmp = C.struct_scmp_arg_cmp
-	// ScmpArgCmp is equivalent to struct scmp_arg_cmp.
-	ScmpArgCmp struct {
-		// argument number, starting at 0
-		Arg ScmpUint
-		// the comparison op, e.g. SCMP_CMP_*
-		Op ScmpCompare
-
-		DatumA, DatumB ScmpDatum
-	}
-)
-
 const (
-	// PersonaLinux is passed in a [ScmpDatum] for filtering calls to syscall.SYS_PERSONALITY.
+	// PersonaLinux is passed in a [std.ScmpDatum] for filtering calls to syscall.SYS_PERSONALITY.
 	PersonaLinux = C.PER_LINUX
-	// PersonaLinux32 is passed in a [ScmpDatum] for filtering calls to syscall.SYS_PERSONALITY.
+	// PersonaLinux32 is passed in a [std.ScmpDatum] for filtering calls to syscall.SYS_PERSONALITY.
 	PersonaLinux32 = C.PER_LINUX32
 )
 

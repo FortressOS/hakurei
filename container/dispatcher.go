@@ -11,6 +11,7 @@ import (
 	"syscall"
 
 	"hakurei.app/container/seccomp"
+	"hakurei.app/container/std"
 	"hakurei.app/message"
 )
 
@@ -62,7 +63,7 @@ type syscallDispatcher interface {
 	ensureFile(name string, perm, pperm os.FileMode) error
 
 	// seccompLoad provides [seccomp.Load].
-	seccompLoad(rules []seccomp.NativeRule, flags seccomp.ExportFlag) error
+	seccompLoad(rules []std.NativeRule, flags seccomp.ExportFlag) error
 	// notify provides [signal.Notify].
 	notify(c chan<- os.Signal, sig ...os.Signal)
 	// start starts [os/exec.Cmd].
@@ -164,7 +165,7 @@ func (direct) ensureFile(name string, perm, pperm os.FileMode) error {
 	return ensureFile(name, perm, pperm)
 }
 
-func (direct) seccompLoad(rules []seccomp.NativeRule, flags seccomp.ExportFlag) error {
+func (direct) seccompLoad(rules []std.NativeRule, flags seccomp.ExportFlag) error {
 	return seccomp.Load(rules, flags)
 }
 func (direct) notify(c chan<- os.Signal, sig ...os.Signal) { signal.Notify(c, sig...) }
