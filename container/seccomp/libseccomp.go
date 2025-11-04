@@ -55,21 +55,25 @@ func (e *LibraryError) Is(err error) bool {
 
 type (
 	// ScmpSyscall represents a syscall number passed to libseccomp via [NativeRule.Syscall].
-	ScmpSyscall = C.int
+	ScmpSyscall C.int
 	// ScmpErrno represents an errno value passed to libseccomp via [NativeRule.Errno].
-	ScmpErrno = C.int
+	ScmpErrno C.int
+
+	// A NativeRule specifies an arch-specific action taken by seccomp under certain conditions.
+	NativeRule struct {
+		// Syscall is the arch-dependent syscall number to act against.
+		Syscall ScmpSyscall
+		// Errno is the errno value to return when the condition is satisfied.
+		Errno ScmpErrno
+		// Arg is the optional struct scmp_arg_cmp passed to libseccomp.
+		Arg *ScmpArgCmp
+	}
+
+	// syscallRule is equivalent to [NativeRule].
+	syscallRule = C.struct_hakurei_syscall_rule
 )
 
-// A NativeRule specifies an arch-specific action taken by seccomp under certain conditions.
-type NativeRule struct {
-	// Syscall is the arch-dependent syscall number to act against.
-	Syscall ScmpSyscall
-	// Errno is the errno value to return when the condition is satisfied.
-	Errno ScmpErrno
-	// Arg is the optional struct scmp_arg_cmp passed to libseccomp.
-	Arg *ScmpArgCmp
-}
-
+// ExportFlag configures filter behaviour that are not implemented as rules.
 type ExportFlag = C.hakurei_export_flag
 
 const (
@@ -152,7 +156,7 @@ func makeFilter(rules []NativeRule, flags ExportFlag, p *[]byte) error {
 	res, err := C.hakurei_scmp_make_filter(
 		&ret, C.uintptr_t(allocateP),
 		arch, multiarch,
-		(*C.struct_hakurei_syscall_rule)(unsafe.Pointer(&rules[0])),
+		(*syscallRule)(unsafe.Pointer(&rules[0])),
 		C.size_t(len(rules)),
 		flags,
 	)
@@ -203,20 +207,26 @@ const (
 	_SCMP_CMP_MAX = C._SCMP_CMP_MAX
 )
 
-// ScmpDatum is the equivalent of scmp_datum_t;
-// Argument datum
-type ScmpDatum uint64
+type (
+	// Argument datum.
+	scmpDatum = C.scmp_datum_t
 
-// ScmpArgCmp is the equivalent of struct scmp_arg_cmp;
-// Argument / Value comparison definition
-type ScmpArgCmp struct {
-	// argument number, starting at 0
-	Arg C.uint
-	// the comparison op, e.g. SCMP_CMP_*
-	Op ScmpCompare
+	// ScmpDatum is equivalent to scmp_datum_t.
+	ScmpDatum uint64
 
-	DatumA, DatumB ScmpDatum
-}
+	// Argument / Value comparison definition.
+	scmpArgCmp = C.struct_scmp_arg_cmp
+
+	// ScmpArgCmp is equivalent to struct scmp_arg_cmp.
+	ScmpArgCmp struct {
+		// argument number, starting at 0
+		Arg C.uint
+		// the comparison op, e.g. SCMP_CMP_*
+		Op ScmpCompare
+
+		DatumA, DatumB ScmpDatum
+	}
+)
 
 const (
 	// PersonaLinux is passed in a [ScmpDatum] for filtering calls to syscall.SYS_PERSONALITY.
