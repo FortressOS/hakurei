@@ -227,9 +227,10 @@ const (
 
 // syscallResolveName resolves a syscall number by name via seccomp_syscall_resolve_name.
 // This function is only for testing the lookup tables and included here for convenience.
-func syscallResolveName(s string) (trap int) {
+func syscallResolveName(s string) (trap int, ok bool) {
 	v := C.CString(s)
 	trap = int(C.seccomp_syscall_resolve_name(v))
 	C.free(unsafe.Pointer(v))
+	ok = trap != C.__NR_SCMP_ERROR
 	return
 }

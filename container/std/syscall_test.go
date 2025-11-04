@@ -1,4 +1,4 @@
-package seccomp
+package std_test
 
 import (
 	"testing"
@@ -13,9 +13,8 @@ func TestSyscallResolveName(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			// this checks the std implementation against libseccomp.
-			if got, ok := syscallResolveName(name); !ok || got != want {
-				t.Errorf("syscallResolveName(%q) = %d, want %d", name, got, want)
+			if got, ok := std.SyscallResolveName(name); !ok || got != want {
+				t.Errorf("SyscallResolveName(%q) = %d, want %d", name, got, want)
 			}
 		})
 	}

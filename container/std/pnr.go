@@ -1,6 +1,6 @@
 // Code generated from include/seccomp-syscalls.h; DO NOT EDIT.
 
-package seccomp
+package std
 
 /*
  * pseudo syscall definitions

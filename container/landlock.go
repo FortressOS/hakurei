@@ -5,7 +5,7 @@ import (
 	"syscall"
 	"unsafe"
 
-	"hakurei.app/container/seccomp"
+	"hakurei.app/container/std"
 )
 
 // include/uapi/linux/landlock.h
@@ -212,7 +212,7 @@ func (rulesetAttr *RulesetAttr) Create(flags uintptr) (fd int, err error) {
 		size = unsafe.Sizeof(*rulesetAttr)
 	}
 
-	rulesetFd, _, errno := syscall.Syscall(seccomp.SYS_LANDLOCK_CREATE_RULESET, pointer, size, flags)
+	rulesetFd, _, errno := syscall.Syscall(std.SYS_LANDLOCK_CREATE_RULESET, pointer, size, flags)
 	fd = int(rulesetFd)
 	err = errno
 
@@ -231,7 +231,7 @@ func LandlockGetABI() (int, error) {
 }
 
 func LandlockRestrictSelf(rulesetFd int, flags uintptr) error {
-	r, _, errno := syscall.Syscall(seccomp.SYS_LANDLOCK_RESTRICT_SELF, uintptr(rulesetFd), flags, 0)
+	r, _, errno := syscall.Syscall(std.SYS_LANDLOCK_RESTRICT_SELF, uintptr(rulesetFd), flags, 0)
 	if r != 0 {
 		return errno
 	}

@@ -1,4 +1,4 @@
-package seccomp
+package std
 
 import "iter"
 
