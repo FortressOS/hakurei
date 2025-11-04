@@ -1,11 +1,5 @@
 package seccomp
 
-/*
-#cgo linux pkg-config: --static libseccomp
-
-#include <seccomp.h>
-*/
-import "C"
 import "syscall"
 
 const (
@@ -37,25 +31,25 @@ var syscallNumExtra = map[string]int{
 }
 
 const (
-	SYS_USELIB          = C.__SNR_uselib
-	SYS_CLOCK_ADJTIME64 = C.__SNR_clock_adjtime64
-	SYS_CLOCK_SETTIME64 = C.__SNR_clock_settime64
-	SYS_UMOUNT          = C.__SNR_umount
-	SYS_CHOWN           = C.__SNR_chown
-	SYS_CHOWN32         = C.__SNR_chown32
-	SYS_FCHOWN32        = C.__SNR_fchown32
-	SYS_LCHOWN          = C.__SNR_lchown
-	SYS_LCHOWN32        = C.__SNR_lchown32
-	SYS_SETGID32        = C.__SNR_setgid32
-	SYS_SETGROUPS32     = C.__SNR_setgroups32
-	SYS_SETREGID32      = C.__SNR_setregid32
-	SYS_SETRESGID32     = C.__SNR_setresgid32
-	SYS_SETRESUID32     = C.__SNR_setresuid32
-	SYS_SETREUID32      = C.__SNR_setreuid32
-	SYS_SETUID32        = C.__SNR_setuid32
-	SYS_MODIFY_LDT      = C.__SNR_modify_ldt
-	SYS_SUBPAGE_PROT    = C.__SNR_subpage_prot
-	SYS_SWITCH_ENDIAN   = C.__SNR_switch_endian
-	SYS_VM86            = C.__SNR_vm86
-	SYS_VM86OLD         = C.__SNR_vm86old
+	SYS_USELIB          = __PNR_uselib
+	SYS_CLOCK_ADJTIME64 = __PNR_clock_adjtime64
+	SYS_CLOCK_SETTIME64 = __PNR_clock_settime64
+	SYS_UMOUNT          = __PNR_umount
+	SYS_CHOWN           = __PNR_chown
+	SYS_CHOWN32         = __PNR_chown32
+	SYS_FCHOWN32        = __PNR_fchown32
+	SYS_LCHOWN          = __PNR_lchown
+	SYS_LCHOWN32        = __PNR_lchown32
+	SYS_SETGID32        = __PNR_setgid32
+	SYS_SETGROUPS32     = __PNR_setgroups32
+	SYS_SETREGID32      = __PNR_setregid32
+	SYS_SETRESGID32     = __PNR_setresgid32
+	SYS_SETRESUID32     = __PNR_setresuid32
+	SYS_SETREUID32      = __PNR_setreuid32
+	SYS_SETUID32        = __PNR_setuid32
+	SYS_MODIFY_LDT      = __PNR_modify_ldt
+	SYS_SUBPAGE_PROT    = __PNR_subpage_prot
+	SYS_SWITCH_ENDIAN   = __PNR_switch_endian
+	SYS_VM86            = __PNR_vm86
+	SYS_VM86OLD         = __PNR_vm86old
 )
