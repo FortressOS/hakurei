@@ -20,6 +20,9 @@ func TestUIDString(t *testing.T) {
 		{hst.IsolatedStart + hst.IdentityStart, "u0_i0"},                    // isolatedStart
 		{(hst.RangeSize-1)*hst.UserOffset + hst.IsolatedEnd, "u9999_i9999"}, // isolatedEnd
 
+		{hst.ToUser[uint32](10, 127), "u10_a127"},
+		{hst.ToUser[uint32](11, 127), "u11_a127"},
+
 		{0, "0"}, // out of bounds
 	}
 	for _, tc := range testCases {
