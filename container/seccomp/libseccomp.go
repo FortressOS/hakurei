@@ -54,10 +54,19 @@ func (e *LibraryError) Is(err error) bool {
 }
 
 type (
+	// scmpUint is equivalent to [ScmpUint].
+	scmpUint = C.uint
+	// ScmpUint is equivalent to C.uint.
+	ScmpUint uint32
+	// scmpInt is equivalent to [ScmpInt].
+	scmpInt = C.int
+	// ScmpInt is equivalent to C.int.
+	ScmpInt int32
+
 	// ScmpSyscall represents a syscall number passed to libseccomp via [NativeRule.Syscall].
-	ScmpSyscall C.int
+	ScmpSyscall ScmpInt
 	// ScmpErrno represents an errno value passed to libseccomp via [NativeRule.Errno].
-	ScmpErrno C.int
+	ScmpErrno ScmpInt
 
 	// A NativeRule specifies an arch-specific action taken by seccomp under certain conditions.
 	NativeRule struct {
@@ -182,9 +191,12 @@ func Export(rules []NativeRule, flags ExportFlag) (data []byte, err error) {
 // Errors returned by libseccomp is wrapped in [LibraryError].
 func Load(rules []NativeRule, flags ExportFlag) error { return makeFilter(rules, flags, nil) }
 
-// ScmpCompare is the equivalent of scmp_compare;
-// Comparison operators
-type ScmpCompare = C.enum_scmp_compare
+type (
+	// Comparison operators.
+	scmpCompare = C.enum_scmp_compare
+	// ScmpCompare is equivalent to enum scmp_compare;
+	ScmpCompare ScmpUint
+)
 
 const (
 	_SCMP_CMP_MIN = C._SCMP_CMP_MIN
@@ -210,17 +222,15 @@ const (
 type (
 	// Argument datum.
 	scmpDatum = C.scmp_datum_t
-
 	// ScmpDatum is equivalent to scmp_datum_t.
 	ScmpDatum uint64
 
 	// Argument / Value comparison definition.
 	scmpArgCmp = C.struct_scmp_arg_cmp
-
 	// ScmpArgCmp is equivalent to struct scmp_arg_cmp.
 	ScmpArgCmp struct {
 		// argument number, starting at 0
-		Arg C.uint
+		Arg ScmpUint
 		// the comparison op, e.g. SCMP_CMP_*
 		Op ScmpCompare
 
