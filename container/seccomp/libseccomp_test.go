@@ -6,8 +6,8 @@ import (
 	"syscall"
 	"testing"
 
-	. "hakurei.app/container/comp"
 	. "hakurei.app/container/seccomp"
+	. "hakurei.app/container/std"
 )
 
 func TestLibraryError(t *testing.T) {

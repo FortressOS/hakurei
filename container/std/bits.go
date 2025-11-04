@@ -1,5 +1,5 @@
-// Package comp contains constants from container packages without depending on cgo.
-package comp
+// Package std contains constants from container packages without depending on cgo.
+package std
 
 const (
 	// BindOptional skips nonexistent host paths.

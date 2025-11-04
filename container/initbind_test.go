@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"hakurei.app/container/check"
-	"hakurei.app/container/comp"
+	"hakurei.app/container/std"
 	"hakurei.app/container/stub"
 )
 
@@ -25,7 +25,7 @@ func TestBindMountOp(t *testing.T) {
 		{"skip optional", new(Params), &BindMountOp{
 			Source: check.MustAbs("/bin/"),
 			Target: check.MustAbs("/bin/"),
-			Flags:  comp.BindOptional,
+			Flags:  std.BindOptional,
 		}, []stub.Call{
 			call("evalSymlinks", stub.ExpectArgs{"/bin/"}, "", syscall.ENOENT),
 		}, nil, nil, nil},
@@ -33,7 +33,7 @@ func TestBindMountOp(t *testing.T) {
 		{"success optional", new(Params), &BindMountOp{
 			Source: check.MustAbs("/bin/"),
 			Target: check.MustAbs("/bin/"),
-			Flags:  comp.BindOptional,
+			Flags:  std.BindOptional,
 		}, []stub.Call{
 			call("evalSymlinks", stub.ExpectArgs{"/bin/"}, "/usr/bin", nil),
 		}, nil, []stub.Call{
@@ -46,7 +46,7 @@ func TestBindMountOp(t *testing.T) {
 		{"ensureFile device", new(Params), &BindMountOp{
 			Source: check.MustAbs("/dev/null"),
 			Target: check.MustAbs("/dev/null"),
-			Flags:  comp.BindWritable | comp.BindDevice,
+			Flags:  std.BindWritable | std.BindDevice,
 		}, []stub.Call{
 			call("evalSymlinks", stub.ExpectArgs{"/dev/null"}, "/dev/null", nil),
 		}, nil, []stub.Call{
@@ -57,7 +57,7 @@ func TestBindMountOp(t *testing.T) {
 		{"mkdirAll ensure", new(Params), &BindMountOp{
 			Source: check.MustAbs("/bin/"),
 			Target: check.MustAbs("/bin/"),
-			Flags:  comp.BindEnsure,
+			Flags:  std.BindEnsure,
 		}, []stub.Call{
 			call("mkdirAll", stub.ExpectArgs{"/bin/", os.FileMode(0700)}, nil, stub.UniqueError(4)),
 		}, stub.UniqueError(4), nil, nil},
@@ -65,7 +65,7 @@ func TestBindMountOp(t *testing.T) {
 		{"success ensure", new(Params), &BindMountOp{
 			Source: check.MustAbs("/bin/"),
 			Target: check.MustAbs("/usr/bin/"),
-			Flags:  comp.BindEnsure,
+			Flags:  std.BindEnsure,
 		}, []stub.Call{
 			call("mkdirAll", stub.ExpectArgs{"/bin/", os.FileMode(0700)}, nil, nil),
 			call("evalSymlinks", stub.ExpectArgs{"/bin/"}, "/usr/bin", nil),
@@ -79,7 +79,7 @@ func TestBindMountOp(t *testing.T) {
 		{"success device ro", new(Params), &BindMountOp{
 			Source: check.MustAbs("/dev/null"),
 			Target: check.MustAbs("/dev/null"),
-			Flags:  comp.BindDevice,
+			Flags:  std.BindDevice,
 		}, []stub.Call{
 			call("evalSymlinks", stub.ExpectArgs{"/dev/null"}, "/dev/null", nil),
 		}, nil, []stub.Call{
@@ -92,7 +92,7 @@ func TestBindMountOp(t *testing.T) {
 		{"success device", new(Params), &BindMountOp{
 			Source: check.MustAbs("/dev/null"),
 			Target: check.MustAbs("/dev/null"),
-			Flags:  comp.BindWritable | comp.BindDevice,
+			Flags:  std.BindWritable | std.BindDevice,
 		}, []stub.Call{
 			call("evalSymlinks", stub.ExpectArgs{"/dev/null"}, "/dev/null", nil),
 		}, nil, []stub.Call{
@@ -182,7 +182,7 @@ func TestBindMountOp(t *testing.T) {
 		{"zero", new(BindMountOp), false},
 		{"nil source", &BindMountOp{Target: check.MustAbs("/")}, false},
 		{"nil target", &BindMountOp{Source: check.MustAbs("/")}, false},
-		{"flag optional ensure", &BindMountOp{Source: check.MustAbs("/"), Target: check.MustAbs("/"), Flags: comp.BindOptional | comp.BindEnsure}, false},
+		{"flag optional ensure", &BindMountOp{Source: check.MustAbs("/"), Target: check.MustAbs("/"), Flags: std.BindOptional | std.BindEnsure}, false},
 		{"valid", &BindMountOp{Source: check.MustAbs("/"), Target: check.MustAbs("/")}, true},
 	})
 
@@ -217,7 +217,7 @@ func TestBindMountOp(t *testing.T) {
 		}, &BindMountOp{
 			Source: check.MustAbs("/etc/"),
 			Target: check.MustAbs("/etc/.host/048090b6ed8f9ebb10e275ff5d8c0659"),
-			Flags:  comp.BindOptional,
+			Flags:  std.BindOptional,
 		}, false},
 
 		{"source differs", &BindMountOp{
@@ -256,7 +256,7 @@ func TestBindMountOp(t *testing.T) {
 		{"hostdev", &BindMountOp{
 			Source: check.MustAbs("/dev/"),
 			Target: check.MustAbs("/dev/"),
-			Flags:  comp.BindWritable | comp.BindDevice,
+			Flags:  std.BindWritable | std.BindDevice,
 		}, "mounting", `"/dev/" flags 0x6`},
 	})
 }

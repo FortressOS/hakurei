@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"hakurei.app/container/check"
-	"hakurei.app/container/comp"
+	"hakurei.app/container/std"
 	"hakurei.app/container/stub"
 	"hakurei.app/message"
 )
@@ -23,14 +23,14 @@ func TestAutoRootOp(t *testing.T) {
 	checkOpBehaviour(t, []opBehaviourTestCase{
 		{"readdir", &Params{ParentPerm: 0750}, &AutoRootOp{
 			Host:  check.MustAbs("/"),
-			Flags: comp.BindWritable,
+			Flags: std.BindWritable,
 		}, []stub.Call{
 			call("readdir", stub.ExpectArgs{"/"}, stubDir(), stub.UniqueError(2)),
 		}, stub.UniqueError(2), nil, nil},
 
 		{"early", &Params{ParentPerm: 0750}, &AutoRootOp{
 			Host:  check.MustAbs("/"),
-			Flags: comp.BindWritable,
+			Flags: std.BindWritable,
 		}, []stub.Call{
 			call("readdir", stub.ExpectArgs{"/"}, stubDir("bin", "dev", "etc", "home", "lib64",
 				"lost+found", "mnt", "nix", "proc", "root", "run", "srv", "sys", "tmp", "usr", "var"), nil),
@@ -39,7 +39,7 @@ func TestAutoRootOp(t *testing.T) {
 
 		{"apply", &Params{ParentPerm: 0750}, &AutoRootOp{
 			Host:  check.MustAbs("/"),
-			Flags: comp.BindWritable,
+			Flags: std.BindWritable,
 		}, []stub.Call{
 			call("readdir", stub.ExpectArgs{"/"}, stubDir("bin", "dev", "etc", "home", "lib64",
 				"lost+found", "mnt", "nix", "proc", "root", "run", "srv", "sys", "tmp", "usr", "var"), nil),
@@ -60,7 +60,7 @@ func TestAutoRootOp(t *testing.T) {
 
 		{"success pd", &Params{ParentPerm: 0750}, &AutoRootOp{
 			Host:  check.MustAbs("/"),
-			Flags: comp.BindWritable,
+			Flags: std.BindWritable,
 		}, []stub.Call{
 			call("readdir", stub.ExpectArgs{"/"}, stubDir("bin", "dev", "etc", "home", "lib64",
 				"lost+found", "mnt", "nix", "proc", "root", "run", "srv", "sys", "tmp", "usr", "var"), nil),
@@ -127,10 +127,10 @@ func TestAutoRootOp(t *testing.T) {
 	})
 
 	checkOpsBuilder(t, []opsBuilderTestCase{
-		{"pd", new(Ops).Root(check.MustAbs("/"), comp.BindWritable), Ops{
+		{"pd", new(Ops).Root(check.MustAbs("/"), std.BindWritable), Ops{
 			&AutoRootOp{
 				Host:  check.MustAbs("/"),
-				Flags: comp.BindWritable,
+				Flags: std.BindWritable,
 			},
 		}},
 	})
@@ -140,42 +140,42 @@ func TestAutoRootOp(t *testing.T) {
 
 		{"internal ne", &AutoRootOp{
 			Host:  check.MustAbs("/"),
-			Flags: comp.BindWritable,
+			Flags: std.BindWritable,
 		}, &AutoRootOp{
 			Host:     check.MustAbs("/"),
-			Flags:    comp.BindWritable,
+			Flags:    std.BindWritable,
 			resolved: []*BindMountOp{new(BindMountOp)},
 		}, true},
 
 		{"flags differs", &AutoRootOp{
 			Host:  check.MustAbs("/"),
-			Flags: comp.BindWritable | comp.BindDevice,
+			Flags: std.BindWritable | std.BindDevice,
 		}, &AutoRootOp{
 			Host:  check.MustAbs("/"),
-			Flags: comp.BindWritable,
+			Flags: std.BindWritable,
 		}, false},
 
 		{"host differs", &AutoRootOp{
 			Host:  check.MustAbs("/tmp/"),
-			Flags: comp.BindWritable,
+			Flags: std.BindWritable,
 		}, &AutoRootOp{
 			Host:  check.MustAbs("/"),
-			Flags: comp.BindWritable,
+			Flags: std.BindWritable,
 		}, false},
 
 		{"equals", &AutoRootOp{
 			Host:  check.MustAbs("/"),
-			Flags: comp.BindWritable,
+			Flags: std.BindWritable,
 		}, &AutoRootOp{
 			Host:  check.MustAbs("/"),
-			Flags: comp.BindWritable,
+			Flags: std.BindWritable,
 		}, true},
 	})
 
 	checkOpMeta(t, []opMetaTestCase{
 		{"root", &AutoRootOp{
 			Host:  check.MustAbs("/"),
-			Flags: comp.BindWritable,
+			Flags: std.BindWritable,
 		}, "setting up", `auto root "/" flags 0x2`},
 	})
 }

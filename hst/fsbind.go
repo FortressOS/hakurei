@@ -5,8 +5,8 @@ import (
 	"strings"
 
 	"hakurei.app/container/check"
-	"hakurei.app/container/comp"
 	"hakurei.app/container/fhs"
+	"hakurei.app/container/std"
 )
 
 func init() { gob.Register(new(FSBind)) }
@@ -97,16 +97,16 @@ func (b *FSBind) Apply(z *ApplyState) {
 	}
 	var flags int
 	if b.Write {
-		flags |= comp.BindWritable
+		flags |= std.BindWritable
 	}
 	if b.Device {
-		flags |= comp.BindDevice | comp.BindWritable
+		flags |= std.BindDevice | std.BindWritable
 	}
 	if b.Ensure {
-		flags |= comp.BindEnsure
+		flags |= std.BindEnsure
 	}
 	if b.Optional {
-		flags |= comp.BindOptional
+		flags |= std.BindOptional
 	}
 
 	switch {

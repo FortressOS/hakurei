@@ -9,9 +9,9 @@ import (
 
 	"hakurei.app/container"
 	"hakurei.app/container/check"
-	"hakurei.app/container/comp"
 	"hakurei.app/container/fhs"
 	"hakurei.app/container/seccomp"
+	"hakurei.app/container/std"
 	"hakurei.app/container/stub"
 	"hakurei.app/hst"
 	"hakurei.app/system"
@@ -65,11 +65,11 @@ func TestSpParamsOp(t *testing.T) {
 			HostAbstract:   true,
 			Path:           config.Container.Path,
 			Args:           []string{config.Container.Path.String()},
-			SeccompPresets: comp.PresetExt | comp.PresetDenyDevel | comp.PresetDenyNS | comp.PresetDenyTTY,
+			SeccompPresets: std.PresetExt | std.PresetDenyDevel | std.PresetDenyNS | std.PresetDenyTTY,
 			Uid:            1000,
 			Gid:            100,
 			Ops: new(container.Ops).
-				Root(m("/var/lib/hakurei/base/org.debian"), comp.BindWritable).
+				Root(m("/var/lib/hakurei/base/org.debian"), std.BindWritable).
 				Proc(fhs.AbsProc).Tmpfs(hst.AbsPrivateTmp, 1<<12, 0755).
 				DevWritable(fhs.AbsDev, true).
 				Tmpfs(fhs.AbsDev.Append("shm"), 0, 01777),
@@ -107,9 +107,9 @@ func TestSpParamsOp(t *testing.T) {
 			Uid:           1000,
 			Gid:           100,
 			Ops: new(container.Ops).
-				Root(m("/var/lib/hakurei/base/org.debian"), comp.BindWritable).
+				Root(m("/var/lib/hakurei/base/org.debian"), std.BindWritable).
 				Proc(fhs.AbsProc).Tmpfs(hst.AbsPrivateTmp, 1<<12, 0755).
-				Bind(fhs.AbsDev, fhs.AbsDev, comp.BindWritable|comp.BindDevice).
+				Bind(fhs.AbsDev, fhs.AbsDev, std.BindWritable|std.BindDevice).
 				Tmpfs(fhs.AbsDev.Append("shm"), 0, 01777),
 		}, paramsWantEnv(config, map[string]string{
 			"TERM": "xterm",
@@ -425,8 +425,8 @@ func TestSpFilesystemOp(t *testing.T) {
 				Bind(
 					fhs.AbsVarLib.Append("hakurei/u0/org.chromium.Chromium"),
 					check.MustAbs("/data/data/org.chromium.Chromium"),
-					comp.BindWritable|comp.BindEnsure).
-				Bind(fhs.AbsDev.Append("dri"), fhs.AbsDev.Append("dri"), comp.BindDevice|comp.BindWritable|comp.BindOptional).
+					std.BindWritable|std.BindEnsure).
+				Bind(fhs.AbsDev.Append("dri"), fhs.AbsDev.Append("dri"), std.BindDevice|std.BindWritable|std.BindOptional).
 				Remount(fhs.AbsRoot, syscall.MS_RDONLY),
 		}, nil, nil},
 	})

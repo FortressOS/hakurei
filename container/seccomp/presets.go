@@ -5,32 +5,32 @@ package seccomp
 import (
 	. "syscall"
 
-	"hakurei.app/container/comp"
+	"hakurei.app/container/std"
 )
 
-func Preset(presets comp.FilterPreset, flags ExportFlag) (rules []NativeRule) {
+func Preset(presets std.FilterPreset, flags ExportFlag) (rules []NativeRule) {
 	allowedPersonality := PersonaLinux
-	if presets&comp.PresetLinux32 != 0 {
+	if presets&std.PresetLinux32 != 0 {
 		allowedPersonality = PersonaLinux32
 	}
 	presetDevelFinal := presetDevel(ScmpDatum(allowedPersonality))
 
 	l := len(presetCommon)
-	if presets&comp.PresetDenyNS != 0 {
+	if presets&std.PresetDenyNS != 0 {
 		l += len(presetNamespace)
 	}
-	if presets&comp.PresetDenyTTY != 0 {
+	if presets&std.PresetDenyTTY != 0 {
 		l += len(presetTTY)
 	}
-	if presets&comp.PresetDenyDevel != 0 {
+	if presets&std.PresetDenyDevel != 0 {
 		l += len(presetDevelFinal)
 	}
 	if flags&AllowMultiarch == 0 {
 		l += len(presetEmu)
 	}
-	if presets&comp.PresetExt != 0 {
+	if presets&std.PresetExt != 0 {
 		l += len(presetCommonExt)
-		if presets&comp.PresetDenyNS != 0 {
+		if presets&std.PresetDenyNS != 0 {
 			l += len(presetNamespaceExt)
 		}
 		if flags&AllowMultiarch == 0 {
@@ -40,21 +40,21 @@ func Preset(presets comp.FilterPreset, flags ExportFlag) (rules []NativeRule) {
 
 	rules = make([]NativeRule, 0, l)
 	rules = append(rules, presetCommon...)
-	if presets&comp.PresetDenyNS != 0 {
+	if presets&std.PresetDenyNS != 0 {
 		rules = append(rules, presetNamespace...)
 	}
-	if presets&comp.PresetDenyTTY != 0 {
+	if presets&std.PresetDenyTTY != 0 {
 		rules = append(rules, presetTTY...)
 	}
-	if presets&comp.PresetDenyDevel != 0 {
+	if presets&std.PresetDenyDevel != 0 {
 		rules = append(rules, presetDevelFinal...)
 	}
 	if flags&AllowMultiarch == 0 {
 		rules = append(rules, presetEmu...)
 	}
-	if presets&comp.PresetExt != 0 {
+	if presets&std.PresetExt != 0 {
 		rules = append(rules, presetCommonExt...)
-		if presets&comp.PresetDenyNS != 0 {
+		if presets&std.PresetDenyNS != 0 {
 			rules = append(rules, presetNamespaceExt...)
 		}
 		if flags&AllowMultiarch == 0 {

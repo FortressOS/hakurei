@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	"hakurei.app/container"
-	"hakurei.app/container/comp"
 	"hakurei.app/container/fhs"
+	"hakurei.app/container/std"
 	"hakurei.app/container/stub"
 	"hakurei.app/hst"
 	"hakurei.app/system"
@@ -28,7 +28,7 @@ func TestSpTmpdirOp(t *testing.T) {
 			// this op configures the container state and does not make calls during toContainer
 		}, &container.Params{
 			Ops: new(container.Ops).
-				Bind(m("/proc/nonexistent/tmp/hakurei.0/tmpdir/9"), fhs.AbsTmp, comp.BindWritable),
+				Bind(m("/proc/nonexistent/tmp/hakurei.0/tmpdir/9"), fhs.AbsTmp, std.BindWritable),
 		}, nil, nil},
 	})
 }

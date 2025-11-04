@@ -15,9 +15,9 @@ import (
 	"time"
 
 	"hakurei.app/container/check"
-	"hakurei.app/container/comp"
 	"hakurei.app/container/fhs"
 	"hakurei.app/container/seccomp"
+	"hakurei.app/container/std"
 	"hakurei.app/message"
 )
 
@@ -89,7 +89,7 @@ type (
 		// Extra seccomp flags.
 		SeccompFlags seccomp.ExportFlag
 		// Seccomp presets. Has no effect unless SeccompRules is zero-length.
-		SeccompPresets comp.FilterPreset
+		SeccompPresets std.FilterPreset
 		// Do not load seccomp program.
 		SeccompDisable bool
 
@@ -177,7 +177,7 @@ func (p *Container) Start() error {
 	}
 
 	if !p.RetainSession {
-		p.SeccompPresets |= comp.PresetDenyTTY
+		p.SeccompPresets |= std.PresetDenyTTY
 	}
 
 	if p.AdoptWaitDelay == 0 {

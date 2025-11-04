@@ -17,9 +17,9 @@ import (
 
 	"hakurei.app/container"
 	"hakurei.app/container/check"
-	"hakurei.app/container/comp"
 	"hakurei.app/container/fhs"
 	"hakurei.app/container/seccomp"
+	"hakurei.app/container/std"
 	"hakurei.app/hst"
 	"hakurei.app/message"
 	"hakurei.app/system"
@@ -136,19 +136,19 @@ func TestOutcomeMain(t *testing.T) {
 
 			Ops: new(container.Ops).
 				// resolveRoot
-				Root(m("/var/lib/hakurei/base/org.debian"), comp.BindWritable).
+				Root(m("/var/lib/hakurei/base/org.debian"), std.BindWritable).
 				// spParamsOp
 				Proc(fhs.AbsProc).
 				Tmpfs(hst.AbsPrivateTmp, 1<<12, 0755).
-				Bind(fhs.AbsDev, fhs.AbsDev, comp.BindWritable|comp.BindDevice).
+				Bind(fhs.AbsDev, fhs.AbsDev, std.BindWritable|std.BindDevice).
 				Tmpfs(fhs.AbsDev.Append("shm"), 0, 01777).
 
 				// spRuntimeOp
 				Tmpfs(fhs.AbsRunUser, 1<<12, 0755).
-				Bind(m("/tmp/hakurei.0/runtime/9"), m("/run/user/1971"), comp.BindWritable).
+				Bind(m("/tmp/hakurei.0/runtime/9"), m("/run/user/1971"), std.BindWritable).
 
 				// spTmpdirOp
-				Bind(m("/tmp/hakurei.0/tmpdir/9"), fhs.AbsTmp, comp.BindWritable).
+				Bind(m("/tmp/hakurei.0/tmpdir/9"), fhs.AbsTmp, std.BindWritable).
 
 				// spAccountOp
 				Place(m("/etc/passwd"), []byte("chronos:x:1971:100:Hakurei:/data/data/org.chromium.Chromium:/run/current-system/sw/bin/zsh\n")).
@@ -176,9 +176,9 @@ func TestOutcomeMain(t *testing.T) {
 				Link(m("/run/opengl-driver"), "/run/opengl-driver", true).
 				Bind(fhs.AbsVarLib.Append("hakurei/u0/org.chromium.Chromium"),
 					m("/data/data/org.chromium.Chromium"),
-					comp.BindWritable|comp.BindEnsure).
+					std.BindWritable|std.BindEnsure).
 				Bind(fhs.AbsDev.Append("dri"), fhs.AbsDev.Append("dri"),
-					comp.BindOptional|comp.BindWritable|comp.BindDevice).
+					std.BindOptional|std.BindWritable|std.BindDevice).
 				Remount(fhs.AbsRoot, syscall.MS_RDONLY),
 		}},
 
@@ -239,24 +239,24 @@ func TestOutcomeMain(t *testing.T) {
 				"XDG_SESSION_TYPE=tty",
 			},
 			Ops: new(container.Ops).
-				Root(m("/"), comp.BindWritable).
+				Root(m("/"), std.BindWritable).
 				Proc(m("/proc/")).
 				Tmpfs(hst.AbsPrivateTmp, 4096, 0755).
 				DevWritable(m("/dev/"), true).
 				Tmpfs(m("/dev/shm"), 0, 01777).
 				Tmpfs(m("/run/user/"), 4096, 0755).
-				Bind(m("/tmp/hakurei.0/runtime/0"), m("/run/user/65534"), comp.BindWritable).
-				Bind(m("/tmp/hakurei.0/tmpdir/0"), m("/tmp/"), comp.BindWritable).
+				Bind(m("/tmp/hakurei.0/runtime/0"), m("/run/user/65534"), std.BindWritable).
+				Bind(m("/tmp/hakurei.0/tmpdir/0"), m("/tmp/"), std.BindWritable).
 				Place(m("/etc/passwd"), []byte("chronos:x:65534:65534:Hakurei:/home/chronos:/run/current-system/sw/bin/zsh\n")).
 				Place(m("/etc/group"), []byte("hakurei:x:65534:\n")).
-				Bind(m("/dev/kvm"), m("/dev/kvm"), comp.BindWritable|comp.BindDevice|comp.BindOptional).
+				Bind(m("/dev/kvm"), m("/dev/kvm"), std.BindWritable|std.BindDevice|std.BindOptional).
 				Etc(m("/etc/"), "4a450b6596d7bc15bd01780eb9a607ac").
 				Tmpfs(m("/run/user/1971"), 8192, 0755).
 				Tmpfs(m("/run/nscd"), 8192, 0755).
 				Tmpfs(m("/run/dbus"), 8192, 0755).
 				Remount(m("/dev/"), syscall.MS_RDONLY).
 				Remount(m("/"), syscall.MS_RDONLY),
-			SeccompPresets: comp.PresetExt | comp.PresetDenyDevel,
+			SeccompPresets: std.PresetExt | std.PresetDenyDevel,
 			HostNet:        true,
 			HostAbstract:   true,
 			RetainSession:  true,
@@ -408,14 +408,14 @@ func TestOutcomeMain(t *testing.T) {
 				"XDG_SESSION_TYPE=wayland",
 			},
 			Ops: new(container.Ops).
-				Root(m("/"), comp.BindWritable).
+				Root(m("/"), std.BindWritable).
 				Proc(m("/proc/")).
 				Tmpfs(hst.AbsPrivateTmp, 4096, 0755).
 				DevWritable(m("/dev/"), true).
 				Tmpfs(m("/dev/shm"), 0, 01777).
 				Tmpfs(m("/run/user/"), 4096, 0755).
-				Bind(m("/tmp/hakurei.0/runtime/9"), m("/run/user/65534"), comp.BindWritable).
-				Bind(m("/tmp/hakurei.0/tmpdir/9"), m("/tmp/"), comp.BindWritable).
+				Bind(m("/tmp/hakurei.0/runtime/9"), m("/run/user/65534"), std.BindWritable).
+				Bind(m("/tmp/hakurei.0/tmpdir/9"), m("/tmp/"), std.BindWritable).
 				Place(m("/etc/passwd"), []byte("chronos:x:65534:65534:Hakurei:/home/chronos:/run/current-system/sw/bin/zsh\n")).
 				Place(m("/etc/group"), []byte("hakurei:x:65534:\n")).
 				Bind(m("/tmp/hakurei.0/ebf083d1b175911782d413369b64ce7c/wayland"), m("/run/user/65534/wayland-0"), 0).
@@ -423,15 +423,15 @@ func TestOutcomeMain(t *testing.T) {
 				Place(m(hst.PrivateTmp+"/pulse-cookie"), bytes.Repeat([]byte{0}, pulseCookieSizeMax)).
 				Bind(m("/tmp/hakurei.0/ebf083d1b175911782d413369b64ce7c/bus"), m("/run/user/65534/bus"), 0).
 				Bind(m("/tmp/hakurei.0/ebf083d1b175911782d413369b64ce7c/system_bus_socket"), m("/var/run/dbus/system_bus_socket"), 0).
-				Bind(m("/dev/dri"), m("/dev/dri"), comp.BindWritable|comp.BindDevice|comp.BindOptional).
-				Bind(m("/dev/kvm"), m("/dev/kvm"), comp.BindWritable|comp.BindDevice|comp.BindOptional).
+				Bind(m("/dev/dri"), m("/dev/dri"), std.BindWritable|std.BindDevice|std.BindOptional).
+				Bind(m("/dev/kvm"), m("/dev/kvm"), std.BindWritable|std.BindDevice|std.BindOptional).
 				Etc(m("/etc/"), "ebf083d1b175911782d413369b64ce7c").
 				Tmpfs(m("/run/user/1971"), 8192, 0755).
 				Tmpfs(m("/run/nscd"), 8192, 0755).
 				Tmpfs(m("/run/dbus"), 8192, 0755).
 				Remount(m("/dev/"), syscall.MS_RDONLY).
 				Remount(m("/"), syscall.MS_RDONLY),
-			SeccompPresets: comp.PresetExt | comp.PresetDenyDevel,
+			SeccompPresets: std.PresetExt | std.PresetDenyDevel,
 			HostNet:        true,
 			HostAbstract:   true,
 			RetainSession:  true,
@@ -560,8 +560,8 @@ func TestOutcomeMain(t *testing.T) {
 				DevWritable(m("/dev/"), true).
 				Tmpfs(m("/dev/shm"), 0, 01777).
 				Tmpfs(m("/run/user/"), 4096, 0755).
-				Bind(m("/tmp/hakurei.0/runtime/1"), m("/run/user/1971"), comp.BindWritable).
-				Bind(m("/tmp/hakurei.0/tmpdir/1"), m("/tmp/"), comp.BindWritable).
+				Bind(m("/tmp/hakurei.0/runtime/1"), m("/run/user/1971"), std.BindWritable).
+				Bind(m("/tmp/hakurei.0/tmpdir/1"), m("/tmp/"), std.BindWritable).
 				Place(m("/etc/passwd"), []byte("u0_a1:x:1971:100:Hakurei:/var/lib/persist/module/hakurei/0/1:/run/current-system/sw/bin/zsh\n")).
 				Place(m("/etc/group"), []byte("hakurei:x:100:\n")).
 				Bind(m("/run/user/1971/wayland-0"), m("/run/user/1971/wayland-0"), 0).
@@ -573,18 +573,18 @@ func TestOutcomeMain(t *testing.T) {
 				Bind(m("/usr/bin/"), m("/usr/bin/"), 0).
 				Bind(m("/nix/store"), m("/nix/store"), 0).
 				Bind(m("/run/current-system"), m("/run/current-system"), 0).
-				Bind(m("/sys/block"), m("/sys/block"), comp.BindOptional).
-				Bind(m("/sys/bus"), m("/sys/bus"), comp.BindOptional).
-				Bind(m("/sys/class"), m("/sys/class"), comp.BindOptional).
-				Bind(m("/sys/dev"), m("/sys/dev"), comp.BindOptional).
-				Bind(m("/sys/devices"), m("/sys/devices"), comp.BindOptional).
+				Bind(m("/sys/block"), m("/sys/block"), std.BindOptional).
+				Bind(m("/sys/bus"), m("/sys/bus"), std.BindOptional).
+				Bind(m("/sys/class"), m("/sys/class"), std.BindOptional).
+				Bind(m("/sys/dev"), m("/sys/dev"), std.BindOptional).
+				Bind(m("/sys/devices"), m("/sys/devices"), std.BindOptional).
 				Bind(m("/run/opengl-driver"), m("/run/opengl-driver"), 0).
-				Bind(m("/dev/dri"), m("/dev/dri"), comp.BindDevice|comp.BindWritable|comp.BindOptional).
+				Bind(m("/dev/dri"), m("/dev/dri"), std.BindDevice|std.BindWritable|std.BindOptional).
 				Etc(m("/etc/"), "8e2c76b066dabe574cf073bdb46eb5c1").
-				Bind(m("/var/lib/persist/module/hakurei/0/1"), m("/var/lib/persist/module/hakurei/0/1"), comp.BindWritable|comp.BindEnsure).
+				Bind(m("/var/lib/persist/module/hakurei/0/1"), m("/var/lib/persist/module/hakurei/0/1"), std.BindWritable|std.BindEnsure).
 				Remount(m("/dev/"), syscall.MS_RDONLY).
 				Remount(m("/"), syscall.MS_RDONLY),
-			SeccompPresets: comp.PresetExt | comp.PresetDenyTTY | comp.PresetDenyDevel,
+			SeccompPresets: std.PresetExt | std.PresetDenyTTY | std.PresetDenyDevel,
 			HostNet:        true,
 			ForwardCancel:  true,
 		}},

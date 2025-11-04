@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	"hakurei.app/container"
-	"hakurei.app/container/comp"
 	"hakurei.app/container/fhs"
+	"hakurei.app/container/std"
 	"hakurei.app/container/stub"
 	"hakurei.app/hst"
 	"hakurei.app/system"
@@ -41,7 +41,7 @@ func TestSpRuntimeOp(t *testing.T) {
 		}, &container.Params{
 			Ops: new(container.Ops).
 				Tmpfs(fhs.AbsRunUser, 1<<12, 0755).
-				Bind(m("/proc/nonexistent/tmp/hakurei.0/runtime/9"), m("/run/user/1000"), comp.BindWritable),
+				Bind(m("/proc/nonexistent/tmp/hakurei.0/runtime/9"), m("/run/user/1000"), std.BindWritable),
 		}, paramsWantEnv(config, map[string]string{
 			"XDG_RUNTIME_DIR":   "/run/user/1000",
 			"XDG_SESSION_CLASS": "user",
@@ -68,7 +68,7 @@ func TestSpRuntimeOp(t *testing.T) {
 		}, &container.Params{
 			Ops: new(container.Ops).
 				Tmpfs(fhs.AbsRunUser, 1<<12, 0755).
-				Bind(m("/proc/nonexistent/tmp/hakurei.0/runtime/9"), m("/run/user/1000"), comp.BindWritable),
+				Bind(m("/proc/nonexistent/tmp/hakurei.0/runtime/9"), m("/run/user/1000"), std.BindWritable),
 		}, paramsWantEnv(config, map[string]string{
 			"XDG_RUNTIME_DIR":   "/run/user/1000",
 			"XDG_SESSION_CLASS": "user",
@@ -95,7 +95,7 @@ func TestSpRuntimeOp(t *testing.T) {
 		}, &container.Params{
 			Ops: new(container.Ops).
 				Tmpfs(fhs.AbsRunUser, 1<<12, 0755).
-				Bind(m("/proc/nonexistent/tmp/hakurei.0/runtime/9"), m("/run/user/1000"), comp.BindWritable),
+				Bind(m("/proc/nonexistent/tmp/hakurei.0/runtime/9"), m("/run/user/1000"), std.BindWritable),
 		}, paramsWantEnv(config, map[string]string{
 			"XDG_RUNTIME_DIR":   "/run/user/1000",
 			"XDG_SESSION_CLASS": "user",
@@ -118,7 +118,7 @@ func TestSpRuntimeOp(t *testing.T) {
 		}, &container.Params{
 			Ops: new(container.Ops).
 				Tmpfs(fhs.AbsRunUser, 1<<12, 0755).
-				Bind(m("/proc/nonexistent/tmp/hakurei.0/runtime/9"), m("/run/user/1000"), comp.BindWritable),
+				Bind(m("/proc/nonexistent/tmp/hakurei.0/runtime/9"), m("/run/user/1000"), std.BindWritable),
 		}, paramsWantEnv(config, map[string]string{
 			"XDG_RUNTIME_DIR":   "/run/user/1000",
 			"XDG_SESSION_CLASS": "user",

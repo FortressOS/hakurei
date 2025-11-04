@@ -4,14 +4,14 @@ import (
 	"crypto/sha512"
 	"encoding/hex"
 
-	"hakurei.app/container/comp"
 	"hakurei.app/container/seccomp"
+	"hakurei.app/container/std"
 )
 
 type (
 	bpfPreset = struct {
 		seccomp.ExportFlag
-		comp.FilterPreset
+		std.FilterPreset
 	}
 	bpfLookup map[bpfPreset][sha512.Size]byte
 )

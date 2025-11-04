@@ -10,9 +10,9 @@ import (
 	"testing"
 
 	"hakurei.app/container"
-	"hakurei.app/container/comp"
 	"hakurei.app/container/fhs"
 	"hakurei.app/container/seccomp"
+	"hakurei.app/container/std"
 	"hakurei.app/container/stub"
 	"hakurei.app/hst"
 	"hakurei.app/internal/env"
@@ -20,7 +20,7 @@ import (
 
 func TestShimEntrypoint(t *testing.T) {
 	t.Parallel()
-	shimPreset := seccomp.Preset(comp.PresetStrict, seccomp.AllowMultiarch)
+	shimPreset := seccomp.Preset(std.PresetStrict, seccomp.AllowMultiarch)
 	templateParams := &container.Params{
 		Dir: m("/data/data/org.chromium.Chromium"),
 		Env: []string{
@@ -61,19 +61,19 @@ func TestShimEntrypoint(t *testing.T) {
 
 		Ops: new(container.Ops).
 			// resolveRoot
-			Root(m("/var/lib/hakurei/base/org.debian"), comp.BindWritable).
+			Root(m("/var/lib/hakurei/base/org.debian"), std.BindWritable).
 			// spParamsOp
 			Proc(fhs.AbsProc).
 			Tmpfs(hst.AbsPrivateTmp, 1<<12, 0755).
-			Bind(fhs.AbsDev, fhs.AbsDev, comp.BindWritable|comp.BindDevice).
+			Bind(fhs.AbsDev, fhs.AbsDev, std.BindWritable|std.BindDevice).
 			Tmpfs(fhs.AbsDev.Append("shm"), 0, 01777).
 
 			// spRuntimeOp
 			Tmpfs(fhs.AbsRunUser, 1<<12, 0755).
-			Bind(m("/tmp/hakurei.10/runtime/9999"), m("/run/user/1000"), comp.BindWritable).
+			Bind(m("/tmp/hakurei.10/runtime/9999"), m("/run/user/1000"), std.BindWritable).
 
 			// spTmpdirOp
-			Bind(m("/tmp/hakurei.10/tmpdir/9999"), fhs.AbsTmp, comp.BindWritable).
+			Bind(m("/tmp/hakurei.10/tmpdir/9999"), fhs.AbsTmp, std.BindWritable).
 
 			// spAccountOp
 			Place(m("/etc/passwd"), []byte("chronos:x:1000:100:Hakurei:/data/data/org.chromium.Chromium:/run/current-system/sw/bin/zsh\n")).
@@ -101,9 +101,9 @@ func TestShimEntrypoint(t *testing.T) {
 			Link(m("/run/opengl-driver"), "/run/opengl-driver", true).
 			Bind(fhs.AbsVarLib.Append("hakurei/u0/org.chromium.Chromium"),
 				m("/data/data/org.chromium.Chromium"),
-				comp.BindWritable|comp.BindEnsure).
+				std.BindWritable|std.BindEnsure).
 			Bind(fhs.AbsDev.Append("dri"), fhs.AbsDev.Append("dri"),
-				comp.BindOptional|comp.BindWritable|comp.BindDevice).
+				std.BindOptional|std.BindWritable|std.BindDevice).
 			Remount(fhs.AbsRoot, syscall.MS_RDONLY),
 	}
 

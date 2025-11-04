@@ -1,8 +1,8 @@
 package seccomp_test
 
 import (
-	. "hakurei.app/container/comp"
 	. "hakurei.app/container/seccomp"
+	. "hakurei.app/container/std"
 )
 
 var bpfExpected = bpfLookup{

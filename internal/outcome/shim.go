@@ -14,8 +14,8 @@ import (
 	"time"
 
 	"hakurei.app/container"
-	"hakurei.app/container/comp"
 	"hakurei.app/container/seccomp"
+	"hakurei.app/container/std"
 	"hakurei.app/hst"
 	"hakurei.app/message"
 )
@@ -233,7 +233,7 @@ func shimEntrypoint(k syscallDispatcher) {
 	}
 
 	if err := k.seccompLoad(
-		seccomp.Preset(comp.PresetStrict, seccomp.AllowMultiarch),
+		seccomp.Preset(std.PresetStrict, seccomp.AllowMultiarch),
 		seccomp.AllowMultiarch,
 	); err != nil {
 		k.fatalf("cannot load syscall filter: %v", err)
