@@ -11,18 +11,18 @@ func TestMkdirOp(t *testing.T) {
 	t.Parallel()
 
 	checkOpBehaviour(t, []opBehaviourTestCase{
-		{"mkdir", 0xdeadbeef, 0xff, &mkdirOp{User, "/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9", 0711, false}, []stub.Call{
+		{"mkdir", 0xbeef, 0xff, &mkdirOp{User, "/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9", 0711, false}, []stub.Call{
 			call("verbose", stub.ExpectArgs{[]any{"ensuring directory", &mkdirOp{User, "/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9", 0711, false}}}, nil, nil),
 			call("mkdir", stub.ExpectArgs{"/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9", os.FileMode(0711)}, nil, stub.UniqueError(2)),
 		}, &OpError{Op: "mkdir", Err: stub.UniqueError(2)}, nil, nil},
 
-		{"chmod", 0xdeadbeef, 0xff, &mkdirOp{User, "/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9", 0711, false}, []stub.Call{
+		{"chmod", 0xbeef, 0xff, &mkdirOp{User, "/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9", 0711, false}, []stub.Call{
 			call("verbose", stub.ExpectArgs{[]any{"ensuring directory", &mkdirOp{User, "/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9", 0711, false}}}, nil, nil),
 			call("mkdir", stub.ExpectArgs{"/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9", os.FileMode(0711)}, nil, os.ErrExist),
 			call("chmod", stub.ExpectArgs{"/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9", os.FileMode(0711)}, nil, stub.UniqueError(1)),
 		}, &OpError{Op: "mkdir", Err: stub.UniqueError(1)}, nil, nil},
 
-		{"remove", 0xdeadbeef, 0xff, &mkdirOp{Process, "/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9", 0711, true}, []stub.Call{
+		{"remove", 0xbeef, 0xff, &mkdirOp{Process, "/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9", 0711, true}, []stub.Call{
 			call("verbose", stub.ExpectArgs{[]any{"ensuring directory", &mkdirOp{Process, "/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9", 0711, true}}}, nil, nil),
 			call("mkdir", stub.ExpectArgs{"/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9", os.FileMode(0711)}, nil, nil),
 		}, nil, []stub.Call{
@@ -30,25 +30,25 @@ func TestMkdirOp(t *testing.T) {
 			call("remove", stub.ExpectArgs{"/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9"}, nil, stub.UniqueError(0)),
 		}, &OpError{Op: "mkdir", Err: stub.UniqueError(0), Revert: true}},
 
-		{"success exist chmod", 0xdeadbeef, 0xff, &mkdirOp{User, "/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9", 0711, false}, []stub.Call{
+		{"success exist chmod", 0xbeef, 0xff, &mkdirOp{User, "/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9", 0711, false}, []stub.Call{
 			call("verbose", stub.ExpectArgs{[]any{"ensuring directory", &mkdirOp{User, "/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9", 0711, false}}}, nil, nil),
 			call("mkdir", stub.ExpectArgs{"/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9", os.FileMode(0711)}, nil, os.ErrExist),
 			call("chmod", stub.ExpectArgs{"/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9", os.FileMode(0711)}, nil, nil),
 		}, nil, nil, nil},
 
-		{"success ensure", 0xdeadbeef, 0xff, &mkdirOp{User, "/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9", 0711, false}, []stub.Call{
+		{"success ensure", 0xbeef, 0xff, &mkdirOp{User, "/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9", 0711, false}, []stub.Call{
 			call("verbose", stub.ExpectArgs{[]any{"ensuring directory", &mkdirOp{User, "/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9", 0711, false}}}, nil, nil),
 			call("mkdir", stub.ExpectArgs{"/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9", os.FileMode(0711)}, nil, nil),
 		}, nil, nil, nil},
 
-		{"success skip", 0xdeadbeef, 0xff, &mkdirOp{User, "/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9", 0711, true}, []stub.Call{
+		{"success skip", 0xbeef, 0xff, &mkdirOp{User, "/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9", 0711, true}, []stub.Call{
 			call("verbose", stub.ExpectArgs{[]any{"ensuring directory", &mkdirOp{User, "/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9", 0711, true}}}, nil, nil),
 			call("mkdir", stub.ExpectArgs{"/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9", os.FileMode(0711)}, nil, nil),
 		}, nil, []stub.Call{
 			call("verbose", stub.ExpectArgs{[]any{"skipping ephemeral directory", &mkdirOp{User, "/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9", 0711, true}}}, nil, nil),
 		}, nil},
 
-		{"success", 0xdeadbeef, 0xff, &mkdirOp{Process, "/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9", 0711, true}, []stub.Call{
+		{"success", 0xbeef, 0xff, &mkdirOp{Process, "/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9", 0711, true}, []stub.Call{
 			call("verbose", stub.ExpectArgs{[]any{"ensuring directory", &mkdirOp{Process, "/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9", 0711, true}}}, nil, nil),
 			call("mkdir", stub.ExpectArgs{"/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9", os.FileMode(0711)}, nil, nil),
 		}, nil, []stub.Call{
@@ -58,13 +58,13 @@ func TestMkdirOp(t *testing.T) {
 	})
 
 	checkOpsBuilder(t, "EnsureEphemeral", []opsBuilderTestCase{
-		{"ensure", 0xcafebabe, func(_ *testing.T, sys *I) {
+		{"ensure", 0xcafe, func(_ *testing.T, sys *I) {
 			sys.Ensure(m("/tmp/hakurei.0"), 0700)
 		}, []Op{
 			&mkdirOp{User, "/tmp/hakurei.0", 0700, false},
 		}, stub.Expect{}},
 
-		{"ephemeral", 0xcafebabe, func(_ *testing.T, sys *I) {
+		{"ephemeral", 0xcafe, func(_ *testing.T, sys *I) {
 			sys.Ephemeral(Process, m("/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9"), 0711)
 		}, []Op{
 			&mkdirOp{Process, "/tmp/hakurei.0/f2f3bcd492d0266438fa9bf164fe90d9", 0711, true},

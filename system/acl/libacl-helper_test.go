@@ -46,7 +46,7 @@ func TestNewAclPathError(t *testing.T) {
 
 		{"acl", container.Nonexistent, -13, syscall.ENOTRECOVERABLE,
 			&os.PathError{Op: "setfacl", Path: container.Nonexistent, Err: syscall.ENOTRECOVERABLE}},
-		{"invalid", container.Nonexistent, -0xdeadbeef, nil,
+		{"invalid", container.Nonexistent, -0xdead, nil,
 			&os.PathError{Op: "setfacl", Path: container.Nonexistent}},
 	}
 	for _, tc := range testCases {

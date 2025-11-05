@@ -11,12 +11,12 @@ func TestHardlinkOp(t *testing.T) {
 	t.Parallel()
 
 	checkOpBehaviour(t, []opBehaviourTestCase{
-		{"link", 0xdeadbeef, 0xff, &hardlinkOp{hst.EPulse, "/run/user/1000/hakurei/9663730666a44cfc2a81610379e02ed6/pulse", "/run/user/1000/pulse/native"}, []stub.Call{
+		{"link", 0xbeef, 0xff, &hardlinkOp{hst.EPulse, "/run/user/1000/hakurei/9663730666a44cfc2a81610379e02ed6/pulse", "/run/user/1000/pulse/native"}, []stub.Call{
 			call("verbose", stub.ExpectArgs{[]any{"linking", &hardlinkOp{hst.EPulse, "/run/user/1000/hakurei/9663730666a44cfc2a81610379e02ed6/pulse", "/run/user/1000/pulse/native"}}}, nil, nil),
 			call("link", stub.ExpectArgs{"/run/user/1000/pulse/native", "/run/user/1000/hakurei/9663730666a44cfc2a81610379e02ed6/pulse"}, nil, stub.UniqueError(1)),
 		}, &OpError{Op: "hardlink", Err: stub.UniqueError(1)}, nil, nil},
 
-		{"remove", 0xdeadbeef, 0xff, &hardlinkOp{hst.EPulse, "/run/user/1000/hakurei/9663730666a44cfc2a81610379e02ed6/pulse", "/run/user/1000/pulse/native"}, []stub.Call{
+		{"remove", 0xbeef, 0xff, &hardlinkOp{hst.EPulse, "/run/user/1000/hakurei/9663730666a44cfc2a81610379e02ed6/pulse", "/run/user/1000/pulse/native"}, []stub.Call{
 			call("verbose", stub.ExpectArgs{[]any{"linking", &hardlinkOp{hst.EPulse, "/run/user/1000/hakurei/9663730666a44cfc2a81610379e02ed6/pulse", "/run/user/1000/pulse/native"}}}, nil, nil),
 			call("link", stub.ExpectArgs{"/run/user/1000/pulse/native", "/run/user/1000/hakurei/9663730666a44cfc2a81610379e02ed6/pulse"}, nil, nil),
 		}, nil, []stub.Call{
@@ -24,14 +24,14 @@ func TestHardlinkOp(t *testing.T) {
 			call("remove", stub.ExpectArgs{"/run/user/1000/hakurei/9663730666a44cfc2a81610379e02ed6/pulse"}, nil, stub.UniqueError(0)),
 		}, &OpError{Op: "hardlink", Err: stub.UniqueError(0), Revert: true}},
 
-		{"success skip", 0xdeadbeef, hst.EWayland | hst.EX11, &hardlinkOp{hst.EPulse, "/run/user/1000/hakurei/9663730666a44cfc2a81610379e02ed6/pulse", "/run/user/1000/pulse/native"}, []stub.Call{
+		{"success skip", 0xbeef, hst.EWayland | hst.EX11, &hardlinkOp{hst.EPulse, "/run/user/1000/hakurei/9663730666a44cfc2a81610379e02ed6/pulse", "/run/user/1000/pulse/native"}, []stub.Call{
 			call("verbose", stub.ExpectArgs{[]any{"linking", &hardlinkOp{hst.EPulse, "/run/user/1000/hakurei/9663730666a44cfc2a81610379e02ed6/pulse", "/run/user/1000/pulse/native"}}}, nil, nil),
 			call("link", stub.ExpectArgs{"/run/user/1000/pulse/native", "/run/user/1000/hakurei/9663730666a44cfc2a81610379e02ed6/pulse"}, nil, nil),
 		}, nil, []stub.Call{
 			call("verbosef", stub.ExpectArgs{"skipping hard link %q", []any{"/run/user/1000/hakurei/9663730666a44cfc2a81610379e02ed6/pulse"}}, nil, nil),
 		}, nil},
 
-		{"success", 0xdeadbeef, 0xff, &hardlinkOp{hst.EPulse, "/run/user/1000/hakurei/9663730666a44cfc2a81610379e02ed6/pulse", "/run/user/1000/pulse/native"}, []stub.Call{
+		{"success", 0xbeef, 0xff, &hardlinkOp{hst.EPulse, "/run/user/1000/hakurei/9663730666a44cfc2a81610379e02ed6/pulse", "/run/user/1000/pulse/native"}, []stub.Call{
 			call("verbose", stub.ExpectArgs{[]any{"linking", &hardlinkOp{hst.EPulse, "/run/user/1000/hakurei/9663730666a44cfc2a81610379e02ed6/pulse", "/run/user/1000/pulse/native"}}}, nil, nil),
 			call("link", stub.ExpectArgs{"/run/user/1000/pulse/native", "/run/user/1000/hakurei/9663730666a44cfc2a81610379e02ed6/pulse"}, nil, nil),
 		}, nil, []stub.Call{
@@ -41,13 +41,13 @@ func TestHardlinkOp(t *testing.T) {
 	})
 
 	checkOpsBuilder(t, "LinkFileType", []opsBuilderTestCase{
-		{"type", 0xcafebabe, func(_ *testing.T, sys *I) {
+		{"type", 0xcafe, func(_ *testing.T, sys *I) {
 			sys.LinkFileType(User, m("/run/user/1000/pulse/native"), m("/run/user/1000/hakurei/9663730666a44cfc2a81610379e02ed6/pulse"))
 		}, []Op{
 			&hardlinkOp{User, "/run/user/1000/hakurei/9663730666a44cfc2a81610379e02ed6/pulse", "/run/user/1000/pulse/native"},
 		}, stub.Expect{}},
 
-		{"link", 0xcafebabe, func(_ *testing.T, sys *I) {
+		{"link", 0xcafe, func(_ *testing.T, sys *I) {
 			sys.Link(m("/run/user/1000/pulse/native"), m("/run/user/1000/hakurei/9663730666a44cfc2a81610379e02ed6/pulse"))
 		}, []Op{
 			&hardlinkOp{Process, "/run/user/1000/hakurei/9663730666a44cfc2a81610379e02ed6/pulse", "/run/user/1000/pulse/native"},

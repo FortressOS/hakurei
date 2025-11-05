@@ -127,8 +127,8 @@ func TestEntryData(t *testing.T) {
 func newTemplateState() *hst.State {
 	return &hst.State{
 		ID:      hst.ID(bytes.Repeat([]byte{0xaa}, len(hst.ID{}))),
-		PID:     0xcafebabe,
-		ShimPID: 0xdeadbeef,
+		PID:     0xcafe,
+		ShimPID: 0xdead,
 		Config:  hst.Template(),
 		Time:    time.Unix(0, 0),
 	}

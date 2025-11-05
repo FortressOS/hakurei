@@ -91,24 +91,24 @@ func TestRemount(t *testing.T) {
 			return newProcPaths(k, hostPath).remount(nil, "/sysroot/nix", syscall.MS_REC|syscall.MS_RDONLY|syscall.MS_NODEV)
 		}, stub.Expect{Calls: []stub.Call{
 			call("evalSymlinks", stub.ExpectArgs{"/sysroot/nix"}, "/sysroot/nix", nil),
-			call("open", stub.ExpectArgs{"/sysroot/nix", 0x280000, uint32(0)}, 0xdeadbeef, stub.UniqueError(5)),
+			call("open", stub.ExpectArgs{"/sysroot/nix", 0x280000, uint32(0)}, 0xdead, stub.UniqueError(5)),
 		}}, &os.PathError{Op: "open", Path: "/sysroot/nix", Err: stub.UniqueError(5)}},
 
 		{"readlink", func(k *kstub) error {
 			return newProcPaths(k, hostPath).remount(nil, "/sysroot/nix", syscall.MS_REC|syscall.MS_RDONLY|syscall.MS_NODEV)
 		}, stub.Expect{Calls: []stub.Call{
 			call("evalSymlinks", stub.ExpectArgs{"/sysroot/nix"}, "/sysroot/nix", nil),
-			call("open", stub.ExpectArgs{"/sysroot/nix", 0x280000, uint32(0)}, 0xdeadbeef, nil),
-			call("readlink", stub.ExpectArgs{"/host/proc/self/fd/3735928559"}, "/sysroot/nix", stub.UniqueError(4)),
+			call("open", stub.ExpectArgs{"/sysroot/nix", 0x280000, uint32(0)}, 0xdead, nil),
+			call("readlink", stub.ExpectArgs{"/host/proc/self/fd/57005"}, "/sysroot/nix", stub.UniqueError(4)),
 		}}, stub.UniqueError(4)},
 
 		{"close", func(k *kstub) error {
 			return newProcPaths(k, hostPath).remount(nil, "/sysroot/nix", syscall.MS_REC|syscall.MS_RDONLY|syscall.MS_NODEV)
 		}, stub.Expect{Calls: []stub.Call{
 			call("evalSymlinks", stub.ExpectArgs{"/sysroot/nix"}, "/sysroot/nix", nil),
-			call("open", stub.ExpectArgs{"/sysroot/nix", 0x280000, uint32(0)}, 0xdeadbeef, nil),
-			call("readlink", stub.ExpectArgs{"/host/proc/self/fd/3735928559"}, "/sysroot/nix", nil),
-			call("close", stub.ExpectArgs{0xdeadbeef}, nil, stub.UniqueError(3)),
+			call("open", stub.ExpectArgs{"/sysroot/nix", 0x280000, uint32(0)}, 0xdead, nil),
+			call("readlink", stub.ExpectArgs{"/host/proc/self/fd/57005"}, "/sysroot/nix", nil),
+			call("close", stub.ExpectArgs{0xdead}, nil, stub.UniqueError(3)),
 		}}, &os.PathError{Op: "close", Path: "/sysroot/nix", Err: stub.UniqueError(3)}},
 
 		{"mountinfo no match", func(k *kstub) error {
@@ -116,9 +116,9 @@ func TestRemount(t *testing.T) {
 		}, stub.Expect{Calls: []stub.Call{
 			call("evalSymlinks", stub.ExpectArgs{"/sysroot/nix"}, "/sysroot/.hakurei", nil),
 			call("verbosef", stub.ExpectArgs{"target resolves to %q", []any{"/sysroot/.hakurei"}}, nil, nil),
-			call("open", stub.ExpectArgs{"/sysroot/.hakurei", 0x280000, uint32(0)}, 0xdeadbeef, nil),
-			call("readlink", stub.ExpectArgs{"/host/proc/self/fd/3735928559"}, "/sysroot/.hakurei", nil),
-			call("close", stub.ExpectArgs{0xdeadbeef}, nil, nil),
+			call("open", stub.ExpectArgs{"/sysroot/.hakurei", 0x280000, uint32(0)}, 0xdead, nil),
+			call("readlink", stub.ExpectArgs{"/host/proc/self/fd/57005"}, "/sysroot/.hakurei", nil),
+			call("close", stub.ExpectArgs{0xdead}, nil, nil),
 			call("openNew", stub.ExpectArgs{"/host/proc/self/mountinfo"}, newConstFile(sampleMountinfoNix), nil),
 		}}, &vfs.DecoderError{Op: "unfold", Line: -1, Err: vfs.UnfoldTargetError("/sysroot/.hakurei")}},
 
@@ -126,9 +126,9 @@ func TestRemount(t *testing.T) {
 			return newProcPaths(k, hostPath).remount(nil, "/sysroot/nix", syscall.MS_REC|syscall.MS_RDONLY|syscall.MS_NODEV)
 		}, stub.Expect{Calls: []stub.Call{
 			call("evalSymlinks", stub.ExpectArgs{"/sysroot/nix"}, "/sysroot/nix", nil),
-			call("open", stub.ExpectArgs{"/sysroot/nix", 0x280000, uint32(0)}, 0xdeadbeef, nil),
-			call("readlink", stub.ExpectArgs{"/host/proc/self/fd/3735928559"}, "/sysroot/nix", nil),
-			call("close", stub.ExpectArgs{0xdeadbeef}, nil, nil),
+			call("open", stub.ExpectArgs{"/sysroot/nix", 0x280000, uint32(0)}, 0xdead, nil),
+			call("readlink", stub.ExpectArgs{"/host/proc/self/fd/57005"}, "/sysroot/nix", nil),
+			call("close", stub.ExpectArgs{0xdead}, nil, nil),
 			call("openNew", stub.ExpectArgs{"/host/proc/self/mountinfo"}, newConstFile("\x00"), nil),
 		}}, &vfs.DecoderError{Op: "parse", Line: 0, Err: vfs.ErrMountInfoFields}},
 
@@ -136,9 +136,9 @@ func TestRemount(t *testing.T) {
 			return newProcPaths(k, hostPath).remount(nil, "/sysroot/nix", syscall.MS_REC|syscall.MS_RDONLY|syscall.MS_NODEV)
 		}, stub.Expect{Calls: []stub.Call{
 			call("evalSymlinks", stub.ExpectArgs{"/sysroot/nix"}, "/sysroot/nix", nil),
-			call("open", stub.ExpectArgs{"/sysroot/nix", 0x280000, uint32(0)}, 0xdeadbeef, nil),
-			call("readlink", stub.ExpectArgs{"/host/proc/self/fd/3735928559"}, "/sysroot/nix", nil),
-			call("close", stub.ExpectArgs{0xdeadbeef}, nil, nil),
+			call("open", stub.ExpectArgs{"/sysroot/nix", 0x280000, uint32(0)}, 0xdead, nil),
+			call("readlink", stub.ExpectArgs{"/host/proc/self/fd/57005"}, "/sysroot/nix", nil),
+			call("close", stub.ExpectArgs{0xdead}, nil, nil),
 			call("openNew", stub.ExpectArgs{"/host/proc/self/mountinfo"}, newConstFile(sampleMountinfoNix), nil),
 			call("mount", stub.ExpectArgs{"none", "/sysroot/nix", "", uintptr(0x209027), ""}, nil, stub.UniqueError(2)),
 		}}, stub.UniqueError(2)},
@@ -147,9 +147,9 @@ func TestRemount(t *testing.T) {
 			return newProcPaths(k, hostPath).remount(nil, "/sysroot/nix", syscall.MS_REC|syscall.MS_RDONLY|syscall.MS_NODEV)
 		}, stub.Expect{Calls: []stub.Call{
 			call("evalSymlinks", stub.ExpectArgs{"/sysroot/nix"}, "/sysroot/nix", nil),
-			call("open", stub.ExpectArgs{"/sysroot/nix", 0x280000, uint32(0)}, 0xdeadbeef, nil),
-			call("readlink", stub.ExpectArgs{"/host/proc/self/fd/3735928559"}, "/sysroot/nix", nil),
-			call("close", stub.ExpectArgs{0xdeadbeef}, nil, nil),
+			call("open", stub.ExpectArgs{"/sysroot/nix", 0x280000, uint32(0)}, 0xdead, nil),
+			call("readlink", stub.ExpectArgs{"/host/proc/self/fd/57005"}, "/sysroot/nix", nil),
+			call("close", stub.ExpectArgs{0xdead}, nil, nil),
 			call("openNew", stub.ExpectArgs{"/host/proc/self/mountinfo"}, newConstFile(sampleMountinfoNix), nil),
 			call("mount", stub.ExpectArgs{"none", "/sysroot/nix", "", uintptr(0x209027), ""}, nil, nil),
 			call("mount", stub.ExpectArgs{"none", "/sysroot/nix/.ro-store", "", uintptr(0x209027), ""}, nil, stub.UniqueError(1)),
@@ -170,9 +170,9 @@ func TestRemount(t *testing.T) {
 			return newProcPaths(k, hostPath).remount(nil, "/sysroot/nix", syscall.MS_REC|syscall.MS_RDONLY|syscall.MS_NODEV)
 		}, stub.Expect{Calls: []stub.Call{
 			call("evalSymlinks", stub.ExpectArgs{"/sysroot/nix"}, "/sysroot/nix", nil),
-			call("open", stub.ExpectArgs{"/sysroot/nix", 0x280000, uint32(0)}, 0xdeadbeef, nil),
-			call("readlink", stub.ExpectArgs{"/host/proc/self/fd/3735928559"}, "/sysroot/nix", nil),
-			call("close", stub.ExpectArgs{0xdeadbeef}, nil, nil),
+			call("open", stub.ExpectArgs{"/sysroot/nix", 0x280000, uint32(0)}, 0xdead, nil),
+			call("readlink", stub.ExpectArgs{"/host/proc/self/fd/57005"}, "/sysroot/nix", nil),
+			call("close", stub.ExpectArgs{0xdead}, nil, nil),
 			call("openNew", stub.ExpectArgs{"/host/proc/self/mountinfo"}, newConstFile(sampleMountinfoNix), nil),
 			call("mount", stub.ExpectArgs{"none", "/sysroot/nix", "", uintptr(0x209027), ""}, nil, nil),
 			call("mount", stub.ExpectArgs{"none", "/sysroot/nix/.ro-store", "", uintptr(0x209027), ""}, nil, syscall.EACCES),
@@ -183,9 +183,9 @@ func TestRemount(t *testing.T) {
 			return newProcPaths(k, hostPath).remount(nil, "/sysroot/nix", syscall.MS_RDONLY|syscall.MS_NODEV)
 		}, stub.Expect{Calls: []stub.Call{
 			call("evalSymlinks", stub.ExpectArgs{"/sysroot/nix"}, "/sysroot/nix", nil),
-			call("open", stub.ExpectArgs{"/sysroot/nix", 0x280000, uint32(0)}, 0xdeadbeef, nil),
-			call("readlink", stub.ExpectArgs{"/host/proc/self/fd/3735928559"}, "/sysroot/nix", nil),
-			call("close", stub.ExpectArgs{0xdeadbeef}, nil, nil),
+			call("open", stub.ExpectArgs{"/sysroot/nix", 0x280000, uint32(0)}, 0xdead, nil),
+			call("readlink", stub.ExpectArgs{"/host/proc/self/fd/57005"}, "/sysroot/nix", nil),
+			call("close", stub.ExpectArgs{0xdead}, nil, nil),
 			call("openNew", stub.ExpectArgs{"/host/proc/self/mountinfo"}, newConstFile(sampleMountinfoNix), nil),
 			call("mount", stub.ExpectArgs{"none", "/sysroot/nix", "", uintptr(0x209027), ""}, nil, nil),
 		}}, nil},
@@ -194,9 +194,9 @@ func TestRemount(t *testing.T) {
 			return newProcPaths(k, hostPath).remount(nil, "/sysroot/nix", syscall.MS_REC|syscall.MS_RDONLY|syscall.MS_NODEV)
 		}, stub.Expect{Calls: []stub.Call{
 			call("evalSymlinks", stub.ExpectArgs{"/sysroot/nix"}, "/sysroot/nix", nil),
-			call("open", stub.ExpectArgs{"/sysroot/nix", 0x280000, uint32(0)}, 0xdeadbeef, nil),
-			call("readlink", stub.ExpectArgs{"/host/proc/self/fd/3735928559"}, "/sysroot/nix", nil),
-			call("close", stub.ExpectArgs{0xdeadbeef}, nil, nil),
+			call("open", stub.ExpectArgs{"/sysroot/nix", 0x280000, uint32(0)}, 0xdead, nil),
+			call("readlink", stub.ExpectArgs{"/host/proc/self/fd/57005"}, "/sysroot/nix", nil),
+			call("close", stub.ExpectArgs{0xdead}, nil, nil),
 			call("openNew", stub.ExpectArgs{"/host/proc/self/mountinfo"}, newConstFile(sampleMountinfoNix), nil),
 			call("mount", stub.ExpectArgs{"none", "/sysroot/nix", "", uintptr(0x209027), ""}, nil, nil),
 			call("mount", stub.ExpectArgs{"none", "/sysroot/nix/.ro-store", "", uintptr(0x209027), ""}, nil, nil),
@@ -208,9 +208,9 @@ func TestRemount(t *testing.T) {
 		}, stub.Expect{Calls: []stub.Call{
 			call("evalSymlinks", stub.ExpectArgs{"/sysroot/.nix"}, "/sysroot/NIX", nil),
 			call("verbosef", stub.ExpectArgs{"target resolves to %q", []any{"/sysroot/NIX"}}, nil, nil),
-			call("open", stub.ExpectArgs{"/sysroot/NIX", 0x280000, uint32(0)}, 0xdeadbeef, nil),
-			call("readlink", stub.ExpectArgs{"/host/proc/self/fd/3735928559"}, "/sysroot/nix", nil),
-			call("close", stub.ExpectArgs{0xdeadbeef}, nil, nil),
+			call("open", stub.ExpectArgs{"/sysroot/NIX", 0x280000, uint32(0)}, 0xdead, nil),
+			call("readlink", stub.ExpectArgs{"/host/proc/self/fd/57005"}, "/sysroot/nix", nil),
+			call("close", stub.ExpectArgs{0xdead}, nil, nil),
 			call("openNew", stub.ExpectArgs{"/host/proc/self/mountinfo"}, newConstFile(sampleMountinfoNix), nil),
 			call("mount", stub.ExpectArgs{"none", "/sysroot/nix", "", uintptr(0x209027), ""}, nil, nil),
 			call("mount", stub.ExpectArgs{"none", "/sysroot/nix/.ro-store", "", uintptr(0x209027), ""}, nil, nil),

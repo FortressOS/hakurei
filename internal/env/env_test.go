@@ -34,9 +34,9 @@ func TestPaths(t *testing.T) {
 			TempDir: fhs.AbsTmp,
 		}, hst.Paths{
 			TempDir:     fhs.AbsTmp,
-			SharePath:   fhs.AbsTmp.Append("hakurei.3735928559"),
-			RuntimePath: fhs.AbsTmp.Append("hakurei.3735928559/compat"),
-			RunDirPath:  fhs.AbsTmp.Append("hakurei.3735928559/compat/hakurei"),
+			SharePath:   fhs.AbsTmp.Append("hakurei.57005"),
+			RuntimePath: fhs.AbsTmp.Append("hakurei.57005/compat"),
+			RunDirPath:  fhs.AbsTmp.Append("hakurei.57005/compat/hakurei"),
 		}, ""},
 
 		{"full", &env.Paths{
@@ -44,7 +44,7 @@ func TestPaths(t *testing.T) {
 			RuntimePath: fhs.AbsRunUser.Append("1000"),
 		}, hst.Paths{
 			TempDir:     fhs.AbsTmp,
-			SharePath:   fhs.AbsTmp.Append("hakurei.3735928559"),
+			SharePath:   fhs.AbsTmp.Append("hakurei.57005"),
 			RuntimePath: fhs.AbsRunUser.Append("1000"),
 			RunDirPath:  fhs.AbsRunUser.Append("1000/hakurei"),
 		}, ""},
@@ -61,7 +61,7 @@ func TestPaths(t *testing.T) {
 			}
 
 			var sc hst.Paths
-			tc.env.Copy(&sc, 0xdeadbeef)
+			tc.env.Copy(&sc, 0xdead)
 			if !reflect.DeepEqual(&sc, &tc.want) {
 				t.Errorf("Copy: %#v, want %#v", sc, tc.want)
 			}

@@ -173,8 +173,8 @@ func TestProcPaths(t *testing.T) {
 			}
 		})
 		t.Run("fd", func(t *testing.T) {
-			want := "/host/proc/self/fd/9223372036854775807"
-			if got := hostProc.fd(math.MaxInt64); got != want {
+			want := "/host/proc/self/fd/2147483647"
+			if got := hostProc.fd(math.MaxInt32); got != want {
 				t.Errorf("stdout: %q, want %q", got, want)
 			}
 		})

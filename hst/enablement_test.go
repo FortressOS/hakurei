@@ -80,7 +80,7 @@ func TestEnablements(t *testing.T) {
 
 				if got, err := json.Marshal(struct {
 					Value *hst.Enablements `json:"value"`
-					Magic int              `json:"magic"`
+					Magic uint64           `json:"magic"`
 				}{tc.e, syscall.MS_MGC_VAL}); err != nil {
 					t.Fatalf("Marshal: error = %v", err)
 				} else if string(got) != tc.sData {
@@ -108,7 +108,7 @@ func TestEnablements(t *testing.T) {
 				{
 					got := *(new(struct {
 						Value *hst.Enablements `json:"value"`
-						Magic int              `json:"magic"`
+						Magic uint64           `json:"magic"`
 					}))
 					if err := json.Unmarshal([]byte(tc.sData), &got); err != nil {
 						t.Fatalf("Unmarshal: error = %v", err)

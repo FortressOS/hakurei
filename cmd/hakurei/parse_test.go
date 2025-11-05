@@ -58,8 +58,8 @@ func TestTryIdentifier(t *testing.T) {
 	}
 	sampleEntry := hst.State{
 		ID:      id,
-		PID:     0xcafebabe,
-		ShimPID: 0xdeadbeef,
+		PID:     0xcafe,
+		ShimPID: 0xdead,
 		Config:  hst.Template(),
 	}
 

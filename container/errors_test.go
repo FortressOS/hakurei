@@ -46,8 +46,8 @@ func TestMessageFromError(t *testing.T) {
 		{"state", OpStateError("overlay"),
 			"impossible overlay state reached", true},
 
-		{"vfs parse", &vfs.DecoderError{Op: "parse", Line: 0xdeadbeef, Err: &strconv.NumError{Func: "Atoi", Num: "meow", Err: strconv.ErrSyntax}},
-			`cannot parse mountinfo at line 3735928559: numeric field "meow" invalid syntax`, true},
+		{"vfs parse", &vfs.DecoderError{Op: "parse", Line: 0xdead, Err: &strconv.NumError{Func: "Atoi", Num: "meow", Err: strconv.ErrSyntax}},
+			`cannot parse mountinfo at line 57005: numeric field "meow" invalid syntax`, true},
 
 		{"tmpfs", TmpfsSizeError(-1),
 			"tmpfs size -1 out of bounds", true},

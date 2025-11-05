@@ -89,7 +89,7 @@ func TestWaylandOp(t *testing.T) {
 	t.Parallel()
 
 	checkOpBehaviour(t, []opBehaviourTestCase{
-		{"attach", 0xdeadbeef, 0xff, &waylandOp{nil,
+		{"attach", 0xbeef, 0xff, &waylandOp{nil,
 			"/tmp/hakurei.1971/ebf083d1b175911782d413369b64ce7c/wayland",
 			"/run/user/1971/wayland-0",
 			"org.chromium.Chromium",
@@ -100,7 +100,7 @@ func TestWaylandOp(t *testing.T) {
 				attachErr: stub.UniqueError(5)},
 		}, nil, &OpError{Op: "wayland", Err: stub.UniqueError(5)}, nil, nil},
 
-		{"bind", 0xdeadbeef, 0xff, &waylandOp{nil,
+		{"bind", 0xbeef, 0xff, &waylandOp{nil,
 			"/tmp/hakurei.1971/ebf083d1b175911782d413369b64ce7c/wayland",
 			"/run/user/1971/wayland-0",
 			"org.chromium.Chromium",
@@ -113,7 +113,7 @@ func TestWaylandOp(t *testing.T) {
 			call("verbosef", stub.ExpectArgs{"wayland attached on %q", []any{"/run/user/1971/wayland-0"}}, nil, nil),
 		}, &OpError{Op: "wayland", Err: stub.UniqueError(4)}, nil, nil},
 
-		{"chmod", 0xdeadbeef, 0xff, &waylandOp{nil,
+		{"chmod", 0xbeef, 0xff, &waylandOp{nil,
 			"/tmp/hakurei.1971/ebf083d1b175911782d413369b64ce7c/wayland",
 			"/run/user/1971/wayland-0",
 			"org.chromium.Chromium",
@@ -127,7 +127,7 @@ func TestWaylandOp(t *testing.T) {
 			call("chmod", stub.ExpectArgs{"/tmp/hakurei.1971/ebf083d1b175911782d413369b64ce7c/wayland", os.FileMode(0)}, nil, stub.UniqueError(3)),
 		}, &OpError{Op: "wayland", Err: stub.UniqueError(3)}, nil, nil},
 
-		{"aclUpdate", 0xdeadbeef, 0xff, &waylandOp{nil,
+		{"aclUpdate", 0xbeef, 0xff, &waylandOp{nil,
 			"/tmp/hakurei.1971/ebf083d1b175911782d413369b64ce7c/wayland",
 			"/run/user/1971/wayland-0",
 			"org.chromium.Chromium",
@@ -139,10 +139,10 @@ func TestWaylandOp(t *testing.T) {
 			call("verbosef", stub.ExpectArgs{"wayland attached on %q", []any{"/run/user/1971/wayland-0"}}, nil, nil),
 			call("verbosef", stub.ExpectArgs{"wayland listening on %q", []any{"/tmp/hakurei.1971/ebf083d1b175911782d413369b64ce7c/wayland"}}, nil, nil),
 			call("chmod", stub.ExpectArgs{"/tmp/hakurei.1971/ebf083d1b175911782d413369b64ce7c/wayland", os.FileMode(0)}, nil, nil),
-			call("aclUpdate", stub.ExpectArgs{"/tmp/hakurei.1971/ebf083d1b175911782d413369b64ce7c/wayland", 0xdeadbeef, []acl.Perm{acl.Read, acl.Write, acl.Execute}}, nil, stub.UniqueError(2)),
+			call("aclUpdate", stub.ExpectArgs{"/tmp/hakurei.1971/ebf083d1b175911782d413369b64ce7c/wayland", 0xbeef, []acl.Perm{acl.Read, acl.Write, acl.Execute}}, nil, stub.UniqueError(2)),
 		}, &OpError{Op: "wayland", Err: stub.UniqueError(2)}, nil, nil},
 
-		{"remove", 0xdeadbeef, 0xff, &waylandOp{nil,
+		{"remove", 0xbeef, 0xff, &waylandOp{nil,
 			"/tmp/hakurei.1971/ebf083d1b175911782d413369b64ce7c/wayland",
 			"/run/user/1971/wayland-0",
 			"org.chromium.Chromium",
@@ -154,14 +154,14 @@ func TestWaylandOp(t *testing.T) {
 			call("verbosef", stub.ExpectArgs{"wayland attached on %q", []any{"/run/user/1971/wayland-0"}}, nil, nil),
 			call("verbosef", stub.ExpectArgs{"wayland listening on %q", []any{"/tmp/hakurei.1971/ebf083d1b175911782d413369b64ce7c/wayland"}}, nil, nil),
 			call("chmod", stub.ExpectArgs{"/tmp/hakurei.1971/ebf083d1b175911782d413369b64ce7c/wayland", os.FileMode(0)}, nil, nil),
-			call("aclUpdate", stub.ExpectArgs{"/tmp/hakurei.1971/ebf083d1b175911782d413369b64ce7c/wayland", 0xdeadbeef, []acl.Perm{acl.Read, acl.Write, acl.Execute}}, nil, nil),
+			call("aclUpdate", stub.ExpectArgs{"/tmp/hakurei.1971/ebf083d1b175911782d413369b64ce7c/wayland", 0xbeef, []acl.Perm{acl.Read, acl.Write, acl.Execute}}, nil, nil),
 		}, nil, []stub.Call{
 			call("verbosef", stub.ExpectArgs{"detaching from wayland on %q", []any{"/run/user/1971/wayland-0"}}, nil, nil),
 			call("verbosef", stub.ExpectArgs{"removing wayland socket on %q", []any{"/tmp/hakurei.1971/ebf083d1b175911782d413369b64ce7c/wayland"}}, nil, nil),
 			call("remove", stub.ExpectArgs{"/tmp/hakurei.1971/ebf083d1b175911782d413369b64ce7c/wayland"}, nil, stub.UniqueError(1)),
 		}, &OpError{Op: "wayland", Err: errors.Join(stub.UniqueError(1)), Revert: true}},
 
-		{"close", 0xdeadbeef, 0xff, &waylandOp{nil,
+		{"close", 0xbeef, 0xff, &waylandOp{nil,
 			"/tmp/hakurei.1971/ebf083d1b175911782d413369b64ce7c/wayland",
 			"/run/user/1971/wayland-0",
 			"org.chromium.Chromium",
@@ -174,14 +174,14 @@ func TestWaylandOp(t *testing.T) {
 			call("verbosef", stub.ExpectArgs{"wayland attached on %q", []any{"/run/user/1971/wayland-0"}}, nil, nil),
 			call("verbosef", stub.ExpectArgs{"wayland listening on %q", []any{"/tmp/hakurei.1971/ebf083d1b175911782d413369b64ce7c/wayland"}}, nil, nil),
 			call("chmod", stub.ExpectArgs{"/tmp/hakurei.1971/ebf083d1b175911782d413369b64ce7c/wayland", os.FileMode(0)}, nil, nil),
-			call("aclUpdate", stub.ExpectArgs{"/tmp/hakurei.1971/ebf083d1b175911782d413369b64ce7c/wayland", 0xdeadbeef, []acl.Perm{acl.Read, acl.Write, acl.Execute}}, nil, nil),
+			call("aclUpdate", stub.ExpectArgs{"/tmp/hakurei.1971/ebf083d1b175911782d413369b64ce7c/wayland", 0xbeef, []acl.Perm{acl.Read, acl.Write, acl.Execute}}, nil, nil),
 		}, nil, []stub.Call{
 			call("verbosef", stub.ExpectArgs{"detaching from wayland on %q", []any{"/run/user/1971/wayland-0"}}, nil, nil),
 			call("verbosef", stub.ExpectArgs{"removing wayland socket on %q", []any{"/tmp/hakurei.1971/ebf083d1b175911782d413369b64ce7c/wayland"}}, nil, nil),
 			call("remove", stub.ExpectArgs{"/tmp/hakurei.1971/ebf083d1b175911782d413369b64ce7c/wayland"}, nil, nil),
 		}, &OpError{Op: "wayland", Err: errors.Join(stub.UniqueError(0)), Revert: true}},
 
-		{"success", 0xdeadbeef, 0xff, &waylandOp{nil,
+		{"success", 0xbeef, 0xff, &waylandOp{nil,
 			"/tmp/hakurei.1971/ebf083d1b175911782d413369b64ce7c/wayland",
 			"/run/user/1971/wayland-0",
 			"org.chromium.Chromium",
@@ -193,7 +193,7 @@ func TestWaylandOp(t *testing.T) {
 			call("verbosef", stub.ExpectArgs{"wayland attached on %q", []any{"/run/user/1971/wayland-0"}}, nil, nil),
 			call("verbosef", stub.ExpectArgs{"wayland listening on %q", []any{"/tmp/hakurei.1971/ebf083d1b175911782d413369b64ce7c/wayland"}}, nil, nil),
 			call("chmod", stub.ExpectArgs{"/tmp/hakurei.1971/ebf083d1b175911782d413369b64ce7c/wayland", os.FileMode(0)}, nil, nil),
-			call("aclUpdate", stub.ExpectArgs{"/tmp/hakurei.1971/ebf083d1b175911782d413369b64ce7c/wayland", 0xdeadbeef, []acl.Perm{acl.Read, acl.Write, acl.Execute}}, nil, nil),
+			call("aclUpdate", stub.ExpectArgs{"/tmp/hakurei.1971/ebf083d1b175911782d413369b64ce7c/wayland", 0xbeef, []acl.Perm{acl.Read, acl.Write, acl.Execute}}, nil, nil),
 		}, nil, []stub.Call{
 			call("verbosef", stub.ExpectArgs{"detaching from wayland on %q", []any{"/run/user/1971/wayland-0"}}, nil, nil),
 			call("verbosef", stub.ExpectArgs{"removing wayland socket on %q", []any{"/tmp/hakurei.1971/ebf083d1b175911782d413369b64ce7c/wayland"}}, nil, nil),

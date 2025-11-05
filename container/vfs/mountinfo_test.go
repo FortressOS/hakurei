@@ -26,11 +26,11 @@ func TestDecoderError(t *testing.T) {
 		target  error
 		targetF error
 	}{
-		{"errno", &vfs.DecoderError{Op: "parse", Line: 0xdeadbeef, Err: syscall.ENOTRECOVERABLE},
-			"parse mountinfo at line 3735928559: state not recoverable", syscall.ENOTRECOVERABLE, syscall.EROFS},
+		{"errno", &vfs.DecoderError{Op: "parse", Line: 0xdead, Err: syscall.ENOTRECOVERABLE},
+			"parse mountinfo at line 57005: state not recoverable", syscall.ENOTRECOVERABLE, syscall.EROFS},
 
-		{"strconv", &vfs.DecoderError{Op: "parse", Line: 0xdeadbeef, Err: &strconv.NumError{Func: "Atoi", Num: "meow", Err: strconv.ErrSyntax}},
-			`parse mountinfo at line 3735928559: numeric field "meow" invalid syntax`, strconv.ErrSyntax, os.ErrInvalid},
+		{"strconv", &vfs.DecoderError{Op: "parse", Line: 0xdead, Err: &strconv.NumError{Func: "Atoi", Num: "meow", Err: strconv.ErrSyntax}},
+			`parse mountinfo at line 57005: numeric field "meow" invalid syntax`, strconv.ErrSyntax, os.ErrInvalid},
 
 		{"unfold", &vfs.DecoderError{Op: "unfold", Line: -1, Err: vfs.UnfoldTargetError("/proc/nonexistent")},
 			"unfold mountinfo: mount point /proc/nonexistent never appeared in mountinfo", vfs.UnfoldTargetError("/proc/nonexistent"), os.ErrNotExist},

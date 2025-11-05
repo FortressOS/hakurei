@@ -3,10 +3,10 @@ package stub
 import "testing"
 
 // PanicExit is a magic panic value treated as a simulated exit.
-const PanicExit = 0xdeadbeef
+const PanicExit = 0xdead
 
 const (
-	panicFailNow = 0xcafe0000 + iota
+	panicFailNow = 0xcafe0 + iota
 	panicFatal
 	panicFatalf
 )

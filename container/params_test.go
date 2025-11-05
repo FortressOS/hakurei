@@ -56,7 +56,7 @@ func TestSetupReceive(t *testing.T) {
 	t.Run("setup receive", func(t *testing.T) {
 		check := func(t *testing.T, useNilFdp bool) {
 			const key = "TEST_SETUP_RECEIVE"
-			payload := []int{syscall.MS_MGC_VAL, syscall.MS_MGC_MSK, syscall.MS_ASYNC, syscall.MS_ACTIVE}
+			payload := []uint64{syscall.MS_MGC_VAL, syscall.MS_MGC_MSK, syscall.MS_ASYNC, syscall.MS_ACTIVE}
 
 			encoderDone := make(chan error, 1)
 			extraFiles := make([]*os.File, 0, 1)
@@ -86,7 +86,7 @@ func TestSetupReceive(t *testing.T) {
 			}
 
 			var (
-				gotPayload []int
+				gotPayload []uint64
 				fdp        *uintptr
 			)
 			if !useNilFdp {

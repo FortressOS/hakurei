@@ -701,7 +701,7 @@ type stubNixOS struct {
 }
 
 func (k *stubNixOS) getppid() int { return 0xbad }
-func (k *stubNixOS) getpid() int  { return 0xdeadbeef }
+func (k *stubNixOS) getpid() int  { return 0xdead }
 func (k *stubNixOS) getuid() int  { return 1971 }
 func (k *stubNixOS) getgid() int  { return 100 }
 

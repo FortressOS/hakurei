@@ -14,52 +14,52 @@ func TestACLUpdateOp(t *testing.T) {
 	t.Parallel()
 
 	checkOpBehaviour(t, []opBehaviourTestCase{
-		{"apply aclUpdate", 0xdeadbeef, 0xff,
+		{"apply aclUpdate", 0xbeef, 0xff,
 			&aclUpdateOp{Process, "/proc/nonexistent", []acl.Perm{acl.Read, acl.Write, acl.Execute}}, []stub.Call{
 				call("verbose", stub.ExpectArgs{[]any{"applying ACL", &aclUpdateOp{Process, "/proc/nonexistent", []acl.Perm{acl.Read, acl.Write, acl.Execute}}}}, nil, nil),
-				call("aclUpdate", stub.ExpectArgs{"/proc/nonexistent", 0xdeadbeef, []acl.Perm{acl.Read, acl.Write, acl.Execute}}, nil, stub.UniqueError(1)),
+				call("aclUpdate", stub.ExpectArgs{"/proc/nonexistent", 0xbeef, []acl.Perm{acl.Read, acl.Write, acl.Execute}}, nil, stub.UniqueError(1)),
 			}, &OpError{Op: "acl", Err: stub.UniqueError(1)}, nil, nil},
 
-		{"revert aclUpdate", 0xdeadbeef, 0xff,
+		{"revert aclUpdate", 0xbeef, 0xff,
 			&aclUpdateOp{Process, "/proc/nonexistent", []acl.Perm{acl.Read, acl.Write, acl.Execute}}, []stub.Call{
 				call("verbose", stub.ExpectArgs{[]any{"applying ACL", &aclUpdateOp{Process, "/proc/nonexistent", []acl.Perm{acl.Read, acl.Write, acl.Execute}}}}, nil, nil),
-				call("aclUpdate", stub.ExpectArgs{"/proc/nonexistent", 0xdeadbeef, []acl.Perm{acl.Read, acl.Write, acl.Execute}}, nil, nil),
+				call("aclUpdate", stub.ExpectArgs{"/proc/nonexistent", 0xbeef, []acl.Perm{acl.Read, acl.Write, acl.Execute}}, nil, nil),
 			}, nil, []stub.Call{
 				call("verbose", stub.ExpectArgs{[]any{"stripping ACL", &aclUpdateOp{Process, "/proc/nonexistent", []acl.Perm{acl.Read, acl.Write, acl.Execute}}}}, nil, nil),
-				call("aclUpdate", stub.ExpectArgs{"/proc/nonexistent", 0xdeadbeef, ([]acl.Perm)(nil)}, nil, stub.UniqueError(0)),
+				call("aclUpdate", stub.ExpectArgs{"/proc/nonexistent", 0xbeef, ([]acl.Perm)(nil)}, nil, stub.UniqueError(0)),
 			}, &OpError{Op: "acl", Err: stub.UniqueError(0), Revert: true}},
 
-		{"success revert skip", 0xdeadbeef, Process,
+		{"success revert skip", 0xbeef, Process,
 			&aclUpdateOp{User, "/proc/nonexistent", []acl.Perm{acl.Read, acl.Write, acl.Execute}}, []stub.Call{
 				call("verbose", stub.ExpectArgs{[]any{"applying ACL", &aclUpdateOp{User, "/proc/nonexistent", []acl.Perm{acl.Read, acl.Write, acl.Execute}}}}, nil, nil),
-				call("aclUpdate", stub.ExpectArgs{"/proc/nonexistent", 0xdeadbeef, []acl.Perm{acl.Read, acl.Write, acl.Execute}}, nil, nil),
+				call("aclUpdate", stub.ExpectArgs{"/proc/nonexistent", 0xbeef, []acl.Perm{acl.Read, acl.Write, acl.Execute}}, nil, nil),
 			}, nil, []stub.Call{
 				call("verbose", stub.ExpectArgs{[]any{"skipping ACL", &aclUpdateOp{User, "/proc/nonexistent", []acl.Perm{acl.Read, acl.Write, acl.Execute}}}}, nil, nil),
 			}, nil},
 
-		{"success revert aclUpdate ENOENT", 0xdeadbeef, 0xff,
+		{"success revert aclUpdate ENOENT", 0xbeef, 0xff,
 			&aclUpdateOp{Process, "/proc/nonexistent", []acl.Perm{acl.Read, acl.Write, acl.Execute}}, []stub.Call{
 				call("verbose", stub.ExpectArgs{[]any{"applying ACL", &aclUpdateOp{Process, "/proc/nonexistent", []acl.Perm{acl.Read, acl.Write, acl.Execute}}}}, nil, nil),
-				call("aclUpdate", stub.ExpectArgs{"/proc/nonexistent", 0xdeadbeef, []acl.Perm{acl.Read, acl.Write, acl.Execute}}, nil, nil),
+				call("aclUpdate", stub.ExpectArgs{"/proc/nonexistent", 0xbeef, []acl.Perm{acl.Read, acl.Write, acl.Execute}}, nil, nil),
 			}, nil, []stub.Call{
 				call("verbose", stub.ExpectArgs{[]any{"stripping ACL", &aclUpdateOp{Process, "/proc/nonexistent", []acl.Perm{acl.Read, acl.Write, acl.Execute}}}}, nil, nil),
-				call("aclUpdate", stub.ExpectArgs{"/proc/nonexistent", 0xdeadbeef, ([]acl.Perm)(nil)}, nil, &os.PathError{Op: "acl_get_file", Path: "/proc/nonexistent", Err: syscall.ENOENT}),
+				call("aclUpdate", stub.ExpectArgs{"/proc/nonexistent", 0xbeef, ([]acl.Perm)(nil)}, nil, &os.PathError{Op: "acl_get_file", Path: "/proc/nonexistent", Err: syscall.ENOENT}),
 				call("verbosef", stub.ExpectArgs{"target of ACL %s no longer exists", []any{&aclUpdateOp{Process, "/proc/nonexistent", []acl.Perm{acl.Read, acl.Write, acl.Execute}}}}, nil, nil),
 			}, nil},
 
-		{"success", 0xdeadbeef, 0xff,
+		{"success", 0xbeef, 0xff,
 			&aclUpdateOp{Process, "/proc/nonexistent", []acl.Perm{acl.Read, acl.Write, acl.Execute}}, []stub.Call{
 				call("verbose", stub.ExpectArgs{[]any{"applying ACL", &aclUpdateOp{Process, "/proc/nonexistent", []acl.Perm{acl.Read, acl.Write, acl.Execute}}}}, nil, nil),
-				call("aclUpdate", stub.ExpectArgs{"/proc/nonexistent", 0xdeadbeef, []acl.Perm{acl.Read, acl.Write, acl.Execute}}, nil, nil),
+				call("aclUpdate", stub.ExpectArgs{"/proc/nonexistent", 0xbeef, []acl.Perm{acl.Read, acl.Write, acl.Execute}}, nil, nil),
 			}, nil, []stub.Call{
 				call("verbose", stub.ExpectArgs{[]any{"stripping ACL", &aclUpdateOp{Process, "/proc/nonexistent", []acl.Perm{acl.Read, acl.Write, acl.Execute}}}}, nil, nil),
-				call("aclUpdate", stub.ExpectArgs{"/proc/nonexistent", 0xdeadbeef, ([]acl.Perm)(nil)}, nil, nil),
+				call("aclUpdate", stub.ExpectArgs{"/proc/nonexistent", 0xbeef, ([]acl.Perm)(nil)}, nil, nil),
 			}, nil},
 	})
 
 	checkOpsBuilder(t, "UpdatePermType", []opsBuilderTestCase{
 		{"simple",
-			0xdeadbeef,
+			0xbeef,
 			func(_ *testing.T, sys *I) {
 				sys.
 					UpdatePerm(m("/run/user/1971/hakurei"), acl.Execute).
@@ -69,25 +69,25 @@ func TestACLUpdateOp(t *testing.T) {
 				&aclUpdateOp{Process, "/tmp/hakurei.0/tmpdir/150", []acl.Perm{acl.Read, acl.Write, acl.Execute}},
 			}, stub.Expect{}},
 
-		{"tmpdirp", 0xdeadbeef, func(_ *testing.T, sys *I) {
+		{"tmpdirp", 0xbeef, func(_ *testing.T, sys *I) {
 			sys.UpdatePermType(User, m("/tmp/hakurei.0/tmpdir"), acl.Execute)
 		}, []Op{
 			&aclUpdateOp{User, "/tmp/hakurei.0/tmpdir", []acl.Perm{acl.Execute}},
 		}, stub.Expect{}},
 
-		{"tmpdir", 0xdeadbeef, func(_ *testing.T, sys *I) {
+		{"tmpdir", 0xbeef, func(_ *testing.T, sys *I) {
 			sys.UpdatePermType(User, m("/tmp/hakurei.0/tmpdir/150"), acl.Read, acl.Write, acl.Execute)
 		}, []Op{
 			&aclUpdateOp{User, "/tmp/hakurei.0/tmpdir/150", []acl.Perm{acl.Read, acl.Write, acl.Execute}},
 		}, stub.Expect{}},
 
-		{"share", 0xdeadbeef, func(_ *testing.T, sys *I) {
+		{"share", 0xbeef, func(_ *testing.T, sys *I) {
 			sys.UpdatePermType(Process, m("/run/user/1971/hakurei/fcb8a12f7c482d183ade8288c3de78b5"), acl.Execute)
 		}, []Op{
 			&aclUpdateOp{Process, "/run/user/1971/hakurei/fcb8a12f7c482d183ade8288c3de78b5", []acl.Perm{acl.Execute}},
 		}, stub.Expect{}},
 
-		{"passwd", 0xdeadbeef, func(_ *testing.T, sys *I) {
+		{"passwd", 0xbeef, func(_ *testing.T, sys *I) {
 			sys.
 				UpdatePermType(Process, m("/tmp/hakurei.0/fcb8a12f7c482d183ade8288c3de78b5/passwd"), acl.Read).
 				UpdatePermType(Process, m("/tmp/hakurei.0/fcb8a12f7c482d183ade8288c3de78b5/group"), acl.Read)
@@ -96,7 +96,7 @@ func TestACLUpdateOp(t *testing.T) {
 			&aclUpdateOp{Process, "/tmp/hakurei.0/fcb8a12f7c482d183ade8288c3de78b5/group", []acl.Perm{acl.Read}},
 		}, stub.Expect{}},
 
-		{"wayland", 0xdeadbeef, func(_ *testing.T, sys *I) {
+		{"wayland", 0xbeef, func(_ *testing.T, sys *I) {
 			sys.UpdatePermType(hst.EWayland, m("/run/user/1971/wayland-0"), acl.Read, acl.Write, acl.Execute)
 		}, []Op{
 			&aclUpdateOp{hst.EWayland, "/run/user/1971/wayland-0", []acl.Perm{acl.Read, acl.Write, acl.Execute}},

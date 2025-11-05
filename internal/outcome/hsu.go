@@ -86,12 +86,12 @@ func (h *Hsu) MustID(msg message.Msg) int {
 			msg.Verbose("*"+fallback, err)
 		}
 		os.Exit(1)
-		return -0xdeadbeef // not reached
+		return -0xbad // not reached
 	} else if m, ok := message.GetMessage(err); ok {
 		log.Fatal(m)
-		return -0xdeadbeef // not reached
+		return -0xbad // not reached
 	} else {
 		log.Fatalln(fallback, err)
-		return -0xdeadbeef // not reached
+		return -0xbad // not reached
 	}
 }

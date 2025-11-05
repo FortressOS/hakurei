@@ -19,7 +19,7 @@ func TestDBusProxyOp(t *testing.T) {
 	t.Parallel()
 
 	checkOpBehaviour(t, []opBehaviourTestCase{
-		{"dbusProxyStart", 0xdeadbeef, 0xff, &dbusProxyOp{
+		{"dbusProxyStart", 0xdead, 0xff, &dbusProxyOp{
 			final:  dbusNewFinalSample(4),
 			out:    new(linePrefixWriter), // panics on write
 			system: true,
@@ -32,7 +32,7 @@ func TestDBusProxyOp(t *testing.T) {
 			Msg: "cannot start message bus proxy: unique error 2 injected by the test suite",
 		}, nil, nil},
 
-		{"dbusProxyWait", 0xdeadbeef, 0xff, &dbusProxyOp{
+		{"dbusProxyWait", 0xdead, 0xff, &dbusProxyOp{
 			final: dbusNewFinalSample(3),
 		}, []stub.Call{
 			call("verbosef", stub.ExpectArgs{"session bus proxy on %q for upstream %q", []any{"/tmp/hakurei.0/99dd71ee2146369514e0d10783368f8f/bus", "unix:path=/run/user/1000/bus"}}, nil, nil),
@@ -48,7 +48,7 @@ func TestDBusProxyOp(t *testing.T) {
 			Msg: "message bus proxy error: unique error 1 injected by the test suite",
 		}},
 
-		{"success dbusProxyWait cancel", 0xdeadbeef, 0xff, &dbusProxyOp{
+		{"success dbusProxyWait cancel", 0xdead, 0xff, &dbusProxyOp{
 			final:  dbusNewFinalSample(2),
 			system: true,
 		}, []stub.Call{
@@ -63,7 +63,7 @@ func TestDBusProxyOp(t *testing.T) {
 			call("verbose", stub.ExpectArgs{[]any{"message bus proxy canceled upstream"}}, nil, nil),
 		}, nil},
 
-		{"success", 0xdeadbeef, 0xff, &dbusProxyOp{
+		{"success", 0xdead, 0xff, &dbusProxyOp{
 			final:  dbusNewFinalSample(1),
 			system: true,
 		}, []stub.Call{
@@ -80,7 +80,7 @@ func TestDBusProxyOp(t *testing.T) {
 	})
 
 	checkOpsBuilder(t, "ProxyDBus", []opsBuilderTestCase{
-		{"nil session", 0xcafebabe, func(t *testing.T, sys *I) {
+		{"nil session", 0xcafe, func(t *testing.T, sys *I) {
 			wantErr := &OpError{
 				Op: "dbus", Err: ErrDBusConfig,
 				Msg: "attempted to create message bus proxy args without session bus config",
@@ -90,7 +90,7 @@ func TestDBusProxyOp(t *testing.T) {
 			}
 		}, nil, stub.Expect{}},
 
-		{"dbusFinalise NUL", 0xcafebabe, func(_ *testing.T, sys *I) {
+		{"dbusFinalise NUL", 0xcafe, func(_ *testing.T, sys *I) {
 			defer func() {
 				want := "message bus proxy configuration contains NUL byte"
 				if r := recover(); r != want {
@@ -121,7 +121,7 @@ func TestDBusProxyOp(t *testing.T) {
 			}, (*dbus.Final)(nil), syscall.EINVAL),
 		}}},
 
-		{"dbusFinalise", 0xcafebabe, func(_ *testing.T, sys *I) {
+		{"dbusFinalise", 0xcafe, func(_ *testing.T, sys *I) {
 			wantErr := &OpError{
 				Op: "dbus", Err: stub.UniqueError(0),
 				Msg: "cannot finalise message bus proxy: unique error 0 injected by the test suite",
@@ -151,7 +151,7 @@ func TestDBusProxyOp(t *testing.T) {
 			}, (*dbus.Final)(nil), stub.UniqueError(0)),
 		}}},
 
-		{"full", 0xcafebabe, func(_ *testing.T, sys *I) {
+		{"full", 0xcafe, func(_ *testing.T, sys *I) {
 			sys.MustProxyDBus(
 				&hst.BusConfig{
 					// use impossible value here as an implicit assert that it goes through the stub

@@ -106,11 +106,11 @@ func TestNew(t *testing.T) {
 		})
 	})
 
-	sys := New(t.Context(), message.New(nil), 0xdeadbeef)
+	sys := New(t.Context(), message.New(nil), 0xbeef)
 	if sys.ctx == nil {
 		t.Error("New: ctx = nil")
 	}
-	if got := sys.UID(); got != 0xdeadbeef {
+	if got := sys.UID(); got != 0xbeef {
 		t.Errorf("UID: %d", got)
 	}
 }

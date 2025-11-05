@@ -13,7 +13,7 @@ var (
 type UniqueError uintptr
 
 func (e UniqueError) Error() string {
-	return "unique error " + strconv.Itoa(int(e)) + " injected by the test suite"
+	return "unique error " + strconv.FormatUint(uint64(e), 10) + " injected by the test suite"
 }
 
 func (e UniqueError) Is(target error) bool {

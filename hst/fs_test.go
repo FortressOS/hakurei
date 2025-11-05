@@ -241,7 +241,7 @@ func (s stubFS) String() string          { return "<invalid " + s.typeName + ">"
 
 type sCheck struct {
 	FS    hst.FilesystemConfigJSON `json:"fs"`
-	Magic int                      `json:"magic"`
+	Magic uint64                   `json:"magic"`
 }
 
 type fsTestCase struct {

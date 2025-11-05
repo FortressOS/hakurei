@@ -53,7 +53,7 @@ func TestHandleExit(t *testing.T) {
 				}
 			}()
 			defer stub.HandleExit(ot)
-			panic(0xcafe0000)
+			panic(0xcafe0)
 		})
 
 		t.Run("Fail", func(t *testing.T) {
@@ -66,7 +66,7 @@ func TestHandleExit(t *testing.T) {
 				}
 			}()
 			defer handleExitNew(ot)
-			panic(0xcafe0000)
+			panic(0xcafe0)
 		})
 	})
 
@@ -82,14 +82,14 @@ func TestHandleExit(t *testing.T) {
 			t.Parallel()
 
 			defer func() {
-				want := 0xcafebabe
+				want := 0xcafe
 				if r := recover(); r != want {
 					t.Errorf("recover: %v, want %v", r, want)
 				}
 
 			}()
 			defer stub.HandleExit(t)
-			panic(0xcafebabe)
+			panic(0xcafe)
 		})
 
 		t.Run("new", func(t *testing.T) {

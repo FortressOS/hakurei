@@ -42,7 +42,7 @@ func TestXHostOp(t *testing.T) {
 	})
 
 	checkOpsBuilder(t, "ChangeHosts", []opsBuilderTestCase{
-		{"xhost", 0xcafebabe, func(_ *testing.T, sys *I) {
+		{"xhost", 0xcafe, func(_ *testing.T, sys *I) {
 			sys.ChangeHosts("chronos")
 		}, []Op{
 			xhostOp("chronos"),

@@ -63,7 +63,7 @@ func TestDefaultMsg(t *testing.T) {
 		})
 
 		t.Run("takeover", func(t *testing.T) {
-			l := log.New(io.Discard, "\x00", 0xdeadbeef)
+			l := log.New(io.Discard, "\x00", 0xbeef)
 			got := message.New(l)
 
 			if logger := got.GetLogger(); logger != l {

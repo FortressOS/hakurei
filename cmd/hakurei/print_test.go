@@ -22,8 +22,8 @@ var (
 	}
 	testState = hst.State{
 		ID:      testID,
-		PID:     0xcafebabe,
-		ShimPID: 0xdeadbeef,
+		PID:     0xcafe,
+		ShimPID: 0xdead,
 		Config:  hst.Template(),
 		Time:    testAppTime,
 	}
@@ -154,7 +154,7 @@ Session bus
 `, false},
 
 		{"instance", &testState, hst.Template(), false, false, `State
- Instance:    8e2c76b066dabe574cf073bdb46eb5c1 (3405691582 -> 3735928559)
+ Instance:    8e2c76b066dabe574cf073bdb46eb5c1 (51966 -> 57005)
  Uptime:      1h2m32s
 
 App
@@ -196,7 +196,7 @@ System bus
 		{"instance pd", &testState, new(hst.Config), false, false, `Error: configuration missing container state!
 
 State
- Instance:    8e2c76b066dabe574cf073bdb46eb5c1 (3405691582 -> 3735928559)
+ Instance:    8e2c76b066dabe574cf073bdb46eb5c1 (51966 -> 57005)
  Uptime:      1h2m32s
 
 App
@@ -209,8 +209,8 @@ App
 `, true},
 		{"json instance", &testState, nil, false, true, `{
   "instance": "8e2c76b066dabe574cf073bdb46eb5c1",
-  "pid": 3405691582,
-  "shim_pid": 3735928559,
+  "pid": 51966,
+  "shim_pid": 57005,
   "id": "org.chromium.Chromium",
   "enablements": {
     "wayland": true,
@@ -544,12 +544,12 @@ func TestPrintPs(t *testing.T) {
 
 		{"invalid config", []hst.State{{ID: testID, PID: 1 << 8, Config: new(hst.Config), Time: testAppTime}}, false, false, "    Instance    PID    Application    Uptime\n", "check: configuration missing container state\n"},
 
-		{"valid", []hst.State{testStateSmall, testState}, false, false, `    Instance    PID           Application                  Uptime
-    4cf073bd    3405691582    9 (org.chromium.Chromium)    1h2m32s
-    aaaaaaaa    48879         1 (app.hakurei.aaaaaaaa)     1h2m28s
+		{"valid", []hst.State{testStateSmall, testState}, false, false, `    Instance    PID      Application                  Uptime
+    4cf073bd    51966    9 (org.chromium.Chromium)    1h2m32s
+    aaaaaaaa    48879    1 (app.hakurei.aaaaaaaa)     1h2m28s
 `, ""},
-		{"valid single", []hst.State{testState}, false, false, `    Instance    PID           Application                  Uptime
-    4cf073bd    3405691582    9 (org.chromium.Chromium)    1h2m32s
+		{"valid single", []hst.State{testState}, false, false, `    Instance    PID      Application                  Uptime
+    4cf073bd    51966    9 (org.chromium.Chromium)    1h2m32s
 `, ""},
 
 		{"valid short", []hst.State{testStateSmall, testState}, true, false, "4cf073bd\naaaaaaaa\n", ""},
@@ -558,8 +558,8 @@ func TestPrintPs(t *testing.T) {
 		{"valid json", []hst.State{testState, testStateSmall}, false, true, `[
   {
     "instance": "8e2c76b066dabe574cf073bdb46eb5c1",
-    "pid": 3405691582,
-    "shim_pid": 3735928559,
+    "pid": 51966,
+    "shim_pid": 57005,
     "id": "org.chromium.Chromium",
     "enablements": {
       "wayland": true,

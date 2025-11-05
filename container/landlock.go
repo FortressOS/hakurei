@@ -14,7 +14,8 @@ const (
 	LANDLOCK_CREATE_RULESET_VERSION = 1 << iota
 )
 
-type LandlockAccessFS uintptr
+// LandlockAccessFS is bitmask of handled filesystem actions.
+type LandlockAccessFS uint64
 
 const (
 	LANDLOCK_ACCESS_FS_EXECUTE LandlockAccessFS = 1 << iota
@@ -105,7 +106,8 @@ func (f LandlockAccessFS) String() string {
 	}
 }
 
-type LandlockAccessNet uintptr
+// LandlockAccessNet is bitmask of handled network actions.
+type LandlockAccessNet uint64
 
 const (
 	LANDLOCK_ACCESS_NET_BIND_TCP LandlockAccessNet = 1 << iota
@@ -140,7 +142,8 @@ func (f LandlockAccessNet) String() string {
 	}
 }
 
-type LandlockScope uintptr
+// LandlockScope is bitmask of scopes restricting a Landlock domain from accessing outside resources.
+type LandlockScope uint64
 
 const (
 	LANDLOCK_SCOPE_ABSTRACT_UNIX_SOCKET LandlockScope = 1 << iota
@@ -175,6 +178,7 @@ func (f LandlockScope) String() string {
 	}
 }
 
+// RulesetAttr is equivalent to struct landlock_ruleset_attr.
 type RulesetAttr struct {
 	// Bitmask of handled filesystem actions.
 	HandledAccessFS LandlockAccessFS

@@ -36,7 +36,7 @@ func call(name string, args stub.ExpectArgs, ret any, err error) stub.Call {
 
 const (
 	// checkExpectUid is the uid value used by checkOpBehaviour to initialise [system.I].
-	checkExpectUid = 0xcafebabe
+	checkExpectUid = 0xcafe
 	// wantAutoEtcPrefix is the autoetc prefix corresponding to checkExpectInstanceId.
 	wantAutoEtcPrefix = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 	// wantInstancePrefix is the SharePath corresponding to checkExpectInstanceId.
