@@ -244,10 +244,10 @@
               shellHook = "exec ${pkgs.writeShellScript "generate-syscall-table" ''
                 set -e
                 ${pkgs.perl}/bin/perl \
-                  container/seccomp/mksysnum_linux.pl \
+                  container/std/mksysnum_linux.pl \
                   ${pkgs.linuxHeaders}/include/asm/unistd_64.h | \
                   ${pkgs.go}/bin/gofmt > \
-                  container/seccomp/syscall_linux_${GOARCH.${system}}.go
+                  container/std/syscall_linux_${GOARCH.${system}}.go
               ''}";
             };
         }

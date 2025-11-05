@@ -84,7 +84,7 @@
 
   virtualisation = {
     # Hopefully reduces spurious test failures:
-    memorySize = 8192;
+    memorySize = if pkgs.hostPlatform.is32bit then 2046 else 8192;
 
     qemu.options = [
       # Need to switch to a different GPU driver than the default one (-vga std) so that Sway can launch:

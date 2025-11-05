@@ -9,6 +9,7 @@ use POSIX ();
 my $command = "mksysnum_linux.pl ". join(' ', @ARGV);
 my $uname_arch = (POSIX::uname)[4];
 my %syscall_cutoff_arch = (
+	"x86" => 340,
 	"x86_64" => 302,
 	"aarch64" => 281,
 );
