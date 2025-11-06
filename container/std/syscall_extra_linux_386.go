@@ -1,13 +1,13 @@
 package std
 
-var syscallNumExtra = map[string]int{
-	"kexec_file_load": SYS_KEXEC_FILE_LOAD,
-	"subpage_prot":    SYS_SUBPAGE_PROT,
-	"switch_endian":   SYS_SWITCH_ENDIAN,
+var syscallNumExtra = map[string]ScmpSyscall{
+	"kexec_file_load": SNR_KEXEC_FILE_LOAD,
+	"subpage_prot":    SNR_SUBPAGE_PROT,
+	"switch_endian":   SNR_SWITCH_ENDIAN,
 }
 
 const (
-	SYS_KEXEC_FILE_LOAD = __PNR_kexec_file_load
-	SYS_SUBPAGE_PROT    = __PNR_subpage_prot
-	SYS_SWITCH_ENDIAN   = __PNR_switch_endian
+	SNR_KEXEC_FILE_LOAD ScmpSyscall = __PNR_kexec_file_load
+	SNR_SUBPAGE_PROT    ScmpSyscall = __PNR_subpage_prot
+	SNR_SWITCH_ENDIAN   ScmpSyscall = __PNR_switch_endian
 )

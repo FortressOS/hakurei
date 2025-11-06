@@ -6,50 +6,50 @@ const (
 	SYS_NEWFSTATAT = syscall.SYS_FSTATAT
 )
 
-var syscallNumExtra = map[string]int{
-	"uselib":          SYS_USELIB,
-	"clock_adjtime64": SYS_CLOCK_ADJTIME64,
-	"clock_settime64": SYS_CLOCK_SETTIME64,
-	"umount":          SYS_UMOUNT,
-	"chown":           SYS_CHOWN,
-	"chown32":         SYS_CHOWN32,
-	"fchown32":        SYS_FCHOWN32,
-	"lchown":          SYS_LCHOWN,
-	"lchown32":        SYS_LCHOWN32,
-	"setgid32":        SYS_SETGID32,
-	"setgroups32":     SYS_SETGROUPS32,
-	"setregid32":      SYS_SETREGID32,
-	"setresgid32":     SYS_SETRESGID32,
-	"setresuid32":     SYS_SETRESUID32,
-	"setreuid32":      SYS_SETREUID32,
-	"setuid32":        SYS_SETUID32,
-	"modify_ldt":      SYS_MODIFY_LDT,
-	"subpage_prot":    SYS_SUBPAGE_PROT,
-	"switch_endian":   SYS_SWITCH_ENDIAN,
-	"vm86":            SYS_VM86,
-	"vm86old":         SYS_VM86OLD,
+var syscallNumExtra = map[string]ScmpSyscall{
+	"uselib":          SNR_USELIB,
+	"clock_adjtime64": SNR_CLOCK_ADJTIME64,
+	"clock_settime64": SNR_CLOCK_SETTIME64,
+	"umount":          SNR_UMOUNT,
+	"chown":           SNR_CHOWN,
+	"chown32":         SNR_CHOWN32,
+	"fchown32":        SNR_FCHOWN32,
+	"lchown":          SNR_LCHOWN,
+	"lchown32":        SNR_LCHOWN32,
+	"setgid32":        SNR_SETGID32,
+	"setgroups32":     SNR_SETGROUPS32,
+	"setregid32":      SNR_SETREGID32,
+	"setresgid32":     SNR_SETRESGID32,
+	"setresuid32":     SNR_SETRESUID32,
+	"setreuid32":      SNR_SETREUID32,
+	"setuid32":        SNR_SETUID32,
+	"modify_ldt":      SNR_MODIFY_LDT,
+	"subpage_prot":    SNR_SUBPAGE_PROT,
+	"switch_endian":   SNR_SWITCH_ENDIAN,
+	"vm86":            SNR_VM86,
+	"vm86old":         SNR_VM86OLD,
 }
 
 const (
-	SYS_USELIB          = __PNR_uselib
-	SYS_CLOCK_ADJTIME64 = __PNR_clock_adjtime64
-	SYS_CLOCK_SETTIME64 = __PNR_clock_settime64
-	SYS_UMOUNT          = __PNR_umount
-	SYS_CHOWN           = __PNR_chown
-	SYS_CHOWN32         = __PNR_chown32
-	SYS_FCHOWN32        = __PNR_fchown32
-	SYS_LCHOWN          = __PNR_lchown
-	SYS_LCHOWN32        = __PNR_lchown32
-	SYS_SETGID32        = __PNR_setgid32
-	SYS_SETGROUPS32     = __PNR_setgroups32
-	SYS_SETREGID32      = __PNR_setregid32
-	SYS_SETRESGID32     = __PNR_setresgid32
-	SYS_SETRESUID32     = __PNR_setresuid32
-	SYS_SETREUID32      = __PNR_setreuid32
-	SYS_SETUID32        = __PNR_setuid32
-	SYS_MODIFY_LDT      = __PNR_modify_ldt
-	SYS_SUBPAGE_PROT    = __PNR_subpage_prot
-	SYS_SWITCH_ENDIAN   = __PNR_switch_endian
-	SYS_VM86            = __PNR_vm86
-	SYS_VM86OLD         = __PNR_vm86old
+	SNR_USELIB          ScmpSyscall = __PNR_uselib
+	SNR_CLOCK_ADJTIME64 ScmpSyscall = __PNR_clock_adjtime64
+	SNR_CLOCK_SETTIME64 ScmpSyscall = __PNR_clock_settime64
+	SNR_UMOUNT          ScmpSyscall = __PNR_umount
+	SNR_CHOWN           ScmpSyscall = __PNR_chown
+	SNR_CHOWN32         ScmpSyscall = __PNR_chown32
+	SNR_FCHOWN32        ScmpSyscall = __PNR_fchown32
+	SNR_LCHOWN          ScmpSyscall = __PNR_lchown
+	SNR_LCHOWN32        ScmpSyscall = __PNR_lchown32
+	SNR_SETGID32        ScmpSyscall = __PNR_setgid32
+	SNR_SETGROUPS32     ScmpSyscall = __PNR_setgroups32
+	SNR_SETREGID32      ScmpSyscall = __PNR_setregid32
+	SNR_SETRESGID32     ScmpSyscall = __PNR_setresgid32
+	SNR_SETRESUID32     ScmpSyscall = __PNR_setresuid32
+	SNR_SETREUID32      ScmpSyscall = __PNR_setreuid32
+	SNR_SETUID32        ScmpSyscall = __PNR_setuid32
+	SNR_MODIFY_LDT      ScmpSyscall = __PNR_modify_ldt
+	SNR_SUBPAGE_PROT    ScmpSyscall = __PNR_subpage_prot
+	SNR_SWITCH_ENDIAN   ScmpSyscall = __PNR_switch_endian
+	SNR_VM86            ScmpSyscall = __PNR_vm86
+	SNR_VM86OLD         ScmpSyscall = __PNR_vm86old
 )

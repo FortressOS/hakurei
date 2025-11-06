@@ -5,325 +5,325 @@ package std
 
 import . "syscall"
 
-var syscallNum = map[string]int{
-	"io_setup":                SYS_IO_SETUP,
-	"io_destroy":              SYS_IO_DESTROY,
-	"io_submit":               SYS_IO_SUBMIT,
-	"io_cancel":               SYS_IO_CANCEL,
-	"io_getevents":            SYS_IO_GETEVENTS,
-	"setxattr":                SYS_SETXATTR,
-	"lsetxattr":               SYS_LSETXATTR,
-	"fsetxattr":               SYS_FSETXATTR,
-	"getxattr":                SYS_GETXATTR,
-	"lgetxattr":               SYS_LGETXATTR,
-	"fgetxattr":               SYS_FGETXATTR,
-	"listxattr":               SYS_LISTXATTR,
-	"llistxattr":              SYS_LLISTXATTR,
-	"flistxattr":              SYS_FLISTXATTR,
-	"removexattr":             SYS_REMOVEXATTR,
-	"lremovexattr":            SYS_LREMOVEXATTR,
-	"fremovexattr":            SYS_FREMOVEXATTR,
-	"getcwd":                  SYS_GETCWD,
-	"lookup_dcookie":          SYS_LOOKUP_DCOOKIE,
-	"eventfd2":                SYS_EVENTFD2,
-	"epoll_create1":           SYS_EPOLL_CREATE1,
-	"epoll_ctl":               SYS_EPOLL_CTL,
-	"epoll_pwait":             SYS_EPOLL_PWAIT,
-	"dup":                     SYS_DUP,
-	"dup3":                    SYS_DUP3,
-	"fcntl":                   SYS_FCNTL,
-	"inotify_init1":           SYS_INOTIFY_INIT1,
-	"inotify_add_watch":       SYS_INOTIFY_ADD_WATCH,
-	"inotify_rm_watch":        SYS_INOTIFY_RM_WATCH,
-	"ioctl":                   SYS_IOCTL,
-	"ioprio_set":              SYS_IOPRIO_SET,
-	"ioprio_get":              SYS_IOPRIO_GET,
-	"flock":                   SYS_FLOCK,
-	"mknodat":                 SYS_MKNODAT,
-	"mkdirat":                 SYS_MKDIRAT,
-	"unlinkat":                SYS_UNLINKAT,
-	"symlinkat":               SYS_SYMLINKAT,
-	"linkat":                  SYS_LINKAT,
-	"renameat":                SYS_RENAMEAT,
-	"umount2":                 SYS_UMOUNT2,
-	"mount":                   SYS_MOUNT,
-	"pivot_root":              SYS_PIVOT_ROOT,
-	"nfsservctl":              SYS_NFSSERVCTL,
-	"statfs":                  SYS_STATFS,
-	"fstatfs":                 SYS_FSTATFS,
-	"truncate":                SYS_TRUNCATE,
-	"ftruncate":               SYS_FTRUNCATE,
-	"fallocate":               SYS_FALLOCATE,
-	"faccessat":               SYS_FACCESSAT,
-	"chdir":                   SYS_CHDIR,
-	"fchdir":                  SYS_FCHDIR,
-	"chroot":                  SYS_CHROOT,
-	"fchmod":                  SYS_FCHMOD,
-	"fchmodat":                SYS_FCHMODAT,
-	"fchownat":                SYS_FCHOWNAT,
-	"fchown":                  SYS_FCHOWN,
-	"openat":                  SYS_OPENAT,
-	"close":                   SYS_CLOSE,
-	"vhangup":                 SYS_VHANGUP,
-	"pipe2":                   SYS_PIPE2,
-	"quotactl":                SYS_QUOTACTL,
-	"getdents64":              SYS_GETDENTS64,
-	"lseek":                   SYS_LSEEK,
-	"read":                    SYS_READ,
-	"write":                   SYS_WRITE,
-	"readv":                   SYS_READV,
-	"writev":                  SYS_WRITEV,
-	"pread64":                 SYS_PREAD64,
-	"pwrite64":                SYS_PWRITE64,
-	"preadv":                  SYS_PREADV,
-	"pwritev":                 SYS_PWRITEV,
-	"sendfile":                SYS_SENDFILE,
-	"pselect6":                SYS_PSELECT6,
-	"ppoll":                   SYS_PPOLL,
-	"signalfd4":               SYS_SIGNALFD4,
-	"vmsplice":                SYS_VMSPLICE,
-	"splice":                  SYS_SPLICE,
-	"tee":                     SYS_TEE,
-	"readlinkat":              SYS_READLINKAT,
-	"newfstatat":              SYS_NEWFSTATAT,
-	"fstat":                   SYS_FSTAT,
-	"sync":                    SYS_SYNC,
-	"fsync":                   SYS_FSYNC,
-	"fdatasync":               SYS_FDATASYNC,
-	"sync_file_range":         SYS_SYNC_FILE_RANGE,
-	"timerfd_create":          SYS_TIMERFD_CREATE,
-	"timerfd_settime":         SYS_TIMERFD_SETTIME,
-	"timerfd_gettime":         SYS_TIMERFD_GETTIME,
-	"utimensat":               SYS_UTIMENSAT,
-	"acct":                    SYS_ACCT,
-	"capget":                  SYS_CAPGET,
-	"capset":                  SYS_CAPSET,
-	"personality":             SYS_PERSONALITY,
-	"exit":                    SYS_EXIT,
-	"exit_group":              SYS_EXIT_GROUP,
-	"waitid":                  SYS_WAITID,
-	"set_tid_address":         SYS_SET_TID_ADDRESS,
-	"unshare":                 SYS_UNSHARE,
-	"futex":                   SYS_FUTEX,
-	"set_robust_list":         SYS_SET_ROBUST_LIST,
-	"get_robust_list":         SYS_GET_ROBUST_LIST,
-	"nanosleep":               SYS_NANOSLEEP,
-	"getitimer":               SYS_GETITIMER,
-	"setitimer":               SYS_SETITIMER,
-	"kexec_load":              SYS_KEXEC_LOAD,
-	"init_module":             SYS_INIT_MODULE,
-	"delete_module":           SYS_DELETE_MODULE,
-	"timer_create":            SYS_TIMER_CREATE,
-	"timer_gettime":           SYS_TIMER_GETTIME,
-	"timer_getoverrun":        SYS_TIMER_GETOVERRUN,
-	"timer_settime":           SYS_TIMER_SETTIME,
-	"timer_delete":            SYS_TIMER_DELETE,
-	"clock_settime":           SYS_CLOCK_SETTIME,
-	"clock_gettime":           SYS_CLOCK_GETTIME,
-	"clock_getres":            SYS_CLOCK_GETRES,
-	"clock_nanosleep":         SYS_CLOCK_NANOSLEEP,
-	"syslog":                  SYS_SYSLOG,
-	"ptrace":                  SYS_PTRACE,
-	"sched_setparam":          SYS_SCHED_SETPARAM,
-	"sched_setscheduler":      SYS_SCHED_SETSCHEDULER,
-	"sched_getscheduler":      SYS_SCHED_GETSCHEDULER,
-	"sched_getparam":          SYS_SCHED_GETPARAM,
-	"sched_setaffinity":       SYS_SCHED_SETAFFINITY,
-	"sched_getaffinity":       SYS_SCHED_GETAFFINITY,
-	"sched_yield":             SYS_SCHED_YIELD,
-	"sched_get_priority_max":  SYS_SCHED_GET_PRIORITY_MAX,
-	"sched_get_priority_min":  SYS_SCHED_GET_PRIORITY_MIN,
-	"sched_rr_get_interval":   SYS_SCHED_RR_GET_INTERVAL,
-	"restart_syscall":         SYS_RESTART_SYSCALL,
-	"kill":                    SYS_KILL,
-	"tkill":                   SYS_TKILL,
-	"tgkill":                  SYS_TGKILL,
-	"sigaltstack":             SYS_SIGALTSTACK,
-	"rt_sigsuspend":           SYS_RT_SIGSUSPEND,
-	"rt_sigaction":            SYS_RT_SIGACTION,
-	"rt_sigprocmask":          SYS_RT_SIGPROCMASK,
-	"rt_sigpending":           SYS_RT_SIGPENDING,
-	"rt_sigtimedwait":         SYS_RT_SIGTIMEDWAIT,
-	"rt_sigqueueinfo":         SYS_RT_SIGQUEUEINFO,
-	"rt_sigreturn":            SYS_RT_SIGRETURN,
-	"setpriority":             SYS_SETPRIORITY,
-	"getpriority":             SYS_GETPRIORITY,
-	"reboot":                  SYS_REBOOT,
-	"setregid":                SYS_SETREGID,
-	"setgid":                  SYS_SETGID,
-	"setreuid":                SYS_SETREUID,
-	"setuid":                  SYS_SETUID,
-	"setresuid":               SYS_SETRESUID,
-	"getresuid":               SYS_GETRESUID,
-	"setresgid":               SYS_SETRESGID,
-	"getresgid":               SYS_GETRESGID,
-	"setfsuid":                SYS_SETFSUID,
-	"setfsgid":                SYS_SETFSGID,
-	"times":                   SYS_TIMES,
-	"setpgid":                 SYS_SETPGID,
-	"getpgid":                 SYS_GETPGID,
-	"getsid":                  SYS_GETSID,
-	"setsid":                  SYS_SETSID,
-	"getgroups":               SYS_GETGROUPS,
-	"setgroups":               SYS_SETGROUPS,
-	"uname":                   SYS_UNAME,
-	"sethostname":             SYS_SETHOSTNAME,
-	"setdomainname":           SYS_SETDOMAINNAME,
-	"getrlimit":               SYS_GETRLIMIT,
-	"setrlimit":               SYS_SETRLIMIT,
-	"getrusage":               SYS_GETRUSAGE,
-	"umask":                   SYS_UMASK,
-	"prctl":                   SYS_PRCTL,
-	"getcpu":                  SYS_GETCPU,
-	"gettimeofday":            SYS_GETTIMEOFDAY,
-	"settimeofday":            SYS_SETTIMEOFDAY,
-	"adjtimex":                SYS_ADJTIMEX,
-	"getpid":                  SYS_GETPID,
-	"getppid":                 SYS_GETPPID,
-	"getuid":                  SYS_GETUID,
-	"geteuid":                 SYS_GETEUID,
-	"getgid":                  SYS_GETGID,
-	"getegid":                 SYS_GETEGID,
-	"gettid":                  SYS_GETTID,
-	"sysinfo":                 SYS_SYSINFO,
-	"mq_open":                 SYS_MQ_OPEN,
-	"mq_unlink":               SYS_MQ_UNLINK,
-	"mq_timedsend":            SYS_MQ_TIMEDSEND,
-	"mq_timedreceive":         SYS_MQ_TIMEDRECEIVE,
-	"mq_notify":               SYS_MQ_NOTIFY,
-	"mq_getsetattr":           SYS_MQ_GETSETATTR,
-	"msgget":                  SYS_MSGGET,
-	"msgctl":                  SYS_MSGCTL,
-	"msgrcv":                  SYS_MSGRCV,
-	"msgsnd":                  SYS_MSGSND,
-	"semget":                  SYS_SEMGET,
-	"semctl":                  SYS_SEMCTL,
-	"semtimedop":              SYS_SEMTIMEDOP,
-	"semop":                   SYS_SEMOP,
-	"shmget":                  SYS_SHMGET,
-	"shmctl":                  SYS_SHMCTL,
-	"shmat":                   SYS_SHMAT,
-	"shmdt":                   SYS_SHMDT,
-	"socket":                  SYS_SOCKET,
-	"socketpair":              SYS_SOCKETPAIR,
-	"bind":                    SYS_BIND,
-	"listen":                  SYS_LISTEN,
-	"accept":                  SYS_ACCEPT,
-	"connect":                 SYS_CONNECT,
-	"getsockname":             SYS_GETSOCKNAME,
-	"getpeername":             SYS_GETPEERNAME,
-	"sendto":                  SYS_SENDTO,
-	"recvfrom":                SYS_RECVFROM,
-	"setsockopt":              SYS_SETSOCKOPT,
-	"getsockopt":              SYS_GETSOCKOPT,
-	"shutdown":                SYS_SHUTDOWN,
-	"sendmsg":                 SYS_SENDMSG,
-	"recvmsg":                 SYS_RECVMSG,
-	"readahead":               SYS_READAHEAD,
-	"brk":                     SYS_BRK,
-	"munmap":                  SYS_MUNMAP,
-	"mremap":                  SYS_MREMAP,
-	"add_key":                 SYS_ADD_KEY,
-	"request_key":             SYS_REQUEST_KEY,
-	"keyctl":                  SYS_KEYCTL,
-	"clone":                   SYS_CLONE,
-	"execve":                  SYS_EXECVE,
-	"mmap":                    SYS_MMAP,
-	"fadvise64":               SYS_FADVISE64,
-	"swapon":                  SYS_SWAPON,
-	"swapoff":                 SYS_SWAPOFF,
-	"mprotect":                SYS_MPROTECT,
-	"msync":                   SYS_MSYNC,
-	"mlock":                   SYS_MLOCK,
-	"munlock":                 SYS_MUNLOCK,
-	"mlockall":                SYS_MLOCKALL,
-	"munlockall":              SYS_MUNLOCKALL,
-	"mincore":                 SYS_MINCORE,
-	"madvise":                 SYS_MADVISE,
-	"remap_file_pages":        SYS_REMAP_FILE_PAGES,
-	"mbind":                   SYS_MBIND,
-	"get_mempolicy":           SYS_GET_MEMPOLICY,
-	"set_mempolicy":           SYS_SET_MEMPOLICY,
-	"migrate_pages":           SYS_MIGRATE_PAGES,
-	"move_pages":              SYS_MOVE_PAGES,
-	"rt_tgsigqueueinfo":       SYS_RT_TGSIGQUEUEINFO,
-	"perf_event_open":         SYS_PERF_EVENT_OPEN,
-	"accept4":                 SYS_ACCEPT4,
-	"recvmmsg":                SYS_RECVMMSG,
-	"wait4":                   SYS_WAIT4,
-	"prlimit64":               SYS_PRLIMIT64,
-	"fanotify_init":           SYS_FANOTIFY_INIT,
-	"fanotify_mark":           SYS_FANOTIFY_MARK,
-	"name_to_handle_at":       SYS_NAME_TO_HANDLE_AT,
-	"open_by_handle_at":       SYS_OPEN_BY_HANDLE_AT,
-	"clock_adjtime":           SYS_CLOCK_ADJTIME,
-	"syncfs":                  SYS_SYNCFS,
-	"setns":                   SYS_SETNS,
-	"sendmmsg":                SYS_SENDMMSG,
-	"process_vm_readv":        SYS_PROCESS_VM_READV,
-	"process_vm_writev":       SYS_PROCESS_VM_WRITEV,
-	"kcmp":                    SYS_KCMP,
-	"finit_module":            SYS_FINIT_MODULE,
-	"sched_setattr":           SYS_SCHED_SETATTR,
-	"sched_getattr":           SYS_SCHED_GETATTR,
-	"renameat2":               SYS_RENAMEAT2,
-	"seccomp":                 SYS_SECCOMP,
-	"getrandom":               SYS_GETRANDOM,
-	"memfd_create":            SYS_MEMFD_CREATE,
-	"bpf":                     SYS_BPF,
-	"execveat":                SYS_EXECVEAT,
-	"userfaultfd":             SYS_USERFAULTFD,
-	"membarrier":              SYS_MEMBARRIER,
-	"mlock2":                  SYS_MLOCK2,
-	"copy_file_range":         SYS_COPY_FILE_RANGE,
-	"preadv2":                 SYS_PREADV2,
-	"pwritev2":                SYS_PWRITEV2,
-	"pkey_mprotect":           SYS_PKEY_MPROTECT,
-	"pkey_alloc":              SYS_PKEY_ALLOC,
-	"pkey_free":               SYS_PKEY_FREE,
-	"statx":                   SYS_STATX,
-	"io_pgetevents":           SYS_IO_PGETEVENTS,
-	"rseq":                    SYS_RSEQ,
-	"kexec_file_load":         SYS_KEXEC_FILE_LOAD,
-	"pidfd_send_signal":       SYS_PIDFD_SEND_SIGNAL,
-	"io_uring_setup":          SYS_IO_URING_SETUP,
-	"io_uring_enter":          SYS_IO_URING_ENTER,
-	"io_uring_register":       SYS_IO_URING_REGISTER,
-	"open_tree":               SYS_OPEN_TREE,
-	"move_mount":              SYS_MOVE_MOUNT,
-	"fsopen":                  SYS_FSOPEN,
-	"fsconfig":                SYS_FSCONFIG,
-	"fsmount":                 SYS_FSMOUNT,
-	"fspick":                  SYS_FSPICK,
-	"pidfd_open":              SYS_PIDFD_OPEN,
-	"clone3":                  SYS_CLONE3,
-	"close_range":             SYS_CLOSE_RANGE,
-	"openat2":                 SYS_OPENAT2,
-	"pidfd_getfd":             SYS_PIDFD_GETFD,
-	"faccessat2":              SYS_FACCESSAT2,
-	"process_madvise":         SYS_PROCESS_MADVISE,
-	"epoll_pwait2":            SYS_EPOLL_PWAIT2,
-	"mount_setattr":           SYS_MOUNT_SETATTR,
-	"quotactl_fd":             SYS_QUOTACTL_FD,
-	"landlock_create_ruleset": SYS_LANDLOCK_CREATE_RULESET,
-	"landlock_add_rule":       SYS_LANDLOCK_ADD_RULE,
-	"landlock_restrict_self":  SYS_LANDLOCK_RESTRICT_SELF,
-	"memfd_secret":            SYS_MEMFD_SECRET,
-	"process_mrelease":        SYS_PROCESS_MRELEASE,
-	"futex_waitv":             SYS_FUTEX_WAITV,
-	"set_mempolicy_home_node": SYS_SET_MEMPOLICY_HOME_NODE,
-	"cachestat":               SYS_CACHESTAT,
-	"fchmodat2":               SYS_FCHMODAT2,
-	"map_shadow_stack":        SYS_MAP_SHADOW_STACK,
-	"futex_wake":              SYS_FUTEX_WAKE,
-	"futex_wait":              SYS_FUTEX_WAIT,
-	"futex_requeue":           SYS_FUTEX_REQUEUE,
-	"statmount":               SYS_STATMOUNT,
-	"listmount":               SYS_LISTMOUNT,
-	"lsm_get_self_attr":       SYS_LSM_GET_SELF_ATTR,
-	"lsm_set_self_attr":       SYS_LSM_SET_SELF_ATTR,
-	"lsm_list_modules":        SYS_LSM_LIST_MODULES,
-	"mseal":                   SYS_MSEAL,
+var syscallNum = map[string]ScmpSyscall{
+	"io_setup":                SNR_IO_SETUP,
+	"io_destroy":              SNR_IO_DESTROY,
+	"io_submit":               SNR_IO_SUBMIT,
+	"io_cancel":               SNR_IO_CANCEL,
+	"io_getevents":            SNR_IO_GETEVENTS,
+	"setxattr":                SNR_SETXATTR,
+	"lsetxattr":               SNR_LSETXATTR,
+	"fsetxattr":               SNR_FSETXATTR,
+	"getxattr":                SNR_GETXATTR,
+	"lgetxattr":               SNR_LGETXATTR,
+	"fgetxattr":               SNR_FGETXATTR,
+	"listxattr":               SNR_LISTXATTR,
+	"llistxattr":              SNR_LLISTXATTR,
+	"flistxattr":              SNR_FLISTXATTR,
+	"removexattr":             SNR_REMOVEXATTR,
+	"lremovexattr":            SNR_LREMOVEXATTR,
+	"fremovexattr":            SNR_FREMOVEXATTR,
+	"getcwd":                  SNR_GETCWD,
+	"lookup_dcookie":          SNR_LOOKUP_DCOOKIE,
+	"eventfd2":                SNR_EVENTFD2,
+	"epoll_create1":           SNR_EPOLL_CREATE1,
+	"epoll_ctl":               SNR_EPOLL_CTL,
+	"epoll_pwait":             SNR_EPOLL_PWAIT,
+	"dup":                     SNR_DUP,
+	"dup3":                    SNR_DUP3,
+	"fcntl":                   SNR_FCNTL,
+	"inotify_init1":           SNR_INOTIFY_INIT1,
+	"inotify_add_watch":       SNR_INOTIFY_ADD_WATCH,
+	"inotify_rm_watch":        SNR_INOTIFY_RM_WATCH,
+	"ioctl":                   SNR_IOCTL,
+	"ioprio_set":              SNR_IOPRIO_SET,
+	"ioprio_get":              SNR_IOPRIO_GET,
+	"flock":                   SNR_FLOCK,
+	"mknodat":                 SNR_MKNODAT,
+	"mkdirat":                 SNR_MKDIRAT,
+	"unlinkat":                SNR_UNLINKAT,
+	"symlinkat":               SNR_SYMLINKAT,
+	"linkat":                  SNR_LINKAT,
+	"renameat":                SNR_RENAMEAT,
+	"umount2":                 SNR_UMOUNT2,
+	"mount":                   SNR_MOUNT,
+	"pivot_root":              SNR_PIVOT_ROOT,
+	"nfsservctl":              SNR_NFSSERVCTL,
+	"statfs":                  SNR_STATFS,
+	"fstatfs":                 SNR_FSTATFS,
+	"truncate":                SNR_TRUNCATE,
+	"ftruncate":               SNR_FTRUNCATE,
+	"fallocate":               SNR_FALLOCATE,
+	"faccessat":               SNR_FACCESSAT,
+	"chdir":                   SNR_CHDIR,
+	"fchdir":                  SNR_FCHDIR,
+	"chroot":                  SNR_CHROOT,
+	"fchmod":                  SNR_FCHMOD,
+	"fchmodat":                SNR_FCHMODAT,
+	"fchownat":                SNR_FCHOWNAT,
+	"fchown":                  SNR_FCHOWN,
+	"openat":                  SNR_OPENAT,
+	"close":                   SNR_CLOSE,
+	"vhangup":                 SNR_VHANGUP,
+	"pipe2":                   SNR_PIPE2,
+	"quotactl":                SNR_QUOTACTL,
+	"getdents64":              SNR_GETDENTS64,
+	"lseek":                   SNR_LSEEK,
+	"read":                    SNR_READ,
+	"write":                   SNR_WRITE,
+	"readv":                   SNR_READV,
+	"writev":                  SNR_WRITEV,
+	"pread64":                 SNR_PREAD64,
+	"pwrite64":                SNR_PWRITE64,
+	"preadv":                  SNR_PREADV,
+	"pwritev":                 SNR_PWRITEV,
+	"sendfile":                SNR_SENDFILE,
+	"pselect6":                SNR_PSELECT6,
+	"ppoll":                   SNR_PPOLL,
+	"signalfd4":               SNR_SIGNALFD4,
+	"vmsplice":                SNR_VMSPLICE,
+	"splice":                  SNR_SPLICE,
+	"tee":                     SNR_TEE,
+	"readlinkat":              SNR_READLINKAT,
+	"newfstatat":              SNR_NEWFSTATAT,
+	"fstat":                   SNR_FSTAT,
+	"sync":                    SNR_SYNC,
+	"fsync":                   SNR_FSYNC,
+	"fdatasync":               SNR_FDATASYNC,
+	"sync_file_range":         SNR_SYNC_FILE_RANGE,
+	"timerfd_create":          SNR_TIMERFD_CREATE,
+	"timerfd_settime":         SNR_TIMERFD_SETTIME,
+	"timerfd_gettime":         SNR_TIMERFD_GETTIME,
+	"utimensat":               SNR_UTIMENSAT,
+	"acct":                    SNR_ACCT,
+	"capget":                  SNR_CAPGET,
+	"capset":                  SNR_CAPSET,
+	"personality":             SNR_PERSONALITY,
+	"exit":                    SNR_EXIT,
+	"exit_group":              SNR_EXIT_GROUP,
+	"waitid":                  SNR_WAITID,
+	"set_tid_address":         SNR_SET_TID_ADDRESS,
+	"unshare":                 SNR_UNSHARE,
+	"futex":                   SNR_FUTEX,
+	"set_robust_list":         SNR_SET_ROBUST_LIST,
+	"get_robust_list":         SNR_GET_ROBUST_LIST,
+	"nanosleep":               SNR_NANOSLEEP,
+	"getitimer":               SNR_GETITIMER,
+	"setitimer":               SNR_SETITIMER,
+	"kexec_load":              SNR_KEXEC_LOAD,
+	"init_module":             SNR_INIT_MODULE,
+	"delete_module":           SNR_DELETE_MODULE,
+	"timer_create":            SNR_TIMER_CREATE,
+	"timer_gettime":           SNR_TIMER_GETTIME,
+	"timer_getoverrun":        SNR_TIMER_GETOVERRUN,
+	"timer_settime":           SNR_TIMER_SETTIME,
+	"timer_delete":            SNR_TIMER_DELETE,
+	"clock_settime":           SNR_CLOCK_SETTIME,
+	"clock_gettime":           SNR_CLOCK_GETTIME,
+	"clock_getres":            SNR_CLOCK_GETRES,
+	"clock_nanosleep":         SNR_CLOCK_NANOSLEEP,
+	"syslog":                  SNR_SYSLOG,
+	"ptrace":                  SNR_PTRACE,
+	"sched_setparam":          SNR_SCHED_SETPARAM,
+	"sched_setscheduler":      SNR_SCHED_SETSCHEDULER,
+	"sched_getscheduler":      SNR_SCHED_GETSCHEDULER,
+	"sched_getparam":          SNR_SCHED_GETPARAM,
+	"sched_setaffinity":       SNR_SCHED_SETAFFINITY,
+	"sched_getaffinity":       SNR_SCHED_GETAFFINITY,
+	"sched_yield":             SNR_SCHED_YIELD,
+	"sched_get_priority_max":  SNR_SCHED_GET_PRIORITY_MAX,
+	"sched_get_priority_min":  SNR_SCHED_GET_PRIORITY_MIN,
+	"sched_rr_get_interval":   SNR_SCHED_RR_GET_INTERVAL,
+	"restart_syscall":         SNR_RESTART_SYSCALL,
+	"kill":                    SNR_KILL,
+	"tkill":                   SNR_TKILL,
+	"tgkill":                  SNR_TGKILL,
+	"sigaltstack":             SNR_SIGALTSTACK,
+	"rt_sigsuspend":           SNR_RT_SIGSUSPEND,
+	"rt_sigaction":            SNR_RT_SIGACTION,
+	"rt_sigprocmask":          SNR_RT_SIGPROCMASK,
+	"rt_sigpending":           SNR_RT_SIGPENDING,
+	"rt_sigtimedwait":         SNR_RT_SIGTIMEDWAIT,
+	"rt_sigqueueinfo":         SNR_RT_SIGQUEUEINFO,
+	"rt_sigreturn":            SNR_RT_SIGRETURN,
+	"setpriority":             SNR_SETPRIORITY,
+	"getpriority":             SNR_GETPRIORITY,
+	"reboot":                  SNR_REBOOT,
+	"setregid":                SNR_SETREGID,
+	"setgid":                  SNR_SETGID,
+	"setreuid":                SNR_SETREUID,
+	"setuid":                  SNR_SETUID,
+	"setresuid":               SNR_SETRESUID,
+	"getresuid":               SNR_GETRESUID,
+	"setresgid":               SNR_SETRESGID,
+	"getresgid":               SNR_GETRESGID,
+	"setfsuid":                SNR_SETFSUID,
+	"setfsgid":                SNR_SETFSGID,
+	"times":                   SNR_TIMES,
+	"setpgid":                 SNR_SETPGID,
+	"getpgid":                 SNR_GETPGID,
+	"getsid":                  SNR_GETSID,
+	"setsid":                  SNR_SETSID,
+	"getgroups":               SNR_GETGROUPS,
+	"setgroups":               SNR_SETGROUPS,
+	"uname":                   SNR_UNAME,
+	"sethostname":             SNR_SETHOSTNAME,
+	"setdomainname":           SNR_SETDOMAINNAME,
+	"getrlimit":               SNR_GETRLIMIT,
+	"setrlimit":               SNR_SETRLIMIT,
+	"getrusage":               SNR_GETRUSAGE,
+	"umask":                   SNR_UMASK,
+	"prctl":                   SNR_PRCTL,
+	"getcpu":                  SNR_GETCPU,
+	"gettimeofday":            SNR_GETTIMEOFDAY,
+	"settimeofday":            SNR_SETTIMEOFDAY,
+	"adjtimex":                SNR_ADJTIMEX,
+	"getpid":                  SNR_GETPID,
+	"getppid":                 SNR_GETPPID,
+	"getuid":                  SNR_GETUID,
+	"geteuid":                 SNR_GETEUID,
+	"getgid":                  SNR_GETGID,
+	"getegid":                 SNR_GETEGID,
+	"gettid":                  SNR_GETTID,
+	"sysinfo":                 SNR_SYSINFO,
+	"mq_open":                 SNR_MQ_OPEN,
+	"mq_unlink":               SNR_MQ_UNLINK,
+	"mq_timedsend":            SNR_MQ_TIMEDSEND,
+	"mq_timedreceive":         SNR_MQ_TIMEDRECEIVE,
+	"mq_notify":               SNR_MQ_NOTIFY,
+	"mq_getsetattr":           SNR_MQ_GETSETATTR,
+	"msgget":                  SNR_MSGGET,
+	"msgctl":                  SNR_MSGCTL,
+	"msgrcv":                  SNR_MSGRCV,
+	"msgsnd":                  SNR_MSGSND,
+	"semget":                  SNR_SEMGET,
+	"semctl":                  SNR_SEMCTL,
+	"semtimedop":              SNR_SEMTIMEDOP,
+	"semop":                   SNR_SEMOP,
+	"shmget":                  SNR_SHMGET,
+	"shmctl":                  SNR_SHMCTL,
+	"shmat":                   SNR_SHMAT,
+	"shmdt":                   SNR_SHMDT,
+	"socket":                  SNR_SOCKET,
+	"socketpair":              SNR_SOCKETPAIR,
+	"bind":                    SNR_BIND,
+	"listen":                  SNR_LISTEN,
+	"accept":                  SNR_ACCEPT,
+	"connect":                 SNR_CONNECT,
+	"getsockname":             SNR_GETSOCKNAME,
+	"getpeername":             SNR_GETPEERNAME,
+	"sendto":                  SNR_SENDTO,
+	"recvfrom":                SNR_RECVFROM,
+	"setsockopt":              SNR_SETSOCKOPT,
+	"getsockopt":              SNR_GETSOCKOPT,
+	"shutdown":                SNR_SHUTDOWN,
+	"sendmsg":                 SNR_SENDMSG,
+	"recvmsg":                 SNR_RECVMSG,
+	"readahead":               SNR_READAHEAD,
+	"brk":                     SNR_BRK,
+	"munmap":                  SNR_MUNMAP,
+	"mremap":                  SNR_MREMAP,
+	"add_key":                 SNR_ADD_KEY,
+	"request_key":             SNR_REQUEST_KEY,
+	"keyctl":                  SNR_KEYCTL,
+	"clone":                   SNR_CLONE,
+	"execve":                  SNR_EXECVE,
+	"mmap":                    SNR_MMAP,
+	"fadvise64":               SNR_FADVISE64,
+	"swapon":                  SNR_SWAPON,
+	"swapoff":                 SNR_SWAPOFF,
+	"mprotect":                SNR_MPROTECT,
+	"msync":                   SNR_MSYNC,
+	"mlock":                   SNR_MLOCK,
+	"munlock":                 SNR_MUNLOCK,
+	"mlockall":                SNR_MLOCKALL,
+	"munlockall":              SNR_MUNLOCKALL,
+	"mincore":                 SNR_MINCORE,
+	"madvise":                 SNR_MADVISE,
+	"remap_file_pages":        SNR_REMAP_FILE_PAGES,
+	"mbind":                   SNR_MBIND,
+	"get_mempolicy":           SNR_GET_MEMPOLICY,
+	"set_mempolicy":           SNR_SET_MEMPOLICY,
+	"migrate_pages":           SNR_MIGRATE_PAGES,
+	"move_pages":              SNR_MOVE_PAGES,
+	"rt_tgsigqueueinfo":       SNR_RT_TGSIGQUEUEINFO,
+	"perf_event_open":         SNR_PERF_EVENT_OPEN,
+	"accept4":                 SNR_ACCEPT4,
+	"recvmmsg":                SNR_RECVMMSG,
+	"wait4":                   SNR_WAIT4,
+	"prlimit64":               SNR_PRLIMIT64,
+	"fanotify_init":           SNR_FANOTIFY_INIT,
+	"fanotify_mark":           SNR_FANOTIFY_MARK,
+	"name_to_handle_at":       SNR_NAME_TO_HANDLE_AT,
+	"open_by_handle_at":       SNR_OPEN_BY_HANDLE_AT,
+	"clock_adjtime":           SNR_CLOCK_ADJTIME,
+	"syncfs":                  SNR_SYNCFS,
+	"setns":                   SNR_SETNS,
+	"sendmmsg":                SNR_SENDMMSG,
+	"process_vm_readv":        SNR_PROCESS_VM_READV,
+	"process_vm_writev":       SNR_PROCESS_VM_WRITEV,
+	"kcmp":                    SNR_KCMP,
+	"finit_module":            SNR_FINIT_MODULE,
+	"sched_setattr":           SNR_SCHED_SETATTR,
+	"sched_getattr":           SNR_SCHED_GETATTR,
+	"renameat2":               SNR_RENAMEAT2,
+	"seccomp":                 SNR_SECCOMP,
+	"getrandom":               SNR_GETRANDOM,
+	"memfd_create":            SNR_MEMFD_CREATE,
+	"bpf":                     SNR_BPF,
+	"execveat":                SNR_EXECVEAT,
+	"userfaultfd":             SNR_USERFAULTFD,
+	"membarrier":              SNR_MEMBARRIER,
+	"mlock2":                  SNR_MLOCK2,
+	"copy_file_range":         SNR_COPY_FILE_RANGE,
+	"preadv2":                 SNR_PREADV2,
+	"pwritev2":                SNR_PWRITEV2,
+	"pkey_mprotect":           SNR_PKEY_MPROTECT,
+	"pkey_alloc":              SNR_PKEY_ALLOC,
+	"pkey_free":               SNR_PKEY_FREE,
+	"statx":                   SNR_STATX,
+	"io_pgetevents":           SNR_IO_PGETEVENTS,
+	"rseq":                    SNR_RSEQ,
+	"kexec_file_load":         SNR_KEXEC_FILE_LOAD,
+	"pidfd_send_signal":       SNR_PIDFD_SEND_SIGNAL,
+	"io_uring_setup":          SNR_IO_URING_SETUP,
+	"io_uring_enter":          SNR_IO_URING_ENTER,
+	"io_uring_register":       SNR_IO_URING_REGISTER,
+	"open_tree":               SNR_OPEN_TREE,
+	"move_mount":              SNR_MOVE_MOUNT,
+	"fsopen":                  SNR_FSOPEN,
+	"fsconfig":                SNR_FSCONFIG,
+	"fsmount":                 SNR_FSMOUNT,
+	"fspick":                  SNR_FSPICK,
+	"pidfd_open":              SNR_PIDFD_OPEN,
+	"clone3":                  SNR_CLONE3,
+	"close_range":             SNR_CLOSE_RANGE,
+	"openat2":                 SNR_OPENAT2,
+	"pidfd_getfd":             SNR_PIDFD_GETFD,
+	"faccessat2":              SNR_FACCESSAT2,
+	"process_madvise":         SNR_PROCESS_MADVISE,
+	"epoll_pwait2":            SNR_EPOLL_PWAIT2,
+	"mount_setattr":           SNR_MOUNT_SETATTR,
+	"quotactl_fd":             SNR_QUOTACTL_FD,
+	"landlock_create_ruleset": SNR_LANDLOCK_CREATE_RULESET,
+	"landlock_add_rule":       SNR_LANDLOCK_ADD_RULE,
+	"landlock_restrict_self":  SNR_LANDLOCK_RESTRICT_SELF,
+	"memfd_secret":            SNR_MEMFD_SECRET,
+	"process_mrelease":        SNR_PROCESS_MRELEASE,
+	"futex_waitv":             SNR_FUTEX_WAITV,
+	"set_mempolicy_home_node": SNR_SET_MEMPOLICY_HOME_NODE,
+	"cachestat":               SNR_CACHESTAT,
+	"fchmodat2":               SNR_FCHMODAT2,
+	"map_shadow_stack":        SNR_MAP_SHADOW_STACK,
+	"futex_wake":              SNR_FUTEX_WAKE,
+	"futex_wait":              SNR_FUTEX_WAIT,
+	"futex_requeue":           SNR_FUTEX_REQUEUE,
+	"statmount":               SNR_STATMOUNT,
+	"listmount":               SNR_LISTMOUNT,
+	"lsm_get_self_attr":       SNR_LSM_GET_SELF_ATTR,
+	"lsm_set_self_attr":       SNR_LSM_SET_SELF_ATTR,
+	"lsm_list_modules":        SNR_LSM_LIST_MODULES,
+	"mseal":                   SNR_MSEAL,
 }
 
 const (
@@ -379,4 +379,325 @@ const (
 	SYS_LSM_SET_SELF_ATTR       = 460
 	SYS_LSM_LIST_MODULES        = 461
 	SYS_MSEAL                   = 462
+)
+
+const (
+	SNR_IO_SETUP                ScmpSyscall = SYS_IO_SETUP
+	SNR_IO_DESTROY              ScmpSyscall = SYS_IO_DESTROY
+	SNR_IO_SUBMIT               ScmpSyscall = SYS_IO_SUBMIT
+	SNR_IO_CANCEL               ScmpSyscall = SYS_IO_CANCEL
+	SNR_IO_GETEVENTS            ScmpSyscall = SYS_IO_GETEVENTS
+	SNR_SETXATTR                ScmpSyscall = SYS_SETXATTR
+	SNR_LSETXATTR               ScmpSyscall = SYS_LSETXATTR
+	SNR_FSETXATTR               ScmpSyscall = SYS_FSETXATTR
+	SNR_GETXATTR                ScmpSyscall = SYS_GETXATTR
+	SNR_LGETXATTR               ScmpSyscall = SYS_LGETXATTR
+	SNR_FGETXATTR               ScmpSyscall = SYS_FGETXATTR
+	SNR_LISTXATTR               ScmpSyscall = SYS_LISTXATTR
+	SNR_LLISTXATTR              ScmpSyscall = SYS_LLISTXATTR
+	SNR_FLISTXATTR              ScmpSyscall = SYS_FLISTXATTR
+	SNR_REMOVEXATTR             ScmpSyscall = SYS_REMOVEXATTR
+	SNR_LREMOVEXATTR            ScmpSyscall = SYS_LREMOVEXATTR
+	SNR_FREMOVEXATTR            ScmpSyscall = SYS_FREMOVEXATTR
+	SNR_GETCWD                  ScmpSyscall = SYS_GETCWD
+	SNR_LOOKUP_DCOOKIE          ScmpSyscall = SYS_LOOKUP_DCOOKIE
+	SNR_EVENTFD2                ScmpSyscall = SYS_EVENTFD2
+	SNR_EPOLL_CREATE1           ScmpSyscall = SYS_EPOLL_CREATE1
+	SNR_EPOLL_CTL               ScmpSyscall = SYS_EPOLL_CTL
+	SNR_EPOLL_PWAIT             ScmpSyscall = SYS_EPOLL_PWAIT
+	SNR_DUP                     ScmpSyscall = SYS_DUP
+	SNR_DUP3                    ScmpSyscall = SYS_DUP3
+	SNR_FCNTL                   ScmpSyscall = SYS_FCNTL
+	SNR_INOTIFY_INIT1           ScmpSyscall = SYS_INOTIFY_INIT1
+	SNR_INOTIFY_ADD_WATCH       ScmpSyscall = SYS_INOTIFY_ADD_WATCH
+	SNR_INOTIFY_RM_WATCH        ScmpSyscall = SYS_INOTIFY_RM_WATCH
+	SNR_IOCTL                   ScmpSyscall = SYS_IOCTL
+	SNR_IOPRIO_SET              ScmpSyscall = SYS_IOPRIO_SET
+	SNR_IOPRIO_GET              ScmpSyscall = SYS_IOPRIO_GET
+	SNR_FLOCK                   ScmpSyscall = SYS_FLOCK
+	SNR_MKNODAT                 ScmpSyscall = SYS_MKNODAT
+	SNR_MKDIRAT                 ScmpSyscall = SYS_MKDIRAT
+	SNR_UNLINKAT                ScmpSyscall = SYS_UNLINKAT
+	SNR_SYMLINKAT               ScmpSyscall = SYS_SYMLINKAT
+	SNR_LINKAT                  ScmpSyscall = SYS_LINKAT
+	SNR_RENAMEAT                ScmpSyscall = SYS_RENAMEAT
+	SNR_UMOUNT2                 ScmpSyscall = SYS_UMOUNT2
+	SNR_MOUNT                   ScmpSyscall = SYS_MOUNT
+	SNR_PIVOT_ROOT              ScmpSyscall = SYS_PIVOT_ROOT
+	SNR_NFSSERVCTL              ScmpSyscall = SYS_NFSSERVCTL
+	SNR_STATFS                  ScmpSyscall = SYS_STATFS
+	SNR_FSTATFS                 ScmpSyscall = SYS_FSTATFS
+	SNR_TRUNCATE                ScmpSyscall = SYS_TRUNCATE
+	SNR_FTRUNCATE               ScmpSyscall = SYS_FTRUNCATE
+	SNR_FALLOCATE               ScmpSyscall = SYS_FALLOCATE
+	SNR_FACCESSAT               ScmpSyscall = SYS_FACCESSAT
+	SNR_CHDIR                   ScmpSyscall = SYS_CHDIR
+	SNR_FCHDIR                  ScmpSyscall = SYS_FCHDIR
+	SNR_CHROOT                  ScmpSyscall = SYS_CHROOT
+	SNR_FCHMOD                  ScmpSyscall = SYS_FCHMOD
+	SNR_FCHMODAT                ScmpSyscall = SYS_FCHMODAT
+	SNR_FCHOWNAT                ScmpSyscall = SYS_FCHOWNAT
+	SNR_FCHOWN                  ScmpSyscall = SYS_FCHOWN
+	SNR_OPENAT                  ScmpSyscall = SYS_OPENAT
+	SNR_CLOSE                   ScmpSyscall = SYS_CLOSE
+	SNR_VHANGUP                 ScmpSyscall = SYS_VHANGUP
+	SNR_PIPE2                   ScmpSyscall = SYS_PIPE2
+	SNR_QUOTACTL                ScmpSyscall = SYS_QUOTACTL
+	SNR_GETDENTS64              ScmpSyscall = SYS_GETDENTS64
+	SNR_LSEEK                   ScmpSyscall = SYS_LSEEK
+	SNR_READ                    ScmpSyscall = SYS_READ
+	SNR_WRITE                   ScmpSyscall = SYS_WRITE
+	SNR_READV                   ScmpSyscall = SYS_READV
+	SNR_WRITEV                  ScmpSyscall = SYS_WRITEV
+	SNR_PREAD64                 ScmpSyscall = SYS_PREAD64
+	SNR_PWRITE64                ScmpSyscall = SYS_PWRITE64
+	SNR_PREADV                  ScmpSyscall = SYS_PREADV
+	SNR_PWRITEV                 ScmpSyscall = SYS_PWRITEV
+	SNR_SENDFILE                ScmpSyscall = SYS_SENDFILE
+	SNR_PSELECT6                ScmpSyscall = SYS_PSELECT6
+	SNR_PPOLL                   ScmpSyscall = SYS_PPOLL
+	SNR_SIGNALFD4               ScmpSyscall = SYS_SIGNALFD4
+	SNR_VMSPLICE                ScmpSyscall = SYS_VMSPLICE
+	SNR_SPLICE                  ScmpSyscall = SYS_SPLICE
+	SNR_TEE                     ScmpSyscall = SYS_TEE
+	SNR_READLINKAT              ScmpSyscall = SYS_READLINKAT
+	SNR_NEWFSTATAT              ScmpSyscall = SYS_NEWFSTATAT
+	SNR_FSTAT                   ScmpSyscall = SYS_FSTAT
+	SNR_SYNC                    ScmpSyscall = SYS_SYNC
+	SNR_FSYNC                   ScmpSyscall = SYS_FSYNC
+	SNR_FDATASYNC               ScmpSyscall = SYS_FDATASYNC
+	SNR_SYNC_FILE_RANGE         ScmpSyscall = SYS_SYNC_FILE_RANGE
+	SNR_TIMERFD_CREATE          ScmpSyscall = SYS_TIMERFD_CREATE
+	SNR_TIMERFD_SETTIME         ScmpSyscall = SYS_TIMERFD_SETTIME
+	SNR_TIMERFD_GETTIME         ScmpSyscall = SYS_TIMERFD_GETTIME
+	SNR_UTIMENSAT               ScmpSyscall = SYS_UTIMENSAT
+	SNR_ACCT                    ScmpSyscall = SYS_ACCT
+	SNR_CAPGET                  ScmpSyscall = SYS_CAPGET
+	SNR_CAPSET                  ScmpSyscall = SYS_CAPSET
+	SNR_PERSONALITY             ScmpSyscall = SYS_PERSONALITY
+	SNR_EXIT                    ScmpSyscall = SYS_EXIT
+	SNR_EXIT_GROUP              ScmpSyscall = SYS_EXIT_GROUP
+	SNR_WAITID                  ScmpSyscall = SYS_WAITID
+	SNR_SET_TID_ADDRESS         ScmpSyscall = SYS_SET_TID_ADDRESS
+	SNR_UNSHARE                 ScmpSyscall = SYS_UNSHARE
+	SNR_FUTEX                   ScmpSyscall = SYS_FUTEX
+	SNR_SET_ROBUST_LIST         ScmpSyscall = SYS_SET_ROBUST_LIST
+	SNR_GET_ROBUST_LIST         ScmpSyscall = SYS_GET_ROBUST_LIST
+	SNR_NANOSLEEP               ScmpSyscall = SYS_NANOSLEEP
+	SNR_GETITIMER               ScmpSyscall = SYS_GETITIMER
+	SNR_SETITIMER               ScmpSyscall = SYS_SETITIMER
+	SNR_KEXEC_LOAD              ScmpSyscall = SYS_KEXEC_LOAD
+	SNR_INIT_MODULE             ScmpSyscall = SYS_INIT_MODULE
+	SNR_DELETE_MODULE           ScmpSyscall = SYS_DELETE_MODULE
+	SNR_TIMER_CREATE            ScmpSyscall = SYS_TIMER_CREATE
+	SNR_TIMER_GETTIME           ScmpSyscall = SYS_TIMER_GETTIME
+	SNR_TIMER_GETOVERRUN        ScmpSyscall = SYS_TIMER_GETOVERRUN
+	SNR_TIMER_SETTIME           ScmpSyscall = SYS_TIMER_SETTIME
+	SNR_TIMER_DELETE            ScmpSyscall = SYS_TIMER_DELETE
+	SNR_CLOCK_SETTIME           ScmpSyscall = SYS_CLOCK_SETTIME
+	SNR_CLOCK_GETTIME           ScmpSyscall = SYS_CLOCK_GETTIME
+	SNR_CLOCK_GETRES            ScmpSyscall = SYS_CLOCK_GETRES
+	SNR_CLOCK_NANOSLEEP         ScmpSyscall = SYS_CLOCK_NANOSLEEP
+	SNR_SYSLOG                  ScmpSyscall = SYS_SYSLOG
+	SNR_PTRACE                  ScmpSyscall = SYS_PTRACE
+	SNR_SCHED_SETPARAM          ScmpSyscall = SYS_SCHED_SETPARAM
+	SNR_SCHED_SETSCHEDULER      ScmpSyscall = SYS_SCHED_SETSCHEDULER
+	SNR_SCHED_GETSCHEDULER      ScmpSyscall = SYS_SCHED_GETSCHEDULER
+	SNR_SCHED_GETPARAM          ScmpSyscall = SYS_SCHED_GETPARAM
+	SNR_SCHED_SETAFFINITY       ScmpSyscall = SYS_SCHED_SETAFFINITY
+	SNR_SCHED_GETAFFINITY       ScmpSyscall = SYS_SCHED_GETAFFINITY
+	SNR_SCHED_YIELD             ScmpSyscall = SYS_SCHED_YIELD
+	SNR_SCHED_GET_PRIORITY_MAX  ScmpSyscall = SYS_SCHED_GET_PRIORITY_MAX
+	SNR_SCHED_GET_PRIORITY_MIN  ScmpSyscall = SYS_SCHED_GET_PRIORITY_MIN
+	SNR_SCHED_RR_GET_INTERVAL   ScmpSyscall = SYS_SCHED_RR_GET_INTERVAL
+	SNR_RESTART_SYSCALL         ScmpSyscall = SYS_RESTART_SYSCALL
+	SNR_KILL                    ScmpSyscall = SYS_KILL
+	SNR_TKILL                   ScmpSyscall = SYS_TKILL
+	SNR_TGKILL                  ScmpSyscall = SYS_TGKILL
+	SNR_SIGALTSTACK             ScmpSyscall = SYS_SIGALTSTACK
+	SNR_RT_SIGSUSPEND           ScmpSyscall = SYS_RT_SIGSUSPEND
+	SNR_RT_SIGACTION            ScmpSyscall = SYS_RT_SIGACTION
+	SNR_RT_SIGPROCMASK          ScmpSyscall = SYS_RT_SIGPROCMASK
+	SNR_RT_SIGPENDING           ScmpSyscall = SYS_RT_SIGPENDING
+	SNR_RT_SIGTIMEDWAIT         ScmpSyscall = SYS_RT_SIGTIMEDWAIT
+	SNR_RT_SIGQUEUEINFO         ScmpSyscall = SYS_RT_SIGQUEUEINFO
+	SNR_RT_SIGRETURN            ScmpSyscall = SYS_RT_SIGRETURN
+	SNR_SETPRIORITY             ScmpSyscall = SYS_SETPRIORITY
+	SNR_GETPRIORITY             ScmpSyscall = SYS_GETPRIORITY
+	SNR_REBOOT                  ScmpSyscall = SYS_REBOOT
+	SNR_SETREGID                ScmpSyscall = SYS_SETREGID
+	SNR_SETGID                  ScmpSyscall = SYS_SETGID
+	SNR_SETREUID                ScmpSyscall = SYS_SETREUID
+	SNR_SETUID                  ScmpSyscall = SYS_SETUID
+	SNR_SETRESUID               ScmpSyscall = SYS_SETRESUID
+	SNR_GETRESUID               ScmpSyscall = SYS_GETRESUID
+	SNR_SETRESGID               ScmpSyscall = SYS_SETRESGID
+	SNR_GETRESGID               ScmpSyscall = SYS_GETRESGID
+	SNR_SETFSUID                ScmpSyscall = SYS_SETFSUID
+	SNR_SETFSGID                ScmpSyscall = SYS_SETFSGID
+	SNR_TIMES                   ScmpSyscall = SYS_TIMES
+	SNR_SETPGID                 ScmpSyscall = SYS_SETPGID
+	SNR_GETPGID                 ScmpSyscall = SYS_GETPGID
+	SNR_GETSID                  ScmpSyscall = SYS_GETSID
+	SNR_SETSID                  ScmpSyscall = SYS_SETSID
+	SNR_GETGROUPS               ScmpSyscall = SYS_GETGROUPS
+	SNR_SETGROUPS               ScmpSyscall = SYS_SETGROUPS
+	SNR_UNAME                   ScmpSyscall = SYS_UNAME
+	SNR_SETHOSTNAME             ScmpSyscall = SYS_SETHOSTNAME
+	SNR_SETDOMAINNAME           ScmpSyscall = SYS_SETDOMAINNAME
+	SNR_GETRLIMIT               ScmpSyscall = SYS_GETRLIMIT
+	SNR_SETRLIMIT               ScmpSyscall = SYS_SETRLIMIT
+	SNR_GETRUSAGE               ScmpSyscall = SYS_GETRUSAGE
+	SNR_UMASK                   ScmpSyscall = SYS_UMASK
+	SNR_PRCTL                   ScmpSyscall = SYS_PRCTL
+	SNR_GETCPU                  ScmpSyscall = SYS_GETCPU
+	SNR_GETTIMEOFDAY            ScmpSyscall = SYS_GETTIMEOFDAY
+	SNR_SETTIMEOFDAY            ScmpSyscall = SYS_SETTIMEOFDAY
+	SNR_ADJTIMEX                ScmpSyscall = SYS_ADJTIMEX
+	SNR_GETPID                  ScmpSyscall = SYS_GETPID
+	SNR_GETPPID                 ScmpSyscall = SYS_GETPPID
+	SNR_GETUID                  ScmpSyscall = SYS_GETUID
+	SNR_GETEUID                 ScmpSyscall = SYS_GETEUID
+	SNR_GETGID                  ScmpSyscall = SYS_GETGID
+	SNR_GETEGID                 ScmpSyscall = SYS_GETEGID
+	SNR_GETTID                  ScmpSyscall = SYS_GETTID
+	SNR_SYSINFO                 ScmpSyscall = SYS_SYSINFO
+	SNR_MQ_OPEN                 ScmpSyscall = SYS_MQ_OPEN
+	SNR_MQ_UNLINK               ScmpSyscall = SYS_MQ_UNLINK
+	SNR_MQ_TIMEDSEND            ScmpSyscall = SYS_MQ_TIMEDSEND
+	SNR_MQ_TIMEDRECEIVE         ScmpSyscall = SYS_MQ_TIMEDRECEIVE
+	SNR_MQ_NOTIFY               ScmpSyscall = SYS_MQ_NOTIFY
+	SNR_MQ_GETSETATTR           ScmpSyscall = SYS_MQ_GETSETATTR
+	SNR_MSGGET                  ScmpSyscall = SYS_MSGGET
+	SNR_MSGCTL                  ScmpSyscall = SYS_MSGCTL
+	SNR_MSGRCV                  ScmpSyscall = SYS_MSGRCV
+	SNR_MSGSND                  ScmpSyscall = SYS_MSGSND
+	SNR_SEMGET                  ScmpSyscall = SYS_SEMGET
+	SNR_SEMCTL                  ScmpSyscall = SYS_SEMCTL
+	SNR_SEMTIMEDOP              ScmpSyscall = SYS_SEMTIMEDOP
+	SNR_SEMOP                   ScmpSyscall = SYS_SEMOP
+	SNR_SHMGET                  ScmpSyscall = SYS_SHMGET
+	SNR_SHMCTL                  ScmpSyscall = SYS_SHMCTL
+	SNR_SHMAT                   ScmpSyscall = SYS_SHMAT
+	SNR_SHMDT                   ScmpSyscall = SYS_SHMDT
+	SNR_SOCKET                  ScmpSyscall = SYS_SOCKET
+	SNR_SOCKETPAIR              ScmpSyscall = SYS_SOCKETPAIR
+	SNR_BIND                    ScmpSyscall = SYS_BIND
+	SNR_LISTEN                  ScmpSyscall = SYS_LISTEN
+	SNR_ACCEPT                  ScmpSyscall = SYS_ACCEPT
+	SNR_CONNECT                 ScmpSyscall = SYS_CONNECT
+	SNR_GETSOCKNAME             ScmpSyscall = SYS_GETSOCKNAME
+	SNR_GETPEERNAME             ScmpSyscall = SYS_GETPEERNAME
+	SNR_SENDTO                  ScmpSyscall = SYS_SENDTO
+	SNR_RECVFROM                ScmpSyscall = SYS_RECVFROM
+	SNR_SETSOCKOPT              ScmpSyscall = SYS_SETSOCKOPT
+	SNR_GETSOCKOPT              ScmpSyscall = SYS_GETSOCKOPT
+	SNR_SHUTDOWN                ScmpSyscall = SYS_SHUTDOWN
+	SNR_SENDMSG                 ScmpSyscall = SYS_SENDMSG
+	SNR_RECVMSG                 ScmpSyscall = SYS_RECVMSG
+	SNR_READAHEAD               ScmpSyscall = SYS_READAHEAD
+	SNR_BRK                     ScmpSyscall = SYS_BRK
+	SNR_MUNMAP                  ScmpSyscall = SYS_MUNMAP
+	SNR_MREMAP                  ScmpSyscall = SYS_MREMAP
+	SNR_ADD_KEY                 ScmpSyscall = SYS_ADD_KEY
+	SNR_REQUEST_KEY             ScmpSyscall = SYS_REQUEST_KEY
+	SNR_KEYCTL                  ScmpSyscall = SYS_KEYCTL
+	SNR_CLONE                   ScmpSyscall = SYS_CLONE
+	SNR_EXECVE                  ScmpSyscall = SYS_EXECVE
+	SNR_MMAP                    ScmpSyscall = SYS_MMAP
+	SNR_FADVISE64               ScmpSyscall = SYS_FADVISE64
+	SNR_SWAPON                  ScmpSyscall = SYS_SWAPON
+	SNR_SWAPOFF                 ScmpSyscall = SYS_SWAPOFF
+	SNR_MPROTECT                ScmpSyscall = SYS_MPROTECT
+	SNR_MSYNC                   ScmpSyscall = SYS_MSYNC
+	SNR_MLOCK                   ScmpSyscall = SYS_MLOCK
+	SNR_MUNLOCK                 ScmpSyscall = SYS_MUNLOCK
+	SNR_MLOCKALL                ScmpSyscall = SYS_MLOCKALL
+	SNR_MUNLOCKALL              ScmpSyscall = SYS_MUNLOCKALL
+	SNR_MINCORE                 ScmpSyscall = SYS_MINCORE
+	SNR_MADVISE                 ScmpSyscall = SYS_MADVISE
+	SNR_REMAP_FILE_PAGES        ScmpSyscall = SYS_REMAP_FILE_PAGES
+	SNR_MBIND                   ScmpSyscall = SYS_MBIND
+	SNR_GET_MEMPOLICY           ScmpSyscall = SYS_GET_MEMPOLICY
+	SNR_SET_MEMPOLICY           ScmpSyscall = SYS_SET_MEMPOLICY
+	SNR_MIGRATE_PAGES           ScmpSyscall = SYS_MIGRATE_PAGES
+	SNR_MOVE_PAGES              ScmpSyscall = SYS_MOVE_PAGES
+	SNR_RT_TGSIGQUEUEINFO       ScmpSyscall = SYS_RT_TGSIGQUEUEINFO
+	SNR_PERF_EVENT_OPEN         ScmpSyscall = SYS_PERF_EVENT_OPEN
+	SNR_ACCEPT4                 ScmpSyscall = SYS_ACCEPT4
+	SNR_RECVMMSG                ScmpSyscall = SYS_RECVMMSG
+	SNR_WAIT4                   ScmpSyscall = SYS_WAIT4
+	SNR_PRLIMIT64               ScmpSyscall = SYS_PRLIMIT64
+	SNR_FANOTIFY_INIT           ScmpSyscall = SYS_FANOTIFY_INIT
+	SNR_FANOTIFY_MARK           ScmpSyscall = SYS_FANOTIFY_MARK
+	SNR_NAME_TO_HANDLE_AT       ScmpSyscall = SYS_NAME_TO_HANDLE_AT
+	SNR_OPEN_BY_HANDLE_AT       ScmpSyscall = SYS_OPEN_BY_HANDLE_AT
+	SNR_CLOCK_ADJTIME           ScmpSyscall = SYS_CLOCK_ADJTIME
+	SNR_SYNCFS                  ScmpSyscall = SYS_SYNCFS
+	SNR_SETNS                   ScmpSyscall = SYS_SETNS
+	SNR_SENDMMSG                ScmpSyscall = SYS_SENDMMSG
+	SNR_PROCESS_VM_READV        ScmpSyscall = SYS_PROCESS_VM_READV
+	SNR_PROCESS_VM_WRITEV       ScmpSyscall = SYS_PROCESS_VM_WRITEV
+	SNR_KCMP                    ScmpSyscall = SYS_KCMP
+	SNR_FINIT_MODULE            ScmpSyscall = SYS_FINIT_MODULE
+	SNR_SCHED_SETATTR           ScmpSyscall = SYS_SCHED_SETATTR
+	SNR_SCHED_GETATTR           ScmpSyscall = SYS_SCHED_GETATTR
+	SNR_RENAMEAT2               ScmpSyscall = SYS_RENAMEAT2
+	SNR_SECCOMP                 ScmpSyscall = SYS_SECCOMP
+	SNR_GETRANDOM               ScmpSyscall = SYS_GETRANDOM
+	SNR_MEMFD_CREATE            ScmpSyscall = SYS_MEMFD_CREATE
+	SNR_BPF                     ScmpSyscall = SYS_BPF
+	SNR_EXECVEAT                ScmpSyscall = SYS_EXECVEAT
+	SNR_USERFAULTFD             ScmpSyscall = SYS_USERFAULTFD
+	SNR_MEMBARRIER              ScmpSyscall = SYS_MEMBARRIER
+	SNR_MLOCK2                  ScmpSyscall = SYS_MLOCK2
+	SNR_COPY_FILE_RANGE         ScmpSyscall = SYS_COPY_FILE_RANGE
+	SNR_PREADV2                 ScmpSyscall = SYS_PREADV2
+	SNR_PWRITEV2                ScmpSyscall = SYS_PWRITEV2
+	SNR_PKEY_MPROTECT           ScmpSyscall = SYS_PKEY_MPROTECT
+	SNR_PKEY_ALLOC              ScmpSyscall = SYS_PKEY_ALLOC
+	SNR_PKEY_FREE               ScmpSyscall = SYS_PKEY_FREE
+	SNR_STATX                   ScmpSyscall = SYS_STATX
+	SNR_IO_PGETEVENTS           ScmpSyscall = SYS_IO_PGETEVENTS
+	SNR_RSEQ                    ScmpSyscall = SYS_RSEQ
+	SNR_KEXEC_FILE_LOAD         ScmpSyscall = SYS_KEXEC_FILE_LOAD
+	SNR_PIDFD_SEND_SIGNAL       ScmpSyscall = SYS_PIDFD_SEND_SIGNAL
+	SNR_IO_URING_SETUP          ScmpSyscall = SYS_IO_URING_SETUP
+	SNR_IO_URING_ENTER          ScmpSyscall = SYS_IO_URING_ENTER
+	SNR_IO_URING_REGISTER       ScmpSyscall = SYS_IO_URING_REGISTER
+	SNR_OPEN_TREE               ScmpSyscall = SYS_OPEN_TREE
+	SNR_MOVE_MOUNT              ScmpSyscall = SYS_MOVE_MOUNT
+	SNR_FSOPEN                  ScmpSyscall = SYS_FSOPEN
+	SNR_FSCONFIG                ScmpSyscall = SYS_FSCONFIG
+	SNR_FSMOUNT                 ScmpSyscall = SYS_FSMOUNT
+	SNR_FSPICK                  ScmpSyscall = SYS_FSPICK
+	SNR_PIDFD_OPEN              ScmpSyscall = SYS_PIDFD_OPEN
+	SNR_CLONE3                  ScmpSyscall = SYS_CLONE3
+	SNR_CLOSE_RANGE             ScmpSyscall = SYS_CLOSE_RANGE
+	SNR_OPENAT2                 ScmpSyscall = SYS_OPENAT2
+	SNR_PIDFD_GETFD             ScmpSyscall = SYS_PIDFD_GETFD
+	SNR_FACCESSAT2              ScmpSyscall = SYS_FACCESSAT2
+	SNR_PROCESS_MADVISE         ScmpSyscall = SYS_PROCESS_MADVISE
+	SNR_EPOLL_PWAIT2            ScmpSyscall = SYS_EPOLL_PWAIT2
+	SNR_MOUNT_SETATTR           ScmpSyscall = SYS_MOUNT_SETATTR
+	SNR_QUOTACTL_FD             ScmpSyscall = SYS_QUOTACTL_FD
+	SNR_LANDLOCK_CREATE_RULESET ScmpSyscall = SYS_LANDLOCK_CREATE_RULESET
+	SNR_LANDLOCK_ADD_RULE       ScmpSyscall = SYS_LANDLOCK_ADD_RULE
+	SNR_LANDLOCK_RESTRICT_SELF  ScmpSyscall = SYS_LANDLOCK_RESTRICT_SELF
+	SNR_MEMFD_SECRET            ScmpSyscall = SYS_MEMFD_SECRET
+	SNR_PROCESS_MRELEASE        ScmpSyscall = SYS_PROCESS_MRELEASE
+	SNR_FUTEX_WAITV             ScmpSyscall = SYS_FUTEX_WAITV
+	SNR_SET_MEMPOLICY_HOME_NODE ScmpSyscall = SYS_SET_MEMPOLICY_HOME_NODE
+	SNR_CACHESTAT               ScmpSyscall = SYS_CACHESTAT
+	SNR_FCHMODAT2               ScmpSyscall = SYS_FCHMODAT2
+	SNR_MAP_SHADOW_STACK        ScmpSyscall = SYS_MAP_SHADOW_STACK
+	SNR_FUTEX_WAKE              ScmpSyscall = SYS_FUTEX_WAKE
+	SNR_FUTEX_WAIT              ScmpSyscall = SYS_FUTEX_WAIT
+	SNR_FUTEX_REQUEUE           ScmpSyscall = SYS_FUTEX_REQUEUE
+	SNR_STATMOUNT               ScmpSyscall = SYS_STATMOUNT
+	SNR_LISTMOUNT               ScmpSyscall = SYS_LISTMOUNT
+	SNR_LSM_GET_SELF_ATTR       ScmpSyscall = SYS_LSM_GET_SELF_ATTR
+	SNR_LSM_SET_SELF_ATTR       ScmpSyscall = SYS_LSM_SET_SELF_ATTR
+	SNR_LSM_LIST_MODULES        ScmpSyscall = SYS_LSM_LIST_MODULES
+	SNR_MSEAL                   ScmpSyscall = SYS_MSEAL
 )

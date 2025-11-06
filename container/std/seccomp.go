@@ -46,7 +46,7 @@ type (
 // MarshalJSON resolves the name of [ScmpSyscall] and encodes it as a [json] string.
 // If such a name does not exist, the syscall number is encoded instead.
 func (num *ScmpSyscall) MarshalJSON() ([]byte, error) {
-	n := int(*num)
+	n := *num
 	for name, cur := range Syscalls() {
 		if cur == n {
 			return json.Marshal(name)

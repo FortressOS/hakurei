@@ -22,7 +22,7 @@ package std
 
 import . "syscall"
 
-var syscallNum = map[string]int{
+var syscallNum = map[string]ScmpSyscall{
 EOF
 
 my $offset = 0;
@@ -37,16 +37,14 @@ sub fmt {
 	}
 	(my $name_upper = $name) =~ y/a-z/A-Z/;
 	$num = $num + $offset;
-	if($num > $syscall_cutoff_arch{$uname_arch}){ # not wired in Go standard library
-		if($state < 0){
-			print "	\"$name\": SYS_$name_upper,\n";
-		}
-		else{
-			print " SYS_$name_upper = $num;\n";
-		}
+	if($num > $syscall_cutoff_arch{$uname_arch} && $state == 0){ # not wired in Go standard library
+		print " SYS_$name_upper = $num\n";
 	}
-	elsif($state < 0){
-		print "	\"$name\": SYS_$name_upper,\n";
+	elsif($state == -1){
+		print "	\"$name\": SNR_$name_upper,\n";
+	}
+	elsif($state == 1){
+		print " SNR_$name_upper ScmpSyscall = SYS_$name_upper\n";
 	}
 	else{
 		return;
@@ -81,10 +79,16 @@ while(<GCC>){
 	}
 }
 
-if($state < 0){
-	$state = $state + 1;
+if($state == -1){
 	print "}\n\nconst (\n";
-	goto GENERATE;
 }
+elsif($state == 0){
+	print ")\n\nconst (\n";
+}
+elsif($state == 1){
+	print ")";
+	exit;
+}
+++$state;
+goto GENERATE;
 
-print ")";

@@ -5,7 +5,6 @@ import (
 	"errors"
 	"math"
 	"reflect"
-	"syscall"
 	"testing"
 
 	"hakurei.app/container/std"
@@ -20,8 +19,8 @@ func TestScmpSyscall(t *testing.T) {
 		want std.ScmpSyscall
 		err  error
 	}{
-		{"select", `"select"`, syscall.SYS_SELECT, nil},
-		{"clone3", `"clone3"`, std.SYS_CLONE3, nil},
+		{"epoll_create1", `"epoll_create1"`, std.SNR_EPOLL_CREATE1, nil},
+		{"clone3", `"clone3"`, std.SNR_CLONE3, nil},
 
 		{"oob", `-2147483647`, -math.MaxInt32,
 			&json.UnmarshalTypeError{Value: "number", Type: reflect.TypeFor[string](), Offset: 11}},
