@@ -70,7 +70,7 @@ func (num *ScmpSyscall) UnmarshalJSON(data []byte) error {
 	if n, ok := SyscallResolveName(name); !ok {
 		return SyscallNameError(name)
 	} else {
-		*num = ScmpSyscall(n)
+		*num = n
 		return nil
 	}
 }
