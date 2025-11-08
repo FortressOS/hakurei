@@ -55,7 +55,7 @@ func (k *outcome) finalise(ctx context.Context, msg message.Msg, id *hst.ID, con
 			if errors.As(err, &unknownGroupError) {
 				return newWithMessageError(fmt.Sprintf("unknown group %q", name), unknownGroupError)
 			} else {
-				return &hst.AppError{Step: "look up group by name", Err: err}
+				return &hst.AppError{Step: "look up group by name", Err: err, Msg: err.Error()}
 			}
 		} else {
 			supp[i] = gid
