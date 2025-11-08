@@ -68,7 +68,7 @@ in
 
     home-manager =
       let
-        privPackages = mapAttrs (username: fid: {
+        privPackages = mapAttrs (username: userid: {
           home.packages = foldlAttrs (
             acc: id: app:
             [
@@ -199,15 +199,15 @@ in
                         ++ [
                           {
                             type = "bind";
-                            src = getsubhome fid app.identity;
+                            src = getsubhome userid app.identity;
                             write = true;
                             ensure = true;
                           }
                         ];
 
-                      username = getsubname fid app.identity;
+                      username = getsubname userid app.identity;
                       inherit (cfg) shell;
-                      home = getsubhome fid app.identity;
+                      home = getsubhome userid app.identity;
 
                       path =
                         if app.path == null then
@@ -310,15 +310,15 @@ in
 
     users =
       let
-        getuser = fid: aid: {
+        getuser = userid: appid: {
           isSystemUser = true;
           createHome = true;
-          description = "Hakurei subordinate user ${toString aid} (u${toString fid})";
-          group = getsubname fid aid;
-          home = getsubhome fid aid;
-          uid = getsubuid fid aid;
+          description = "Hakurei subordinate user ${toString appid} (u${toString userid})";
+          group = getsubname userid appid;
+          home = getsubhome userid appid;
+          uid = getsubuid userid appid;
         };
-        getgroup = fid: aid: { gid = getsubuid fid aid; };
+        getgroup = userid: appid: { gid = getsubuid userid appid; };
       in
       {
         users = mkMerge (
