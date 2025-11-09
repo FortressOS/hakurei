@@ -33,7 +33,7 @@ const (
 func NewStore(sc *hst.Paths) *store.Store { return store.New(sc.SharePath.Append("state")) }
 
 // main carries out outcome and terminates. main does not return.
-func (k *outcome) main(msg message.Msg) {
+func (k *outcome) main(msg message.Msg, identifierFd int) {
 	if k.ctx == nil || k.sys == nil || k.state == nil {
 		panic("outcome: did not finalise")
 	}
@@ -161,6 +161,21 @@ func (k *outcome) main(msg message.Msg) {
 				// transition here to avoid the commit/revert cycle on the doomed instance
 				perrorFatal(err, "save instance state", processLifecycle)
 				continue
+			}
+
+			if f := os.NewFile(uintptr(identifierFd), "identifier"); f != nil {
+				_, err = f.Write(k.state.id.v[:])
+				if err != nil {
+					unlock()
+					// transition here to avoid the commit/revert cycle on the doomed instance
+					perrorFatal(&hst.AppError{Step: "write instance identifier", Err: err},
+						"write instance identifier", processLifecycle)
+					continue
+				}
+				msg.Verbosef("wrote identifier to %d", identifierFd)
+				if err = f.Close(); err != nil {
+					msg.Verbose(err.Error())
+				}
 			}
 
 			err = k.sys.Commit()

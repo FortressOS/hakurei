@@ -52,20 +52,26 @@ func buildCommand(ctx context.Context, msg message.Msg, early *earlyHardeningErr
 
 	c.Command("shim", command.UsageInternal, func([]string) error { outcome.Shim(msg); return errSuccess })
 
-	c.Command("app", "Load and start container from configuration file", func(args []string) error {
-		if len(args) < 1 {
-			log.Fatal("app requires at least 1 argument")
-		}
+	{
+		var (
+			flagIdentifierFile int
+		)
+		c.NewCommand("app", "Load and start container from configuration file", func(args []string) error {
+			if len(args) < 1 {
+				log.Fatal("app requires at least 1 argument")
+			}
 
-		// config extraArgs...
-		config := tryPath(msg, args[0])
-		if config != nil && config.Container != nil {
-			config.Container.Args = append(config.Container.Args, args[1:]...)
-		}
+			config := tryPath(msg, args[0])
+			if config != nil && config.Container != nil {
+				config.Container.Args = append(config.Container.Args, args[1:]...)
+			}
 
-		outcome.Main(ctx, msg, config)
-		panic("unreachable")
-	})
+			outcome.Main(ctx, msg, config, flagIdentifierFile)
+			panic("unreachable")
+		}).
+			Flag(&flagIdentifierFile, "identifier-fd", command.IntFlag(-1),
+				"Write identifier of current instance to fd after successful startup")
+	}
 
 	{
 		var (
@@ -257,7 +263,7 @@ func buildCommand(ctx context.Context, msg message.Msg, early *earlyHardeningErr
 				}
 			}
 
-			outcome.Main(ctx, msg, config)
+			outcome.Main(ctx, msg, config, -1)
 			panic("unreachable")
 		}).
 			Flag(&flagDBusConfigSession, "dbus-config", command.StringFlag("builtin"),

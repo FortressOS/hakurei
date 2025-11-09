@@ -172,6 +172,11 @@ machine.send_chars("exit\n")
 machine.wait_for_file("/tmp/p0-exit-ok", timeout=15)
 machine.fail("getfacl --absolute-names --omit-header --numeric /run/user/1000 | grep 10000")
 
+# Check invalid identifier fd behaviour:
+machine.fail('echo \'{"container":{"shell":"/proc/nonexistent","home":"/proc/nonexistent","path":"/proc/nonexistent"}}\' | sudo -u alice -i hakurei -v app --identifier-fd 32767 - 2>&1 | tee > /tmp/invalid-identifier-fd')
+machine.wait_for_file("/tmp/invalid-identifier-fd")
+print(machine.succeed('grep "^hakurei: cannot write identifier: bad file descriptor$" /tmp/invalid-identifier-fd'))
+
 # Check interrupt shim behaviour:
 swaymsg("exec sh -c 'ne-foot; echo -n $? > /tmp/monitor-exit-code'")
 wait_for_window(f"u0_a{hakurei_identity(0)}@machine")
