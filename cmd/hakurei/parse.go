@@ -11,6 +11,7 @@ import (
 	"syscall"
 
 	"hakurei.app/hst"
+	"hakurei.app/internal/outcome"
 	"hakurei.app/internal/store"
 	"hakurei.app/message"
 )
@@ -53,14 +54,23 @@ func tryFd(msg message.Msg, name string) io.ReadCloser {
 		}
 		return nil
 	} else {
+		if v < 3 { // reject standard streams
+			return nil
+		}
+
 		msg.Verbosef("trying config stream from %d", v)
 		fd := uintptr(v)
 		if _, _, errno := syscall.Syscall(syscall.SYS_FCNTL, fd, syscall.F_GETFD, 0); errno != 0 {
-			if errors.Is(errno, syscall.EBADF) {
+			if errors.Is(errno, syscall.EBADF) { // reject bad fd
 				return nil
 			}
 			log.Fatalf("cannot get fd %d: %v", fd, errno)
 		}
+
+		if outcome.IsPollDescriptor(fd) { // reject runtime internals
+			log.Fatalf("invalid config stream %d", fd)
+		}
+
 		return os.NewFile(fd, strconv.Itoa(v))
 	}
 }
