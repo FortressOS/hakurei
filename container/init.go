@@ -427,6 +427,16 @@ func initEntrypoint(k syscallDispatcher, msg message.Msg) {
 			}
 
 			if w.wpid == cmd.Process.Pid {
+				// start timeout early
+				go func() { time.Sleep(params.AdoptWaitDelay); close(timeout) }()
+
+				// close initial process files; this also keeps them alive
+				for _, f := range extraFiles {
+					if err := f.Close(); err != nil {
+						msg.Verbose(err.Error())
+					}
+				}
+
 				switch {
 				case w.wstatus.Exited():
 					r = w.wstatus.ExitStatus()
@@ -440,8 +450,6 @@ func initEntrypoint(k syscallDispatcher, msg message.Msg) {
 					r = 255
 					msg.Verbosef("initial process exited with status %#x", w.wstatus)
 				}
-
-				go func() { time.Sleep(params.AdoptWaitDelay); close(timeout) }()
 			}
 
 		case <-timeout:

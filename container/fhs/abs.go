@@ -1,7 +1,7 @@
 package fhs
 
 import (
-	_ "unsafe"
+	_ "unsafe" // for go:linkname
 
 	"hakurei.app/container/check"
 )

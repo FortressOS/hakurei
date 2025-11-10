@@ -2,7 +2,7 @@ package stub_test
 
 import (
 	"testing"
-	_ "unsafe"
+	_ "unsafe" // for go:linkname
 
 	"hakurei.app/container/stub"
 )

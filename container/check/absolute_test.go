@@ -9,7 +9,7 @@ import (
 	"strings"
 	"syscall"
 	"testing"
-	_ "unsafe"
+	_ "unsafe" // for go:linkname
 
 	. "hakurei.app/container/check"
 )
