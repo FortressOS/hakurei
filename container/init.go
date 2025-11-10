@@ -330,6 +330,10 @@ func initEntrypoint(k syscallDispatcher, msg message.Msg) {
 	}
 	k.umask(oldmask)
 
+	if err := closeSetup(); err != nil {
+		k.fatalf(msg, "cannot close setup pipe: %v", err)
+	}
+
 	cmd := exec.Command(params.Path.String())
 	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
 	cmd.Args = params.Args
@@ -340,11 +344,6 @@ func initEntrypoint(k syscallDispatcher, msg message.Msg) {
 	msg.Verbosef("starting initial program %s", params.Path)
 	if err := k.start(cmd); err != nil {
 		k.fatalf(msg, "%v", err)
-	}
-
-	if err := closeSetup(); err != nil {
-		k.printf(msg, "cannot close setup pipe: %v", err)
-		// not fatal
 	}
 
 	type winfo struct {

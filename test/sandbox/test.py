@@ -45,6 +45,12 @@ machine.wait_for_file("/tmp/sway-ipc.sock")
 swaymsg("exec hakurei run cat")
 check_filter(0, "pdlike", "cat")
 
+# Check fd leak:
+swaymsg("exec hakurei -v run sleep infinity")
+pd_identity0_sleep_pid = int(machine.wait_until_succeeds("pgrep -U 10000 -x sleep", timeout=60))
+print(machine.succeed(f"hakurei-test fd {pd_identity0_sleep_pid}"))
+machine.succeed(f"kill -INT {pd_identity0_sleep_pid}")
+
 # Verify capabilities/securebits in user namespace:
 print(machine.succeed("sudo -u alice -i hakurei run capsh --print"))
 print(machine.succeed("sudo -u alice -i hakurei run capsh --has-no-new-privs"))

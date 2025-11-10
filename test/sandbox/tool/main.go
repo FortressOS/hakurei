@@ -67,6 +67,39 @@ func main() {
 	case "hash": // this eases the pain of passing the hash to python
 		fmt.Print(flagBpfHash)
 
+	case "fd":
+		if len(args) != 2 {
+			log.Fatal("invalid argument")
+		}
+		prefix := fmt.Sprintf("/proc/%s/fd/", args[1])
+
+		var fail bool
+		if entries, err := os.ReadDir(prefix); err != nil {
+			log.Fatal(err.Error())
+		} else {
+			for _, ent := range entries {
+				var fd int
+				if fd, err = strconv.Atoi(ent.Name()); err != nil {
+					log.Fatal(err.Error())
+				}
+
+				// skip standard streams
+				if fd <= 2 {
+					continue
+				}
+				fail = true
+
+				var d string
+				if d, err = os.Readlink(prefix + ent.Name()); err != nil {
+					log.Fatal(err.Error())
+				}
+				log.Printf("[FAIL] extra fd %d -> %s", fd, d)
+			}
+		}
+		if fail {
+			log.Fatal("[FAIL] file descriptors leaked")
+		}
+
 	default:
 		log.Fatal("invalid argument")
 	}
