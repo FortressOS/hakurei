@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"runtime"
 	"strconv"
+	"sync"
 	. "syscall"
 	"time"
 
@@ -143,10 +144,17 @@ func (e *StartError) Error() string {
 // Message returns a user-facing error message.
 func (e *StartError) Message() string {
 	if e.Passthrough {
+		var (
+			numError *strconv.NumError
+		)
+
 		switch {
 		case errors.As(e.Err, new(*os.PathError)),
 			errors.As(e.Err, new(*os.SyscallError)):
 			return "cannot " + e.Err.Error()
+
+		case errors.As(e.Err, &numError) && numError != nil:
+			return "cannot parse " + strconv.Quote(numError.Num) + ": " + numError.Err.Error()
 
 		default:
 			return e.Err.Error()
@@ -158,6 +166,39 @@ func (e *StartError) Message() string {
 	return "cannot " + e.Error()
 }
 
+// for ensureCloseOnExec
+var (
+	closeOnExecOnce sync.Once
+	closeOnExecErr  error
+)
+
+// ensureCloseOnExec ensures all currently open file descriptors have the syscall.FD_CLOEXEC flag set.
+// This is only ran once as it is intended to handle files left open by the parent, and any file opened
+// on this side should already have syscall.FD_CLOEXEC set.
+func ensureCloseOnExec() error {
+	closeOnExecOnce.Do(func() {
+		const fdPrefixPath = "/proc/self/fd/"
+
+		var entries []os.DirEntry
+		if entries, closeOnExecErr = os.ReadDir(fdPrefixPath); closeOnExecErr != nil {
+			return
+		}
+
+		var fd int
+		for _, ent := range entries {
+			if fd, closeOnExecErr = strconv.Atoi(ent.Name()); closeOnExecErr != nil {
+				break // not reached
+			}
+			CloseOnExec(fd)
+		}
+	})
+
+	if closeOnExecErr == nil {
+		return nil
+	}
+	return &StartError{Fatal: true, Step: "set FD_CLOEXEC on all open files", Err: closeOnExecErr, Passthrough: true}
+}
+
 // Start starts the container init. The init process blocks until Serve is called.
 func (p *Container) Start() error {
 	if p == nil || p.cmd == nil ||
@@ -166,6 +207,10 @@ func (p *Container) Start() error {
 	}
 	if p.cmd.Process != nil {
 		return errors.New("container: already started")
+	}
+
+	if err := ensureCloseOnExec(); err != nil {
+		return err
 	}
 
 	// map to overflow id to work around ownership checks

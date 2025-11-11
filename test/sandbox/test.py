@@ -46,7 +46,7 @@ swaymsg("exec hakurei run cat")
 check_filter(0, "pdlike", "cat")
 
 # Check fd leak:
-swaymsg("exec hakurei -v run sleep infinity")
+swaymsg("exec exec 127</proc/cmdline && hakurei -v run sleep infinity")
 pd_identity0_sleep_pid = int(machine.wait_until_succeeds("pgrep -U 10000 -x sleep", timeout=60))
 print(machine.succeed(f"hakurei-test fd {pd_identity0_sleep_pid}"))
 machine.succeed(f"kill -INT {pd_identity0_sleep_pid}")

@@ -44,8 +44,7 @@ func TestStartError(t *testing.T) {
 			Fatal: true,
 			Step:  "set up params stream",
 			Err:   container.ErrReceiveEnv,
-		},
-			"set up params stream: environment variable not set",
+		}, "set up params stream: environment variable not set",
 			container.ErrReceiveEnv, syscall.EBADF,
 			"cannot set up params stream: environment variable not set"},
 
@@ -53,8 +52,7 @@ func TestStartError(t *testing.T) {
 			Fatal: true,
 			Step:  "set up params stream",
 			Err:   &os.SyscallError{Syscall: "pipe2", Err: syscall.EBADF},
-		},
-			"set up params stream pipe2: bad file descriptor",
+		}, "set up params stream pipe2: bad file descriptor",
 			syscall.EBADF, os.ErrInvalid,
 			"cannot set up params stream pipe2: bad file descriptor"},
 
@@ -62,16 +60,14 @@ func TestStartError(t *testing.T) {
 			Fatal: true,
 			Step:  "prctl(PR_SET_NO_NEW_PRIVS)",
 			Err:   syscall.EPERM,
-		},
-			"prctl(PR_SET_NO_NEW_PRIVS): operation not permitted",
+		}, "prctl(PR_SET_NO_NEW_PRIVS): operation not permitted",
 			syscall.EPERM, syscall.EACCES,
 			"cannot prctl(PR_SET_NO_NEW_PRIVS): operation not permitted"},
 
 		{"landlock abi", &container.StartError{
 			Step: "get landlock ABI",
 			Err:  syscall.ENOSYS,
-		},
-			"get landlock ABI: function not implemented",
+		}, "get landlock ABI: function not implemented",
 			syscall.ENOSYS, syscall.ENOEXEC,
 			"cannot get landlock ABI: function not implemented"},
 
@@ -79,8 +75,7 @@ func TestStartError(t *testing.T) {
 			Step:   "kernel version too old for LANDLOCK_SCOPE_ABSTRACT_UNIX_SOCKET",
 			Err:    syscall.ENOSYS,
 			Origin: true,
-		},
-			"kernel version too old for LANDLOCK_SCOPE_ABSTRACT_UNIX_SOCKET",
+		}, "kernel version too old for LANDLOCK_SCOPE_ABSTRACT_UNIX_SOCKET",
 			syscall.ENOSYS, syscall.ENOSPC,
 			"kernel version too old for LANDLOCK_SCOPE_ABSTRACT_UNIX_SOCKET"},
 
@@ -88,8 +83,7 @@ func TestStartError(t *testing.T) {
 			Fatal: true,
 			Step:  "create landlock ruleset",
 			Err:   syscall.EBADFD,
-		},
-			"create landlock ruleset: file descriptor in bad state",
+		}, "create landlock ruleset: file descriptor in bad state",
 			syscall.EBADFD, syscall.EBADF,
 			"cannot create landlock ruleset: file descriptor in bad state"},
 
@@ -97,8 +91,7 @@ func TestStartError(t *testing.T) {
 			Fatal: true,
 			Step:  "enforce landlock ruleset",
 			Err:   syscall.ENOTRECOVERABLE,
-		},
-			"enforce landlock ruleset: state not recoverable",
+		}, "enforce landlock ruleset: state not recoverable",
 			syscall.ENOTRECOVERABLE, syscall.ETIMEDOUT,
 			"cannot enforce landlock ruleset: state not recoverable"},
 
@@ -109,8 +102,7 @@ func TestStartError(t *testing.T) {
 				Path: "/proc/nonexistent",
 				Err:  syscall.ENOENT,
 			}, Passthrough: true,
-		},
-			"fork/exec /proc/nonexistent: no such file or directory",
+		}, "fork/exec /proc/nonexistent: no such file or directory",
 			syscall.ENOENT, syscall.ENOSYS,
 			"cannot fork/exec /proc/nonexistent: no such file or directory"},
 
@@ -120,10 +112,18 @@ func TestStartError(t *testing.T) {
 				Syscall: "open",
 				Err:     syscall.ENOSYS,
 			}, Passthrough: true,
-		},
-			"open: function not implemented",
+		}, "open: function not implemented",
 			syscall.ENOSYS, syscall.ENOENT,
 			"cannot open: function not implemented"},
+
+		{"start FD_CLOEXEC", &container.StartError{
+			Fatal:       true,
+			Step:        "set FD_CLOEXEC on all open files",
+			Err:         func() error { _, err := strconv.Atoi("invalid"); return err }(),
+			Passthrough: true,
+		}, `strconv.Atoi: parsing "invalid": invalid syntax`,
+			strconv.ErrSyntax, os.ErrInvalid,
+			`cannot parse "invalid": invalid syntax`},
 
 		{"start other", &container.StartError{
 			Step: "start container init",
@@ -132,8 +132,7 @@ func TestStartError(t *testing.T) {
 				Net: "unix",
 				Err: syscall.ECONNREFUSED,
 			}, Passthrough: true,
-		},
-			"dial unix: connection refused",
+		}, "dial unix: connection refused",
 			syscall.ECONNREFUSED, syscall.ECONNABORTED,
 			"dial unix: connection refused"},
 	}
