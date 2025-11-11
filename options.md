@@ -35,7 +35,7 @@ package
 
 
 *Default:*
-` <derivation hakurei-static-x86_64-unknown-linux-musl-0.2.2> `
+` <derivation hakurei-static-x86_64-unknown-linux-musl-0.3.1> `
 
 
 
@@ -579,6 +579,52 @@ null or package
 
 
 
+## environment\.hakurei\.apps\.\<name>\.shareRuntime
+
+
+
+Whether to enable sharing of XDG_RUNTIME_DIR between containers under the same identity\.
+
+
+
+*Type:*
+boolean
+
+
+
+*Default:*
+` false `
+
+
+
+*Example:*
+` true `
+
+
+
+## environment\.hakurei\.apps\.\<name>\.shareTmpdir
+
+
+
+Whether to enable sharing of TMPDIR between containers under the same identity\.
+
+
+
+*Type:*
+boolean
+
+
+
+*Default:*
+` false `
+
+
+
+*Example:*
+` true `
+
+
+
 ## environment\.hakurei\.apps\.\<name>\.shareUid
 
 
@@ -759,7 +805,7 @@ package
 
 
 *Default:*
-` <derivation hakurei-hsu-0.2.2> `
+` <derivation hakurei-hsu-0.3.1> `
 
 
 
