@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"hakurei.app/container"
-	"hakurei.app/helper"
+	"hakurei.app/internal/helper"
 )
 
 func TestCmd(t *testing.T) {

@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"hakurei.app/helper"
+	"hakurei.app/internal/helper"
 )
 
 var (

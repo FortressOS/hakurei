@@ -10,7 +10,7 @@ import (
 	"sync"
 	"syscall"
 
-	"hakurei.app/helper/proc"
+	"hakurei.app/internal/helper/proc"
 )
 
 // NewDirect initialises a new direct Helper instance with wt as the null-terminated argument writer.

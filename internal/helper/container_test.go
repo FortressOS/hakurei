@@ -9,7 +9,7 @@ import (
 	"hakurei.app/container"
 	"hakurei.app/container/check"
 	"hakurei.app/container/fhs"
-	"hakurei.app/helper"
+	"hakurei.app/internal/helper"
 )
 
 func TestContainer(t *testing.T) {

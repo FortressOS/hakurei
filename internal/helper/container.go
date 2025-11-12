@@ -11,7 +11,7 @@ import (
 
 	"hakurei.app/container"
 	"hakurei.app/container/check"
-	"hakurei.app/helper/proc"
+	"hakurei.app/internal/helper/proc"
 	"hakurei.app/message"
 )
 

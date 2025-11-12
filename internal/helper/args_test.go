@@ -7,7 +7,7 @@ import (
 	"syscall"
 	"testing"
 
-	"hakurei.app/helper"
+	"hakurei.app/internal/helper"
 )
 
 func TestArgsString(t *testing.T) {
