@@ -12,7 +12,7 @@ buildGoModule rec {
 
   src = builtins.path {
     name = "${pname}-src";
-    path = lib.cleanSource ../.;
+    path = lib.cleanSource ../../.;
     filter = path: type: (type == "directory") || (type == "regular" && lib.hasSuffix ".go" path);
   };
   vendorHash = null;
@@ -23,7 +23,7 @@ buildGoModule rec {
   nativeBuildInputs = [ pkg-config ];
 
   preBuild = ''
-    go mod init hakurei.app/test/sandbox >& /dev/null
+    go mod init hakurei.app/test >& /dev/null
   '';
 
   postInstall = ''

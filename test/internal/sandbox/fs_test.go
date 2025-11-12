@@ -10,7 +10,7 @@ import (
 	"testing"
 	"testing/fstest"
 
-	"hakurei.app/test/sandbox"
+	"hakurei.app/test/internal/sandbox"
 )
 
 var (

@@ -7,7 +7,7 @@ import (
 	"path"
 	"testing"
 
-	"hakurei.app/test/sandbox"
+	"hakurei.app/test/internal/sandbox"
 )
 
 func TestMountinfo(t *testing.T) {

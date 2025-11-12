@@ -12,7 +12,7 @@ import (
 	"strings"
 	"syscall"
 
-	"hakurei.app/test/sandbox"
+	"hakurei.app/test/internal/sandbox"
 )
 
 var (
