@@ -6,11 +6,13 @@ import (
 	"reflect"
 	"testing"
 	"time"
-	_ "unsafe"
+	_ "unsafe" // for go:linkname
 
 	"hakurei.app/hst"
 )
 
+// Made available here to check time encoding behaviour of [hst.ID].
+//
 //go:linkname newInstanceID hakurei.app/hst.newInstanceID
 func newInstanceID(id *hst.ID, p uint64) error
 

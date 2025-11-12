@@ -14,8 +14,10 @@ import (
 	. "hakurei.app/container/check"
 )
 
+// unsafeAbs returns check.Absolute on any string value.
+//
 //go:linkname unsafeAbs hakurei.app/container/check.unsafeAbs
-func unsafeAbs(_ string) *Absolute
+func unsafeAbs(pathname string) *Absolute
 
 func TestAbsoluteError(t *testing.T) {
 	t.Parallel()

@@ -11,7 +11,7 @@ import (
 	"strconv"
 	"sync"
 	"time"
-	_ "unsafe"
+	_ "unsafe" // for go:linkname
 
 	"hakurei.app/command"
 	"hakurei.app/container/check"
@@ -24,8 +24,11 @@ import (
 	"hakurei.app/message"
 )
 
+// optionalErrorUnwrap calls [errors.Unwrap] and returns the resulting value
+// if it is not nil, or the original value if it is.
+//
 //go:linkname optionalErrorUnwrap hakurei.app/container.optionalErrorUnwrap
-func optionalErrorUnwrap(_ error) error
+func optionalErrorUnwrap(err error) error
 
 func buildCommand(ctx context.Context, msg message.Msg, early *earlyHardeningErrs, out io.Writer) command.Command {
 	var (

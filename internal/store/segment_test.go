@@ -10,7 +10,7 @@ import (
 	"strings"
 	"syscall"
 	"testing"
-	_ "unsafe"
+	_ "unsafe" // for go:linkname
 
 	"hakurei.app/container/check"
 	"hakurei.app/container/stub"
@@ -18,18 +18,23 @@ import (
 	"hakurei.app/internal/store"
 )
 
-//go:linkname newTemplateState hakurei.app/internal/store.newTemplateState
-func newTemplateState() *hst.State
-
+// Made available here for direct validation of state entry files.
+//
 //go:linkname entryDecode hakurei.app/internal/store.entryDecode
 func entryDecode(r io.Reader, p *hst.State) (hst.Enablement, error)
 
+// Made available here for direct access to known segment handles.
+//
 //go:linkname newHandle hakurei.app/internal/store.newHandle
 func newHandle(base *check.Absolute, identity int) *store.Handle
 
+// Made available here to check open error handling behaviour.
+//
 //go:linkname open hakurei.app/internal/store.(*EntryHandle).open
 func open(eh *store.EntryHandle, flag int, perm os.FileMode) (*os.File, error)
 
+// Made available here to check the saveload cycle.
+//
 //go:linkname save hakurei.app/internal/store.(*EntryHandle).save
 func save(eh *store.EntryHandle, state *hst.State) error
 
@@ -91,9 +96,9 @@ func TestStateEntryHandle(t *testing.T) {
 	t.Run("saveload", func(t *testing.T) {
 		t.Parallel()
 		eh := store.EntryHandle{Pathname: check.MustAbs(t.TempDir()).Append("entry"),
-			ID: newTemplateState().ID}
+			ID: store.NewTemplateState().ID}
 
-		if err := save(&eh, newTemplateState()); err != nil {
+		if err := save(&eh, store.NewTemplateState()); err != nil {
 			t.Fatalf("save: error = %v", err)
 		}
 
@@ -112,7 +117,7 @@ func TestStateEntryHandle(t *testing.T) {
 					t.Fatal(f.Close())
 				}
 
-				if want := newTemplateState(); !reflect.DeepEqual(&got, want) {
+				if want := store.NewTemplateState(); !reflect.DeepEqual(&got, want) {
 					t.Errorf("entryDecode: %#v, want %#v", &got, want)
 				}
 			})
@@ -122,7 +127,7 @@ func TestStateEntryHandle(t *testing.T) {
 
 				if et, err := eh.Load(nil); err != nil {
 					t.Fatalf("load: error = %v", err)
-				} else if want := newTemplateState().Enablements.Unwrap(); et != want {
+				} else if want := store.NewTemplateState().Enablements.Unwrap(); et != want {
 					t.Errorf("load: et = %x, want %x", et, want)
 				}
 			})
@@ -133,7 +138,7 @@ func TestStateEntryHandle(t *testing.T) {
 				var got hst.State
 				if _, err := eh.Load(&got); err != nil {
 					t.Fatalf("load: error = %v", err)
-				} else if want := newTemplateState(); !reflect.DeepEqual(&got, want) {
+				} else if want := store.NewTemplateState(); !reflect.DeepEqual(&got, want) {
 					t.Errorf("load: %#v, want %#v", &got, want)
 				}
 			})

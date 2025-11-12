@@ -8,8 +8,10 @@ import (
 
 /* constants in this file bypass abs check, be extremely careful when changing them! */
 
+// unsafeAbs returns check.Absolute on any string value.
+//
 //go:linkname unsafeAbs hakurei.app/container/check.unsafeAbs
-func unsafeAbs(_ string) *check.Absolute
+func unsafeAbs(pathname string) *check.Absolute
 
 var (
 	// AbsRoot is [Root] as [check.Absolute].

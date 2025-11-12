@@ -7,8 +7,10 @@ import (
 	"hakurei.app/container/stub"
 )
 
+// Made available here to check panic recovery behaviour.
+//
 //go:linkname handleExitNew hakurei.app/container/stub.handleExitNew
-func handleExitNew(_ testing.TB)
+func handleExitNew(t testing.TB)
 
 // overrideTFailNow overrides the Fail and FailNow method.
 type overrideTFailNow struct {

@@ -12,13 +12,15 @@ import (
 	"syscall"
 	"testing"
 	"time"
-	_ "unsafe"
+	_ "unsafe" // for go:linkname
 
 	"hakurei.app/container/check"
 	"hakurei.app/hst"
 	"hakurei.app/internal/store"
 )
 
+// Made available here to check bigLock error handling behaviour.
+//
 //go:linkname bigLock hakurei.app/internal/store.(*Store).bigLock
 func bigLock(s *store.Store) (unlock func(), err error)
 

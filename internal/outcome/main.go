@@ -12,6 +12,8 @@ import (
 
 // IsPollDescriptor reports whether fd is the descriptor being used by the poller.
 //
+// Made available here to determine and reject impossible fd.
+//
 //go:linkname IsPollDescriptor internal/poll.IsPollDescriptor
 func IsPollDescriptor(fd uintptr) bool
 

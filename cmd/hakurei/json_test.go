@@ -1,17 +1,12 @@
-package main_test
+package main
 
 import (
-	"io"
 	"reflect"
 	"strings"
 	"testing"
-	_ "unsafe"
 
 	"hakurei.app/container/stub"
 )
-
-//go:linkname decodeJSON hakurei.app/cmd/hakurei.decodeJSON
-func decodeJSON(fatal func(v ...any), op string, r io.Reader, v any)
 
 func TestDecodeJSON(t *testing.T) {
 	t.Parallel()
@@ -62,9 +57,6 @@ func TestDecodeJSON(t *testing.T) {
 	}
 }
 
-//go:linkname encodeJSON hakurei.app/cmd/hakurei.encodeJSON
-func encodeJSON(fatal func(v ...any), output io.Writer, short bool, v any)
-
 func TestEncodeJSON(t *testing.T) {
 	t.Parallel()
 
@@ -74,7 +66,7 @@ func TestEncodeJSON(t *testing.T) {
 		want string
 	}{
 		{"marshaler", errorJSONMarshaler{},
-			`cannot encode json for main_test.errorJSONMarshaler: unique error 3735928559 injected by the test suite`},
+			`cannot encode json for main.errorJSONMarshaler: unique error 3735928559 injected by the test suite`},
 		{"default", func() {},
 			`cannot write json: json: unsupported type: func()`},
 	}

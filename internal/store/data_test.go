@@ -27,7 +27,7 @@ func TestEntryData(t *testing.T) {
 			return buf.String()
 		}
 	}
-	templateStateGob := mustEncodeGob(newTemplateState())
+	templateStateGob := mustEncodeGob(NewTemplateState())
 
 	testCases := []struct {
 		name string
@@ -45,11 +45,11 @@ func TestEntryData(t *testing.T) {
 			Step: "validate configuration", Err: hst.ErrConfigNull,
 			Msg: "invalid configuration"}},
 
-		{"inconsistent enablement", "\x00\xff\xca\xfe\x00\x00\xff\x00" + templateStateGob, newTemplateState(), &hst.AppError{
+		{"inconsistent enablement", "\x00\xff\xca\xfe\x00\x00\xff\x00" + templateStateGob, NewTemplateState(), &hst.AppError{
 			Step: "validate state enablement", Err: os.ErrInvalid,
 			Msg: "state entry aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa has unexpected enablement byte 0xd, 0xff"}},
 
-		{"template", "\x00\xff\xca\xfe\x00\x00\x0d\xf2" + templateStateGob, newTemplateState(), nil},
+		{"template", "\x00\xff\xca\xfe\x00\x00\x0d\xf2" + templateStateGob, NewTemplateState(), nil},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -105,7 +105,7 @@ func TestEntryData(t *testing.T) {
 
 	t.Run("encode fault", func(t *testing.T) {
 		t.Parallel()
-		s := newTemplateState()
+		s := NewTemplateState()
 
 		t.Run("gob", func(t *testing.T) {
 			var want = &hst.AppError{Step: "encode state body", Err: stub.UniqueError(0xcafe)}
@@ -123,8 +123,8 @@ func TestEntryData(t *testing.T) {
 	})
 }
 
-// newTemplateState returns the address of a new template [hst.State] struct.
-func newTemplateState() *hst.State {
+// NewTemplateState returns the address of a new template [hst.State] struct.
+func NewTemplateState() *hst.State {
 	return &hst.State{
 		ID:      hst.ID(bytes.Repeat([]byte{0xaa}, len(hst.ID{}))),
 		PID:     0xcafe,
