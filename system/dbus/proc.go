@@ -12,7 +12,7 @@ import (
 	"hakurei.app/container/check"
 	"hakurei.app/container/seccomp"
 	"hakurei.app/container/std"
-	"hakurei.app/helper"
+	"hakurei.app/internal/helper"
 	"hakurei.app/ldd"
 )
 

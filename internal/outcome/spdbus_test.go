@@ -6,8 +6,8 @@ import (
 
 	"hakurei.app/container"
 	"hakurei.app/container/stub"
-	"hakurei.app/helper"
 	"hakurei.app/hst"
+	"hakurei.app/internal/helper"
 	"hakurei.app/message"
 	"hakurei.app/system"
 	"hakurei.app/system/acl"

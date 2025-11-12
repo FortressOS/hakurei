@@ -6,8 +6,8 @@ import (
 	"sync"
 	"syscall"
 
-	"hakurei.app/helper"
 	"hakurei.app/hst"
+	"hakurei.app/internal/helper"
 	"hakurei.app/message"
 )
 

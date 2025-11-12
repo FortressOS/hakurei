@@ -10,8 +10,8 @@ import (
 	"testing"
 
 	"hakurei.app/container/stub"
-	"hakurei.app/helper"
 	"hakurei.app/hst"
+	"hakurei.app/internal/helper"
 	"hakurei.app/system/dbus"
 )
 
