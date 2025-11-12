@@ -10,9 +10,9 @@ cp -rv "dist/comp" "${out}"
 
 go generate ./...
 go build -trimpath -v -o "${out}/bin/" -ldflags "-s -w -buildid= -extldflags '-static'
-  -X hakurei.app/internal.buildVersion=${VERSION}
-  -X hakurei.app/internal.hakureiPath=/usr/bin/hakurei
-  -X hakurei.app/internal.hsuPath=/usr/bin/hsu
+  -X hakurei.app/internal/info.buildVersion=${VERSION}
+  -X hakurei.app/internal/info.hakureiPath=/usr/bin/hakurei
+  -X hakurei.app/internal/info.hsuPath=/usr/bin/hsu
   -X main.hakureiPath=/usr/bin/hakurei" ./...
 
 rm -f "./${out}.tar.gz" && tar -C dist -czf "${out}.tar.gz" "${pname}"

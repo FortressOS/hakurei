@@ -16,7 +16,7 @@ import (
 	"hakurei.app/container/check"
 	"hakurei.app/container/fhs"
 	"hakurei.app/hst"
-	"hakurei.app/internal"
+	"hakurei.app/internal/info"
 	"hakurei.app/internal/store"
 	"hakurei.app/internal/system"
 	"hakurei.app/message"
@@ -39,7 +39,7 @@ func (k *outcome) main(msg message.Msg, identifierFd int) {
 	}
 
 	// read comp value early for early failure
-	hsuPath := internal.MustHsuPath()
+	hsuPath := info.MustHsuPath()
 
 	const (
 		// transitions to processCommit, or processFinal on failure

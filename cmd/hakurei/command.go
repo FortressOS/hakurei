@@ -17,8 +17,8 @@ import (
 	"hakurei.app/container/check"
 	"hakurei.app/container/fhs"
 	"hakurei.app/hst"
-	"hakurei.app/internal"
 	"hakurei.app/internal/env"
+	"hakurei.app/internal/info"
 	"hakurei.app/internal/outcome"
 	"hakurei.app/internal/system/dbus"
 	"hakurei.app/message"
@@ -353,7 +353,7 @@ func buildCommand(ctx context.Context, msg message.Msg, early *earlyHardeningErr
 		}).Flag(&flagShort, "short", command.BoolFlag(false), "Print instance id")
 	}
 
-	c.Command("version", "Display version information", func(args []string) error { fmt.Println(internal.Version()); return errSuccess })
+	c.Command("version", "Display version information", func(args []string) error { fmt.Println(info.Version()); return errSuccess })
 	c.Command("license", "Show full license text", func(args []string) error { fmt.Println(license); return errSuccess })
 	c.Command("template", "Produce a config template", func(args []string) error { encodeJSON(log.Fatal, os.Stdout, false, hst.Template()); return errSuccess })
 	c.Command("help", "Show this help message", func([]string) error { c.PrintHelp(); return errSuccess })

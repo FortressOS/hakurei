@@ -10,11 +10,11 @@ import (
 	"os/exec"
 
 	"hakurei.app/hst"
-	"hakurei.app/internal"
+	"hakurei.app/internal/info"
 	"hakurei.app/message"
 )
 
-var hakureiPathVal = internal.MustHakureiPath().String()
+var hakureiPathVal = info.MustHakureiPath().String()
 
 func mustRunApp(ctx context.Context, msg message.Msg, config *hst.Config, beforeFail func()) {
 	var (

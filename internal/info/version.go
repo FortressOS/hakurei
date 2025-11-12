@@ -1,4 +1,4 @@
-package internal
+package info
 
 // FallbackVersion is returned when a version string was not set by the linker.
 const FallbackVersion = "dirty"

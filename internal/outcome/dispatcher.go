@@ -14,7 +14,7 @@ import (
 	"hakurei.app/container/check"
 	"hakurei.app/container/seccomp"
 	"hakurei.app/container/std"
-	"hakurei.app/internal"
+	"hakurei.app/internal/info"
 	"hakurei.app/internal/system/dbus"
 	"hakurei.app/message"
 )
@@ -156,7 +156,7 @@ func (direct) seccompLoad(rules []std.NativeRule, flags seccomp.ExportFlag) erro
 	return seccomp.Load(rules, flags)
 }
 
-func (direct) mustHsuPath() *check.Absolute { return internal.MustHsuPath() }
+func (direct) mustHsuPath() *check.Absolute { return info.MustHsuPath() }
 
 func (direct) dbusAddress() (session, system string) { return dbus.Address() }
 

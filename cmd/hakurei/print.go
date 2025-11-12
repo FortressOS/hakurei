@@ -12,8 +12,8 @@ import (
 	"time"
 
 	"hakurei.app/hst"
-	"hakurei.app/internal"
 	"hakurei.app/internal/env"
+	"hakurei.app/internal/info"
 	"hakurei.app/internal/outcome"
 	"hakurei.app/internal/store"
 	"hakurei.app/message"
@@ -24,20 +24,20 @@ func printShowSystem(output io.Writer, short, flagJSON bool) {
 	t := newPrinter(output)
 	defer t.MustFlush()
 
-	info := &hst.Info{Version: internal.Version(), User: new(outcome.Hsu).MustID(nil)}
-	env.CopyPaths().Copy(&info.Paths, info.User)
+	hi := &hst.Info{Version: info.Version(), User: new(outcome.Hsu).MustID(nil)}
+	env.CopyPaths().Copy(&hi.Paths, hi.User)
 
 	if flagJSON {
-		encodeJSON(log.Fatal, output, short, info)
+		encodeJSON(log.Fatal, output, short, hi)
 		return
 	}
 
-	t.Printf("Version:\t%s\n", info.Version)
-	t.Printf("User:\t%d\n", info.User)
-	t.Printf("TempDir:\t%s\n", info.TempDir)
-	t.Printf("SharePath:\t%s\n", info.SharePath)
-	t.Printf("RuntimePath:\t%s\n", info.RuntimePath)
-	t.Printf("RunDirPath:\t%s\n", info.RunDirPath)
+	t.Printf("Version:\t%s\n", hi.Version)
+	t.Printf("User:\t%d\n", hi.User)
+	t.Printf("TempDir:\t%s\n", hi.TempDir)
+	t.Printf("SharePath:\t%s\n", hi.SharePath)
+	t.Printf("RuntimePath:\t%s\n", hi.RuntimePath)
+	t.Printf("RunDirPath:\t%s\n", hi.RunDirPath)
 }
 
 // printShowInstance writes a representation of [hst.State] or [hst.Config] to output.
