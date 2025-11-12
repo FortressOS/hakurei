@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"testing"
 
-	"hakurei.app/system/dbus"
+	"hakurei.app/internal/system/dbus"
 )
 
 func TestParse(t *testing.T) {

@@ -8,7 +8,7 @@ import (
 
 	"hakurei.app/container/check"
 	"hakurei.app/hst"
-	"hakurei.app/system/acl"
+	"hakurei.app/internal/system/acl"
 )
 
 // UpdatePerm calls UpdatePermType with the [Process] criteria.

@@ -44,7 +44,7 @@ type Op interface {
 	String() string
 }
 
-// TypeString extends [Enablement.String] to support [User] and [Process].
+// TypeString extends [hst.Enablement.String] to support [User] and [Process].
 func TypeString(e hst.Enablement) string {
 	switch e {
 	case User:

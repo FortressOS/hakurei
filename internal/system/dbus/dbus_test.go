@@ -12,8 +12,8 @@ import (
 	"time"
 
 	"hakurei.app/internal/helper"
+	"hakurei.app/internal/system/dbus"
 	"hakurei.app/message"
-	"hakurei.app/system/dbus"
 )
 
 func TestFinalise(t *testing.T) {

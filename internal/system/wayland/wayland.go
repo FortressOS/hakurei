@@ -1,3 +1,4 @@
+// Package wayland implements Wayland security_context_v1 protocol.
 package wayland
 
 //go:generate sh -c "wayland-scanner client-header `pkg-config --variable=datarootdir wayland-protocols`/wayland-protocols/staging/security-context/security-context-v1.xml security-context-v1-protocol.h"
@@ -13,10 +14,21 @@ import "C"
 import (
 	"errors"
 	"strings"
+	"syscall"
 )
 
-var (
-	ErrContainsNull = errors.New("string contains null character")
+const (
+	// Display contains the name of the server socket
+	// (https://gitlab.freedesktop.org/wayland/wayland/-/blob/1.23.1/src/wayland-client.c#L1147)
+	// which is concatenated with XDG_RUNTIME_DIR
+	// (https://gitlab.freedesktop.org/wayland/wayland/-/blob/1.23.1/src/wayland-client.c#L1171)
+	// or used as-is if absolute
+	// (https://gitlab.freedesktop.org/wayland/wayland/-/blob/1.23.1/src/wayland-client.c#L1176).
+	Display = "WAYLAND_DISPLAY"
+
+	// FallbackName is used as the wayland socket name if WAYLAND_DISPLAY is unset
+	// (https://gitlab.freedesktop.org/wayland/wayland/-/blob/1.23.1/src/wayland-client.c#L1149).
+	FallbackName = "wayland-0"
 )
 
 var resErr = [...]error{
@@ -27,10 +39,10 @@ var resErr = [...]error{
 
 func bindWaylandFd(socketPath string, fd uintptr, appID, instanceID string, syncFd uintptr) error {
 	if hasNull(appID) || hasNull(instanceID) {
-		return ErrContainsNull
+		return syscall.EINVAL
 	}
 	res := C.hakurei_bind_wayland_fd(C.CString(socketPath), C.int(fd), C.CString(appID), C.CString(instanceID), C.int(syncFd))
 	return resErr[int32(res)]
 }
 
-func hasNull(s string) bool { return strings.IndexByte(s, '\x00') > -1 }
+func hasNull(s string) bool { return strings.IndexByte(s, 0) > -1 }

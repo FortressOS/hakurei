@@ -10,9 +10,9 @@ import (
 
 	"hakurei.app/container/stub"
 	"hakurei.app/hst"
-	"hakurei.app/system/acl"
-	"hakurei.app/system/dbus"
-	"hakurei.app/system/internal/xcb"
+	"hakurei.app/internal/system/acl"
+	"hakurei.app/internal/system/dbus"
+	"hakurei.app/internal/system/xcb"
 )
 
 // call initialises a [stub.Call].

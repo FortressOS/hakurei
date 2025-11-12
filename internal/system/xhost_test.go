@@ -5,7 +5,7 @@ import (
 
 	"hakurei.app/container/stub"
 	"hakurei.app/hst"
-	"hakurei.app/system/internal/xcb"
+	"hakurei.app/internal/system/xcb"
 )
 
 func TestXHostOp(t *testing.T) {

@@ -7,8 +7,8 @@ import (
 
 	"hakurei.app/container/check"
 	"hakurei.app/hst"
-	"hakurei.app/system/acl"
-	"hakurei.app/system/wayland"
+	"hakurei.app/internal/system/acl"
+	"hakurei.app/internal/system/wayland"
 )
 
 type waylandConn interface {

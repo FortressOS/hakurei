@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	"hakurei.app/container/stub"
-	"hakurei.app/system/acl"
-	"hakurei.app/system/wayland"
+	"hakurei.app/internal/system/acl"
+	"hakurei.app/internal/system/wayland"
 )
 
 type stubWaylandConn struct {

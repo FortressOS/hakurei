@@ -13,7 +13,7 @@ import (
 	"strconv"
 	"testing"
 
-	"hakurei.app/system/acl"
+	"hakurei.app/internal/system/acl"
 )
 
 const testFileName = "acl.test"

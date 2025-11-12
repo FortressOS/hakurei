@@ -13,7 +13,7 @@ import (
 
 	"hakurei.app/container"
 	"hakurei.app/hst"
-	"hakurei.app/system/dbus"
+	"hakurei.app/internal/system/dbus"
 )
 
 // ErrDBusConfig is returned when a required [hst.BusConfig] argument is nil.

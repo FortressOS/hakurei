@@ -1,4 +1,3 @@
-// Package wayland implements Wayland security_context_v1 protocol.
 package wayland
 
 import (

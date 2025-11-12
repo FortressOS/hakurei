@@ -11,8 +11,8 @@ import (
 	"hakurei.app/container/check"
 	"hakurei.app/container/stub"
 	"hakurei.app/hst"
+	"hakurei.app/internal/system/xcb"
 	"hakurei.app/message"
-	"hakurei.app/system/internal/xcb"
 )
 
 func TestCriteria(t *testing.T) {
