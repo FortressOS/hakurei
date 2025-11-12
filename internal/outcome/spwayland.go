@@ -5,8 +5,8 @@ import (
 
 	"hakurei.app/container/check"
 	"hakurei.app/hst"
-	"hakurei.app/system/acl"
-	"hakurei.app/system/wayland"
+	"hakurei.app/internal/system/acl"
+	"hakurei.app/internal/system/wayland"
 )
 
 func init() { gob.Register(new(spWaylandOp)) }
@@ -25,8 +25,8 @@ func (s *spWaylandOp) toSystem(state *outcomeStateSys) error {
 
 	// outer wayland socket (usually `/run/user/%d/wayland-%d`)
 	var socketPath *check.Absolute
-	if name, ok := state.k.lookupEnv(wayland.WaylandDisplay); !ok {
-		state.msg.Verbose(wayland.WaylandDisplay + " is not set, assuming " + wayland.FallbackName)
+	if name, ok := state.k.lookupEnv(wayland.Display); !ok {
+		state.msg.Verbose(wayland.Display + " is not set, assuming " + wayland.FallbackName)
 		socketPath = state.sc.RuntimePath.Append(wayland.FallbackName)
 	} else if a, err := check.NewAbs(name); err != nil {
 		socketPath = state.sc.RuntimePath.Append(name)
@@ -53,7 +53,7 @@ func (s *spWaylandOp) toSystem(state *outcomeStateSys) error {
 
 func (s *spWaylandOp) toContainer(state *outcomeStateParams) error {
 	innerPath := state.runtimeDir.Append(wayland.FallbackName)
-	state.env[wayland.WaylandDisplay] = wayland.FallbackName
+	state.env[wayland.Display] = wayland.FallbackName
 	if s.SocketPath == nil {
 		state.params.Bind(state.instancePath().Append("wayland"), innerPath, 0)
 	} else {

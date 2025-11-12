@@ -20,8 +20,8 @@ import (
 	"hakurei.app/internal"
 	"hakurei.app/internal/env"
 	"hakurei.app/internal/outcome"
+	"hakurei.app/internal/system/dbus"
 	"hakurei.app/message"
-	"hakurei.app/system/dbus"
 )
 
 //go:linkname optionalErrorUnwrap hakurei.app/container.optionalErrorUnwrap

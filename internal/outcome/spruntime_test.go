@@ -8,8 +8,8 @@ import (
 	"hakurei.app/container/std"
 	"hakurei.app/container/stub"
 	"hakurei.app/hst"
-	"hakurei.app/system"
-	"hakurei.app/system/acl"
+	"hakurei.app/internal/system"
+	"hakurei.app/internal/system/acl"
 )
 
 func TestSpRuntimeOp(t *testing.T) {

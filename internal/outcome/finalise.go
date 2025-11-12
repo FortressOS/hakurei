@@ -8,8 +8,8 @@ import (
 	"os/user"
 
 	"hakurei.app/hst"
+	"hakurei.app/internal/system"
 	"hakurei.app/message"
-	"hakurei.app/system"
 )
 
 func newWithMessage(msg string) error { return newWithMessageError(msg, os.ErrInvalid) }

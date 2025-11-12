@@ -14,9 +14,9 @@ import (
 	"hakurei.app/container/std"
 	"hakurei.app/container/stub"
 	"hakurei.app/hst"
-	"hakurei.app/system"
-	"hakurei.app/system/acl"
-	"hakurei.app/system/dbus"
+	"hakurei.app/internal/system"
+	"hakurei.app/internal/system/acl"
+	"hakurei.app/internal/system/dbus"
 )
 
 func TestSpParamsOp(t *testing.T) {

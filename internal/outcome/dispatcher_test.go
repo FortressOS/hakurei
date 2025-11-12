@@ -24,8 +24,8 @@ import (
 	"hakurei.app/container/std"
 	"hakurei.app/container/stub"
 	"hakurei.app/hst"
+	"hakurei.app/internal/system"
 	"hakurei.app/message"
-	"hakurei.app/system"
 )
 
 // call initialises a [stub.Call].

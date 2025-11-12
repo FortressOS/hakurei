@@ -8,10 +8,10 @@ import (
 	"hakurei.app/container/stub"
 	"hakurei.app/hst"
 	"hakurei.app/internal/helper"
+	"hakurei.app/internal/system"
+	"hakurei.app/internal/system/acl"
+	"hakurei.app/internal/system/dbus"
 	"hakurei.app/message"
-	"hakurei.app/system"
-	"hakurei.app/system/acl"
-	"hakurei.app/system/dbus"
 )
 
 func TestSpDBusOp(t *testing.T) {

@@ -18,8 +18,8 @@ import (
 	"hakurei.app/hst"
 	"hakurei.app/internal"
 	"hakurei.app/internal/store"
+	"hakurei.app/internal/system"
 	"hakurei.app/message"
-	"hakurei.app/system"
 )
 
 const (

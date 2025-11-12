@@ -16,11 +16,11 @@ import (
 	"hakurei.app/container/seccomp"
 	"hakurei.app/container/std"
 	"hakurei.app/hst"
+	"hakurei.app/internal/system"
+	"hakurei.app/internal/system/acl"
+	"hakurei.app/internal/system/dbus"
 	"hakurei.app/internal/validate"
 	"hakurei.app/message"
-	"hakurei.app/system"
-	"hakurei.app/system/acl"
-	"hakurei.app/system/dbus"
 )
 
 const varRunNscd = fhs.Var + "run/nscd"

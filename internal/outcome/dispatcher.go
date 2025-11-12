@@ -15,8 +15,8 @@ import (
 	"hakurei.app/container/seccomp"
 	"hakurei.app/container/std"
 	"hakurei.app/internal"
+	"hakurei.app/internal/system/dbus"
 	"hakurei.app/message"
-	"hakurei.app/system/dbus"
 )
 
 // osFile represents [os.File].

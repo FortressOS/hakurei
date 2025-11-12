@@ -7,8 +7,8 @@ import (
 	"hakurei.app/container/fhs"
 	"hakurei.app/container/std"
 	"hakurei.app/hst"
-	"hakurei.app/system"
-	"hakurei.app/system/acl"
+	"hakurei.app/internal/system"
+	"hakurei.app/internal/system/acl"
 )
 
 const (

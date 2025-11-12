@@ -6,9 +6,9 @@ import (
 	"hakurei.app/container"
 	"hakurei.app/container/stub"
 	"hakurei.app/hst"
-	"hakurei.app/system"
-	"hakurei.app/system/acl"
-	"hakurei.app/system/wayland"
+	"hakurei.app/internal/system"
+	"hakurei.app/internal/system/acl"
+	"hakurei.app/internal/system/wayland"
 )
 
 func TestSpWaylandOp(t *testing.T) {
@@ -47,7 +47,7 @@ func TestSpWaylandOp(t *testing.T) {
 			Ops: new(container.Ops).
 				Bind(m(wantInstancePrefix+"/wayland"), m("/run/user/1000/wayland-0"), 0),
 		}, paramsWantEnv(config, map[string]string{
-			wayland.WaylandDisplay: wayland.FallbackName,
+			wayland.Display: wayland.FallbackName,
 		}, nil), nil},
 
 		{"success direct", func(isShim, _ bool) outcomeOp {
@@ -75,7 +75,7 @@ func TestSpWaylandOp(t *testing.T) {
 			Ops: new(container.Ops).
 				Bind(m("/proc/nonexistent/wayland"), m("/run/user/1000/wayland-0"), 0),
 		}, paramsWantEnv(config, map[string]string{
-			wayland.WaylandDisplay: wayland.FallbackName,
+			wayland.Display: wayland.FallbackName,
 		}, nil), nil},
 
 		{"success", func(bool, bool) outcomeOp {
@@ -98,7 +98,7 @@ func TestSpWaylandOp(t *testing.T) {
 			Ops: new(container.Ops).
 				Bind(m(wantInstancePrefix+"/wayland"), m("/run/user/1000/wayland-0"), 0),
 		}, paramsWantEnv(config, map[string]string{
-			wayland.WaylandDisplay: wayland.FallbackName,
+			wayland.Display: wayland.FallbackName,
 		}, nil), nil},
 	})
 }
