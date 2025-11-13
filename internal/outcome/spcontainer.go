@@ -116,7 +116,7 @@ func (s *spParamsOp) toContainer(state *outcomeStateParams) error {
 		state.params.Bind(fhs.AbsDev, fhs.AbsDev, std.BindWritable|std.BindDevice)
 	}
 	// /dev is mounted readonly later on, this prevents /dev/shm from going readonly with it
-	state.params.Tmpfs(fhs.AbsDev.Append("shm"), 0, 01777)
+	state.params.Tmpfs(fhs.AbsDevShm, 0, 01777)
 
 	return nil
 }

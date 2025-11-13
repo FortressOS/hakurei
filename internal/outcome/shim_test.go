@@ -66,7 +66,7 @@ func TestShimEntrypoint(t *testing.T) {
 			Proc(fhs.AbsProc).
 			Tmpfs(hst.AbsPrivateTmp, 1<<12, 0755).
 			Bind(fhs.AbsDev, fhs.AbsDev, std.BindWritable|std.BindDevice).
-			Tmpfs(fhs.AbsDev.Append("shm"), 0, 01777).
+			Tmpfs(fhs.AbsDevShm, 0, 01777).
 
 			// spRuntimeOp
 			Tmpfs(fhs.AbsRunUser, 1<<12, 0755).

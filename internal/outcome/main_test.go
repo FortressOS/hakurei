@@ -141,7 +141,7 @@ func TestOutcomeMain(t *testing.T) {
 				Proc(fhs.AbsProc).
 				Tmpfs(hst.AbsPrivateTmp, 1<<12, 0755).
 				Bind(fhs.AbsDev, fhs.AbsDev, std.BindWritable|std.BindDevice).
-				Tmpfs(fhs.AbsDev.Append("shm"), 0, 01777).
+				Tmpfs(fhs.AbsDevShm, 0, 01777).
 
 				// spRuntimeOp
 				Tmpfs(fhs.AbsRunUser, 1<<12, 0755).
@@ -243,7 +243,7 @@ func TestOutcomeMain(t *testing.T) {
 				Proc(m("/proc/")).
 				Tmpfs(hst.AbsPrivateTmp, 4096, 0755).
 				DevWritable(m("/dev/"), true).
-				Tmpfs(m("/dev/shm"), 0, 01777).
+				Tmpfs(m("/dev/shm/"), 0, 01777).
 				Tmpfs(m("/run/user/"), 4096, 0755).
 				Bind(m("/tmp/hakurei.0/runtime/0"), m("/run/user/65534"), std.BindWritable).
 				Bind(m("/tmp/hakurei.0/tmpdir/0"), m("/tmp/"), std.BindWritable).
@@ -412,7 +412,7 @@ func TestOutcomeMain(t *testing.T) {
 				Proc(m("/proc/")).
 				Tmpfs(hst.AbsPrivateTmp, 4096, 0755).
 				DevWritable(m("/dev/"), true).
-				Tmpfs(m("/dev/shm"), 0, 01777).
+				Tmpfs(m("/dev/shm/"), 0, 01777).
 				Tmpfs(m("/run/user/"), 4096, 0755).
 				Bind(m("/tmp/hakurei.0/runtime/9"), m("/run/user/65534"), std.BindWritable).
 				Bind(m("/tmp/hakurei.0/tmpdir/9"), m("/tmp/"), std.BindWritable).
@@ -558,7 +558,7 @@ func TestOutcomeMain(t *testing.T) {
 				Proc(m("/proc/")).
 				Tmpfs(hst.AbsPrivateTmp, 4096, 0755).
 				DevWritable(m("/dev/"), true).
-				Tmpfs(m("/dev/shm"), 0, 01777).
+				Tmpfs(m("/dev/shm/"), 0, 01777).
 				Tmpfs(m("/run/user/"), 4096, 0755).
 				Bind(m("/tmp/hakurei.0/runtime/1"), m("/run/user/1971"), std.BindWritable).
 				Bind(m("/tmp/hakurei.0/tmpdir/1"), m("/tmp/"), std.BindWritable).

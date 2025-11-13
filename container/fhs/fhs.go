@@ -29,6 +29,8 @@ const (
 
 	// Dev points to the root directory for device nodes.
 	Dev = "/dev/"
+	// DevShm is the place for POSIX shared memory segments, as created via shm_open(3).
+	DevShm = "/dev/shm/"
 	// Proc points to a virtual kernel file system exposing the process list and other functionality.
 	Proc = "/proc/"
 	// ProcSys points to a hierarchy below /proc/ that exposes a number of kernel tunables.

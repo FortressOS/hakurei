@@ -36,6 +36,8 @@ var (
 
 	// AbsDev is [Dev] as [check.Absolute].
 	AbsDev = unsafeAbs(Dev)
+	// AbsDevShm is [DevShm] as [check.Absolute].
+	AbsDevShm = unsafeAbs(DevShm)
 	// AbsProc is [Proc] as [check.Absolute].
 	AbsProc = unsafeAbs(Proc)
 	// AbsSys is [Sys] as [check.Absolute].

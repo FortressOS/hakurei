@@ -72,7 +72,7 @@ func TestSpParamsOp(t *testing.T) {
 				Root(m("/var/lib/hakurei/base/org.debian"), std.BindWritable).
 				Proc(fhs.AbsProc).Tmpfs(hst.AbsPrivateTmp, 1<<12, 0755).
 				DevWritable(fhs.AbsDev, true).
-				Tmpfs(fhs.AbsDev.Append("shm"), 0, 01777),
+				Tmpfs(fhs.AbsDevShm, 0, 01777),
 		}, paramsWantEnv(config, map[string]string{
 			"TERM": "xterm",
 		}, func(t *testing.T, state *outcomeStateParams) {
@@ -110,7 +110,7 @@ func TestSpParamsOp(t *testing.T) {
 				Root(m("/var/lib/hakurei/base/org.debian"), std.BindWritable).
 				Proc(fhs.AbsProc).Tmpfs(hst.AbsPrivateTmp, 1<<12, 0755).
 				Bind(fhs.AbsDev, fhs.AbsDev, std.BindWritable|std.BindDevice).
-				Tmpfs(fhs.AbsDev.Append("shm"), 0, 01777),
+				Tmpfs(fhs.AbsDevShm, 0, 01777),
 		}, paramsWantEnv(config, map[string]string{
 			"TERM": "xterm",
 		}, func(t *testing.T, state *outcomeStateParams) {
