@@ -3,6 +3,7 @@ package ldd
 import (
 	"bytes"
 	"context"
+	"errors"
 	"io"
 	"os"
 	"os/exec"
@@ -16,11 +17,14 @@ import (
 	"hakurei.app/message"
 )
 
-var (
-	msgStatic      = []byte("Not a valid dynamic program")
-	msgStaticGlibc = []byte("not a dynamic executable")
+const (
+	// msgStaticSuffix is the suffix of message printed to stderr by musl on a statically linked program.
+	msgStaticSuffix = ": Not a valid dynamic program"
+	// msgStaticGlibc is a substring of the message printed to stderr by glibc on a statically linked program.
+	msgStaticGlibc = "not a dynamic executable"
 )
 
+// Exec runs ldd(1) in a restrictive [container] and connects it to a [Decoder], returning resulting entries.
 func Exec(ctx context.Context, msg message.Msg, p string) ([]*Entry, error) {
 	const (
 		lddName    = "ldd"
@@ -41,13 +45,19 @@ func Exec(ctx context.Context, msg message.Msg, p string) ([]*Entry, error) {
 	z.Hostname = "hakurei-" + lddName
 	z.SeccompFlags |= seccomp.AllowMultiarch
 	z.SeccompPresets |= std.PresetStrict
-	stdout, stderr := new(bytes.Buffer), new(bytes.Buffer)
-	z.Stdout = stdout
+	stderr := new(bytes.Buffer)
 	z.Stderr = stderr
 	z.
 		Bind(fhs.AbsRoot, fhs.AbsRoot, 0).
 		Proc(fhs.AbsProc).
 		Dev(fhs.AbsDev, false)
+
+	var d *Decoder
+	if r, err := z.StdoutPipe(); err != nil {
+		return nil, err
+	} else {
+		d = NewDecoder(r)
+	}
 
 	if err := z.Start(); err != nil {
 		return nil, err
@@ -56,15 +66,18 @@ func Exec(ctx context.Context, msg message.Msg, p string) ([]*Entry, error) {
 	if err := z.Serve(); err != nil {
 		return nil, err
 	}
+
+	entries, decodeErr := d.Decode()
 	if err := z.Wait(); err != nil {
 		m := stderr.Bytes()
-		if bytes.Contains(m, append([]byte(p+": "), msgStatic...)) ||
-			bytes.Contains(m, msgStaticGlibc) {
+		if bytes.Contains(m, []byte(msgStaticSuffix)) || bytes.Contains(m, []byte(msgStaticGlibc)) {
 			return nil, nil
+		}
+
+		if decodeErr != nil {
+			return nil, errors.Join(decodeErr, err)
 		}
 		return nil, err
 	}
-
-	v := stdout.Bytes()
-	return Parse(v)
+	return entries, decodeErr
 }
