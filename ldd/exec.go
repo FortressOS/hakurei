@@ -68,6 +68,11 @@ func Exec(ctx context.Context, msg message.Msg, p string) ([]*Entry, error) {
 	}
 
 	entries, decodeErr := d.Decode()
+	if decodeErr != nil {
+		// do not cancel on successful decode to avoid racing with ldd(1) termination
+		cancel()
+	}
+
 	if err := z.Wait(); err != nil {
 		m := stderr.Bytes()
 		if bytes.Contains(m, []byte(msgStaticSuffix)) || bytes.Contains(m, []byte(msgStaticGlibc)) {
