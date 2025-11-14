@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"hakurei.app/container"
+	"hakurei.app/container/check"
 	"hakurei.app/ldd"
 	"hakurei.app/message"
 )
@@ -17,7 +18,7 @@ func TestExec(t *testing.T) {
 	t.Run("failure", func(t *testing.T) {
 		t.Parallel()
 
-		_, err := ldd.Exec(t.Context(), nil, "/proc/nonexistent")
+		_, err := ldd.Resolve(t.Context(), nil, check.MustAbs("/proc/nonexistent"))
 
 		var exitError *exec.ExitError
 		if !errors.As(err, &exitError) {
@@ -33,7 +34,7 @@ func TestExec(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		msg := message.New(nil)
 		msg.GetLogger().SetPrefix("check: ")
-		if entries, err := ldd.Exec(t.Context(), nil, container.MustExecutable(msg)); err != nil {
+		if entries, err := ldd.Resolve(t.Context(), nil, check.MustAbs(container.MustExecutable(msg))); err != nil {
 			t.Fatalf("Exec: error = %v", err)
 		} else if testing.Verbose() {
 			// result cannot be measured here as build information is not known

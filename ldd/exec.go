@@ -22,15 +22,21 @@ const (
 	msgStaticSuffix = ": Not a valid dynamic program"
 	// msgStaticGlibc is a substring of the message printed to stderr by glibc on a statically linked program.
 	msgStaticGlibc = "not a dynamic executable"
+
+	// lddName is the file name of ldd(1) passed to exec.LookPath.
+	lddName = "ldd"
+	// lddTimeout is the maximum duration ldd(1) is allowed to ran for before it is terminated.
+	lddTimeout = 4 * time.Second
 )
 
-// Exec runs ldd(1) in a restrictive [container] and connects it to a [Decoder], returning resulting entries.
-func Exec(ctx context.Context, msg message.Msg, p string) ([]*Entry, error) {
-	const (
-		lddName    = "ldd"
-		lddTimeout = 4 * time.Second
-	)
-
+// Resolve runs ldd(1) in a strict sandbox and connects its stdout to a [Decoder].
+//
+// The returned error has concrete type
+// [exec.Error] or [check.AbsoluteError] for fault during lookup of ldd(1),
+// [os.SyscallError] for fault creating the stdout pipe,
+// [container.StartError] for fault during either stage of container setup.
+// Otherwise, it passes through the return values of [Decoder.Decode].
+func Resolve(ctx context.Context, msg message.Msg, pathname *check.Absolute) ([]*Entry, error) {
 	c, cancel := context.WithTimeout(ctx, lddTimeout)
 	defer cancel()
 
@@ -41,7 +47,7 @@ func Exec(ctx context.Context, msg message.Msg, p string) ([]*Entry, error) {
 		return nil, err
 	}
 
-	z := container.NewCommand(c, msg, toolPath, lddName, p)
+	z := container.NewCommand(c, msg, toolPath, lddName, pathname.String())
 	z.Hostname = "hakurei-" + lddName
 	z.SeccompFlags |= seccomp.AllowMultiarch
 	z.SeccompPresets |= std.PresetStrict
@@ -85,4 +91,16 @@ func Exec(ctx context.Context, msg message.Msg, p string) ([]*Entry, error) {
 		return nil, err
 	}
 	return entries, decodeErr
+}
+
+// Exec runs ldd(1) in a restrictive [container] and connects it to a [Decoder], returning resulting entries.
+//
+// Deprecated: this function takes an unchecked pathname string.
+// Relative pathnames do not work in the container as working directory information is not sent.
+func Exec(ctx context.Context, msg message.Msg, pathname string) ([]*Entry, error) {
+	if a, err := check.NewAbs(pathname); err != nil {
+		return nil, err
+	} else {
+		return Resolve(ctx, msg, a)
+	}
 }
