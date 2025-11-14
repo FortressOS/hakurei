@@ -44,21 +44,6 @@ type Entry struct {
 	Location uint64 `json:"location"`
 }
 
-// Path returns a deduplicated slice of absolute directory paths in entries.
-func Path(entries []*Entry) []*check.Absolute {
-	p := make([]*check.Absolute, 0, len(entries)*2)
-	for _, entry := range entries {
-		if entry.Path != nil {
-			p = append(p, entry.Path.Dir())
-		}
-		if a, err := check.NewAbs(entry.Name); err == nil {
-			p = append(p, a.Dir())
-		}
-	}
-	check.SortAbs(p)
-	return check.CompactAbs(p)
-}
-
 const (
 	// entrySegmentIndexName is the index of the segment holding [Entry.Name].
 	entrySegmentIndexName = 0
@@ -130,6 +115,21 @@ func (e *Entry) UnmarshalText(data []byte) error {
 	}
 
 	return e.decodeLocationSegment(segments[iL])
+}
+
+// Path returns a deduplicated slice of absolute directory paths in entries.
+func Path(entries []*Entry) []*check.Absolute {
+	p := make([]*check.Absolute, 0, len(entries)*2)
+	for _, entry := range entries {
+		if entry.Path != nil {
+			p = append(p, entry.Path.Dir())
+		}
+		if a, err := check.NewAbs(entry.Name); err == nil {
+			p = append(p, a.Dir())
+		}
+	}
+	check.SortAbs(p)
+	return check.CompactAbs(p)
 }
 
 // A Decoder reads and decodes [Entry] values from an input stream.

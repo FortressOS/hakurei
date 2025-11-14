@@ -2,15 +2,22 @@ package ldd_test
 
 import (
 	"encoding/json"
-	"errors"
 	"reflect"
+	"strings"
 	"testing"
 
 	"hakurei.app/container/check"
 	"hakurei.app/ldd"
 )
 
-func TestParseError(t *testing.T) {
+func TestEntryUnexpectedSegmentsError(t *testing.T) {
+	const want = `unexpected segments in entry "\x00"`
+	if got := ldd.EntryUnexpectedSegmentsError("\x00").Error(); got != want {
+		t.Fatalf("Error: %s, want %s", got, want)
+	}
+}
+
+func TestDecodeError(t *testing.T) {
 	t.Parallel()
 
 	testCases := []struct {
@@ -38,12 +45,20 @@ meow libzstd.so.1 => /usr/lib/libzstd.so.1 (0x7ff71bfd2000)
 		{"bad location format", `
 libzstd.so.1 => /usr/lib/libzstd.so.1 7ff71bfd2000
 `, ldd.ErrBadLocationFormat},
+
+		{"valid", ``, nil},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			if _, err := ldd.Parse([]byte(tc.out)); !errors.Is(err, tc.wantErr) {
-				t.Errorf("Parse() error = %v, wantErr %v", err, tc.wantErr)
+
+			d := ldd.NewDecoder(strings.NewReader(tc.out))
+
+			if _, err := d.Decode(); !reflect.DeepEqual(err, tc.wantErr) {
+				t.Errorf("Decode: error = %v, wantErr %v", err, tc.wantErr)
+			}
+			if d.Scan(new(ldd.Entry)) {
+				t.Fatalf("Scan: unexpected true")
 			}
 		})
 	}
