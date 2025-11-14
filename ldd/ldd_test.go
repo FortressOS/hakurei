@@ -158,6 +158,89 @@ libc.musl-x86_64.so.1 => /lib/ld-musl-x86_64.so.1 (0x7ff71c0a4000)`, []*ldd.Entr
 	}
 }
 
+func TestString(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name string
+		e    ldd.Entry
+		want string
+	}{
+		{"ld", ldd.Entry{
+			Name:     "/lib/ld-musl-x86_64.so.1",
+			Location: 0x7ff71c0a4000,
+		}, `/lib/ld-musl-x86_64.so.1 (0x7ff71c0a4000)`},
+
+		{"libzstd", ldd.Entry{
+			Name:     "libzstd.so.1",
+			Path:     check.MustAbs("/usr/lib/libzstd.so.1"),
+			Location: 0x7ff71bfd2000,
+		}, `libzstd.so.1 => /usr/lib/libzstd.so.1 (0x7ff71bfd2000)`},
+
+		{"liblzma", ldd.Entry{
+			Name:     "liblzma.so.5",
+			Path:     check.MustAbs("/usr/lib/liblzma.so.5"),
+			Location: 0x7ff71bf9a000,
+		}, `liblzma.so.5 => /usr/lib/liblzma.so.5 (0x7ff71bf9a000)`},
+
+		{"libz", ldd.Entry{
+			Name:     "libz.so.1",
+			Path:     check.MustAbs("/lib/libz.so.1"),
+			Location: 0x7ff71bf80000,
+		}, `libz.so.1 => /lib/libz.so.1 (0x7ff71bf80000)`},
+
+		{"libcrypto", ldd.Entry{
+			Name:     "libcrypto.so.3",
+			Path:     check.MustAbs("/lib/libcrypto.so.3"),
+			Location: 0x7ff71ba00000,
+		}, `libcrypto.so.3 => /lib/libcrypto.so.3 (0x7ff71ba00000)`},
+
+		{"libc", ldd.Entry{
+			Name:     "libc.musl-x86_64.so.1",
+			Path:     check.MustAbs("/lib/ld-musl-x86_64.so.1"),
+			Location: 0x7ff71c0a4000,
+		}, `libc.musl-x86_64.so.1 => /lib/ld-musl-x86_64.so.1 (0x7ff71c0a4000)`},
+
+		{"invalid", ldd.Entry{
+			Location: 0x7ff71c0a4000,
+		}, `invalid (0x7ff71c0a4000)`},
+
+		{"invalid long", ldd.Entry{
+			Path:     check.MustAbs("/lib/ld-musl-x86_64.so.1"),
+			Location: 0x7ff71c0a4000,
+		}, `invalid => /lib/ld-musl-x86_64.so.1 (0x7ff71c0a4000)`},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			t.Run("decode", func(t *testing.T) {
+				if tc.e.Name == "" {
+					return
+				}
+				t.Parallel()
+
+				var got ldd.Entry
+				if err := got.UnmarshalText([]byte(tc.want)); err != nil {
+					t.Fatalf("UnmarshalText: error = %v", err)
+				}
+
+				if !reflect.DeepEqual(&got, &tc.e) {
+					t.Errorf("UnmarshalText: %#v, want %#v", got, tc.e)
+				}
+			})
+
+			t.Run("encode", func(t *testing.T) {
+				t.Parallel()
+
+				if got := tc.e.String(); got != tc.want {
+					t.Errorf("String: %s, want %s", got, tc.want)
+				}
+			})
+		})
+	}
+}
+
 // mustMarshalJSON calls [json.Marshal] and returns the resulting data.
 func mustMarshalJSON(v any) []byte {
 	if data, err := json.Marshal(v); err != nil {

@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"io"
 	"strconv"
+	"strings"
 
 	"hakurei.app/container/check"
 )
@@ -115,6 +116,37 @@ func (e *Entry) UnmarshalText(data []byte) error {
 	}
 
 	return e.decodeLocationSegment(segments[iL])
+}
+
+// String returns the musl ldd(1) representation of [Entry].
+func (e *Entry) String() string {
+	// nameInvalid is used for a zero-length e.Name
+	const nameInvalid = "invalid"
+
+	var buf strings.Builder
+
+	// libzstd.so.1 => /usr/lib/libzstd.so.1 (0x7ff71bfd2000)
+	l := len(e.Name) + 1
+	if e.Name == "" {
+		l += len(nameInvalid)
+	}
+	if e.Path != nil {
+		l += len(entrySegmentFullSeparator) + 1 + len(e.Path.String()) + 1
+	}
+	l += len(entrySegmentLocationPrefix) + 1<<4 + 1
+	buf.Grow(l)
+
+	if e.Name != "" {
+		buf.WriteString(e.Name + " ")
+	} else {
+		buf.WriteString(nameInvalid + " ")
+	}
+	if e.Path != nil {
+		buf.WriteString(entrySegmentFullSeparator + " " + e.Path.String() + " ")
+	}
+	buf.WriteString(entrySegmentLocationPrefix + strconv.FormatUint(e.Location, 16) + string(entrySegmentLocationSuffix))
+
+	return buf.String()
 }
 
 // Path returns a deduplicated slice of absolute directory paths in entries.
