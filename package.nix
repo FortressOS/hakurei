@@ -24,6 +24,7 @@
 
   # for check
   util-linux,
+  nettools,
 
   glibc, # for ldd
   withStatic ? stdenv.hostPlatform.isStatic,
@@ -98,6 +99,9 @@ buildGoModule rec {
   nativeBuildInputs = [
     pkg-config
     makeBinaryWrapper
+
+    # for container example
+    nettools
   ];
 
   postInstall =

@@ -21,6 +21,7 @@ import (
 	"hakurei.app/command"
 	"hakurei.app/container"
 	"hakurei.app/container/check"
+	"hakurei.app/container/fhs"
 	"hakurei.app/container/seccomp"
 	"hakurei.app/container/std"
 	"hakurei.app/container/vfs"
@@ -28,6 +29,45 @@ import (
 	"hakurei.app/ldd"
 	"hakurei.app/message"
 )
+
+// Note: this package requires cgo, which is unavailable in the Go playground.
+func Example() {
+	// Must be called early if the current process starts containers.
+	container.TryArgv0(nil)
+
+	// Configure the container.
+	z := container.New(context.Background(), nil)
+	z.Hostname = "hakurei-example"
+	z.Proc(fhs.AbsProc).Dev(fhs.AbsDev, true)
+	z.Stdin, z.Stdout, z.Stderr = os.Stdin, os.Stdout, os.Stderr
+
+	// Bind / for demonstration.
+	z.Bind(fhs.AbsRoot, fhs.AbsRoot, 0)
+	if name, err := exec.LookPath("hostname"); err != nil {
+		panic(err)
+	} else {
+		z.Path = check.MustAbs(name)
+	}
+
+	// This completes the first stage of container setup and starts the container init process.
+	// The new process blocks until the Serve method is called.
+	if err := z.Start(); err != nil {
+		panic(err)
+	}
+
+	// This serves the setup payload to the container init process,
+	// starting the second stage of container setup.
+	if err := z.Serve(); err != nil {
+		panic(err)
+	}
+
+	// Must be called if the Start method succeeds.
+	if err := z.Wait(); err != nil {
+		panic(err)
+	}
+
+	// Output: hakurei-example
+}
 
 func TestStartError(t *testing.T) {
 	t.Parallel()

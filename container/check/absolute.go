@@ -56,7 +56,7 @@ func NewAbs(pathname string) (*Absolute, error) {
 // MustAbs calls [NewAbs] and panics on error.
 func MustAbs(pathname string) *Absolute {
 	if a, err := NewAbs(pathname); err != nil {
-		panic(err.Error())
+		panic(err)
 	} else {
 		return a
 	}

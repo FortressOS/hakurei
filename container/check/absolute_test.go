@@ -84,9 +84,9 @@ func TestNewAbs(t *testing.T) {
 		t.Parallel()
 
 		defer func() {
-			wantPanic := `path "etc" is not absolute`
+			wantPanic := &AbsoluteError{Pathname: "etc"}
 
-			if r := recover(); r != wantPanic {
+			if r := recover(); !reflect.DeepEqual(r, wantPanic) {
 				t.Errorf("MustAbs: panic = %v; want %v", r, wantPanic)
 			}
 		}()
