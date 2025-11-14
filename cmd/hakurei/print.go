@@ -90,12 +90,6 @@ func printShowInstance(
 		t.Printf(" Groups:\t%s\n", strings.Join(config.Groups, ", "))
 	}
 	if config.Container != nil {
-		if config.Container.Home != nil {
-			t.Printf(" Home:\t%s\n", config.Container.Home)
-		}
-		if config.Container.Hostname != "" {
-			t.Printf(" Hostname:\t%s\n", config.Container.Hostname)
-		}
 		flags := config.Container.Flags.String()
 
 		// this is included in the upper hst.Config struct but is relevant here
@@ -110,6 +104,12 @@ func printShowInstance(
 		}
 		t.Printf(" Flags:\t%s\n", flags)
 
+		if config.Container.Home != nil {
+			t.Printf(" Home:\t%s\n", config.Container.Home)
+		}
+		if config.Container.Hostname != "" {
+			t.Printf(" Hostname:\t%s\n", config.Container.Hostname)
+		}
 		if config.Container.Path != nil {
 			t.Printf(" Path:\t%s\n", config.Container.Path)
 		}

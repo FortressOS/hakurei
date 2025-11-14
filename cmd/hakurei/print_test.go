@@ -64,9 +64,9 @@ func TestPrintShowInstance(t *testing.T) {
  Identity:       9 (org.chromium.Chromium)
  Enablements:    wayland, dbus, pulseaudio
  Groups:         video, dialout, plugdev
+ Flags:          multiarch, compat, devel, userns, net, abstract, tty, mapuid, device, runtime, tmpdir
  Home:           /data/data/org.chromium.Chromium
  Hostname:       localhost
- Flags:          multiarch, compat, devel, userns, net, abstract, tty, mapuid, device, runtime, tmpdir
  Path:           /run/current-system/sw/bin/chromium
  Arguments:      chromium --ignore-gpu-blocklist --disable-smooth-scrolling --enable-features=UseOzonePlatform --ozone-platform=wayland
 
@@ -161,9 +161,9 @@ App
  Identity:       9 (org.chromium.Chromium)
  Enablements:    wayland, dbus, pulseaudio
  Groups:         video, dialout, plugdev
+ Flags:          multiarch, compat, devel, userns, net, abstract, tty, mapuid, device, runtime, tmpdir
  Home:           /data/data/org.chromium.Chromium
  Hostname:       localhost
- Flags:          multiarch, compat, devel, userns, net, abstract, tty, mapuid, device, runtime, tmpdir
  Path:           /run/current-system/sw/bin/chromium
  Arguments:      chromium --ignore-gpu-blocklist --disable-smooth-scrolling --enable-features=UseOzonePlatform --ozone-platform=wayland
 
