@@ -762,12 +762,14 @@ func TestMain(m *testing.M) {
 func helperNewContainerLibPaths(ctx context.Context, libPaths *[]*check.Absolute, args ...string) (c *container.Container) {
 	msg := message.New(nil)
 	msg.SwapVerbose(testing.Verbose())
+	executable := check.MustAbs(container.MustExecutable(msg))
+
 	c = container.NewCommand(ctx, msg, absHelperInnerPath, "helper", args...)
 	c.Env = append(c.Env, envDoCheck+"=1")
-	c.Bind(check.MustAbs(os.Args[0]), absHelperInnerPath, 0)
+	c.Bind(executable, absHelperInnerPath, 0)
 
 	// in case test has cgo enabled
-	if entries, err := ldd.Exec(ctx, msg, os.Args[0]); err != nil {
+	if entries, err := ldd.Resolve(ctx, msg, executable); err != nil {
 		log.Fatalf("ldd: %v", err)
 	} else {
 		*libPaths = ldd.Path(entries)

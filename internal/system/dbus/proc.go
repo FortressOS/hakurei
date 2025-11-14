@@ -54,7 +54,7 @@ func (p *Proxy) Start() error {
 		}
 
 		var libPaths []*check.Absolute
-		if entries, err := ldd.Exec(ctx, p.msg, toolPath.String()); err != nil {
+		if entries, err := ldd.Resolve(ctx, p.msg, toolPath); err != nil {
 			return err
 		} else {
 			libPaths = ldd.Path(entries)
