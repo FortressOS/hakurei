@@ -1,4 +1,9 @@
-// Package ldd retrieves linker information by invoking ldd from glibc or musl and parsing its output.
+// Package ldd provides a robust parser for ldd(1) output, and a convenience function
+// for running ldd(1) in a strict sandbox.
+//
+// Note: despite the additional hardening, great care must be taken when using ldd(1).
+// As a general rule, you must never run ldd(1) against a file that you do not wish to
+// execute within the same context.
 package ldd
 
 import (
