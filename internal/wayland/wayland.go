@@ -38,6 +38,10 @@ type (
 	Error struct {
 		// Where the failure occurred.
 		Cause Res
+		// Attempted pathname socket.
+		Path string
+		// Pathname socket to host server. Omitted for libwayland errors.
+		Host string
 		// Global errno value set during the fault.
 		Errno error
 	}
@@ -69,8 +73,8 @@ const (
 	// RListen is returned if listen failed. The global errno is set.
 	RListen Res = C.HAKUREI_WAYLAND_LISTEN
 
-	// RHostCreate is returned if ensuring pathname availability failed. Returned by [New].
-	RHostCreate Res = C.HAKUREI_WAYLAND_HOST_CREAT
+	// RCreate is returned if ensuring pathname availability failed. Returned by [New].
+	RCreate Res = C.HAKUREI_WAYLAND_CREAT
 	// RHostSocket is returned if socket failed for host server. Returned by [New].
 	RHostSocket Res = C.HAKUREI_WAYLAND_HOST_SOCKET
 	// RHostConnect is returned if connect failed for host server. Returned by [New].
@@ -96,21 +100,25 @@ func (e *Error) Error() string {
 	case RNotAvail:
 		return "compositor does not implement security_context_v1"
 
-	case RSocket, RBind, RListen:
+	case RSocket:
 		if e.Errno == nil {
 			return "socket operation failed"
 		}
-		return e.Errno.Error()
+		return "socket: " + e.Errno.Error()
+	case RBind:
+		return e.withPrefix("cannot bind " + e.Path)
+	case RListen:
+		return e.withPrefix("cannot listen on " + e.Path)
 
-	case RHostCreate:
+	case RCreate:
 		if e.Errno == nil {
 			return "cannot ensure wayland pathname socket"
 		}
 		return e.Errno.Error()
 	case RHostSocket:
-		return e.withPrefix("socket for host wayland server")
+		return e.withPrefix("socket")
 	case RHostConnect:
-		return e.withPrefix("connect to host wayland server")
+		return e.withPrefix("cannot connect to " + e.Host)
 
 	default:
 		return e.withPrefix("impossible outcome") /* not reached */
@@ -142,6 +150,7 @@ func securityContextBind(
 	if e.Cause == RSuccess {
 		return nil
 	}
+	e.Path = socketPath
 	return &e
 }
 

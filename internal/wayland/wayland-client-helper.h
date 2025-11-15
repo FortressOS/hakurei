@@ -16,7 +16,7 @@ typedef enum {
   HAKUREI_WAYLAND_LISTEN,
 
   /* ensure pathname failed, implemented in conn.go */
-  HAKUREI_WAYLAND_HOST_CREAT,
+  HAKUREI_WAYLAND_CREAT,
   /* socket for host server failed, implemented in conn.go */
   HAKUREI_WAYLAND_HOST_SOCKET,
   /* connect for host server failed, implemented in conn.go */

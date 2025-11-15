@@ -36,18 +36,18 @@ func (sc *SecurityContext) Close() error {
 func New(displayPath, bindPath *check.Absolute, appID, instanceID string) (*SecurityContext, error) {
 	// ensure bindPath is available
 	if f, err := os.Create(bindPath.String()); err != nil {
-		return nil, &Error{Cause: RHostCreate, Errno: err}
+		return nil, &Error{RCreate, bindPath.String(), displayPath.String(), err}
 	} else if err = f.Close(); err != nil {
-		return nil, &Error{Cause: RHostCreate, Errno: err}
+		return nil, &Error{RCreate, bindPath.String(), displayPath.String(), err}
 	} else if err = os.Remove(bindPath.String()); err != nil {
-		return nil, &Error{Cause: RHostCreate, Errno: err}
+		return nil, &Error{RCreate, bindPath.String(), displayPath.String(), err}
 	}
 
 	if fd, err := syscall.Socket(syscall.AF_UNIX, syscall.SOCK_STREAM|syscall.SOCK_CLOEXEC, 0); err != nil {
-		return nil, &Error{RHostSocket, err}
+		return nil, &Error{RHostSocket, bindPath.String(), displayPath.String(), err}
 	} else if err = syscall.Connect(fd, &syscall.SockaddrUnix{Name: displayPath.String()}); err != nil {
 		_ = syscall.Close(fd)
-		return nil, &Error{RHostConnect, err}
+		return nil, &Error{RHostConnect, bindPath.String(), displayPath.String(), err}
 	} else {
 		closeFds, bindErr := securityContextBindPipe(fd, bindPath, appID, instanceID)
 		if bindErr != nil {

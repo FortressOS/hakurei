@@ -53,30 +53,43 @@ func TestError(t *testing.T) {
 		{"socket", wayland.Error{
 			Cause: wayland.RSocket,
 			Errno: stub.UniqueError(4),
-		}, "unique error 4 injected by the test suite"},
+		}, "socket: unique error 4 injected by the test suite"},
+
+		{"bind", wayland.Error{
+			Cause: wayland.RBind,
+			Path:  "/hakurei.0/18783d07791f2460dbbcffb76c24c9e6/wayland",
+			Errno: stub.UniqueError(5),
+		}, "cannot bind /hakurei.0/18783d07791f2460dbbcffb76c24c9e6/wayland: unique error 5 injected by the test suite"},
+
+		{"listen", wayland.Error{
+			Cause: wayland.RListen,
+			Path:  "/hakurei.0/18783d07791f2460dbbcffb76c24c9e6/wayland",
+			Errno: stub.UniqueError(6),
+		}, "cannot listen on /hakurei.0/18783d07791f2460dbbcffb76c24c9e6/wayland: unique error 6 injected by the test suite"},
 
 		{"socket invalid", wayland.Error{
 			Cause: wayland.RSocket,
 		}, "socket operation failed"},
 
-		{"host create", wayland.Error{
-			Cause: wayland.RHostCreate,
+		{"create", wayland.Error{
+			Cause: wayland.RCreate,
 		}, "cannot ensure wayland pathname socket"},
 
-		{"host create path", wayland.Error{
-			Cause: wayland.RHostCreate,
+		{"create path", wayland.Error{
+			Cause: wayland.RCreate,
 			Errno: &os.PathError{Op: "create", Path: "/proc/nonexistent", Err: syscall.EEXIST},
 		}, "create /proc/nonexistent: file exists"},
 
 		{"host socket", wayland.Error{
 			Cause: wayland.RHostSocket,
-			Errno: stub.UniqueError(5),
-		}, "socket for host wayland server: unique error 5 injected by the test suite"},
+			Errno: stub.UniqueError(7),
+		}, "socket: unique error 7 injected by the test suite"},
 
 		{"host connect", wayland.Error{
 			Cause: wayland.RHostConnect,
-			Errno: stub.UniqueError(6),
-		}, "connect to host wayland server: unique error 6 injected by the test suite"},
+			Host:  "/run/user/1971/wayland-1",
+			Errno: stub.UniqueError(8),
+		}, "cannot connect to /run/user/1971/wayland-1: unique error 8 injected by the test suite"},
 
 		{"invalid", wayland.Error{
 			Cause: 0xbad,
@@ -84,8 +97,8 @@ func TestError(t *testing.T) {
 
 		{"invalid errno", wayland.Error{
 			Cause: 0xbad,
-			Errno: stub.UniqueError(5),
-		}, "impossible outcome: unique error 5 injected by the test suite"},
+			Errno: stub.UniqueError(9),
+		}, "impossible outcome: unique error 9 injected by the test suite"},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
