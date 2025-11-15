@@ -1,3 +1,6 @@
+#include <stdbool.h>
+#include <sys/un.h>
+
 typedef enum {
   HAKUREI_WAYLAND_SUCCESS,
   /* wl_display_connect_to_fd failed, errno */
@@ -29,3 +32,9 @@ hakurei_wayland_res hakurei_security_context_bind(
     const char *app_id,
     const char *instance_id,
     int close_fd);
+
+/* returns whether the specified size fits in the sun_path field of sockaddr_un */
+static inline bool hakurei_is_valid_size_sun_path(size_t sz) {
+  struct sockaddr_un sockaddr;
+  return sz <= sizeof(sockaddr.sun_path);
+};

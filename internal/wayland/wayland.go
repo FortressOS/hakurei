@@ -12,8 +12,8 @@ package wayland
 */
 import "C"
 import (
+	"errors"
 	"strings"
-	"syscall"
 )
 
 const (
@@ -134,8 +134,11 @@ func securityContextBind(
 	appID, instanceID string,
 	closeFd int,
 ) error {
-	if hasNull(appID) || hasNull(instanceID) {
-		return syscall.EINVAL
+	if hasNull(socketPath) || hasNull(appID) || hasNull(instanceID) {
+		return &Error{Cause: RBind, Path: socketPath, Errno: errors.New("argument contains NUL character")}
+	}
+	if !C.hakurei_is_valid_size_sun_path(C.size_t(len(socketPath))) {
+		return &Error{Cause: RBind, Path: socketPath, Errno: errors.New("socket pathname too long")}
 	}
 
 	var e Error
