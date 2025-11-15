@@ -9,10 +9,11 @@
 
 #define LEN(arr) (sizeof(arr) / sizeof((arr)[0]))
 
-int32_t hakurei_scmp_make_filter(int *ret_p, uintptr_t allocate_p,
-                                 uint32_t arch, uint32_t multiarch,
-                                 struct hakurei_syscall_rule *rules,
-                                 size_t rules_sz, hakurei_export_flag flags) {
+int32_t hakurei_scmp_make_filter(
+    int *ret_p, uintptr_t allocate_p,
+    uint32_t arch, uint32_t multiarch,
+    struct hakurei_syscall_rule *rules,
+    size_t rules_sz, hakurei_export_flag flags) {
   int i;
   int last_allowed_family;
   int disallowed;
@@ -72,11 +73,9 @@ int32_t hakurei_scmp_make_filter(int *ret_p, uintptr_t allocate_p,
     assert(rule->m_errno == EPERM || rule->m_errno == ENOSYS);
 
     if (rule->arg)
-      *ret_p = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(rule->m_errno),
-                                rule->syscall, 1, *rule->arg);
+      *ret_p = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(rule->m_errno), rule->syscall, 1, *rule->arg);
     else
-      *ret_p = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(rule->m_errno),
-                                rule->syscall, 0);
+      *ret_p = seccomp_rule_add(ctx, SCMP_ACT_ERRNO(rule->m_errno), rule->syscall, 0);
 
     if (*ret_p == -EFAULT) {
       res = 4;
@@ -93,22 +92,17 @@ int32_t hakurei_scmp_make_filter(int *ret_p, uintptr_t allocate_p,
   last_allowed_family = -1;
   for (i = 0; i < LEN(socket_family_allowlist); i++) {
     if (socket_family_allowlist[i].flags_mask != 0 &&
-        (socket_family_allowlist[i].flags_mask & flags) !=
-            socket_family_allowlist[i].flags_mask)
+        (socket_family_allowlist[i].flags_mask & flags) != socket_family_allowlist[i].flags_mask)
       continue;
 
-    for (disallowed = last_allowed_family + 1;
-         disallowed < socket_family_allowlist[i].family; disallowed++) {
+    for (disallowed = last_allowed_family + 1; disallowed < socket_family_allowlist[i].family; disallowed++) {
       /* Blocklist the in-between valid families */
-      seccomp_rule_add_exact(ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT),
-                             SCMP_SYS(socket), 1,
-                             SCMP_A0(SCMP_CMP_EQ, disallowed));
+      seccomp_rule_add_exact(ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_A0(SCMP_CMP_EQ, disallowed));
     }
     last_allowed_family = socket_family_allowlist[i].family;
   }
   /* Blocklist the rest */
-  seccomp_rule_add_exact(ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1,
-                         SCMP_A0(SCMP_CMP_GE, last_allowed_family + 1));
+  seccomp_rule_add_exact(ctx, SCMP_ACT_ERRNO(EAFNOSUPPORT), SCMP_SYS(socket), 1, SCMP_A0(SCMP_CMP_GE, last_allowed_family + 1));
 
   if (allocate_p == 0) {
     *ret_p = seccomp_load(ctx);

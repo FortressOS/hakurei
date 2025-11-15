@@ -1,7 +1,7 @@
 #include <seccomp.h>
 #include <stdint.h>
 
-#if (SCMP_VER_MAJOR < 2) || (SCMP_VER_MAJOR == 2 && SCMP_VER_MINOR < 5) ||     \
+#if (SCMP_VER_MAJOR < 2) || (SCMP_VER_MAJOR == 2 && SCMP_VER_MINOR < 5) || \
     (SCMP_VER_MAJOR == 2 && SCMP_VER_MINOR == 5 && SCMP_VER_MICRO < 1)
 #error This package requires libseccomp >= v2.5.1
 #endif
@@ -19,7 +19,8 @@ struct hakurei_syscall_rule {
 };
 
 extern void *hakurei_scmp_allocate(uintptr_t f, size_t len);
-int32_t hakurei_scmp_make_filter(int *ret_p, uintptr_t allocate_p,
-                                 uint32_t arch, uint32_t multiarch,
-                                 struct hakurei_syscall_rule *rules,
-                                 size_t rules_sz, hakurei_export_flag flags);
+int32_t hakurei_scmp_make_filter(
+    int *ret_p, uintptr_t allocate_p,
+    uint32_t arch, uint32_t multiarch,
+    struct hakurei_syscall_rule *rules,
+    size_t rules_sz, hakurei_export_flag flags);
