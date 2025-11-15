@@ -8,83 +8,74 @@ import (
 	"hakurei.app/container/check"
 	"hakurei.app/hst"
 	"hakurei.app/internal/acl"
-	"hakurei.app/system/wayland"
+	"hakurei.app/internal/wayland"
 )
-
-type waylandConn interface {
-	Attach(p string) (err error)
-	Bind(pathname, appID, instanceID string) (*os.File, error)
-	Close() error
-}
 
 // Wayland maintains a wayland socket with security-context-v1 attached via [wayland].
 // The socket stops accepting connections once the pipe referred to by sync is closed.
 // The socket is pathname only and is destroyed on revert.
 func (sys *I) Wayland(dst, src *check.Absolute, appID, instanceID string) *I {
 	sys.ops = append(sys.ops, &waylandOp{nil,
-		dst.String(), src.String(),
-		appID, instanceID,
-		new(wayland.Conn)})
+		dst, src, appID, instanceID})
 	return sys
 }
 
 // waylandOp implements [I.Wayland].
 type waylandOp struct {
-	sync              *os.File
-	dst, src          string
+	ctx               *wayland.SecurityContext
+	dst, src          *check.Absolute
 	appID, instanceID string
-
-	conn waylandConn
 }
 
 func (w *waylandOp) Type() hst.Enablement { return Process }
 
-func (w *waylandOp) apply(sys *I) error {
-	if err := w.conn.Attach(w.src); err != nil {
+func (w *waylandOp) apply(sys *I) (err error) {
+	if w.ctx, err = sys.waylandNew(w.src, w.dst, w.appID, w.instanceID); err != nil {
 		return newOpError("wayland", err, false)
 	} else {
-		sys.msg.Verbosef("wayland attached on %q", w.src)
-	}
+		sys.msg.Verbosef("wayland pathname socket on %q via %q", w.dst, w.src)
 
-	if sp, err := w.conn.Bind(w.dst, w.appID, w.instanceID); err != nil {
-		return newOpError("wayland", err, false)
-	} else {
-		w.sync = sp
-		sys.msg.Verbosef("wayland listening on %q", w.dst)
-		if err = sys.chmod(w.dst, 0); err != nil {
+		if err = sys.chmod(w.dst.String(), 0); err != nil {
+			if closeErr := w.ctx.Close(); closeErr != nil {
+				return newOpError("wayland", errors.Join(err, closeErr), false)
+			}
 			return newOpError("wayland", err, false)
 		}
-		return newOpError("wayland", sys.aclUpdate(w.dst, sys.uid, acl.Read, acl.Write, acl.Execute), false)
+
+		if err = sys.aclUpdate(w.dst.String(), sys.uid, acl.Read, acl.Write, acl.Execute); err != nil {
+			if closeErr := w.ctx.Close(); closeErr != nil {
+				return newOpError("wayland", errors.Join(err, closeErr), false)
+			}
+			return newOpError("wayland", err, false)
+		}
+
+		return nil
 	}
 }
 
 func (w *waylandOp) revert(sys *I, _ *Criteria) error {
 	var (
 		hangupErr error
-		closeErr  error
 		removeErr error
 	)
 
-	sys.msg.Verbosef("detaching from wayland on %q", w.src)
-	if w.sync != nil {
-		hangupErr = w.sync.Close()
+	sys.msg.Verbosef("hanging up wayland socket on %q", w.dst)
+	if w.ctx != nil {
+		hangupErr = w.ctx.Close()
 	}
-	closeErr = w.conn.Close()
-
-	sys.msg.Verbosef("removing wayland socket on %q", w.dst)
-	if err := sys.remove(w.dst); err != nil && !errors.Is(err, os.ErrNotExist) {
+	if err := sys.remove(w.dst.String()); err != nil && !errors.Is(err, os.ErrNotExist) {
 		removeErr = err
 	}
 
-	return newOpError("wayland", errors.Join(hangupErr, closeErr, removeErr), true)
+	return newOpError("wayland", errors.Join(hangupErr, removeErr), true)
 }
 
 func (w *waylandOp) Is(o Op) bool {
 	target, ok := o.(*waylandOp)
 	return ok && w != nil && target != nil &&
-		w.dst == target.dst && w.src == target.src &&
+		w.dst.Is(target.dst) && w.src.Is(target.src) &&
 		w.appID == target.appID && w.instanceID == target.instanceID
 }
 
-func (w *waylandOp) Path() string   { return w.dst }
+func (w *waylandOp) Path() string   { return w.dst.String() }
 func (w *waylandOp) String() string { return fmt.Sprintf("wayland socket at %q", w.dst) }

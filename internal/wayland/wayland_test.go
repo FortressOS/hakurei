@@ -1,6 +1,7 @@
 package wayland_test
 
 import (
+	"os"
 	"syscall"
 	"testing"
 
@@ -57,6 +58,25 @@ func TestError(t *testing.T) {
 		{"socket invalid", wayland.Error{
 			Cause: wayland.RSocket,
 		}, "socket operation failed"},
+
+		{"host create", wayland.Error{
+			Cause: wayland.RHostCreate,
+		}, "cannot ensure wayland pathname socket"},
+
+		{"host create path", wayland.Error{
+			Cause: wayland.RHostCreate,
+			Errno: &os.PathError{Op: "create", Path: "/proc/nonexistent", Err: syscall.EEXIST},
+		}, "create /proc/nonexistent: file exists"},
+
+		{"host socket", wayland.Error{
+			Cause: wayland.RHostSocket,
+			Errno: stub.UniqueError(5),
+		}, "socket for host wayland server: unique error 5 injected by the test suite"},
+
+		{"host connect", wayland.Error{
+			Cause: wayland.RHostConnect,
+			Errno: stub.UniqueError(6),
+		}, "connect to host wayland server: unique error 6 injected by the test suite"},
 
 		{"invalid", wayland.Error{
 			Cause: 0xbad,

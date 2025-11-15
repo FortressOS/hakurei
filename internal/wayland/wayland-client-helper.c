@@ -33,7 +33,7 @@ static const struct wl_registry_listener registry_listener = {
 
 hakurei_wayland_res hakurei_bind_wayland_fd(
     char *socket_path,
-    int fd,
+    int server_fd,
     const char *app_id,
     const char *instance_id,
     int close_fd) {
@@ -47,7 +47,7 @@ hakurei_wayland_res hakurei_bind_wayland_fd(
   struct sockaddr_un sockaddr = {0};
   struct wp_security_context_v1 *security_context;
 
-  display = wl_display_connect_to_fd(fd);
+  display = wl_display_connect_to_fd(server_fd);
   if (display == NULL) {
     res = HAKUREI_WAYLAND_CONNECT;
     goto out;

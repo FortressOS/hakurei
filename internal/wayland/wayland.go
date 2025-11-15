@@ -31,10 +31,10 @@ const (
 )
 
 type (
-	// Res is the outcome of a call to hakurei_bind_wayland_fd.
+	// Res is the outcome of a call to [New].
 	Res = C.hakurei_wayland_res
 
-	// An Error represents a failure during hakurei_bind_wayland_fd.
+	// An Error represents a failure during [New].
 	Error struct {
 		// Where the failure occurred.
 		Cause Res
@@ -68,6 +68,13 @@ const (
 	RBind Res = C.HAKUREI_WAYLAND_BIND
 	// RListen is returned if listen failed. The global errno is set.
 	RListen Res = C.HAKUREI_WAYLAND_LISTEN
+
+	// RHostCreate is returned if ensuring pathname availability failed. Returned by [New].
+	RHostCreate Res = C.HAKUREI_WAYLAND_HOST_CREAT
+	// RHostSocket is returned if socket failed for host server. Returned by [New].
+	RHostSocket Res = C.HAKUREI_WAYLAND_HOST_SOCKET
+	// RHostConnect is returned if connect failed for host server. Returned by [New].
+	RHostConnect Res = C.HAKUREI_WAYLAND_HOST_CONNECT
 )
 
 func (e *Error) Unwrap() error   { return e.Errno }
@@ -94,6 +101,16 @@ func (e *Error) Error() string {
 			return "socket operation failed"
 		}
 		return e.Errno.Error()
+
+	case RHostCreate:
+		if e.Errno == nil {
+			return "cannot ensure wayland pathname socket"
+		}
+		return e.Errno.Error()
+	case RHostSocket:
+		return e.withPrefix("socket for host wayland server")
+	case RHostConnect:
+		return e.withPrefix("connect to host wayland server")
 
 	default:
 		return e.withPrefix("impossible outcome") /* not reached */

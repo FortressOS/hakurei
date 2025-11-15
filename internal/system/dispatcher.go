@@ -6,9 +6,11 @@ import (
 	"log"
 	"os"
 
+	"hakurei.app/container/check"
 	"hakurei.app/hst"
 	"hakurei.app/internal/acl"
 	"hakurei.app/internal/dbus"
+	"hakurei.app/internal/wayland"
 	"hakurei.app/internal/xcb"
 )
 
@@ -45,6 +47,8 @@ type syscallDispatcher interface {
 	// aclUpdate provides [acl.Update].
 	aclUpdate(name string, uid int, perms ...acl.Perm) error
 
+	waylandNew(displayPath, bindPath *check.Absolute, appID, instanceID string) (*wayland.SecurityContext, error)
+
 	// xcbChangeHosts provides [xcb.ChangeHosts].
 	xcbChangeHosts(mode xcb.HostMode, family xcb.Family, address string) error
 
@@ -74,6 +78,10 @@ func (k direct) println(v ...any) { log.Println(v...) }
 
 func (k direct) aclUpdate(name string, uid int, perms ...acl.Perm) error {
 	return acl.Update(name, uid, perms...)
+}
+
+func (k direct) waylandNew(displayPath, bindPath *check.Absolute, appID, instanceID string) (*wayland.SecurityContext, error) {
+	return wayland.New(displayPath, bindPath, appID, instanceID)
 }
 
 func (k direct) xcbChangeHosts(mode xcb.HostMode, family xcb.Family, address string) error {

@@ -14,11 +14,18 @@ typedef enum {
   HAKUREI_WAYLAND_BIND,
   /* listen failed, errno */
   HAKUREI_WAYLAND_LISTEN,
+
+  /* ensure pathname failed, implemented in conn.go */
+  HAKUREI_WAYLAND_HOST_CREAT,
+  /* socket for host server failed, implemented in conn.go */
+  HAKUREI_WAYLAND_HOST_SOCKET,
+  /* connect for host server failed, implemented in conn.go */
+  HAKUREI_WAYLAND_HOST_CONNECT,
 } hakurei_wayland_res;
 
 hakurei_wayland_res hakurei_bind_wayland_fd(
     char *socket_path,
-    int fd,
+    int server_fd,
     const char *app_id,
     const char *instance_id,
     int close_fd);

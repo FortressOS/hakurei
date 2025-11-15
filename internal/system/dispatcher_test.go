@@ -8,10 +8,12 @@ import (
 	"testing"
 	"unsafe"
 
+	"hakurei.app/container/check"
 	"hakurei.app/container/stub"
 	"hakurei.app/hst"
 	"hakurei.app/internal/acl"
 	"hakurei.app/internal/dbus"
+	"hakurei.app/internal/wayland"
 	"hakurei.app/internal/xcb"
 )
 
@@ -266,6 +268,15 @@ func (k *kstub) aclUpdate(name string, uid int, perms ...acl.Perm) error {
 		stub.CheckArg(k.Stub, "name", name, 0),
 		stub.CheckArg(k.Stub, "uid", uid, 1),
 		stub.CheckArgReflect(k.Stub, "perms", perms, 2))
+}
+
+func (k *kstub) waylandNew(displayPath, bindPath *check.Absolute, appID, instanceID string) (*wayland.SecurityContext, error) {
+	k.Helper()
+	return nil, k.Expects("waylandNew").Error(
+		stub.CheckArgReflect(k.Stub, "displayPath", displayPath, 0),
+		stub.CheckArgReflect(k.Stub, "bindPath", bindPath, 1),
+		stub.CheckArg(k.Stub, "appID", appID, 2),
+		stub.CheckArg(k.Stub, "instanceID", instanceID, 3))
 }
 
 func (k *kstub) xcbChangeHosts(mode xcb.HostMode, family xcb.Family, address string) error {
