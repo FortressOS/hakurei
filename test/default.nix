@@ -44,7 +44,7 @@ nixosTest {
 
           cd ${self.packages.${system}.hakurei.src}
           ${fhs}/bin/hakurei-fhs -c \
-            'go test ${if withRace then "-race" else "-count 16"} ./...' \
+            'CC="clang -O3 -Werror" go test ${if withRace then "-race" else "-count 16"} ./...' \
             &> /tmp/hakurei-test.log && \
             touch /tmp/hakurei-test-ok
           touch /tmp/hakurei-test-done

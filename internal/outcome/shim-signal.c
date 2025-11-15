@@ -38,7 +38,7 @@ static void hakurei_shim_sigaction(int sig, siginfo_t *si, void *ucontext) {
 
 void hakurei_shim_setup_cont_signal(pid_t ppid, int fd) {
   if (hakurei_shim_param_ppid != -1 || hakurei_shim_fd != -1)
-    *(int *)NULL = 0; /* unreachable */
+    *(volatile int *)NULL = 0; /* unreachable */
 
   struct sigaction new_action = {0}, old_action = {0};
   if (sigaction(SIGCONT, NULL, &old_action) != 0)

@@ -20,7 +20,7 @@
 
   # for passthru.buildInputs
   go,
-  gcc,
+  clang,
 
   # for check
   util-linux,
@@ -81,8 +81,13 @@ buildGoModule rec {
         hsuPath = "/run/wrappers/bin/hsu";
       };
 
-  # nix build environment does not allow acls
-  env.GO_TEST_SKIP_ACL = 1;
+  env = {
+    # use clang instead of gcc
+    CC = "clang -O3 -Werror";
+
+    # nix build environment does not allow acls
+    GO_TEST_SKIP_ACL = 1;
+  };
 
   buildInputs = [
     libffi
@@ -135,7 +140,7 @@ buildGoModule rec {
 
   passthru.targetPkgs = [
     go
-    gcc
+    clang
     xorg.xorgproto
     util-linux
 

@@ -114,7 +114,7 @@
             inherit (pkgs)
               # passthru.buildInputs
               go
-              gcc
+              clang
 
               # nativeBuildInputs
               pkg-config
@@ -129,6 +129,10 @@
               zstd
               gnutar
               coreutils
+
+              # for check
+              util-linux
+              nettools
               ;
           };
           hsu = pkgs.callPackage ./cmd/hsu/package.nix { inherit (self.packages.${system}) hakurei; };
@@ -144,7 +148,7 @@
                 && chmod -R +w .
 
             export HAKUREI_VERSION="v${hakurei.version}"
-            ./dist/release.sh && mkdir $out && cp -v "dist/hakurei-$HAKUREI_VERSION.tar.gz"* $out
+            CC="clang -O3 -Werror" ./dist/release.sh && mkdir $out && cp -v "dist/hakurei-$HAKUREI_VERSION.tar.gz"* $out
           '';
         }
       );
