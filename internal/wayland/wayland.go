@@ -12,7 +12,6 @@ package wayland
 */
 import "C"
 import (
-	"errors"
 	"strings"
 	"syscall"
 )
@@ -31,18 +30,96 @@ const (
 	FallbackName = "wayland-0"
 )
 
-var resErr = [...]error{
-	0: nil,
-	1: errors.New("wl_display_connect_to_fd() failed"),
-	2: errors.New("wp_security_context_v1 not available"),
+type (
+	// Res is the outcome of a call to hakurei_bind_wayland_fd.
+	Res = C.hakurei_wayland_res
+
+	// An Error represents a failure during hakurei_bind_wayland_fd.
+	Error struct {
+		// Where the failure occurred.
+		Cause Res
+		// Global errno value set during the fault.
+		Errno error
+	}
+)
+
+// withPrefix returns prefix suffixed with errno description if available.
+func (e *Error) withPrefix(prefix string) string {
+	if e.Errno == nil {
+		return prefix
+	}
+	return prefix + ": " + e.Errno.Error()
 }
 
+const (
+	// RSuccess is returned on a successful call.
+	RSuccess Res = C.HAKUREI_WAYLAND_SUCCESS
+	// RConnect is returned if wl_display_connect_to_fd failed. The global errno is set.
+	RConnect Res = C.HAKUREI_WAYLAND_CONNECT
+	// RListener is returned if wl_registry_add_listener failed. The global errno is set.
+	RListener Res = C.HAKUREI_WAYLAND_LISTENER
+	// RRoundtrip is returned if wl_display_roundtrip failed. The global errno is set.
+	RRoundtrip Res = C.HAKUREI_WAYLAND_ROUNDTRIP
+	// RNotAvail is returned if compositor does not implement wp_security_context_v1.
+	RNotAvail Res = C.HAKUREI_WAYLAND_NOT_AVAIL
+	// RSocket is returned if socket failed. The global errno is set.
+	RSocket Res = C.HAKUREI_WAYLAND_SOCKET
+	// RBind is returned if bind failed. The global errno is set.
+	RBind Res = C.HAKUREI_WAYLAND_BIND
+	// RListen is returned if listen failed. The global errno is set.
+	RListen Res = C.HAKUREI_WAYLAND_LISTEN
+)
+
+func (e *Error) Unwrap() error   { return e.Errno }
+func (e *Error) Message() string { return e.Error() }
+func (e *Error) Error() string {
+	switch e.Cause {
+	case RSuccess:
+		if e.Errno == nil {
+			return "success"
+		}
+		return e.Errno.Error()
+
+	case RConnect:
+		return e.withPrefix("wl_display_connect_to_fd failed")
+	case RListener:
+		return e.withPrefix("wl_registry_add_listener failed")
+	case RRoundtrip:
+		return e.withPrefix("wl_display_roundtrip failed")
+	case RNotAvail:
+		return "compositor does not implement security_context_v1"
+
+	case RSocket, RBind, RListen:
+		if e.Errno == nil {
+			return "socket operation failed"
+		}
+		return e.Errno.Error()
+
+	default:
+		return e.withPrefix("impossible outcome") /* not reached */
+	}
+}
+
+// bindWaylandFd calls hakurei_bind_wayland_fd. A non-nil error has concrete type [Error].
 func bindWaylandFd(socketPath string, fd uintptr, appID, instanceID string, syncFd uintptr) error {
 	if hasNull(appID) || hasNull(instanceID) {
 		return syscall.EINVAL
 	}
-	res := C.hakurei_bind_wayland_fd(C.CString(socketPath), C.int(fd), C.CString(appID), C.CString(instanceID), C.int(syncFd))
-	return resErr[int32(res)]
+
+	var e Error
+	e.Cause, e.Errno = C.hakurei_bind_wayland_fd(
+		C.CString(socketPath),
+		C.int(fd),
+		C.CString(appID),
+		C.CString(instanceID),
+		C.int(syncFd),
+	)
+
+	if e.Cause == RSuccess {
+		return nil
+	}
+	return &e
 }
 
+// hasNull returns whether s contains the NUL character.
 func hasNull(s string) bool { return strings.IndexByte(s, 0) > -1 }

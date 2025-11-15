@@ -40,6 +40,10 @@ func (e *OpError) Error() string {
 }
 
 func (e *OpError) Message() string {
+	if m, ok := message.GetMessage(e.Err); ok {
+		return m
+	}
+
 	switch {
 	case e.Msg != "":
 		return e.Error()

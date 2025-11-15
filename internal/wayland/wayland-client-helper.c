@@ -31,67 +31,84 @@ static const struct wl_registry_listener registry_listener = {
     .global_remove = registry_handle_global_remove,
 };
 
-int32_t hakurei_bind_wayland_fd(
+hakurei_wayland_res hakurei_bind_wayland_fd(
     char *socket_path,
     int fd,
     const char *app_id,
     const char *instance_id,
     int sync_fd) {
-  int32_t res = 0; /* refer to resErr for corresponding Go error */
+  hakurei_wayland_res res = HAKUREI_WAYLAND_SUCCESS; /* see wayland.go for handling */
 
-  struct wl_display *display;
+  struct wl_display *display = NULL;
+  struct wl_registry *registry;
+  struct wp_security_context_manager_v1 *security_context_manager = NULL;
+  int event_cnt;
+  int listen_fd = -1;
+  struct sockaddr_un sockaddr = {0};
+  struct wp_security_context_v1 *security_context;
+
   display = wl_display_connect_to_fd(fd);
-  if (!display) {
-    res = 1;
+  if (display == NULL) {
+    res = HAKUREI_WAYLAND_CONNECT;
     goto out;
   };
 
-  struct wl_registry *registry;
   registry = wl_display_get_registry(display);
-
-  struct wp_security_context_manager_v1 *security_context_manager = NULL;
-  wl_registry_add_listener(registry, &registry_listener, &security_context_manager);
-  int ret;
-  ret = wl_display_roundtrip(display);
-  wl_registry_destroy(registry);
-  if (ret < 0)
+  if (wl_registry_add_listener(registry, &registry_listener, &security_context_manager) < 0) {
+    res = HAKUREI_WAYLAND_LISTENER;
     goto out;
-
-  if (!security_context_manager) {
-    res = 2;
+  }
+  event_cnt = wl_display_roundtrip(display);
+  wl_registry_destroy(registry);
+  if (event_cnt < 0) {
+    res = HAKUREI_WAYLAND_ROUNDTRIP;
     goto out;
   }
 
-  int listen_fd = -1;
-  listen_fd = socket(AF_UNIX, SOCK_STREAM, 0);
-  if (listen_fd < 0)
+  if (security_context_manager == NULL) {
+    res = HAKUREI_WAYLAND_NOT_AVAIL;
     goto out;
+  }
 
-  struct sockaddr_un sockaddr = {0};
+  listen_fd = socket(AF_UNIX, SOCK_STREAM, 0);
+  if (listen_fd < 0) {
+    res = HAKUREI_WAYLAND_SOCKET;
+    goto out;
+  }
+
   sockaddr.sun_family = AF_UNIX;
   snprintf(sockaddr.sun_path, sizeof(sockaddr.sun_path), "%s", socket_path);
-  if (bind(listen_fd, (struct sockaddr *)&sockaddr, sizeof(sockaddr)) != 0)
+  if (bind(listen_fd, (struct sockaddr *)&sockaddr, sizeof(sockaddr)) != 0) {
+    res = HAKUREI_WAYLAND_BIND;
     goto out;
+  }
 
-  if (listen(listen_fd, 0) != 0)
+  if (listen(listen_fd, 0) != 0) {
+    res = HAKUREI_WAYLAND_LISTEN;
     goto out;
+  }
 
-  struct wp_security_context_v1 *security_context;
   security_context = wp_security_context_manager_v1_create_listener(security_context_manager, listen_fd, sync_fd);
+  if (security_context == NULL) { /* not reached */
+    res = HAKUREI_WAYLAND_NOT_AVAIL;
+    goto out;
+  }
   wp_security_context_v1_set_sandbox_engine(security_context, "app.hakurei");
   wp_security_context_v1_set_app_id(security_context, app_id);
   wp_security_context_v1_set_instance_id(security_context, instance_id);
   wp_security_context_v1_commit(security_context);
   wp_security_context_v1_destroy(security_context);
-  if (wl_display_roundtrip(display) < 0)
+  if (wl_display_roundtrip(display) < 0) {
+    res = HAKUREI_WAYLAND_ROUNDTRIP;
     goto out;
+  }
 
 out:
   if (listen_fd >= 0)
     close(listen_fd);
-  if (security_context_manager)
+  if (security_context_manager != NULL)
     wp_security_context_manager_v1_destroy(security_context_manager);
-  if (display)
+  if (display != NULL)
     wl_display_disconnect(display);
 
   free((void *)socket_path);
