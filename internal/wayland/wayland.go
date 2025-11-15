@@ -117,19 +117,26 @@ func (e *Error) Error() string {
 	}
 }
 
-// bindWaylandFd calls hakurei_bind_wayland_fd. A non-nil error has concrete type [Error].
-func bindWaylandFd(socketPath string, fd uintptr, appID, instanceID string, syncFd uintptr) error {
+// securityContextBind calls hakurei_security_context_bind.
+//
+// A non-nil error has concrete type [Error].
+func securityContextBind(
+	socketPath string,
+	serverFd int,
+	appID, instanceID string,
+	closeFd int,
+) error {
 	if hasNull(appID) || hasNull(instanceID) {
 		return syscall.EINVAL
 	}
 
 	var e Error
-	e.Cause, e.Errno = C.hakurei_bind_wayland_fd(
+	e.Cause, e.Errno = C.hakurei_security_context_bind(
 		C.CString(socketPath),
-		C.int(fd),
+		C.int(serverFd),
 		C.CString(appID),
 		C.CString(instanceID),
-		C.int(syncFd),
+		C.int(closeFd),
 	)
 
 	if e.Cause == RSuccess {

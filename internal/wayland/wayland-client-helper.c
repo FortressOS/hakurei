@@ -31,7 +31,7 @@ static const struct wl_registry_listener registry_listener = {
     .global_remove = registry_handle_global_remove,
 };
 
-hakurei_wayland_res hakurei_bind_wayland_fd(
+hakurei_wayland_res hakurei_security_context_bind(
     char *socket_path,
     int server_fd,
     const char *app_id,

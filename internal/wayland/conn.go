@@ -49,7 +49,7 @@ func New(displayPath, bindPath *check.Absolute, appID, instanceID string) (*Secu
 		_ = syscall.Close(fd)
 		return nil, &Error{RHostConnect, err}
 	} else {
-		closeFds, bindErr := bindSecurityContext(fd, bindPath, appID, instanceID)
+		closeFds, bindErr := securityContextBindPipe(fd, bindPath, appID, instanceID)
 		if bindErr != nil {
 			// do not leak the pipe and socket
 			err = errors.Join(bindErr, // already wrapped
@@ -62,11 +62,15 @@ func New(displayPath, bindPath *check.Absolute, appID, instanceID string) (*Secu
 	}
 }
 
-// bindSecurityContext binds a socket associated to a security context created on serverFd,
+// securityContextBindPipe binds a socket associated to a security context created on serverFd,
 // returning the pipe file descriptors used for security-context-v1 close_fd.
 //
 // A non-nil error unwraps to concrete type [Error].
-func bindSecurityContext(serverFd int, bindPath *check.Absolute, appID, instanceID string) ([2]int, error) {
+func securityContextBindPipe(
+	serverFd int,
+	bindPath *check.Absolute,
+	appID, instanceID string,
+) ([2]int, error) {
 	// write end passed to security-context-v1 close_fd
 	var closeFds [2]int
 	if err := syscall.Pipe2(closeFds[0:], syscall.O_CLOEXEC); err != nil {
@@ -74,7 +78,12 @@ func bindSecurityContext(serverFd int, bindPath *check.Absolute, appID, instance
 	}
 
 	// returned error is already wrapped
-	if err := bindWaylandFd(bindPath.String(), uintptr(serverFd), appID, instanceID, uintptr(closeFds[1])); err != nil {
+	if err := securityContextBind(
+		bindPath.String(),
+		serverFd,
+		appID, instanceID,
+		closeFds[1],
+	); err != nil {
 		return closeFds, errors.Join(err,
 			syscall.Close(closeFds[1]),
 			syscall.Close(closeFds[0]),

@@ -23,7 +23,7 @@ typedef enum {
   HAKUREI_WAYLAND_HOST_CONNECT,
 } hakurei_wayland_res;
 
-hakurei_wayland_res hakurei_bind_wayland_fd(
+hakurei_wayland_res hakurei_security_context_bind(
     char *socket_path,
     int server_fd,
     const char *app_id,
