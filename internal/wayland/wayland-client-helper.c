@@ -36,7 +36,7 @@ hakurei_wayland_res hakurei_bind_wayland_fd(
     int fd,
     const char *app_id,
     const char *instance_id,
-    int sync_fd) {
+    int close_fd) {
   hakurei_wayland_res res = HAKUREI_WAYLAND_SUCCESS; /* see wayland.go for handling */
 
   struct wl_display *display = NULL;
@@ -88,7 +88,7 @@ hakurei_wayland_res hakurei_bind_wayland_fd(
     goto out;
   }
 
-  security_context = wp_security_context_manager_v1_create_listener(security_context_manager, listen_fd, sync_fd);
+  security_context = wp_security_context_manager_v1_create_listener(security_context_manager, listen_fd, close_fd);
   if (security_context == NULL) { /* not reached */
     res = HAKUREI_WAYLAND_NOT_AVAIL;
     goto out;

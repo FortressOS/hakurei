@@ -21,4 +21,4 @@ hakurei_wayland_res hakurei_bind_wayland_fd(
     int fd,
     const char *app_id,
     const char *instance_id,
-    int sync_fd);
+    int close_fd);

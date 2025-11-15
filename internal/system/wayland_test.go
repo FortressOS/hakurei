@@ -7,7 +7,7 @@ import (
 
 	"hakurei.app/container/stub"
 	"hakurei.app/internal/acl"
-	"hakurei.app/internal/wayland"
+	"hakurei.app/system/wayland"
 )
 
 type stubWaylandConn struct {
