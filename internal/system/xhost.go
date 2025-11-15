@@ -2,7 +2,7 @@ package system
 
 import (
 	"hakurei.app/hst"
-	"hakurei.app/internal/system/xcb"
+	"hakurei.app/internal/xcb"
 )
 
 // ChangeHosts inserts the target user into X11 hosts and deletes it once its [Enablement] is no longer satisfied.

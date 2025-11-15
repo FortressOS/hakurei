@@ -17,10 +17,10 @@ import (
 	"hakurei.app/container/check"
 	"hakurei.app/container/fhs"
 	"hakurei.app/hst"
+	"hakurei.app/internal/dbus"
 	"hakurei.app/internal/env"
 	"hakurei.app/internal/info"
 	"hakurei.app/internal/outcome"
-	"hakurei.app/internal/system/dbus"
 	"hakurei.app/message"
 )
 

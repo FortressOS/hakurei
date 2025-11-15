@@ -11,8 +11,8 @@ import (
 	"hakurei.app/container/check"
 	"hakurei.app/container/stub"
 	"hakurei.app/hst"
+	"hakurei.app/internal/acl"
 	"hakurei.app/internal/system"
-	"hakurei.app/internal/system/acl"
 )
 
 func TestSpPulseOp(t *testing.T) {

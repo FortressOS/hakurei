@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"hakurei.app/hst"
-	"hakurei.app/internal/system/dbus"
+	"hakurei.app/internal/dbus"
 )
 
 func TestConfigArgs(t *testing.T) {

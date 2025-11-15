@@ -14,8 +14,8 @@ import (
 	"hakurei.app/container/check"
 	"hakurei.app/container/seccomp"
 	"hakurei.app/container/std"
+	"hakurei.app/internal/dbus"
 	"hakurei.app/internal/info"
-	"hakurei.app/internal/system/dbus"
 	"hakurei.app/message"
 )
 

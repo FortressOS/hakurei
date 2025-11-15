@@ -11,7 +11,7 @@ import (
 	"hakurei.app/container/check"
 	"hakurei.app/container/fhs"
 	"hakurei.app/hst"
-	"hakurei.app/internal/system/acl"
+	"hakurei.app/internal/acl"
 )
 
 var absX11SocketDir = fhs.AbsTmp.Append(".X11-unix")

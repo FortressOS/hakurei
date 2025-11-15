@@ -5,8 +5,8 @@ import (
 
 	"hakurei.app/container/check"
 	"hakurei.app/hst"
-	"hakurei.app/internal/system/acl"
-	"hakurei.app/internal/system/wayland"
+	"hakurei.app/internal/acl"
+	"hakurei.app/internal/wayland"
 )
 
 func init() { gob.Register(new(spWaylandOp)) }

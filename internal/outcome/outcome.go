@@ -9,9 +9,9 @@ import (
 	"hakurei.app/container"
 	"hakurei.app/container/check"
 	"hakurei.app/hst"
+	"hakurei.app/internal/acl"
 	"hakurei.app/internal/env"
 	"hakurei.app/internal/system"
-	"hakurei.app/internal/system/acl"
 	"hakurei.app/message"
 )
 

@@ -5,8 +5,8 @@ import (
 
 	"hakurei.app/container/fhs"
 	"hakurei.app/hst"
-	"hakurei.app/internal/system/acl"
-	"hakurei.app/internal/system/dbus"
+	"hakurei.app/internal/acl"
+	"hakurei.app/internal/dbus"
 )
 
 func init() { gob.Register(new(spDBusOp)) }

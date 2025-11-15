@@ -1,4 +1,4 @@
-// Package wayland exposes the internal/system/wayland package.
+// Package wayland exposes the internal/wayland package.
 //
 // Deprecated: This package will be removed in 0.4.
 package wayland
@@ -6,7 +6,7 @@ package wayland
 import (
 	_ "unsafe" // for go:linkname
 
-	"hakurei.app/internal/system/wayland"
+	"hakurei.app/internal/wayland"
 )
 
 // Conn represents a connection to the wayland display server.

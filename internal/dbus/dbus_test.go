@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
+	"hakurei.app/internal/dbus"
 	"hakurei.app/internal/helper"
-	"hakurei.app/internal/system/dbus"
 	"hakurei.app/message"
 )
 

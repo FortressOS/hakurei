@@ -7,10 +7,10 @@ import (
 	"hakurei.app/container"
 	"hakurei.app/container/stub"
 	"hakurei.app/hst"
+	"hakurei.app/internal/acl"
+	"hakurei.app/internal/dbus"
 	"hakurei.app/internal/helper"
 	"hakurei.app/internal/system"
-	"hakurei.app/internal/system/acl"
-	"hakurei.app/internal/system/dbus"
 	"hakurei.app/message"
 )
 

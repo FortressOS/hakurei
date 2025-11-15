@@ -6,9 +6,9 @@ import (
 	"hakurei.app/container"
 	"hakurei.app/container/stub"
 	"hakurei.app/hst"
+	"hakurei.app/internal/acl"
 	"hakurei.app/internal/system"
-	"hakurei.app/internal/system/acl"
-	"hakurei.app/internal/system/wayland"
+	"hakurei.app/internal/wayland"
 )
 
 func TestSpWaylandOp(t *testing.T) {

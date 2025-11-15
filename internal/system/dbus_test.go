@@ -11,8 +11,8 @@ import (
 
 	"hakurei.app/container/stub"
 	"hakurei.app/hst"
+	"hakurei.app/internal/dbus"
 	"hakurei.app/internal/helper"
-	"hakurei.app/internal/system/dbus"
 )
 
 func TestDBusProxyOp(t *testing.T) {

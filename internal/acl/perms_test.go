@@ -3,7 +3,7 @@ package acl_test
 import (
 	"testing"
 
-	"hakurei.app/internal/system/acl"
+	"hakurei.app/internal/acl"
 )
 
 func TestPerms(t *testing.T) {

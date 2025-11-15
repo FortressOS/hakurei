@@ -1,4 +1,4 @@
-// Package dbus exposes the internal/system/dbus package.
+// Package dbus exposes the internal/dbus package.
 //
 // Deprecated: This package will be removed in 0.4.
 package dbus
@@ -9,7 +9,7 @@ import (
 	_ "unsafe" // for go:linkname
 
 	"hakurei.app/hst"
-	"hakurei.app/internal/system/dbus"
+	"hakurei.app/internal/dbus"
 	"hakurei.app/message"
 )
 
@@ -17,13 +17,13 @@ type AddrEntry = dbus.AddrEntry
 
 // EqualAddrEntries returns whether two slices of [AddrEntry] are equal.
 //
-//go:linkname EqualAddrEntries hakurei.app/internal/system/dbus.EqualAddrEntries
+//go:linkname EqualAddrEntries hakurei.app/internal/dbus.EqualAddrEntries
 func EqualAddrEntries(entries, target []AddrEntry) bool
 
 // Parse parses D-Bus address according to
 // https://dbus.freedesktop.org/doc/dbus-specification.html#addresses
 //
-//go:linkname Parse hakurei.app/internal/system/dbus.Parse
+//go:linkname Parse hakurei.app/internal/dbus.Parse
 func Parse(addr []byte) ([]AddrEntry, error)
 
 type ParseError = dbus.ParseError
@@ -46,12 +46,12 @@ type ProxyPair = dbus.ProxyPair
 
 // Args returns the xdg-dbus-proxy arguments equivalent of [hst.BusConfig].
 //
-//go:linkname Args hakurei.app/internal/system/dbus.Args
+//go:linkname Args hakurei.app/internal/dbus.Args
 func Args(c *hst.BusConfig, bus ProxyPair) (args []string)
 
 // NewConfig returns the address of a new [hst.BusConfig] with optional defaults.
 //
-//go:linkname NewConfig hakurei.app/internal/system/dbus.NewConfig
+//go:linkname NewConfig hakurei.app/internal/dbus.NewConfig
 func NewConfig(id string, defaults, mpris bool) *hst.BusConfig
 
 const (
@@ -89,13 +89,13 @@ const (
 // Address returns the session and system bus addresses copied from environment,
 // or appropriate fallback values if they are not set.
 //
-//go:linkname Address hakurei.app/internal/system/dbus.Address
+//go:linkname Address hakurei.app/internal/dbus.Address
 func Address() (session, system string)
 
 // ProxyName is the file name or path to the proxy program.
 // Overriding ProxyName will only affect Proxy instance created after the change.
 //
-//go:linkname ProxyName hakurei.app/internal/system/dbus.ProxyName
+//go:linkname ProxyName hakurei.app/internal/dbus.ProxyName
 var ProxyName string
 
 // Proxy holds the state of a xdg-dbus-proxy process, and should never be copied.
@@ -106,10 +106,10 @@ type Final = dbus.Final
 
 // Finalise creates a checked argument writer for [Proxy].
 //
-//go:linkname Finalise hakurei.app/internal/system/dbus.Finalise
+//go:linkname Finalise hakurei.app/internal/dbus.Finalise
 func Finalise(sessionBus, systemBus ProxyPair, session, system *hst.BusConfig) (final *Final, err error)
 
 // New returns a new instance of [Proxy].
 //
-//go:linkname New hakurei.app/internal/system/dbus.New
+//go:linkname New hakurei.app/internal/dbus.New
 func New(ctx context.Context, msg message.Msg, final *Final, output io.Writer) *Proxy

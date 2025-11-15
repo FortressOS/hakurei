@@ -7,7 +7,7 @@ import (
 
 	"hakurei.app/container/stub"
 	"hakurei.app/hst"
-	"hakurei.app/internal/system/acl"
+	"hakurei.app/internal/acl"
 )
 
 func TestACLUpdateOp(t *testing.T) {
