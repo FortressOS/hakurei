@@ -7,15 +7,15 @@
 #endif
 
 typedef enum {
-  HAKUREI_EXPORT_MULTIARCH = 1 << 0,
-  HAKUREI_EXPORT_CAN = 1 << 1,
-  HAKUREI_EXPORT_BLUETOOTH = 1 << 2,
+    HAKUREI_EXPORT_MULTIARCH = 1 << 0,
+    HAKUREI_EXPORT_CAN = 1 << 1,
+    HAKUREI_EXPORT_BLUETOOTH = 1 << 2,
 } hakurei_export_flag;
 
 struct hakurei_syscall_rule {
-  int syscall;
-  int m_errno;
-  struct scmp_arg_cmp *arg;
+    int syscall;
+    int m_errno;
+    struct scmp_arg_cmp *arg;
 };
 
 extern void *hakurei_scmp_allocate(uintptr_t f, size_t len);
