@@ -11,9 +11,21 @@ import (
 	"hakurei.app/hst"
 	"hakurei.app/internal/acl"
 	"hakurei.app/internal/env"
+	"hakurei.app/internal/info"
 	"hakurei.app/internal/system"
+	"hakurei.app/internal/wayland"
 	"hakurei.app/message"
 )
+
+// Info returns the address to a populated [hst.Info].
+//
+// This must not be called from within package outcome.
+func Info() *hst.Info {
+	hi := hst.Info{WaylandVersion: wayland.Version,
+		Version: info.Version(), User: new(Hsu).MustID(nil)}
+	env.CopyPaths().Copy(&hi.Paths, hi.User)
+	return &hi
+}
 
 // envAllocSize is the initial size of the env map pre-allocated when the configured env map is nil.
 // It should be large enough to fit all insertions by outcomeOp.toContainer.

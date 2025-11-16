@@ -9,6 +9,7 @@ package wayland
 #cgo freebsd openbsd LDFLAGS: -lwayland-client
 
 #include "wayland-client-helper.h"
+#include <wayland-version.h>
 */
 import "C"
 import (
@@ -17,6 +18,9 @@ import (
 )
 
 const (
+	// Version is the value of WAYLAND_VERSION.
+	Version = C.WAYLAND_VERSION
+
 	// Display contains the name of the server socket
 	// (https://gitlab.freedesktop.org/wayland/wayland/-/blob/1.23.1/src/wayland-client.c#L1147)
 	// which is concatenated with XDG_RUNTIME_DIR

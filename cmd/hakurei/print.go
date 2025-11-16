@@ -12,8 +12,6 @@ import (
 	"time"
 
 	"hakurei.app/hst"
-	"hakurei.app/internal/env"
-	"hakurei.app/internal/info"
 	"hakurei.app/internal/outcome"
 	"hakurei.app/internal/store"
 	"hakurei.app/message"
@@ -23,16 +21,14 @@ import (
 func printShowSystem(output io.Writer, short, flagJSON bool) {
 	t := newPrinter(output)
 	defer t.MustFlush()
-
-	hi := &hst.Info{Version: info.Version(), User: new(outcome.Hsu).MustID(nil)}
-	env.CopyPaths().Copy(&hi.Paths, hi.User)
+	hi := outcome.Info()
 
 	if flagJSON {
 		encodeJSON(log.Fatal, output, short, hi)
 		return
 	}
 
-	t.Printf("Version:\t%s\n", hi.Version)
+	t.Printf("Version:\t%s (libwayland %s)\n", hi.Version, hi.WaylandVersion)
 	t.Printf("User:\t%d\n", hi.User)
 	t.Printf("TempDir:\t%s\n", hi.TempDir)
 	t.Printf("SharePath:\t%s\n", hi.SharePath)

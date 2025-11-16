@@ -54,6 +54,9 @@ type Paths struct {
 
 // Info holds basic system information collected from the implementation.
 type Info struct {
+	// WaylandVersion is the libwayland value of WAYLAND_VERSION.
+	WaylandVersion string `json:"WAYLAND_VERSION"`
+
 	// Version is a hardcoded version string.
 	Version string `json:"version"`
 	// User is the userid according to hsu.
