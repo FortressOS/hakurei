@@ -51,10 +51,8 @@ func New(displayPath, bindPath *check.Absolute, appID, instanceID string) (*Secu
 	} else {
 		closeFds, bindErr := securityContextBindPipe(fd, bindPath, appID, instanceID)
 		if bindErr != nil {
-			// do not leak the pipe and socket
 			err = errors.Join(bindErr, // already wrapped
-				syscall.Close(closeFds[1]),
-				syscall.Close(closeFds[0]),
+				// do not leak the socket
 				syscall.Close(fd),
 			)
 		}
