@@ -9,7 +9,7 @@ cp -v "README.md" "dist/hsurc.default" "dist/install.sh" "${out}"
 cp -rv "dist/comp" "${out}"
 
 go generate ./...
-go build -trimpath -v -o "${out}/bin/" -ldflags "-s -w -buildid= -extldflags '-static'
+go build -trimpath -v -o "${out}/bin/" -ldflags "-s -w -buildid=''
   -X hakurei.app/internal/info.buildVersion=${VERSION}
   -X hakurei.app/internal/info.hakureiPath=/usr/bin/hakurei
   -X hakurei.app/internal/info.hsuPath=/usr/bin/hsu

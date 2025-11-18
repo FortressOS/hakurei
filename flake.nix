@@ -110,7 +110,7 @@
         in
         {
           default = hakurei;
-          hakurei = pkgs.pkgsStatic.callPackage ./package.nix {
+          hakurei = pkgs.callPackage ./package.nix {
             inherit (pkgs)
               # passthru.buildInputs
               go
