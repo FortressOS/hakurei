@@ -11,6 +11,7 @@
   wayland,
   wayland-protocols,
   wayland-scanner,
+  pipewire,
   xorg,
 
   # for hpkg
@@ -94,6 +95,7 @@ buildGoModule rec {
     libseccomp
     acl
     wayland
+    pipewire
   ]
   ++ (with xorg; [
     libxcb

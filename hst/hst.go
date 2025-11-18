@@ -56,6 +56,8 @@ type Paths struct {
 type Info struct {
 	// WaylandVersion is the libwayland value of WAYLAND_VERSION.
 	WaylandVersion string `json:"WAYLAND_VERSION"`
+	// PipeWireVersion is the pipewire value of pw_get_headers_version().
+	PipeWireVersion string `json:"pw_get_headers_version"`
 
 	// Version is a hardcoded version string.
 	Version string `json:"version"`

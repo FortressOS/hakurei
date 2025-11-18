@@ -28,12 +28,12 @@ func printShowSystem(output io.Writer, short, flagJSON bool) {
 		return
 	}
 
-	t.Printf("Version:\t%s (libwayland %s)\n", hi.Version, hi.WaylandVersion)
 	t.Printf("User:\t%d\n", hi.User)
 	t.Printf("TempDir:\t%s\n", hi.TempDir)
 	t.Printf("SharePath:\t%s\n", hi.SharePath)
 	t.Printf("RuntimePath:\t%s\n", hi.RuntimePath)
 	t.Printf("RunDirPath:\t%s\n", hi.RunDirPath)
+	t.Printf("Version:\t%s (libwayland %s) (pipewire %s)\n", hi.Version, hi.WaylandVersion, hi.PipeWireVersion)
 }
 
 // printShowInstance writes a representation of [hst.State] or [hst.Config] to output.

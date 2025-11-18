@@ -12,6 +12,7 @@ import (
 	"hakurei.app/internal/acl"
 	"hakurei.app/internal/env"
 	"hakurei.app/internal/info"
+	"hakurei.app/internal/pipewire"
 	"hakurei.app/internal/system"
 	"hakurei.app/internal/wayland"
 	"hakurei.app/message"
@@ -21,7 +22,7 @@ import (
 //
 // This must not be called from within package outcome.
 func Info() *hst.Info {
-	hi := hst.Info{WaylandVersion: wayland.Version,
+	hi := hst.Info{WaylandVersion: wayland.Version, PipeWireVersion: pipewire.Version,
 		Version: info.Version(), User: new(Hsu).MustID(nil)}
 	env.CopyPaths().Copy(&hi.Paths, hi.User)
 	return &hi
