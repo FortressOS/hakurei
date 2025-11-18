@@ -12,18 +12,32 @@ import (
 type SecurityContext struct {
 	// Pipe with its write end passed to security-context-v1.
 	closeFds [2]int
+	// Absolute pathname the socket was bound to.
+	bindPath *check.Absolute
 }
 
 // Close releases any resources held by [SecurityContext], and prevents further
 // connections to its associated socket.
+//
+// A non-nil error has the concrete type [Error].
 func (sc *SecurityContext) Close() error {
-	if sc == nil {
+	if sc == nil || sc.bindPath == nil {
 		return os.ErrInvalid
 	}
-	return errors.Join(
+
+	e := Error{RCleanup, sc.bindPath.String(), "", errors.Join(
 		syscall.Close(sc.closeFds[1]),
 		syscall.Close(sc.closeFds[0]),
-	)
+		// there is still technically a TOCTOU here but this is internal
+		// and has access to the privileged wayland socket, so it only
+		// receives trusted input (e.g. from cmd/hakurei) anyway
+		os.Remove(sc.bindPath.String()),
+	)}
+	if e.Errno != nil {
+		return &e
+	}
+
+	return nil
 }
 
 // New creates a new security context on the Wayland display at displayPath
@@ -51,12 +65,19 @@ func New(displayPath, bindPath *check.Absolute, appID, instanceID string) (*Secu
 	} else {
 		closeFds, bindErr := securityContextBindPipe(fd, bindPath, appID, instanceID)
 		if bindErr != nil {
+			// securityContextBindPipe does not try to remove the socket during cleanup
+			closeErr := os.Remove(bindPath.String())
+			if closeErr != nil && errors.Is(closeErr, os.ErrNotExist) {
+				closeErr = nil
+			}
+
 			err = errors.Join(bindErr, // already wrapped
+				closeErr,
 				// do not leak the socket
 				syscall.Close(fd),
 			)
 		}
-		return &SecurityContext{closeFds}, err
+		return &SecurityContext{closeFds, bindPath}, err
 	}
 }
 

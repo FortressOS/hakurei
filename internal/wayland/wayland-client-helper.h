@@ -24,6 +24,8 @@ typedef enum {
     HAKUREI_WAYLAND_HOST_SOCKET,
     /* connect for host server failed, implemented in conn.go */
     HAKUREI_WAYLAND_HOST_CONNECT,
+    /* cleanup failed, implemented in conn.go */
+    HAKUREI_WAYLAND_CLEANUP,
 } hakurei_wayland_res;
 
 hakurei_wayland_res hakurei_security_context_bind(

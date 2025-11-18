@@ -3,7 +3,6 @@ package system
 import (
 	"errors"
 	"fmt"
-	"os"
 
 	"hakurei.app/container/check"
 	"hakurei.app/hst"
@@ -62,9 +61,6 @@ func (w *waylandOp) revert(sys *I, _ *Criteria) error {
 	sys.msg.Verbosef("hanging up wayland socket on %q", w.dst)
 	if w.ctx != nil {
 		hangupErr = w.ctx.Close()
-	}
-	if err := sys.remove(w.dst.String()); err != nil && !errors.Is(err, os.ErrNotExist) {
-		removeErr = err
 	}
 
 	return newOpError("wayland", errors.Join(hangupErr, removeErr), true)

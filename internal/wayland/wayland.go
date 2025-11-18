@@ -14,7 +14,9 @@ package wayland
 import "C"
 import (
 	"errors"
+	"os"
 	"strings"
+	"syscall"
 )
 
 const (
@@ -83,6 +85,9 @@ const (
 	RHostSocket Res = C.HAKUREI_WAYLAND_HOST_SOCKET
 	// RHostConnect is returned if connect failed for host server. Returned by [New].
 	RHostConnect Res = C.HAKUREI_WAYLAND_HOST_CONNECT
+
+	// RCleanup is returned if cleanup fails. Returned by [SecurityContext.Close].
+	RCleanup Res = C.HAKUREI_WAYLAND_CLEANUP
 )
 
 func (e *Error) Unwrap() error   { return e.Errno }
@@ -123,6 +128,19 @@ func (e *Error) Error() string {
 		return e.withPrefix("socket")
 	case RHostConnect:
 		return e.withPrefix("cannot connect to " + e.Host)
+
+	case RCleanup:
+		var pathError *os.PathError
+		if errors.As(e.Errno, &pathError) && pathError != nil {
+			return pathError.Error()
+		}
+
+		var errno syscall.Errno
+		if errors.As(e.Errno, &errno) && errno != 0 {
+			return "cannot close wayland close_fd pipe: " + errno.Error()
+		}
+
+		return e.withPrefix("cannot hang up wayland security_context")
 
 	default:
 		return e.withPrefix("impossible outcome") /* not reached */

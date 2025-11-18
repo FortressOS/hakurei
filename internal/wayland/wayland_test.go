@@ -58,15 +58,15 @@ func TestError(t *testing.T) {
 
 		{"bind", Error{
 			Cause: RBind,
-			Path:  "/hakurei.0/18783d07791f2460dbbcffb76c24c9e6/wayland",
+			Path:  "/tmp/hakurei.0/18783d07791f2460dbbcffb76c24c9e6/wayland",
 			Errno: stub.UniqueError(5),
-		}, "cannot bind /hakurei.0/18783d07791f2460dbbcffb76c24c9e6/wayland: unique error 5 injected by the test suite"},
+		}, "cannot bind /tmp/hakurei.0/18783d07791f2460dbbcffb76c24c9e6/wayland: unique error 5 injected by the test suite"},
 
 		{"listen", Error{
 			Cause: RListen,
-			Path:  "/hakurei.0/18783d07791f2460dbbcffb76c24c9e6/wayland",
+			Path:  "/tmp/hakurei.0/18783d07791f2460dbbcffb76c24c9e6/wayland",
 			Errno: stub.UniqueError(6),
-		}, "cannot listen on /hakurei.0/18783d07791f2460dbbcffb76c24c9e6/wayland: unique error 6 injected by the test suite"},
+		}, "cannot listen on /tmp/hakurei.0/18783d07791f2460dbbcffb76c24c9e6/wayland: unique error 6 injected by the test suite"},
 
 		{"socket invalid", Error{
 			Cause: RSocket,
@@ -91,6 +91,27 @@ func TestError(t *testing.T) {
 			Host:  "/run/user/1971/wayland-1",
 			Errno: stub.UniqueError(8),
 		}, "cannot connect to /run/user/1971/wayland-1: unique error 8 injected by the test suite"},
+
+		{"cleanup", Error{
+			Cause: RCleanup,
+			Path:  "/tmp/hakurei.0/18783d07791f2460dbbcffb76c24c9e6/wayland",
+		}, "cannot hang up wayland security_context"},
+
+		{"cleanup PathError", Error{
+			Cause: RCleanup,
+			Path:  "/tmp/hakurei.0/18783d07791f2460dbbcffb76c24c9e6/wayland",
+			Errno: errors.Join(syscall.EINVAL, &os.PathError{
+				Op:   "remove",
+				Path: "/tmp/hakurei.0/18783d07791f2460dbbcffb76c24c9e6/wayland",
+				Err:  stub.UniqueError(9),
+			}),
+		}, "remove /tmp/hakurei.0/18783d07791f2460dbbcffb76c24c9e6/wayland: unique error 9 injected by the test suite"},
+
+		{"cleanup errno", Error{
+			Cause: RCleanup,
+			Path:  "/tmp/hakurei.0/18783d07791f2460dbbcffb76c24c9e6/wayland",
+			Errno: errors.Join(syscall.EINVAL),
+		}, "cannot close wayland close_fd pipe: invalid argument"},
 
 		{"invalid", Error{
 			Cause: 0xbad,

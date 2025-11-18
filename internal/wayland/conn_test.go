@@ -3,6 +3,7 @@ package wayland
 import (
 	"errors"
 	"os"
+	"path"
 	"reflect"
 	"syscall"
 	"testing"
@@ -11,13 +12,18 @@ import (
 )
 
 func TestSecurityContextClose(t *testing.T) {
-	t.Parallel()
+	// do not parallel: fd test not thread safe
 
 	if err := (*SecurityContext)(nil).Close(); !reflect.DeepEqual(err, os.ErrInvalid) {
 		t.Fatalf("Close: error = %v", err)
 	}
 
 	var ctx SecurityContext
+	if f, err := os.Create(path.Join(t.TempDir(), "remove")); err != nil {
+		t.Fatal(err)
+	} else {
+		ctx.bindPath = check.MustAbs(f.Name())
+	}
 	if err := syscall.Pipe2(ctx.closeFds[0:], syscall.O_CLOEXEC); err != nil {
 		t.Fatalf("Pipe: error = %v", err)
 	}
@@ -25,9 +31,15 @@ func TestSecurityContextClose(t *testing.T) {
 
 	if err := ctx.Close(); err != nil {
 		t.Fatalf("Close: error = %v", err)
+	} else if _, err = os.Stat(ctx.bindPath.String()); err == nil || !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("Did not remove %q", ctx.bindPath)
 	}
 
-	wantErr := errors.Join(syscall.EBADF, syscall.EBADF)
+	wantErr := &Error{Cause: RCleanup, Path: ctx.bindPath.String(), Errno: errors.Join(syscall.EBADF, syscall.EBADF, &os.PathError{
+		Op:   "remove",
+		Path: ctx.bindPath.String(),
+		Err:  syscall.ENOENT,
+	})}
 	if err := ctx.Close(); !reflect.DeepEqual(err, wantErr) {
 		t.Fatalf("Close: error = %#v, want %#v", err, wantErr)
 	}
