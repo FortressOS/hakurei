@@ -172,6 +172,17 @@ type UnmarshalSetError struct{ Type reflect.Type }
 
 func (u *UnmarshalSetError) Error() string { return "cannot set: " + u.Type.String() }
 
+// A TrailingGarbageError describes extra bytes after decoding
+// has completed during [Unmarshal].
+type TrailingGarbageError struct{ Data []byte }
+
+func (e *TrailingGarbageError) Error() string {
+	if len(e.Data) < 8 {
+		return "got " + strconv.Itoa(len(e.Data)) + " bytes of trailing garbage"
+	}
+	return "data has extra values starting with type " + strconv.Itoa(int(binary.NativeEndian.Uint32(e.Data[4:])))
+}
+
 // unmarshalValue implements [Unmarshal] on [reflect.Value].
 func unmarshalValue(data []byte, v reflect.Value, sizeP *Word) error {
 	switch v.Kind() {
@@ -200,6 +211,10 @@ func unmarshalValue(data []byte, v reflect.Value, sizeP *Word) error {
 			paddingSize := (8 - (fieldWireSize)%8) % 8
 			// already bounds checked by the successful unmarshalValue call
 			data = data[8+fieldWireSize+paddingSize:]
+		}
+
+		if len(data) != 0 {
+			return &TrailingGarbageError{data}
 		}
 		return nil
 
