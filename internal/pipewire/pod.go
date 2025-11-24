@@ -1,15 +1,33 @@
 package pipewire
 
+import (
+	"encoding/binary"
+	"io"
+	"math"
+	"reflect"
+	"strconv"
+)
+
 type (
 	// A Word is a 32-bit unsigned integer.
 	//
 	// Values internal to a message appear to always be aligned to 32-bit boundary.
 	Word = uint32
 
-	// An Int is a signed integer the size of a PipeWire Word.
+	// A Bool is a boolean value representing SPA_TYPE_Bool.
+	Bool = bool
+	// An Int is a signed integer value representing SPA_TYPE_Int.
 	Int = int32
-	// An Uint is an unsigned integer the size of a PipeWire Word.
-	Uint = Word
+	// A Long is a signed integer value representing SPA_TYPE_Long.
+	Long = int64
+	// A Float is a floating point value representing SPA_TYPE_Float.
+	Float = float32
+	// A Double is a floating point value representing SPA_TYPE_Double.
+	Double = float64
+	// A String is a string value representing SPA_TYPE_String.
+	String = string
+	// Bytes is a byte slice representing SPA_TYPE_Bytes.
+	Bytes = []byte
 )
 
 /* Basic types */
@@ -46,6 +64,210 @@ const (
 
 	_SPA_TYPE_LAST // not part of ABI
 )
+
+// An UnsupportedTypeError is returned by [Marshal] when attempting
+// to encode an unsupported value type.
+type UnsupportedTypeError struct{ Type reflect.Type }
+
+func (e *UnsupportedTypeError) Error() string { return "unsupported type: " + e.Type.String() }
+
+// An UnsupportedSizeError is returned by [Marshal] when attempting
+// to encode a value with its encoded size exceeding what could be
+// represented by the format.
+type UnsupportedSizeError int
+
+func (e UnsupportedSizeError) Error() string { return "size out of range: " + strconv.Itoa(int(e)) }
+
+// Marshal returns the PipeWire POD encoding of v.
+func Marshal(v any) ([]byte, error) { return MarshalAppend(make([]byte, 0), v) }
+
+// MarshalAppend appends the PipeWire POD encoding of v to data.
+func MarshalAppend(data []byte, v any) ([]byte, error) {
+	return marshalValueAppend(data, reflect.ValueOf(v))
+}
+
+// marshalValueAppendRaw implements [MarshalAppend] on [reflect.Value].
+func marshalValueAppend(data []byte, v reflect.Value) ([]byte, error) {
+	data = append(data, make([]byte, 4)...)
+
+	rData, err := marshalValueAppendRaw(data, v)
+	if err != nil {
+		return data, err
+	}
+
+	size := len(rData) - len(data) + 4
+	paddingSize := (8 - (size)%8) % 8
+	// compensated for size and type prefix
+	wireSize := size - 8
+	if wireSize > math.MaxUint32 {
+		return data, UnsupportedSizeError(wireSize)
+	}
+	binary.NativeEndian.PutUint32(rData[len(data)-4:len(data)], Word(wireSize))
+	rData = append(rData, make([]byte, paddingSize)...)
+
+	return rData, nil
+}
+
+// marshalValueAppendRaw implements [MarshalAppend] on [reflect.Value] without the size prefix.
+func marshalValueAppendRaw(data []byte, v reflect.Value) ([]byte, error) {
+	switch v.Kind() {
+
+	case reflect.Int32:
+		data = binary.NativeEndian.AppendUint32(data, SPA_TYPE_Int)
+		data = binary.NativeEndian.AppendUint32(data, Word(v.Int()))
+		return data, nil
+
+	case reflect.Struct:
+		data = binary.NativeEndian.AppendUint32(data, SPA_TYPE_Struct)
+		var err error
+		for i := 0; i < v.NumField(); i++ {
+			data, err = marshalValueAppend(data, v.Field(i))
+			if err != nil {
+				return data, err
+			}
+		}
+		return data, nil
+
+	case reflect.Pointer:
+		if v.IsNil() {
+			data = binary.NativeEndian.AppendUint32(data, SPA_TYPE_None)
+			return data, nil
+		}
+		return marshalValueAppendRaw(data, v.Elem())
+
+	default:
+		return data, &UnsupportedTypeError{v.Type()}
+	}
+}
+
+// An InvalidUnmarshalError describes an invalid argument passed to [Unmarshal].
+// (The argument to [Unmarshal] must be a non-nil pointer.)
+type InvalidUnmarshalError struct{ Type reflect.Type }
+
+func (e *InvalidUnmarshalError) Error() string {
+	if e.Type == nil {
+		return "attempting to unmarshal to nil"
+	}
+
+	if e.Type.Kind() != reflect.Pointer {
+		return "attempting to unmarshal to non-pointer type: " + e.Type.String()
+	}
+	return "attempting to unmarshal to nil " + e.Type.String()
+}
+
+// Unmarshal parses the JSON-encoded data and stores the result
+// in the value pointed to by v. If v is nil or not a pointer,
+// Unmarshal returns an [InvalidUnmarshalError].
+func Unmarshal(data []byte, v any) error {
+	rv := reflect.ValueOf(v)
+	if rv.Kind() != reflect.Pointer || rv.IsNil() {
+		return &InvalidUnmarshalError{reflect.TypeOf(v)}
+	}
+	return unmarshalValue(data, rv.Elem(), new(Word))
+}
+
+// UnmarshalSetError describes a value that cannot be set during [Unmarshal].
+// This is likely an unexported struct field.
+type UnmarshalSetError struct{ Type reflect.Type }
+
+func (u *UnmarshalSetError) Error() string { return "cannot set: " + u.Type.String() }
+
+// unmarshalValue implements [Unmarshal] on [reflect.Value].
+func unmarshalValue(data []byte, v reflect.Value, sizeP *Word) error {
+	switch v.Kind() {
+
+	case reflect.Int32:
+		*sizeP = 4
+		if err := unmarshalCheckTypeBounds(&data, SPA_TYPE_Int, sizeP); err != nil {
+			return err
+		}
+		if !v.CanSet() {
+			return &UnmarshalSetError{v.Type()}
+		}
+		v.SetInt(int64(binary.NativeEndian.Uint32(data)))
+		return nil
+
+	case reflect.Struct:
+		if err := unmarshalCheckTypeBounds(&data, SPA_TYPE_Struct, sizeP); err != nil {
+			return err
+		}
+
+		var fieldWireSize Word
+		for i := 0; i < v.NumField(); i++ {
+			if err := unmarshalValue(data, v.Field(i), &fieldWireSize); err != nil {
+				return err
+			}
+			paddingSize := (8 - (fieldWireSize)%8) % 8
+			// already bounds checked by the successful unmarshalValue call
+			data = data[8+fieldWireSize+paddingSize:]
+		}
+		return nil
+
+	case reflect.Pointer:
+		if !v.CanSet() {
+			return &UnmarshalSetError{v.Type()}
+		}
+
+		if len(data) < 8 {
+			return io.ErrUnexpectedEOF
+		}
+		switch binary.NativeEndian.Uint32(data[4:]) {
+		case SPA_TYPE_None:
+			v.SetZero()
+			return nil
+
+		default:
+			v.Set(reflect.New(v.Type().Elem()))
+			return unmarshalValue(data, v.Elem(), sizeP)
+		}
+
+	default:
+		return &UnsupportedTypeError{v.Type()}
+	}
+}
+
+// An InconsistentSizeError describes an inconsistent size prefix encountered
+// in data passed to [Unmarshal].
+type InconsistentSizeError struct{ Prefix, Expect Word }
+
+func (e *InconsistentSizeError) Error() string {
+	return "unexpected size prefix: " + strconv.Itoa(int(e.Prefix)) + ", want " + strconv.Itoa(int(e.Expect))
+}
+
+// An UnexpectedTypeError describes an unexpected type encountered
+// in data passed to [Unmarshal].
+type UnexpectedTypeError struct{ Type, Expect Word }
+
+func (u *UnexpectedTypeError) Error() string {
+	return "unexpected type: " + strconv.Itoa(int(u.Type)) + ", want " + strconv.Itoa(int(u.Expect))
+}
+
+// unmarshalCheckTypeBounds performs bounds checks on data and validates the type and size prefixes.
+// An expected size of zero skips further bounds checks.
+func unmarshalCheckTypeBounds(data *[]byte, t Word, sizeP *Word) error {
+	if len(*data) < 8 {
+		return io.ErrUnexpectedEOF
+	}
+
+	wantSize := *sizeP
+	gotSize := binary.NativeEndian.Uint32(*data)
+	*sizeP = gotSize
+
+	if wantSize != 0 && gotSize != wantSize {
+		return &InconsistentSizeError{gotSize, wantSize}
+	}
+	if len(*data)-8 < int(wantSize) {
+		return io.ErrUnexpectedEOF
+	}
+
+	gotType := binary.NativeEndian.Uint32((*data)[4:])
+	if gotType != t {
+		return &UnexpectedTypeError{gotType, t}
+	}
+
+	*data = (*data)[8:]
+	return nil
+}
 
 /* Pointers */
 const (

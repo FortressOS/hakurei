@@ -22,16 +22,16 @@ var (
 // A Header is the fixed-size message header described in protocol native.
 type Header struct {
 	// The message id this is the destination resource/proxy id.
-	ID Uint `json:"Id"`
+	ID Word `json:"Id"`
 	// The opcode on the resource/proxy interface.
 	Opcode byte `json:"opcode"`
 	// The size of the payload and optional footer of the message.
 	// Note: this value is only 24 bits long in the format.
 	Size uint32 `json:"size"`
 	// An increasing sequence number for each message.
-	Sequence Uint `json:"seq"`
+	Sequence Word `json:"seq"`
 	// Number of file descriptors in this message.
-	FileCount Uint `json:"n_fds"`
+	FileCount Word `json:"n_fds"`
 }
 
 // append appends the protocol native message header to data.
