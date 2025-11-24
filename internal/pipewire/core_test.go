@@ -8,14 +8,7 @@ import (
 
 func TestCoreHello(t *testing.T) {
 	encodingTestCases[pipewire.CoreHello, *pipewire.CoreHello]{
-		{"sample", []byte{
-			0x10, 0, 0, 0,
-			0xe, 0, 0, 0,
-			4, 0, 0, 0,
-			4, 0, 0, 0,
-			4, 0, 0, 0,
-			0, 0, 0, 0,
-		}, pipewire.CoreHello{
+		{"sample", []byte(sendmsg00Message00POD), pipewire.CoreHello{
 			Version: pipewire.PW_VERSION_CORE,
 		}, nil},
 	}.run(t)
