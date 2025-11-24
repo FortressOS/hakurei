@@ -135,6 +135,12 @@ func marshalValueAppendRaw(data []byte, v reflect.Value) ([]byte, error) {
 		}
 		return marshalValueAppendRaw(data, v.Elem())
 
+	case reflect.String:
+		data = binary.NativeEndian.AppendUint32(data, SPA_TYPE_String)
+		data = append(data, []byte(v.String())...)
+		data = append(data, 0)
+		return data, nil
+
 	default:
 		return data, &UnsupportedTypeError{v.Type()}
 	}
@@ -181,6 +187,14 @@ func (e *TrailingGarbageError) Error() string {
 		return "got " + strconv.Itoa(len(e.Data)) + " bytes of trailing garbage"
 	}
 	return "data has extra values starting with type " + strconv.Itoa(int(binary.NativeEndian.Uint32(e.Data[4:])))
+}
+
+// A StringTerminationError describes an incorrectly terminated string
+// encountered during [Unmarshal].
+type StringTerminationError struct{ Value byte }
+
+func (e StringTerminationError) Error() string {
+	return "got byte " + strconv.Itoa(int(e.Value)) + " instead of NUL"
 }
 
 // unmarshalValue implements [Unmarshal] on [reflect.Value].
@@ -235,6 +249,25 @@ func unmarshalValue(data []byte, v reflect.Value, sizeP *Word) error {
 			v.Set(reflect.New(v.Type().Elem()))
 			return unmarshalValue(data, v.Elem(), sizeP)
 		}
+
+	case reflect.String:
+		if err := unmarshalCheckTypeBounds(&data, SPA_TYPE_String, sizeP); err != nil {
+			return err
+		}
+
+		// string size, one extra NUL byte
+		size := int(*sizeP)
+		if len(data) < size {
+			return io.ErrUnexpectedEOF
+		}
+
+		// the serialised strings still include NUL termination
+		if data[size-1] != 0 {
+			return StringTerminationError{data[size-1]}
+		}
+
+		v.SetString(string(data[:size-1]))
+		return nil
 
 	default:
 		return &UnsupportedTypeError{v.Type()}

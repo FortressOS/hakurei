@@ -2,6 +2,7 @@ package pipewire_test
 
 import (
 	"encoding"
+	"encoding/json"
 	"reflect"
 	"testing"
 )
@@ -37,7 +38,7 @@ func (testCases encodingTestCases[V, S]) run(t *testing.T) {
 					t.Fatalf("UnmarshalBinary: error = %v", err)
 				}
 				if !reflect.DeepEqual(&value, &tc.value) {
-					t.Fatalf("UnmarshalBinary: %#v, want %#v", value, tc.value)
+					t.Fatalf("UnmarshalBinary:\n%s\nwant\n%s", mustMarshalJSON(value), mustMarshalJSON(tc.value))
 				}
 			})
 
@@ -51,5 +52,14 @@ func (testCases encodingTestCases[V, S]) run(t *testing.T) {
 				}
 			})
 		})
+	}
+}
+
+// mustMarshalJSON calls [json.Marshal] and returns the result.
+func mustMarshalJSON(v any) string {
+	if data, err := json.Marshal(v); err != nil {
+		panic(err)
+	} else {
+		return string(data)
 	}
 }
