@@ -22,16 +22,16 @@ var (
 // A Header is the fixed-size message header described in protocol native.
 type Header struct {
 	// The message id this is the destination resource/proxy id.
-	ID uint32 `json:"Id"`
+	ID Uint `json:"Id"`
 	// The opcode on the resource/proxy interface.
 	Opcode byte `json:"opcode"`
 	// The size of the payload and optional footer of the message.
 	// Note: this value is only 24 bits long in the format.
 	Size uint32 `json:"size"`
 	// An increasing sequence number for each message.
-	Sequence uint32 `json:"seq"`
+	Sequence Uint `json:"seq"`
 	// Number of file descriptors in this message.
-	FileCount uint32 `json:"n_fds"`
+	FileCount Uint `json:"n_fds"`
 }
 
 // append appends the protocol native message header to data.
@@ -39,7 +39,7 @@ type Header struct {
 // Callers must perform bounds check on [Header.Size].
 func (h *Header) append(data []byte) []byte {
 	data = binary.NativeEndian.AppendUint32(data, h.ID)
-	data = binary.NativeEndian.AppendUint32(data, uint32(h.Opcode)<<24|h.Size)
+	data = binary.NativeEndian.AppendUint32(data, Word(h.Opcode)<<24|h.Size)
 	data = binary.NativeEndian.AppendUint32(data, h.Sequence)
 	data = binary.NativeEndian.AppendUint32(data, h.FileCount)
 	return data

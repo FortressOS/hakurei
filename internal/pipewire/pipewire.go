@@ -303,8 +303,8 @@ const (
 	PW_PERM_RWXM  = PW_PERM_RWX | PW_PERM_M
 	PW_PERM_RWXML = PW_PERM_RWXM | PW_PERM_L
 
-	PW_PERM_ALL            = PW_PERM_RWXM
-	PW_PERM_INVALID uint32 = 0xffffffff
+	PW_PERM_ALL          = PW_PERM_RWXM
+	PW_PERM_INVALID Word = 0xffffffff
 )
 
 /* pipewire/port.h */

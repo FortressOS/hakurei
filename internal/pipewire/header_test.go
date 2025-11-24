@@ -10,11 +10,21 @@ import (
 func TestHeader(t *testing.T) {
 	t.Parallel()
 
-	testCases := []struct {
-		name string
-		data []byte
-		want pipewire.Header
-	}{
+	encodingTestCases[pipewire.Header, *pipewire.Header]{
+		{"PW_CORE_METHOD_HELLO", []byte{
+			// Id
+			0, 0, 0, 0,
+			// size
+			0x18, 0, 0,
+			// opcode
+			1,
+			// seq
+			0, 0, 0, 0,
+			// n_fds
+			0, 0, 0, 0,
+		}, pipewire.Header{ID: pipewire.PW_ID_CORE, Opcode: pipewire.PW_CORE_METHOD_HELLO,
+			Size: 0x18, Sequence: 0, FileCount: 0}, nil},
+
 		{"PW_SECURITY_CONTEXT_METHOD_CREATE", []byte{
 			// Id
 			3, 0, 0, 0,
@@ -27,7 +37,7 @@ func TestHeader(t *testing.T) {
 			// n_fds
 			2, 0, 0, 0,
 		}, pipewire.Header{ID: 3, Opcode: pipewire.PW_SECURITY_CONTEXT_METHOD_CREATE,
-			Size: 0xd8, Sequence: 5, FileCount: 2}},
+			Size: 0xd8, Sequence: 5, FileCount: 2}, nil},
 
 		{"PW_SECURITY_CONTEXT_METHOD_NUM", []byte{
 			// Id
@@ -41,35 +51,8 @@ func TestHeader(t *testing.T) {
 			// n_fds
 			0, 0, 0, 0,
 		}, pipewire.Header{ID: 0, Opcode: pipewire.PW_SECURITY_CONTEXT_METHOD_NUM,
-			Size: 0x28, Sequence: 6, FileCount: 0}},
-	}
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-
-			t.Run("decode", func(t *testing.T) {
-				t.Parallel()
-
-				var got pipewire.Header
-				if err := got.UnmarshalBinary(tc.data); err != nil {
-					t.Fatalf("UnmarshalBinary: error = %v", err)
-				}
-				if got != tc.want {
-					t.Fatalf("UnmarshalBinary: %#v, want %#v", got, tc.want)
-				}
-			})
-
-			t.Run("encode", func(t *testing.T) {
-				t.Parallel()
-
-				if got, err := tc.want.MarshalBinary(); err != nil {
-					t.Fatalf("MarshalBinary: error = %v", err)
-				} else if string(got) != string(tc.data) {
-					t.Fatalf("MarshalBinary: %#v, want %#v", got, tc.data)
-				}
-			})
-		})
-	}
+			Size: 0x28, Sequence: 6, FileCount: 0}, nil},
+	}.run(t)
 
 	t.Run("size range", func(t *testing.T) {
 		t.Parallel()
