@@ -68,15 +68,43 @@ const (
 
 // CoreHello is the first message sent by a client.
 type CoreHello struct {
-	// version number of the client; PW_VERSION_CORE
+	// The version number of the client, usually PW_VERSION_CORE.
 	Version Int
 }
 
 // MarshalBinary satisfies [encoding.BinaryMarshaler] via [MarshalAppend].
-func (c *CoreHello) MarshalBinary() ([]byte, error) { return MarshalAppend(make([]byte, 0, 24), c) }
+func (c *CoreHello) MarshalBinary() ([]byte, error) {
+	return MarshalAppend(make([]byte, 0, 24), c)
+}
 
 // UnmarshalBinary satisfies [encoding.BinaryUnmarshaler] via [Unmarshal].
 func (c *CoreHello) UnmarshalBinary(data []byte) error {
+	_, err := Unmarshal(data, c)
+	return err
+}
+
+// CoreGetRegistry is sent when a client requests to bind to the
+// registry object and list the available objects on the server.
+//
+// Like with all bindings, first the client allocates a new proxy
+// id and puts this as the new_id field. Methods and Events can
+// then be sent and received on the new_id (in the message Id field).
+type CoreGetRegistry struct {
+	// The version of the registry interface used on the client,
+	// usually PW_VERSION_REGISTRY.
+	Version Int
+	// The id of the new proxy with the registry interface,
+	// ends up as [Header.ID] in future messages.
+	NewID Int
+}
+
+// MarshalBinary satisfies [encoding.BinaryMarshaler] via [MarshalAppend].
+func (c *CoreGetRegistry) MarshalBinary() ([]byte, error) {
+	return MarshalAppend(make([]byte, 0, 40), c)
+}
+
+// UnmarshalBinary satisfies [encoding.BinaryUnmarshaler] via [Unmarshal].
+func (c *CoreGetRegistry) UnmarshalBinary(data []byte) error {
 	_, err := Unmarshal(data, c)
 	return err
 }

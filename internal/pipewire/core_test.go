@@ -13,3 +13,12 @@ func TestCoreHello(t *testing.T) {
 		}, nil},
 	}.run(t)
 }
+
+func TestCoreGetRegistry(t *testing.T) {
+	encodingTestCases[pipewire.CoreGetRegistry, *pipewire.CoreGetRegistry]{
+		{"sample", []byte(sendmsg00Message02POD), pipewire.CoreGetRegistry{
+			Version: pipewire.PW_VERSION_REGISTRY,
+			NewID:   2,
+		}, nil},
+	}.run(t)
+}
