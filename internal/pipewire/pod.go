@@ -360,6 +360,74 @@ func unmarshalCheckTypeBounds(data *[]byte, t Word, sizeP *Word) error {
 	return nil
 }
 
+// SPADictItem is an encoding-compatible representation of spa_dict_item.
+type SPADictItem struct{ Key, Value string }
+
+// SPADict is an encoding-compatible representation of spa_dict.
+type SPADict struct {
+	NItems Int
+	Items  []SPADictItem
+}
+
+func (d *SPADict) MarshalPOD() ([]byte, error) {
+	return appendInner(nil, func(data []byte) ([]byte, error) {
+		data = binary.NativeEndian.AppendUint32(data, SPA_TYPE_Struct)
+		if extraData, err := Marshal(d.NItems); err != nil {
+			return data, err
+		} else {
+			data = append(data, extraData...)
+		}
+		for i := range d.Items {
+			if extraData, err := Marshal(d.Items[i].Key); err != nil {
+				return data, err
+			} else {
+				data = append(data, extraData...)
+			}
+			if extraData, err := Marshal(d.Items[i].Value); err != nil {
+				return data, err
+			} else {
+				data = append(data, extraData...)
+			}
+		}
+		return data, nil
+	})
+}
+
+func (d *SPADict) UnmarshalPOD(data []byte) (Word, error) {
+	var wireSize Word
+	if err := unmarshalCheckTypeBounds(&data, SPA_TYPE_Struct, &wireSize); err != nil {
+		return wireSize, err
+	}
+
+	if size, err := Unmarshal(data, &d.NItems); err != nil {
+		return wireSize, err
+	} else {
+		// bounds check completed in successful call to Unmarshal
+		data = data[size:]
+	}
+
+	d.Items = make([]SPADictItem, d.NItems)
+	for i := range d.Items {
+		if size, err := Unmarshal(data, &d.Items[i].Key); err != nil {
+			return wireSize, err
+		} else {
+			// bounds check completed in successful call to Unmarshal
+			data = data[size:]
+		}
+		if size, err := Unmarshal(data, &d.Items[i].Value); err != nil {
+			return wireSize, err
+		} else {
+			// bounds check completed in successful call to Unmarshal
+			data = data[size:]
+		}
+	}
+
+	if len(data) != 0 {
+		return wireSize, &TrailingGarbageError{data}
+	}
+	return wireSize, nil
+}
+
 /* Pointers */
 const (
 	SPA_TYPE_POINTER_START = 0x10000 + iota
