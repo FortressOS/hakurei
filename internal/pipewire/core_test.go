@@ -14,6 +14,15 @@ func TestCoreHello(t *testing.T) {
 	}.run(t)
 }
 
+func TestCoreSync(t *testing.T) {
+	encodingTestCases[pipewire.CoreSync, *pipewire.CoreSync]{
+		{"sample", []byte(sendmsg00Message03POD), pipewire.CoreSync{
+			ID:       pipewire.PW_ID_CORE,
+			Sequence: pipewire.CoreSyncSequenceOffset + 3,
+		}, nil},
+	}.run(t)
+}
+
 func TestCoreGetRegistry(t *testing.T) {
 	encodingTestCases[pipewire.CoreGetRegistry, *pipewire.CoreGetRegistry]{
 		{"sample", []byte(sendmsg00Message02POD), pipewire.CoreGetRegistry{

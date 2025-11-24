@@ -83,6 +83,34 @@ func (c *CoreHello) UnmarshalBinary(data []byte) error {
 	return err
 }
 
+const (
+	// CoreSyncSequenceOffset is the offset to [Header.Sequence] to produce [CoreSync.Sequence].
+	CoreSyncSequenceOffset = 0x40000000
+)
+
+// The CoreSync message will result in a Done event from the server.
+// When the Done event is received, the client can be sure that all
+// operations before the Sync method have been completed.
+type CoreSync struct {
+	// The id will be returned in the Done event,
+	// ends up as [Header.ID] in a future message.
+	ID Int
+	// Usually generated automatically and will be
+	// returned in the Done event.
+	Sequence Int
+}
+
+// MarshalBinary satisfies [encoding.BinaryMarshaler] via [MarshalAppend].
+func (c *CoreSync) MarshalBinary() ([]byte, error) {
+	return MarshalAppend(make([]byte, 0, 40), c)
+}
+
+// UnmarshalBinary satisfies [encoding.BinaryUnmarshaler] via [Unmarshal].
+func (c *CoreSync) UnmarshalBinary(data []byte) error {
+	_, err := Unmarshal(data, c)
+	return err
+}
+
 // CoreGetRegistry is sent when a client requests to bind to the
 // registry object and list the available objects on the server.
 //

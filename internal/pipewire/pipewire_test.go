@@ -19,4 +19,9 @@ var (
 	sendmsg00Message02Header string
 	//go:embed testdata/05-sendmsg00-message02-POD
 	sendmsg00Message02POD string
+
+	//go:embed testdata/06-sendmsg00-message03-header
+	sendmsg00Message03Header string
+	//go:embed testdata/07-sendmsg00-message03-POD
+	sendmsg00Message03POD string
 )

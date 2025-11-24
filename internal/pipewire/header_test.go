@@ -29,6 +29,12 @@ func TestHeader(t *testing.T) {
 			Size:   0x28, Sequence: 2, FileCount: 0,
 		}, nil},
 
+		{"PW_CORE_METHOD_SYNC", []byte(sendmsg00Message03Header), pipewire.Header{
+			ID:     pipewire.PW_ID_CORE,
+			Opcode: pipewire.PW_CORE_METHOD_SYNC,
+			Size:   0x28, Sequence: 3, FileCount: 0,
+		}, nil},
+
 		{"PW_SECURITY_CONTEXT_METHOD_CREATE", []byte{
 			// Id
 			3, 0, 0, 0,
