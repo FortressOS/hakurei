@@ -76,4 +76,7 @@ type CoreHello struct {
 func (c *CoreHello) MarshalBinary() ([]byte, error) { return MarshalAppend(make([]byte, 0, 24), c) }
 
 // UnmarshalBinary satisfies [encoding.BinaryUnmarshaler] via [Unmarshal].
-func (c *CoreHello) UnmarshalBinary(data []byte) error { return Unmarshal(data, c) }
+func (c *CoreHello) UnmarshalBinary(data []byte) error {
+	_, err := Unmarshal(data, c)
+	return err
+}
