@@ -25,6 +25,20 @@ func TestHeader(t *testing.T) {
 		}, pipewire.Header{ID: pipewire.PW_ID_CORE, Opcode: pipewire.PW_CORE_METHOD_HELLO,
 			Size: 0x18, Sequence: 0, FileCount: 0}, nil},
 
+		{"PW_CLIENT_METHOD_UPDATE_PROPERTIES", []byte{
+			// Id
+			1, 0, 0, 0,
+			// size
+			0, 6, 0,
+			// opcode
+			2,
+			// seq
+			1, 0, 0, 0,
+			// n_fds
+			0, 0, 0, 0,
+		}, pipewire.Header{ID: pipewire.PW_ID_CLIENT, Opcode: pipewire.PW_CLIENT_METHOD_UPDATE_PROPERTIES,
+			Size: 0x600, Sequence: 1, FileCount: 0}, nil},
+
 		{"PW_SECURITY_CONTEXT_METHOD_CREATE", []byte{
 			// Id
 			3, 0, 0, 0,
