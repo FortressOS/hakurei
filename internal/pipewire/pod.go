@@ -349,7 +349,7 @@ func unmarshalCheckTypeBounds(data *[]byte, t Word, sizeP *Word) error {
 	if wantSize != 0 && gotSize != wantSize {
 		return &InconsistentSizeError{gotSize, wantSize}
 	}
-	if len(*data)-8 < int(wantSize) {
+	if len(*data)-8 < int(gotSize) {
 		return io.ErrUnexpectedEOF
 	}
 
