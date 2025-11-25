@@ -120,7 +120,7 @@ func appendInner(data []byte, f func(data []byte) ([]byte, error)) ([]byte, erro
 
 // marshalValueAppendRaw implements [MarshalAppend] on [reflect.Value].
 func marshalValueAppend(data []byte, v reflect.Value) ([]byte, error) {
-	if v.CanInterface() {
+	if v.CanInterface() && (v.Kind() != reflect.Pointer || !v.IsNil()) {
 		if m, ok := v.Interface().(PODMarshaler); ok {
 			extraData, err := m.MarshalPOD()
 			return append(data, extraData...), err
