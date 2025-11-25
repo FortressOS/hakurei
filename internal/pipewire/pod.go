@@ -386,6 +386,24 @@ func unmarshalCheckTypeBounds(data *[]byte, t Word, sizeP *Word) error {
 	return nil
 }
 
+// The Footer contains additional messages, not directed to
+// the destination object defined by the Id field.
+type Footer[T any] struct {
+	// The footer opcode.
+	Opcode Id
+	// The footer payload struct.
+	Payload T
+}
+
+// MarshalBinary satisfies [encoding.BinaryMarshaler] via [Marshal].
+func (f *Footer[T]) MarshalBinary() ([]byte, error) { return Marshal(f) }
+
+// UnmarshalBinary satisfies [encoding.BinaryUnmarshaler] via [Unmarshal].
+func (f *Footer[T]) UnmarshalBinary(data []byte) error {
+	_, err := Unmarshal(data, f)
+	return err
+}
+
 // SPADictItem is an encoding-compatible representation of spa_dict_item.
 type SPADictItem struct{ Key, Value string }
 
