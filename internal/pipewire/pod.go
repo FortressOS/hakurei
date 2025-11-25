@@ -260,6 +260,7 @@ func unmarshalValue(data []byte, v reflect.Value, sizeP *Word) error {
 		return nil
 
 	case reflect.Struct:
+		*sizeP = 0
 		if err := unmarshalCheckTypeBounds(&data, SPA_TYPE_Struct, sizeP); err != nil {
 			return err
 		}
@@ -294,6 +295,7 @@ func unmarshalValue(data []byte, v reflect.Value, sizeP *Word) error {
 		}
 
 	case reflect.String:
+		*sizeP = 0
 		if err := unmarshalCheckTypeBounds(&data, SPA_TYPE_String, sizeP); err != nil {
 			return err
 		}
