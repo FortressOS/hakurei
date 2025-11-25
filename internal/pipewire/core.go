@@ -66,6 +66,51 @@ const (
 	PW_VERSION_REGISTRY_METHODS = 0
 )
 
+const (
+	FOOTER_CORE_OPCODE_GENERATION = iota
+
+	FOOTER_CORE_OPCODE_LAST
+)
+
+// The FooterCoreGeneration indicates to the client what is the current
+// registry generation number of the Context on the server side.
+//
+// The server shall include this footer in the next message it sends that
+// follows the increment of the registry generation number.
+type FooterCoreGeneration struct {
+	RegistryGeneration Long
+}
+
+// A CoreInfo event is emitted by the server upon connection
+// with the more information about the server.
+type CoreInfo struct {
+	// The id of the server (PW_ID_CORE).
+	ID Int
+	// A unique cookie for this server.
+	Cookie Int
+	// The name of the user running the server.
+	UserName String
+	// The name of the host running the server.
+	HostName String
+	// A version string of the server.
+	Version String
+	// The name of the server.
+	Name String
+	// A set of bits with changes to the info.
+	ChangeMask Long
+	// Optional key/value properties, valid when change_mask has PW_CORE_CHANGE_MASK_PROPS.
+	Props *SPADict
+}
+
+// MarshalBinary satisfies [encoding.BinaryMarshaler] via [Marshal].
+func (c *CoreInfo) MarshalBinary() ([]byte, error) { return Marshal(c) }
+
+// UnmarshalBinary satisfies [encoding.BinaryUnmarshaler] via [Unmarshal].
+func (c *CoreInfo) UnmarshalBinary(data []byte) error {
+	_, err := Unmarshal(data, c)
+	return err
+}
+
 // CoreHello is the first message sent by a client.
 type CoreHello struct {
 	// The version number of the client, usually PW_VERSION_CORE.

@@ -24,4 +24,11 @@ var (
 	sendmsg00Message03Header string
 	//go:embed testdata/07-sendmsg00-message03-POD
 	sendmsg00Message03POD string
+
+	//go:embed testdata/08-recvmsg00-message00-header
+	recvmsg00Message00Header string
+	//go:embed testdata/09-recvmsg00-message00-POD
+	recvmsg00Message00POD string
+	//go:embed testdata/10-recvmsg00-message00-footer
+	recvmsg00Message00Footer string
 )
