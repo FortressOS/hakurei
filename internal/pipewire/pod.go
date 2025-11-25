@@ -400,6 +400,8 @@ func (d *SPADict) UnmarshalPOD(data []byte) (Word, error) {
 	if err := unmarshalCheckTypeBounds(&data, SPA_TYPE_Struct, &wireSize); err != nil {
 		return wireSize, err
 	}
+	// bounds check completed in successful call to unmarshalCheckTypeBounds
+	data = data[:wireSize]
 
 	if size, err := Unmarshal(data, &d.NItems); err != nil {
 		return wireSize, err
