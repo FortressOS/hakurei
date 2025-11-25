@@ -7,6 +7,8 @@ import (
 )
 
 func TestFooterCoreGeneration(t *testing.T) {
+	t.Parallel()
+
 	encodingTestCases[pipewire.Footer[pipewire.FooterCoreGeneration], *pipewire.Footer[pipewire.FooterCoreGeneration]]{
 		{"sample", []byte(recvmsg00Message00Footer), pipewire.Footer[pipewire.FooterCoreGeneration]{
 			Opcode:  pipewire.FOOTER_CORE_OPCODE_GENERATION,
@@ -16,6 +18,8 @@ func TestFooterCoreGeneration(t *testing.T) {
 }
 
 func TestCoreInfo(t *testing.T) {
+	t.Parallel()
+
 	encodingTestCases[pipewire.CoreInfo, *pipewire.CoreInfo]{
 		{"sample", []byte(recvmsg00Message00POD), pipewire.CoreInfo{
 			ID:         0,
@@ -61,7 +65,28 @@ func TestCoreInfo(t *testing.T) {
 	}.run(t)
 }
 
+func TestCoreBoundProps(t *testing.T) {
+	t.Parallel()
+
+	encodingTestCases[pipewire.CoreBoundProps, *pipewire.CoreBoundProps]{
+		{"sample", []byte(recvmsg00Message01POD), pipewire.CoreBoundProps{
+			ID:       pipewire.PW_ID_CLIENT,
+			GlobalID: 34,
+			Props: &pipewire.SPADict{NItems: 7, Items: []pipewire.SPADictItem{
+				{Key: "object.serial", Value: "34"},
+				{Key: "module.id", Value: "2"},
+				{Key: "pipewire.protocol", Value: "protocol-native"},
+				{Key: "pipewire.sec.pid", Value: "1443"},
+				{Key: "pipewire.sec.uid", Value: "1000"},
+				{Key: "pipewire.sec.gid", Value: "100"},
+				{Key: "pipewire.sec.socket", Value: "pipewire-0-manager"}},
+			}}, nil},
+	}.run(t)
+}
+
 func TestCoreHello(t *testing.T) {
+	t.Parallel()
+
 	encodingTestCases[pipewire.CoreHello, *pipewire.CoreHello]{
 		{"sample", []byte(sendmsg00Message00POD), pipewire.CoreHello{
 			Version: pipewire.PW_VERSION_CORE,
@@ -70,6 +95,8 @@ func TestCoreHello(t *testing.T) {
 }
 
 func TestCoreSync(t *testing.T) {
+	t.Parallel()
+
 	encodingTestCases[pipewire.CoreSync, *pipewire.CoreSync]{
 		{"sample", []byte(sendmsg00Message03POD), pipewire.CoreSync{
 			ID:       pipewire.PW_ID_CORE,
@@ -79,6 +106,8 @@ func TestCoreSync(t *testing.T) {
 }
 
 func TestCoreGetRegistry(t *testing.T) {
+	t.Parallel()
+
 	encodingTestCases[pipewire.CoreGetRegistry, *pipewire.CoreGetRegistry]{
 		{"sample", []byte(sendmsg00Message02POD), pipewire.CoreGetRegistry{
 			Version: pipewire.PW_VERSION_REGISTRY,

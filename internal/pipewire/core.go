@@ -111,6 +111,26 @@ func (c *CoreInfo) UnmarshalBinary(data []byte) error {
 	return err
 }
 
+// The CoreBoundProps event is emitted when a local object ID is bound to a global ID.
+// It is emitted before the global becomes visible in the registry.
+type CoreBoundProps struct {
+	// A proxy id.
+	ID Int
+	// The global_id as it will appear in the registry.
+	GlobalID Int
+	// The properties of the global.
+	Props *SPADict
+}
+
+// MarshalBinary satisfies [encoding.BinaryMarshaler] via [Marshal].
+func (c *CoreBoundProps) MarshalBinary() ([]byte, error) { return Marshal(c) }
+
+// UnmarshalBinary satisfies [encoding.BinaryUnmarshaler] via [Unmarshal].
+func (c *CoreBoundProps) UnmarshalBinary(data []byte) error {
+	_, err := Unmarshal(data, c)
+	return err
+}
+
 // CoreHello is the first message sent by a client.
 type CoreHello struct {
 	// The version number of the client, usually PW_VERSION_CORE.

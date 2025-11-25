@@ -7,6 +7,8 @@ import (
 )
 
 func TestClientUpdateProperties(t *testing.T) {
+	t.Parallel()
+
 	encodingTestCases[pipewire.ClientUpdateProperties, *pipewire.ClientUpdateProperties]{
 		{"sample", []byte(sendmsg00Message01POD), pipewire.ClientUpdateProperties{Props: &pipewire.SPADict{NItems: 0x1e, Items: []pipewire.SPADictItem{
 			{Key: "remote.intention", Value: "manager"},
