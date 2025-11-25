@@ -190,7 +190,7 @@ func (e *InvalidUnmarshalError) Error() string {
 	return "attempting to unmarshal to nil " + e.Type.String()
 }
 
-// Unmarshal parses the JSON-encoded data and stores the result
+// Unmarshal parses the PipeWire POD encoded data and stores the result
 // in the value pointed to by v. If v is nil or not a pointer,
 // Unmarshal returns an [InvalidUnmarshalError].
 func Unmarshal(data []byte, v any) (size Word, err error) {
@@ -199,10 +199,8 @@ func Unmarshal(data []byte, v any) (size Word, err error) {
 		return 0, &InvalidUnmarshalError{reflect.TypeOf(v)}
 	}
 	err = unmarshalValue(data, rv.Elem(), &size)
-	// size and type prefix
-	size += 8
-	// padding
-	size += (8 - (size)%8) % 8
+	// prefix and padding size
+	size += 8 + (8-(size)%8)%8
 	return
 }
 
@@ -231,8 +229,8 @@ func (e StringTerminationError) Error() string {
 	return "got byte " + strconv.Itoa(int(e.Value)) + " instead of NUL"
 }
 
-// unmarshalValue implements [Unmarshal] on [reflect.Value].
-func unmarshalValue(data []byte, v reflect.Value, sizeP *Word) error {
+// unmarshalValue implements [Unmarshal] on [reflect.Value] without compensating for prefix and padding size.
+func unmarshalValue(data []byte, v reflect.Value, wireSizeP *Word) error {
 	if !v.CanSet() {
 		return &UnmarshalSetError{v.Type()}
 	}
@@ -244,7 +242,7 @@ func unmarshalValue(data []byte, v reflect.Value, sizeP *Word) error {
 
 		if u, ok := v.Interface().(PODUnmarshaler); ok {
 			var err error
-			*sizeP, err = u.UnmarshalPOD(data)
+			*wireSizeP, err = u.UnmarshalPOD(data)
 			return err
 		}
 	}
@@ -252,16 +250,16 @@ func unmarshalValue(data []byte, v reflect.Value, sizeP *Word) error {
 	switch v.Kind() {
 
 	case reflect.Int32:
-		*sizeP = 4
-		if err := unmarshalCheckTypeBounds(&data, SPA_TYPE_Int, sizeP); err != nil {
+		*wireSizeP = 4
+		if err := unmarshalCheckTypeBounds(&data, SPA_TYPE_Int, wireSizeP); err != nil {
 			return err
 		}
 		v.SetInt(int64(binary.NativeEndian.Uint32(data)))
 		return nil
 
 	case reflect.Struct:
-		*sizeP = 0
-		if err := unmarshalCheckTypeBounds(&data, SPA_TYPE_Struct, sizeP); err != nil {
+		*wireSizeP = 0
+		if err := unmarshalCheckTypeBounds(&data, SPA_TYPE_Struct, wireSizeP); err != nil {
 			return err
 		}
 
@@ -291,17 +289,17 @@ func unmarshalValue(data []byte, v reflect.Value, sizeP *Word) error {
 
 		default:
 			v.Set(reflect.New(v.Type().Elem()))
-			return unmarshalValue(data, v.Elem(), sizeP)
+			return unmarshalValue(data, v.Elem(), wireSizeP)
 		}
 
 	case reflect.String:
-		*sizeP = 0
-		if err := unmarshalCheckTypeBounds(&data, SPA_TYPE_String, sizeP); err != nil {
+		*wireSizeP = 0
+		if err := unmarshalCheckTypeBounds(&data, SPA_TYPE_String, wireSizeP); err != nil {
 			return err
 		}
 
 		// string size, one extra NUL byte
-		size := int(*sizeP)
+		size := int(*wireSizeP)
 		if len(data) < size {
 			return io.ErrUnexpectedEOF
 		}
@@ -358,7 +356,7 @@ func unmarshalCheckTypeBounds(data *[]byte, t Word, sizeP *Word) error {
 		return &UnexpectedTypeError{gotType, t}
 	}
 
-	*data = (*data)[8:]
+	*data = (*data)[8 : gotSize+8]
 	return nil
 }
 
