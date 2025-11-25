@@ -143,6 +143,11 @@ func marshalValueAppendRaw(data []byte, v reflect.Value) ([]byte, error) {
 		data = binary.NativeEndian.AppendUint32(data, Word(v.Int()))
 		return data, nil
 
+	case reflect.Int64:
+		data = binary.NativeEndian.AppendUint32(data, SPA_TYPE_Long)
+		data = binary.NativeEndian.AppendUint64(data, uint64(v.Int()))
+		return data, nil
+
 	case reflect.Struct:
 		data = binary.NativeEndian.AppendUint32(data, SPA_TYPE_Struct)
 		var err error
@@ -268,6 +273,14 @@ func unmarshalValue(data []byte, v reflect.Value, wireSizeP *Word) error {
 			return err
 		}
 		v.SetInt(int64(binary.NativeEndian.Uint32(data)))
+		return nil
+
+	case reflect.Int64:
+		*wireSizeP = 8
+		if err := unmarshalCheckTypeBounds(&data, SPA_TYPE_Long, wireSizeP); err != nil {
+			return err
+		}
+		v.SetInt(int64(binary.NativeEndian.Uint64(data)))
 		return nil
 
 	case reflect.Struct:
