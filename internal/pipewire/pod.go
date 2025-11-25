@@ -16,6 +16,8 @@ type (
 
 	// A Bool is a boolean value representing SPA_TYPE_Bool.
 	Bool = bool
+	// An Id is an enumerated value representing SPA_TYPE_Id.
+	Id = Word
 	// An Int is a signed integer value representing SPA_TYPE_Int.
 	Int = int32
 	// A Long is a signed integer value representing SPA_TYPE_Long.
@@ -131,6 +133,10 @@ func marshalValueAppend(data []byte, v reflect.Value) ([]byte, error) {
 // marshalValueAppendRaw implements [MarshalAppend] on [reflect.Value] without the size prefix.
 func marshalValueAppendRaw(data []byte, v reflect.Value) ([]byte, error) {
 	switch v.Kind() {
+	case reflect.Uint32:
+		data = binary.NativeEndian.AppendUint32(data, SPA_TYPE_Id)
+		data = binary.NativeEndian.AppendUint32(data, Word(v.Uint()))
+		return data, nil
 
 	case reflect.Int32:
 		data = binary.NativeEndian.AppendUint32(data, SPA_TYPE_Int)
@@ -248,6 +254,13 @@ func unmarshalValue(data []byte, v reflect.Value, wireSizeP *Word) error {
 	}
 
 	switch v.Kind() {
+	case reflect.Uint32:
+		*wireSizeP = 4
+		if err := unmarshalCheckTypeBounds(&data, SPA_TYPE_Id, wireSizeP); err != nil {
+			return err
+		}
+		v.SetUint(uint64(binary.NativeEndian.Uint32(data)))
+		return nil
 
 	case reflect.Int32:
 		*wireSizeP = 4
