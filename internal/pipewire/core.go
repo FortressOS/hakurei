@@ -172,10 +172,8 @@ type CoreHello struct {
 // Size satisfies [KnownSize] with a constant value.
 func (c *CoreHello) Size() Word { return SizePrefix + Size(SizeInt) }
 
-// MarshalBinary satisfies [encoding.BinaryMarshaler] via [MarshalAppend].
-func (c *CoreHello) MarshalBinary() ([]byte, error) {
-	return MarshalAppend(make([]byte, 0, 24), c)
-}
+// MarshalBinary satisfies [encoding.BinaryMarshaler] via [Marshal].
+func (c *CoreHello) MarshalBinary() ([]byte, error) { return Marshal(c) }
 
 // UnmarshalBinary satisfies [encoding.BinaryUnmarshaler] via [Unmarshal].
 func (c *CoreHello) UnmarshalBinary(data []byte) error { return Unmarshal(data, c) }
@@ -198,10 +196,8 @@ type CoreSync struct {
 // Size satisfies [KnownSize] with a constant value.
 func (c *CoreSync) Size() Word { return SizePrefix + Size(SizeInt) + Size(SizeInt) }
 
-// MarshalBinary satisfies [encoding.BinaryMarshaler] via [MarshalAppend].
-func (c *CoreSync) MarshalBinary() ([]byte, error) {
-	return MarshalAppend(make([]byte, 0, 40), c)
-}
+// MarshalBinary satisfies [encoding.BinaryMarshaler] via [Marshal].
+func (c *CoreSync) MarshalBinary() ([]byte, error) { return Marshal(c) }
 
 // UnmarshalBinary satisfies [encoding.BinaryUnmarshaler] via [Unmarshal].
 func (c *CoreSync) UnmarshalBinary(data []byte) error { return Unmarshal(data, c) }
@@ -224,10 +220,8 @@ type CoreGetRegistry struct {
 // Size satisfies [KnownSize] with a constant value.
 func (c *CoreGetRegistry) Size() Word { return SizePrefix + Size(SizeInt) + Size(SizeInt) }
 
-// MarshalBinary satisfies [encoding.BinaryMarshaler] via [MarshalAppend].
-func (c *CoreGetRegistry) MarshalBinary() ([]byte, error) {
-	return MarshalAppend(make([]byte, 0, 40), c)
-}
+// MarshalBinary satisfies [encoding.BinaryMarshaler] via [Marshal].
+func (c *CoreGetRegistry) MarshalBinary() ([]byte, error) { return Marshal(c) }
 
 // UnmarshalBinary satisfies [encoding.BinaryUnmarshaler] via [Unmarshal].
 func (c *CoreGetRegistry) UnmarshalBinary(data []byte) error { return Unmarshal(data, c) }

@@ -125,7 +125,13 @@ type UnsupportedSizeError int
 func (e UnsupportedSizeError) Error() string { return "size out of range: " + strconv.Itoa(int(e)) }
 
 // Marshal returns the PipeWire POD encoding of v.
-func Marshal(v any) ([]byte, error) { return MarshalAppend(make([]byte, 0), v) }
+func Marshal(v any) ([]byte, error) {
+	var data []byte
+	if s, ok := v.(KnownSize); ok {
+		data = make([]byte, 0, s.Size())
+	}
+	return MarshalAppend(data, v)
+}
 
 // MarshalAppend appends the PipeWire POD encoding of v to data.
 func MarshalAppend(data []byte, v any) ([]byte, error) {
