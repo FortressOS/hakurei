@@ -32,6 +32,25 @@ type (
 	Bytes = []byte
 )
 
+const (
+	// SizeAlign is the boundary which POD starts are always aligned to.
+	SizeAlign = 8
+
+	// SizeSPrefix is the fixed, unpadded size of the fixed-size prefix encoding POD wire size.
+	SizeSPrefix = 4
+	// SizeTPrefix is the fixed, unpadded size of the fixed-size prefix encoding POD value type.
+	SizeTPrefix = 4
+	// SizePrefix is the fixed, unpadded size of the fixed-size POD prefix.
+	SizePrefix = SizeSPrefix + SizeTPrefix
+
+	// SizeId is the fixed, unpadded size of a [SPA_TYPE_Id] value.
+	SizeId = 4
+	// SizeInt is the fixed, unpadded size of a [SPA_TYPE_Int] value.
+	SizeInt = 4
+	// SizeLong is the fixed, unpadded size of a [SPA_TYPE_Long] value.
+	SizeLong = 8
+)
+
 /* Basic types */
 const (
 	/* POD's can contain a number of basic SPA types: */
@@ -98,21 +117,21 @@ func MarshalAppend(data []byte, v any) ([]byte, error) {
 // appendInner calls f and handles size prefix and padding around the appended data.
 // f must only append to data.
 func appendInner(data []byte, f func(data []byte) ([]byte, error)) ([]byte, error) {
-	data = append(data, make([]byte, 4)...)
+	data = append(data, make([]byte, SizeSPrefix)...)
 
 	rData, err := f(data)
 	if err != nil {
 		return data, err
 	}
 
-	size := len(rData) - len(data) + 4
-	paddingSize := (8 - (size)%8) % 8
+	size := len(rData) - len(data) + SizeSPrefix
+	paddingSize := (SizeAlign - (size)%SizeAlign) % SizeAlign
 	// compensated for size and type prefix
-	wireSize := size - 8
+	wireSize := size - SizePrefix
 	if wireSize > math.MaxUint32 {
 		return data, UnsupportedSizeError(wireSize)
 	}
-	binary.NativeEndian.PutUint32(rData[len(data)-4:len(data)], Word(wireSize))
+	binary.NativeEndian.PutUint32(rData[len(data)-SizeSPrefix:len(data)], Word(wireSize))
 	rData = append(rData, make([]byte, paddingSize)...)
 
 	return rData, nil
@@ -223,7 +242,7 @@ func UnmarshalNext(data []byte, v any) (size Word, err error) {
 	}
 	err = unmarshalValue(data, rv.Elem(), &size)
 	// prefix and padding size
-	size += 8 + (8-(size)%8)%8
+	size += SizePrefix + (SizeAlign-(size)%SizeAlign)%SizeAlign
 	return
 }
 
@@ -238,10 +257,10 @@ func (u *UnmarshalSetError) Error() string { return "cannot set: " + u.Type.Stri
 type TrailingGarbageError struct{ Data []byte }
 
 func (e *TrailingGarbageError) Error() string {
-	if len(e.Data) < 8 {
+	if len(e.Data) < SizePrefix {
 		return "got " + strconv.Itoa(len(e.Data)) + " bytes of trailing garbage"
 	}
-	return "data has extra values starting with type " + strconv.Itoa(int(binary.NativeEndian.Uint32(e.Data[4:])))
+	return "data has extra values starting with type " + strconv.Itoa(int(binary.NativeEndian.Uint32(e.Data[SizeSPrefix:])))
 }
 
 // A StringTerminationError describes an incorrectly terminated string
@@ -272,7 +291,7 @@ func unmarshalValue(data []byte, v reflect.Value, wireSizeP *Word) error {
 
 	switch v.Kind() {
 	case reflect.Uint32:
-		*wireSizeP = 4
+		*wireSizeP = SizeId
 		if err := unmarshalCheckTypeBounds(&data, SPA_TYPE_Id, wireSizeP); err != nil {
 			return err
 		}
@@ -280,7 +299,7 @@ func unmarshalValue(data []byte, v reflect.Value, wireSizeP *Word) error {
 		return nil
 
 	case reflect.Int32:
-		*wireSizeP = 4
+		*wireSizeP = SizeInt
 		if err := unmarshalCheckTypeBounds(&data, SPA_TYPE_Int, wireSizeP); err != nil {
 			return err
 		}
@@ -288,7 +307,7 @@ func unmarshalValue(data []byte, v reflect.Value, wireSizeP *Word) error {
 		return nil
 
 	case reflect.Int64:
-		*wireSizeP = 8
+		*wireSizeP = SizeLong
 		if err := unmarshalCheckTypeBounds(&data, SPA_TYPE_Long, wireSizeP); err != nil {
 			return err
 		}
@@ -306,9 +325,9 @@ func unmarshalValue(data []byte, v reflect.Value, wireSizeP *Word) error {
 			if err := unmarshalValue(data, v.Field(i), &fieldWireSize); err != nil {
 				return err
 			}
-			paddingSize := (8 - (fieldWireSize)%8) % 8
+			paddingSize := (SizeAlign - (fieldWireSize)%SizeAlign) % SizeAlign
 			// bounds check completed in successful call to unmarshalValue
-			data = data[8+fieldWireSize+paddingSize:]
+			data = data[SizePrefix+fieldWireSize+paddingSize:]
 		}
 
 		if len(data) != 0 {
@@ -317,10 +336,10 @@ func unmarshalValue(data []byte, v reflect.Value, wireSizeP *Word) error {
 		return nil
 
 	case reflect.Pointer:
-		if len(data) < 8 {
+		if len(data) < SizePrefix {
 			return io.ErrUnexpectedEOF
 		}
-		switch binary.NativeEndian.Uint32(data[4:]) {
+		switch binary.NativeEndian.Uint32(data[SizeSPrefix:]) {
 		case SPA_TYPE_None:
 			v.SetZero()
 			return nil
@@ -374,7 +393,7 @@ func (u *UnexpectedTypeError) Error() string {
 // unmarshalCheckTypeBounds performs bounds checks on data and validates the type and size prefixes.
 // An expected size of zero skips further bounds checks.
 func unmarshalCheckTypeBounds(data *[]byte, t Word, sizeP *Word) error {
-	if len(*data) < 8 {
+	if len(*data) < SizePrefix {
 		return io.ErrUnexpectedEOF
 	}
 
@@ -385,16 +404,16 @@ func unmarshalCheckTypeBounds(data *[]byte, t Word, sizeP *Word) error {
 	if wantSize != 0 && gotSize != wantSize {
 		return &InconsistentSizeError{gotSize, wantSize}
 	}
-	if len(*data)-8 < int(gotSize) {
+	if len(*data)-SizePrefix < int(gotSize) {
 		return io.ErrUnexpectedEOF
 	}
 
-	gotType := binary.NativeEndian.Uint32((*data)[4:])
+	gotType := binary.NativeEndian.Uint32((*data)[SizeSPrefix:])
 	if gotType != t {
 		return &UnexpectedTypeError{gotType, t}
 	}
 
-	*data = (*data)[8 : gotSize+8]
+	*data = (*data)[SizePrefix : gotSize+SizePrefix]
 	return nil
 }
 

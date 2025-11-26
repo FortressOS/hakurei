@@ -6,8 +6,8 @@ import (
 )
 
 const (
-	// HeaderSize is the fixed size of [Header].
-	HeaderSize = 16
+	// SizeHeader is the fixed size of [Header].
+	SizeHeader = 16
 	// SizeMax is the largest value of [Header.Size] that can be represented in its 3-byte segment.
 	SizeMax = 0x00ffffff
 )
@@ -50,11 +50,11 @@ func (h *Header) MarshalBinary() (data []byte, err error) {
 	if h.Size&^SizeMax != 0 {
 		return nil, ErrSizeRange
 	}
-	return h.append(make([]byte, 0, HeaderSize)), nil
+	return h.append(make([]byte, 0, SizeHeader)), nil
 }
 
 // unmarshalBinary decodes the protocol native message header.
-func (h *Header) unmarshalBinary(data [HeaderSize]byte) {
+func (h *Header) unmarshalBinary(data [SizeHeader]byte) {
 	h.ID = binary.NativeEndian.Uint32(data[0:4])
 	h.Size = binary.NativeEndian.Uint32(data[4:8])
 	h.Opcode = byte(h.Size >> 24)
@@ -65,9 +65,9 @@ func (h *Header) unmarshalBinary(data [HeaderSize]byte) {
 
 // UnmarshalBinary decodes the protocol native message header.
 func (h *Header) UnmarshalBinary(data []byte) error {
-	if len(data) != HeaderSize {
+	if len(data) != SizeHeader {
 		return ErrBadHeader
 	}
-	h.unmarshalBinary(([HeaderSize]byte)(data))
+	h.unmarshalBinary(([SizeHeader]byte)(data))
 	return nil
 }
