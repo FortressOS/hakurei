@@ -467,6 +467,10 @@ type SPADict struct {
 
 // Size satisfies [KnownSize] with a value computed at runtime.
 func (d *SPADict) Size() Word {
+	if d == nil {
+		return 0
+	}
+
 	// struct prefix, NItems value
 	size := SizePrefix + int(Size(SizeInt))
 	for i := range d.Items {
