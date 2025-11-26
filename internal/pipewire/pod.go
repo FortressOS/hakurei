@@ -441,30 +441,26 @@ type SPADict struct {
 	Items  []SPADictItem
 }
 
+// MarshalPOD satisfies [PODMarshaler] as [SPADict] violates the POD type system.
 func (d *SPADict) MarshalPOD() ([]byte, error) {
-	return appendInner(nil, func(data []byte) ([]byte, error) {
-		data = binary.NativeEndian.AppendUint32(data, SPA_TYPE_Struct)
-		if extraData, err := Marshal(d.NItems); err != nil {
-			return data, err
-		} else {
-			data = append(data, extraData...)
+	return appendInner(nil, func(dataPrefix []byte) (data []byte, err error) {
+		data = binary.NativeEndian.AppendUint32(dataPrefix, SPA_TYPE_Struct)
+		if data, err = MarshalAppend(data, d.NItems); err != nil {
+			return
 		}
 		for i := range d.Items {
-			if extraData, err := Marshal(d.Items[i].Key); err != nil {
-				return data, err
-			} else {
-				data = append(data, extraData...)
+			if data, err = MarshalAppend(data, d.Items[i].Key); err != nil {
+				return
 			}
-			if extraData, err := Marshal(d.Items[i].Value); err != nil {
-				return data, err
-			} else {
-				data = append(data, extraData...)
+			if data, err = MarshalAppend(data, d.Items[i].Value); err != nil {
+				return
 			}
 		}
-		return data, nil
+		return
 	})
 }
 
+// UnmarshalPOD satisfies [PODUnmarshaler] as [SPADict] violates the POD type system.
 func (d *SPADict) UnmarshalPOD(data []byte) (Word, error) {
 	var wireSize Word
 	if err := unmarshalCheckTypeBounds(&data, SPA_TYPE_Struct, &wireSize); err != nil {
