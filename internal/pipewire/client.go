@@ -50,10 +50,7 @@ type ClientInfo struct {
 func (c *ClientInfo) MarshalBinary() ([]byte, error) { return Marshal(c) }
 
 // UnmarshalBinary satisfies [encoding.BinaryUnmarshaler] via [Unmarshal].
-func (c *ClientInfo) UnmarshalBinary(data []byte) error {
-	_, err := Unmarshal(data, c)
-	return err
-}
+func (c *ClientInfo) UnmarshalBinary(data []byte) error { return Unmarshal(data, c) }
 
 // ClientUpdateProperties is used to update the properties of a client.
 type ClientUpdateProperties struct {
@@ -65,7 +62,4 @@ type ClientUpdateProperties struct {
 func (c *ClientUpdateProperties) MarshalBinary() ([]byte, error) { return Marshal(c) }
 
 // UnmarshalBinary satisfies [encoding.BinaryUnmarshaler] via [Unmarshal].
-func (c *ClientUpdateProperties) UnmarshalBinary(data []byte) error {
-	_, err := Unmarshal(data, c)
-	return err
-}
+func (c *ClientUpdateProperties) UnmarshalBinary(data []byte) error { return Unmarshal(data, c) }

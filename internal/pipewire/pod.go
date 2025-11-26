@@ -204,7 +204,19 @@ func (e *InvalidUnmarshalError) Error() string {
 // Unmarshal parses the PipeWire POD encoded data and stores the result
 // in the value pointed to by v. If v is nil or not a pointer,
 // Unmarshal returns an [InvalidUnmarshalError].
-func Unmarshal(data []byte, v any) (size Word, err error) {
+func Unmarshal(data []byte, v any) error {
+	if n, err := UnmarshalNext(data, v); err != nil {
+		return err
+	} else if len(data) > int(n) {
+		return &TrailingGarbageError{data[int(n):]}
+	}
+
+	return nil
+}
+
+// UnmarshalNext implements [Unmarshal] but returns the size of message decoded
+// and skips the final trailing garbage check.
+func UnmarshalNext(data []byte, v any) (size Word, err error) {
 	rv := reflect.ValueOf(v)
 	if rv.Kind() != reflect.Pointer || rv.IsNil() {
 		return 0, &InvalidUnmarshalError{reflect.TypeOf(v)}
@@ -399,10 +411,7 @@ type Footer[T any] struct {
 func (f *Footer[T]) MarshalBinary() ([]byte, error) { return Marshal(f) }
 
 // UnmarshalBinary satisfies [encoding.BinaryUnmarshaler] via [Unmarshal].
-func (f *Footer[T]) UnmarshalBinary(data []byte) error {
-	_, err := Unmarshal(data, f)
-	return err
-}
+func (f *Footer[T]) UnmarshalBinary(data []byte) error { return Unmarshal(data, f) }
 
 // SPADictItem is an encoding-compatible representation of spa_dict_item.
 type SPADictItem struct{ Key, Value string }
@@ -445,7 +454,7 @@ func (d *SPADict) UnmarshalPOD(data []byte) (Word, error) {
 	// bounds check completed in successful call to unmarshalCheckTypeBounds
 	data = data[:wireSize]
 
-	if size, err := Unmarshal(data, &d.NItems); err != nil {
+	if size, err := UnmarshalNext(data, &d.NItems); err != nil {
 		return wireSize, err
 	} else {
 		// bounds check completed in successful call to Unmarshal
@@ -454,13 +463,13 @@ func (d *SPADict) UnmarshalPOD(data []byte) (Word, error) {
 
 	d.Items = make([]SPADictItem, d.NItems)
 	for i := range d.Items {
-		if size, err := Unmarshal(data, &d.Items[i].Key); err != nil {
+		if size, err := UnmarshalNext(data, &d.Items[i].Key); err != nil {
 			return wireSize, err
 		} else {
 			// bounds check completed in successful call to Unmarshal
 			data = data[size:]
 		}
-		if size, err := Unmarshal(data, &d.Items[i].Value); err != nil {
+		if size, err := UnmarshalNext(data, &d.Items[i].Value); err != nil {
 			return wireSize, err
 		} else {
 			// bounds check completed in successful call to Unmarshal

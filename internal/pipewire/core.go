@@ -106,10 +106,7 @@ type CoreInfo struct {
 func (c *CoreInfo) MarshalBinary() ([]byte, error) { return Marshal(c) }
 
 // UnmarshalBinary satisfies [encoding.BinaryUnmarshaler] via [Unmarshal].
-func (c *CoreInfo) UnmarshalBinary(data []byte) error {
-	_, err := Unmarshal(data, c)
-	return err
-}
+func (c *CoreInfo) UnmarshalBinary(data []byte) error { return Unmarshal(data, c) }
 
 // The CoreBoundProps event is emitted when a local object ID is bound to a global ID.
 // It is emitted before the global becomes visible in the registry.
@@ -126,10 +123,7 @@ type CoreBoundProps struct {
 func (c *CoreBoundProps) MarshalBinary() ([]byte, error) { return Marshal(c) }
 
 // UnmarshalBinary satisfies [encoding.BinaryUnmarshaler] via [Unmarshal].
-func (c *CoreBoundProps) UnmarshalBinary(data []byte) error {
-	_, err := Unmarshal(data, c)
-	return err
-}
+func (c *CoreBoundProps) UnmarshalBinary(data []byte) error { return Unmarshal(data, c) }
 
 // CoreHello is the first message sent by a client.
 type CoreHello struct {
@@ -143,10 +137,7 @@ func (c *CoreHello) MarshalBinary() ([]byte, error) {
 }
 
 // UnmarshalBinary satisfies [encoding.BinaryUnmarshaler] via [Unmarshal].
-func (c *CoreHello) UnmarshalBinary(data []byte) error {
-	_, err := Unmarshal(data, c)
-	return err
-}
+func (c *CoreHello) UnmarshalBinary(data []byte) error { return Unmarshal(data, c) }
 
 const (
 	// CoreSyncSequenceOffset is the offset to [Header.Sequence] to produce [CoreSync.Sequence].
@@ -157,11 +148,9 @@ const (
 // When the Done event is received, the client can be sure that all
 // operations before the Sync method have been completed.
 type CoreSync struct {
-	// The id will be returned in the Done event,
-	// ends up as [Header.ID] in a future message.
+	// The id will be returned in the Done event.
 	ID Int
-	// Usually generated automatically and will be
-	// returned in the Done event.
+	// Usually generated automatically and will be returned in the Done event.
 	Sequence Int
 }
 
@@ -171,10 +160,7 @@ func (c *CoreSync) MarshalBinary() ([]byte, error) {
 }
 
 // UnmarshalBinary satisfies [encoding.BinaryUnmarshaler] via [Unmarshal].
-func (c *CoreSync) UnmarshalBinary(data []byte) error {
-	_, err := Unmarshal(data, c)
-	return err
-}
+func (c *CoreSync) UnmarshalBinary(data []byte) error { return Unmarshal(data, c) }
 
 // CoreGetRegistry is sent when a client requests to bind to the
 // registry object and list the available objects on the server.
@@ -197,7 +183,4 @@ func (c *CoreGetRegistry) MarshalBinary() ([]byte, error) {
 }
 
 // UnmarshalBinary satisfies [encoding.BinaryUnmarshaler] via [Unmarshal].
-func (c *CoreGetRegistry) UnmarshalBinary(data []byte) error {
-	_, err := Unmarshal(data, c)
-	return err
-}
+func (c *CoreGetRegistry) UnmarshalBinary(data []byte) error { return Unmarshal(data, c) }
