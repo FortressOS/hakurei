@@ -5,11 +5,14 @@ import (
 	"encoding/json"
 	"reflect"
 	"testing"
+
+	"hakurei.app/internal/pipewire"
 )
 
 type encodingTestCases[V any, S interface {
 	encoding.BinaryMarshaler
 	encoding.BinaryUnmarshaler
+
 	*V
 }] []struct {
 	// Uninterpreted name of subtest.
@@ -51,6 +54,14 @@ func (testCases encodingTestCases[V, S]) run(t *testing.T) {
 					t.Fatalf("MarshalBinary: %#v, want %#v", gotData, tc.wantData)
 				}
 			})
+
+			if s, ok := any(&tc.value).(pipewire.KnownSize); ok {
+				t.Run("size", func(t *testing.T) {
+					if got := int(s.Size()); got != len(tc.wantData) {
+						t.Errorf("Size: %d, want %d", got, len(tc.wantData))
+					}
+				})
+			}
 		})
 	}
 }

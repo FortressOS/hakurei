@@ -102,6 +102,19 @@ type CoreInfo struct {
 	Props *SPADict
 }
 
+// Size satisfies [KnownSize] with a value computed at runtime.
+func (c *CoreInfo) Size() Word {
+	return SizePrefix +
+		Size(SizeInt) +
+		Size(SizeInt) +
+		SizeString[Word](c.UserName) +
+		SizeString[Word](c.HostName) +
+		SizeString[Word](c.Version) +
+		SizeString[Word](c.Name) +
+		Size(SizeLong) +
+		c.Props.Size()
+}
+
 // MarshalBinary satisfies [encoding.BinaryMarshaler] via [Marshal].
 func (c *CoreInfo) MarshalBinary() ([]byte, error) { return Marshal(c) }
 
@@ -115,6 +128,9 @@ type CoreDone struct {
 	// Passed from [CoreSync.Sequence].
 	Sequence Int
 }
+
+// Size satisfies [KnownSize] with a constant value.
+func (c *CoreDone) Size() Word { return SizePrefix + Size(SizeInt) + Size(SizeInt) }
 
 // MarshalBinary satisfies [encoding.BinaryMarshaler] via [Marshal].
 func (c *CoreDone) MarshalBinary() ([]byte, error) { return Marshal(c) }
@@ -133,6 +149,14 @@ type CoreBoundProps struct {
 	Props *SPADict
 }
 
+// Size satisfies [KnownSize] with a value computed at runtime.
+func (c *CoreBoundProps) Size() Word {
+	return SizePrefix +
+		Size(SizeInt) +
+		Size(SizeInt) +
+		c.Props.Size()
+}
+
 // MarshalBinary satisfies [encoding.BinaryMarshaler] via [Marshal].
 func (c *CoreBoundProps) MarshalBinary() ([]byte, error) { return Marshal(c) }
 
@@ -144,6 +168,9 @@ type CoreHello struct {
 	// The version number of the client, usually PW_VERSION_CORE.
 	Version Int
 }
+
+// Size satisfies [KnownSize] with a constant value.
+func (c *CoreHello) Size() Word { return SizePrefix + Size(SizeInt) }
 
 // MarshalBinary satisfies [encoding.BinaryMarshaler] via [MarshalAppend].
 func (c *CoreHello) MarshalBinary() ([]byte, error) {
@@ -168,6 +195,9 @@ type CoreSync struct {
 	Sequence Int
 }
 
+// Size satisfies [KnownSize] with a constant value.
+func (c *CoreSync) Size() Word { return SizePrefix + Size(SizeInt) + Size(SizeInt) }
+
 // MarshalBinary satisfies [encoding.BinaryMarshaler] via [MarshalAppend].
 func (c *CoreSync) MarshalBinary() ([]byte, error) {
 	return MarshalAppend(make([]byte, 0, 40), c)
@@ -190,6 +220,9 @@ type CoreGetRegistry struct {
 	// ends up as [Header.ID] in future messages.
 	NewID Int
 }
+
+// Size satisfies [KnownSize] with a constant value.
+func (c *CoreGetRegistry) Size() Word { return SizePrefix + Size(SizeInt) + Size(SizeInt) }
 
 // MarshalBinary satisfies [encoding.BinaryMarshaler] via [MarshalAppend].
 func (c *CoreGetRegistry) MarshalBinary() ([]byte, error) {

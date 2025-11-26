@@ -46,6 +46,14 @@ type ClientInfo struct {
 	Props *SPADict
 }
 
+// Size satisfies [KnownSize] with a value computed at runtime.
+func (c *ClientInfo) Size() Word {
+	return SizePrefix +
+		Size(SizeInt) +
+		Size(SizeLong) +
+		c.Props.Size()
+}
+
 // MarshalBinary satisfies [encoding.BinaryMarshaler] via [Marshal].
 func (c *ClientInfo) MarshalBinary() ([]byte, error) { return Marshal(c) }
 
@@ -57,6 +65,9 @@ type ClientUpdateProperties struct {
 	// Props are properties to update on the client.
 	Props *SPADict
 }
+
+// Size satisfies [KnownSize] with a value computed at runtime.
+func (c *ClientUpdateProperties) Size() Word { return SizePrefix + c.Props.Size() }
 
 // MarshalBinary satisfies [encoding.BinaryMarshaler] via [Marshal].
 func (c *ClientUpdateProperties) MarshalBinary() ([]byte, error) { return Marshal(c) }

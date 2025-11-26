@@ -44,11 +44,11 @@ const (
 	SizePrefix = SizeSPrefix + SizeTPrefix
 
 	// SizeId is the fixed, unpadded size of a [SPA_TYPE_Id] value.
-	SizeId = 4
+	SizeId Word = 4
 	// SizeInt is the fixed, unpadded size of a [SPA_TYPE_Int] value.
-	SizeInt = 4
+	SizeInt Word = 4
 	// SizeLong is the fixed, unpadded size of a [SPA_TYPE_Long] value.
-	SizeLong = 8
+	SizeLong Word = 8
 )
 
 /* Basic types */
@@ -85,6 +85,24 @@ const (
 
 	_SPA_TYPE_LAST // not part of ABI
 )
+
+// A KnownSize value has known POD encoded size before serialisation.
+type KnownSize interface {
+	// Size returns the POD encoded size of the receiver.
+	Size() Word
+}
+
+// PaddingSize returns the padding size corresponding to a wire size.
+func PaddingSize[W Word | int](wireSize W) W { return (SizeAlign - (wireSize)%SizeAlign) % SizeAlign }
+
+// PaddedSize returns the padded size corresponding to a wire size.
+func PaddedSize[W Word | int](wireSize W) W { return wireSize + PaddingSize(wireSize) }
+
+// Size returns prefixed and padded size corresponding to a wire size.
+func Size[W Word | int](wireSize W) W { return SizePrefix + PaddedSize(wireSize) }
+
+// SizeString returns prefixed and padded size corresponding to a string.
+func SizeString[W Word | int](s string) W { return Size(W(len(s)) + 1) }
 
 // PODMarshaler is the interface implemented by an object that can
 // marshal itself into PipeWire POD encoding.
@@ -125,14 +143,13 @@ func appendInner(data []byte, f func(data []byte) ([]byte, error)) ([]byte, erro
 	}
 
 	size := len(rData) - len(data) + SizeSPrefix
-	paddingSize := (SizeAlign - (size)%SizeAlign) % SizeAlign
 	// compensated for size and type prefix
 	wireSize := size - SizePrefix
 	if wireSize > math.MaxUint32 {
 		return data, UnsupportedSizeError(wireSize)
 	}
 	binary.NativeEndian.PutUint32(rData[len(data)-SizeSPrefix:len(data)], Word(wireSize))
-	rData = append(rData, make([]byte, paddingSize)...)
+	rData = append(rData, make([]byte, PaddingSize(size))...)
 
 	return rData, nil
 }
@@ -242,7 +259,7 @@ func UnmarshalNext(data []byte, v any) (size Word, err error) {
 	}
 	err = unmarshalValue(data, rv.Elem(), &size)
 	// prefix and padding size
-	size += SizePrefix + (SizeAlign-(size)%SizeAlign)%SizeAlign
+	size = Size(size)
 	return
 }
 
@@ -325,9 +342,8 @@ func unmarshalValue(data []byte, v reflect.Value, wireSizeP *Word) error {
 			if err := unmarshalValue(data, v.Field(i), &fieldWireSize); err != nil {
 				return err
 			}
-			paddingSize := (SizeAlign - (fieldWireSize)%SizeAlign) % SizeAlign
 			// bounds check completed in successful call to unmarshalValue
-			data = data[SizePrefix+fieldWireSize+paddingSize:]
+			data = data[Size(fieldWireSize):]
 		}
 
 		if len(data) != 0 {
@@ -439,6 +455,17 @@ type SPADictItem struct{ Key, Value string }
 type SPADict struct {
 	NItems Int
 	Items  []SPADictItem
+}
+
+// Size satisfies [KnownSize] with a value computed at runtime.
+func (d *SPADict) Size() Word {
+	// struct prefix, NItems value
+	size := SizePrefix + int(Size(SizeInt))
+	for i := range d.Items {
+		size += SizeString[int](d.Items[i].Key)
+		size += SizeString[int](d.Items[i].Value)
+	}
+	return Word(size)
 }
 
 // MarshalPOD satisfies [PODMarshaler] as [SPADict] violates the POD type system.
