@@ -107,8 +107,9 @@ func SizeString[W Word | int](s string) W { return Size(W(len(s)) + 1) }
 // PODMarshaler is the interface implemented by an object that can
 // marshal itself into PipeWire POD encoding.
 type PODMarshaler interface {
-	// MarshalPOD encodes the receiver into PipeWire POD encoding and returns the result.
-	MarshalPOD() ([]byte, error)
+	// MarshalPOD encodes the receiver into PipeWire POD encoding,
+	// appends it to data, and returns the result.
+	MarshalPOD(data []byte) ([]byte, error)
 }
 
 // An UnsupportedTypeError is returned by [Marshal] when attempting
@@ -164,8 +165,9 @@ func appendInner(data []byte, f func(data []byte) ([]byte, error)) ([]byte, erro
 func marshalValueAppend(data []byte, v reflect.Value) ([]byte, error) {
 	if v.CanInterface() && (v.Kind() != reflect.Pointer || !v.IsNil()) {
 		if m, ok := v.Interface().(PODMarshaler); ok {
-			extraData, err := m.MarshalPOD()
-			return append(data, extraData...), err
+			var err error
+			data, err = m.MarshalPOD(data)
+			return data, err
 		}
 	}
 
@@ -475,8 +477,8 @@ func (d *SPADict) Size() Word {
 }
 
 // MarshalPOD satisfies [PODMarshaler] as [SPADict] violates the POD type system.
-func (d *SPADict) MarshalPOD() ([]byte, error) {
-	return appendInner(nil, func(dataPrefix []byte) (data []byte, err error) {
+func (d *SPADict) MarshalPOD(data []byte) ([]byte, error) {
+	return appendInner(data, func(dataPrefix []byte) (data []byte, err error) {
 		data = binary.NativeEndian.AppendUint32(dataPrefix, SPA_TYPE_Struct)
 		if data, err = MarshalAppend(data, d.NItems); err != nil {
 			return
