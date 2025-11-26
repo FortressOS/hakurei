@@ -12,7 +12,12 @@ func TestFooterCoreGeneration(t *testing.T) {
 	encodingTestCases[pipewire.Footer[pipewire.FooterCoreGeneration], *pipewire.Footer[pipewire.FooterCoreGeneration]]{
 		{"sample", []byte(recvmsg00Message00Footer), pipewire.Footer[pipewire.FooterCoreGeneration]{
 			Opcode:  pipewire.FOOTER_CORE_OPCODE_GENERATION,
-			Payload: pipewire.FooterCoreGeneration{RegistryGeneration: 34},
+			Payload: pipewire.FooterCoreGeneration{RegistryGeneration: 0x22},
+		}, nil},
+
+		{"sample*", []byte(recvmsg00Message05Footer), pipewire.Footer[pipewire.FooterCoreGeneration]{
+			Opcode:  pipewire.FOOTER_CORE_OPCODE_GENERATION,
+			Payload: pipewire.FooterCoreGeneration{RegistryGeneration: 0x23},
 		}, nil},
 	}.run(t)
 }
@@ -62,6 +67,17 @@ func TestCoreInfo(t *testing.T) {
 				{Key: "object.id", Value: "0"},
 				{Key: "object.serial", Value: "0"}},
 			}}, nil},
+	}.run(t)
+}
+
+func TestCoreDone(t *testing.T) {
+	t.Parallel()
+
+	encodingTestCases[pipewire.CoreDone, *pipewire.CoreDone]{
+		{"sample", []byte(recvmsg00Message05POD), pipewire.CoreDone{
+			ID:       -1,
+			Sequence: 0,
+		}, nil},
 	}.run(t)
 }
 

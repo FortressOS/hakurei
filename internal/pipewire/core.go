@@ -108,6 +108,20 @@ func (c *CoreInfo) MarshalBinary() ([]byte, error) { return Marshal(c) }
 // UnmarshalBinary satisfies [encoding.BinaryUnmarshaler] via [Unmarshal].
 func (c *CoreInfo) UnmarshalBinary(data []byte) error { return Unmarshal(data, c) }
 
+// The CoreDone event is emitted as a result of a client Sync method.
+type CoreDone struct {
+	// Passed from [CoreSync.ID].
+	ID Int
+	// Passed from [CoreSync.Sequence].
+	Sequence Int
+}
+
+// MarshalBinary satisfies [encoding.BinaryMarshaler] via [Marshal].
+func (c *CoreDone) MarshalBinary() ([]byte, error) { return Marshal(c) }
+
+// UnmarshalBinary satisfies [encoding.BinaryUnmarshaler] via [Unmarshal].
+func (c *CoreDone) UnmarshalBinary(data []byte) error { return Unmarshal(data, c) }
+
 // The CoreBoundProps event is emitted when a local object ID is bound to a global ID.
 // It is emitted before the global becomes visible in the registry.
 type CoreBoundProps struct {
