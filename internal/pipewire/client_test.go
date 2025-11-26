@@ -6,6 +6,27 @@ import (
 	"hakurei.app/internal/pipewire"
 )
 
+func TestClientInfo(t *testing.T) {
+	t.Parallel()
+
+	encodingTestCases[pipewire.ClientInfo, *pipewire.ClientInfo]{
+		{"sample", []byte(recvmsg00Message02POD), pipewire.ClientInfo{
+			ID:         34,
+			ChangeMask: pipewire.PW_CLIENT_CHANGE_MASK_PROPS,
+			Props: &pipewire.SPADict{NItems: 9, Items: []pipewire.SPADictItem{
+				{Key: "pipewire.protocol", Value: "protocol-native"},
+				{Key: "core.name", Value: "pipewire-0"},
+				{Key: "pipewire.sec.socket", Value: "pipewire-0-manager"},
+				{Key: "pipewire.sec.pid", Value: "1443"},
+				{Key: "pipewire.sec.uid", Value: "1000"},
+				{Key: "pipewire.sec.gid", Value: "100"},
+				{Key: "module.id", Value: "2"},
+				{Key: "object.id", Value: "34"},
+				{Key: "object.serial", Value: "34"},
+			}}}, nil},
+	}.run(t)
+}
+
 func TestClientUpdateProperties(t *testing.T) {
 	t.Parallel()
 

@@ -35,6 +35,26 @@ const (
 	PW_VERSION_CLIENT_METHODS = 0
 )
 
+// The ClientInfo event provides client information updates.
+// This is emitted when binding to a client or when the client info is updated later.
+type ClientInfo struct {
+	// The global id of the client.
+	ID Int
+	// The changes emitted by this event.
+	ChangeMask Long
+	// Properties of this object, valid when change_mask has PW_CLIENT_CHANGE_MASK_PROPS.
+	Props *SPADict
+}
+
+// MarshalBinary satisfies [encoding.BinaryMarshaler] via [Marshal].
+func (c *ClientInfo) MarshalBinary() ([]byte, error) { return Marshal(c) }
+
+// UnmarshalBinary satisfies [encoding.BinaryUnmarshaler] via [Unmarshal].
+func (c *ClientInfo) UnmarshalBinary(data []byte) error {
+	_, err := Unmarshal(data, c)
+	return err
+}
+
 // ClientUpdateProperties is used to update the properties of a client.
 type ClientUpdateProperties struct {
 	// Props are properties to update on the client.
