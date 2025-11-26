@@ -46,4 +46,9 @@ var (
 	recvmsg00Message03Header string
 	//go:embed testdata/16-recvmsg00-message03-POD
 	recvmsg00Message03POD string
+
+	//go:embed testdata/17-recvmsg00-message04-header
+	recvmsg00Message04Header string
+	//go:embed testdata/18-recvmsg00-message04-POD
+	recvmsg00Message04POD string
 )
