@@ -53,6 +53,12 @@ func TestHeader(t *testing.T) {
 			Size:   0x1f0, Sequence: 2, FileCount: 0,
 		}, nil},
 
+		{"PW_CLIENT_EVENT_INFO*", []byte(recvmsg00Message03Header), pipewire.Header{
+			ID:     pipewire.PW_ID_CLIENT,
+			Opcode: pipewire.PW_CLIENT_EVENT_INFO,
+			Size:   0x7a0, Sequence: 3, FileCount: 0,
+		}, nil},
+
 		{"PW_SECURITY_CONTEXT_METHOD_CREATE", []byte{
 			// Id
 			3, 0, 0, 0,
