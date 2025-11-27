@@ -225,3 +225,33 @@ func (c *CoreGetRegistry) MarshalBinary() ([]byte, error) { return Marshal(c) }
 
 // UnmarshalBinary satisfies [encoding.BinaryUnmarshaler] via [Unmarshal].
 func (c *CoreGetRegistry) UnmarshalBinary(data []byte) error { return Unmarshal(data, c) }
+
+// A RegistryGlobal event is emitted to notify a client about a new global object.
+type RegistryGlobal struct {
+	// The global id.
+	ID Int `json:"id"`
+	// Permission bits.
+	Permissions Int `json:"permissions"`
+	// The type of object.
+	Type String `json:"type"`
+	// The server version of the object.
+	Version Int `json:"version"`
+	// Extra global properties.
+	Properties *SPADict `json:"props"`
+}
+
+// Size satisfies [KnownSize] with a value computed at runtime.
+func (c *RegistryGlobal) Size() Word {
+	return SizePrefix +
+		Size(SizeInt) +
+		Size(SizeInt) +
+		SizeString[Word](c.Type) +
+		Size(SizeInt) +
+		c.Properties.Size()
+}
+
+// MarshalBinary satisfies [encoding.BinaryMarshaler] via [Marshal].
+func (c *RegistryGlobal) MarshalBinary() ([]byte, error) { return Marshal(c) }
+
+// UnmarshalBinary satisfies [encoding.BinaryUnmarshaler] via [Unmarshal].
+func (c *RegistryGlobal) UnmarshalBinary(data []byte) error { return Unmarshal(data, c) }

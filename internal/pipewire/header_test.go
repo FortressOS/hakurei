@@ -71,6 +71,216 @@ func TestHeader(t *testing.T) {
 			Size:   0x58, Sequence: 5, FileCount: 0,
 		}, nil},
 
+		{"PW_REGISTRY_EVENT_GLOBAL 0", samplePWContainer[1][6][0], pipewire.Header{
+			ID:     2, // this is specified by Core::GetRegistry in samplePWContainer[0][2][1]
+			Opcode: pipewire.PW_REGISTRY_EVENT_GLOBAL,
+			Size:   0xc8, Sequence: 6, FileCount: 0,
+		}, nil},
+
+		{"PW_REGISTRY_EVENT_GLOBAL 1", samplePWContainer[1][7][0], pipewire.Header{
+			ID:     2,
+			Opcode: pipewire.PW_REGISTRY_EVENT_GLOBAL,
+			Size:   0xd8, Sequence: 7, FileCount: 0,
+		}, nil},
+
+		{"PW_REGISTRY_EVENT_GLOBAL 2", samplePWContainer[1][8][0], pipewire.Header{
+			ID:     2,
+			Opcode: pipewire.PW_REGISTRY_EVENT_GLOBAL,
+			Size:   0xa8, Sequence: 8, FileCount: 0,
+		}, nil},
+
+		{"PW_REGISTRY_EVENT_GLOBAL 3", samplePWContainer[1][9][0], pipewire.Header{
+			ID:     2,
+			Opcode: pipewire.PW_REGISTRY_EVENT_GLOBAL,
+			Size:   0xe8, Sequence: 9, FileCount: 0,
+		}, nil},
+
+		{"PW_REGISTRY_EVENT_GLOBAL 4", samplePWContainer[1][10][0], pipewire.Header{
+			ID:     2,
+			Opcode: pipewire.PW_REGISTRY_EVENT_GLOBAL,
+			Size:   0xa0, Sequence: 10, FileCount: 0,
+		}, nil},
+
+		{"PW_REGISTRY_EVENT_GLOBAL 5", samplePWContainer[1][11][0], pipewire.Header{
+			ID:     2,
+			Opcode: pipewire.PW_REGISTRY_EVENT_GLOBAL,
+			Size:   0xe0, Sequence: 11, FileCount: 0,
+		}, nil},
+
+		{"PW_REGISTRY_EVENT_GLOBAL 6", samplePWContainer[1][12][0], pipewire.Header{
+			ID:     2,
+			Opcode: pipewire.PW_REGISTRY_EVENT_GLOBAL,
+			Size:   0xe0, Sequence: 12, FileCount: 0,
+		}, nil},
+
+		{"PW_REGISTRY_EVENT_GLOBAL 7", samplePWContainer[1][13][0], pipewire.Header{
+			ID:     2,
+			Opcode: pipewire.PW_REGISTRY_EVENT_GLOBAL,
+			Size:   0x170, Sequence: 13, FileCount: 0,
+		}, nil},
+
+		{"PW_REGISTRY_EVENT_GLOBAL 8", samplePWContainer[1][14][0], pipewire.Header{
+			ID:     2,
+			Opcode: pipewire.PW_REGISTRY_EVENT_GLOBAL,
+			Size:   0xe8, Sequence: 14, FileCount: 0,
+		}, nil},
+
+		{"PW_REGISTRY_EVENT_GLOBAL 9", samplePWContainer[1][15][0], pipewire.Header{
+			ID:     2,
+			Opcode: pipewire.PW_REGISTRY_EVENT_GLOBAL,
+			Size:   0x178, Sequence: 15, FileCount: 0,
+		}, nil},
+
+		{"PW_REGISTRY_EVENT_GLOBAL 10", samplePWContainer[1][16][0], pipewire.Header{
+			ID:     2,
+			Opcode: pipewire.PW_REGISTRY_EVENT_GLOBAL,
+			Size:   0xe8, Sequence: 16, FileCount: 0,
+		}, nil},
+
+		{"PW_REGISTRY_EVENT_GLOBAL 11", samplePWContainer[1][17][0], pipewire.Header{
+			ID:     2,
+			Opcode: pipewire.PW_REGISTRY_EVENT_GLOBAL,
+			Size:   0x170, Sequence: 17, FileCount: 0,
+		}, nil},
+
+		{"PW_REGISTRY_EVENT_GLOBAL 12", samplePWContainer[1][18][0], pipewire.Header{
+			ID:     2,
+			Opcode: pipewire.PW_REGISTRY_EVENT_GLOBAL,
+			Size:   0xe0, Sequence: 18, FileCount: 0,
+		}, nil},
+
+		{"PW_REGISTRY_EVENT_GLOBAL 13", samplePWContainer[1][19][0], pipewire.Header{
+			ID:     2,
+			Opcode: pipewire.PW_REGISTRY_EVENT_GLOBAL,
+			Size:   0x170, Sequence: 19, FileCount: 0,
+		}, nil},
+
+		{"PW_REGISTRY_EVENT_GLOBAL 14", samplePWContainer[1][20][0], pipewire.Header{
+			ID:     2,
+			Opcode: pipewire.PW_REGISTRY_EVENT_GLOBAL,
+			Size:   0xe8, Sequence: 20, FileCount: 0,
+		}, nil},
+
+		{"PW_REGISTRY_EVENT_GLOBAL 15", samplePWContainer[1][21][0], pipewire.Header{
+			ID:     2,
+			Opcode: pipewire.PW_REGISTRY_EVENT_GLOBAL,
+			Size:   0x170, Sequence: 21, FileCount: 0,
+		}, nil},
+
+		{"PW_REGISTRY_EVENT_GLOBAL 16", samplePWContainer[1][22][0], pipewire.Header{
+			ID:     2,
+			Opcode: pipewire.PW_REGISTRY_EVENT_GLOBAL,
+			Size:   0xe0, Sequence: 22, FileCount: 0,
+		}, nil},
+
+		{"PW_REGISTRY_EVENT_GLOBAL 17", samplePWContainer[1][23][0], pipewire.Header{
+			ID:     2,
+			Opcode: pipewire.PW_REGISTRY_EVENT_GLOBAL,
+			Size:   0xe0, Sequence: 23, FileCount: 0,
+		}, nil},
+
+		{"PW_REGISTRY_EVENT_GLOBAL 18", samplePWContainer[1][24][0], pipewire.Header{
+			ID:     2,
+			Opcode: pipewire.PW_REGISTRY_EVENT_GLOBAL,
+			Size:   0xe0, Sequence: 24, FileCount: 0,
+		}, nil},
+
+		{"PW_REGISTRY_EVENT_GLOBAL 19", samplePWContainer[1][25][0], pipewire.Header{
+			ID:     2,
+			Opcode: pipewire.PW_REGISTRY_EVENT_GLOBAL,
+			Size:   0x160, Sequence: 25, FileCount: 0,
+		}, nil},
+
+		{"PW_REGISTRY_EVENT_GLOBAL 20", samplePWContainer[1][26][0], pipewire.Header{
+			ID:     2,
+			Opcode: pipewire.PW_REGISTRY_EVENT_GLOBAL,
+			Size:   0xe0, Sequence: 26, FileCount: 0,
+		}, nil},
+
+		{"PW_REGISTRY_EVENT_GLOBAL 21", samplePWContainer[1][27][0], pipewire.Header{
+			ID:     2,
+			Opcode: pipewire.PW_REGISTRY_EVENT_GLOBAL,
+			Size:   0x168, Sequence: 27, FileCount: 0,
+		}, nil},
+
+		{"PW_REGISTRY_EVENT_GLOBAL 22", samplePWContainer[1][28][0], pipewire.Header{
+			ID:     2,
+			Opcode: pipewire.PW_REGISTRY_EVENT_GLOBAL,
+			Size:   0xe8, Sequence: 28, FileCount: 0,
+		}, nil},
+
+		{"PW_REGISTRY_EVENT_GLOBAL 23", samplePWContainer[1][29][0], pipewire.Header{
+			ID:     2,
+			Opcode: pipewire.PW_REGISTRY_EVENT_GLOBAL,
+			Size:   0x178, Sequence: 29, FileCount: 0,
+		}, nil},
+
+		{"PW_REGISTRY_EVENT_GLOBAL 24", samplePWContainer[1][30][0], pipewire.Header{
+			ID:     2,
+			Opcode: pipewire.PW_REGISTRY_EVENT_GLOBAL,
+			Size:   0x178, Sequence: 30, FileCount: 0,
+		}, nil},
+
+		{"PW_REGISTRY_EVENT_GLOBAL 25", samplePWContainer[1][31][0], pipewire.Header{
+			ID:     2,
+			Opcode: pipewire.PW_REGISTRY_EVENT_GLOBAL,
+			Size:   0x168, Sequence: 31, FileCount: 0,
+		}, nil},
+
+		{"PW_REGISTRY_EVENT_GLOBAL 26", samplePWContainer[1][32][0], pipewire.Header{
+			ID:     2,
+			Opcode: pipewire.PW_REGISTRY_EVENT_GLOBAL,
+			Size:   0x170, Sequence: 32, FileCount: 0,
+		}, nil},
+
+		{"PW_REGISTRY_EVENT_GLOBAL 27", samplePWContainer[1][33][0], pipewire.Header{
+			ID:     2,
+			Opcode: pipewire.PW_REGISTRY_EVENT_GLOBAL,
+			Size:   0x178, Sequence: 33, FileCount: 0,
+		}, nil},
+
+		{"PW_REGISTRY_EVENT_GLOBAL 28", samplePWContainer[1][34][0], pipewire.Header{
+			ID:     2,
+			Opcode: pipewire.PW_REGISTRY_EVENT_GLOBAL,
+			Size:   0x170, Sequence: 34, FileCount: 0,
+		}, nil},
+
+		{"PW_REGISTRY_EVENT_GLOBAL 29", samplePWContainer[1][35][0], pipewire.Header{
+			ID:     2,
+			Opcode: pipewire.PW_REGISTRY_EVENT_GLOBAL,
+			Size:   0xe0, Sequence: 35, FileCount: 0,
+		}, nil},
+
+		{"PW_REGISTRY_EVENT_GLOBAL 30", samplePWContainer[1][36][0], pipewire.Header{
+			ID:     2,
+			Opcode: pipewire.PW_REGISTRY_EVENT_GLOBAL,
+			Size:   0xe8, Sequence: 36, FileCount: 0,
+		}, nil},
+
+		{"PW_REGISTRY_EVENT_GLOBAL 31", samplePWContainer[1][37][0], pipewire.Header{
+			ID:     2,
+			Opcode: pipewire.PW_REGISTRY_EVENT_GLOBAL,
+			Size:   0x118, Sequence: 37, FileCount: 0,
+		}, nil},
+
+		{"PW_REGISTRY_EVENT_GLOBAL 32", samplePWContainer[1][38][0], pipewire.Header{
+			ID:     2,
+			Opcode: pipewire.PW_REGISTRY_EVENT_GLOBAL,
+			Size:   0x120, Sequence: 38, FileCount: 0,
+		}, nil},
+
+		{"PW_REGISTRY_EVENT_GLOBAL 33", samplePWContainer[1][39][0], pipewire.Header{
+			ID:     2,
+			Opcode: pipewire.PW_REGISTRY_EVENT_GLOBAL,
+			Size:   0xd0, Sequence: 39, FileCount: 0,
+		}, nil},
+
+		{"PW_REGISTRY_EVENT_GLOBAL 34", samplePWContainer[1][40][0], pipewire.Header{
+			ID:     2,
+			Opcode: pipewire.PW_REGISTRY_EVENT_GLOBAL,
+			Size:   0x238, Sequence: 40, FileCount: 0,
+		}, nil},
+
 		{"PW_SECURITY_CONTEXT_METHOD_CREATE", []byte{
 			// Id
 			3, 0, 0, 0,
