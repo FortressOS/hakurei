@@ -143,6 +143,15 @@ const (
 	PW_VERSION_MODULE_METHODS = 0
 )
 
+/* pipewire/impl-module.h */
+
+const (
+	PIPEWIRE_SYMBOL_MODULE_INIT = "pipewire__module_init"
+	PIPEWIRE_MODULE_PREFIX      = "libpipewire-"
+
+	PW_VERSION_IMPL_MODULE_EVENTS = 0
+)
+
 /* pipewire/node.h */
 
 const (
@@ -243,6 +252,8 @@ const (
 const (
 	PW_TYPE_INTERFACE_ClientNode = PW_TYPE_INFO_INTERFACE_BASE + "ClientNode"
 	PW_VERSION_CLIENT_NODE       = 6
+
+	PW_EXTENSION_MODULE_CLIENT_NODE = PIPEWIRE_MODULE_PREFIX + "module-client-node"
 )
 
 const (
@@ -292,6 +303,8 @@ const (
 	PW_TYPE_INTERFACE_Metadata = PW_TYPE_INFO_INTERFACE_BASE + "Metadata"
 	PW_METADATA_PERM_MASK      = PW_PERM_RWX
 	PW_VERSION_METADATA        = 3
+
+	PW_EXTENSION_MODULE_METADATA = PIPEWIRE_MODULE_PREFIX + "module-metadata"
 )
 
 const (
@@ -320,7 +333,9 @@ const (
 const (
 	PW_TYPE_INTERFACE_Profiler = PW_TYPE_INFO_INTERFACE_BASE + "Profiler"
 	PW_VERSION_PROFILER        = 3
-	W_PROFILER_PERM_MASK       = PW_PERM_R
+	PW_PROFILER_PERM_MASK      = PW_PERM_R
+
+	PW_EXTENSION_MODULE_PROFILER = PIPEWIRE_MODULE_PREFIX + "module-profiler"
 )
 
 const (
@@ -347,6 +362,8 @@ const (
 	PW_TYPE_INTERFACE_SecurityContext = PW_TYPE_INFO_INTERFACE_BASE + "SecurityContext"
 	PW_SECURITY_CONTEXT_PERM_MASK     = PW_PERM_RWX
 	PW_VERSION_SECURITY_CONTEXT       = 3
+
+	PW_EXTENSION_MODULE_SECURITY_CONTEXT = PIPEWIRE_MODULE_PREFIX + "module-security-context"
 )
 
 const (
