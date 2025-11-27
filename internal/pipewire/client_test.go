@@ -10,7 +10,7 @@ func TestClientInfo(t *testing.T) {
 	t.Parallel()
 
 	encodingTestCases[pipewire.ClientInfo, *pipewire.ClientInfo]{
-		{"sample", []byte(c1r2pod), pipewire.ClientInfo{
+		{"sample", samplePWContainer[1][2][1], pipewire.ClientInfo{
 			ID:         34,
 			ChangeMask: pipewire.PW_CLIENT_CHANGE_MASK_PROPS,
 			Props: &pipewire.SPADict{NItems: 9, Items: []pipewire.SPADictItem{
@@ -25,7 +25,7 @@ func TestClientInfo(t *testing.T) {
 				{Key: "object.serial", Value: "34"},
 			}}}, nil},
 
-		{"sample*", []byte(c1r3pod), pipewire.ClientInfo{
+		{"sample*", samplePWContainer[1][3][1], pipewire.ClientInfo{
 			ID:         34,
 			ChangeMask: pipewire.PW_CLIENT_CHANGE_MASK_PROPS,
 			Props: &pipewire.SPADict{NItems: 38, Items: []pipewire.SPADictItem{
@@ -69,7 +69,7 @@ func TestClientInfo(t *testing.T) {
 				{Key: "core.version", Value: "1.4.7"},
 			}}}, nil},
 
-		{"sample**", []byte(c1r4pod), pipewire.ClientInfo{
+		{"sample**", samplePWContainer[1][4][1], pipewire.ClientInfo{
 			ID:         34,
 			ChangeMask: pipewire.PW_CLIENT_CHANGE_MASK_PROPS,
 			Props: &pipewire.SPADict{NItems: 39, Items: []pipewire.SPADictItem{
@@ -120,7 +120,7 @@ func TestClientUpdateProperties(t *testing.T) {
 	t.Parallel()
 
 	encodingTestCases[pipewire.ClientUpdateProperties, *pipewire.ClientUpdateProperties]{
-		{"sample", []byte(c0s1pod), pipewire.ClientUpdateProperties{Props: &pipewire.SPADict{NItems: 0x1e, Items: []pipewire.SPADictItem{
+		{"sample", samplePWContainer[0][1][1], pipewire.ClientUpdateProperties{Props: &pipewire.SPADict{NItems: 0x1e, Items: []pipewire.SPADictItem{
 			{Key: "remote.intention", Value: "manager"},
 			{Key: "application.name", Value: "pw-container"},
 			{Key: "application.process.binary", Value: "pw-container"},

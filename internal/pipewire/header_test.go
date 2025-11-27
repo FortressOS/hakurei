@@ -11,61 +11,61 @@ func TestHeader(t *testing.T) {
 	t.Parallel()
 
 	encodingTestCases[pipewire.Header, *pipewire.Header]{
-		{"PW_CORE_METHOD_HELLO", []byte(c0s0header), pipewire.Header{
+		{"PW_CORE_METHOD_HELLO", samplePWContainer[0][0][0], pipewire.Header{
 			ID:     pipewire.PW_ID_CORE,
 			Opcode: pipewire.PW_CORE_METHOD_HELLO,
 			Size:   0x18, Sequence: 0, FileCount: 0,
 		}, nil},
 
-		{"PW_CLIENT_METHOD_UPDATE_PROPERTIES", []byte(c0s1header), pipewire.Header{
+		{"PW_CLIENT_METHOD_UPDATE_PROPERTIES", samplePWContainer[0][1][0], pipewire.Header{
 			ID:     pipewire.PW_ID_CLIENT,
 			Opcode: pipewire.PW_CLIENT_METHOD_UPDATE_PROPERTIES,
 			Size:   0x600, Sequence: 1, FileCount: 0,
 		}, nil},
 
-		{"PW_CORE_METHOD_GET_REGISTRY", []byte(c0s2header), pipewire.Header{
+		{"PW_CORE_METHOD_GET_REGISTRY", samplePWContainer[0][2][0], pipewire.Header{
 			ID:     pipewire.PW_ID_CORE,
 			Opcode: pipewire.PW_CORE_METHOD_GET_REGISTRY,
 			Size:   0x28, Sequence: 2, FileCount: 0,
 		}, nil},
 
-		{"PW_CORE_METHOD_SYNC", []byte(c0s3header), pipewire.Header{
+		{"PW_CORE_METHOD_SYNC", samplePWContainer[0][3][0], pipewire.Header{
 			ID:     pipewire.PW_ID_CORE,
 			Opcode: pipewire.PW_CORE_METHOD_SYNC,
 			Size:   0x28, Sequence: 3, FileCount: 0,
 		}, nil},
 
-		{"PW_CORE_EVENT_INFO", []byte(c1r0header), pipewire.Header{
+		{"PW_CORE_EVENT_INFO", samplePWContainer[1][0][0], pipewire.Header{
 			ID:     pipewire.PW_ID_CORE,
 			Opcode: pipewire.PW_CORE_EVENT_INFO,
 			Size:   0x6b8, Sequence: 0, FileCount: 0,
 		}, nil},
 
-		{"PW_CORE_EVENT_BOUND_PROPS", []byte(c1r1header), pipewire.Header{
+		{"PW_CORE_EVENT_BOUND_PROPS", samplePWContainer[1][1][0], pipewire.Header{
 			ID:     pipewire.PW_ID_CORE,
 			Opcode: pipewire.PW_CORE_EVENT_BOUND_PROPS,
 			Size:   0x198, Sequence: 1, FileCount: 0,
 		}, nil},
 
-		{"PW_CLIENT_EVENT_INFO", []byte(c1r2header), pipewire.Header{
+		{"PW_CLIENT_EVENT_INFO", samplePWContainer[1][2][0], pipewire.Header{
 			ID:     pipewire.PW_ID_CLIENT,
 			Opcode: pipewire.PW_CLIENT_EVENT_INFO,
 			Size:   0x1f0, Sequence: 2, FileCount: 0,
 		}, nil},
 
-		{"PW_CLIENT_EVENT_INFO*", []byte(c1r3header), pipewire.Header{
+		{"PW_CLIENT_EVENT_INFO*", samplePWContainer[1][3][0], pipewire.Header{
 			ID:     pipewire.PW_ID_CLIENT,
 			Opcode: pipewire.PW_CLIENT_EVENT_INFO,
 			Size:   0x7a0, Sequence: 3, FileCount: 0,
 		}, nil},
 
-		{"PW_CLIENT_EVENT_INFO**", []byte(c1r4header), pipewire.Header{
+		{"PW_CLIENT_EVENT_INFO**", samplePWContainer[1][4][0], pipewire.Header{
 			ID:     pipewire.PW_ID_CLIENT,
 			Opcode: pipewire.PW_CLIENT_EVENT_INFO,
 			Size:   0x7d0, Sequence: 4, FileCount: 0,
 		}, nil},
 
-		{"PW_CORE_EVENT_DONE", []byte(c1r5header), pipewire.Header{
+		{"PW_CORE_EVENT_DONE", samplePWContainer[1][5][0], pipewire.Header{
 			ID:     pipewire.PW_ID_CORE,
 			Opcode: pipewire.PW_CORE_EVENT_DONE,
 			Size:   0x58, Sequence: 5, FileCount: 0,

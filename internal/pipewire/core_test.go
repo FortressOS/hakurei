@@ -10,12 +10,12 @@ func TestFooterCoreGeneration(t *testing.T) {
 	t.Parallel()
 
 	encodingTestCases[pipewire.Footer[pipewire.FooterCoreGeneration], *pipewire.Footer[pipewire.FooterCoreGeneration]]{
-		{"sample", []byte(c1r0footer), pipewire.Footer[pipewire.FooterCoreGeneration]{
+		{"sample", samplePWContainer[1][0][2], pipewire.Footer[pipewire.FooterCoreGeneration]{
 			Opcode:  pipewire.FOOTER_CORE_OPCODE_GENERATION,
 			Payload: pipewire.FooterCoreGeneration{RegistryGeneration: 0x22},
 		}, nil},
 
-		{"sample*", []byte(c1r5footer), pipewire.Footer[pipewire.FooterCoreGeneration]{
+		{"sample*", samplePWContainer[1][5][2], pipewire.Footer[pipewire.FooterCoreGeneration]{
 			Opcode:  pipewire.FOOTER_CORE_OPCODE_GENERATION,
 			Payload: pipewire.FooterCoreGeneration{RegistryGeneration: 0x23},
 		}, nil},
@@ -26,7 +26,7 @@ func TestCoreInfo(t *testing.T) {
 	t.Parallel()
 
 	encodingTestCases[pipewire.CoreInfo, *pipewire.CoreInfo]{
-		{"sample", []byte(c1r0pod), pipewire.CoreInfo{
+		{"sample", samplePWContainer[1][0][1], pipewire.CoreInfo{
 			ID:         0,
 			Cookie:     -2069267610,
 			UserName:   "alice",
@@ -74,7 +74,7 @@ func TestCoreDone(t *testing.T) {
 	t.Parallel()
 
 	encodingTestCases[pipewire.CoreDone, *pipewire.CoreDone]{
-		{"sample", []byte(c1r5pod), pipewire.CoreDone{
+		{"sample", samplePWContainer[1][5][1], pipewire.CoreDone{
 			ID:       -1,
 			Sequence: 0,
 		}, nil},
@@ -85,7 +85,7 @@ func TestCoreBoundProps(t *testing.T) {
 	t.Parallel()
 
 	encodingTestCases[pipewire.CoreBoundProps, *pipewire.CoreBoundProps]{
-		{"sample", []byte(c1r1pod), pipewire.CoreBoundProps{
+		{"sample", samplePWContainer[1][1][1], pipewire.CoreBoundProps{
 			ID:       pipewire.PW_ID_CLIENT,
 			GlobalID: 34,
 			Props: &pipewire.SPADict{NItems: 7, Items: []pipewire.SPADictItem{
@@ -104,7 +104,7 @@ func TestCoreHello(t *testing.T) {
 	t.Parallel()
 
 	encodingTestCases[pipewire.CoreHello, *pipewire.CoreHello]{
-		{"sample", []byte(c0s0pod), pipewire.CoreHello{
+		{"sample", samplePWContainer[0][0][1], pipewire.CoreHello{
 			Version: pipewire.PW_VERSION_CORE,
 		}, nil},
 	}.run(t)
@@ -114,7 +114,7 @@ func TestCoreSync(t *testing.T) {
 	t.Parallel()
 
 	encodingTestCases[pipewire.CoreSync, *pipewire.CoreSync]{
-		{"sample", []byte(c0s3pod), pipewire.CoreSync{
+		{"sample", samplePWContainer[0][3][1], pipewire.CoreSync{
 			ID:       pipewire.PW_ID_CORE,
 			Sequence: pipewire.CoreSyncSequenceOffset + 3,
 		}, nil},
@@ -125,7 +125,7 @@ func TestCoreGetRegistry(t *testing.T) {
 	t.Parallel()
 
 	encodingTestCases[pipewire.CoreGetRegistry, *pipewire.CoreGetRegistry]{
-		{"sample", []byte(c0s2pod), pipewire.CoreGetRegistry{
+		{"sample", samplePWContainer[0][2][1], pipewire.CoreGetRegistry{
 			Version: pipewire.PW_VERSION_REGISTRY,
 			NewID:   2,
 		}, nil},
