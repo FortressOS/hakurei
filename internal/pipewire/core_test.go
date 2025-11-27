@@ -34,7 +34,7 @@ func TestCoreInfo(t *testing.T) {
 			Version:    "1.4.7",
 			Name:       "pipewire-0",
 			ChangeMask: pipewire.PW_CORE_CHANGE_MASK_PROPS,
-			Props: &pipewire.SPADict{
+			Properties: &pipewire.SPADict{
 				{Key: "config.name", Value: "pipewire.conf"},
 				{Key: "application.name", Value: "pipewire"},
 				{Key: "application.process.binary", Value: "pipewire"},
@@ -88,7 +88,7 @@ func TestCoreBoundProps(t *testing.T) {
 		{"sample", samplePWContainer[1][1][1], pipewire.CoreBoundProps{
 			ID:       pipewire.PW_ID_CLIENT,
 			GlobalID: 34,
-			Props: &pipewire.SPADict{
+			Properties: &pipewire.SPADict{
 				{Key: "object.serial", Value: "34"},
 				{Key: "module.id", Value: "2"},
 				{Key: "pipewire.protocol", Value: "protocol-native"},

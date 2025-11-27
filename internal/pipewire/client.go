@@ -39,11 +39,11 @@ const (
 // This is emitted when binding to a client or when the client info is updated later.
 type ClientInfo struct {
 	// The global id of the client.
-	ID Int
+	ID Int `json:"id"`
 	// The changes emitted by this event.
-	ChangeMask Long
+	ChangeMask Long `json:"change_mask"`
 	// Properties of this object, valid when change_mask has PW_CLIENT_CHANGE_MASK_PROPS.
-	Props *SPADict
+	Properties *SPADict `json:"props"`
 }
 
 // Size satisfies [KnownSize] with a value computed at runtime.
@@ -51,7 +51,7 @@ func (c *ClientInfo) Size() Word {
 	return SizePrefix +
 		Size(SizeInt) +
 		Size(SizeLong) +
-		c.Props.Size()
+		c.Properties.Size()
 }
 
 // MarshalBinary satisfies [encoding.BinaryMarshaler] via [Marshal].
@@ -62,12 +62,12 @@ func (c *ClientInfo) UnmarshalBinary(data []byte) error { return Unmarshal(data,
 
 // ClientUpdateProperties is used to update the properties of a client.
 type ClientUpdateProperties struct {
-	// Props are properties to update on the client.
-	Props *SPADict
+	// Properties to update on the client.
+	Properties *SPADict `json:"props"`
 }
 
 // Size satisfies [KnownSize] with a value computed at runtime.
-func (c *ClientUpdateProperties) Size() Word { return SizePrefix + c.Props.Size() }
+func (c *ClientUpdateProperties) Size() Word { return SizePrefix + c.Properties.Size() }
 
 // MarshalBinary satisfies [encoding.BinaryMarshaler] via [Marshal].
 func (c *ClientUpdateProperties) MarshalBinary() ([]byte, error) { return Marshal(c) }

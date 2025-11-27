@@ -445,9 +445,9 @@ func unmarshalCheckTypeBounds(data *[]byte, t Word, sizeP *Word) error {
 // the destination object defined by the Id field.
 type Footer[T any] struct {
 	// The footer opcode.
-	Opcode Id
+	Opcode Id `json:"opcode"`
 	// The footer payload struct.
-	Payload T
+	Payload T `json:"payload"`
 }
 
 // MarshalBinary satisfies [encoding.BinaryMarshaler] via [Marshal].

@@ -78,28 +78,28 @@ const (
 // The server shall include this footer in the next message it sends that
 // follows the increment of the registry generation number.
 type FooterCoreGeneration struct {
-	RegistryGeneration Long
+	RegistryGeneration Long `json:"registry_generation"`
 }
 
 // A CoreInfo event is emitted by the server upon connection
 // with the more information about the server.
 type CoreInfo struct {
 	// The id of the server (PW_ID_CORE).
-	ID Int
+	ID Int `json:"id"`
 	// A unique cookie for this server.
-	Cookie Int
+	Cookie Int `json:"cookie"`
 	// The name of the user running the server.
-	UserName String
+	UserName String `json:"user_name"`
 	// The name of the host running the server.
-	HostName String
+	HostName String `json:"host_name"`
 	// A version string of the server.
-	Version String
+	Version String `json:"version"`
 	// The name of the server.
-	Name String
+	Name String `json:"name"`
 	// A set of bits with changes to the info.
-	ChangeMask Long
+	ChangeMask Long `json:"change_mask"`
 	// Optional key/value properties, valid when change_mask has PW_CORE_CHANGE_MASK_PROPS.
-	Props *SPADict
+	Properties *SPADict `json:"props"`
 }
 
 // Size satisfies [KnownSize] with a value computed at runtime.
@@ -112,7 +112,7 @@ func (c *CoreInfo) Size() Word {
 		SizeString[Word](c.Version) +
 		SizeString[Word](c.Name) +
 		Size(SizeLong) +
-		c.Props.Size()
+		c.Properties.Size()
 }
 
 // MarshalBinary satisfies [encoding.BinaryMarshaler] via [Marshal].
@@ -124,9 +124,9 @@ func (c *CoreInfo) UnmarshalBinary(data []byte) error { return Unmarshal(data, c
 // The CoreDone event is emitted as a result of a client Sync method.
 type CoreDone struct {
 	// Passed from [CoreSync.ID].
-	ID Int
+	ID Int `json:"id"`
 	// Passed from [CoreSync.Sequence].
-	Sequence Int
+	Sequence Int `json:"sequence"`
 }
 
 // Size satisfies [KnownSize] with a constant value.
@@ -142,11 +142,11 @@ func (c *CoreDone) UnmarshalBinary(data []byte) error { return Unmarshal(data, c
 // It is emitted before the global becomes visible in the registry.
 type CoreBoundProps struct {
 	// A proxy id.
-	ID Int
+	ID Int `json:"id"`
 	// The global_id as it will appear in the registry.
-	GlobalID Int
+	GlobalID Int `json:"global_id"`
 	// The properties of the global.
-	Props *SPADict
+	Properties *SPADict `json:"props"`
 }
 
 // Size satisfies [KnownSize] with a value computed at runtime.
@@ -154,7 +154,7 @@ func (c *CoreBoundProps) Size() Word {
 	return SizePrefix +
 		Size(SizeInt) +
 		Size(SizeInt) +
-		c.Props.Size()
+		c.Properties.Size()
 }
 
 // MarshalBinary satisfies [encoding.BinaryMarshaler] via [Marshal].
@@ -166,7 +166,7 @@ func (c *CoreBoundProps) UnmarshalBinary(data []byte) error { return Unmarshal(d
 // CoreHello is the first message sent by a client.
 type CoreHello struct {
 	// The version number of the client, usually PW_VERSION_CORE.
-	Version Int
+	Version Int `json:"version"`
 }
 
 // Size satisfies [KnownSize] with a constant value.
@@ -188,9 +188,9 @@ const (
 // operations before the Sync method have been completed.
 type CoreSync struct {
 	// The id will be returned in the Done event.
-	ID Int
+	ID Int `json:"id"`
 	// Usually generated automatically and will be returned in the Done event.
-	Sequence Int
+	Sequence Int `json:"sequence"`
 }
 
 // Size satisfies [KnownSize] with a constant value.
@@ -211,10 +211,10 @@ func (c *CoreSync) UnmarshalBinary(data []byte) error { return Unmarshal(data, c
 type CoreGetRegistry struct {
 	// The version of the registry interface used on the client,
 	// usually PW_VERSION_REGISTRY.
-	Version Int
+	Version Int `json:"version"`
 	// The id of the new proxy with the registry interface,
 	// ends up as [Header.ID] in future messages.
-	NewID Int
+	NewID Int `json:"new_id"`
 }
 
 // Size satisfies [KnownSize] with a constant value.

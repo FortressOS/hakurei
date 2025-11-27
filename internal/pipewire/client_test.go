@@ -13,7 +13,7 @@ func TestClientInfo(t *testing.T) {
 		{"sample", samplePWContainer[1][2][1], pipewire.ClientInfo{
 			ID:         34,
 			ChangeMask: pipewire.PW_CLIENT_CHANGE_MASK_PROPS,
-			Props: &pipewire.SPADict{
+			Properties: &pipewire.SPADict{
 				{Key: "pipewire.protocol", Value: "protocol-native"},
 				{Key: "core.name", Value: "pipewire-0"},
 				{Key: "pipewire.sec.socket", Value: "pipewire-0-manager"},
@@ -28,7 +28,7 @@ func TestClientInfo(t *testing.T) {
 		{"sample*", samplePWContainer[1][3][1], pipewire.ClientInfo{
 			ID:         34,
 			ChangeMask: pipewire.PW_CLIENT_CHANGE_MASK_PROPS,
-			Props: &pipewire.SPADict{
+			Properties: &pipewire.SPADict{
 				{Key: "pipewire.protocol", Value: "protocol-native"},
 				{Key: "core.name", Value: "pipewire-alice-1443"},
 				{Key: "pipewire.sec.socket", Value: "pipewire-0-manager"},
@@ -72,7 +72,7 @@ func TestClientInfo(t *testing.T) {
 		{"sample**", samplePWContainer[1][4][1], pipewire.ClientInfo{
 			ID:         34,
 			ChangeMask: pipewire.PW_CLIENT_CHANGE_MASK_PROPS,
-			Props: &pipewire.SPADict{
+			Properties: &pipewire.SPADict{
 				{Key: "pipewire.protocol", Value: "protocol-native"},
 				{Key: "core.name", Value: "pipewire-alice-1443"},
 				{Key: "pipewire.sec.socket", Value: "pipewire-0-manager"},
@@ -120,7 +120,7 @@ func TestClientUpdateProperties(t *testing.T) {
 	t.Parallel()
 
 	encodingTestCases[pipewire.ClientUpdateProperties, *pipewire.ClientUpdateProperties]{
-		{"sample", samplePWContainer[0][1][1], pipewire.ClientUpdateProperties{Props: &pipewire.SPADict{
+		{"sample", samplePWContainer[0][1][1], pipewire.ClientUpdateProperties{Properties: &pipewire.SPADict{
 			{Key: "remote.intention", Value: "manager"},
 			{Key: "application.name", Value: "pw-container"},
 			{Key: "application.process.binary", Value: "pw-container"},
