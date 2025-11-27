@@ -456,14 +456,11 @@ func (f *Footer[T]) MarshalBinary() ([]byte, error) { return Marshal(f) }
 // UnmarshalBinary satisfies [encoding.BinaryUnmarshaler] via [Unmarshal].
 func (f *Footer[T]) UnmarshalBinary(data []byte) error { return Unmarshal(data, f) }
 
-// SPADictItem is an encoding-compatible representation of spa_dict_item.
+// SPADictItem represents spa_dict_item.
 type SPADictItem struct{ Key, Value string }
 
-// SPADict is an encoding-compatible representation of spa_dict.
-type SPADict struct {
-	NItems Int
-	Items  []SPADictItem
-}
+// SPADict represents spa_dict.
+type SPADict []SPADictItem
 
 // Size satisfies [KnownSize] with a value computed at runtime.
 func (d *SPADict) Size() Word {
@@ -473,9 +470,9 @@ func (d *SPADict) Size() Word {
 
 	// struct prefix, NItems value
 	size := SizePrefix + int(Size(SizeInt))
-	for i := range d.Items {
-		size += SizeString[int](d.Items[i].Key)
-		size += SizeString[int](d.Items[i].Value)
+	for i := range *d {
+		size += SizeString[int]((*d)[i].Key)
+		size += SizeString[int]((*d)[i].Value)
 	}
 	return Word(size)
 }
@@ -484,14 +481,14 @@ func (d *SPADict) Size() Word {
 func (d *SPADict) MarshalPOD(data []byte) ([]byte, error) {
 	return appendInner(data, func(dataPrefix []byte) (data []byte, err error) {
 		data = binary.NativeEndian.AppendUint32(dataPrefix, SPA_TYPE_Struct)
-		if data, err = MarshalAppend(data, d.NItems); err != nil {
+		if data, err = MarshalAppend(data, Int(len(*d))); err != nil {
 			return
 		}
-		for i := range d.Items {
-			if data, err = MarshalAppend(data, d.Items[i].Key); err != nil {
+		for i := range *d {
+			if data, err = MarshalAppend(data, (*d)[i].Key); err != nil {
 				return
 			}
-			if data, err = MarshalAppend(data, d.Items[i].Value); err != nil {
+			if data, err = MarshalAppend(data, (*d)[i].Value); err != nil {
 				return
 			}
 		}
@@ -508,22 +505,23 @@ func (d *SPADict) UnmarshalPOD(data []byte) (Word, error) {
 	// bounds check completed in successful call to unmarshalCheckTypeBounds
 	data = data[:wireSize]
 
-	if size, err := UnmarshalNext(data, &d.NItems); err != nil {
+	var count Int
+	if size, err := UnmarshalNext(data, &count); err != nil {
 		return wireSize, err
 	} else {
 		// bounds check completed in successful call to Unmarshal
 		data = data[size:]
 	}
 
-	d.Items = make([]SPADictItem, d.NItems)
-	for i := range d.Items {
-		if size, err := UnmarshalNext(data, &d.Items[i].Key); err != nil {
+	*d = make([]SPADictItem, count)
+	for i := range *d {
+		if size, err := UnmarshalNext(data, &(*d)[i].Key); err != nil {
 			return wireSize, err
 		} else {
 			// bounds check completed in successful call to Unmarshal
 			data = data[size:]
 		}
-		if size, err := UnmarshalNext(data, &d.Items[i].Value); err != nil {
+		if size, err := UnmarshalNext(data, &(*d)[i].Value); err != nil {
 			return wireSize, err
 		} else {
 			// bounds check completed in successful call to Unmarshal

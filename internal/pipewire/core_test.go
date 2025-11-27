@@ -34,7 +34,7 @@ func TestCoreInfo(t *testing.T) {
 			Version:    "1.4.7",
 			Name:       "pipewire-0",
 			ChangeMask: pipewire.PW_CORE_CHANGE_MASK_PROPS,
-			Props: &pipewire.SPADict{NItems: 31, Items: []pipewire.SPADictItem{
+			Props: &pipewire.SPADict{
 				{Key: "config.name", Value: "pipewire.conf"},
 				{Key: "application.name", Value: "pipewire"},
 				{Key: "application.process.binary", Value: "pipewire"},
@@ -66,7 +66,7 @@ func TestCoreInfo(t *testing.T) {
 				{Key: "settings.check-rate", Value: "false"},
 				{Key: "object.id", Value: "0"},
 				{Key: "object.serial", Value: "0"}},
-			}}, nil},
+		}, nil},
 	}.run(t)
 }
 
@@ -88,7 +88,7 @@ func TestCoreBoundProps(t *testing.T) {
 		{"sample", samplePWContainer[1][1][1], pipewire.CoreBoundProps{
 			ID:       pipewire.PW_ID_CLIENT,
 			GlobalID: 34,
-			Props: &pipewire.SPADict{NItems: 7, Items: []pipewire.SPADictItem{
+			Props: &pipewire.SPADict{
 				{Key: "object.serial", Value: "34"},
 				{Key: "module.id", Value: "2"},
 				{Key: "pipewire.protocol", Value: "protocol-native"},
@@ -96,7 +96,7 @@ func TestCoreBoundProps(t *testing.T) {
 				{Key: "pipewire.sec.uid", Value: "1000"},
 				{Key: "pipewire.sec.gid", Value: "100"},
 				{Key: "pipewire.sec.socket", Value: "pipewire-0-manager"}},
-			}}, nil},
+		}, nil},
 	}.run(t)
 }
 

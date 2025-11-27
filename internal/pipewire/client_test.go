@@ -13,7 +13,7 @@ func TestClientInfo(t *testing.T) {
 		{"sample", samplePWContainer[1][2][1], pipewire.ClientInfo{
 			ID:         34,
 			ChangeMask: pipewire.PW_CLIENT_CHANGE_MASK_PROPS,
-			Props: &pipewire.SPADict{NItems: 9, Items: []pipewire.SPADictItem{
+			Props: &pipewire.SPADict{
 				{Key: "pipewire.protocol", Value: "protocol-native"},
 				{Key: "core.name", Value: "pipewire-0"},
 				{Key: "pipewire.sec.socket", Value: "pipewire-0-manager"},
@@ -23,12 +23,12 @@ func TestClientInfo(t *testing.T) {
 				{Key: "module.id", Value: "2"},
 				{Key: "object.id", Value: "34"},
 				{Key: "object.serial", Value: "34"},
-			}}}, nil},
+			}}, nil},
 
 		{"sample*", samplePWContainer[1][3][1], pipewire.ClientInfo{
 			ID:         34,
 			ChangeMask: pipewire.PW_CLIENT_CHANGE_MASK_PROPS,
-			Props: &pipewire.SPADict{NItems: 38, Items: []pipewire.SPADictItem{
+			Props: &pipewire.SPADict{
 				{Key: "pipewire.protocol", Value: "protocol-native"},
 				{Key: "core.name", Value: "pipewire-alice-1443"},
 				{Key: "pipewire.sec.socket", Value: "pipewire-0-manager"},
@@ -67,12 +67,12 @@ func TestClientInfo(t *testing.T) {
 				{Key: "settings.check-quantum", Value: "false"},
 				{Key: "settings.check-rate", Value: "false"},
 				{Key: "core.version", Value: "1.4.7"},
-			}}}, nil},
+			}}, nil},
 
 		{"sample**", samplePWContainer[1][4][1], pipewire.ClientInfo{
 			ID:         34,
 			ChangeMask: pipewire.PW_CLIENT_CHANGE_MASK_PROPS,
-			Props: &pipewire.SPADict{NItems: 39, Items: []pipewire.SPADictItem{
+			Props: &pipewire.SPADict{
 				{Key: "pipewire.protocol", Value: "protocol-native"},
 				{Key: "core.name", Value: "pipewire-alice-1443"},
 				{Key: "pipewire.sec.socket", Value: "pipewire-0-manager"},
@@ -112,7 +112,7 @@ func TestClientInfo(t *testing.T) {
 				{Key: "settings.check-rate", Value: "false"},
 				{Key: "core.version", Value: "1.4.7"},
 				{Key: "pipewire.access", Value: "unrestricted"},
-			}}}, nil},
+			}}, nil},
 	}.run(t)
 }
 
@@ -120,7 +120,7 @@ func TestClientUpdateProperties(t *testing.T) {
 	t.Parallel()
 
 	encodingTestCases[pipewire.ClientUpdateProperties, *pipewire.ClientUpdateProperties]{
-		{"sample", samplePWContainer[0][1][1], pipewire.ClientUpdateProperties{Props: &pipewire.SPADict{NItems: 0x1e, Items: []pipewire.SPADictItem{
+		{"sample", samplePWContainer[0][1][1], pipewire.ClientUpdateProperties{Props: &pipewire.SPADict{
 			{Key: "remote.intention", Value: "manager"},
 			{Key: "application.name", Value: "pw-container"},
 			{Key: "application.process.binary", Value: "pw-container"},
@@ -151,6 +151,6 @@ func TestClientUpdateProperties(t *testing.T) {
 			{Key: "settings.check-rate", Value: "false"},
 			{Key: "core.version", Value: "1.4.7"},
 			{Key: "core.name", Value: "pipewire-alice-1443"},
-		}}}, nil},
+		}}, nil},
 	}.run(t)
 }
