@@ -81,6 +81,16 @@ type FooterCoreGeneration struct {
 	RegistryGeneration Long `json:"registry_generation"`
 }
 
+// The FooterClientGeneration indicates to the server what is the last
+// registry generation number the client has processed.
+//
+// The client shall include this footer in the next message it sends,
+// after it has processed an incoming message whose footer includes a
+// registry generation update.
+type FooterClientGeneration struct {
+	ClientGeneration Long `json:"client_generation"`
+}
+
 // A CoreInfo event is emitted by the server upon connection
 // with the more information about the server.
 type CoreInfo struct {

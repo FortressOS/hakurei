@@ -10,14 +10,31 @@ func TestFooterCoreGeneration(t *testing.T) {
 	t.Parallel()
 
 	encodingTestCases[pipewire.Footer[pipewire.FooterCoreGeneration], *pipewire.Footer[pipewire.FooterCoreGeneration]]{
-		{"sample", samplePWContainer[1][0][2], pipewire.Footer[pipewire.FooterCoreGeneration]{
+		/* recvmsg 0 */
+
+		{"sample0", samplePWContainer[1][0][2], pipewire.Footer[pipewire.FooterCoreGeneration]{
 			Opcode:  pipewire.FOOTER_CORE_OPCODE_GENERATION,
 			Payload: pipewire.FooterCoreGeneration{RegistryGeneration: 0x22},
 		}, nil},
 
-		{"sample*", samplePWContainer[1][5][2], pipewire.Footer[pipewire.FooterCoreGeneration]{
+		{"sample1", samplePWContainer[1][5][2], pipewire.Footer[pipewire.FooterCoreGeneration]{
 			Opcode:  pipewire.FOOTER_CORE_OPCODE_GENERATION,
 			Payload: pipewire.FooterCoreGeneration{RegistryGeneration: 0x23},
+		}, nil},
+
+		{"sample2", samplePWContainer[1][42][2], pipewire.Footer[pipewire.FooterCoreGeneration]{
+			Opcode:  pipewire.FOOTER_CORE_OPCODE_GENERATION,
+			Payload: pipewire.FooterCoreGeneration{RegistryGeneration: 0x24},
+		}, nil},
+	}.run(t)
+
+	encodingTestCases[pipewire.Footer[pipewire.FooterClientGeneration], *pipewire.Footer[pipewire.FooterClientGeneration]]{
+		/* sendmsg 1 */
+
+		{"sample0", samplePWContainer[3][0][2], pipewire.Footer[pipewire.FooterClientGeneration]{
+			Opcode: pipewire.FOOTER_CORE_OPCODE_GENERATION,
+			// why does this not match FooterCoreGeneration sample2?
+			Payload: pipewire.FooterClientGeneration{ClientGeneration: 0x23},
 		}, nil},
 	}.run(t)
 }
