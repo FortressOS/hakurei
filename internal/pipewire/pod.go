@@ -457,7 +457,15 @@ func (f *Footer[T]) MarshalBinary() ([]byte, error) { return Marshal(f) }
 func (f *Footer[T]) UnmarshalBinary(data []byte) error { return Unmarshal(data, f) }
 
 // SPADictItem represents spa_dict_item.
-type SPADictItem struct{ Key, Value string }
+type SPADictItem struct {
+	// Dot-separated string.
+	Key string `json:"key"`
+	// Arbitrary string.
+	//
+	// Integer values are represented in base 10,
+	// boolean values are represented as "true" or "false".
+	Value string `json:"value"`
+}
 
 // SPADict represents spa_dict.
 type SPADict []SPADictItem

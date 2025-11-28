@@ -11,6 +11,9 @@ func TestHeader(t *testing.T) {
 	t.Parallel()
 
 	encodingTestCases[pipewire.Header, *pipewire.Header]{
+
+		/* sendmsg 0 */
+
 		{"PW_CORE_METHOD_HELLO", samplePWContainer[0][0][0], pipewire.Header{
 			ID:     pipewire.PW_ID_CORE,
 			Opcode: pipewire.PW_CORE_METHOD_HELLO,
@@ -35,37 +38,39 @@ func TestHeader(t *testing.T) {
 			Size:   0x28, Sequence: 3, FileCount: 0,
 		}, nil},
 
+		/* recvmsg 0 */
+
 		{"PW_CORE_EVENT_INFO", samplePWContainer[1][0][0], pipewire.Header{
 			ID:     pipewire.PW_ID_CORE,
 			Opcode: pipewire.PW_CORE_EVENT_INFO,
 			Size:   0x6b8, Sequence: 0, FileCount: 0,
 		}, nil},
 
-		{"PW_CORE_EVENT_BOUND_PROPS", samplePWContainer[1][1][0], pipewire.Header{
+		{"PW_CORE_EVENT_BOUND_PROPS 0", samplePWContainer[1][1][0], pipewire.Header{
 			ID:     pipewire.PW_ID_CORE,
 			Opcode: pipewire.PW_CORE_EVENT_BOUND_PROPS,
 			Size:   0x198, Sequence: 1, FileCount: 0,
 		}, nil},
 
-		{"PW_CLIENT_EVENT_INFO", samplePWContainer[1][2][0], pipewire.Header{
+		{"PW_CLIENT_EVENT_INFO 0", samplePWContainer[1][2][0], pipewire.Header{
 			ID:     pipewire.PW_ID_CLIENT,
 			Opcode: pipewire.PW_CLIENT_EVENT_INFO,
 			Size:   0x1f0, Sequence: 2, FileCount: 0,
 		}, nil},
 
-		{"PW_CLIENT_EVENT_INFO*", samplePWContainer[1][3][0], pipewire.Header{
+		{"PW_CLIENT_EVENT_INFO 1", samplePWContainer[1][3][0], pipewire.Header{
 			ID:     pipewire.PW_ID_CLIENT,
 			Opcode: pipewire.PW_CLIENT_EVENT_INFO,
 			Size:   0x7a0, Sequence: 3, FileCount: 0,
 		}, nil},
 
-		{"PW_CLIENT_EVENT_INFO**", samplePWContainer[1][4][0], pipewire.Header{
+		{"PW_CLIENT_EVENT_INFO 2", samplePWContainer[1][4][0], pipewire.Header{
 			ID:     pipewire.PW_ID_CLIENT,
 			Opcode: pipewire.PW_CLIENT_EVENT_INFO,
 			Size:   0x7d0, Sequence: 4, FileCount: 0,
 		}, nil},
 
-		{"PW_CORE_EVENT_DONE", samplePWContainer[1][5][0], pipewire.Header{
+		{"PW_CORE_EVENT_DONE 0", samplePWContainer[1][5][0], pipewire.Header{
 			ID:     pipewire.PW_ID_CORE,
 			Opcode: pipewire.PW_CORE_EVENT_DONE,
 			Size:   0x58, Sequence: 5, FileCount: 0,
@@ -279,6 +284,34 @@ func TestHeader(t *testing.T) {
 			ID:     2,
 			Opcode: pipewire.PW_REGISTRY_EVENT_GLOBAL,
 			Size:   0x238, Sequence: 40, FileCount: 0,
+		}, nil},
+
+		{"PW_CORE_EVENT_DONE 1", samplePWContainer[1][41][0], pipewire.Header{
+			ID:     pipewire.PW_ID_CORE,
+			Opcode: pipewire.PW_CORE_EVENT_DONE,
+			Size:   0x28, Sequence: 41, FileCount: 0,
+		}, nil},
+
+		{"PW_REGISTRY_EVENT_GLOBAL 35", samplePWContainer[1][42][0], pipewire.Header{
+			ID:     2,
+			Opcode: pipewire.PW_REGISTRY_EVENT_GLOBAL,
+			Size:   0x268, Sequence: 42, FileCount: 0,
+		}, nil},
+
+		/* sendmsg 1 */
+
+		{"PW_REGISTRY_METHOD_BIND", samplePWContainer[3][0][0], pipewire.Header{
+			ID:     2,
+			Opcode: pipewire.PW_REGISTRY_METHOD_BIND,
+			Size:   0x98, Sequence: 4, FileCount: 0,
+		}, nil},
+
+		/* recvmsg 1 */
+
+		{"PW_CORE_EVENT_BOUND_PROPS 1", samplePWContainer[4][0][0], pipewire.Header{
+			ID:     pipewire.PW_ID_CORE,
+			Opcode: pipewire.PW_CORE_EVENT_BOUND_PROPS,
+			Size:   0x68, Sequence: 43, FileCount: 0,
 		}, nil},
 
 		{"PW_SECURITY_CONTEXT_METHOD_CREATE", []byte{

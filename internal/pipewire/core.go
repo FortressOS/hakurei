@@ -265,3 +265,33 @@ func (c *RegistryGlobal) MarshalBinary() ([]byte, error) { return Marshal(c) }
 
 // UnmarshalBinary satisfies [encoding.BinaryUnmarshaler] via [Unmarshal].
 func (c *RegistryGlobal) UnmarshalBinary(data []byte) error { return Unmarshal(data, c) }
+
+// RegistryBind is sent when the client requests to bind to the
+// global object with id and use the client proxy with new_id as
+// the proxy. After this call, methods can be sent to the remote
+// global object and events can be received.
+type RegistryBind struct {
+	// The [RegistryGlobal.ID] to bind to.
+	ID Int `json:"id"`
+	// the [RegistryGlobal.Type] of the global id.
+	Type String `json:"type"`
+	// The client version of the interface for type.
+	Version Int `json:"version"`
+	// The client proxy id for the global object.
+	NewID Int `json:"new_id"`
+}
+
+// Size satisfies [KnownSize] with a value computed at runtime.
+func (c *RegistryBind) Size() Word {
+	return SizePrefix +
+		Size(SizeInt) +
+		SizeString[Word](c.Type) +
+		Size(SizeInt) +
+		Size(SizeInt)
+}
+
+// MarshalBinary satisfies [encoding.BinaryMarshaler] via [Marshal].
+func (c *RegistryBind) MarshalBinary() ([]byte, error) { return Marshal(c) }
+
+// UnmarshalBinary satisfies [encoding.BinaryUnmarshaler] via [Unmarshal].
+func (c *RegistryBind) UnmarshalBinary(data []byte) error { return Unmarshal(data, c) }

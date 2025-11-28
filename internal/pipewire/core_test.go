@@ -91,9 +91,15 @@ func TestCoreDone(t *testing.T) {
 	t.Parallel()
 
 	encodingTestCases[pipewire.CoreDone, *pipewire.CoreDone]{
-		{"sample", samplePWContainer[1][5][1], pipewire.CoreDone{
+		{"sample0", samplePWContainer[1][5][1], pipewire.CoreDone{
 			ID:       -1,
 			Sequence: 0,
+		}, nil},
+
+		// matches the Core::Sync sample
+		{"sample1", samplePWContainer[1][41][1], pipewire.CoreDone{
+			ID:       0,
+			Sequence: pipewire.CoreSyncSequenceOffset + 3,
 		}, nil},
 	}.run(t)
 }
@@ -102,7 +108,10 @@ func TestCoreBoundProps(t *testing.T) {
 	t.Parallel()
 
 	encodingTestCases[pipewire.CoreBoundProps, *pipewire.CoreBoundProps]{
-		{"sample", samplePWContainer[1][1][1], pipewire.CoreBoundProps{
+
+		/* recvmsg 0 */
+
+		{"sample0", samplePWContainer[1][1][1], pipewire.CoreBoundProps{
 			ID:       pipewire.PW_ID_CLIENT,
 			GlobalID: 34,
 			Properties: &pipewire.SPADict{
@@ -113,6 +122,16 @@ func TestCoreBoundProps(t *testing.T) {
 				{Key: "pipewire.sec.uid", Value: "1000"},
 				{Key: "pipewire.sec.gid", Value: "100"},
 				{Key: "pipewire.sec.socket", Value: "pipewire-0-manager"}},
+		}, nil},
+
+		/* recvmsg 1 */
+
+		{"sample1", samplePWContainer[4][0][1], pipewire.CoreBoundProps{
+			ID:       3,
+			GlobalID: 3,
+			Properties: &pipewire.SPADict{
+				{Key: "object.serial", Value: "3"},
+			},
 		}, nil},
 	}.run(t)
 }
@@ -132,7 +151,7 @@ func TestCoreSync(t *testing.T) {
 
 	encodingTestCases[pipewire.CoreSync, *pipewire.CoreSync]{
 		{"sample", samplePWContainer[0][3][1], pipewire.CoreSync{
-			ID:       pipewire.PW_ID_CORE,
+			ID:       0,
 			Sequence: pipewire.CoreSyncSequenceOffset + 3,
 		}, nil},
 	}.run(t)
@@ -177,7 +196,7 @@ func TestRegistryGlobal(t *testing.T) {
 		}, nil},
 
 		{"sample2", samplePWContainer[1][8][1], pipewire.RegistryGlobal{
-			ID:          3, // registry takes up 2
+			ID:          3,
 			Permissions: pipewire.PW_SECURITY_CONTEXT_PERM_MASK,
 			Type:        pipewire.PW_TYPE_INTERFACE_SecurityContext,
 			Version:     pipewire.PW_VERSION_SECURITY_CONTEXT,
@@ -585,6 +604,37 @@ func TestRegistryGlobal(t *testing.T) {
 				{Key: "pipewire.access", Value: "unrestricted"},
 				{Key: "application.name", Value: "pw-container"},
 			},
+		}, nil},
+
+		{"sample35", samplePWContainer[1][42][1], pipewire.RegistryGlobal{
+			ID:          35,
+			Permissions: pipewire.PW_CLIENT_PERM_MASK,
+			Type:        pipewire.PW_TYPE_INTERFACE_Client,
+			Version:     pipewire.PW_VERSION_CLIENT,
+			Properties: &pipewire.SPADict{
+				{Key: "object.serial", Value: "35"},
+				{Key: "module.id", Value: "2"},
+				{Key: "pipewire.protocol", Value: "protocol-native"},
+				{Key: "pipewire.sec.pid", Value: "1447"},
+				{Key: "pipewire.sec.uid", Value: "1000"},
+				{Key: "pipewire.sec.gid", Value: "100"},
+				{Key: "pipewire.sec.socket", Value: "pipewire-0-manager"},
+				{Key: "pipewire.access", Value: "unrestricted"},
+				{Key: "application.name", Value: "WirePlumber"},
+			},
+		}, nil},
+	}.run(t)
+}
+
+func TestRegistryBind(t *testing.T) {
+	t.Parallel()
+
+	encodingTestCases[pipewire.RegistryBind, *pipewire.RegistryBind]{
+		{"sample", samplePWContainer[3][0][1], pipewire.RegistryBind{
+			ID:      3,
+			Type:    pipewire.PW_TYPE_INTERFACE_SecurityContext,
+			Version: pipewire.PW_VERSION_SECURITY_CONTEXT,
+			NewID:   3, // registry takes up 2
 		}, nil},
 	}.run(t)
 }
