@@ -136,7 +136,7 @@ type CoreDone struct {
 	// Passed from [CoreSync.ID].
 	ID Int `json:"id"`
 	// Passed from [CoreSync.Sequence].
-	Sequence Int `json:"sequence"`
+	Sequence Int `json:"seq"`
 }
 
 // Size satisfies [KnownSize] with a constant value.
@@ -147,6 +147,25 @@ func (c *CoreDone) MarshalBinary() ([]byte, error) { return Marshal(c) }
 
 // UnmarshalBinary satisfies [encoding.BinaryUnmarshaler] via [Unmarshal].
 func (c *CoreDone) UnmarshalBinary(data []byte) error { return Unmarshal(data, c) }
+
+// The CorePing event is emitted by the server when it wants to check if a client is
+// alive or ensure that it has processed the previous events.
+type CorePing struct {
+	// The object id to ping.
+	ID Int `json:"id"`
+	// Usually automatically generated.
+	// The client should pass this in the Pong method reply.
+	Sequence Int `json:"seq"`
+}
+
+// Size satisfies [KnownSize] with a constant value.
+func (c *CorePing) Size() Word { return SizePrefix + Size(SizeInt) + Size(SizeInt) }
+
+// MarshalBinary satisfies [encoding.BinaryMarshaler] via [Marshal].
+func (c *CorePing) MarshalBinary() ([]byte, error) { return Marshal(c) }
+
+// UnmarshalBinary satisfies [encoding.BinaryUnmarshaler] via [Unmarshal].
+func (c *CorePing) UnmarshalBinary(data []byte) error { return Unmarshal(data, c) }
 
 // The CoreBoundProps event is emitted when a local object ID is bound to a global ID.
 // It is emitted before the global becomes visible in the registry.
@@ -200,7 +219,7 @@ type CoreSync struct {
 	// The id will be returned in the Done event.
 	ID Int `json:"id"`
 	// Usually generated automatically and will be returned in the Done event.
-	Sequence Int `json:"sequence"`
+	Sequence Int `json:"seq"`
 }
 
 // Size satisfies [KnownSize] with a constant value.
@@ -211,6 +230,23 @@ func (c *CoreSync) MarshalBinary() ([]byte, error) { return Marshal(c) }
 
 // UnmarshalBinary satisfies [encoding.BinaryUnmarshaler] via [Unmarshal].
 func (c *CoreSync) UnmarshalBinary(data []byte) error { return Unmarshal(data, c) }
+
+// The CorePong message is sent from the client to the server when the server emits the Ping event.
+type CorePong struct {
+	// Copied from [CorePing.ID].
+	ID Int `json:"id"`
+	// Copied from [CorePing.Sequence]
+	Sequence Int `json:"seq"`
+}
+
+// Size satisfies [KnownSize] with a constant value.
+func (c *CorePong) Size() Word { return SizePrefix + Size(SizeInt) + Size(SizeInt) }
+
+// MarshalBinary satisfies [encoding.BinaryMarshaler] via [Marshal].
+func (c *CorePong) MarshalBinary() ([]byte, error) { return Marshal(c) }
+
+// UnmarshalBinary satisfies [encoding.BinaryUnmarshaler] via [Unmarshal].
+func (c *CorePong) UnmarshalBinary(data []byte) error { return Unmarshal(data, c) }
 
 // CoreGetRegistry is sent when a client requests to bind to the
 // registry object and list the available objects on the server.

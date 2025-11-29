@@ -119,6 +119,31 @@ func TestCoreDone(t *testing.T) {
 	}.run(t)
 }
 
+func TestCorePing(t *testing.T) {
+	t.Parallel()
+
+	encodingTestCases[pipewire.CorePing, *pipewire.CorePing]{
+		// handmade sample
+		{"sample", []byte{
+			/* size: rest of data */ 0x20, 0, 0, 0,
+			/* type: Struct */ pipewire.SPA_TYPE_Struct, 0, 0, 0,
+
+			/* size: 4 bytes */ 4, 0, 0, 0,
+			/* type: Int */ pipewire.SPA_TYPE_Int, 0, 0, 0,
+			/* value: -1 */ 0xff, 0xff, 0xff, 0xff,
+			/* padding */ 0, 0, 0, 0,
+
+			/* size: 4 bytes */ 4, 0, 0, 0,
+			/* type: Int */ pipewire.SPA_TYPE_Int, 0, 0, 0,
+			/* value: 0 */ 0, 0, 0, 0,
+			/* padding */ 0, 0, 0, 0,
+		}, pipewire.CorePing{
+			ID:       -1,
+			Sequence: 0,
+		}, nil},
+	}.run(t)
+}
+
 func TestCoreBoundProps(t *testing.T) {
 	t.Parallel()
 
@@ -173,6 +198,31 @@ func TestCoreSync(t *testing.T) {
 		{"sample1", samplePWContainer[6][1][1], pipewire.CoreSync{
 			ID:       0,
 			Sequence: pipewire.CoreSyncSequenceOffset + 6,
+		}, nil},
+	}.run(t)
+}
+
+func TestCorePong(t *testing.T) {
+	t.Parallel()
+
+	encodingTestCases[pipewire.CorePong, *pipewire.CorePong]{
+		// handmade sample
+		{"sample", []byte{
+			/* size: rest of data */ 0x20, 0, 0, 0,
+			/* type: Struct */ pipewire.SPA_TYPE_Struct, 0, 0, 0,
+
+			/* size: 4 bytes */ 4, 0, 0, 0,
+			/* type: Int */ pipewire.SPA_TYPE_Int, 0, 0, 0,
+			/* value: -1 */ 0xff, 0xff, 0xff, 0xff,
+			/* padding */ 0, 0, 0, 0,
+
+			/* size: 4 bytes */ 4, 0, 0, 0,
+			/* type: Int */ pipewire.SPA_TYPE_Int, 0, 0, 0,
+			/* value: 0 */ 0, 0, 0, 0,
+			/* padding */ 0, 0, 0, 0,
+		}, pipewire.CorePong{
+			ID:       -1,
+			Sequence: 0,
 		}, nil},
 	}.run(t)
 }
