@@ -144,6 +144,52 @@ func TestCorePing(t *testing.T) {
 	}.run(t)
 }
 
+func TestCoreError(t *testing.T) {
+	t.Parallel()
+
+	encodingTestCases[pipewire.CoreError, *pipewire.CoreError]{
+		// captured from pw-cli
+		{"pw-cli", []byte{
+			/* size: rest of data */ 0x58, 0, 0, 0,
+			/* type: Struct */ 0xe, 0, 0, 0,
+
+			/* size: 4 bytes */ 4, 0, 0, 0,
+			/* type: Int */ 4, 0, 0, 0,
+			/* value: 2 */ 2, 0, 0, 0,
+			/* padding */ 0, 0, 0, 0,
+
+			/* size: 4 bytes */ 4, 0, 0, 0,
+			/* type: Int */ 4, 0, 0, 0,
+			/* value: 0x67 */ 0x67, 0, 0, 0,
+			/* padding */ 0, 0, 0, 0,
+
+			/* size: 4 bytes */ 4, 0, 0, 0,
+			/* type: Int */ 4, 0, 0, 0,
+			/* value: -1 */ 0xff, 0xff, 0xff, 0xff,
+			/* padding */ 0, 0, 0, 0,
+
+			/* size: 0x1b bytes */ 0x1b, 0, 0, 0,
+			/*type: String*/ 8, 0, 0, 0,
+
+			// value: "no permission to destroy 0\x00"
+			0x6e, 0x6f, 0x20, 0x70,
+			0x65, 0x72, 0x6d, 0x69,
+			0x73, 0x73, 0x69, 0x6f,
+			0x6e, 0x20, 0x74, 0x6f,
+			0x20, 0x64, 0x65, 0x73,
+			0x74, 0x72, 0x6f, 0x79,
+			0x20, 0x30, 0,
+
+			/* padding */ 0, 0, 0, 0, 0,
+		}, pipewire.CoreError{
+			ID:       2,
+			Sequence: 0x67,
+			Result:   -1,
+			Message:  "no permission to destroy 0",
+		}, nil},
+	}.run(t)
+}
+
 func TestCoreBoundProps(t *testing.T) {
 	t.Parallel()
 

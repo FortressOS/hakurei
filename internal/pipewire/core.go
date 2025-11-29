@@ -167,6 +167,42 @@ func (c *CorePing) MarshalBinary() ([]byte, error) { return Marshal(c) }
 // UnmarshalBinary satisfies [encoding.BinaryUnmarshaler] via [Unmarshal].
 func (c *CorePing) UnmarshalBinary(data []byte) error { return Unmarshal(data, c) }
 
+// The CoreError can be emitted by both the client and the server.
+//
+// When emitted by the server, the error event is sent out when a fatal
+// (non-recoverable) error has occurred. The id argument is the proxy
+// object where the error occurred, most often in response to a request
+// to that object. The message is a brief description of the error, for
+// (debugging) convenience.
+//
+// When emitted by the client, it indicates an error occurred in an
+// object on the client.
+type CoreError struct {
+	// The id of the resource (proxy if emitted by the client) that is in error.
+	ID Int `json:"id"`
+	// A seq number from the failing request (if any).
+	Sequence Int `json:"seq"`
+	// A negative errno style error code.
+	Result Int `json:"res"`
+	// An error message.
+	Message String `json:"message"`
+}
+
+// Size satisfies [KnownSize] with a value computed at runtime.
+func (c *CoreError) Size() Word {
+	return SizePrefix +
+		Size(SizeInt) +
+		Size(SizeInt) +
+		Size(SizeInt) +
+		SizeString[Word](c.Message)
+}
+
+// MarshalBinary satisfies [encoding.BinaryMarshaler] via [Marshal].
+func (c *CoreError) MarshalBinary() ([]byte, error) { return Marshal(c) }
+
+// UnmarshalBinary satisfies [encoding.BinaryUnmarshaler] via [Unmarshal].
+func (c *CoreError) UnmarshalBinary(data []byte) error { return Unmarshal(data, c) }
+
 // The CoreBoundProps event is emitted when a local object ID is bound to a global ID.
 // It is emitted before the global becomes visible in the registry.
 type CoreBoundProps struct {

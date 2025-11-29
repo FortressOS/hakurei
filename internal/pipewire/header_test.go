@@ -336,6 +336,20 @@ func TestHeader(t *testing.T) {
 			Size:   0x28, Sequence: 44, FileCount: 0,
 		}, nil},
 
+		/* excerpts */
+
+		{"PW_CORE_EVENT_ERROR", []byte{
+			/* Id:     */ 0, 0, 0, 0,
+			/* size:   */ 0x60, 0, 0,
+			/* opcode: */ 3,
+			/* seq:    */ 0xf5, 0, 0, 0,
+			/* n_fds:  */ 0, 0, 0, 0,
+		}, pipewire.Header{
+			ID:     pipewire.PW_ID_CORE,
+			Opcode: pipewire.PW_CORE_EVENT_ERROR,
+			Size:   0x60, Sequence: 0xf5, FileCount: 0,
+		}, nil},
+
 		/* handmade samples */
 
 		{"PW_CORE_EVENT_PING", []byte{
@@ -348,18 +362,6 @@ func TestHeader(t *testing.T) {
 			ID:     pipewire.PW_ID_CORE,
 			Opcode: pipewire.PW_CORE_EVENT_PING,
 			Size:   0xbed, Sequence: 0xffff, FileCount: 0xcafe,
-		}, nil},
-
-		{"PW_CORE_EVENT_ERROR", []byte{
-			/* Id:     */ 0, 0, 0, 0,
-			/* size:   */ 0xad, 0xb, 0,
-			/* opcode: */ 3,
-			/* seq:    */ 0xfe, 0xfe, 0, 0,
-			/* n_fds:  */ 0xfe, 0xca, 0, 0,
-		}, pipewire.Header{
-			ID:     pipewire.PW_ID_CORE,
-			Opcode: pipewire.PW_CORE_EVENT_ERROR,
-			Size:   0xbad, Sequence: 0xfefe, FileCount: 0xcafe,
 		}, nil},
 
 		{"PW_CORE_METHOD_PONG", []byte{
