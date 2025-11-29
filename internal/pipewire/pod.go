@@ -30,6 +30,9 @@ type (
 	String = string
 	// Bytes is a byte slice representing SPA_TYPE_Bytes.
 	Bytes = []byte
+
+	// A Fd is a signed integer value representing SPA_TYPE_Fd.
+	Fd Long
 )
 
 const (
@@ -49,6 +52,9 @@ const (
 	SizeInt Word = 4
 	// SizeLong is the fixed, unpadded size of a [SPA_TYPE_Long] value.
 	SizeLong Word = 8
+
+	// SizeFd is the fixed, unpadded size of a [SPA_TYPE_Fd] value.
+	SizeFd = SizeLong
 )
 
 /* Basic types */
@@ -176,6 +182,15 @@ func marshalValueAppend(data []byte, v reflect.Value) ([]byte, error) {
 
 // marshalValueAppendRaw implements [MarshalAppend] on [reflect.Value] without the size prefix.
 func marshalValueAppendRaw(data []byte, v reflect.Value) ([]byte, error) {
+	if v.CanInterface() {
+		switch c := v.Interface().(type) {
+		case Fd:
+			data = binary.NativeEndian.AppendUint32(data, SPA_TYPE_Fd)
+			data = binary.NativeEndian.AppendUint64(data, uint64(c))
+			return data, nil
+		}
+	}
+
 	switch v.Kind() {
 	case reflect.Uint32:
 		data = binary.NativeEndian.AppendUint32(data, SPA_TYPE_Id)
@@ -311,6 +326,16 @@ func unmarshalValue(data []byte, v reflect.Value, wireSizeP *Word) error {
 			var err error
 			*wireSizeP, err = u.UnmarshalPOD(data)
 			return err
+		}
+
+		switch v.Interface().(type) {
+		case Fd:
+			*wireSizeP = SizeFd
+			if err := unmarshalCheckTypeBounds(&data, SPA_TYPE_Fd, wireSizeP); err != nil {
+				return err
+			}
+			v.SetInt(int64(binary.NativeEndian.Uint64(data)))
+			return nil
 		}
 	}
 

@@ -10,6 +10,7 @@ func TestFooterCoreGeneration(t *testing.T) {
 	t.Parallel()
 
 	encodingTestCases[pipewire.Footer[pipewire.FooterCoreGeneration], *pipewire.Footer[pipewire.FooterCoreGeneration]]{
+
 		/* recvmsg 0 */
 
 		{"sample0", samplePWContainer[1][0][2], pipewire.Footer[pipewire.FooterCoreGeneration]{
@@ -29,12 +30,20 @@ func TestFooterCoreGeneration(t *testing.T) {
 	}.run(t)
 
 	encodingTestCases[pipewire.Footer[pipewire.FooterClientGeneration], *pipewire.Footer[pipewire.FooterClientGeneration]]{
+
 		/* sendmsg 1 */
 
 		{"sample0", samplePWContainer[3][0][2], pipewire.Footer[pipewire.FooterClientGeneration]{
 			Opcode: pipewire.FOOTER_CORE_OPCODE_GENERATION,
 			// why does this not match FooterCoreGeneration sample2?
 			Payload: pipewire.FooterClientGeneration{ClientGeneration: 0x23},
+		}, nil},
+
+		/* sendmsg 2 */
+
+		{"sample1", samplePWContainer[6][0][2], pipewire.Footer[pipewire.FooterClientGeneration]{
+			Opcode:  pipewire.FOOTER_CORE_OPCODE_GENERATION,
+			Payload: pipewire.FooterClientGeneration{ClientGeneration: 0x24},
 		}, nil},
 	}.run(t)
 }
@@ -101,6 +110,12 @@ func TestCoreDone(t *testing.T) {
 			ID:       0,
 			Sequence: pipewire.CoreSyncSequenceOffset + 3,
 		}, nil},
+
+		// matches the second Core::Sync sample
+		{"sample2", samplePWContainer[7][0][1], pipewire.CoreDone{
+			ID:       0,
+			Sequence: pipewire.CoreSyncSequenceOffset + 6,
+		}, nil},
 	}.run(t)
 }
 
@@ -150,9 +165,14 @@ func TestCoreSync(t *testing.T) {
 	t.Parallel()
 
 	encodingTestCases[pipewire.CoreSync, *pipewire.CoreSync]{
-		{"sample", samplePWContainer[0][3][1], pipewire.CoreSync{
+		{"sample0", samplePWContainer[0][3][1], pipewire.CoreSync{
 			ID:       0,
 			Sequence: pipewire.CoreSyncSequenceOffset + 3,
+		}, nil},
+
+		{"sample1", samplePWContainer[6][1][1], pipewire.CoreSync{
+			ID:       0,
+			Sequence: pipewire.CoreSyncSequenceOffset + 6,
 		}, nil},
 	}.run(t)
 }

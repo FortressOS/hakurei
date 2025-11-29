@@ -356,30 +356,6 @@ const (
 	PW_KEY_PROFILER_NAME = "profiler.name"
 )
 
-/* pipewire/extensions/security-context.h */
-
-const (
-	PW_TYPE_INTERFACE_SecurityContext = PW_TYPE_INFO_INTERFACE_BASE + "SecurityContext"
-	PW_SECURITY_CONTEXT_PERM_MASK     = PW_PERM_RWX
-	PW_VERSION_SECURITY_CONTEXT       = 3
-
-	PW_EXTENSION_MODULE_SECURITY_CONTEXT = PIPEWIRE_MODULE_PREFIX + "module-security-context"
-)
-
-const (
-	PW_SECURITY_CONTEXT_EVENT_NUM = iota
-
-	PW_VERSION_SECURITY_CONTEXT_EVENTS = 0
-)
-
-const (
-	PW_SECURITY_CONTEXT_METHOD_ADD_LISTENER = iota
-	PW_SECURITY_CONTEXT_METHOD_CREATE
-	PW_SECURITY_CONTEXT_METHOD_NUM
-
-	PW_VERSION_SECURITY_CONTEXT_METHODS = 0
-)
-
 /* pipewire/type.h */
 
 const (

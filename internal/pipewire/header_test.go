@@ -32,7 +32,7 @@ func TestHeader(t *testing.T) {
 			Size:   0x28, Sequence: 2, FileCount: 0,
 		}, nil},
 
-		{"PW_CORE_METHOD_SYNC", samplePWContainer[0][3][0], pipewire.Header{
+		{"PW_CORE_METHOD_SYNC 0", samplePWContainer[0][3][0], pipewire.Header{
 			ID:     pipewire.PW_ID_CORE,
 			Opcode: pipewire.PW_CORE_METHOD_SYNC,
 			Size:   0x28, Sequence: 3, FileCount: 0,
@@ -314,33 +314,27 @@ func TestHeader(t *testing.T) {
 			Size:   0x68, Sequence: 43, FileCount: 0,
 		}, nil},
 
-		{"PW_SECURITY_CONTEXT_METHOD_CREATE", []byte{
-			// Id
-			3, 0, 0, 0,
-			// size
-			0xd8, 0, 0,
-			// opcode
-			1,
-			// seq
-			5, 0, 0, 0,
-			// n_fds
-			2, 0, 0, 0,
-		}, pipewire.Header{ID: 3, Opcode: pipewire.PW_SECURITY_CONTEXT_METHOD_CREATE,
-			Size: 0xd8, Sequence: 5, FileCount: 2}, nil},
+		/* sendmsg 2 */
 
-		{"PW_SECURITY_CONTEXT_METHOD_NUM", []byte{
-			// Id
-			0, 0, 0, 0,
-			// size
-			0x28, 0, 0,
-			// opcode
-			2,
-			// seq
-			6, 0, 0, 0,
-			// n_fds
-			0, 0, 0, 0,
-		}, pipewire.Header{ID: 0, Opcode: pipewire.PW_SECURITY_CONTEXT_METHOD_NUM,
-			Size: 0x28, Sequence: 6, FileCount: 0}, nil},
+		{"PW_SECURITY_CONTEXT_METHOD_CREATE", samplePWContainer[6][0][0], pipewire.Header{
+			ID:     3,
+			Opcode: pipewire.PW_SECURITY_CONTEXT_METHOD_CREATE,
+			Size:   0xd8, Sequence: 5, FileCount: 2,
+		}, nil},
+
+		{"PW_CORE_METHOD_SYNC 1", samplePWContainer[6][1][0], pipewire.Header{
+			ID:     pipewire.PW_ID_CORE,
+			Opcode: pipewire.PW_CORE_METHOD_SYNC,
+			Size:   0x28, Sequence: 6, FileCount: 0,
+		}, nil},
+
+		/* recvmsg 2 */
+
+		{"PW_CORE_EVENT_DONE 2", samplePWContainer[7][0][0], pipewire.Header{
+			ID:     pipewire.PW_ID_CORE,
+			Opcode: pipewire.PW_CORE_EVENT_DONE,
+			Size:   0x28, Sequence: 44, FileCount: 0,
+		}, nil},
 	}.run(t)
 
 	t.Run("size range", func(t *testing.T) {
