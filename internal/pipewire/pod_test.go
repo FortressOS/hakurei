@@ -1,8 +1,11 @@
 package pipewire_test
 
 import (
+	"bytes"
 	"encoding"
+	"encoding/gob"
 	"encoding/json"
+	"io"
 	"reflect"
 	"testing"
 
@@ -63,6 +66,83 @@ func (testCases encodingTestCases[V, S]) run(t *testing.T) {
 				})
 			}
 		})
+	}
+}
+
+var benchmarkSample = func() (sample pipewire.CoreInfo) {
+	if err := sample.UnmarshalBinary(samplePWContainer[1][0][1]); err != nil {
+		panic(err)
+	}
+	return
+}()
+
+func BenchmarkMarshal(b *testing.B) {
+	for b.Loop() {
+		if _, err := benchmarkSample.MarshalBinary(); err != nil {
+			b.Fatalf("MarshalBinary: error = %v", err)
+		}
+	}
+}
+
+func BenchmarkMarshalJSON(b *testing.B) {
+	for b.Loop() {
+		if _, err := json.Marshal(benchmarkSample); err != nil {
+			b.Fatalf("json.Marshal: error = %v", err)
+		}
+	}
+}
+
+func BenchmarkGobEncode(b *testing.B) {
+	e := gob.NewEncoder(io.Discard)
+	type sampleRaw pipewire.CoreInfo
+
+	for b.Loop() {
+		if err := e.Encode((*sampleRaw)(&benchmarkSample)); err != nil {
+			b.Fatalf("(*gob.Encoder).Encode: error = %v", err)
+		}
+	}
+}
+
+func BenchmarkUnmarshal(b *testing.B) {
+	var got pipewire.CoreInfo
+
+	for b.Loop() {
+		if err := got.UnmarshalBinary(samplePWContainer[1][0][1]); err != nil {
+			b.Fatalf("UnmarshalBinary: error = %v", err)
+		}
+	}
+}
+
+func BenchmarkUnmarshalJSON(b *testing.B) {
+	var got pipewire.CoreInfo
+	data, err := json.Marshal(benchmarkSample)
+	if err != nil {
+		b.Fatalf("json.Marshal: error = %v", err)
+	}
+
+	for b.Loop() {
+		if err = json.Unmarshal(data, &got); err != nil {
+			b.Fatalf("json.Unmarshal: error = %v", err)
+		}
+	}
+}
+
+func BenchmarkGobDecode(b *testing.B) {
+	type sampleRaw pipewire.CoreInfo
+	var buf bytes.Buffer
+	e := gob.NewEncoder(&buf)
+	d := gob.NewDecoder(&buf)
+
+	for b.Loop() {
+		b.StopTimer()
+		if err := e.Encode((*sampleRaw)(&benchmarkSample)); err != nil {
+			b.Fatalf("(*gob.Encoder).Encode: error = %v", err)
+		}
+		b.StartTimer()
+
+		if err := d.Decode(new(sampleRaw)); err != nil {
+			b.Fatalf("(*gob.Encoder).Decode: error = %v", err)
+		}
 	}
 }
 
