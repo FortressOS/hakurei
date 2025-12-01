@@ -206,6 +206,14 @@ type CoreError struct {
 	Message String `json:"message"`
 }
 
+func (c *CoreError) Error() string {
+	return "received Core::Error on" +
+		" id " + strconv.Itoa(int(c.ID)) +
+		" seq " + strconv.Itoa(int(c.Sequence)) +
+		" res " + strconv.Itoa(int(c.Result)) +
+		": " + c.Message
+}
+
 // Size satisfies [KnownSize] with a value computed at runtime.
 func (c *CoreError) Size() Word {
 	return SizePrefix +
@@ -542,6 +550,13 @@ func (core *Core) consume(opcode byte, files []int, unmarshal func(v any) error)
 		// an event with id -1 seq 0 that does not appear to correspond to
 		// anything, and this behaviour is never mentioned in documentation
 		return nil
+
+	case PW_CORE_EVENT_ERROR:
+		var coreError CoreError
+		if err := unmarshal(&coreError); err != nil {
+			return err
+		}
+		return &coreError
 
 	case PW_CORE_EVENT_BOUND_PROPS:
 		var boundProps CoreBoundProps
