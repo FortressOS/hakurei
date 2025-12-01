@@ -260,6 +260,12 @@ func (e *InvalidUnmarshalError) Error() string {
 	return "attempting to unmarshal to nil " + e.Type.String()
 }
 
+// UnexpectedEOFError is returned when EOF was encountered in the middle of decoding POD data.
+type UnexpectedEOFError struct{}
+
+func (UnexpectedEOFError) Unwrap() error { return io.ErrUnexpectedEOF }
+func (UnexpectedEOFError) Error() string { return "unexpected EOF decoding POD data" }
+
 // Unmarshal parses the PipeWire POD encoded data and stores the result
 // in the value pointed to by v. If v is nil or not a pointer,
 // Unmarshal returns an [InvalidUnmarshalError].
@@ -386,7 +392,7 @@ func unmarshalValue(data []byte, v reflect.Value, wireSizeP *Word) error {
 
 	case reflect.Pointer:
 		if len(data) < SizePrefix {
-			return io.ErrUnexpectedEOF
+			return UnexpectedEOFError{}
 		}
 		switch binary.NativeEndian.Uint32(data[SizeSPrefix:]) {
 		case SPA_TYPE_None:
@@ -407,7 +413,7 @@ func unmarshalValue(data []byte, v reflect.Value, wireSizeP *Word) error {
 		// string size, one extra NUL byte
 		size := int(*wireSizeP)
 		if len(data) < size {
-			return io.ErrUnexpectedEOF
+			return UnexpectedEOFError{}
 		}
 
 		// the serialised strings still include NUL termination
@@ -443,7 +449,7 @@ func (u *UnexpectedTypeError) Error() string {
 // An expected size of zero skips further bounds checks.
 func unmarshalCheckTypeBounds(data *[]byte, t Word, sizeP *Word) error {
 	if len(*data) < SizePrefix {
-		return io.ErrUnexpectedEOF
+		return UnexpectedEOFError{}
 	}
 
 	wantSize := *sizeP
@@ -454,7 +460,7 @@ func unmarshalCheckTypeBounds(data *[]byte, t Word, sizeP *Word) error {
 		return &InconsistentSizeError{gotSize, wantSize}
 	}
 	if len(*data)-SizePrefix < int(gotSize) {
-		return io.ErrUnexpectedEOF
+		return UnexpectedEOFError{}
 	}
 
 	gotType := binary.NativeEndian.Uint32((*data)[SizeSPrefix:])
