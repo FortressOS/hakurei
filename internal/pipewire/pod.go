@@ -468,11 +468,18 @@ func unmarshalCheckTypeBounds(data *[]byte, t Word, sizeP *Word) error {
 
 // The Footer contains additional messages, not directed to
 // the destination object defined by the Id field.
-type Footer[T any] struct {
+type Footer[P KnownSize] struct {
 	// The footer opcode.
 	Opcode Id `json:"opcode"`
 	// The footer payload struct.
-	Payload T `json:"payload"`
+	Payload P `json:"payload"`
+}
+
+// Size satisfies [KnownSize] with a usually compile-time known value.
+func (f *Footer[P]) Size() Word {
+	return SizePrefix +
+		Size(SizeId) +
+		f.Payload.Size()
 }
 
 // MarshalBinary satisfies [encoding.BinaryMarshaler] via [Marshal].

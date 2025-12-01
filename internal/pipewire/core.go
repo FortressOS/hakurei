@@ -81,6 +81,12 @@ type FooterCoreGeneration struct {
 	RegistryGeneration Long `json:"registry_generation"`
 }
 
+// Size satisfies [KnownSize] with a constant value.
+func (fcg FooterCoreGeneration) Size() Word {
+	return SizePrefix +
+		Size(SizeLong)
+}
+
 // The FooterClientGeneration indicates to the server what is the last
 // registry generation number the client has processed.
 //
@@ -89,6 +95,12 @@ type FooterCoreGeneration struct {
 // registry generation update.
 type FooterClientGeneration struct {
 	ClientGeneration Long `json:"client_generation"`
+}
+
+// Size satisfies [KnownSize] with a constant value.
+func (fcg FooterClientGeneration) Size() Word {
+	return SizePrefix +
+		Size(SizeLong)
 }
 
 // A CoreInfo event is emitted by the server upon connection
