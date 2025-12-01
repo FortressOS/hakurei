@@ -31,7 +31,7 @@ type Header struct {
 	// An increasing sequence number for each message.
 	Sequence Int `json:"seq"`
 	// Number of file descriptors in this message.
-	FileCount Word `json:"n_fds"`
+	FileCount Int `json:"n_fds"`
 }
 
 // append appends the protocol native message header to data.
@@ -41,7 +41,7 @@ func (h *Header) append(data []byte) []byte {
 	data = binary.NativeEndian.AppendUint32(data, Word(h.ID))
 	data = binary.NativeEndian.AppendUint32(data, Word(h.Opcode)<<24|h.Size)
 	data = binary.NativeEndian.AppendUint32(data, Word(h.Sequence))
-	data = binary.NativeEndian.AppendUint32(data, h.FileCount)
+	data = binary.NativeEndian.AppendUint32(data, Word(h.FileCount))
 	return data
 }
 
@@ -60,7 +60,7 @@ func (h *Header) unmarshalBinary(data [SizeHeader]byte) {
 	h.Opcode = byte(h.Size >> 24)
 	h.Size &= SizeMax
 	h.Sequence = Int(binary.NativeEndian.Uint32(data[8:]))
-	h.FileCount = binary.NativeEndian.Uint32(data[12:])
+	h.FileCount = Int(binary.NativeEndian.Uint32(data[12:]))
 }
 
 // UnmarshalBinary decodes the protocol native message header.

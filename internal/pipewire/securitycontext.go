@@ -67,3 +67,65 @@ func (c *SecurityContextCreate) MarshalBinary() ([]byte, error) { return Marshal
 
 // UnmarshalBinary satisfies [encoding.BinaryUnmarshaler] via [Unmarshal].
 func (c *SecurityContextCreate) UnmarshalBinary(data []byte) error { return Unmarshal(data, c) }
+
+// SecurityContext holds state of [PW_TYPE_INTERFACE_SecurityContext].
+type SecurityContext struct {
+	// Proxy id as tracked by [Context].
+	ID Int `json:"proxy_id"`
+	// Global id as tracked by [Registry].
+	GlobalID Int `json:"id"`
+
+	ctx *Context
+}
+
+// GetSecurityContext queues a [RegistryBind] message for the PipeWire server
+// and returns the address of the newly allocated [SecurityContext].
+func (registry *Registry) GetSecurityContext() (securityContext *SecurityContext, err error) {
+	securityContext = &SecurityContext{ctx: registry.ctx}
+	for globalId, object := range registry.Objects {
+		if object.Type == securityContext.String() {
+			securityContext.GlobalID = globalId
+			securityContext.ID, err = registry.bind(securityContext, securityContext.GlobalID, PW_VERSION_SECURITY_CONTEXT)
+			return
+		}
+	}
+
+	return nil, UnsupportedObjectTypeError(securityContext.String())
+}
+
+// Create queues a [SecurityContextCreate] message for the PipeWire server.
+func (securityContext *SecurityContext) Create(listenFd, closeFd int, props SPADict) error {
+	// queued in reverse based on upstream behaviour, unsure why
+	offset := securityContext.ctx.queueFiles(closeFd, listenFd)
+	return securityContext.ctx.writeMessage(
+		securityContext.ID,
+		PW_SECURITY_CONTEXT_METHOD_CREATE,
+		&SecurityContextCreate{ListenFd: offset + 1, CloseFd: offset + 0, Properties: &props},
+	)
+}
+
+func (securityContext *SecurityContext) consume(opcode byte, files []int, _ func(v any) error) error {
+	if err := closeReceivedFiles(files...); err != nil {
+		return err
+	}
+
+	switch opcode {
+	// SecurityContext does not receive any events
+
+	default:
+		return &UnsupportedOpcodeError{opcode, securityContext.String()}
+	}
+
+}
+
+func (securityContext *SecurityContext) setBoundProps(event *CoreBoundProps) error {
+	if securityContext.ID != event.ID {
+		return &InconsistentIdError{Proxy: securityContext, ID: securityContext.ID, ServerID: event.ID}
+	}
+	if securityContext.GlobalID != event.GlobalID {
+		return &InconsistentIdError{Global: true, Proxy: securityContext, ID: securityContext.GlobalID, ServerID: event.GlobalID}
+	}
+	return nil
+}
+
+func (securityContext *SecurityContext) String() string { return PW_TYPE_INTERFACE_SecurityContext }

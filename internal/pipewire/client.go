@@ -74,3 +74,45 @@ func (c *ClientUpdateProperties) MarshalBinary() ([]byte, error) { return Marsha
 
 // UnmarshalBinary satisfies [encoding.BinaryUnmarshaler] via [Unmarshal].
 func (c *ClientUpdateProperties) UnmarshalBinary(data []byte) error { return Unmarshal(data, c) }
+
+// clientUpdateProperties queues a [ClientUpdateProperties] message for the PipeWire server.
+// This method should not be called directly, the New function queues this message.
+func (ctx *Context) clientUpdateProperties(props SPADict) error {
+	return ctx.writeMessage(
+		PW_ID_CLIENT,
+		PW_CLIENT_METHOD_UPDATE_PROPERTIES,
+		&ClientUpdateProperties{&props},
+	)
+}
+
+// Client holds state of [PW_TYPE_INTERFACE_Client].
+type Client struct {
+	// Additional information from the server, populated or updated during [Context.Roundtrip].
+	Info *ClientInfo `json:"info"`
+
+	// Populated by [CoreBoundProps] events targeting [Client].
+	Properties SPADict `json:"props"`
+}
+
+func (client *Client) consume(opcode byte, files []int, unmarshal func(v any) error) error {
+	if err := closeReceivedFiles(files...); err != nil {
+		return err
+	}
+
+	switch opcode {
+	case PW_CLIENT_EVENT_INFO:
+		return unmarshal(&client.Info)
+
+	default:
+		return &UnsupportedOpcodeError{opcode, client.String()}
+	}
+}
+
+func (client *Client) setBoundProps(event *CoreBoundProps) error {
+	if event.Properties != nil {
+		client.Properties = *event.Properties
+	}
+	return nil
+}
+
+func (client *Client) String() string { return PW_TYPE_INTERFACE_Registry }

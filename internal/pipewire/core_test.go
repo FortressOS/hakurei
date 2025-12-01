@@ -23,6 +23,7 @@ func TestFooterCoreGeneration(t *testing.T) {
 			Payload: pipewire.FooterCoreGeneration{RegistryGeneration: 0x23},
 		}, nil},
 
+		// happens on the last message, client footer sent in the next roundtrip
 		{"sample2", samplePWContainer[1][42][2], pipewire.Footer[pipewire.FooterCoreGeneration]{
 			Opcode:  pipewire.FOOTER_CORE_OPCODE_GENERATION,
 			Payload: pipewire.FooterCoreGeneration{RegistryGeneration: 0x24},
@@ -35,13 +36,14 @@ func TestFooterCoreGeneration(t *testing.T) {
 
 		{"sample0", samplePWContainer[3][0][2], pipewire.Footer[pipewire.FooterClientGeneration]{
 			Opcode: pipewire.FOOTER_CORE_OPCODE_GENERATION,
-			// why does this not match FooterCoreGeneration sample2?
+			// triggered by difference in sample1, sample0 is overwritten in the same roundtrip
 			Payload: pipewire.FooterClientGeneration{ClientGeneration: 0x23},
 		}, nil},
 
 		/* sendmsg 2 */
 
 		{"sample1", samplePWContainer[6][0][2], pipewire.Footer[pipewire.FooterClientGeneration]{
+			// triggered by difference in sample2, last footer in the previous roundtrip
 			Opcode:  pipewire.FOOTER_CORE_OPCODE_GENERATION,
 			Payload: pipewire.FooterClientGeneration{ClientGeneration: 0x24},
 		}, nil},
