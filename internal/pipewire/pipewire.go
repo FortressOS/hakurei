@@ -18,6 +18,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+	"maps"
 	"net"
 	"slices"
 	"strconv"
@@ -424,6 +425,14 @@ func (e DanglingFilesError) Error() string {
 	return "received " + strconv.Itoa(len(e)) + " dangling files"
 }
 
+// An UnacknowledgedProxyError holds newly allocated proxy ids that the server failed
+// to acknowledge after an otherwise successful [Context.Roundtrip].
+type UnacknowledgedProxyError []Int
+
+func (e UnacknowledgedProxyError) Error() string {
+	return "server did not acknowledge " + strconv.Itoa(len(e)) + " proxies"
+}
+
 // roundtripSyncID is the id passed to Context.coreSync during a [Context.Roundtrip].
 const roundtripSyncID = 0
 
@@ -488,6 +497,10 @@ func (ctx *Context) Roundtrip() (err error) {
 
 	if len(ctx.receivedFiles) < receivedHeaderFiles {
 		return DanglingFilesError(ctx.receivedFiles[len(ctx.receivedFiles)-receivedHeaderFiles:])
+	}
+
+	if len(ctx.pendingIds) != 0 {
+		return UnacknowledgedProxyError(slices.Collect(maps.Keys(ctx.pendingIds)))
 	}
 	return
 }
