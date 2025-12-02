@@ -525,20 +525,16 @@ func (e *UnknownBoundIdError[E]) Error() string {
 	return "unknown bound proxy id " + strconv.Itoa(int(e.Id))
 }
 
-func (core *Core) consume(opcode byte, files []int, unmarshal func(v any) error) error {
-	if err := closeReceivedFiles(files...); err != nil {
-		return err
-	}
-
+func (core *Core) consume(opcode byte, files []int, unmarshal func(v any)) error {
+	closeReceivedFiles(files...)
 	switch opcode {
 	case PW_CORE_EVENT_INFO:
-		return unmarshal(&core.Info)
+		unmarshal(&core.Info)
+		return nil
 
 	case PW_CORE_EVENT_DONE:
 		var done CoreDone
-		if err := unmarshal(&done); err != nil {
-			return err
-		}
+		unmarshal(&done)
 		if done.ID == roundtripSyncID && done.Sequence == CoreSyncSequenceOffset+core.ctx.sequence-1 {
 			if core.done {
 				return ErrUnexpectedDone
@@ -553,16 +549,12 @@ func (core *Core) consume(opcode byte, files []int, unmarshal func(v any) error)
 
 	case PW_CORE_EVENT_ERROR:
 		var coreError CoreError
-		if err := unmarshal(&coreError); err != nil {
-			return err
-		}
+		unmarshal(&coreError)
 		return &coreError
 
 	case PW_CORE_EVENT_BOUND_PROPS:
 		var boundProps CoreBoundProps
-		if err := unmarshal(&boundProps); err != nil {
-			return err
-		}
+		unmarshal(&boundProps)
 
 		delete(core.ctx.pendingIds, boundProps.ID)
 		proxy, ok := core.ctx.proxy[boundProps.ID]
@@ -606,19 +598,15 @@ func (e *GlobalIDCollisionError) Error() string {
 		" stepping on previous id " + strconv.Itoa(int(e.ID)) + " for " + e.Previous.Type
 }
 
-func (registry *Registry) consume(opcode byte, files []int, unmarshal func(v any) error) error {
-	if err := closeReceivedFiles(files...); err != nil {
-		return err
-	}
-
+func (registry *Registry) consume(opcode byte, files []int, unmarshal func(v any)) error {
+	closeReceivedFiles(files...)
 	switch opcode {
 	case PW_REGISTRY_EVENT_GLOBAL:
 		var global RegistryGlobal
-		if err := unmarshal(&global); err != nil {
-			return err
-		}
+		unmarshal(&global)
 		if object, ok := registry.Objects[global.ID]; ok {
-			return &GlobalIDCollisionError{global.ID, &object, &global}
+			// this should never happen so is non-recoverable if it does
+			panic(&GlobalIDCollisionError{global.ID, &object, &global})
 		}
 		registry.Objects[global.ID] = global
 		return nil

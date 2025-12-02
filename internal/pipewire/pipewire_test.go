@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"hakurei.app/container/stub"
 	"hakurei.app/internal/pipewire"
 )
 
@@ -861,4 +862,68 @@ func splitMessages(iovec string) (messages [][3][]byte) {
 		data = data[pipewire.SizeHeader+header.Size:]
 	}
 	return
+}
+
+func TestContextErrors(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name string
+		err  error
+		want string
+	}{
+		{"ProxyConsumeError invalid", pipewire.ProxyConsumeError{}, "invalid proxy consume error"},
+		{"ProxyConsumeError single", pipewire.ProxyConsumeError{
+			stub.UniqueError(0),
+		}, "unique error 0 injected by the test suite"},
+		{"ProxyConsumeError multiple", pipewire.ProxyConsumeError{
+			stub.UniqueError(1),
+			stub.UniqueError(2),
+			stub.UniqueError(3),
+			stub.UniqueError(4),
+			stub.UniqueError(5),
+			stub.UniqueError(6),
+			stub.UniqueError(7),
+		}, "unique error 1 injected by the test suite; 7 additional proxy errors occurred after this point"},
+
+		{"ProxyFatalError", &pipewire.ProxyFatalError{
+			Err: stub.UniqueError(8),
+		}, "unique error 8 injected by the test suite"},
+		{"ProxyFatalError proxy errors", &pipewire.ProxyFatalError{
+			Err:       stub.UniqueError(9),
+			ProxyErrs: make([]error, 1<<4),
+		}, "unique error 9 injected by the test suite; 16 additional proxy errors occurred before this point"},
+
+		{"UnexpectedFileCountError", &pipewire.UnexpectedFileCountError{0, -1}, "received -1 files instead of the expected 0"},
+		{"UnacknowledgedProxyError", make(pipewire.UnacknowledgedProxyError, 1<<4), "server did not acknowledge 16 proxies"},
+		{"DanglingFilesError", make(pipewire.DanglingFilesError, 1<<4), "received 16 dangling files"},
+		{"UnexpectedFilesError", pipewire.UnexpectedFilesError(1 << 4), "server message headers claim to have sent more than 16 files"},
+		{"UnexpectedSequenceError", pipewire.UnexpectedSequenceError(1 << 4), "unexpected seq 16"},
+		{"UnsupportedFooterOpcodeError", pipewire.UnsupportedFooterOpcodeError(1 << 4), "unsupported footer opcode 16"},
+
+		{"RoundtripUnexpectedEOFError ErrRoundtripEOFHeader", pipewire.ErrRoundtripEOFHeader, "unexpected EOF decoding message header"},
+		{"RoundtripUnexpectedEOFError ErrRoundtripEOFBody", pipewire.ErrRoundtripEOFBody, "unexpected EOF establishing message body bounds"},
+		{"RoundtripUnexpectedEOFError ErrRoundtripEOFFooter", pipewire.ErrRoundtripEOFFooter, "unexpected EOF establishing message footer bounds"},
+		{"RoundtripUnexpectedEOFError ErrRoundtripEOFFooterOpcode", pipewire.ErrRoundtripEOFFooterOpcode, "unexpected EOF decoding message footer opcode"},
+		{"RoundtripUnexpectedEOFError invalid", pipewire.RoundtripUnexpectedEOFError(0xbad), "unexpected EOF"},
+
+		{"UnsupportedOpcodeError", &pipewire.UnsupportedOpcodeError{
+			Opcode:    0xff,
+			Interface: pipewire.PW_TYPE_INFO_INTERFACE_BASE + "Invalid",
+		}, "unsupported PipeWire:Interface:Invalid opcode 255"},
+
+		{"UnknownIdError", &pipewire.UnknownIdError{
+			Id:   -1,
+			Data: "\x00",
+		}, "unknown proxy id -1"},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			if got := tc.err.Error(); got != tc.want {
+				t.Errorf("Error: %q, want %q", got, tc.want)
+			}
+		})
+	}
 }

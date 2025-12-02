@@ -104,11 +104,8 @@ func (securityContext *SecurityContext) Create(listenFd, closeFd int, props SPAD
 	)
 }
 
-func (securityContext *SecurityContext) consume(opcode byte, files []int, _ func(v any) error) error {
-	if err := closeReceivedFiles(files...); err != nil {
-		return err
-	}
-
+func (securityContext *SecurityContext) consume(opcode byte, files []int, _ func(v any)) error {
+	closeReceivedFiles(files...)
 	switch opcode {
 	// SecurityContext does not receive any events
 

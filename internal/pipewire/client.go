@@ -94,14 +94,12 @@ type Client struct {
 	Properties SPADict `json:"props"`
 }
 
-func (client *Client) consume(opcode byte, files []int, unmarshal func(v any) error) error {
-	if err := closeReceivedFiles(files...); err != nil {
-		return err
-	}
-
+func (client *Client) consume(opcode byte, files []int, unmarshal func(v any)) error {
+	closeReceivedFiles(files...)
 	switch opcode {
 	case PW_CLIENT_EVENT_INFO:
-		return unmarshal(&client.Info)
+		unmarshal(&client.Info)
+		return nil
 
 	default:
 		return &UnsupportedOpcodeError{opcode, client.String()}

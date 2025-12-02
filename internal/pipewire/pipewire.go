@@ -16,10 +16,12 @@ package pipewire
 
 import (
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"io"
 	"maps"
 	"net"
+	"runtime"
 	"slices"
 	"strconv"
 	"syscall"
@@ -310,27 +312,35 @@ func (e UnsupportedFooterOpcodeError) Error() string {
 	return "unsupported footer opcode " + strconv.Itoa(int(e))
 }
 
-// RoundtripUnexpectedEOFError is returned when EOF was unexpectedly encountered during [Context.Roundtrip].
+// A RoundtripUnexpectedEOFError describes an unexpected EOF encountered during [Context.Roundtrip].
 type RoundtripUnexpectedEOFError uintptr
 
 const (
-	roundtripEOFHeader RoundtripUnexpectedEOFError = iota
-	roundtripEOFBody
-	roundtripEOFFooter
-	roundtripEOFFooterOpcode
+	// ErrRoundtripEOFHeader is returned when unexpectedly encountering EOF
+	// decoding the message header.
+	ErrRoundtripEOFHeader RoundtripUnexpectedEOFError = iota
+	// ErrRoundtripEOFBody is returned when unexpectedly encountering EOF
+	// establishing message body bounds.
+	ErrRoundtripEOFBody
+	// ErrRoundtripEOFFooter is like [ErrRoundtripEOFBody], but for when establishing
+	// bounds for the footer instead.
+	ErrRoundtripEOFFooter
+	// ErrRoundtripEOFFooterOpcode is returned when unexpectedly encountering EOF
+	// during the footer opcode hack.
+	ErrRoundtripEOFFooterOpcode
 )
 
 func (RoundtripUnexpectedEOFError) Unwrap() error { return io.ErrUnexpectedEOF }
 func (e RoundtripUnexpectedEOFError) Error() string {
 	var suffix string
 	switch e {
-	case roundtripEOFHeader:
+	case ErrRoundtripEOFHeader:
 		suffix = "decoding message header"
-	case roundtripEOFBody:
+	case ErrRoundtripEOFBody:
 		suffix = "establishing message body bounds"
-	case roundtripEOFFooter:
+	case ErrRoundtripEOFFooter:
 		suffix = "establishing message footer bounds"
-	case roundtripEOFFooterOpcode:
+	case ErrRoundtripEOFFooterOpcode:
 		suffix = "decoding message footer opcode"
 
 	default:
@@ -343,7 +353,7 @@ func (e RoundtripUnexpectedEOFError) Error() string {
 // eventProxy consumes events during a [Context.Roundtrip].
 type eventProxy interface {
 	// consume consumes an event and its optional footer.
-	consume(opcode byte, files []int, unmarshal func(v any) error) error
+	consume(opcode byte, files []int, unmarshal func(v any)) error
 	// setBoundProps stores a [CoreBoundProps] event received from the server.
 	setBoundProps(event *CoreBoundProps) error
 
@@ -358,7 +368,7 @@ func (ctx *Context) unmarshal(header *Header, data []byte, v any) error {
 		return err
 	}
 	if len(data) < int(header.Size) || header.Size < n {
-		return roundtripEOFFooter
+		return ErrRoundtripEOFFooter
 	}
 	isLastMessage := len(data) == int(header.Size)
 
@@ -369,7 +379,7 @@ func (ctx *Context) unmarshal(header *Header, data []byte, v any) error {
 		skip the struct prefix, then the integer prefix, and the next SizeId
 		bytes are the encoded opcode value */
 		if len(data) < int(SizePrefix*2+SizeId) {
-			return roundtripEOFFooterOpcode
+			return ErrRoundtripEOFFooterOpcode
 		}
 		switch opcode := binary.NativeEndian.Uint32(data[SizePrefix*2:]); opcode {
 		case FOOTER_CORE_OPCODE_GENERATION:
@@ -433,6 +443,43 @@ func (e UnacknowledgedProxyError) Error() string {
 	return "server did not acknowledge " + strconv.Itoa(len(e)) + " proxies"
 }
 
+// A ProxyFatalError describes an error that terminates event handling during a
+// [Context.Roundtrip] and makes further event processing no longer possible.
+type ProxyFatalError struct {
+	// The fatal error causing the termination of event processing.
+	Err error
+	// Previous non-fatal proxy errors.
+	ProxyErrs []error
+}
+
+func (e *ProxyFatalError) Unwrap() []error { return append(e.ProxyErrs, e.Err) }
+func (e *ProxyFatalError) Error() string {
+	s := e.Err.Error()
+	if len(e.ProxyErrs) > 0 {
+		s += "; " + strconv.Itoa(len(e.ProxyErrs)) + " additional proxy errors occurred before this point"
+	}
+	return s
+}
+
+// A ProxyConsumeError is a collection of non-protocol errors returned by proxies
+// during event processing. These do not prevent event handling from continuing but
+// may be considered fatal to the application.
+type ProxyConsumeError []error
+
+func (e ProxyConsumeError) Unwrap() []error { return e }
+func (e ProxyConsumeError) Error() string {
+	if len(e) == 0 {
+		return "invalid proxy consume error"
+	}
+
+	// first error is usually the most relevant one
+	s := e[0].Error()
+	if len(e) > 1 {
+		s += "; " + strconv.Itoa(len(e)) + " additional proxy errors occurred after this point"
+	}
+	return s
+}
+
 // roundtripSyncID is the id passed to Context.coreSync during a [Context.Roundtrip].
 const roundtripSyncID = 0
 
@@ -447,6 +494,52 @@ func (ctx *Context) Roundtrip() (err error) {
 	if _, _, err = ctx.conn.WriteMsgUnix(ctx.buf, syscall.UnixRights(ctx.pendingFiles...), nil); err != nil {
 		return
 	}
+
+	var (
+		// this holds onto non-protocol errors encountered during event handling;
+		// errors that prevent event processing from continuing must be panicked
+		proxyErrors ProxyConsumeError
+
+		// current position of processed events in ctx.receivedFiles, anything
+		// beyond this is closed if event processing is terminated
+		receivedHeaderFiles int
+	)
+	defer func() {
+		// anything before this has already been processed and must not be closed
+		// here, as anything holding onto them will end up with a dangling fd that
+		// can be reused and cause serious problems
+		if len(ctx.receivedFiles) > receivedHeaderFiles {
+			for _, fd := range ctx.receivedFiles[receivedHeaderFiles:] {
+				_ = syscall.Close(fd)
+			}
+
+			// this catches cases where Roundtrip somehow returns without processing
+			// all received files or preparing an error for dangling files, this is
+			// always overwritten by the fatal error being processed below or made
+			// inaccessible due to repanicking, so if this ends up returned to the
+			// caller it indicates something has gone seriously wrong in Roundtrip
+			if err == nil {
+				err = syscall.ENOTRECOVERABLE
+			}
+		}
+
+		r := recover()
+		if r == nil {
+			return
+		}
+
+		recoveredErr, ok := r.(error)
+		if !ok {
+			panic(r)
+		}
+		if recoveredErr == nil {
+			panic(&runtime.PanicNilError{})
+		}
+
+		err = &ProxyFatalError{Err: recoveredErr, ProxyErrs: proxyErrors}
+		return
+	}()
+
 	ctx.buf = ctx.buf[:0]
 	ctx.pendingFiles = ctx.pendingFiles[:0]
 	ctx.headerFiles = 0
@@ -457,10 +550,9 @@ func (ctx *Context) Roundtrip() (err error) {
 	}
 
 	var header Header
-	var receivedHeaderFiles int
 	for len(data) > 0 {
 		if len(data) < SizeHeader {
-			return roundtripEOFHeader
+			return ErrRoundtripEOFHeader
 		}
 
 		if err = header.UnmarshalBinary(data[:SizeHeader]); err != nil {
@@ -472,7 +564,7 @@ func (ctx *Context) Roundtrip() (err error) {
 		ctx.remoteSequence++
 
 		if len(data) < int(SizeHeader+header.Size) {
-			return roundtripEOFBody
+			return ErrRoundtripEOFBody
 		}
 
 		proxy, ok := ctx.proxy[header.ID]
@@ -488,15 +580,26 @@ func (ctx *Context) Roundtrip() (err error) {
 		receivedHeaderFiles = nextReceivedHeaderFiles
 
 		data = data[SizeHeader:]
-		err = proxy.consume(header.Opcode, files, func(v any) error { return ctx.unmarshal(&header, data, v) })
+		proxyErr := proxy.consume(header.Opcode, files, func(v any) {
+			if unmarshalErr := ctx.unmarshal(&header, data, v); unmarshalErr != nil {
+				panic(unmarshalErr)
+			}
+		})
 		data = data[header.Size:]
-		if err != nil {
-			return
+		if proxyErr != nil {
+			proxyErrors = append(proxyErrors, proxyErr)
 		}
 	}
 
+	var joinError []error
+	if len(proxyErrors) > 0 {
+		joinError = append(joinError, proxyErrors)
+	}
 	if len(ctx.receivedFiles) < receivedHeaderFiles {
-		return DanglingFilesError(ctx.receivedFiles[len(ctx.receivedFiles)-receivedHeaderFiles:])
+		joinError = append(joinError, DanglingFilesError(ctx.receivedFiles[len(ctx.receivedFiles)-receivedHeaderFiles:]))
+	}
+	if len(joinError) > 0 {
+		return errors.Join(joinError...)
 	}
 
 	if len(ctx.pendingIds) != 0 {
@@ -505,24 +608,23 @@ func (ctx *Context) Roundtrip() (err error) {
 	return
 }
 
-// An UnexpectedFileCountError is returned for an event that received an unexpected
-// number of files. The proxy closes these extra files before returning
+// An UnexpectedFileCountError is returned as part of a [ProxyFatalError] for an event
+// that received an unexpected number of files.
 type UnexpectedFileCountError [2]int
 
 func (e *UnexpectedFileCountError) Error() string {
 	return "received " + strconv.Itoa(e[1]) + " files instead of the expected " + strconv.Itoa(e[0])
 }
 
-// closeReceivedFiles closes all received files and returns [UnexpectedFileCountError]
+// closeReceivedFiles closes all received files and panics with [UnexpectedFileCountError]
 // if one or more files are passed. This is used with events that do not expect files.
-func closeReceivedFiles(fds ...int) error {
+func closeReceivedFiles(fds ...int) {
 	for _, fd := range fds {
 		_ = syscall.Close(fd)
 	}
-	if len(fds) == 0 {
-		return nil
+	if len(fds) > 0 {
+		panic(&UnexpectedFileCountError{0, len(fds)})
 	}
-	return &UnexpectedFileCountError{0, len(fds)}
 }
 
 // Close frees the underlying buffer and closes the connection.
