@@ -16,11 +16,11 @@ package pipewire
 
 import (
 	"encoding/binary"
-	"errors"
 	"fmt"
 	"io"
 	"maps"
 	"net"
+	"os"
 	"runtime"
 	"slices"
 	"strconv"
@@ -102,6 +102,9 @@ type Context struct {
 	headerFiles int
 	// Files from the server. This is discarded on every Roundtrip so eventProxy
 	// implementations must make sure to close them to avoid leaking fds.
+	//
+	// These are not automatically set up as [os.File] because it is impossible
+	// to undo the effects of os.NewFile, which can be inconvenient for some uses.
 	receivedFiles []int
 	// Pending footer value for the next outgoing message.
 	// Newer footers appear to simply replace the existing one.
@@ -428,8 +431,8 @@ func (e UnexpectedFilesError) Error() string {
 }
 
 // A DanglingFilesError holds onto files that were sent by the server but no [Header]
-// accounts for. These must be closed to avoid leaking fds.
-type DanglingFilesError []int
+// accounts for. These are closed by their finalizers if discarded.
+type DanglingFilesError []*os.File
 
 func (e DanglingFilesError) Error() string {
 	return "received " + strconv.Itoa(len(e)) + " dangling files"
@@ -591,17 +594,37 @@ func (ctx *Context) Roundtrip() (err error) {
 		}
 	}
 
-	var joinError []error
-	if len(proxyErrors) > 0 {
-		joinError = append(joinError, proxyErrors)
-	}
-	if len(ctx.receivedFiles) < receivedHeaderFiles {
-		joinError = append(joinError, DanglingFilesError(ctx.receivedFiles[len(ctx.receivedFiles)-receivedHeaderFiles:]))
-	}
-	if len(joinError) > 0 {
-		return errors.Join(joinError...)
+	// prepared here so finalizers are set up, but should not prevent proxyErrors
+	// from reaching the caller as those describe the cause of these dangling fds
+	var danglingFiles DanglingFilesError
+	if len(ctx.receivedFiles) > receivedHeaderFiles {
+		danglingFds := ctx.receivedFiles[receivedHeaderFiles:]
+		// having multiple *os.File with the same fd causes serious problems
+		slices.Sort(danglingFds)
+		danglingFds = slices.Compact(danglingFds)
+
+		danglingFiles = make(DanglingFilesError, 0, len(danglingFds))
+		for _, fd := range danglingFds {
+			// hold these as *os.File so they are closed if this error never reaches the caller,
+			// or the caller discards or otherwise does not handle this error, to avoid leaking fds
+			danglingFiles = append(danglingFiles, os.NewFile(uintptr(fd),
+				"dangling fd "+strconv.Itoa(fd)+" received from PipeWire"))
+		}
 	}
 
+	// these are checked and made available first since they describe the cause
+	// of so-called symptoms checked after this point; the symptoms should only
+	// be made available as a catch-all if these are unavailable
+	if len(proxyErrors) > 0 {
+		return proxyErrors
+	}
+
+	// populated early for finalizers
+	if len(danglingFiles) > 0 {
+		return danglingFiles
+	}
+
+	// this check must happen after everything else passes
 	if len(ctx.pendingIds) != 0 {
 		return UnacknowledgedProxyError(slices.Collect(maps.Keys(ctx.pendingIds)))
 	}
