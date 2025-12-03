@@ -69,6 +69,76 @@ func (testCases encodingTestCases[V, S]) run(t *testing.T) {
 	}
 }
 
+func TestPODErrors(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name string
+		err  error
+		want string
+	}{
+		{"UnsupportedTypeError", &pipewire.UnsupportedTypeError{
+			Type: reflect.TypeFor[any](),
+		}, "unsupported type interface {}"},
+
+		{"UnsupportedSizeError", pipewire.UnsupportedSizeError(pipewire.SizeMax + 1), "size 16777216 out of range"},
+
+		{"InvalidUnmarshalError untyped nil", new(pipewire.InvalidUnmarshalError), "attempting to unmarshal to nil"},
+		{"InvalidUnmarshalError non-pointer", &pipewire.InvalidUnmarshalError{
+			Type: reflect.TypeFor[uintptr](),
+		}, "attempting to unmarshal to non-pointer type uintptr"},
+		{"InvalidUnmarshalError nil", &pipewire.InvalidUnmarshalError{
+			Type: reflect.TypeFor[*uintptr](),
+		}, "attempting to unmarshal to nil *uintptr"},
+
+		{"UnexpectedEOFError ErrEOFPrefix", pipewire.ErrEOFPrefix, "unexpected EOF decoding fixed-size POD prefix"},
+		{"UnexpectedEOFError ErrEOFData", pipewire.ErrEOFData, "unexpected EOF establishing POD data bounds"},
+		{"UnexpectedEOFError ErrEOFDataString", pipewire.ErrEOFDataString, "unexpected EOF establishing POD String bounds"},
+		{"UnexpectedEOFError invalid", pipewire.UnexpectedEOFError(0xbad), "unexpected EOF"},
+
+		{"UnmarshalSetError", &pipewire.UnmarshalSetError{
+			Type: reflect.TypeFor[*uintptr](),
+		}, "cannot set *uintptr"},
+
+		{"TrailingGarbageError short", make(pipewire.TrailingGarbageError, 1<<3-1), "got 7 bytes of trailing garbage"},
+		{"TrailingGarbageError String", pipewire.TrailingGarbageError{
+			/* size: */ 0, 0, 0, 0,
+			/* type: */ byte(pipewire.SPA_TYPE_String), 0, 0, 0,
+		}, "data has extra values starting with String"},
+		{"TrailingGarbageError invalid", pipewire.TrailingGarbageError{
+			/* size:    */ 0, 0, 0, 0,
+			/* type:    */ 0xff, 0xff, 0xff, 0xff,
+			/* garbage: */ 0,
+		}, "data has extra values starting with invalid type field 0xffffffff"},
+
+		{"StringTerminationError", pipewire.StringTerminationError(0xff), "got byte 255 instead of NUL"},
+
+		{"InconsistentSizeError", pipewire.InconsistentSizeError{
+			Prefix: 0xbad,
+			Expect: 0xff,
+		}, "prefix claims size 2989 for a 255-byte long segment"},
+
+		{"UnexpectedTypeError zero", pipewire.UnexpectedTypeError{}, "received invalid type field 0x0 for a value of type invalid type field 0x0"},
+		{"UnexpectedTypeError", pipewire.UnexpectedTypeError{
+			Type:   pipewire.SPA_TYPE_String,
+			Expect: pipewire.SPA_TYPE_Array,
+		}, "received String for a value of type Array"},
+		{"UnexpectedTypeError invalid", pipewire.UnexpectedTypeError{
+			Type:   0xdeadbeef,
+			Expect: pipewire.SPA_TYPE_Long,
+		}, "received invalid type field 0xdeadbeef for a value of type Long"},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			if got := tc.err.Error(); got != tc.want {
+				t.Errorf("Error: %q, want %q", got, tc.want)
+			}
+		})
+	}
+}
+
 var benchmarkSample = func() (sample pipewire.CoreInfo) {
 	if err := sample.UnmarshalBinary(samplePWContainer[1][0][1]); err != nil {
 		panic(err)

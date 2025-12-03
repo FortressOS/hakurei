@@ -87,14 +87,14 @@ type PODMarshaler interface {
 // to encode an unsupported value type.
 type UnsupportedTypeError struct{ Type reflect.Type }
 
-func (e *UnsupportedTypeError) Error() string { return "unsupported type: " + e.Type.String() }
+func (e *UnsupportedTypeError) Error() string { return "unsupported type " + e.Type.String() }
 
 // An UnsupportedSizeError is returned by [Marshal] when attempting
 // to encode a value with its encoded size exceeding what could be
 // represented by the format.
 type UnsupportedSizeError int
 
-func (e UnsupportedSizeError) Error() string { return "size out of range: " + strconv.Itoa(int(e)) }
+func (e UnsupportedSizeError) Error() string { return "size " + strconv.Itoa(int(e)) + " out of range" }
 
 // Marshal returns the PipeWire POD encoding of v.
 func Marshal(v any) ([]byte, error) {
@@ -220,16 +220,43 @@ func (e *InvalidUnmarshalError) Error() string {
 	}
 
 	if e.Type.Kind() != reflect.Pointer {
-		return "attempting to unmarshal to non-pointer type: " + e.Type.String()
+		return "attempting to unmarshal to non-pointer type " + e.Type.String()
 	}
 	return "attempting to unmarshal to nil " + e.Type.String()
 }
 
-// UnexpectedEOFError is returned when EOF was encountered in the middle of decoding POD data.
-type UnexpectedEOFError struct{}
+// UnexpectedEOFError describes an unexpected EOF encountered in the middle of decoding POD data.
+type UnexpectedEOFError uintptr
+
+const (
+	// ErrEOFPrefix is returned when unexpectedly encountering EOF
+	// decoding the fixed-size POD prefix.
+	ErrEOFPrefix UnexpectedEOFError = iota
+	// ErrEOFData is returned when unexpectedly encountering EOF
+	// establishing POD data bounds.
+	ErrEOFData
+	// ErrEOFDataString is returned when unexpectedly encountering EOF
+	// establishing POD [String] bounds.
+	ErrEOFDataString
+)
 
 func (UnexpectedEOFError) Unwrap() error { return io.ErrUnexpectedEOF }
-func (UnexpectedEOFError) Error() string { return "unexpected EOF decoding POD data" }
+func (e UnexpectedEOFError) Error() string {
+	var suffix string
+	switch e {
+	case ErrEOFPrefix:
+		suffix = "decoding fixed-size POD prefix"
+	case ErrEOFData:
+		suffix = "establishing POD data bounds"
+	case ErrEOFDataString:
+		suffix = "establishing POD String bounds"
+
+	default:
+		return "unexpected EOF"
+	}
+
+	return "unexpected EOF " + suffix
+}
 
 // Unmarshal parses the PipeWire POD encoded data and stores the result
 // in the value pointed to by v. If v is nil or not a pointer,
@@ -238,7 +265,7 @@ func Unmarshal(data []byte, v any) error {
 	if n, err := UnmarshalNext(data, v); err != nil {
 		return err
 	} else if len(data) > int(n) {
-		return &TrailingGarbageError{data[int(n):]}
+		return TrailingGarbageError(data[int(n):])
 	}
 
 	return nil
@@ -261,25 +288,25 @@ func UnmarshalNext(data []byte, v any) (size Word, err error) {
 // This is likely an unexported struct field.
 type UnmarshalSetError struct{ Type reflect.Type }
 
-func (u *UnmarshalSetError) Error() string { return "cannot set: " + u.Type.String() }
+func (u *UnmarshalSetError) Error() string { return "cannot set " + u.Type.String() }
 
 // A TrailingGarbageError describes extra bytes after decoding
 // has completed during [Unmarshal].
-type TrailingGarbageError struct{ Data []byte }
+type TrailingGarbageError []byte
 
-func (e *TrailingGarbageError) Error() string {
-	if len(e.Data) < SizePrefix {
-		return "got " + strconv.Itoa(len(e.Data)) + " bytes of trailing garbage"
+func (e TrailingGarbageError) Error() string {
+	if len(e) < SizePrefix {
+		return "got " + strconv.Itoa(len(e)) + " bytes of trailing garbage"
 	}
-	return "data has extra values starting with type " + strconv.Itoa(int(binary.NativeEndian.Uint32(e.Data[SizeSPrefix:])))
+	return "data has extra values starting with " + SPAKind(binary.NativeEndian.Uint32(e[SizeSPrefix:])).String()
 }
 
 // A StringTerminationError describes an incorrectly terminated string
 // encountered during [Unmarshal].
-type StringTerminationError struct{ Value byte }
+type StringTerminationError byte
 
 func (e StringTerminationError) Error() string {
-	return "got byte " + strconv.Itoa(int(e.Value)) + " instead of NUL"
+	return "got byte " + strconv.Itoa(int(e)) + " instead of NUL"
 }
 
 // unmarshalValue implements [Unmarshal] on [reflect.Value] without compensating for prefix and padding size.
@@ -351,13 +378,13 @@ func unmarshalValue(data []byte, v reflect.Value, wireSizeP *Word) error {
 		}
 
 		if len(data) != 0 {
-			return &TrailingGarbageError{data}
+			return TrailingGarbageError(data)
 		}
 		return nil
 
 	case reflect.Pointer:
 		if len(data) < SizePrefix {
-			return UnexpectedEOFError{}
+			return ErrEOFPrefix
 		}
 		switch SPAKind(binary.NativeEndian.Uint32(data[SizeSPrefix:])) {
 		case SPA_TYPE_None:
@@ -378,12 +405,12 @@ func unmarshalValue(data []byte, v reflect.Value, wireSizeP *Word) error {
 		// string size, one extra NUL byte
 		size := int(*wireSizeP)
 		if len(data) < size {
-			return UnexpectedEOFError{}
+			return ErrEOFDataString
 		}
 
 		// the serialised strings still include NUL termination
 		if data[size-1] != 0 {
-			return StringTerminationError{data[size-1]}
+			return StringTerminationError(data[size-1])
 		}
 
 		v.SetString(string(data[:size-1]))
@@ -398,23 +425,24 @@ func unmarshalValue(data []byte, v reflect.Value, wireSizeP *Word) error {
 // in data passed to [Unmarshal].
 type InconsistentSizeError struct{ Prefix, Expect Word }
 
-func (e *InconsistentSizeError) Error() string {
-	return "unexpected size prefix: " + strconv.Itoa(int(e.Prefix)) + ", want " + strconv.Itoa(int(e.Expect))
+func (e InconsistentSizeError) Error() string {
+	return "prefix claims size " + strconv.Itoa(int(e.Prefix)) +
+		" for a " + strconv.Itoa(int(e.Expect)) + "-byte long segment"
 }
 
 // An UnexpectedTypeError describes an unexpected type encountered
 // in data passed to [Unmarshal].
 type UnexpectedTypeError struct{ Type, Expect SPAKind }
 
-func (u *UnexpectedTypeError) Error() string {
-	return "received " + u.Type.String() + " for a value of type " + u.Expect.String()
+func (e UnexpectedTypeError) Error() string {
+	return "received " + e.Type.String() + " for a value of type " + e.Expect.String()
 }
 
 // unmarshalCheckTypeBounds performs bounds checks on data and validates the type and size prefixes.
 // An expected size of zero skips further bounds checks.
 func unmarshalCheckTypeBounds(data *[]byte, t SPAKind, sizeP *Word) error {
 	if len(*data) < SizePrefix {
-		return UnexpectedEOFError{}
+		return ErrEOFPrefix
 	}
 
 	wantSize := *sizeP
@@ -422,15 +450,15 @@ func unmarshalCheckTypeBounds(data *[]byte, t SPAKind, sizeP *Word) error {
 	*sizeP = gotSize
 
 	if wantSize != 0 && gotSize != wantSize {
-		return &InconsistentSizeError{gotSize, wantSize}
+		return InconsistentSizeError{gotSize, wantSize}
 	}
 	if len(*data)-SizePrefix < int(gotSize) {
-		return UnexpectedEOFError{}
+		return ErrEOFData
 	}
 
 	gotType := SPAKind(binary.NativeEndian.Uint32((*data)[SizeSPrefix:]))
 	if gotType != t {
-		return &UnexpectedTypeError{gotType, t}
+		return UnexpectedTypeError{gotType, t}
 	}
 
 	*data = (*data)[SizePrefix : gotSize+SizePrefix]
@@ -541,7 +569,7 @@ func (d *SPADict) UnmarshalPOD(data []byte) (Word, error) {
 	}
 
 	if len(data) != 0 {
-		return wireSize, &TrailingGarbageError{data}
+		return wireSize, TrailingGarbageError(data)
 	}
 	return wireSize, nil
 }
