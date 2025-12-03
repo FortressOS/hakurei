@@ -128,15 +128,15 @@ func TestCorePing(t *testing.T) {
 		// handmade sample
 		{"sample", []byte{
 			/* size: rest of data */ 0x20, 0, 0, 0,
-			/* type: Struct */ pipewire.SPA_TYPE_Struct, 0, 0, 0,
+			/* type: Struct */ byte(pipewire.SPA_TYPE_Struct), 0, 0, 0,
 
 			/* size: 4 bytes */ 4, 0, 0, 0,
-			/* type: Int */ pipewire.SPA_TYPE_Int, 0, 0, 0,
+			/* type: Int */ byte(pipewire.SPA_TYPE_Int), 0, 0, 0,
 			/* value: -1 */ 0xff, 0xff, 0xff, 0xff,
 			/* padding */ 0, 0, 0, 0,
 
 			/* size: 4 bytes */ 4, 0, 0, 0,
-			/* type: Int */ pipewire.SPA_TYPE_Int, 0, 0, 0,
+			/* type: Int */ byte(pipewire.SPA_TYPE_Int), 0, 0, 0,
 			/* value: 0 */ 0, 0, 0, 0,
 			/* padding */ 0, 0, 0, 0,
 		}, pipewire.CorePing{
@@ -257,15 +257,15 @@ func TestCorePong(t *testing.T) {
 		// handmade sample
 		{"sample", []byte{
 			/* size: rest of data */ 0x20, 0, 0, 0,
-			/* type: Struct */ pipewire.SPA_TYPE_Struct, 0, 0, 0,
+			/* type: Struct */ byte(pipewire.SPA_TYPE_Struct), 0, 0, 0,
 
 			/* size: 4 bytes */ 4, 0, 0, 0,
-			/* type: Int */ pipewire.SPA_TYPE_Int, 0, 0, 0,
+			/* type: Int */ byte(pipewire.SPA_TYPE_Int), 0, 0, 0,
 			/* value: -1 */ 0xff, 0xff, 0xff, 0xff,
 			/* padding */ 0, 0, 0, 0,
 
 			/* size: 4 bytes */ 4, 0, 0, 0,
-			/* type: Int */ pipewire.SPA_TYPE_Int, 0, 0, 0,
+			/* type: Int */ byte(pipewire.SPA_TYPE_Int), 0, 0, 0,
 			/* value: 0 */ 0, 0, 0, 0,
 			/* padding */ 0, 0, 0, 0,
 		}, pipewire.CorePong{

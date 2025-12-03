@@ -1,10 +1,24 @@
 package pipewire
 
+import (
+	"encoding/binary"
+	"fmt"
+)
+
+// A SPAKind describes the kind of data being encoded right after it.
+//
+// These do not always follow the same rules, and encoding/decoding
+// is very much context-dependent. Callers should therefore not
+// attempt to use these values directly and rely on [Marshal] and
+// [Unmarshal] and their variants instead.
+type SPAKind Word
+
 /* Basic types */
 const (
 	/* POD's can contain a number of basic SPA types: */
 
-	SPA_TYPE_START     = 0x00000 + iota
+	SPA_TYPE_START SPAKind = 0x00000 + iota
+
 	SPA_TYPE_None      // No value or a NULL pointer.
 	SPA_TYPE_Bool      // A boolean value.
 	SPA_TYPE_Id        // An enumerated value.
@@ -34,6 +48,60 @@ const (
 
 	_SPA_TYPE_LAST // not part of ABI
 )
+
+// append appends the representation of [SPAKind] to data and returns the appended slice.
+func (kind SPAKind) append(data []byte) []byte {
+	return binary.NativeEndian.AppendUint32(data, Word(kind))
+}
+
+// String returns the name of the [SPAKind] for basic types.
+func (kind SPAKind) String() string {
+	switch kind {
+	case SPA_TYPE_None:
+		return "None"
+	case SPA_TYPE_Bool:
+		return "Bool"
+	case SPA_TYPE_Id:
+		return "Id"
+	case SPA_TYPE_Int:
+		return "Int"
+	case SPA_TYPE_Long:
+		return "Long"
+	case SPA_TYPE_Float:
+		return "Float"
+	case SPA_TYPE_Double:
+		return "Double"
+	case SPA_TYPE_String:
+		return "String"
+	case SPA_TYPE_Bytes:
+		return "Bytes"
+	case SPA_TYPE_Rectangle:
+		return "Rectangle"
+	case SPA_TYPE_Fraction:
+		return "Fraction"
+	case SPA_TYPE_Bitmap:
+		return "Bitmap"
+	case SPA_TYPE_Array:
+		return "Array"
+	case SPA_TYPE_Struct:
+		return "Struct"
+	case SPA_TYPE_Object:
+		return "Object"
+	case SPA_TYPE_Sequence:
+		return "Sequence"
+	case SPA_TYPE_Pointer:
+		return "Pointer"
+	case SPA_TYPE_Fd:
+		return "Fd"
+	case SPA_TYPE_Choice:
+		return "Choice"
+	case SPA_TYPE_Pod:
+		return "Pod"
+
+	default:
+		return fmt.Sprintf("invalid type field %#x", Word(kind))
+	}
+}
 
 /* Pointers */
 const (

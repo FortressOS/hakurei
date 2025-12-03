@@ -150,7 +150,7 @@ func marshalValueAppendRaw(data []byte, v reflect.Value) ([]byte, error) {
 	if v.CanInterface() {
 		switch c := v.Interface().(type) {
 		case Fd:
-			data = binary.NativeEndian.AppendUint32(data, SPA_TYPE_Fd)
+			data = SPA_TYPE_Fd.append(data)
 			data = binary.NativeEndian.AppendUint64(data, uint64(c))
 			return data, nil
 		}
@@ -158,22 +158,22 @@ func marshalValueAppendRaw(data []byte, v reflect.Value) ([]byte, error) {
 
 	switch v.Kind() {
 	case reflect.Uint32:
-		data = binary.NativeEndian.AppendUint32(data, SPA_TYPE_Id)
+		data = SPA_TYPE_Id.append(data)
 		data = binary.NativeEndian.AppendUint32(data, Word(v.Uint()))
 		return data, nil
 
 	case reflect.Int32:
-		data = binary.NativeEndian.AppendUint32(data, SPA_TYPE_Int)
+		data = SPA_TYPE_Int.append(data)
 		data = binary.NativeEndian.AppendUint32(data, Word(v.Int()))
 		return data, nil
 
 	case reflect.Int64:
-		data = binary.NativeEndian.AppendUint32(data, SPA_TYPE_Long)
+		data = SPA_TYPE_Long.append(data)
 		data = binary.NativeEndian.AppendUint64(data, uint64(v.Int()))
 		return data, nil
 
 	case reflect.Struct:
-		data = binary.NativeEndian.AppendUint32(data, SPA_TYPE_Struct)
+		data = SPA_TYPE_Struct.append(data)
 		var err error
 		for i := 0; i < v.NumField(); i++ {
 			data, err = marshalValueAppend(data, v.Field(i))
@@ -185,13 +185,13 @@ func marshalValueAppendRaw(data []byte, v reflect.Value) ([]byte, error) {
 
 	case reflect.Pointer:
 		if v.IsNil() {
-			data = binary.NativeEndian.AppendUint32(data, SPA_TYPE_None)
+			data = SPA_TYPE_None.append(data)
 			return data, nil
 		}
 		return marshalValueAppendRaw(data, v.Elem())
 
 	case reflect.String:
-		data = binary.NativeEndian.AppendUint32(data, SPA_TYPE_String)
+		data = SPA_TYPE_String.append(data)
 		data = append(data, []byte(v.String())...)
 		data = append(data, 0)
 		return data, nil
@@ -359,7 +359,7 @@ func unmarshalValue(data []byte, v reflect.Value, wireSizeP *Word) error {
 		if len(data) < SizePrefix {
 			return UnexpectedEOFError{}
 		}
-		switch binary.NativeEndian.Uint32(data[SizeSPrefix:]) {
+		switch SPAKind(binary.NativeEndian.Uint32(data[SizeSPrefix:])) {
 		case SPA_TYPE_None:
 			v.SetZero()
 			return nil
@@ -404,15 +404,15 @@ func (e *InconsistentSizeError) Error() string {
 
 // An UnexpectedTypeError describes an unexpected type encountered
 // in data passed to [Unmarshal].
-type UnexpectedTypeError struct{ Type, Expect Word }
+type UnexpectedTypeError struct{ Type, Expect SPAKind }
 
 func (u *UnexpectedTypeError) Error() string {
-	return "unexpected type: " + strconv.Itoa(int(u.Type)) + ", want " + strconv.Itoa(int(u.Expect))
+	return "received " + u.Type.String() + " for a value of type " + u.Expect.String()
 }
 
 // unmarshalCheckTypeBounds performs bounds checks on data and validates the type and size prefixes.
 // An expected size of zero skips further bounds checks.
-func unmarshalCheckTypeBounds(data *[]byte, t Word, sizeP *Word) error {
+func unmarshalCheckTypeBounds(data *[]byte, t SPAKind, sizeP *Word) error {
 	if len(*data) < SizePrefix {
 		return UnexpectedEOFError{}
 	}
@@ -428,7 +428,7 @@ func unmarshalCheckTypeBounds(data *[]byte, t Word, sizeP *Word) error {
 		return UnexpectedEOFError{}
 	}
 
-	gotType := binary.NativeEndian.Uint32((*data)[SizeSPrefix:])
+	gotType := SPAKind(binary.NativeEndian.Uint32((*data)[SizeSPrefix:]))
 	if gotType != t {
 		return &UnexpectedTypeError{gotType, t}
 	}
@@ -491,7 +491,7 @@ func (d *SPADict) Size() Word {
 // MarshalPOD satisfies [PODMarshaler] as [SPADict] violates the POD type system.
 func (d *SPADict) MarshalPOD(data []byte) ([]byte, error) {
 	return appendInner(data, func(dataPrefix []byte) (data []byte, err error) {
-		data = binary.NativeEndian.AppendUint32(dataPrefix, SPA_TYPE_Struct)
+		data = SPA_TYPE_Struct.append(dataPrefix)
 		if data, err = MarshalAppend(data, Int(len(*d))); err != nil {
 			return
 		}

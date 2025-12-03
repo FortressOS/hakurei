@@ -3,9 +3,31 @@ package pipewire_test
 import (
 	_ "embed"
 	"encoding/binary"
+	"testing"
 
 	"hakurei.app/internal/pipewire"
 )
+
+func TestSPAKind(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name string
+		v    pipewire.SPAKind
+		want string
+	}{
+		{"invalid", 0xdeadbeef, "invalid type field 0xdeadbeef"},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			if got := tc.v.String(); got != tc.want {
+				t.Errorf("String: %q, want %q", got, tc.want)
+			}
+		})
+	}
+}
 
 // splitMessages splits concatenated messages into groups of
 // header, payload, footer of each individual message.
