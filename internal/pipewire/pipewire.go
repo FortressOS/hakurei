@@ -494,7 +494,11 @@ func (ctx *Context) Roundtrip() (err error) {
 	if err = ctx.conn.SetDeadline(time.Now().Add(connTimeout)); err != nil {
 		return
 	}
-	if _, _, err = ctx.conn.WriteMsgUnix(ctx.buf, syscall.UnixRights(ctx.pendingFiles...), nil); err != nil {
+	var unixRightsOob []byte
+	if len(ctx.pendingFiles) > 0 {
+		unixRightsOob = syscall.UnixRights(ctx.pendingFiles...)
+	}
+	if _, _, err = ctx.conn.WriteMsgUnix(ctx.buf, unixRightsOob, nil); err != nil {
 		return
 	}
 
