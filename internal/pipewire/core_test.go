@@ -63,20 +63,20 @@ func TestCoreInfo(t *testing.T) {
 			Name:       "pipewire-0",
 			ChangeMask: pipewire.PW_CORE_CHANGE_MASK_PROPS,
 			Properties: &pipewire.SPADict{
-				{Key: "config.name", Value: "pipewire.conf"},
-				{Key: "application.name", Value: "pipewire"},
-				{Key: "application.process.binary", Value: "pipewire"},
-				{Key: "application.language", Value: "en_US.UTF-8"},
-				{Key: "application.process.id", Value: "1446"},
-				{Key: "application.process.user", Value: "alice"},
-				{Key: "application.process.host", Value: "nixos"},
-				{Key: "window.x11.display", Value: ":0"},
+				{Key: pipewire.PW_KEY_CONFIG_NAME, Value: "pipewire.conf"},
+				{Key: pipewire.PW_KEY_APP_NAME, Value: "pipewire"},
+				{Key: pipewire.PW_KEY_APP_PROCESS_BINARY, Value: "pipewire"},
+				{Key: pipewire.PW_KEY_APP_LANGUAGE, Value: "en_US.UTF-8"},
+				{Key: pipewire.PW_KEY_APP_PROCESS_ID, Value: "1446"},
+				{Key: pipewire.PW_KEY_APP_PROCESS_USER, Value: "alice"},
+				{Key: pipewire.PW_KEY_APP_PROCESS_HOST, Value: "nixos"},
+				{Key: pipewire.PW_KEY_WINDOW_X11_DISPLAY, Value: ":0"},
 				{Key: "cpu.vm.name", Value: "qemu"},
 				{Key: "link.max-buffers", Value: "16"},
-				{Key: "core.daemon", Value: "true"},
-				{Key: "core.name", Value: "pipewire-0"},
+				{Key: pipewire.PW_KEY_CORE_DAEMON, Value: "true"},
+				{Key: pipewire.PW_KEY_CORE_NAME, Value: "pipewire-0"},
 				{Key: "default.clock.min-quantum", Value: "1024"},
-				{Key: "cpu.max-align", Value: "32"},
+				{Key: pipewire.PW_KEY_CPU_MAX_ALIGN, Value: "32"},
 				{Key: "default.clock.rate", Value: "48000"},
 				{Key: "default.clock.quantum", Value: "1024"},
 				{Key: "default.clock.max-quantum", Value: "2048"},
@@ -92,8 +92,8 @@ func TestCoreInfo(t *testing.T) {
 				{Key: "mem.allow-mlock", Value: "true"},
 				{Key: "settings.check-quantum", Value: "false"},
 				{Key: "settings.check-rate", Value: "false"},
-				{Key: "object.id", Value: "0"},
-				{Key: "object.serial", Value: "0"}},
+				{Key: pipewire.PW_KEY_OBJECT_ID, Value: "0"},
+				{Key: pipewire.PW_KEY_OBJECT_SERIAL, Value: "0"}},
 		}, nil},
 	}.run(t)
 }
@@ -203,13 +203,13 @@ func TestCoreBoundProps(t *testing.T) {
 			ID:       pipewire.PW_ID_CLIENT,
 			GlobalID: 34,
 			Properties: &pipewire.SPADict{
-				{Key: "object.serial", Value: "34"},
-				{Key: "module.id", Value: "2"},
-				{Key: "pipewire.protocol", Value: "protocol-native"},
-				{Key: "pipewire.sec.pid", Value: "1443"},
-				{Key: "pipewire.sec.uid", Value: "1000"},
-				{Key: "pipewire.sec.gid", Value: "100"},
-				{Key: "pipewire.sec.socket", Value: "pipewire-0-manager"}},
+				{Key: pipewire.PW_KEY_OBJECT_SERIAL, Value: "34"},
+				{Key: pipewire.PW_KEY_MODULE_ID, Value: "2"},
+				{Key: pipewire.PW_KEY_PROTOCOL, Value: "protocol-native"},
+				{Key: pipewire.PW_KEY_SEC_PID, Value: "1443"},
+				{Key: pipewire.PW_KEY_SEC_UID, Value: "1000"},
+				{Key: pipewire.PW_KEY_SEC_GID, Value: "100"},
+				{Key: pipewire.PW_KEY_SEC_SOCKET, Value: "pipewire-0-manager"}},
 		}, nil},
 
 		/* recvmsg 1 */
@@ -218,7 +218,7 @@ func TestCoreBoundProps(t *testing.T) {
 			ID:       3,
 			GlobalID: 3,
 			Properties: &pipewire.SPADict{
-				{Key: "object.serial", Value: "3"},
+				{Key: pipewire.PW_KEY_OBJECT_SERIAL, Value: "3"},
 			},
 		}, nil},
 	}.run(t)
@@ -297,8 +297,8 @@ func TestRegistryGlobal(t *testing.T) {
 			Type:        pipewire.PW_TYPE_INTERFACE_Core,
 			Version:     pipewire.PW_VERSION_CORE,
 			Properties: &pipewire.SPADict{
-				{Key: "object.serial", Value: "0"},
-				{Key: "core.name", Value: "pipewire-0"},
+				{Key: pipewire.PW_KEY_OBJECT_SERIAL, Value: "0"},
+				{Key: pipewire.PW_KEY_CORE_NAME, Value: "pipewire-0"},
 			},
 		}, nil},
 
@@ -308,8 +308,8 @@ func TestRegistryGlobal(t *testing.T) {
 			Type:        pipewire.PW_TYPE_INTERFACE_Module,
 			Version:     pipewire.PW_VERSION_MODULE,
 			Properties: &pipewire.SPADict{
-				{Key: "object.serial", Value: "1"},
-				{Key: "module.name", Value: pipewire.PIPEWIRE_MODULE_PREFIX + "module-rt"},
+				{Key: pipewire.PW_KEY_OBJECT_SERIAL, Value: "1"},
+				{Key: pipewire.PW_KEY_MODULE_NAME, Value: pipewire.PIPEWIRE_MODULE_PREFIX + "module-rt"},
 			},
 		}, nil},
 
@@ -319,7 +319,7 @@ func TestRegistryGlobal(t *testing.T) {
 			Type:        pipewire.PW_TYPE_INTERFACE_SecurityContext,
 			Version:     pipewire.PW_VERSION_SECURITY_CONTEXT,
 			Properties: &pipewire.SPADict{
-				{Key: "object.serial", Value: "3"},
+				{Key: pipewire.PW_KEY_OBJECT_SERIAL, Value: "3"},
 			},
 		}, nil},
 
@@ -329,8 +329,8 @@ func TestRegistryGlobal(t *testing.T) {
 			Type:        pipewire.PW_TYPE_INTERFACE_Module,
 			Version:     pipewire.PW_VERSION_MODULE,
 			Properties: &pipewire.SPADict{
-				{Key: "object.serial", Value: "2"},
-				{Key: "module.name", Value: pipewire.PIPEWIRE_MODULE_PREFIX + "module-protocol-native"},
+				{Key: pipewire.PW_KEY_OBJECT_SERIAL, Value: "2"},
+				{Key: pipewire.PW_KEY_MODULE_NAME, Value: pipewire.PIPEWIRE_MODULE_PREFIX + "module-protocol-native"},
 			},
 		}, nil},
 
@@ -340,7 +340,7 @@ func TestRegistryGlobal(t *testing.T) {
 			Type:        pipewire.PW_TYPE_INTERFACE_Profiler,
 			Version:     pipewire.PW_VERSION_PROFILER,
 			Properties: &pipewire.SPADict{
-				{Key: "object.serial", Value: "5"},
+				{Key: pipewire.PW_KEY_OBJECT_SERIAL, Value: "5"},
 			},
 		}, nil},
 
@@ -350,8 +350,8 @@ func TestRegistryGlobal(t *testing.T) {
 			Type:        pipewire.PW_TYPE_INTERFACE_Module,
 			Version:     pipewire.PW_VERSION_MODULE,
 			Properties: &pipewire.SPADict{
-				{Key: "object.serial", Value: "4"},
-				{Key: "module.name", Value: pipewire.PIPEWIRE_MODULE_PREFIX + "module-profiler"},
+				{Key: pipewire.PW_KEY_OBJECT_SERIAL, Value: "4"},
+				{Key: pipewire.PW_KEY_MODULE_NAME, Value: pipewire.PIPEWIRE_MODULE_PREFIX + "module-profiler"},
 			},
 		}, nil},
 
@@ -361,8 +361,8 @@ func TestRegistryGlobal(t *testing.T) {
 			Type:        pipewire.PW_TYPE_INTERFACE_Module,
 			Version:     pipewire.PW_VERSION_MODULE,
 			Properties: &pipewire.SPADict{
-				{Key: "object.serial", Value: "6"},
-				{Key: "module.name", Value: pipewire.PIPEWIRE_MODULE_PREFIX + "module-metadata"},
+				{Key: pipewire.PW_KEY_OBJECT_SERIAL, Value: "6"},
+				{Key: pipewire.PW_KEY_MODULE_NAME, Value: pipewire.PIPEWIRE_MODULE_PREFIX + "module-metadata"},
 			},
 		}, nil},
 
@@ -372,11 +372,11 @@ func TestRegistryGlobal(t *testing.T) {
 			Type:        pipewire.PW_TYPE_INTERFACE_Factory,
 			Version:     pipewire.PW_VERSION_FACTORY,
 			Properties: &pipewire.SPADict{
-				{Key: "object.serial", Value: "7"},
-				{Key: "module.id", Value: "6"},
-				{Key: "factory.name", Value: "metadata"},
-				{Key: "factory.type.name", Value: pipewire.PW_TYPE_INTERFACE_Metadata},
-				{Key: "factory.type.version", Value: "3"},
+				{Key: pipewire.PW_KEY_OBJECT_SERIAL, Value: "7"},
+				{Key: pipewire.PW_KEY_MODULE_ID, Value: "6"},
+				{Key: pipewire.PW_KEY_FACTORY_NAME, Value: "metadata"},
+				{Key: pipewire.PW_KEY_FACTORY_TYPE_NAME, Value: pipewire.PW_TYPE_INTERFACE_Metadata},
+				{Key: pipewire.PW_KEY_FACTORY_TYPE_VERSION, Value: "3"},
 			},
 		}, nil},
 
@@ -386,8 +386,8 @@ func TestRegistryGlobal(t *testing.T) {
 			Type:        pipewire.PW_TYPE_INTERFACE_Module,
 			Version:     pipewire.PW_VERSION_MODULE,
 			Properties: &pipewire.SPADict{
-				{Key: "object.serial", Value: "8"},
-				{Key: "module.name", Value: pipewire.PIPEWIRE_MODULE_PREFIX + "module-spa-device-factory"},
+				{Key: pipewire.PW_KEY_OBJECT_SERIAL, Value: "8"},
+				{Key: pipewire.PW_KEY_MODULE_NAME, Value: pipewire.PIPEWIRE_MODULE_PREFIX + "module-spa-device-factory"},
 			},
 		}, nil},
 
@@ -397,11 +397,11 @@ func TestRegistryGlobal(t *testing.T) {
 			Type:        pipewire.PW_TYPE_INTERFACE_Factory,
 			Version:     pipewire.PW_VERSION_FACTORY,
 			Properties: &pipewire.SPADict{
-				{Key: "object.serial", Value: "9"},
-				{Key: "module.id", Value: "8"},
-				{Key: "factory.name", Value: "spa-device-factory"},
-				{Key: "factory.type.name", Value: pipewire.PW_TYPE_INTERFACE_Device},
-				{Key: "factory.type.version", Value: "3"},
+				{Key: pipewire.PW_KEY_OBJECT_SERIAL, Value: "9"},
+				{Key: pipewire.PW_KEY_MODULE_ID, Value: "8"},
+				{Key: pipewire.PW_KEY_FACTORY_NAME, Value: "spa-device-factory"},
+				{Key: pipewire.PW_KEY_FACTORY_TYPE_NAME, Value: pipewire.PW_TYPE_INTERFACE_Device},
+				{Key: pipewire.PW_KEY_FACTORY_TYPE_VERSION, Value: "3"},
 			},
 		}, nil},
 
@@ -411,8 +411,8 @@ func TestRegistryGlobal(t *testing.T) {
 			Type:        pipewire.PW_TYPE_INTERFACE_Module,
 			Version:     pipewire.PW_VERSION_MODULE,
 			Properties: &pipewire.SPADict{
-				{Key: "object.serial", Value: "10"},
-				{Key: "module.name", Value: pipewire.PIPEWIRE_MODULE_PREFIX + "module-spa-node-factory"},
+				{Key: pipewire.PW_KEY_OBJECT_SERIAL, Value: "10"},
+				{Key: pipewire.PW_KEY_MODULE_NAME, Value: pipewire.PIPEWIRE_MODULE_PREFIX + "module-spa-node-factory"},
 			},
 		}, nil},
 
@@ -422,11 +422,11 @@ func TestRegistryGlobal(t *testing.T) {
 			Type:        pipewire.PW_TYPE_INTERFACE_Factory,
 			Version:     pipewire.PW_VERSION_FACTORY,
 			Properties: &pipewire.SPADict{
-				{Key: "object.serial", Value: "11"},
-				{Key: "module.id", Value: "10"},
-				{Key: "factory.name", Value: "spa-node-factory"},
-				{Key: "factory.type.name", Value: pipewire.PW_TYPE_INTERFACE_Node},
-				{Key: "factory.type.version", Value: "3"},
+				{Key: pipewire.PW_KEY_OBJECT_SERIAL, Value: "11"},
+				{Key: pipewire.PW_KEY_MODULE_ID, Value: "10"},
+				{Key: pipewire.PW_KEY_FACTORY_NAME, Value: "spa-node-factory"},
+				{Key: pipewire.PW_KEY_FACTORY_TYPE_NAME, Value: pipewire.PW_TYPE_INTERFACE_Node},
+				{Key: pipewire.PW_KEY_FACTORY_TYPE_VERSION, Value: "3"},
 			},
 		}, nil},
 
@@ -436,8 +436,8 @@ func TestRegistryGlobal(t *testing.T) {
 			Type:        pipewire.PW_TYPE_INTERFACE_Module,
 			Version:     pipewire.PW_VERSION_MODULE,
 			Properties: &pipewire.SPADict{
-				{Key: "object.serial", Value: "12"},
-				{Key: "module.name", Value: pipewire.PIPEWIRE_MODULE_PREFIX + "module-client-node"},
+				{Key: pipewire.PW_KEY_OBJECT_SERIAL, Value: "12"},
+				{Key: pipewire.PW_KEY_MODULE_NAME, Value: pipewire.PIPEWIRE_MODULE_PREFIX + "module-client-node"},
 			},
 		}, nil},
 
@@ -447,11 +447,11 @@ func TestRegistryGlobal(t *testing.T) {
 			Type:        pipewire.PW_TYPE_INTERFACE_Factory,
 			Version:     pipewire.PW_VERSION_FACTORY,
 			Properties: &pipewire.SPADict{
-				{Key: "object.serial", Value: "13"},
-				{Key: "module.id", Value: "12"},
-				{Key: "factory.name", Value: "client-node"},
-				{Key: "factory.type.name", Value: pipewire.PW_TYPE_INTERFACE_ClientNode},
-				{Key: "factory.type.version", Value: "6"},
+				{Key: pipewire.PW_KEY_OBJECT_SERIAL, Value: "13"},
+				{Key: pipewire.PW_KEY_MODULE_ID, Value: "12"},
+				{Key: pipewire.PW_KEY_FACTORY_NAME, Value: "client-node"},
+				{Key: pipewire.PW_KEY_FACTORY_TYPE_NAME, Value: pipewire.PW_TYPE_INTERFACE_ClientNode},
+				{Key: pipewire.PW_KEY_FACTORY_TYPE_VERSION, Value: "6"},
 			},
 		}, nil},
 
@@ -461,8 +461,8 @@ func TestRegistryGlobal(t *testing.T) {
 			Type:        pipewire.PW_TYPE_INTERFACE_Module,
 			Version:     pipewire.PW_VERSION_MODULE,
 			Properties: &pipewire.SPADict{
-				{Key: "object.serial", Value: "14"},
-				{Key: "module.name", Value: pipewire.PIPEWIRE_MODULE_PREFIX + "module-client-device"},
+				{Key: pipewire.PW_KEY_OBJECT_SERIAL, Value: "14"},
+				{Key: pipewire.PW_KEY_MODULE_NAME, Value: pipewire.PIPEWIRE_MODULE_PREFIX + "module-client-device"},
 			},
 		}, nil},
 
@@ -472,11 +472,11 @@ func TestRegistryGlobal(t *testing.T) {
 			Type:        pipewire.PW_TYPE_INTERFACE_Factory,
 			Version:     pipewire.PW_VERSION_FACTORY,
 			Properties: &pipewire.SPADict{
-				{Key: "object.serial", Value: "15"},
-				{Key: "module.id", Value: "14"},
-				{Key: "factory.name", Value: "client-device"},
-				{Key: "factory.type.name", Value: "Spa:Pointer:Interface:Device"},
-				{Key: "factory.type.version", Value: "0"},
+				{Key: pipewire.PW_KEY_OBJECT_SERIAL, Value: "15"},
+				{Key: pipewire.PW_KEY_MODULE_ID, Value: "14"},
+				{Key: pipewire.PW_KEY_FACTORY_NAME, Value: "client-device"},
+				{Key: pipewire.PW_KEY_FACTORY_TYPE_NAME, Value: "Spa:Pointer:Interface:Device"},
+				{Key: pipewire.PW_KEY_FACTORY_TYPE_VERSION, Value: "0"},
 			},
 		}, nil},
 
@@ -486,8 +486,8 @@ func TestRegistryGlobal(t *testing.T) {
 			Type:        pipewire.PW_TYPE_INTERFACE_Module,
 			Version:     pipewire.PW_VERSION_MODULE,
 			Properties: &pipewire.SPADict{
-				{Key: "object.serial", Value: "16"},
-				{Key: "module.name", Value: pipewire.PIPEWIRE_MODULE_PREFIX + "module-portal"},
+				{Key: pipewire.PW_KEY_OBJECT_SERIAL, Value: "16"},
+				{Key: pipewire.PW_KEY_MODULE_NAME, Value: pipewire.PIPEWIRE_MODULE_PREFIX + "module-portal"},
 			},
 		}, nil},
 
@@ -497,8 +497,8 @@ func TestRegistryGlobal(t *testing.T) {
 			Type:        pipewire.PW_TYPE_INTERFACE_Module,
 			Version:     pipewire.PW_VERSION_MODULE,
 			Properties: &pipewire.SPADict{
-				{Key: "object.serial", Value: "17"},
-				{Key: "module.name", Value: pipewire.PIPEWIRE_MODULE_PREFIX + "module-access"},
+				{Key: pipewire.PW_KEY_OBJECT_SERIAL, Value: "17"},
+				{Key: pipewire.PW_KEY_MODULE_NAME, Value: pipewire.PIPEWIRE_MODULE_PREFIX + "module-access"},
 			},
 		}, nil},
 
@@ -508,8 +508,8 @@ func TestRegistryGlobal(t *testing.T) {
 			Type:        pipewire.PW_TYPE_INTERFACE_Module,
 			Version:     pipewire.PW_VERSION_MODULE,
 			Properties: &pipewire.SPADict{
-				{Key: "object.serial", Value: "18"},
-				{Key: "module.name", Value: pipewire.PIPEWIRE_MODULE_PREFIX + "module-adapter"},
+				{Key: pipewire.PW_KEY_OBJECT_SERIAL, Value: "18"},
+				{Key: pipewire.PW_KEY_MODULE_NAME, Value: pipewire.PIPEWIRE_MODULE_PREFIX + "module-adapter"},
 			},
 		}, nil},
 
@@ -519,11 +519,11 @@ func TestRegistryGlobal(t *testing.T) {
 			Type:        pipewire.PW_TYPE_INTERFACE_Factory,
 			Version:     pipewire.PW_VERSION_FACTORY,
 			Properties: &pipewire.SPADict{
-				{Key: "object.serial", Value: "19"},
-				{Key: "module.id", Value: "18"},
-				{Key: "factory.name", Value: "adapter"},
-				{Key: "factory.type.name", Value: pipewire.PW_TYPE_INTERFACE_Node},
-				{Key: "factory.type.version", Value: "3"},
+				{Key: pipewire.PW_KEY_OBJECT_SERIAL, Value: "19"},
+				{Key: pipewire.PW_KEY_MODULE_ID, Value: "18"},
+				{Key: pipewire.PW_KEY_FACTORY_NAME, Value: "adapter"},
+				{Key: pipewire.PW_KEY_FACTORY_TYPE_NAME, Value: pipewire.PW_TYPE_INTERFACE_Node},
+				{Key: pipewire.PW_KEY_FACTORY_TYPE_VERSION, Value: "3"},
 			},
 		}, nil},
 
@@ -533,8 +533,8 @@ func TestRegistryGlobal(t *testing.T) {
 			Type:        pipewire.PW_TYPE_INTERFACE_Module,
 			Version:     pipewire.PW_VERSION_MODULE,
 			Properties: &pipewire.SPADict{
-				{Key: "object.serial", Value: "20"},
-				{Key: "module.name", Value: pipewire.PIPEWIRE_MODULE_PREFIX + "module-link-factory"},
+				{Key: pipewire.PW_KEY_OBJECT_SERIAL, Value: "20"},
+				{Key: pipewire.PW_KEY_MODULE_NAME, Value: pipewire.PIPEWIRE_MODULE_PREFIX + "module-link-factory"},
 			},
 		}, nil},
 
@@ -544,11 +544,11 @@ func TestRegistryGlobal(t *testing.T) {
 			Type:        pipewire.PW_TYPE_INTERFACE_Factory,
 			Version:     pipewire.PW_VERSION_FACTORY,
 			Properties: &pipewire.SPADict{
-				{Key: "object.serial", Value: "21"},
-				{Key: "module.id", Value: "20"},
-				{Key: "factory.name", Value: "link-factory"},
-				{Key: "factory.type.name", Value: pipewire.PW_TYPE_INTERFACE_Link},
-				{Key: "factory.type.version", Value: "3"},
+				{Key: pipewire.PW_KEY_OBJECT_SERIAL, Value: "21"},
+				{Key: pipewire.PW_KEY_MODULE_ID, Value: "20"},
+				{Key: pipewire.PW_KEY_FACTORY_NAME, Value: "link-factory"},
+				{Key: pipewire.PW_KEY_FACTORY_TYPE_NAME, Value: pipewire.PW_TYPE_INTERFACE_Link},
+				{Key: pipewire.PW_KEY_FACTORY_TYPE_VERSION, Value: "3"},
 			},
 		}, nil},
 
@@ -558,8 +558,8 @@ func TestRegistryGlobal(t *testing.T) {
 			Type:        pipewire.PW_TYPE_INTERFACE_Module,
 			Version:     pipewire.PW_VERSION_MODULE,
 			Properties: &pipewire.SPADict{
-				{Key: "object.serial", Value: "22"},
-				{Key: "module.name", Value: pipewire.PIPEWIRE_MODULE_PREFIX + "module-session-manager"},
+				{Key: pipewire.PW_KEY_OBJECT_SERIAL, Value: "22"},
+				{Key: pipewire.PW_KEY_MODULE_NAME, Value: pipewire.PIPEWIRE_MODULE_PREFIX + "module-session-manager"},
 			},
 		}, nil},
 
@@ -569,11 +569,11 @@ func TestRegistryGlobal(t *testing.T) {
 			Type:        pipewire.PW_TYPE_INTERFACE_Factory,
 			Version:     pipewire.PW_VERSION_FACTORY,
 			Properties: &pipewire.SPADict{
-				{Key: "object.serial", Value: "23"},
-				{Key: "module.id", Value: "22"},
-				{Key: "factory.name", Value: "client-endpoint"},
-				{Key: "factory.type.name", Value: "PipeWire:Interface:ClientEndpoint"},
-				{Key: "factory.type.version", Value: "0"},
+				{Key: pipewire.PW_KEY_OBJECT_SERIAL, Value: "23"},
+				{Key: pipewire.PW_KEY_MODULE_ID, Value: "22"},
+				{Key: pipewire.PW_KEY_FACTORY_NAME, Value: "client-endpoint"},
+				{Key: pipewire.PW_KEY_FACTORY_TYPE_NAME, Value: "PipeWire:Interface:ClientEndpoint"},
+				{Key: pipewire.PW_KEY_FACTORY_TYPE_VERSION, Value: "0"},
 			},
 		}, nil},
 
@@ -583,11 +583,11 @@ func TestRegistryGlobal(t *testing.T) {
 			Type:        pipewire.PW_TYPE_INTERFACE_Factory,
 			Version:     pipewire.PW_VERSION_FACTORY,
 			Properties: &pipewire.SPADict{
-				{Key: "object.serial", Value: "24"},
-				{Key: "module.id", Value: "22"},
-				{Key: "factory.name", Value: "client-session"},
-				{Key: "factory.type.name", Value: "PipeWire:Interface:ClientSession"},
-				{Key: "factory.type.version", Value: "0"},
+				{Key: pipewire.PW_KEY_OBJECT_SERIAL, Value: "24"},
+				{Key: pipewire.PW_KEY_MODULE_ID, Value: "22"},
+				{Key: pipewire.PW_KEY_FACTORY_NAME, Value: "client-session"},
+				{Key: pipewire.PW_KEY_FACTORY_TYPE_NAME, Value: "PipeWire:Interface:ClientSession"},
+				{Key: pipewire.PW_KEY_FACTORY_TYPE_VERSION, Value: "0"},
 			},
 		}, nil},
 
@@ -597,11 +597,11 @@ func TestRegistryGlobal(t *testing.T) {
 			Type:        pipewire.PW_TYPE_INTERFACE_Factory,
 			Version:     pipewire.PW_VERSION_FACTORY,
 			Properties: &pipewire.SPADict{
-				{Key: "object.serial", Value: "25"},
-				{Key: "module.id", Value: "22"},
-				{Key: "factory.name", Value: "session"},
-				{Key: "factory.type.name", Value: "PipeWire:Interface:Session"},
-				{Key: "factory.type.version", Value: "0"},
+				{Key: pipewire.PW_KEY_OBJECT_SERIAL, Value: "25"},
+				{Key: pipewire.PW_KEY_MODULE_ID, Value: "22"},
+				{Key: pipewire.PW_KEY_FACTORY_NAME, Value: "session"},
+				{Key: pipewire.PW_KEY_FACTORY_TYPE_NAME, Value: "PipeWire:Interface:Session"},
+				{Key: pipewire.PW_KEY_FACTORY_TYPE_VERSION, Value: "0"},
 			},
 		}, nil},
 
@@ -611,11 +611,11 @@ func TestRegistryGlobal(t *testing.T) {
 			Type:        pipewire.PW_TYPE_INTERFACE_Factory,
 			Version:     pipewire.PW_VERSION_FACTORY,
 			Properties: &pipewire.SPADict{
-				{Key: "object.serial", Value: "26"},
-				{Key: "module.id", Value: "22"},
-				{Key: "factory.name", Value: "endpoint"},
-				{Key: "factory.type.name", Value: "PipeWire:Interface:Endpoint"},
-				{Key: "factory.type.version", Value: "0"},
+				{Key: pipewire.PW_KEY_OBJECT_SERIAL, Value: "26"},
+				{Key: pipewire.PW_KEY_MODULE_ID, Value: "22"},
+				{Key: pipewire.PW_KEY_FACTORY_NAME, Value: "endpoint"},
+				{Key: pipewire.PW_KEY_FACTORY_TYPE_NAME, Value: "PipeWire:Interface:Endpoint"},
+				{Key: pipewire.PW_KEY_FACTORY_TYPE_VERSION, Value: "0"},
 			},
 		}, nil},
 
@@ -625,11 +625,11 @@ func TestRegistryGlobal(t *testing.T) {
 			Type:        pipewire.PW_TYPE_INTERFACE_Factory,
 			Version:     pipewire.PW_VERSION_FACTORY,
 			Properties: &pipewire.SPADict{
-				{Key: "object.serial", Value: "27"},
-				{Key: "module.id", Value: "22"},
-				{Key: "factory.name", Value: "endpoint-stream"},
-				{Key: "factory.type.name", Value: "PipeWire:Interface:EndpointStream"},
-				{Key: "factory.type.version", Value: "0"},
+				{Key: pipewire.PW_KEY_OBJECT_SERIAL, Value: "27"},
+				{Key: pipewire.PW_KEY_MODULE_ID, Value: "22"},
+				{Key: pipewire.PW_KEY_FACTORY_NAME, Value: "endpoint-stream"},
+				{Key: pipewire.PW_KEY_FACTORY_TYPE_NAME, Value: "PipeWire:Interface:EndpointStream"},
+				{Key: pipewire.PW_KEY_FACTORY_TYPE_VERSION, Value: "0"},
 			},
 		}, nil},
 
@@ -639,11 +639,11 @@ func TestRegistryGlobal(t *testing.T) {
 			Type:        pipewire.PW_TYPE_INTERFACE_Factory,
 			Version:     pipewire.PW_VERSION_FACTORY,
 			Properties: &pipewire.SPADict{
-				{Key: "object.serial", Value: "28"},
-				{Key: "module.id", Value: "22"},
-				{Key: "factory.name", Value: "endpoint-link"},
-				{Key: "factory.type.name", Value: "PipeWire:Interface:EndpointLink"},
-				{Key: "factory.type.version", Value: "0"},
+				{Key: pipewire.PW_KEY_OBJECT_SERIAL, Value: "28"},
+				{Key: pipewire.PW_KEY_MODULE_ID, Value: "22"},
+				{Key: pipewire.PW_KEY_FACTORY_NAME, Value: "endpoint-link"},
+				{Key: pipewire.PW_KEY_FACTORY_TYPE_NAME, Value: "PipeWire:Interface:EndpointLink"},
+				{Key: pipewire.PW_KEY_FACTORY_TYPE_VERSION, Value: "0"},
 			},
 		}, nil},
 
@@ -653,8 +653,8 @@ func TestRegistryGlobal(t *testing.T) {
 			Type:        pipewire.PW_TYPE_INTERFACE_Module,
 			Version:     pipewire.PW_VERSION_MODULE,
 			Properties: &pipewire.SPADict{
-				{Key: "object.serial", Value: "29"},
-				{Key: "module.name", Value: pipewire.PIPEWIRE_MODULE_PREFIX + "module-x11-bell"},
+				{Key: pipewire.PW_KEY_OBJECT_SERIAL, Value: "29"},
+				{Key: pipewire.PW_KEY_MODULE_NAME, Value: pipewire.PIPEWIRE_MODULE_PREFIX + "module-x11-bell"},
 			},
 		}, nil},
 
@@ -664,8 +664,8 @@ func TestRegistryGlobal(t *testing.T) {
 			Type:        pipewire.PW_TYPE_INTERFACE_Module,
 			Version:     pipewire.PW_VERSION_MODULE,
 			Properties: &pipewire.SPADict{
-				{Key: "object.serial", Value: "30"},
-				{Key: "module.name", Value: pipewire.PIPEWIRE_MODULE_PREFIX + "module-jackdbus-detect"},
+				{Key: pipewire.PW_KEY_OBJECT_SERIAL, Value: "30"},
+				{Key: pipewire.PW_KEY_MODULE_NAME, Value: pipewire.PIPEWIRE_MODULE_PREFIX + "module-jackdbus-detect"},
 			},
 		}, nil},
 
@@ -675,10 +675,10 @@ func TestRegistryGlobal(t *testing.T) {
 			Type:        pipewire.PW_TYPE_INTERFACE_Node,
 			Version:     pipewire.PW_VERSION_NODE,
 			Properties: &pipewire.SPADict{
-				{Key: "object.serial", Value: "31"},
-				{Key: "factory.id", Value: "11"},
-				{Key: "priority.driver", Value: "200000"},
-				{Key: "node.name", Value: "Dummy-Driver"},
+				{Key: pipewire.PW_KEY_OBJECT_SERIAL, Value: "31"},
+				{Key: pipewire.PW_KEY_FACTORY_ID, Value: "11"},
+				{Key: pipewire.PW_KEY_PRIORITY_DRIVER, Value: "200000"},
+				{Key: pipewire.PW_KEY_NODE_NAME, Value: "Dummy-Driver"},
 			},
 		}, nil},
 
@@ -688,10 +688,10 @@ func TestRegistryGlobal(t *testing.T) {
 			Type:        pipewire.PW_TYPE_INTERFACE_Node,
 			Version:     pipewire.PW_VERSION_NODE,
 			Properties: &pipewire.SPADict{
-				{Key: "object.serial", Value: "32"},
-				{Key: "factory.id", Value: "11"},
-				{Key: "priority.driver", Value: "190000"},
-				{Key: "node.name", Value: "Freewheel-Driver"},
+				{Key: pipewire.PW_KEY_OBJECT_SERIAL, Value: "32"},
+				{Key: pipewire.PW_KEY_FACTORY_ID, Value: "11"},
+				{Key: pipewire.PW_KEY_PRIORITY_DRIVER, Value: "190000"},
+				{Key: pipewire.PW_KEY_NODE_NAME, Value: "Freewheel-Driver"},
 			},
 		}, nil},
 
@@ -701,7 +701,7 @@ func TestRegistryGlobal(t *testing.T) {
 			Type:        pipewire.PW_TYPE_INTERFACE_Metadata,
 			Version:     pipewire.PW_VERSION_METADATA,
 			Properties: &pipewire.SPADict{
-				{Key: "object.serial", Value: "33"},
+				{Key: pipewire.PW_KEY_OBJECT_SERIAL, Value: "33"},
 				{Key: "metadata.name", Value: "settings"},
 			},
 		}, nil},
@@ -712,15 +712,15 @@ func TestRegistryGlobal(t *testing.T) {
 			Type:        pipewire.PW_TYPE_INTERFACE_Client,
 			Version:     pipewire.PW_VERSION_CLIENT,
 			Properties: &pipewire.SPADict{
-				{Key: "object.serial", Value: "34"},
-				{Key: "module.id", Value: "2"},
-				{Key: "pipewire.protocol", Value: "protocol-native"},
-				{Key: "pipewire.sec.pid", Value: "1443"},
-				{Key: "pipewire.sec.uid", Value: "1000"},
-				{Key: "pipewire.sec.gid", Value: "100"},
-				{Key: "pipewire.sec.socket", Value: "pipewire-0-manager"},
-				{Key: "pipewire.access", Value: "unrestricted"},
-				{Key: "application.name", Value: "pw-container"},
+				{Key: pipewire.PW_KEY_OBJECT_SERIAL, Value: "34"},
+				{Key: pipewire.PW_KEY_MODULE_ID, Value: "2"},
+				{Key: pipewire.PW_KEY_PROTOCOL, Value: "protocol-native"},
+				{Key: pipewire.PW_KEY_SEC_PID, Value: "1443"},
+				{Key: pipewire.PW_KEY_SEC_UID, Value: "1000"},
+				{Key: pipewire.PW_KEY_SEC_GID, Value: "100"},
+				{Key: pipewire.PW_KEY_SEC_SOCKET, Value: "pipewire-0-manager"},
+				{Key: pipewire.PW_KEY_ACCESS, Value: "unrestricted"},
+				{Key: pipewire.PW_KEY_APP_NAME, Value: "pw-container"},
 			},
 		}, nil},
 
@@ -730,15 +730,15 @@ func TestRegistryGlobal(t *testing.T) {
 			Type:        pipewire.PW_TYPE_INTERFACE_Client,
 			Version:     pipewire.PW_VERSION_CLIENT,
 			Properties: &pipewire.SPADict{
-				{Key: "object.serial", Value: "35"},
-				{Key: "module.id", Value: "2"},
-				{Key: "pipewire.protocol", Value: "protocol-native"},
-				{Key: "pipewire.sec.pid", Value: "1447"},
-				{Key: "pipewire.sec.uid", Value: "1000"},
-				{Key: "pipewire.sec.gid", Value: "100"},
-				{Key: "pipewire.sec.socket", Value: "pipewire-0-manager"},
-				{Key: "pipewire.access", Value: "unrestricted"},
-				{Key: "application.name", Value: "WirePlumber"},
+				{Key: pipewire.PW_KEY_OBJECT_SERIAL, Value: "35"},
+				{Key: pipewire.PW_KEY_MODULE_ID, Value: "2"},
+				{Key: pipewire.PW_KEY_PROTOCOL, Value: "protocol-native"},
+				{Key: pipewire.PW_KEY_SEC_PID, Value: "1447"},
+				{Key: pipewire.PW_KEY_SEC_UID, Value: "1000"},
+				{Key: pipewire.PW_KEY_SEC_GID, Value: "100"},
+				{Key: pipewire.PW_KEY_SEC_SOCKET, Value: "pipewire-0-manager"},
+				{Key: pipewire.PW_KEY_ACCESS, Value: "unrestricted"},
+				{Key: pipewire.PW_KEY_APP_NAME, Value: "WirePlumber"},
 			},
 		}, nil},
 	}.run(t)
