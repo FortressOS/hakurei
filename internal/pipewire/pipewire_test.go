@@ -2,11 +2,10 @@ package pipewire_test
 
 import (
 	"fmt"
-	"net"
 	"reflect"
+	"strconv"
 	. "syscall"
 	"testing"
-	"time"
 
 	"hakurei.app/container/stub"
 	"hakurei.app/internal/pipewire"
@@ -707,7 +706,7 @@ func TestContext(t *testing.T) {
 type stubUnixConnSample struct {
 	nr    uintptr
 	iovec string
-	flags uintptr
+	flags int
 	files []int
 	errno Errno
 }
@@ -716,17 +715,6 @@ type stubUnixConnSample struct {
 type stubUnixConn struct {
 	samples []stubUnixConnSample
 	current int
-
-	deadline *time.Time
-}
-
-// checkDeadline checks whether deadline is set reasonably.
-func (conn *stubUnixConn) checkDeadline() error {
-	if conn.deadline == nil || conn.deadline.Before(time.Now()) {
-		return fmt.Errorf("invalid deadline %v", conn.deadline)
-	}
-	conn.deadline = nil
-	return nil
 }
 
 // nextSample returns the current sample and increments the counter.
@@ -744,13 +732,7 @@ func (conn *stubUnixConn) nextSample(nr uintptr) (sample *stubUnixConnSample, wa
 	return
 }
 
-func (conn *stubUnixConn) ReadMsgUnix(b, oob []byte) (n, oobn, flags int, addr *net.UnixAddr, err error) {
-	if conn.samples[conn.current-1].nr == SYS_SENDMSG {
-		if err = conn.checkDeadline(); err != nil {
-			return
-		}
-	}
-
+func (conn *stubUnixConn) Recvmsg(p, oob []byte, flags int) (n, oobn, recvflags int, err error) {
 	var (
 		sample  *stubUnixConnSample
 		wantOOB []byte
@@ -760,28 +742,31 @@ func (conn *stubUnixConn) ReadMsgUnix(b, oob []byte) (n, oobn, flags int, addr *
 		return
 	}
 
-	if copy(b, sample.iovec) != len(sample.iovec) {
-		err = fmt.Errorf("insufficient iovec size %d, want at least %d", len(b), len(sample.iovec))
+	if n = copy(p, sample.iovec); n != len(sample.iovec) {
+		err = fmt.Errorf("insufficient iovec size %d, want at least %d", len(p), len(sample.iovec))
+		return
 	}
-	if copy(oob, wantOOB) != len(wantOOB) {
+	if oobn = copy(oob, wantOOB); oobn != len(wantOOB) {
 		err = fmt.Errorf("insufficient oob size %d, want at least %d", len(oob), len(wantOOB))
+		return
+	}
+	if flags != sample.flags {
+		err = fmt.Errorf("flags = %#x, want %#x", flags, sample.flags)
+		return
 	}
 
-	if sample.errno != 0 && sample.errno != EAGAIN {
+	recvflags = MSG_CMSG_CLOEXEC
+	if sample.errno != 0 {
 		err = sample.errno
+		if n != 0 {
+			panic("invalid recvmsg: n = " + strconv.Itoa(n))
+		}
+		n = -1
 	}
-	return len(sample.iovec), len(wantOOB), MSG_CMSG_CLOEXEC, nil, nil
+	return
 }
 
-func (conn *stubUnixConn) WriteMsgUnix(b, oob []byte, addr *net.UnixAddr) (n, oobn int, err error) {
-	if addr != nil {
-		err = fmt.Errorf("WriteMsgUnix called with non-nil addr: %#v", addr)
-		return
-	}
-	if err = conn.checkDeadline(); err != nil {
-		return
-	}
-
+func (conn *stubUnixConn) Sendmsg(p, oob []byte, flags int) (n int, err error) {
 	var (
 		sample  *stubUnixConnSample
 		wantOOB []byte
@@ -791,18 +776,25 @@ func (conn *stubUnixConn) WriteMsgUnix(b, oob []byte, addr *net.UnixAddr) (n, oo
 		return
 	}
 
-	if string(b) != sample.iovec {
-		err = fmt.Errorf("iovec: %#v, want %#v", b, []byte(sample.iovec))
+	if string(p) != sample.iovec {
+		err = fmt.Errorf("iovec: %#v, want %#v", p, []byte(sample.iovec))
 		return
 	}
 	if string(oob[:len(wantOOB)]) != string(wantOOB) {
 		err = fmt.Errorf("oob: %#v, want %#v", oob[:len(wantOOB)], wantOOB)
 		return
 	}
-	return len(sample.iovec), len(wantOOB), nil
-}
+	if flags != sample.flags {
+		err = fmt.Errorf("flags = %#x, want %#x", flags, sample.flags)
+		return
+	}
 
-func (conn *stubUnixConn) SetDeadline(t time.Time) error { conn.deadline = &t; return nil }
+	n = len(sample.iovec)
+	if sample.errno != 0 {
+		err = sample.errno
+	}
+	return
+}
 
 func (conn *stubUnixConn) Close() error {
 	if conn.current != len(conn.samples) {
@@ -844,7 +836,7 @@ func TestContextErrors(t *testing.T) {
 		{"UnexpectedFileCountError", &pipewire.UnexpectedFileCountError{0, -1}, "received -1 files instead of the expected 0"},
 		{"UnacknowledgedProxyError", make(pipewire.UnacknowledgedProxyError, 1<<4), "server did not acknowledge 16 proxies"},
 		{"DanglingFilesError", make(pipewire.DanglingFilesError, 1<<4), "received 16 dangling files"},
-		{"UnexpectedFilesError", pipewire.UnexpectedFilesError(1 << 4), "server message headers claim to have sent more than 16 files"},
+		{"UnexpectedFilesError", pipewire.UnexpectedFilesError(1 << 4), "server message headers claim to have sent more files than actually received"},
 		{"UnexpectedSequenceError", pipewire.UnexpectedSequenceError(1 << 4), "unexpected seq 16"},
 		{"UnsupportedFooterOpcodeError", pipewire.UnsupportedFooterOpcodeError(1 << 4), "unsupported footer opcode 16"},
 

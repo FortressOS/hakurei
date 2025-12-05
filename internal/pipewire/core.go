@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"time"
 )
 
 /* pipewire/core.h */
@@ -348,17 +349,28 @@ func (ctx *Context) coreSync(id Int) error {
 // receiving a [CoreDone] event targeting the [CoreSync] event it delivered.
 var ErrNotDone = errors.New("did not receive a Core::Done event targeting previously delivered Core::Sync")
 
+const (
+	// syncTimeout is the maximum duration [Core.Sync] is allowed to take before
+	// receiving [CoreDone] or failing.
+	syncTimeout = 5 * time.Second
+)
+
 // Sync queues a [CoreSync] message for the PipeWire server and initiates a Roundtrip.
 func (core *Core) Sync() error {
 	core.done = false
 	if err := core.ctx.coreSync(roundtripSyncID); err != nil {
 		return err
 	}
-	if err := core.ctx.Roundtrip(); err != nil {
-		return err
-	}
-	if !core.done {
-		return ErrNotDone
+
+	deadline := time.Now().Add(syncTimeout)
+	for !core.done {
+		if time.Now().After(deadline) {
+			return ErrNotDone
+		}
+
+		if err := core.ctx.Roundtrip(); err != nil {
+			return err
+		}
 	}
 	return nil
 }
