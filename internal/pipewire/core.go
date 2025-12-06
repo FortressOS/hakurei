@@ -361,18 +361,18 @@ func (core *Core) Sync() error {
 	if err := core.ctx.coreSync(roundtripSyncID); err != nil {
 		return err
 	}
-
 	deadline := time.Now().Add(syncTimeout)
+
 	for !core.done {
 		if time.Now().After(deadline) {
 			return ErrNotDone
 		}
 
-		if err := core.ctx.Roundtrip(); err != nil {
+		if err := core.ctx.roundtrip(); err != nil {
 			return err
 		}
 	}
-	return nil
+	return core.ctx.cloneProxyErrors()
 }
 
 // The CorePong message is sent from the client to the server when the server emits the Ping event.
