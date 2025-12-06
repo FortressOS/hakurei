@@ -18,10 +18,13 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+	"net"
 	"os"
+	"path"
 	"runtime"
 	"slices"
 	"strconv"
+	"strings"
 	"syscall"
 )
 
@@ -769,3 +772,63 @@ func (ctx *Context) Close() (err error) {
 		return err
 	}
 }
+
+/* modules/module-protocol-native/local-socket.c */
+
+const DEFAULT_SYSTEM_RUNTIME_DIR = "/run/pipewire"
+
+// connectName connects to a PipeWire remote by name and returns the [net.UnixConn].
+func connectName(name string, manager bool) (conn *net.UnixConn, err error) {
+	if manager && !strings.HasSuffix(name, "-manager") {
+		return connectName(name+"-manager", false)
+	}
+
+	if path.IsAbs(name) || (len(name) > 0 && name[0] == '@') {
+		return net.DialUnix("unix", nil, &net.UnixAddr{Name: name, Net: "unix"})
+	} else {
+		runtimeDir, ok := os.LookupEnv("PIPEWIRE_RUNTIME_DIR")
+		if !ok || !path.IsAbs(runtimeDir) {
+			runtimeDir, ok = os.LookupEnv("XDG_RUNTIME_DIR")
+		}
+		if !ok || !path.IsAbs(runtimeDir) {
+			// this is cargo culted from windows stuff and has no effect normally;
+			// keeping it to maintain compatibility in case someone sets this
+			runtimeDir, ok = os.LookupEnv("USERPROFILE")
+		}
+
+		if !ok || !path.IsAbs(runtimeDir) {
+			runtimeDir = DEFAULT_SYSTEM_RUNTIME_DIR
+		}
+		return net.DialUnix("unix", nil, &net.UnixAddr{Name: path.Join(runtimeDir, name), Net: "unix"})
+	}
+}
+
+// ConnectName connects to a PipeWire remote by name.
+func ConnectName(name string, manager bool) (ctx *Context, err error) {
+	var props SPADict
+	if manager {
+		props = append(props, SPADictItem{Key: PW_KEY_REMOTE_INTENTION, Value: "manager"})
+	}
+
+	if name == "" {
+		if v, ok := os.LookupEnv("PIPEWIRE_REMOTE"); !ok || v == "" {
+			name = PW_DEFAULT_REMOTE
+		} else {
+			name = v
+		}
+	}
+
+	var conn *net.UnixConn
+	if conn, err = connectName(name, manager); err != nil {
+		return
+	}
+
+	if ctx, err = New(SyscallConn{conn}, props); err != nil {
+		ctx = nil
+		_ = conn.Close()
+	}
+	return
+}
+
+// Connect connects to the PipeWire remote.
+func Connect(manager bool) (ctx *Context, err error) { return ConnectName("", manager) }
