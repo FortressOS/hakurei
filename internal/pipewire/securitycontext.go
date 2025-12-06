@@ -1,5 +1,12 @@
 package pipewire
 
+import (
+	"errors"
+	"io"
+	"os"
+	"syscall"
+)
+
 /* pipewire/extensions/security-context.h */
 
 const (
@@ -102,6 +109,66 @@ func (securityContext *SecurityContext) Create(listenFd, closeFd int, props SPAD
 		PW_SECURITY_CONTEXT_METHOD_CREATE,
 		&SecurityContextCreate{ListenFd: offset + 1, CloseFd: offset + 0, Properties: &props},
 	)
+}
+
+// securityContextCloser holds onto resources associated to the security context.
+type securityContextCloser struct {
+	// Pipe with its write end passed to [SecurityContextCreate.CloseFd].
+	closeFds [2]int
+	// Pathname the socket was bound to.
+	pathname string
+}
+
+// Close closes both ends of the pipe.
+func (scc *securityContextCloser) Close() error {
+	return errors.Join(
+		syscall.Close(scc.closeFds[1]),
+		syscall.Close(scc.closeFds[0]),
+		// there is still technically a TOCTOU here but this is internal
+		// and has access to the privileged pipewire socket, so it only
+		// receives trusted input (e.g. from cmd/hakurei) anyway
+		os.Remove(scc.pathname),
+	)
+}
+
+// BindAndCreate binds a new socket to the specified pathname and pass it to Create.
+// It returns an [io.Closer] corresponding to [SecurityContextCreate.CloseFd].
+func (securityContext *SecurityContext) BindAndCreate(pathname string, props SPADict) (io.Closer, error) {
+	var scc securityContextCloser
+
+	// ensure pathname is available
+	if f, err := os.Create(pathname); err != nil {
+		return nil, err
+	} else if err = f.Close(); err != nil {
+		_ = os.Remove(pathname)
+		return nil, err
+	} else if err = os.Remove(pathname); err != nil {
+		return nil, err
+	}
+	scc.pathname = pathname
+
+	var listenFd int
+	if fd, err := syscall.Socket(syscall.AF_UNIX, syscall.SOCK_STREAM|syscall.SOCK_CLOEXEC, 0); err != nil {
+		return nil, os.NewSyscallError("socket", err)
+	} else {
+		securityContext.ctx.cleanup(func() error { return syscall.Close(fd) })
+		listenFd = fd
+	}
+	if err := syscall.Bind(listenFd, &syscall.SockaddrUnix{Name: pathname}); err != nil {
+		return nil, os.NewSyscallError("bind", err)
+	} else if err = syscall.Listen(listenFd, 0); err != nil {
+		return nil, os.NewSyscallError("listen", err)
+	}
+
+	if err := syscall.Pipe2(scc.closeFds[0:], syscall.O_CLOEXEC); err != nil {
+		_ = os.Remove(pathname)
+		return nil, err
+	}
+	if err := securityContext.Create(listenFd, scc.closeFds[1], props); err != nil {
+		_ = scc.Close()
+		return nil, err
+	}
+	return &scc, nil
 }
 
 func (securityContext *SecurityContext) consume(opcode byte, files []int, _ func(v any)) error {

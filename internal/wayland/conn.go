@@ -52,6 +52,7 @@ func New(displayPath, bindPath *check.Absolute, appID, instanceID string) (*Secu
 	if f, err := os.Create(bindPath.String()); err != nil {
 		return nil, &Error{RCreate, bindPath.String(), displayPath.String(), err}
 	} else if err = f.Close(); err != nil {
+		_ = os.Remove(bindPath.String())
 		return nil, &Error{RCreate, bindPath.String(), displayPath.String(), err}
 	} else if err = os.Remove(bindPath.String()); err != nil {
 		return nil, &Error{RCreate, bindPath.String(), displayPath.String(), err}
