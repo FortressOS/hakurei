@@ -291,7 +291,10 @@ func (ctx *Context) recvmsg(remaining []byte) (payload []byte, err error) {
 		break
 	}
 
-	if n >= 0 {
+	if n == 0 && len(remaining) != len(ctx.iovecBuf) && err == nil {
+		err = syscall.EPIPE // not wrapped as it did not come from the syscall
+	}
+	if n > 0 {
 		payload = ctx.iovecBuf[:n]
 	}
 	return
