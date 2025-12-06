@@ -372,7 +372,8 @@ func (core *Core) Sync() error {
 			return err
 		}
 	}
-	return core.ctx.cloneProxyErrors()
+
+	return core.ctx.doSyncComplete()
 }
 
 // The CorePong message is sent from the client to the server when the server emits the Ping event.
