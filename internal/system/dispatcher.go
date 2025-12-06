@@ -47,7 +47,7 @@ type syscallDispatcher interface {
 	// aclUpdate provides [acl.Update].
 	aclUpdate(name string, uid int, perms ...acl.Perm) error
 
-	waylandNew(displayPath, bindPath *check.Absolute, appID, instanceID string) (*wayland.SecurityContext, error)
+	waylandNew(displayPath, bindPath *check.Absolute, appID, instanceID string) (io.Closer, error)
 
 	// xcbChangeHosts provides [xcb.ChangeHosts].
 	xcbChangeHosts(mode xcb.HostMode, family xcb.Family, address string) error
@@ -80,7 +80,7 @@ func (k direct) aclUpdate(name string, uid int, perms ...acl.Perm) error {
 	return acl.Update(name, uid, perms...)
 }
 
-func (k direct) waylandNew(displayPath, bindPath *check.Absolute, appID, instanceID string) (*wayland.SecurityContext, error) {
+func (k direct) waylandNew(displayPath, bindPath *check.Absolute, appID, instanceID string) (io.Closer, error) {
 	return wayland.New(displayPath, bindPath, appID, instanceID)
 }
 

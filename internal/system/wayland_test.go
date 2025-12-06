@@ -1,7 +1,6 @@
 package system
 
 import (
-	"errors"
 	"os"
 	"testing"
 
@@ -22,7 +21,7 @@ func TestWaylandOp(t *testing.T) {
 			call("waylandNew", stub.ExpectArgs{m("/run/user/1971/wayland-0"), m("/tmp/hakurei.1971/ebf083d1b175911782d413369b64ce7c/wayland"), "org.chromium.Chromium", "ebf083d1b175911782d413369b64ce7c"}, nil, nil),
 			call("verbosef", stub.ExpectArgs{"wayland pathname socket on %q via %q", []any{m("/tmp/hakurei.1971/ebf083d1b175911782d413369b64ce7c/wayland"), m("/run/user/1971/wayland-0")}}, nil, nil),
 			call("chmod", stub.ExpectArgs{"/tmp/hakurei.1971/ebf083d1b175911782d413369b64ce7c/wayland", os.FileMode(0)}, nil, stub.UniqueError(3)),
-		}, &OpError{Op: "wayland", Err: errors.Join(stub.UniqueError(3), os.ErrInvalid)}, nil, nil},
+		}, &OpError{Op: "wayland", Err: stub.UniqueError(3)}, nil, nil},
 
 		{"aclUpdate", 0xbeef, 0xff, &waylandOp{nil,
 			m("/tmp/hakurei.1971/ebf083d1b175911782d413369b64ce7c/wayland"),
@@ -34,7 +33,7 @@ func TestWaylandOp(t *testing.T) {
 			call("verbosef", stub.ExpectArgs{"wayland pathname socket on %q via %q", []any{m("/tmp/hakurei.1971/ebf083d1b175911782d413369b64ce7c/wayland"), m("/run/user/1971/wayland-0")}}, nil, nil),
 			call("chmod", stub.ExpectArgs{"/tmp/hakurei.1971/ebf083d1b175911782d413369b64ce7c/wayland", os.FileMode(0)}, nil, nil),
 			call("aclUpdate", stub.ExpectArgs{"/tmp/hakurei.1971/ebf083d1b175911782d413369b64ce7c/wayland", 0xbeef, []acl.Perm{acl.Read, acl.Write, acl.Execute}}, nil, stub.UniqueError(2)),
-		}, &OpError{Op: "wayland", Err: errors.Join(stub.UniqueError(2), os.ErrInvalid)}, nil, nil},
+		}, &OpError{Op: "wayland", Err: stub.UniqueError(2)}, nil, nil},
 
 		{"success", 0xbeef, 0xff, &waylandOp{nil,
 			m("/tmp/hakurei.1971/ebf083d1b175911782d413369b64ce7c/wayland"),

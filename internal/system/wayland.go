@@ -3,11 +3,11 @@ package system
 import (
 	"errors"
 	"fmt"
+	"io"
 
 	"hakurei.app/container/check"
 	"hakurei.app/hst"
 	"hakurei.app/internal/acl"
-	"hakurei.app/internal/wayland"
 )
 
 // Wayland maintains a wayland socket with security-context-v1 attached via [wayland].
@@ -21,7 +21,7 @@ func (sys *I) Wayland(dst, src *check.Absolute, appID, instanceID string) *I {
 
 // waylandOp implements [I.Wayland].
 type waylandOp struct {
-	ctx               *wayland.SecurityContext
+	ctx               io.Closer
 	dst, src          *check.Absolute
 	appID, instanceID string
 }
@@ -53,17 +53,11 @@ func (w *waylandOp) apply(sys *I) (err error) {
 }
 
 func (w *waylandOp) revert(sys *I, _ *Criteria) error {
-	var (
-		hangupErr error
-		removeErr error
-	)
-
-	sys.msg.Verbosef("hanging up wayland socket on %q", w.dst)
 	if w.ctx != nil {
-		hangupErr = w.ctx.Close()
+		sys.msg.Verbosef("hanging up wayland socket on %q", w.dst)
+		return newOpError("wayland", w.ctx.Close(), true)
 	}
-
-	return newOpError("wayland", errors.Join(hangupErr, removeErr), true)
+	return nil
 }
 
 func (w *waylandOp) Is(o Op) bool {
