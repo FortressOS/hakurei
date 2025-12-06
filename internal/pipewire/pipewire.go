@@ -536,7 +536,7 @@ func (ctx *Context) Roundtrip() (err error) {
 
 	var remaining []byte
 	for {
-		remaining, err = ctx.roundtrip(remaining)
+		remaining, err = ctx.consume(remaining)
 		if err == nil {
 			continue
 		}
@@ -554,8 +554,8 @@ func (ctx *Context) Roundtrip() (err error) {
 	}
 }
 
-// roundtrip receives messages from the server and processes events.
-func (ctx *Context) roundtrip(receiveRemaining []byte) (remaining []byte, err error) {
+// consume receives messages from the server and processes events.
+func (ctx *Context) consume(receiveRemaining []byte) (remaining []byte, err error) {
 	var (
 		// this holds onto non-protocol errors encountered during event handling;
 		// errors that prevent event processing from continuing must be panicked
