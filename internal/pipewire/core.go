@@ -3,6 +3,8 @@ package pipewire
 import (
 	"errors"
 	"fmt"
+	"maps"
+	"slices"
 	"strconv"
 	"time"
 )
@@ -373,6 +375,10 @@ func (core *Core) Sync() error {
 		}
 	}
 
+	if len(core.ctx.pendingIds) != 0 {
+		core.ctx.closeReceivedFiles()
+		return &ProxyFatalError{Err: UnacknowledgedProxyError(slices.Collect(maps.Keys(core.ctx.pendingIds))), ProxyErrs: core.ctx.cloneAsProxyErrors()}
+	}
 	return core.ctx.doSyncComplete()
 }
 

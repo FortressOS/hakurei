@@ -18,7 +18,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
-	"maps"
 	"os"
 	"runtime"
 	"slices"
@@ -599,13 +598,6 @@ func (ctx *Context) roundtrip() (err error) {
 		if len(danglingFiles) > 0 && err == nil {
 			ctx.closeReceivedFiles()
 			err = &ProxyFatalError{Err: danglingFiles, ProxyErrs: ctx.cloneAsProxyErrors()}
-			return
-		}
-
-		// this check must happen after everything else passes
-		if len(ctx.pendingIds) != 0 {
-			ctx.closeReceivedFiles()
-			err = &ProxyFatalError{Err: UnacknowledgedProxyError(slices.Collect(maps.Keys(ctx.pendingIds))), ProxyErrs: ctx.cloneAsProxyErrors()}
 			return
 		}
 	}()
