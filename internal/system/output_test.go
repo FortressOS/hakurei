@@ -44,6 +44,11 @@ func TestOpError(t *testing.T) {
 			syscall.EISDIR, syscall.ENOTDIR,
 			"cannot stat /run/dbus: is a directory"},
 
+		{"syscall", newOpError("pipewire", os.NewSyscallError("pipe2", syscall.ENOTRECOVERABLE), false),
+			"pipe2: state not recoverable",
+			syscall.ENOTRECOVERABLE, syscall.ENOTDIR,
+			"cannot pipe2: state not recoverable"},
+
 		{"net", newOpError("wayland", &net.OpError{Op: "dial", Net: "unix", Addr: &net.UnixAddr{Name: "/run/user/1000/wayland-1", Net: "unix"}, Err: syscall.ENOENT}, false),
 			"dial unix /run/user/1000/wayland-1: no such file or directory",
 			syscall.ENOENT, syscall.EPERM,

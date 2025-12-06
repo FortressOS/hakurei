@@ -26,6 +26,7 @@ func (e *OpError) Error() string {
 	switch {
 	case errors.As(e.Err, new(*os.PathError)),
 		errors.As(e.Err, new(*os.LinkError)),
+		errors.As(e.Err, new(*os.SyscallError)),
 		errors.As(e.Err, new(*net.OpError)),
 		errors.As(e.Err, new(*container.StartError)):
 		return e.Err.Error()
