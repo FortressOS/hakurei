@@ -571,6 +571,36 @@ func (ctx *Context) roundtrip() (err error) {
 		return
 	}
 
+	defer func() {
+		var danglingFiles DanglingFilesError
+		if len(ctx.receivedFiles) > 0 {
+			// having multiple *os.File with the same fd causes serious problems
+			slices.Sort(ctx.receivedFiles)
+			ctx.receivedFiles = slices.Compact(ctx.receivedFiles)
+
+			danglingFiles = make(DanglingFilesError, 0, len(ctx.receivedFiles))
+			for _, fd := range ctx.receivedFiles {
+				// hold these as *os.File so they are closed if this error never reaches the caller,
+				// or the caller discards or otherwise does not handle this error, to avoid leaking fds
+				danglingFiles = append(danglingFiles, os.NewFile(uintptr(fd),
+					"dangling fd "+strconv.Itoa(fd)+" received from PipeWire"))
+			}
+			ctx.receivedFiles = ctx.receivedFiles[:0]
+		}
+
+		// populated early for finalizers, but does not overwrite existing errors
+		if len(danglingFiles) > 0 && err == nil {
+			err = &ProxyFatalError{Err: danglingFiles, ProxyErrs: ctx.cloneAsProxyErrors()}
+			return
+		}
+
+		// this check must happen after everything else passes
+		if len(ctx.pendingIds) != 0 {
+			err = &ProxyFatalError{Err: UnacknowledgedProxyError(slices.Collect(maps.Keys(ctx.pendingIds))), ProxyErrs: ctx.cloneAsProxyErrors()}
+			return
+		}
+	}()
+
 	var remaining []byte
 	for {
 		remaining, err = ctx.consume(remaining)
@@ -595,22 +625,6 @@ func (ctx *Context) roundtrip() (err error) {
 // consume receives messages from the server and processes events.
 func (ctx *Context) consume(receiveRemaining []byte) (remaining []byte, err error) {
 	defer func() {
-		// anything before this has already been processed and must not be closed
-		// here, as anything holding onto them will end up with a dangling fd that
-		// can be reused and cause serious problems
-		if len(ctx.receivedFiles) > 0 {
-			ctx.closeReceivedFiles()
-
-			// this catches cases where Roundtrip somehow returns without processing
-			// all received files or preparing an error for dangling files, this is
-			// always overwritten by the fatal error being processed below or made
-			// inaccessible due to repanicking, so if this ends up returned to the
-			// caller it indicates something has gone seriously wrong in Roundtrip
-			if err == nil {
-				err = syscall.ENOTRECOVERABLE
-			}
-		}
-
 		r := recover()
 		if r == nil {
 			return
@@ -676,34 +690,6 @@ func (ctx *Context) consume(receiveRemaining []byte) (remaining []byte, err erro
 		if proxyErr != nil {
 			ctx.proxyErrors = append(ctx.proxyErrors, proxyErr)
 		}
-	}
-
-	// prepared here so finalizers are set up, but should not prevent proxyErrors
-	// from reaching the caller as those describe the cause of these dangling fds
-	var danglingFiles DanglingFilesError
-	if len(ctx.receivedFiles) > 0 {
-		// having multiple *os.File with the same fd causes serious problems
-		slices.Sort(ctx.receivedFiles)
-		ctx.receivedFiles = slices.Compact(ctx.receivedFiles)
-
-		danglingFiles = make(DanglingFilesError, 0, len(ctx.receivedFiles))
-		for _, fd := range ctx.receivedFiles {
-			// hold these as *os.File so they are closed if this error never reaches the caller,
-			// or the caller discards or otherwise does not handle this error, to avoid leaking fds
-			danglingFiles = append(danglingFiles, os.NewFile(uintptr(fd),
-				"dangling fd "+strconv.Itoa(fd)+" received from PipeWire"))
-		}
-		ctx.receivedFiles = ctx.receivedFiles[:0]
-	}
-
-	// populated early for finalizers
-	if len(danglingFiles) > 0 {
-		return remaining, danglingFiles
-	}
-
-	// this check must happen after everything else passes
-	if len(ctx.pendingIds) != 0 {
-		return remaining, UnacknowledgedProxyError(slices.Collect(maps.Keys(ctx.pendingIds)))
 	}
 	return
 }
